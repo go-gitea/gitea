@@ -37,6 +37,7 @@ _Symbols used in table:_
       <td>GitLab CE</td>
       <td>GitLab EE</td>
       <td>BitBucket</td>
+      <td>RhodeCode CE</td>      
     </tr>
   </thead>
   <tbody>
@@ -48,6 +49,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✘</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Issue tracker</td>
@@ -57,6 +59,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Pull/Merge requests</td>
@@ -66,6 +69,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Squash merging</td>
@@ -75,6 +79,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Rebase merging</td>
@@ -84,6 +89,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>⁄</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Pull/Merge request inline comments</td>
@@ -93,6 +99,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Pull/Merge request approval</td>
@@ -102,6 +109,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Merge conflict resolution</td>
@@ -111,6 +119,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Restrict push and merge access to certain users</td>
@@ -120,6 +129,7 @@ _Symbols used in table:_
       <td>⁄</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Markdown support</td>
@@ -129,6 +139,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Issues and pull/merge requests templates</td>
@@ -138,6 +149,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Revert specific commits or a merge request</td>
@@ -147,6 +159,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Labels</td>
@@ -156,6 +169,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Time tracking</td>
@@ -165,6 +179,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Multiple assignees for issues</td>
@@ -174,6 +189,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Related issues</td>
@@ -183,6 +199,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Confidential issues</td>
@@ -192,6 +209,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Comment reactions</td>
@@ -201,6 +219,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Lock Discussion</td>
@@ -210,6 +229,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Batch issue handling</td>
@@ -219,6 +239,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Issue Boards</td>
@@ -228,6 +249,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Create new branches from issues</td>
@@ -237,6 +259,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Commit graph</td>
@@ -246,6 +269,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Web code editor</td>
@@ -255,6 +279,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Branch manager</td>
@@ -264,6 +289,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Create new branches</td>
@@ -273,6 +299,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Repository topics</td>
@@ -282,6 +309,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Repository code search</td>
@@ -291,6 +319,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Global code search</td>
@@ -300,6 +329,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Issue search</td>
@@ -309,6 +339,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Global issue search</td>
@@ -318,6 +349,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Git LFS 2.0</td>
@@ -327,6 +359,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>⁄</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Integrated Git-powered wiki</td>
@@ -336,6 +369,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Static Git-powered pages</td>
@@ -345,6 +379,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Group Milestones</td>
@@ -354,6 +389,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Granular user roles (Code, Issues, Wiki etc)</td>
@@ -363,6 +399,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Cherry-picking changes</td>
@@ -372,6 +409,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>GPG Signed Commits</td>
@@ -381,6 +419,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Reject unsigned commits</td>
@@ -390,6 +429,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Verified Committer</td>
@@ -399,6 +439,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Subgroups: groups within groups</td>
@@ -408,6 +449,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Custom Git Hooks</td>
@@ -417,6 +459,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Repository Activity page</td>
@@ -426,6 +469,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Deploy Tokens</td>
@@ -435,6 +479,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Repository Tokens with write rights</td>
@@ -444,6 +489,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Easy upgrade process</td>
@@ -453,6 +499,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Built-in Container Registry</td>
@@ -462,6 +509,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>External git mirroring</td>
@@ -471,6 +519,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>AD / LDAP integration</td>
@@ -480,6 +529,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Multiple LDAP / AD server support</td>
@@ -489,6 +539,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>LDAP user synchronization</td>
@@ -498,6 +549,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>OpenId Connect support</td>
@@ -507,6 +559,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>?</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>OAuth 2.0 integration (external authorization)</td>
@@ -516,6 +569,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>?</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Act as OAuth 2.0 provider</td>
@@ -525,6 +579,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Two factor authentication (2FA)</td>
@@ -534,6 +589,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>FIDO U2F (2FA)</td>
@@ -543,6 +599,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Webhook support</td>
@@ -552,6 +609,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Mattermost/Slack integration</td>
@@ -561,6 +619,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>⁄</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Discord integration</td>
@@ -570,6 +629,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✘</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>Built-in CI/CD</td>
@@ -579,6 +639,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
     <tr>
       <td>External CI/CD status display</td>
@@ -588,6 +649,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Multiple database support</td>
@@ -597,6 +659,7 @@ _Symbols used in table:_
       <td>⁄</td>
       <td>⁄</td>
       <td>✓</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Multiple OS support</td>
@@ -606,6 +669,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✘</td>
       <td>✘</td>
+      <td>✓</td>      
     </tr>
     <tr>
       <td>Low resource usage (RAM/CPU)</td>
@@ -615,6 +679,7 @@ _Symbols used in table:_
       <td>✘</td>
       <td>✘</td>
       <td>✘</td>
+      <td>✘</td>      
     </tr>
   </tbody>
 </table>
