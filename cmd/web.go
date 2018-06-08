@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"github.com/Unknwon/com"
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -69,6 +71,24 @@ func runHTTPRedirector() {
 	if err != nil {
 		log.Fatal(4, "Failed to start port redirection: %v", err)
 	}
+}
+
+func runLetsEncrypt(listenAddr, domain string, m http.Handler) error {
+	certManager := autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(domain),
+		Cache:      autocert.DirCache("https"),
+	}
+	go http.ListenAndServe(":80", certManager.HTTPHandler(nil)) // all traffic comming into HTTP will be redirect to HTTPS automatically
+	// required for letsencrypt validation
+	server := &http.Server{
+		Addr:    listenAddr,
+		Handler: m,
+		TLSConfig: &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+		},
+	}
+	return server.ListenAndServeTLS("", "")
 }
 
 func runWeb(ctx *cli.Context) error {
@@ -147,6 +167,8 @@ func runWeb(ctx *cli.Context) error {
 			go runHTTPRedirector()
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+	case setting.LetsEncrypt:
+		err = runLetsEncrypt(listenAddr, setting.Domain, context2.ClearHandler(m))
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {

@@ -43,10 +43,11 @@ type Scheme string
 
 // enumerates all the scheme types
 const (
-	HTTP       Scheme = "http"
-	HTTPS      Scheme = "https"
-	FCGI       Scheme = "fcgi"
-	UnixSocket Scheme = "unix"
+	HTTP        Scheme = "http"
+	HTTPS       Scheme = "https"
+	FCGI        Scheme = "fcgi"
+	UnixSocket  Scheme = "unix"
+	LetsEncrypt Scheme = "letsencrypt"
 )
 
 // LandingPage describes the default page
@@ -709,6 +710,8 @@ func NewContext() {
 			log.Fatal(4, "Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
+	} else if sec.Key("PROTOCOL").String() == "letsencrypt" {
+		Protocol = LetsEncrypt
 	}
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")

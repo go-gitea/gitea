@@ -15,7 +15,7 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
-  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
   name = "golang.org/x/crypto"
 
 [[constraint]]

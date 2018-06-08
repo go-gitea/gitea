@@ -82,7 +82,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
+- `PROTOCOL`: **http**: \[http, https, fcgi, unix, letsencrypt\]
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
