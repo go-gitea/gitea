@@ -1,6 +1,7 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
 package migrations
 
 import (
@@ -8,6 +9,6 @@ import (
 )
 
 func cleanUnlinkedWebhookAndHookTasks(x *xorm.Engine) error {
-	_, err := x.Exec(`DELETE FROM webhook WHERE (SELECT id FROM repository WHERE id = webhook.repo_id) ISNULL;DELETE FROM hook_task WHERE (SELECT id FROM repository WHERE id = hook_task.repo_id) ISNULL;`)
+	_, err := x.Exec(`DELETE FROM webhook WHERE repo_id NOT IN (SELECT id FROM repository);DELETE FROM hook_task WHERE repo_id NOT IN (SELECT id FROM repository);`)
 	return err
 }
