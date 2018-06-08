@@ -79,7 +79,7 @@ func runLetsEncrypt(listenAddr, domain string, m http.Handler) error {
 		HostPolicy: autocert.HostWhitelist(domain),
 		Cache:      autocert.DirCache("https"),
 	}
-	go http.ListenAndServe(":80", certManager.HTTPHandler(nil)) // all traffic comming into HTTP will be redirect to HTTPS automatically
+	go http.ListenAndServe(":80", certManager.HTTPHandler(nil)) // all traffic coming into HTTP will be redirect to HTTPS automatically
 	// required for letsencrypt validation
 	server := &http.Server{
 		Addr:    listenAddr,
