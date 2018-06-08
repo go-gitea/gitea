@@ -365,7 +365,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
-		DependentIssue:   opts.DependentIssue,
 		DependentIssueID: depID,
 	}
 	if _, err = e.Insert(comment); err != nil {
