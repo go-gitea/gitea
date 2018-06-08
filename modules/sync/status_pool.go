@@ -24,6 +24,18 @@ func NewStatusTable() *StatusTable {
 	}
 }
 
+// StartIfNotRunning sets value of given name to true if not already in pool.
+// Returns whether set value was set to true
+func (p *StatusTable) StartIfNotRunning(name string) bool {
+	p.lock.Lock()
+	_, ok := p.pool[name]
+	if !ok {
+		p.pool[name] = struct{}{}
+	}
+	p.lock.Unlock()
+	return !ok
+}
+
 // Start sets value of given name to true in the pool.
 func (p *StatusTable) Start(name string) {
 	p.lock.Lock()

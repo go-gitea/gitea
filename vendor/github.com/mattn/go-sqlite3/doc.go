@@ -110,5 +110,3 @@ See the documentation of RegisterFunc for more details.
 
 */
 package sqlite3
-
-import "C"

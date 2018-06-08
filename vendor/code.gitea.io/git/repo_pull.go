@@ -5,8 +5,10 @@
 package git
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -72,4 +74,16 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 // GetPatch generates and returns patch data between given revisions.
 func (repo *Repository) GetPatch(base, head string) ([]byte, error) {
 	return NewCommand("diff", "-p", "--binary", base, head).RunInDirBytes(repo.Path)
+}
+
+// GetFormatPatch generates and returns format-patch data between given revisions.
+func (repo *Repository) GetFormatPatch(base, head string) (io.Reader, error) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	if err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
+		RunInDirPipeline(repo.Path, stdout, stderr); err != nil {
+		return nil, concatenateError(err, stderr.String())
+	}
+	return stdout, nil
 }

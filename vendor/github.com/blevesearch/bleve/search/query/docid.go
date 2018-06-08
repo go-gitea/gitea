@@ -40,10 +40,10 @@ func (q *DocIDQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *DocIDQuery) Boost() float64{
+func (q *DocIDQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-func (q *DocIDQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
-	return searcher.NewDocIDSearcher(i, q.IDs, q.BoostVal.Value(), explain)
+func (q *DocIDQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
+	return searcher.NewDocIDSearcher(i, q.IDs, q.BoostVal.Value(), options)
 }

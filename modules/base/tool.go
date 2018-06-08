@@ -14,16 +14,19 @@ import (
 	"html/template"
 	"io"
 	"math"
-	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
@@ -85,25 +88,6 @@ func BasicAuthEncode(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 }
 
-// GetRandomString generate random string by specify chars.
-func GetRandomString(n int) (string, error) {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(alphanum)))
-
-	for i := 0; i < n; i++ {
-		index, err := randomInt(max)
-		if err != nil {
-			return "", err
-		}
-
-		buffer[i] = alphanum[index]
-	}
-
-	return string(buffer), nil
-}
-
 // GetRandomBytesAsBase64 generates a random base64 string from n bytes
 func GetRandomBytesAsBase64(n int) string {
 	bytes := make([]byte, 32)
@@ -114,15 +98,6 @@ func GetRandomBytesAsBase64(n int) string {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
-}
-
-func randomInt(max *big.Int) (int, error) {
-	rand, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rand.Int64()), nil
 }
 
 // VerifyTimeLimitCode verify time limit code
@@ -192,21 +167,64 @@ func HashEmail(email string) string {
 	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
 }
 
+// DefaultAvatarLink the default avatar link
+func DefaultAvatarLink() string {
+	return setting.AppSubURL + "/img/avatar_default.png"
+}
+
+// DefaultAvatarSize is a sentinel value for the default avatar size, as
+// determined by the avatar-hosting service.
+const DefaultAvatarSize = -1
+
+// libravatarURL returns the URL for the given email. This function should only
+// be called if a federated avatar service is enabled.
+func libravatarURL(email string) (*url.URL, error) {
+	urlStr, err := setting.LibravatarService.FromEmail(email)
+	if err != nil {
+		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		return nil, err
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+// SizedAvatarLink returns a sized link to the avatar for the given email
+// address.
+func SizedAvatarLink(email string, size int) string {
+	var avatarURL *url.URL
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		var err error
+		avatarURL, err = libravatarURL(email)
+		if err != nil {
+			return DefaultAvatarLink()
+		}
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
+	} else {
+		return DefaultAvatarLink()
+	}
+
+	vals := avatarURL.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	avatarURL.RawQuery = vals.Encode()
+	return avatarURL.String()
+}
+
 // AvatarLink returns relative avatar link to the site domain by given email,
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func AvatarLink(email string) string {
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		// TODO: This doesn't check any error. AvatarLink should return (string, error)
-		url, _ := setting.LibravatarService.FromEmail(email)
-		return url
-	}
-
-	if !setting.DisableGravatar {
-		return setting.GravatarSource + HashEmail(email)
-	}
-
-	return setting.AppSubURL + "/img/avatar_default.png"
+	return SizedAvatarLink(email, DefaultAvatarSize)
 }
 
 // Seconds-based time units
@@ -219,77 +237,84 @@ const (
 	Year   = 12 * Month
 )
 
-func computeTimeDiff(diff int64) (int64, string) {
+func computeTimeDiff(diff int64, lang string) (int64, string) {
 	diffStr := ""
 	switch {
 	case diff <= 0:
 		diff = 0
-		diffStr = "now"
+		diffStr = i18n.Tr(lang, "tool.now")
 	case diff < 2:
 		diff = 0
-		diffStr = "1 second"
+		diffStr = i18n.Tr(lang, "tool.1s")
 	case diff < 1*Minute:
-		diffStr = fmt.Sprintf("%d seconds", diff)
+		diffStr = i18n.Tr(lang, "tool.seconds", diff)
 		diff = 0
 
 	case diff < 2*Minute:
 		diff -= 1 * Minute
-		diffStr = "1 minute"
+		diffStr = i18n.Tr(lang, "tool.1m")
 	case diff < 1*Hour:
-		diffStr = fmt.Sprintf("%d minutes", diff/Minute)
+		diffStr = i18n.Tr(lang, "tool.minutes", diff/Minute)
 		diff -= diff / Minute * Minute
 
 	case diff < 2*Hour:
 		diff -= 1 * Hour
-		diffStr = "1 hour"
+		diffStr = i18n.Tr(lang, "tool.1h")
 	case diff < 1*Day:
-		diffStr = fmt.Sprintf("%d hours", diff/Hour)
+		diffStr = i18n.Tr(lang, "tool.hours", diff/Hour)
 		diff -= diff / Hour * Hour
 
 	case diff < 2*Day:
 		diff -= 1 * Day
-		diffStr = "1 day"
+		diffStr = i18n.Tr(lang, "tool.1d")
 	case diff < 1*Week:
-		diffStr = fmt.Sprintf("%d days", diff/Day)
+		diffStr = i18n.Tr(lang, "tool.days", diff/Day)
 		diff -= diff / Day * Day
 
 	case diff < 2*Week:
 		diff -= 1 * Week
-		diffStr = "1 week"
+		diffStr = i18n.Tr(lang, "tool.1w")
 	case diff < 1*Month:
-		diffStr = fmt.Sprintf("%d weeks", diff/Week)
+		diffStr = i18n.Tr(lang, "tool.weeks", diff/Week)
 		diff -= diff / Week * Week
 
 	case diff < 2*Month:
 		diff -= 1 * Month
-		diffStr = "1 month"
+		diffStr = i18n.Tr(lang, "tool.1mon")
 	case diff < 1*Year:
-		diffStr = fmt.Sprintf("%d months", diff/Month)
+		diffStr = i18n.Tr(lang, "tool.months", diff/Month)
 		diff -= diff / Month * Month
 
 	case diff < 2*Year:
 		diff -= 1 * Year
-		diffStr = "1 year"
+		diffStr = i18n.Tr(lang, "tool.1y")
 	default:
-		diffStr = fmt.Sprintf("%d years", diff/Year)
+		diffStr = i18n.Tr(lang, "tool.years", diff/Year)
 		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
 }
 
-// TimeSincePro calculates the time interval and generate full user-friendly string.
-func TimeSincePro(then time.Time) string {
-	return timeSincePro(then, time.Now())
+// MinutesToFriendly returns a user friendly string with number of minutes
+// converted to hours and minutes.
+func MinutesToFriendly(minutes int, lang string) string {
+	duration := time.Duration(minutes) * time.Minute
+	return TimeSincePro(time.Now().Add(-duration), lang)
 }
 
-func timeSincePro(then, now time.Time) string {
+// TimeSincePro calculates the time interval and generate full user-friendly string.
+func TimeSincePro(then time.Time, lang string) string {
+	return timeSincePro(then, time.Now(), lang)
+}
+
+func timeSincePro(then, now time.Time, lang string) string {
 	diff := now.Unix() - then.Unix()
 
 	if then.After(now) {
-		return "future"
+		return i18n.Tr(lang, "tool.future")
 	}
 	if diff == 0 {
-		return "now"
+		return i18n.Tr(lang, "tool.now")
 	}
 
 	var timeStr, diffStr string
@@ -298,58 +323,29 @@ func timeSincePro(then, now time.Time) string {
 			break
 		}
 
-		diff, diffStr = computeTimeDiff(diff)
+		diff, diffStr = computeTimeDiff(diff, lang)
 		timeStr += ", " + diffStr
 	}
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
 func timeSince(then, now time.Time, lang string) string {
-	lbl := i18n.Tr(lang, "tool.ago")
-	diff := now.Unix() - then.Unix()
-	if then.After(now) {
-		lbl = i18n.Tr(lang, "tool.from_now")
-		diff = then.Unix() - now.Unix()
-	}
+	return timeSinceUnix(then.Unix(), now.Unix(), lang)
+}
 
-	switch {
-	case diff <= 0:
+func timeSinceUnix(then, now int64, lang string) string {
+	lbl := "tool.ago"
+	diff := now - then
+	if then > now {
+		lbl = "tool.from_now"
+		diff = then - now
+	}
+	if diff <= 0 {
 		return i18n.Tr(lang, "tool.now")
-	case diff <= 1:
-		return i18n.Tr(lang, "tool.1s", lbl)
-	case diff < 1*Minute:
-		return i18n.Tr(lang, "tool.seconds", diff, lbl)
-
-	case diff < 2*Minute:
-		return i18n.Tr(lang, "tool.1m", lbl)
-	case diff < 1*Hour:
-		return i18n.Tr(lang, "tool.minutes", diff/Minute, lbl)
-
-	case diff < 2*Hour:
-		return i18n.Tr(lang, "tool.1h", lbl)
-	case diff < 1*Day:
-		return i18n.Tr(lang, "tool.hours", diff/Hour, lbl)
-
-	case diff < 2*Day:
-		return i18n.Tr(lang, "tool.1d", lbl)
-	case diff < 1*Week:
-		return i18n.Tr(lang, "tool.days", diff/Day, lbl)
-
-	case diff < 2*Week:
-		return i18n.Tr(lang, "tool.1w", lbl)
-	case diff < 1*Month:
-		return i18n.Tr(lang, "tool.weeks", diff/Week, lbl)
-
-	case diff < 2*Month:
-		return i18n.Tr(lang, "tool.1mon", lbl)
-	case diff < 1*Year:
-		return i18n.Tr(lang, "tool.months", diff/Month, lbl)
-
-	case diff < 2*Year:
-		return i18n.Tr(lang, "tool.1y", lbl)
-	default:
-		return i18n.Tr(lang, "tool.years", diff/Year, lbl)
 	}
+
+	_, diffStr := computeTimeDiff(diff, lang)
+	return i18n.Tr(lang, lbl, diffStr)
 }
 
 // RawTimeSince retrieves i18n key of time since t
@@ -366,6 +362,17 @@ func htmlTimeSince(then, now time.Time, lang string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
 		then.Format(setting.TimeFormat),
 		timeSince(then, now, lang)))
+}
+
+// TimeSinceUnix calculates the time interval and generate user-friendly string.
+func TimeSinceUnix(then util.TimeStamp, lang string) template.HTML {
+	return htmlTimeSinceUnix(then, util.TimeStamp(time.Now().Unix()), lang)
+}
+
+func htmlTimeSinceUnix(then, now util.TimeStamp, lang string) template.HTML {
+	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+		then.Format(setting.TimeFormat),
+		timeSinceUnix(int64(then), int64(now), lang)))
 }
 
 // Storage space size types
@@ -515,6 +522,16 @@ func Int64sToMap(ints []int64) map[int64]bool {
 	return m
 }
 
+// Int64sContains returns if a int64 in a slice of int64
+func Int64sContains(intsSlice []int64, a int64) bool {
+	for _, c := range intsSlice {
+		if c == a {
+			return true
+		}
+	}
+	return false
+}
+
 // IsLetter reports whether the rune is a letter (category L).
 // https://github.com/golang/go/blob/master/src/go/scanner/scanner.go#L257
 func IsLetter(ch rune) bool {
@@ -542,4 +559,26 @@ func IsPDFFile(data []byte) bool {
 // IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "video/") != -1
+}
+
+// EntryIcon returns the octicon class for displaying files/directories
+func EntryIcon(entry *git.TreeEntry) string {
+	switch {
+	case entry.IsLink():
+		te, err := entry.FollowLink()
+		if err != nil {
+			log.Debug(err.Error())
+			return "file-symlink-file"
+		}
+		if te.IsDir() {
+			return "file-symlink-directory"
+		}
+		return "file-symlink-file"
+	case entry.IsDir():
+		return "file-directory"
+	case entry.IsSubModule():
+		return "file-submodule"
+	}
+
+	return "file-text"
 }

@@ -12,28 +12,44 @@ import (
 
 func TestUser_IsOwnedBy(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.True(t, org.IsOwnedBy(2))
-	assert.False(t, org.IsOwnedBy(1))
-	assert.False(t, org.IsOwnedBy(3))
-	assert.False(t, org.IsOwnedBy(4))
-
-	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	assert.False(t, nonOrg.IsOwnedBy(2))
-	assert.False(t, nonOrg.IsOwnedBy(3))
+	for _, testCase := range []struct {
+		OrgID         int64
+		UserID        int64
+		ExpectedOwner bool
+	}{
+		{3, 2, true},
+		{3, 1, false},
+		{3, 3, false},
+		{3, 4, false},
+		{2, 2, false}, // user2 is not an organization
+		{2, 3, false},
+	} {
+		org := AssertExistsAndLoadBean(t, &User{ID: testCase.OrgID}).(*User)
+		isOwner, err := org.IsOwnedBy(testCase.UserID)
+		assert.NoError(t, err)
+		assert.Equal(t, testCase.ExpectedOwner, isOwner)
+	}
 }
 
 func TestUser_IsOrgMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.True(t, org.IsOrgMember(2))
-	assert.True(t, org.IsOrgMember(4))
-	assert.False(t, org.IsOrgMember(1))
-	assert.False(t, org.IsOrgMember(3))
-
-	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	assert.False(t, nonOrg.IsOrgMember(2))
-	assert.False(t, nonOrg.IsOrgMember(3))
+	for _, testCase := range []struct {
+		OrgID          int64
+		UserID         int64
+		ExpectedMember bool
+	}{
+		{3, 2, true},
+		{3, 4, true},
+		{3, 1, false},
+		{3, 3, false},
+		{2, 2, false}, // user2 is not an organization
+		{2, 3, false},
+	} {
+		org := AssertExistsAndLoadBean(t, &User{ID: testCase.OrgID}).(*User)
+		isMember, err := org.IsOrgMember(testCase.UserID)
+		assert.NoError(t, err)
+		assert.Equal(t, testCase.ExpectedMember, isMember)
+	}
 }
 
 func TestUser_GetTeam(t *testing.T) {
@@ -68,18 +84,20 @@ func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.NoError(t, org.GetTeams())
-	assert.Len(t, org.Teams, 2)
-	assert.Equal(t, int64(1), org.Teams[0].ID)
-	assert.Equal(t, int64(2), org.Teams[1].ID)
+	if assert.Len(t, org.Teams, 2) {
+		assert.Equal(t, int64(1), org.Teams[0].ID)
+		assert.Equal(t, int64(2), org.Teams[1].ID)
+	}
 }
 
 func TestUser_GetMembers(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.NoError(t, org.GetMembers())
-	assert.Len(t, org.Members, 2)
-	assert.Equal(t, int64(2), org.Members[0].ID)
-	assert.Equal(t, int64(4), org.Members[1].ID)
+	if assert.Len(t, org.Members, 2) {
+		assert.Equal(t, int64(2), org.Members[0].ID)
+		assert.Equal(t, int64(4), org.Members[1].ID)
+	}
 }
 
 func TestUser_AddMember(t *testing.T) {
@@ -222,10 +240,10 @@ func TestGetOrgByName(t *testing.T) {
 	assert.Equal(t, "user3", org.Name)
 
 	org, err = GetOrgByName("user2") // user2 is an individual
-	assert.Equal(t, ErrOrgNotExist, err)
+	assert.True(t, IsErrOrgNotExist(err))
 
 	org, err = GetOrgByName("") // corner case
-	assert.Equal(t, ErrOrgNotExist, err)
+	assert.True(t, IsErrOrgNotExist(err))
 }
 
 func TestCountOrganizations(t *testing.T) {
@@ -233,26 +251,6 @@ func TestCountOrganizations(t *testing.T) {
 	expected, err := x.Where("type=?", UserTypeOrganization).Count(&User{})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, CountOrganizations())
-}
-
-func TestOrganizations(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	testSuccess := func(opts *SearchUserOptions, expectedOrgIDs []int64) {
-		orgs, err := Organizations(opts)
-		assert.NoError(t, err)
-		assert.Len(t, orgs, len(expectedOrgIDs))
-		for i, expectedOrgID := range expectedOrgIDs {
-			assert.EqualValues(t, expectedOrgID, orgs[i].ID)
-		}
-	}
-	testSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, PageSize: 2},
-		[]int64{3, 6})
-
-	testSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
-		[]int64{7})
-
-	testSuccess(&SearchUserOptions{Page: 3, PageSize: 2},
-		[]int64{})
 }
 
 func TestDeleteOrganization(t *testing.T) {
@@ -275,31 +273,46 @@ func TestDeleteOrganization(t *testing.T) {
 
 func TestIsOrganizationOwner(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.True(t, IsOrganizationOwner(3, 2))
-	assert.False(t, IsOrganizationOwner(3, 3))
-	assert.True(t, IsOrganizationOwner(6, 5))
-	assert.False(t, IsOrganizationOwner(6, 4))
-	assert.False(t, IsOrganizationOwner(NonexistentID, NonexistentID))
+	test := func(orgID, userID int64, expected bool) {
+		isOwner, err := IsOrganizationOwner(orgID, userID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expected, isOwner)
+	}
+	test(3, 2, true)
+	test(3, 3, false)
+	test(6, 5, true)
+	test(6, 4, false)
+	test(NonexistentID, NonexistentID, false)
 }
 
 func TestIsOrganizationMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.True(t, IsOrganizationMember(3, 2))
-	assert.False(t, IsOrganizationMember(3, 3))
-	assert.True(t, IsOrganizationMember(3, 4))
-	assert.True(t, IsOrganizationMember(6, 5))
-	assert.False(t, IsOrganizationMember(6, 4))
-	assert.False(t, IsOrganizationMember(NonexistentID, NonexistentID))
+	test := func(orgID, userID int64, expected bool) {
+		isMember, err := IsOrganizationMember(orgID, userID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expected, isMember)
+	}
+	test(3, 2, true)
+	test(3, 3, false)
+	test(3, 4, true)
+	test(6, 5, true)
+	test(6, 4, false)
+	test(NonexistentID, NonexistentID, false)
 }
 
 func TestIsPublicMembership(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.True(t, IsPublicMembership(3, 2))
-	assert.False(t, IsPublicMembership(3, 3))
-	assert.False(t, IsPublicMembership(3, 4))
-	assert.True(t, IsPublicMembership(6, 5))
-	assert.False(t, IsPublicMembership(6, 4))
-	assert.False(t, IsPublicMembership(NonexistentID, NonexistentID))
+	test := func(orgID, userID int64, expected bool) {
+		isMember, err := IsPublicMembership(orgID, userID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expected, isMember)
+	}
+	test(3, 2, true)
+	test(3, 3, false)
+	test(3, 4, false)
+	test(6, 5, true)
+	test(6, 4, false)
+	test(NonexistentID, NonexistentID, false)
 }
 
 func TestGetOrgsByUserID(t *testing.T) {
@@ -307,8 +320,9 @@ func TestGetOrgsByUserID(t *testing.T) {
 
 	orgs, err := GetOrgsByUserID(4, true)
 	assert.NoError(t, err)
-	assert.Len(t, orgs, 1)
-	assert.EqualValues(t, 3, orgs[0].ID)
+	if assert.Len(t, orgs, 1) {
+		assert.EqualValues(t, 3, orgs[0].ID)
+	}
 
 	orgs, err = GetOrgsByUserID(4, false)
 	assert.NoError(t, err)
@@ -320,8 +334,9 @@ func TestGetOwnedOrgsByUserID(t *testing.T) {
 
 	orgs, err := GetOwnedOrgsByUserID(2)
 	assert.NoError(t, err)
-	assert.Len(t, orgs, 1)
-	assert.EqualValues(t, 3, orgs[0].ID)
+	if assert.Len(t, orgs, 1) {
+		assert.EqualValues(t, 3, orgs[0].ID)
+	}
 
 	orgs, err = GetOwnedOrgsByUserID(4)
 	assert.NoError(t, err)
@@ -333,9 +348,10 @@ func TestGetOwnedOrgsByUserIDDesc(t *testing.T) {
 
 	orgs, err := GetOwnedOrgsByUserIDDesc(5, "id")
 	assert.NoError(t, err)
-	assert.Len(t, orgs, 2)
-	assert.EqualValues(t, 7, orgs[0].ID)
-	assert.EqualValues(t, 6, orgs[1].ID)
+	if assert.Len(t, orgs, 2) {
+		assert.EqualValues(t, 7, orgs[0].ID)
+		assert.EqualValues(t, 6, orgs[1].ID)
+	}
 
 	orgs, err = GetOwnedOrgsByUserIDDesc(4, "id")
 	assert.NoError(t, err)
@@ -347,21 +363,18 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 
 	orgUsers, err := GetOrgUsersByUserID(5, true)
 	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 2)
-	assert.Equal(t, OrgUser{
-		ID:       orgUsers[0].ID,
-		OrgID:    6,
-		UID:      5,
-		IsOwner:  true,
-		IsPublic: true,
-		NumTeams: 1}, *orgUsers[0])
-	assert.Equal(t, OrgUser{
-		ID:       orgUsers[1].ID,
-		OrgID:    7,
-		UID:      5,
-		IsOwner:  true,
-		IsPublic: false,
-		NumTeams: 1}, *orgUsers[1])
+	if assert.Len(t, orgUsers, 2) {
+		assert.Equal(t, OrgUser{
+			ID:       orgUsers[0].ID,
+			OrgID:    6,
+			UID:      5,
+			IsPublic: true}, *orgUsers[0])
+		assert.Equal(t, OrgUser{
+			ID:       orgUsers[1].ID,
+			OrgID:    7,
+			UID:      5,
+			IsPublic: false}, *orgUsers[1])
+	}
 
 	publicOrgUsers, err := GetOrgUsersByUserID(5, false)
 	assert.NoError(t, err)
@@ -378,21 +391,18 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 
 	orgUsers, err := GetOrgUsersByOrgID(3)
 	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 2)
-	assert.Equal(t, OrgUser{
-		ID:       orgUsers[0].ID,
-		OrgID:    3,
-		UID:      2,
-		IsOwner:  true,
-		IsPublic: true,
-		NumTeams: 1}, *orgUsers[0])
-	assert.Equal(t, OrgUser{
-		ID:       orgUsers[1].ID,
-		OrgID:    3,
-		UID:      4,
-		IsOwner:  false,
-		IsPublic: false,
-		NumTeams: 0}, *orgUsers[1])
+	if assert.Len(t, orgUsers, 2) {
+		assert.Equal(t, OrgUser{
+			ID:       orgUsers[0].ID,
+			OrgID:    3,
+			UID:      2,
+			IsPublic: true}, *orgUsers[0])
+		assert.Equal(t, OrgUser{
+			ID:       orgUsers[1].ID,
+			OrgID:    3,
+			UID:      4,
+			IsPublic: false}, *orgUsers[1])
+	}
 
 	orgUsers, err = GetOrgUsersByOrgID(NonexistentID)
 	assert.NoError(t, err)

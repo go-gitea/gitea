@@ -6,7 +6,8 @@ package models
 
 import (
 	"encoding/json"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
@@ -16,12 +17,10 @@ import (
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64    `xorm:"INDEX(s)"`
-	Type        UnitType `xorm:"INDEX(s)"`
-	Index       int
+	RepoID      int64           `xorm:"INDEX(s)"`
+	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
-	CreatedUnix int64           `xorm:"INDEX CREATED"`
-	Created     time.Time       `xorm:"-"`
+	CreatedUnix util.TimeStamp  `xorm:"INDEX CREATED"`
 }
 
 // UnitConfig describes common unit config
@@ -70,29 +69,65 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// IssuesConfig describes issues config
+type IssuesConfig struct {
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
+}
+
+// FromDB fills up a IssuesConfig from serialized format.
+func (cfg *IssuesConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a IssuesConfig to a serialized format.
+func (cfg *IssuesConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+// PullRequestsConfig describes pull requests config
+type PullRequestsConfig struct {
+	IgnoreWhitespaceConflicts bool
+	AllowMerge                bool
+	AllowRebase               bool
+	AllowSquash               bool
+}
+
+// FromDB fills up a PullRequestsConfig from serialized format.
+func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a PullRequestsConfig to a serialized format.
+func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+// IsMergeStyleAllowed returns if merge style is allowed
+func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
+	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
+		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypeIssues, UnitTypePullRequests, UnitTypeCommits, UnitTypeReleases,
-			UnitTypeWiki, UnitTypeSettings:
+		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case UnitTypeExternalTracker:
 			r.Config = new(ExternalTrackerConfig)
+		case UnitTypePullRequests:
+			r.Config = new(PullRequestsConfig)
+		case UnitTypeIssues:
+			r.Config = new(IssuesConfig)
 		default:
 			panic("unrecognized repo unit type: " + com.ToStr(*val))
 		}
-	}
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *RepoUnit) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
 	}
 }
 
@@ -106,19 +141,9 @@ func (r *RepoUnit) CodeConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// IssuesConfig returns config for UnitTypeIssues
-func (r *RepoUnit) IssuesConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
-}
-
 // PullRequestsConfig returns config for UnitTypePullRequests
-func (r *RepoUnit) PullRequestsConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
-}
-
-// CommitsConfig returns config for UnitTypeCommits
-func (r *RepoUnit) CommitsConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
+func (r *RepoUnit) PullRequestsConfig() *PullRequestsConfig {
+	return r.Config.(*PullRequestsConfig)
 }
 
 // ReleasesConfig returns config for UnitTypeReleases
@@ -129,6 +154,11 @@ func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 // ExternalWikiConfig returns config for UnitTypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
+}
+
+// IssuesConfig returns config for UnitTypeIssues
+func (r *RepoUnit) IssuesConfig() *IssuesConfig {
+	return r.Config.(*IssuesConfig)
 }
 
 // ExternalTrackerConfig returns config for UnitTypeExternalTracker

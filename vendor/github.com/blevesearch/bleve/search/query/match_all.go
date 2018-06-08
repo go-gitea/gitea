@@ -38,14 +38,12 @@ func (q *MatchAllQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *MatchAllQuery) Boost() float64{
+func (q *MatchAllQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-
-
-func (q *MatchAllQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
-	return searcher.NewMatchAllSearcher(i, q.BoostVal.Value(), explain)
+func (q *MatchAllQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
+	return searcher.NewMatchAllSearcher(i, q.BoostVal.Value(), options)
 }
 
 func (q *MatchAllQuery) MarshalJSON() ([]byte, error) {

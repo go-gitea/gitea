@@ -1,11 +1,13 @@
 package base
 
 import (
+	"net/url"
 	"os"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/i18n"
 	macaroni18n "github.com/go-macaron/i18n"
 	"github.com/stretchr/testify/assert"
@@ -105,12 +107,6 @@ func TestBasicAuthEncode(t *testing.T) {
 	assert.Equal(t, "Zm9vOmJhcg==", BasicAuthEncode("foo", "bar"))
 }
 
-func TestGetRandomString(t *testing.T) {
-	randomString, err := GetRandomString(4)
-	assert.NoError(t, err)
-	assert.Len(t, randomString, 4)
-}
-
 // TODO: Test PBKDF2()
 // TODO: Test VerifyTimeLimitCode()
 // TODO: Test CreateTimeLimitCode()
@@ -126,16 +122,40 @@ func TestHashEmail(t *testing.T) {
 	)
 }
 
-func TestAvatarLink(t *testing.T) {
+const gravatarSource = "https://secure.gravatar.com/avatar/"
+
+func disableGravatar() {
 	setting.EnableFederatedAvatar = false
 	setting.LibravatarService = nil
 	setting.DisableGravatar = true
+}
 
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink(""))
-
+func enableGravatar(t *testing.T) {
 	setting.DisableGravatar = false
+	var err error
+	setting.GravatarSourceURL, err = url.Parse(gravatarSource)
+	assert.NoError(t, err)
+}
+
+func TestSizedAvatarLink(t *testing.T) {
+	disableGravatar()
+	assert.Equal(t, "/img/avatar_default.png",
+		SizedAvatarLink("gitea@example.com", 100))
+
+	enableGravatar(t)
 	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
+		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
+		SizedAvatarLink("gitea@example.com", 100),
+	)
+}
+
+func TestAvatarLink(t *testing.T) {
+	disableGravatar()
+	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
+
+	enableGravatar(t)
+	assert.Equal(t,
+		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
 		AvatarLink("gitea@example.com"),
 	)
 }
@@ -145,7 +165,7 @@ func TestComputeTimeDiff(t *testing.T) {
 	// computeTimeDiff(base + offset) == (offset, str)
 	test := func(base int64, str string, offsets ...int64) {
 		for _, offset := range offsets {
-			diff, diffStr := computeTimeDiff(base + offset)
+			diff, diffStr := computeTimeDiff(base+offset, "en")
 			assert.Equal(t, offset, diff)
 			assert.Equal(t, str, diffStr)
 		}
@@ -167,18 +187,30 @@ func TestComputeTimeDiff(t *testing.T) {
 	test(3*Year, "3 years", 0, Year-1)
 }
 
+func TestMinutesToFriendly(t *testing.T) {
+	// test that a number of minutes yields the expected string
+	test := func(expected string, minutes int) {
+		actual := MinutesToFriendly(minutes, "en")
+		assert.Equal(t, expected, actual)
+	}
+	test("1 minute", 1)
+	test("2 minutes", 2)
+	test("1 hour", 60)
+	test("1 hour, 1 minute", 61)
+	test("1 hour, 2 minutes", 62)
+	test("2 hours", 120)
+}
+
 func TestTimeSince(t *testing.T) {
 	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, "en"))
 
 	// test that each diff in `diffs` yields the expected string
 	test := func(expected string, diffs ...time.Duration) {
-		ago := i18n.Tr("en", "tool.ago")
-		fromNow := i18n.Tr("en", "tool.from_now")
 		for _, diff := range diffs {
 			actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
-			assert.Equal(t, expected+" "+ago, actual)
+			assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
 			actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
-			assert.Equal(t, expected+" "+fromNow, actual)
+			assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
 		}
 	}
 	test("1 second", time.Second, time.Second+50*time.Millisecond)
@@ -198,13 +230,13 @@ func TestTimeSince(t *testing.T) {
 }
 
 func TestTimeSincePro(t *testing.T) {
-	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate))
+	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, "en"))
 
 	// test that a difference of `diff` yields the expected string
 	test := func(expected string, diff time.Duration) {
-		actual := timeSincePro(BaseDate, BaseDate.Add(diff))
+		actual := timeSincePro(BaseDate, BaseDate.Add(diff), "en")
 		assert.Equal(t, expected, actual)
-		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate))
+		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, "en"))
 	}
 	test("1 second", time.Second)
 	test("2 seconds", 2*time.Second)

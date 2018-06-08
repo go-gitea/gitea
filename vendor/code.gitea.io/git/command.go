@@ -17,6 +17,9 @@ import (
 var (
 	// GlobalCommandArgs global command args for external package setting
 	GlobalCommandArgs []string
+
+	// DefaultCommandExecutionTimeout default command execution timeout duration
+	DefaultCommandExecutionTimeout = 60 * time.Second
 )
 
 // Command represents a command with its subcommands or arguments.
@@ -50,7 +53,7 @@ func (c *Command) AddArguments(args ...string) *Command {
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
 	if timeout == -1 {
-		timeout = 60 * time.Second
+		timeout = DefaultCommandExecutionTimeout
 	}
 
 	if len(dir) == 0 {
@@ -70,7 +73,11 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 		return err
 	}
 
-	return cmd.Wait()
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
+	return ctx.Err()
 }
 
 // RunInDirTimeout executes the command in given directory with given timeout,

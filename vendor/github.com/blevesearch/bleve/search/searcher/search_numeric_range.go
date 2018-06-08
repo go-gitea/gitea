@@ -17,22 +17,16 @@ package searcher
 import (
 	"bytes"
 	"math"
+	"sort"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/numeric"
 	"github.com/blevesearch/bleve/search"
 )
 
-type NumericRangeSearcher struct {
-	indexReader index.IndexReader
-	min         *float64
-	max         *float64
-	field       string
-	explain     bool
-	searcher    *DisjunctionSearcher
-}
-
-func NewNumericRangeSearcher(indexReader index.IndexReader, min *float64, max *float64, inclusiveMin, inclusiveMax *bool, field string, boost float64, explain bool) (*NumericRangeSearcher, error) {
+func NewNumericRangeSearcher(indexReader index.IndexReader,
+	min *float64, max *float64, inclusiveMin, inclusiveMax *bool, field string,
+	boost float64, options search.SearcherOptions) (search.Searcher, error) {
 	// account for unbounded edges
 	if min == nil {
 		negInf := math.Inf(-1)
@@ -62,64 +56,49 @@ func NewNumericRangeSearcher(indexReader index.IndexReader, min *float64, max *f
 	// FIXME hard-coded precision, should match field declaration
 	termRanges := splitInt64Range(minInt64, maxInt64, 4)
 	terms := termRanges.Enumerate()
+	if len(terms) < 1 {
+		// cannot return MatchNoneSearcher because of interaction with
+		// commit f391b991c20f02681bacd197afc6d8aed444e132
+		return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
+			true)
+	}
+	var err error
+	terms, err = filterCandidateTerms(indexReader, terms, field)
+	if err != nil {
+		return nil, err
+	}
 	if tooManyClauses(len(terms)) {
 		return nil, tooManyClausesErr()
 	}
-	// enumerate all the terms in the range
-	qsearchers := make([]search.Searcher, len(terms))
-	qsearchersClose := func() {
-		for _, searcher := range qsearchers {
-			if searcher != nil {
-				_ = searcher.Close()
-			}
-		}
-	}
-	for i, term := range terms {
-		var err error
-		qsearchers[i], err = NewTermSearcher(indexReader, string(term), field, boost, explain)
-		if err != nil {
-			qsearchersClose()
-			return nil, err
-		}
-	}
-	// build disjunction searcher of these ranges
-	searcher, err := NewDisjunctionSearcher(indexReader, qsearchers, 0, explain)
+
+	return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
+		true)
+}
+
+func filterCandidateTerms(indexReader index.IndexReader,
+	terms [][]byte, field string) (rv [][]byte, err error) {
+	fieldDict, err := indexReader.FieldDictRange(field, terms[0], terms[len(terms)-1])
 	if err != nil {
-		qsearchersClose()
 		return nil, err
 	}
-	return &NumericRangeSearcher{
-		indexReader: indexReader,
-		min:         min,
-		max:         max,
-		field:       field,
-		explain:     explain,
-		searcher:    searcher,
-	}, nil
-}
 
-func (s *NumericRangeSearcher) Count() uint64 {
-	return s.searcher.Count()
-}
+	// enumerate the terms and check against list of terms
+	tfd, err := fieldDict.Next()
+	for err == nil && tfd != nil {
+		termBytes := []byte(tfd.Term)
+		i := sort.Search(len(terms), func(i int) bool { return bytes.Compare(terms[i], termBytes) >= 0 })
+		if i < len(terms) && bytes.Compare(terms[i], termBytes) == 0 {
+			rv = append(rv, terms[i])
+		}
+		terms = terms[i:]
+		tfd, err = fieldDict.Next()
+	}
 
-func (s *NumericRangeSearcher) Weight() float64 {
-	return s.searcher.Weight()
-}
+	if cerr := fieldDict.Close(); cerr != nil && err == nil {
+		err = cerr
+	}
 
-func (s *NumericRangeSearcher) SetQueryNorm(qnorm float64) {
-	s.searcher.SetQueryNorm(qnorm)
-}
-
-func (s *NumericRangeSearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch, error) {
-	return s.searcher.Next(ctx)
-}
-
-func (s *NumericRangeSearcher) Advance(ctx *search.SearchContext, ID index.IndexInternalID) (*search.DocumentMatch, error) {
-	return s.searcher.Advance(ctx, ID)
-}
-
-func (s *NumericRangeSearcher) Close() error {
-	return s.searcher.Close()
+	return rv, err
 }
 
 type termRange struct {
@@ -190,7 +169,8 @@ func splitInt64Range(minBound, maxBound int64, precisionStep uint) termRanges {
 		lowerWrapped := nextMinBound < minBound
 		upperWrapped := nextMaxBound > maxBound
 
-		if shift+precisionStep >= 64 || nextMinBound > nextMaxBound || lowerWrapped || upperWrapped {
+		if shift+precisionStep >= 64 || nextMinBound > nextMaxBound ||
+			lowerWrapped || upperWrapped {
 			// We are in the lowest precision or the next precision is not available.
 			rv = append(rv, newRange(minBound, maxBound, shift))
 			// exit the split recursion loop
@@ -224,12 +204,4 @@ func newRangeBytes(minBytes, maxBytes []byte) *termRange {
 		startTerm: minBytes,
 		endTerm:   maxBytes,
 	}
-}
-
-func (s *NumericRangeSearcher) Min() int {
-	return 0
-}
-
-func (s *NumericRangeSearcher) DocumentMatchPoolSize() int {
-	return s.searcher.DocumentMatchPoolSize()
 }

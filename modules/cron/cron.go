@@ -77,6 +77,17 @@ func NewContext() {
 			go models.SyncExternalUsers()
 		}
 	}
+	if setting.Cron.DeletedBranchesCleanup.Enabled {
+		entry, err = c.AddFunc("Remove old deleted branches", setting.Cron.DeletedBranchesCleanup.Schedule, models.RemoveOldDeletedBranches)
+		if err != nil {
+			log.Fatal(4, "Cron[Remove old deleted branches]: %v", err)
+		}
+		if setting.Cron.DeletedBranchesCleanup.RunAtStart {
+			entry.Prev = time.Now()
+			entry.ExecTimes++
+			go models.RemoveOldDeletedBranches()
+		}
+	}
 	c.Start()
 }
 

@@ -87,7 +87,7 @@ func (s *Highlighter) BestFragmentsInField(dm *search.DocumentMatch, doc *docume
 			if ok {
 				termLocationsSameArrayPosition := make(highlight.TermLocations, 0)
 				for _, otl := range orderedTermLocations {
-					if highlight.SameArrayPositions(f.ArrayPositions(), otl.ArrayPositions) {
+					if otl.ArrayPositions.Equals(f.ArrayPositions()) {
 						termLocationsSameArrayPosition = append(termLocationsSameArrayPosition, otl)
 					}
 				}

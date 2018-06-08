@@ -10,10 +10,13 @@ import (
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/md5"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -364,6 +367,17 @@ func (r *dsaPublicKey) Type() string {
 	return "ssh-dss"
 }
 
+func checkDSAParams(param *dsa.Parameters) error {
+	// SSH specifies FIPS 186-2, which only provided a single size
+	// (1024 bits) DSA key. FIPS 186-3 allows for larger key
+	// sizes, which would confuse SSH.
+	if l := param.P.BitLen(); l != 1024 {
+		return fmt.Errorf("ssh: unsupported DSA key size %d", l)
+	}
+
+	return nil
+}
+
 // parseDSA parses an DSA key according to RFC 4253, section 6.6.
 func parseDSA(in []byte) (out PublicKey, rest []byte, err error) {
 	var w struct {
@@ -374,13 +388,18 @@ func parseDSA(in []byte) (out PublicKey, rest []byte, err error) {
 		return nil, nil, err
 	}
 
+	param := dsa.Parameters{
+		P: w.P,
+		Q: w.Q,
+		G: w.G,
+	}
+	if err := checkDSAParams(&param); err != nil {
+		return nil, nil, err
+	}
+
 	key := &dsaPublicKey{
-		Parameters: dsa.Parameters{
-			P: w.P,
-			Q: w.Q,
-			G: w.G,
-		},
-		Y: w.Y,
+		Parameters: param,
+		Y:          w.Y,
 	}
 	return key, w.Rest, nil
 }
@@ -627,17 +646,26 @@ func (k *ecdsaPublicKey) CryptoPublicKey() crypto.PublicKey {
 }
 
 // NewSignerFromKey takes an *rsa.PrivateKey, *dsa.PrivateKey,
-// *ecdsa.PrivateKey or any other crypto.Signer and returns a corresponding
-// Signer instance. ECDSA keys must use P-256, P-384 or P-521.
+// *ecdsa.PrivateKey or any other crypto.Signer and returns a
+// corresponding Signer instance. ECDSA keys must use P-256, P-384 or
+// P-521. DSA keys must use parameter size L1024N160.
 func NewSignerFromKey(key interface{}) (Signer, error) {
 	switch key := key.(type) {
 	case crypto.Signer:
 		return NewSignerFromSigner(key)
 	case *dsa.PrivateKey:
-		return &dsaPrivateKey{key}, nil
+		return newDSAPrivateKey(key)
 	default:
 		return nil, fmt.Errorf("ssh: unsupported key type %T", key)
 	}
+}
+
+func newDSAPrivateKey(key *dsa.PrivateKey) (Signer, error) {
+	if err := checkDSAParams(&key.PublicKey.Parameters); err != nil {
+		return nil, err
+	}
+
+	return &dsaPrivateKey{key}, nil
 }
 
 type wrappedSigner struct {
@@ -753,6 +781,18 @@ func ParsePrivateKey(pemBytes []byte) (Signer, error) {
 	return NewSignerFromKey(key)
 }
 
+// ParsePrivateKeyWithPassphrase returns a Signer from a PEM encoded private
+// key and passphrase. It supports the same keys as
+// ParseRawPrivateKeyWithPassphrase.
+func ParsePrivateKeyWithPassphrase(pemBytes, passPhrase []byte) (Signer, error) {
+	key, err := ParseRawPrivateKeyWithPassphrase(pemBytes, passPhrase)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSignerFromKey(key)
+}
+
 // encryptedBlock tells whether a private key is
 // encrypted by examining its Proc-Type header
 // for a mention of ENCRYPTED
@@ -787,6 +827,43 @@ func ParseRawPrivateKey(pemBytes []byte) (interface{}, error) {
 	}
 }
 
+// ParseRawPrivateKeyWithPassphrase returns a private key decrypted with
+// passphrase from a PEM encoded private key. If wrong passphrase, return
+// x509.IncorrectPasswordError.
+func ParseRawPrivateKeyWithPassphrase(pemBytes, passPhrase []byte) (interface{}, error) {
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return nil, errors.New("ssh: no key found")
+	}
+	buf := block.Bytes
+
+	if encryptedBlock(block) {
+		if x509.IsEncryptedPEMBlock(block) {
+			var err error
+			buf, err = x509.DecryptPEMBlock(block, passPhrase)
+			if err != nil {
+				if err == x509.IncorrectPasswordError {
+					return nil, err
+				}
+				return nil, fmt.Errorf("ssh: cannot decode encrypted private keys: %v", err)
+			}
+		}
+	}
+
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		return x509.ParsePKCS1PrivateKey(buf)
+	case "EC PRIVATE KEY":
+		return x509.ParseECPrivateKey(buf)
+	case "DSA PRIVATE KEY":
+		return ParseDSAPrivateKey(buf)
+	case "OPENSSH PRIVATE KEY":
+		return parseOpenSSHPrivateKey(buf)
+	default:
+		return nil, fmt.Errorf("ssh: unsupported key type %q", block.Type)
+	}
+}
+
 // ParseDSAPrivateKey returns a DSA private key from its ASN.1 DER encoding, as
 // specified by the OpenSSL DSA man page.
 func ParseDSAPrivateKey(der []byte) (*dsa.PrivateKey, error) {
@@ -795,8 +872,8 @@ func ParseDSAPrivateKey(der []byte) (*dsa.PrivateKey, error) {
 		P       *big.Int
 		Q       *big.Int
 		G       *big.Int
-		Priv    *big.Int
 		Pub     *big.Int
+		Priv    *big.Int
 	}
 	rest, err := asn1.Unmarshal(der, &k)
 	if err != nil {
@@ -813,15 +890,15 @@ func ParseDSAPrivateKey(der []byte) (*dsa.PrivateKey, error) {
 				Q: k.Q,
 				G: k.G,
 			},
-			Y: k.Priv,
+			Y: k.Pub,
 		},
-		X: k.Pub,
+		X: k.Priv,
 	}, nil
 }
 
 // Implemented based on the documentation at
 // https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.key
-func parseOpenSSHPrivateKey(key []byte) (*ed25519.PrivateKey, error) {
+func parseOpenSSHPrivateKey(key []byte) (crypto.PrivateKey, error) {
 	magic := append([]byte("openssh-key-v1"), 0)
 	if !bytes.Equal(magic, key[0:len(magic)]) {
 		return nil, errors.New("ssh: invalid openssh private key format")
@@ -841,14 +918,15 @@ func parseOpenSSHPrivateKey(key []byte) (*ed25519.PrivateKey, error) {
 		return nil, err
 	}
 
+	if w.KdfName != "none" || w.CipherName != "none" {
+		return nil, errors.New("ssh: cannot decode encrypted private keys")
+	}
+
 	pk1 := struct {
 		Check1  uint32
 		Check2  uint32
 		Keytype string
-		Pub     []byte
-		Priv    []byte
-		Comment string
-		Pad     []byte `ssh:"rest"`
+		Rest    []byte `ssh:"rest"`
 	}{}
 
 	if err := Unmarshal(w.PrivKeyBlock, &pk1); err != nil {
@@ -859,22 +937,95 @@ func parseOpenSSHPrivateKey(key []byte) (*ed25519.PrivateKey, error) {
 		return nil, errors.New("ssh: checkint mismatch")
 	}
 
-	// we only handle ed25519 keys currently
-	if pk1.Keytype != KeyAlgoED25519 {
+	// we only handle ed25519 and rsa keys currently
+	switch pk1.Keytype {
+	case KeyAlgoRSA:
+		// https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L2760-L2773
+		key := struct {
+			N       *big.Int
+			E       *big.Int
+			D       *big.Int
+			Iqmp    *big.Int
+			P       *big.Int
+			Q       *big.Int
+			Comment string
+			Pad     []byte `ssh:"rest"`
+		}{}
+
+		if err := Unmarshal(pk1.Rest, &key); err != nil {
+			return nil, err
+		}
+
+		for i, b := range key.Pad {
+			if int(b) != i+1 {
+				return nil, errors.New("ssh: padding not as expected")
+			}
+		}
+
+		pk := &rsa.PrivateKey{
+			PublicKey: rsa.PublicKey{
+				N: key.N,
+				E: int(key.E.Int64()),
+			},
+			D:      key.D,
+			Primes: []*big.Int{key.P, key.Q},
+		}
+
+		if err := pk.Validate(); err != nil {
+			return nil, err
+		}
+
+		pk.Precompute()
+
+		return pk, nil
+	case KeyAlgoED25519:
+		key := struct {
+			Pub     []byte
+			Priv    []byte
+			Comment string
+			Pad     []byte `ssh:"rest"`
+		}{}
+
+		if err := Unmarshal(pk1.Rest, &key); err != nil {
+			return nil, err
+		}
+
+		if len(key.Priv) != ed25519.PrivateKeySize {
+			return nil, errors.New("ssh: private key unexpected length")
+		}
+
+		for i, b := range key.Pad {
+			if int(b) != i+1 {
+				return nil, errors.New("ssh: padding not as expected")
+			}
+		}
+
+		pk := ed25519.PrivateKey(make([]byte, ed25519.PrivateKeySize))
+		copy(pk, key.Priv)
+		return &pk, nil
+	default:
 		return nil, errors.New("ssh: unhandled key type")
 	}
+}
 
-	for i, b := range pk1.Pad {
-		if int(b) != i+1 {
-			return nil, errors.New("ssh: padding not as expected")
-		}
+// FingerprintLegacyMD5 returns the user presentation of the key's
+// fingerprint as described by RFC 4716 section 4.
+func FingerprintLegacyMD5(pubKey PublicKey) string {
+	md5sum := md5.Sum(pubKey.Marshal())
+	hexarray := make([]string, len(md5sum))
+	for i, c := range md5sum {
+		hexarray[i] = hex.EncodeToString([]byte{c})
 	}
+	return strings.Join(hexarray, ":")
+}
 
-	if len(pk1.Priv) != ed25519.PrivateKeySize {
-		return nil, errors.New("ssh: private key unexpected length")
-	}
-
-	pk := ed25519.PrivateKey(make([]byte, ed25519.PrivateKeySize))
-	copy(pk, pk1.Priv)
-	return &pk, nil
+// FingerprintSHA256 returns the user presentation of the key's
+// fingerprint as unpadded base64 encoded sha256 hash.
+// This format was introduced from OpenSSH 6.8.
+// https://www.openssh.com/txt/release-6.8
+// https://tools.ietf.org/html/rfc4648#section-3.2 (unpadded base64 encoding)
+func FingerprintSHA256(pubKey PublicKey) string {
+	sha256sum := sha256.Sum256(pubKey.Marshal())
+	hash := base64.RawStdEncoding.EncodeToString(sha256sum[:])
+	return "SHA256:" + hash
 }

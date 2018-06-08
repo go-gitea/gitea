@@ -1,0 +1,45 @@
+#!/bin/bash
+
+export SDATA=$(echo $SNAP_DATA | sed "s|$SNAP_REVISION|current|")
+export SCOMMON="$SNAP_COMMON"
+export isRoot=`true`
+snapctl set gitea.snap.workdir="$SDATA/custom"
+snapctl set gitea.snap.custom="$SCOMMON"
+
+function mkDirCommon(){
+  for dir in $@; do
+    mkdir -p "$SCOMMON/$dir"
+  done
+}
+
+function mkdirData(){
+  for dir in $@; do
+    mkdir -p "$SDATA/$dir"
+    if [ -d $SNAP/$dir ]; then
+      cp -r --preserve=mode           \
+            $SNAP/$dir/*              \
+            $SNAP/$dir/.[a-zA-Z0-9-]* \
+            $SDATA/$dir/ 2> $SCOMMON/log/snap-mkdirData.log
+    fi
+  done
+}
+
+mkDirCommon pictures           \
+            repositories       \
+            attachments        \
+            data               \
+            log
+
+mkdirData   certs              \
+            sshkeytest         \
+            custom/conf        \
+            static/templates   \
+            static/scripts     \
+            static/public
+
+[[ -f $SNAP_COMMON/conf/app.ini ]] || $SNAP/bin/gconfig install
+
+# Configure Git to use the right templates
+mkdir -p $SDATA/git/
+cp -r --preserve=mode $SNAP/usr/share/git-core/templates $SDATA/git/
+$SNAP/usr/bin/git config --global init.templateDir $SDATA/git/templates/

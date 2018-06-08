@@ -19,22 +19,24 @@ import (
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
 
 // GetLabelTemplateFile loads the label template file by given name,
-// then parses and returns a list of name-color pairs.
-func GetLabelTemplateFile(name string) ([][2]string, error) {
+// then parses and returns a list of name-color pairs and optionally description.
+func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := getRepoInitFile("label", name)
 	if err != nil {
 		return nil, fmt.Errorf("getRepoInitFile: %v", err)
 	}
 
 	lines := strings.Split(string(data), "\n")
-	list := make([][2]string, 0, len(lines))
+	list := make([][3]string, 0, len(lines))
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 		if len(line) == 0 {
 			continue
 		}
 
-		fields := strings.SplitN(line, " ", 2)
+		parts := strings.SplitN(line, ";", 2)
+
+		fields := strings.SplitN(parts[0], " ", 2)
 		if len(fields) != 2 {
 			return nil, fmt.Errorf("line is malformed: %s", line)
 		}
@@ -43,8 +45,14 @@ func GetLabelTemplateFile(name string) ([][2]string, error) {
 			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
 		}
 
+		var description string
+
+		if len(parts) > 1 {
+			description = strings.TrimSpace(parts[1])
+		}
+
 		fields[1] = strings.TrimSpace(fields[1])
-		list = append(list, [2]string{fields[1], fields[0]})
+		list = append(list, [3]string{fields[1], fields[0], description})
 	}
 
 	return list, nil
@@ -55,6 +63,7 @@ type Label struct {
 	ID              int64 `xorm:"pk autoincr"`
 	RepoID          int64 `xorm:"INDEX"`
 	Name            string
+	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
@@ -96,10 +105,29 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-// NewLabels creates new label(s) for a repository.
-func NewLabels(labels ...*Label) error {
-	_, err := x.Insert(labels)
+func newLabel(e Engine, label *Label) error {
+	_, err := e.Insert(label)
 	return err
+}
+
+// NewLabel creates a new label for a repository
+func NewLabel(label *Label) error {
+	return newLabel(x, label)
+}
+
+// NewLabels creates new labels for a repository.
+func NewLabels(labels ...*Label) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	for _, label := range labels {
+		if err := newLabel(sess, label); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
 
 // getLabelInRepoByName returns a label by Name in given repository.
@@ -203,7 +231,7 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.Id(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).AllCols().Update(l)
 	return err
 }
 
@@ -223,12 +251,12 @@ func DeleteLabel(repoID, labelID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.Id(labelID).Delete(new(Label)); err != nil {
+	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
 		return err
 	} else if _, err = sess.
 		Where("label_id = ?", labelID).
@@ -298,7 +326,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -327,7 +355,7 @@ func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -375,7 +403,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

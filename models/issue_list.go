@@ -69,7 +69,13 @@ func (issues IssueList) loadPosters(e Engine) error {
 	}
 
 	for _, issue := range issues {
-		issue.Poster = posterMaps[issue.PosterID]
+		if issue.PosterID <= 0 {
+			continue
+		}
+		var ok bool
+		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
+			issue.Poster = NewGhostUser()
+		}
 	}
 	return nil
 }
@@ -148,32 +154,38 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	return nil
 }
 
-func (issues IssueList) getAssigneeIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(issues))
-	for _, issue := range issues {
-		if _, ok := ids[issue.AssigneeID]; !ok {
-			ids[issue.AssigneeID] = struct{}{}
-		}
-	}
-	return keysInt64(ids)
-}
-
 func (issues IssueList) loadAssignees(e Engine) error {
-	assigneeIDs := issues.getAssigneeIDs()
-	if len(assigneeIDs) == 0 {
+	if len(issues) == 0 {
 		return nil
 	}
 
-	assigneeMaps := make(map[int64]*User, len(assigneeIDs))
-	err := e.
-		In("id", assigneeIDs).
-		Find(&assigneeMaps)
+	type AssigneeIssue struct {
+		IssueAssignee *IssueAssignees `xorm:"extends"`
+		Assignee      *User           `xorm:"extends"`
+	}
+
+	var assignees = make(map[int64][]*User, len(issues))
+	rows, err := e.Table("issue_assignees").
+		Join("INNER", "user", "`user`.id = `issue_assignees`.assignee_id").
+		In("`issue_assignees`.issue_id", issues.getIssueIDs()).
+		Rows(new(AssigneeIssue))
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var assigneeIssue AssigneeIssue
+		err = rows.Scan(&assigneeIssue)
+		if err != nil {
+			return err
+		}
+
+		assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+	}
 
 	for _, issue := range issues {
-		issue.Assignee = assigneeMaps[issue.AssigneeID]
+		issue.Assignees = assignees[issue.ID]
 	}
 	return nil
 }
@@ -278,6 +290,51 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 	return nil
 }
 
+func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
+	type totalTimesByIssue struct {
+		IssueID int64
+		Time    int64
+	}
+	if len(issues) == 0 {
+		return nil
+	}
+	var trackedTimes = make(map[int64]int64, len(issues))
+
+	var ids = make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		if issue.Repo.IsTimetrackerEnabled() {
+			ids = append(ids, issue.ID)
+		}
+	}
+
+	// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
+	rows, err := e.Table("tracked_time").
+		Select("issue_id, sum(time) as time").
+		In("issue_id", ids).
+		GroupBy("issue_id").
+		Rows(new(totalTimesByIssue))
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var totalTime totalTimesByIssue
+		err = rows.Scan(&totalTime)
+		if err != nil {
+			return err
+		}
+		trackedTimes[totalTime.IssueID] = totalTime.Time
+	}
+
+	for _, issue := range issues {
+		issue.TotalTrackedTime = trackedTimes[issue.ID]
+	}
+	return nil
+}
+
+// loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(e Engine) (err error) {
 	if _, err = issues.loadRepositories(e); err != nil {
 		return
@@ -303,18 +360,25 @@ func (issues IssueList) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if err = issues.loadAttachments(e); err != nil {
-		return
-	}
-
-	if err = issues.loadComments(e); err != nil {
+	if err = issues.loadTotalTrackedTimes(e); err != nil {
 		return
 	}
 
 	return nil
 }
 
-// LoadAttributes loads atrributes of the issues
+// LoadAttributes loads attributes of the issues, except for attachments and
+// comments
 func (issues IssueList) LoadAttributes() error {
 	return issues.loadAttributes(x)
+}
+
+// LoadAttachments loads attachments
+func (issues IssueList) LoadAttachments() error {
+	return issues.loadAttachments(x)
+}
+
+// LoadComments loads comments
+func (issues IssueList) LoadComments() error {
+	return issues.loadComments(x)
 }

@@ -18,7 +18,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/numeric"
 	"github.com/blevesearch/bleve/search"
 )
@@ -35,6 +34,7 @@ type DateTimeFacetBuilder struct {
 	total      int
 	missing    int
 	ranges     map[string]*dateTimeRange
+	sawValue   bool
 }
 
 func NewDateTimeFacetBuilder(field string, size int) *DateTimeFacetBuilder {
@@ -58,36 +58,35 @@ func (fb *DateTimeFacetBuilder) Field() string {
 	return fb.field
 }
 
-func (fb *DateTimeFacetBuilder) Update(ft index.FieldTerms) {
-	terms, ok := ft[fb.field]
-	if ok {
-		for _, term := range terms {
-			// only consider the values which are shifted 0
-			prefixCoded := numeric.PrefixCoded(term)
-			shift, err := prefixCoded.Shift()
-			if err == nil && shift == 0 {
-				i64, err := prefixCoded.Int64()
-				if err == nil {
-					t := time.Unix(0, i64)
+func (fb *DateTimeFacetBuilder) UpdateVisitor(field string, term []byte) {
+	if field == fb.field {
+		fb.sawValue = true
+		// only consider the values which are shifted 0
+		prefixCoded := numeric.PrefixCoded(term)
+		shift, err := prefixCoded.Shift()
+		if err == nil && shift == 0 {
+			i64, err := prefixCoded.Int64()
+			if err == nil {
+				t := time.Unix(0, i64)
 
-					// look at each of the ranges for a match
-					for rangeName, r := range fb.ranges {
-
-						if (r.start.IsZero() || t.After(r.start) || t.Equal(r.start)) && (r.end.IsZero() || t.Before(r.end)) {
-
-							existingCount, existed := fb.termsCount[rangeName]
-							if existed {
-								fb.termsCount[rangeName] = existingCount + 1
-							} else {
-								fb.termsCount[rangeName] = 1
-							}
-							fb.total++
-						}
+				// look at each of the ranges for a match
+				for rangeName, r := range fb.ranges {
+					if (r.start.IsZero() || t.After(r.start) || t.Equal(r.start)) && (r.end.IsZero() || t.Before(r.end)) {
+						fb.termsCount[rangeName] = fb.termsCount[rangeName] + 1
+						fb.total++
 					}
 				}
 			}
 		}
-	} else {
+	}
+}
+
+func (fb *DateTimeFacetBuilder) StartDoc() {
+	fb.sawValue = false
+}
+
+func (fb *DateTimeFacetBuilder) EndDoc() {
+	if !fb.sawValue {
 		fb.missing++
 	}
 }

@@ -33,7 +33,7 @@ func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, error) {
 	return false, nil
 }
 
-// AddCollaboratorOption options when add some user as a collaborator of a repository
+// AddCollaboratorOption options when adding a user as a collaborator of a repository
 type AddCollaboratorOption struct {
 	Permission *string `json:"permission"`
 }

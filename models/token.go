@@ -7,10 +7,10 @@ package models
 import (
 	"time"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessToken represents a personal access token.
@@ -20,34 +20,16 @@ type AccessToken struct {
 	Name string
 	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
 
-	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64     `xorm:"INDEX"`
-	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix       int64     `xorm:"INDEX"`
-	HasRecentActivity bool      `xorm:"-"`
-	HasUsed           bool      `xorm:"-"`
+	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
+	HasRecentActivity bool           `xorm:"-"`
+	HasUsed           bool           `xorm:"-"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record representing this object.
-func (t *AccessToken) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (t *AccessToken) BeforeUpdate() {
-	t.UpdatedUnix = time.Now().Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *AccessToken) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	case "updated_unix":
-		t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
-		t.HasUsed = t.Updated.After(t.Created)
-		t.HasRecentActivity = t.Updated.Add(7 * 24 * time.Hour).After(time.Now())
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *AccessToken) AfterLoad() {
+	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
+	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // NewAccessToken creates new access token.
@@ -83,13 +65,13 @@ func ListAccessTokens(uid int64) ([]*AccessToken, error) {
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(t *AccessToken) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&AccessToken{
+	cnt, err := x.ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

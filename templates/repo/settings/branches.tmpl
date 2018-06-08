@@ -39,20 +39,16 @@
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "repo.settings.protected_branch"}}
 		</h4>
+
 		<div class="ui attached table segment">
 			<div class="ui grid padded">
 				<div class="eight wide column">
 					<div class="ui fluid dropdown selection" tabindex="0">
-						<select id="protectedBranch" name="branch" data-url="{{.Repository.Link}}/settings/branches?action=protected_branch">
-							{{range .LeftBranches}}
-								<option value="">{{$.i18n.Tr "repo.settings.choose_branch"}}</option>
-								<option value="{{.}}">{{.}}</option>
-							{{end}}
-						</select><i class="dropdown icon"></i>
+						<i class="dropdown icon"></i>
 						<div class="default text">{{.i18n.Tr "repo.settings.choose_branch"}}</div>
 						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 							{{range .LeftBranches}}
-								<div class="item" data-value="{{.}}">{{.}}</div>
+								<a class="item" href="{{$.Repository.Link}}/settings/branches/{{.}}">{{.}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -65,8 +61,8 @@
 						<tbody>
 							{{range .ProtectedBranches}}
 								<tr>
-									<td><div class="ui large label">{{.BranchName}}</div></td>
-									<td class="right aligned"><button class="rm ui red button" data-url="{{$.Repository.Link}}/settings/branches?action=protected_branch&id={{.ID}}" data-val="{{.BranchName}}">Delete</button></td>
+									<td><div class="ui basic label blue">{{.BranchName}}</div></td>
+									<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName}}">Edit</a></td>
 								</tr>
 							{{else}}
 								<tr class="center aligned"><td>{{.i18n.Tr "repo.settings.no_protected_branch"}}</td></tr>

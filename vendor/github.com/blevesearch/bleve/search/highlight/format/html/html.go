@@ -44,7 +44,7 @@ func (a *FragmentFormatter) Format(f *highlight.Fragment, orderedTermLocations h
 			continue
 		}
 		// make sure the array positions match
-		if !highlight.SameArrayPositions(f.ArrayPositions, termLocation.ArrayPositions) {
+		if !termLocation.ArrayPositions.Equals(f.ArrayPositions) {
 			continue
 		}
 		if termLocation.Start < curr {

@@ -42,11 +42,10 @@
 			<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline field ui left">
-					<div id="search-user-box">
+					<div id="search-user-box" class="ui search">
 						<div class="ui input">
 							<input class="prompt" name="collaborator" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 						</div>
-						<div class="ui segment results hide"></div>
 					</div>
 				</div>
 				<button class="ui green button">{{.i18n.Tr "repo.settings.add_collaborator"}}</button>

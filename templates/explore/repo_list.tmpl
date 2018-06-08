@@ -1,25 +1,17 @@
 <div class="ui repository list">
 	{{range .Repos}}
-		{{if .Owner}}
-			{{if (or (eq .Owner.Visibility 1) (and ($.SignedUser) (or (eq .Owner.Visibility 2) (and (.Owner.IsUserOrgPartOf $.SignedUserID) (eq .Owner.Visibility 3)) ($.IsAdmin))))}}
-			<div class="item">
-				<div class="ui header">
-					<a class="name" href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">
-						{{if or $.PageIsExplore $.PageIsProfileStarList }}
-							{{.Owner.Name}}
-							{{if eq .Owner.Visibility 3}}
-								<span class="text gold"><i class="octicon octicon-lock"></i></span>
-							{{end}} /
-						{{end}}
-						{{.Name}}
-					</a>
-					{{if .IsPrivate}}
-						<span class="text gold"><i class="octicon octicon-lock"></i></span>
-					{{else if .IsFork}}
-						<span><i class="octicon octicon-repo-forked"></i></span>
-					{{else if .IsMirror}}
-						<span><i class="octicon octicon-repo-clone"></i></span>
-					{{end}}
+		<div class="item">
+			<div class="ui header">
+				<a class="name" href="{{.Link}}">{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}</a>
+				{{if .IsPrivate}}
+					<span class="text gold"><i class="octicon octicon-lock"></i></span>
+				{{else if .IsFork}}
+					<span><i class="octicon octicon-repo-forked"></i></span>
+				{{else if .IsMirror}}
+					<span><i class="octicon octicon-repo-clone"></i></span>
+				{{else if eq .Owner.Visibility 3}}
+          <span class="text gold"><i class="octicon octicon-lock"></i></span>
+				{{end}}
 
 					<div class="ui right metas">
 						<span class="text grey"><i class="octicon octicon-star"></i> {{.NumStars}}</span>
@@ -29,67 +21,16 @@
 				{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
 				<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Updated $.i18n.Lang}}</p>
 			</div>
-			{{end}}
-		{{else if $.Org}}
-			{{if (or (eq $.Org.Visibility 1) (and ($.SignedUser) (or (eq $.Org.Visibility 2) (and ($.Org.IsUserOrgPartOf $.SignedUserID) (eq $.Org.Visibility 3)) ($.IsAdmin))))}}
-			<div class="item">
-				<div class="ui header">
-					<a class="name" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
-						{{if or $.PageIsExplore $.PageIsProfileStarList }}
-							{{.Owner.Name}}
-							{{if eq $.Org.Visibility 3}}
-								<span class="text gold"><i class="octicon octicon-lock"></i></span>
-							{{end}} /
-						{{end}}
-						{{.Name}}</a>
-					{{if .IsPrivate}}
-						<span class="text gold"><i class="octicon octicon-lock"></i></span>
-					{{else if .IsFork}}
-						<span><i class="octicon octicon-repo-forked"></i></span>
-					{{else if .IsMirror}}
-						<span><i class="octicon octicon-repo-clone"></i></span>
-					{{end}}
-
-					<div class="ui right metas">
-						<span class="text grey"><i class="octicon octicon-star"></i> {{.NumStars}}</span>
-						<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
-					</div>
+			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
+			{{if .Topics }}
+				<div>
+				{{range .Topics}}
+					{{if ne . "" }}<div class="ui green basic label topic">{{.}}</div>{{end}}
+				{{end}}
 				</div>
-				{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
-				<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Updated $.i18n.Lang}}</p>
-			</div>
 			{{end}}
-		{{else}}
-			{{if (or (eq $.Owner.Visibility 1) (and ($.SignedUser) (or (eq $.Owner.Visibility 2) (and ($.Owner.IsUserOrgPartOf $.SignedUserID) (eq $.Owner.Visibility 3)) ($.IsAdmin))))}}
-			<div class="item">
-				<div class="ui header">
-					<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">
-						{{if or $.PageIsExplore $.PageIsProfileStarList }}
-							{{.Owner.Name}}
-							{{if eq $.Owner.Visibility 3}}
-								<span class="text gold"><i class="octicon octicon-lock"></i></span>
-							{{end}} /
-						{{end}}
-						{{.Name}}
-					</a>
-					{{if .IsPrivate}}
-						<span class="text gold"><i class="octicon octicon-lock"></i></span>
-					{{else if .IsFork}}
-						<span><i class="octicon octicon-repo-forked"></i></span>
-					{{else if .IsMirror}}
-						<span><i class="octicon octicon-repo-clone"></i></span>
-					{{end}}
-
-					<div class="ui right metas">
-						<span class="text grey"><i class="octicon octicon-star"></i> {{.NumStars}}</span>
-						<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
-					</div>
-				</div>
-				{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
-				<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Updated $.i18n.Lang}}</p>
-			</div>
-			{{end}}
-		{{end}}
+			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
+		</div>
 	{{else}}
 	<div>
 		{{$.i18n.Tr "explore.repo_no_results"}}

@@ -7,7 +7,7 @@
 
 <body>
 	<p>Hi <b>{{.Username}}</b>,</p>
-	<p>Please click the following link to verify your email address within <b>{{.ActiveCodeLives}} hours</b>:</p>
+	<p>Please click the following link to verify your email address within <b>{{.ActiveCodeLives}}</b>:</p>
 	<p><a href="{{AppUrl}}user/activate_email?code={{.Code}}&email={{.Email}}">{{AppUrl}}user/activate_email?code={{.Code}}&email={{.Email}}</a></p>
 	<p>Not working? Try copying and pasting it to your browser.</p>
 	<p>© <a target="_blank" rel="noopener" href="{{AppUrl}}">{{AppName}}</a></p>

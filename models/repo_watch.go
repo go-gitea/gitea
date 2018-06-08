@@ -51,7 +51,11 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, e.Find(&watches, &Watch{RepoID: repoID})
+	return watches, e.Where("`watch`.repo_id=?", repoID).
+		And("`user`.is_active=?", true).
+		And("`user`.prohibit_login=?", false).
+		Join("INNER", "user", "`user`.id = `watch`.user_id").
+		Find(&watches)
 }
 
 // GetWatchers returns all watchers of given repository.
@@ -81,6 +85,21 @@ func notifyWatchers(e Engine, act *Action) error {
 	act.UserID = act.ActUserID
 	if _, err = e.InsertOne(act); err != nil {
 		return fmt.Errorf("insert new actioner: %v", err)
+	}
+
+	act.loadRepo()
+	// check repo owner exist.
+	if err := act.Repo.getOwner(e); err != nil {
+		return fmt.Errorf("can't get repo owner: %v", err)
+	}
+
+	// Add feed for organization
+	if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
+		act.ID = 0
+		act.UserID = act.Repo.Owner.ID
+		if _, err = e.InsertOne(act); err != nil {
+			return fmt.Errorf("insert new actioner: %v", err)
+		}
 	}
 
 	for i := range watches {

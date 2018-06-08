@@ -24,15 +24,15 @@ import (
 type ConstantScorer struct {
 	constant               float64
 	boost                  float64
-	explain                bool
+	options                search.SearcherOptions
 	queryNorm              float64
 	queryWeight            float64
 	queryWeightExplanation *search.Explanation
 }
 
-func NewConstantScorer(constant float64, boost float64, explain bool) *ConstantScorer {
+func NewConstantScorer(constant float64, boost float64, options search.SearcherOptions) *ConstantScorer {
 	rv := ConstantScorer{
-		explain:     explain,
+		options:     options,
 		queryWeight: 1.0,
 		constant:    constant,
 		boost:       boost,
@@ -52,7 +52,7 @@ func (s *ConstantScorer) SetQueryNorm(qnorm float64) {
 	// update the query weight
 	s.queryWeight = s.boost * s.queryNorm
 
-	if s.explain {
+	if s.options.Explain {
 		childrenExplanations := make([]*search.Explanation, 2)
 		childrenExplanations[0] = &search.Explanation{
 			Value:   s.boost,
@@ -75,7 +75,7 @@ func (s *ConstantScorer) Score(ctx *search.SearchContext, id index.IndexInternal
 
 	score := s.constant
 
-	if s.explain {
+	if s.options.Explain {
 		scoreExplanation = &search.Explanation{
 			Value:   score,
 			Message: fmt.Sprintf("ConstantScore()"),
@@ -85,7 +85,7 @@ func (s *ConstantScorer) Score(ctx *search.SearchContext, id index.IndexInternal
 	// if the query weight isn't 1, multiply
 	if s.queryWeight != 1.0 {
 		score = score * s.queryWeight
-		if s.explain {
+		if s.options.Explain {
 			childExplanations := make([]*search.Explanation, 2)
 			childExplanations[0] = s.queryWeightExplanation
 			childExplanations[1] = scoreExplanation
@@ -100,7 +100,7 @@ func (s *ConstantScorer) Score(ctx *search.SearchContext, id index.IndexInternal
 	rv := ctx.DocumentMatchPool.Get()
 	rv.IndexInternalID = id
 	rv.Score = score
-	if s.explain {
+	if s.options.Explain {
 		rv.Expl = scoreExplanation
 	}
 

@@ -17,22 +17,20 @@ import (
 func IssueWatch(c *context.Context) {
 	watch, err := strconv.ParseBool(c.Req.PostForm.Get("watch"))
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "watch is not bool", err)
+		c.ServerError("watch is not bool", err)
 		return
 	}
 
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+	issue := GetActionIssue(c)
+	if c.Written() {
 		return
 	}
 
 	if err := models.CreateOrUpdateIssueWatch(c.User.ID, issue.ID, watch); err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
+		c.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
+	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issue.Index)
 	c.Redirect(url, http.StatusSeeOther)
 }

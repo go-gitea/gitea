@@ -7,15 +7,14 @@ package git
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/mcuadros/go-version"
 )
 
-// getRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) getRefCommitID(name string) (string, error) {
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	stdout, err := NewCommand("show-ref", "--verify", name).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
@@ -28,12 +27,12 @@ func (repo *Repository) getRefCommitID(name string) (string, error) {
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	return repo.getRefCommitID(BranchPrefix + name)
+	return repo.GetRefCommitID(BranchPrefix + name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.getRefCommitID(TagPrefix + name)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw
@@ -248,37 +247,11 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 
 // CommitsBetween returns a list that contains commits between [last, before).
 func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
-	if version.Compare(gitVersion, "1.8.0", ">=") {
-		stdout, err := NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
-		if err != nil {
-			return nil, err
-		}
-		return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	stdout, err := NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
 	}
-
-	// Fallback to stupid solution, which iterates all commits of the repository
-	// if before is not an ancestor of last.
-	l := list.New()
-	if last == nil || last.ParentCount() == 0 {
-		return l, nil
-	}
-
-	var err error
-	cur := last
-	for {
-		if cur.ID.Equal(before.ID) {
-			break
-		}
-		l.PushBack(cur)
-		if cur.ParentCount() == 0 {
-			break
-		}
-		cur, err = cur.Parent(0)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return l, nil
+	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
 // CommitsBetweenIDs return commits between twoe commits
@@ -300,71 +273,80 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id SHA1, current, limit int) error {
-	// Reach the limit
-	if limit > 0 && current > limit {
-		return nil
-	}
-
-	commit, err := repo.getCommit(id)
-	if err != nil {
-		return fmt.Errorf("getCommit: %v", err)
-	}
-
-	var e *list.Element
-	if parent == nil {
-		e = l.PushBack(commit)
+func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
+	cmd := NewCommand("log")
+	if limit > 0 {
+		cmd.AddArguments("-"+strconv.Itoa(limit), prettyLogFormat, id.String())
 	} else {
-		var in = parent
-		for {
-			if in == nil {
-				break
-			} else if in.Value.(*Commit).ID.Equal(commit.ID) {
-				return nil
-			} else if in.Next() == nil {
-				break
-			}
-
-			if in.Value.(*Commit).Committer.When.Equal(commit.Committer.When) {
-				break
-			}
-
-			if in.Value.(*Commit).Committer.When.After(commit.Committer.When) &&
-				in.Next().Value.(*Commit).Committer.When.Before(commit.Committer.When) {
-				break
-			}
-
-			in = in.Next()
-		}
-
-		e = l.InsertAfter(commit, in)
+		cmd.AddArguments(prettyLogFormat, id.String())
 	}
 
-	pr := parent
-	if commit.ParentCount() > 1 {
-		pr = e
+	stdout, err := cmd.RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
 	}
 
-	for i := 0; i < commit.ParentCount(); i++ {
-		id, err := commit.ParentID(i)
+	formattedLog, err := repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	if err != nil {
+		return nil, err
+	}
+
+	commits := list.New()
+	for logEntry := formattedLog.Front(); logEntry != nil; logEntry = logEntry.Next() {
+		commit := logEntry.Value.(*Commit)
+		branches, err := repo.getBranches(commit, 2)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = repo.commitsBefore(l, pr, id, current+1, limit)
-		if err != nil {
-			return err
+
+		if len(branches) > 1 {
+			break
 		}
+
+		commits.PushBack(commit)
 	}
 
-	return nil
+	return commits, nil
 }
 
 func (repo *Repository) getCommitsBefore(id SHA1) (*list.List, error) {
-	l := list.New()
-	return l, repo.commitsBefore(l, nil, id, 1, 0)
+	return repo.commitsBefore(id, 0)
 }
 
 func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, error) {
-	l := list.New()
-	return l, repo.commitsBefore(l, nil, id, 1, num)
+	return repo.commitsBefore(id, num)
+}
+
+func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
+	if version.Compare(gitVersion, "2.7.0", ">=") {
+		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		branches := strings.Fields(stdout)
+		return branches, nil
+	}
+
+	stdout, err := NewCommand("branch", "--contains", commit.ID.String()).RunInDir(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	refs := strings.Split(stdout, "\n")
+
+	var max int
+	if len(refs) > limit {
+		max = limit
+	} else {
+		max = len(refs) - 1
+	}
+
+	branches := make([]string, max)
+	for i, ref := range refs[:max] {
+		parts := strings.Fields(ref)
+
+		branches[i] = parts[len(parts)-1]
+	}
+	return branches, nil
 }

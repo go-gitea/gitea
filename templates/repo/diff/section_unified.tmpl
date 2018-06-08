@@ -16,7 +16,7 @@
 			</td>
 			{{end}}
 			<td class="lines-code">
-				<pre><code class="{{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</code></pre>
+				<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</code></pre>
 			</td>
 		</tr>
 	{{end}}

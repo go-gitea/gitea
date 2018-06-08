@@ -40,11 +40,62 @@
 					<input id="location" name="location"  value="{{.SignedUser.Location}}">
 				</div>
 
+					<div class="field">
+						<label for="language">{{.i18n.Tr "settings.language"}}</label>
+						<div class="ui language selection dropdown" id="language">
+							<input name="language" type="hidden" value="{{.SignedUser.Language}}">
+							<i class="dropdown icon"></i>
+							<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
+							<div class="menu">
+							{{range .AllLangs}}
+								<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+							{{end}}
+							</div>
+						</div>
+					</div>
+
 				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>
+		</div>
 
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.avatar"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				{{if not DisableGravatar}}
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
+					</div>
+				</div>
+				<div class="field {{if .Err_Gravatar}}error{{end}}">
+					<label for="gravatar">Avatar {{.i18n.Tr "email"}}</label>
+					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}" />
+				</div>
+				{{end}}
+
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
+					</div>
+				</div>
+
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+				</div>
+			</form>
 		</div>
 	</div>
 </div>

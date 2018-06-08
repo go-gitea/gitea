@@ -1,0 +1,44 @@
+repo: go-gitea/gitea
+groups:
+  - 
+    name: BREAKING
+    labels:
+      - kind/breaking
+  - 
+    name: FEATURE
+    labels:
+      - kind/feature
+  -
+    name: BUGFIXES
+    labels:
+      - kind/bug
+  - 
+    name: ENHANCEMENT
+    labels:
+      - kind/enhancement
+      - kind/refactor
+      - kind/ui
+  -
+    name: SECURITY
+    labels:
+      - kind/security
+  - 
+    name: TESTING
+    labels:
+      - kind/testing
+  - 
+    name: TRANSLATION
+    labels:
+      - kind/translation
+  - 
+    name: BUILD
+    labels:
+      - kind/build
+      - kind/lint
+  - 
+    name: DOCS
+    labels:
+      - kind/docs
+  - 
+    name: MISC
+    default: true

@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/mcuadros/go-version"
 )
 
 // Commit represents a git commit.
@@ -54,7 +52,7 @@ func (c *Commit) Message() string {
 
 // Summary returns first line of commit message.
 func (c *Commit) Summary() string {
-	return strings.Split(c.CommitMessage, "\n")[0]
+	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -100,10 +98,11 @@ func (c *Commit) IsImageFile(name string) bool {
 		return false
 	}
 
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return false
 	}
+	defer dataRc.Close()
 	buf := make([]byte, 1024)
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
@@ -160,13 +159,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	var cmd *Command
-	isFallback := false
-	if version.Compare(gitVersion, "1.8.0", "<") {
-		isFallback = true
-		cmd = NewCommand("log", "--pretty=format:''")
-	} else {
-		cmd = NewCommand("rev-list", "--count")
-	}
+	cmd = NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)
@@ -177,9 +170,6 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 		return 0, err
 	}
 
-	if isFallback {
-		return int64(strings.Count(stdout, "\n")) + 1, nil
-	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
@@ -235,6 +225,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 
 	entry, err := c.GetTreeEntryByPath(".gitmodules")
 	if err != nil {
+		if _, ok := err.(ErrNotExist); ok {
+			return nil, nil
+		}
 		return nil, err
 	}
 	rd, err := entry.Blob().Data()
@@ -273,9 +266,11 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		return nil, err
 	}
 
-	module, has := modules.Get(entryname)
-	if has {
-		return module.(*SubModule), nil
+	if modules != nil {
+		module, has := modules.Get(entryname)
+		if has {
+			return module.(*SubModule), nil
+		}
 	}
 	return nil, nil
 }

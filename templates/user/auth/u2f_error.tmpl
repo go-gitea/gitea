@@ -1,0 +1,32 @@
+<div class="ui small modal" id="u2f-error">
+	<div class="header">{{.i18n.Tr "u2f_error"}}</div>
+	<div class="content">
+		<div class="ui negative message">
+			<div class="header">
+			{{.i18n.Tr "u2f_error"}}
+			</div>
+			<div class="hide" id="unsupported-browser">
+			{{.i18n.Tr "u2f_unsupported_browser"}}
+			</div>
+			<div class="hide" id="u2f-error-1">
+			{{.i18n.Tr "u2f_error_1"}}
+			</div>
+			<div class="hide" id="u2f-error-2">
+			{{.i18n.Tr "u2f_error_2"}}
+			</div>
+			<div class="hide" id="u2f-error-3">
+			{{.i18n.Tr "u2f_error_3"}}
+			</div>
+			<div class="hide" id="u2f-error-4">
+			{{.i18n.Tr "u2f_error_4"}}
+			</div>
+			<div class="hide u2f-error-5">
+			{{.i18n.Tr "u2f_error_5"}}
+			</div>
+		</div>
+	</div>
+	<div class="actions">
+		<button onclick="window.location.reload()" class="success ui button hide u2f_error_5">{{.i18n.Tr "u2f_reload"}}</button>
+		<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
+	</div>
+</div>

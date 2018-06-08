@@ -40,6 +40,16 @@ func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
 }
 
+// ErrBadLink entry.FollowLink error
+type ErrBadLink struct {
+	Name    string
+	Message string
+}
+
+func (err ErrBadLink) Error() string {
+	return fmt.Sprintf("%s: %s", err.Name, err.Message)
+}
+
 // ErrUnsupportedVersion error when required git version not matched
 type ErrUnsupportedVersion struct {
 	Required string

@@ -26,7 +26,7 @@ type AccessToken struct {
 
 // AccessTokenList represents a list of API access token.
 // swagger:response AccessTokenList
-type AccessTokenList []*AccessToken 
+type AccessTokenList []*AccessToken
 
 // ListAccessTokens lista all the access tokens of user
 func (c *Client) ListAccessTokens(user, pass string) ([]*AccessToken, error) {

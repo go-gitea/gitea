@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
@@ -50,9 +51,9 @@ func setup(logPath string) error {
 	models.LoadConfigs()
 
 	if setting.UseSQLite3 || setting.UseTiDB {
-		workDir, _ := setting.WorkDir()
-		if err := os.Chdir(workDir); err != nil {
-			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workDir, err)
+		workPath := setting.AppWorkPath
+		if err := os.Chdir(workPath); err != nil {
+			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workPath, err)
 		}
 	}
 
@@ -158,18 +159,10 @@ func runServ(c *cli.Context) error {
 	}
 	os.Setenv(models.EnvRepoName, reponame)
 
-	repoUser, err := models.GetUserByName(username)
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			fail("Repository owner does not exist", "Unregistered owner: %s", username)
-		}
-		fail("Internal error", "Failed to get repository owner (%s): %v", username, err)
-	}
-
-	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
+	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			fail(accessDenied, "Repository does not exist: %s/%s", repoUser.Name, reponame)
+			fail(accessDenied, "Repository does not exist: %s/%s", username, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
 	}
@@ -185,7 +178,7 @@ func runServ(c *cli.Context) error {
 		} else if lfsVerb == "download" {
 			requestedMode = models.AccessModeRead
 		} else {
-			fail("Unknown LFS verb", "Unkown lfs verb %s", lfsVerb)
+			fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
 	}
 
@@ -227,14 +220,20 @@ func runServ(c *cli.Context) error {
 				fail("Internal error", "GetDeployKey: %v", err)
 			}
 
-			deployKey.Updated = time.Now()
-			if err = models.UpdateDeployKey(deployKey); err != nil {
+			deployKey.UpdatedUnix = util.TimeStampNow()
+			if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
 		} else {
 			user, err = models.GetUserByKeyID(key.ID)
 			if err != nil {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
+			}
+
+			if !user.IsActive || user.ProhibitLogin {
+				fail("Your account is not active or has been disabled by Administrator",
+					"User %s is disabled and have no access to repository %s",
+					user.Name, repoPath)
 			}
 
 			mode, err := models.AccessLevel(user.ID, repo)
@@ -263,15 +262,19 @@ func runServ(c *cli.Context) error {
 
 	//LFS token authentication
 	if verb == lfsAuthenticateVerb {
-		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, repoUser.Name, repo.Name)
+		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, username, repo.Name)
 
 		now := time.Now()
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
-			"exp":  now.Add(5 * time.Minute).Unix(),
+			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
-		})
+		}
+		if user != nil {
+			claims["user"] = user.ID
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)

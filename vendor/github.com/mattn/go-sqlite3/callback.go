@@ -40,8 +40,8 @@ func callbackTrampoline(ctx *C.sqlite3_context, argc int, argv **C.sqlite3_value
 }
 
 //export stepTrampoline
-func stepTrampoline(ctx *C.sqlite3_context, argc int, argv **C.sqlite3_value) {
-	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
+func stepTrampoline(ctx *C.sqlite3_context, argc C.int, argv **C.sqlite3_value) {
+	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:int(argc):int(argc)]
 	ai := lookupHandle(uintptr(C.sqlite3_user_data(ctx))).(*aggInfo)
 	ai.Step(ctx, args)
 }

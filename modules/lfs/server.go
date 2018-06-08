@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
 )
@@ -66,7 +68,12 @@ type ObjectError struct {
 
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
+	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
+}
+
+// VerifyLink builds a URL for verifying the object.
+func (v *RequestVars) VerifyLink() string {
+	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -75,6 +82,8 @@ type link struct {
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
+
+var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
 
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
@@ -86,11 +95,11 @@ func ObjectOidHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
 		if MetaMatcher(ctx.Req) {
-			GetMetaHandler(ctx)
+			getMetaHandler(ctx)
 			return
 		}
 		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
-			GetContentHandler(ctx)
+			getContentHandler(ctx)
 			return
 		}
 	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
@@ -100,26 +109,34 @@ func ObjectOidHandler(ctx *context.Context) {
 
 }
 
-// GetContentHandler gets the content from the content store
-func GetContentHandler(ctx *context.Context) {
+func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
+	if err != nil {
+		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
 
+	if !authenticate(ctx, repository, rv.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return nil, nil
+	}
+
+	meta, err := repository.GetLFSMetaObjectByOid(rv.Oid)
+	if err != nil {
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
+
+	return meta, repository
+}
+
+// getContentHandler gets the content from the content store
+func getContentHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -143,7 +160,7 @@ func GetContentHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size-fromByte, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.Params("filename")
@@ -160,26 +177,12 @@ func GetContentHandler(ctx *context.Context) {
 	logRequest(ctx.Req, statusCode)
 }
 
-// GetMetaHandler retrieves metadata about the object
-func GetMetaHandler(ctx *context.Context) {
-
+// getMetaHandler retrieves metadata about the object
+func getMetaHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -195,7 +198,6 @@ func GetMetaHandler(ctx *context.Context) {
 
 // PostHandler instructs the client how to upload data
 func PostHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -208,21 +210,24 @@ func PostHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
 
-	repositoryString := rv.User + "/" + rv.Repo
-	repository, err := models.GetRepositoryByRef(repositoryString)
-
+	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
-		log.Debug("Could not find repository: %s - %s", repositoryString, err)
+		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		writeStatus(ctx, 404)
 		return
 	}
 
 	if !authenticate(ctx, repository, rv.Authorization, true) {
 		requireAuth(ctx)
+		return
+	}
+
+	if !oidRegExp.MatchString(rv.Oid) {
+		writeStatus(ctx, 404)
+		return
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
-
 	if err != nil {
 		writeStatus(ctx, 404)
 		return
@@ -261,12 +266,10 @@ func BatchHandler(ctx *context.Context) {
 
 	// Create a response object
 	for _, object := range bv.Objects {
-
-		repositoryString := object.User + "/" + object.Repo
-		repository, err := models.GetRepositoryByRef(repositoryString)
+		repository, err := models.GetRepositoryByOwnerAndName(object.User, object.Repo)
 
 		if err != nil {
-			log.Debug("Could not find repository: %s - %s", repositoryString, err)
+			log.Debug("Could not find repository: %s/%s - %s", object.User, object.Repo, err)
 			writeStatus(ctx, 404)
 			return
 		}
@@ -281,19 +284,20 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
-
 		contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+
+		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil && contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
 		}
 
-		// Object is not found
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
-
-		if err == nil {
-			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, true))
+		if oidRegExp.MatchString(object.Oid) {
+			// Object is not found
+			meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
+			if err == nil {
+				responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
+			}
 		}
 	}
 
@@ -310,30 +314,52 @@ func BatchHandler(ctx *context.Context) {
 func PutHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, true) {
-		requireAuth(ctx)
+	meta, repository := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
 		return
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
-		models.RemoveLFSMetaObjectByOid(rv.Oid)
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
+			log.Error(4, "RemoveLFSMetaObjectByOid: %v", err)
+		}
+		return
+	}
+
+	logRequest(ctx.Req, 200)
+}
+
+// VerifyHandler verify oid and its size from the content store
+func VerifyHandler(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !ContentMatcher(ctx.Req) {
+		writeStatus(ctx, 400)
+		return
+	}
+
+	rv := unpack(ctx)
+
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
+		return
+	}
+
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	ok, err := contentStore.Verify(meta)
+	if err != nil {
+		ctx.Resp.WriteHeader(500)
+		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		return
+	}
+	if !ok {
+		writeStatus(ctx, 422)
 		return
 	}
 
@@ -365,6 +391,11 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload {
 		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
+	}
+
+	if upload && !download {
+		// Force client side verify action while gitea lacks proper server side verification
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
 	}
 
 	return rep
@@ -452,7 +483,6 @@ func logRequest(r macaron.Request, status int) {
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireWrite bool) bool {
-
 	accessMode := models.AccessModeRead
 	if requireWrite {
 		accessMode = models.AccessModeWrite
@@ -461,86 +491,92 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	if !repository.IsPrivate && !requireWrite {
 		return true
 	}
-
 	if ctx.IsSigned {
 		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
 		return accessCheck
 	}
 
-	if authorization == "" {
+	user, repo, opStr, err := parseToken(authorization)
+	if err != nil {
 		return false
 	}
-
-	if authenticateToken(repository, authorization, requireWrite) {
+	ctx.User = user
+	if opStr == "basic" {
+		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
+		return accessCheck
+	}
+	if repository.ID == repo.ID {
+		if requireWrite && opStr != "upload" {
+			return false
+		}
 		return true
 	}
-
-	if !strings.HasPrefix(authorization, "Basic ") {
-		return false
-	}
-
-	c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
-	if err != nil {
-		return false
-	}
-	cs := string(c)
-	i := strings.IndexByte(cs, ':')
-	if i < 0 {
-		return false
-	}
-	user, password := cs[:i], cs[i+1:]
-
-	userModel, err := models.GetUserByName(user)
-	if err != nil {
-		return false
-	}
-
-	if !userModel.ValidatePassword(password) {
-		return false
-	}
-
-	accessCheck, _ := models.HasAccess(userModel.ID, repository, accessMode)
-	return accessCheck
+	return false
 }
 
-func authenticateToken(repository *models.Repository, authorization string, requireWrite bool) bool {
-	if !strings.HasPrefix(authorization, "Bearer ") {
-		return false
+func parseToken(authorization string) (*models.User, *models.Repository, string, error) {
+	if authorization == "" {
+		return nil, nil, "unknown", fmt.Errorf("No token")
 	}
-
-	token, err := jwt.Parse(authorization[7:], func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+	if strings.HasPrefix(authorization, "Bearer ") {
+		token, err := jwt.Parse(authorization[7:], func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return setting.LFS.JWTSecretBytes, nil
+		})
+		if err != nil {
+			return nil, nil, "unknown", err
 		}
-		return setting.LFS.JWTSecretBytes, nil
-	})
-	if err != nil {
-		return false
-	}
-	claims, claimsOk := token.Claims.(jwt.MapClaims)
-	if !token.Valid || !claimsOk {
-		return false
+		claims, claimsOk := token.Claims.(jwt.MapClaims)
+		if !token.Valid || !claimsOk {
+			return nil, nil, "unknown", fmt.Errorf("Token claim invalid")
+		}
+		opStr, ok := claims["op"].(string)
+		if !ok {
+			return nil, nil, "unknown", fmt.Errorf("Token operation invalid")
+		}
+		repoID, ok := claims["repo"].(float64)
+		if !ok {
+			return nil, nil, opStr, fmt.Errorf("Token repository id invalid")
+		}
+		r, err := models.GetRepositoryByID(int64(repoID))
+		if err != nil {
+			return nil, nil, opStr, err
+		}
+		userID, ok := claims["user"].(float64)
+		if !ok {
+			return nil, r, opStr, fmt.Errorf("Token user id invalid")
+		}
+		u, err := models.GetUserByID(int64(userID))
+		if err != nil {
+			return nil, r, opStr, err
+		}
+		return u, r, opStr, nil
 	}
 
-	opStr, ok := claims["op"].(string)
-	if !ok {
-		return false
+	if strings.HasPrefix(authorization, "Basic ") {
+		c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
+		if err != nil {
+			return nil, nil, "basic", err
+		}
+		cs := string(c)
+		i := strings.IndexByte(cs, ':')
+		if i < 0 {
+			return nil, nil, "basic", fmt.Errorf("Basic auth invalid")
+		}
+		user, password := cs[:i], cs[i+1:]
+		u, err := models.GetUserByName(user)
+		if err != nil {
+			return nil, nil, "basic", err
+		}
+		if !u.ValidatePassword(password) {
+			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
+		}
+		return u, nil, "basic", nil
 	}
 
-	if requireWrite && opStr != "upload" {
-		return false
-	}
-
-	repoID, ok := claims["repo"].(float64)
-	if !ok {
-		return false
-	}
-
-	if repository.ID != int64(repoID) {
-		return false
-	}
-
-	return true
+	return nil, nil, "unknown", fmt.Errorf("Token not found")
 }
 
 func requireAuth(ctx *context.Context) {
