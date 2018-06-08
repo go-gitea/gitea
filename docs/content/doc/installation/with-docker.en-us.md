@@ -231,7 +231,7 @@ You can configure some of Gitea's settings via environment variables:
 
 * `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
 * `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
-* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for displayed clone UR in Gitea's UI.
+* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
 * `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 * `HTTP_PORT`: **3000**: HTTP listen port.
@@ -243,6 +243,8 @@ You can configure some of Gitea's settings via environment variables:
 * `DB_PASSWD`: **"<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 * `INSTALL_LOCK`: **false**: Disallow access to the install page.
 * `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
+* `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
+* `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 
 # Customization
 

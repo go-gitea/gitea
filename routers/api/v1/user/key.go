@@ -129,7 +129,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := models.AddPublicKey(uid, form.Title, content)
+	key, err := models.AddPublicKey(uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return

@@ -251,6 +251,14 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 		color = warnColor
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
 	}
 
 	return &DiscordPayload{
@@ -362,6 +370,14 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = warnColor
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	}
 
 	return &DiscordPayload{
@@ -420,6 +436,14 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 	switch p.Action {
 	case api.HookReleasePublished:
 		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
+		url = p.Release.URL
+		color = successColor
+	case api.HookReleaseUpdated:
+		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
+		url = p.Release.URL
+		color = successColor
+	case api.HookReleaseDeleted:
+		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
 		url = p.Release.URL
 		color = successColor
 	}

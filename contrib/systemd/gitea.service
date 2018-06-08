@@ -18,10 +18,10 @@ RestartSec=2s
 Type=simple
 User=git
 Group=git
-WorkingDirectory=/home/git/gitea
-ExecStart=/home/git/gitea/gitea web
+WorkingDirectory=/var/lib/gitea/
+ExecStart=/usr/local/bin/gitea web -c /etc/gitea/app.ini
 Restart=always
-Environment=USER=git HOME=/home/git
+Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
 # If you want to bind Gitea to a port below 1024 uncomment
 # the two values below
 ###

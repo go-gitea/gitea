@@ -119,6 +119,7 @@ func NewMacaron() *macaron.Macaron {
 		Secret:     setting.SecretKey,
 		Cookie:     setting.CSRFCookieName,
 		SetCookie:  true,
+		Secure:     setting.SessionConfig.Secure,
 		Header:     "X-Csrf-Token",
 		CookiePath: setting.AppSubURL,
 	}))
@@ -167,7 +168,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Head("/", func() string {
 		return ""
 	})
-	m.Get("/", ignSignIn, routers.Home)
+	m.Get("/", routers.Home)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")

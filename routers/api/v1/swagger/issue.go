@@ -8,60 +8,70 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// Issue
 // swagger:response Issue
 type swaggerResponseIssue struct {
 	// in:body
 	Body api.Issue `json:"body"`
 }
 
+// IssueList
 // swagger:response IssueList
 type swaggerResponseIssueList struct {
 	// in:body
 	Body []api.Issue `json:"body"`
 }
 
+// Comment
 // swagger:response Comment
 type swaggerResponseComment struct {
 	// in:body
 	Body api.Comment `json:"body"`
 }
 
+// CommentList
 // swagger:response CommentList
 type swaggerResponseCommentList struct {
 	// in:body
 	Body []api.Comment `json:"body"`
 }
 
+// Label
 // swagger:response Label
 type swaggerResponseLabel struct {
 	// in:body
 	Body api.Label `json:"body"`
 }
 
+// LabelList
 // swagger:response LabelList
 type swaggerResponseLabelList struct {
 	// in:body
 	Body []api.Label `json:"body"`
 }
 
+// Milestone
 // swagger:response Milestone
 type swaggerResponseMilestone struct {
 	// in:body
 	Body api.Milestone `json:"body"`
 }
 
+// MilestoneList
 // swagger:response MilestoneList
 type swaggerResponseMilestoneList struct {
 	// in:body
 	Body []api.Milestone `json:"body"`
 }
 
+// TrackedTime
 // swagger:response TrackedTime
 type swaggerResponseTrackedTime struct {
 	// in:body
 	Body api.TrackedTime `json:"body"`
 }
 
+// TrackedTimeList
 // swagger:response TrackedTimeList
 type swaggerResponseTrackedTimeList struct {
 	// in:body
