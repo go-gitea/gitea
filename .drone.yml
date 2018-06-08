@@ -272,6 +272,7 @@ pipeline:
       - dist/release/*-mips64le
       - dist/release/*-amd64.exe
       - dist/release/*-386.exe
+      - dist/release/*.xz
     when:
       event: [ push, tag ]
 
