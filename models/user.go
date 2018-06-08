@@ -536,7 +536,12 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 
 // IsUserOrgPartOf returns true if user is part of the organization
 func (u *User) IsUserOrgPartOf(userID int64) bool {
-	return IsOrganizationMember(u.ID, userID)
+	isMember, err := IsOrganizationMember(u.ID, userID)
+	if err != nil {
+		log.Error(4, "IsOrganizationMember: %v", err)
+		return false
+	}
+	return isMember
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
