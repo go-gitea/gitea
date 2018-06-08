@@ -109,10 +109,9 @@ func RemoveDependency(ctx *context.Context) {
 		if models.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return
-		} else {
-			ctx.ServerError("RemoveIssueDependency", err)
-			return
 		}
+		ctx.ServerError("RemoveIssueDependency", err)
+		return
 	}
 
 	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
