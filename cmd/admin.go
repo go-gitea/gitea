@@ -127,7 +127,7 @@ func runChangePassword(c *cli.Context) error {
 	if err := argsSet(c, "username", "password"); err != nil {
 		return err
 	}
-	
+
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
 	}
