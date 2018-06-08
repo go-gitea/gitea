@@ -215,7 +215,7 @@ be the main owner, and the other two the assistant owners. When the new
 owners have been elected, the old owners will give up ownership to the
 newly elected owners. If an owner is unable to do so, the other owners
 will assist in ceding ownership to the newly elected owners.
-For security reasons, Maintainers must use 2FA for theirs accounts.
+For security reasons, Owners must use 2FA for theirs accounts.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
 After the election, the new owners should proactively agree
