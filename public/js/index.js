@@ -2390,13 +2390,15 @@ function updateDeadline(deadlineString) {
 
     var realDeadline = null;
     if (deadlineString !== '') {
-        var dateToMatch = /([0-9]){4}-([0-9]){2}-([0-9]){2}\b/
-        if (!dateToMatch.test(deadlineString)) {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
             $('#deadline-loader').removeClass('loading');
             $('#deadline-err-invalid-date').show();
             return false;
         }
-        realDeadline = deadlineString + 'T13:55:29.764Z';
+        realDeadline = new Date(newDate);
     }
 
     $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
