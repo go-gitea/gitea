@@ -232,7 +232,7 @@
 			{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 16}}
+	{{else if eq .Type 19}}
 		<div class="event">
 	    	<span class="octicon octicon-primitive-dot"></span>
 	    	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -246,7 +246,7 @@
 			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
 		 	</div>
      	</div>
-	{{else if eq .Type 17}}
+	{{else if eq .Type 20}}
 		<div class="event">
 	     	<span class="octicon octicon-primitive-dot"></span>
 	     	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
