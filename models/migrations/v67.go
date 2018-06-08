@@ -15,7 +15,7 @@ func addVisibilityForUserAndOrg(x *xorm.Engine) error {
 		Visibility int `xorm:"NOT NULL DEFAULT 1"`
 	}
 
-	if err := x.Sync2(new(PublicKey)); err != nil {
+	if err := x.Sync2(new(User)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
