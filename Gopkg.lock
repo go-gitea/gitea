@@ -744,7 +744,7 @@
     "poly1305",
     "ssh"
   ]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
 
 [[projects]]
   name = "golang.org/x/net"
@@ -877,6 +877,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "801b56b8fc5ac5bb05f2526ad196f82892e7cee82e0e6a56e6b1a4840d028805"
+  inputs-digest = "55985dd30c146a67f26c28177e140cf6fe4d02bcb5f40f82be75748540d56dc6"
   solver-name = "gps-cdcl"
   solver-version = 1

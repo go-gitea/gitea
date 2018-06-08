@@ -16,10 +16,10 @@ import (
 var ErrCacheMiss = errors.New("acme/autocert: certificate cache miss")
 
 // Cache is used by Manager to store and retrieve previously obtained certificates
-// and other account data as opaque blobs.
+// as opaque data.
 //
-// Cache implementations should not rely on the key naming pattern. Keys can
-// include any printable ASCII characters, except the following: \/:*?"<>|
+// The key argument of the methods refers to a domain name but need not be an FQDN.
+// Cache implementations should not rely on the key naming pattern.
 type Cache interface {
 	// Get returns a certificate data for the specified key.
 	// If there's no such key, Get returns ErrCacheMiss.
