@@ -350,6 +350,22 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 	ctx.PlainText(200, buf.Bytes())
 }
 
+// ShowGPGKeys output all the public GPG keys of user by uid
+func ShowGPGKeys(ctx *context.Context, uid int64) {
+	keys, err := models.ListGPGKeys(uid)
+	if err != nil {
+		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+
+	var buf bytes.Buffer
+	for i := range keys {
+		buf.WriteString(keys[i])
+		buf.WriteString("\n")
+	}
+	ctx.PlainText(200, buf.Bytes())
+}
+
 func showOrgProfile(ctx *context.Context) {
 	ctx.SetParams(":org", ctx.Params(":username"))
 	context.HandleOrgAssignment(ctx)
