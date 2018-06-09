@@ -374,10 +374,28 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
+	if err := t.getMembers(sess); err != nil {
+		return err
+	}
+
 	// Delete all accesses.
 	for _, repo := range t.Repos {
 		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
 			return err
+		}
+
+		// Remove watches from all users and now unaccessible repos
+		for _, user := range t.Members {
+			has, err := hasAccess(sess, user.ID, repo, AccessModeRead)
+			if err != nil {
+				return err
+			} else if has {
+				continue
+			}
+
+			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -558,6 +576,18 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
 			return err
 		}
+
+		// Remove watches from now unaccessible
+		has, err := hasAccess(e, userID, repo, AccessModeRead)
+		if err != nil {
+			return err
+		} else if has {
+			continue
+		}
+
+		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+			return err
+		}
 	}
 
 	// Check if the user is a member of any team in the organization.
@@ -567,7 +597,9 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(e, team.OrgID, userID)
+		if err = removeOrgUser(e, team.OrgID, userID); err != nil {
+			return err
+		}
 	}
 
 	return nil
