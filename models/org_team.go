@@ -601,9 +601,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		if err = removeOrgUser(e, team.OrgID, userID); err != nil {
-			return err
-		}
+		return removeOrgUser(e, team.OrgID, userID)
 	}
 
 	return nil
