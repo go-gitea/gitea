@@ -82,7 +82,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix, letsencrypt\]
+- `PROTOCOL`: **http**: \[http, https, fcgi, unix, letsencrypt\] If using letsencrypt you must set `DOMAIN` to valid domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server). 
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
