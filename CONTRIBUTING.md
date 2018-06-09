@@ -201,7 +201,7 @@ an advisor has time to code review, we will gladly welcome them back
 to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
-For security reasons, Maintainers should use 2FA for theirs accounts and
+For security reasons, Maintainers should use 2FA for their accounts and
 if possible provide gpg signed commits. 
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
