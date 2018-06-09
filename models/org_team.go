@@ -536,6 +536,10 @@ func AddTeamMember(team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
 			return err
 		}
+
+		if err = watchRepo(sess, userID, repo.ID, true); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
