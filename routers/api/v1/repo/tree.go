@@ -7,9 +7,9 @@ package repo
 import (
 	"code.gitea.io/gitea/modules/context"
 	"fmt"
-	_"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
 	"strings"
+	"code.gitea.io/git"
 )
 
 type TreeEntry struct {
@@ -34,59 +34,64 @@ func GetTree(ctx *context.APIContext) {
 		ctx.Error(400, "sha not provided", nil)
 		return
 	}
-	Temp := GetTreeBySHA(ctx, nil, "", sha, ctx.QueryBool("recursive"))
-	if Temp != nil {
-		ctx.JSON(200, Temp)
+	Tree := GetTreeBySHA(ctx, sha)
+	if Tree != nil {
+		ctx.JSON(200, Tree)
 	} else {
 		ctx.Error(400, "sha invalid", nil)
 	}
-
 }
 
-func GetTreeBySHA(ctx *context.APIContext, tree *Tree, CurrentPath string, sha string, recursive bool) *Tree {
+func GetTreeBySHA(ctx *context.APIContext, sha string) *Tree {
 	GitTree, err := ctx.Repo.GitRepo.GetTree(sha)
-	if err != nil {
-		return tree
+	if err != nil || GitTree == nil{
+		return nil
 	}
+	tree := new(Tree)
 	RepoID := strings.TrimRight(setting.AppURL, "/") + "/api/v1/repos/" + ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
-	if tree == nil {
-		tree = new(Tree)
-		if GitTree != nil {
-			tree.SHA = GitTree.ID.String()
-			tree.URL = RepoID + "/trees/" + tree.SHA;
-		}
+	tree.SHA = GitTree.ID.String()
+	tree.URL = RepoID + "/trees/" + tree.SHA
+	var Entries git.Entries
+	if ctx.QueryBool("recursive") {
+		Entries, err = GitTree.ListEntriesRecursive()
+	} else {
+		Entries, err = GitTree.ListEntries()
 	}
-	if GitTree == nil {
-		return tree
-	}
-	Trees, err := GitTree.ListEntries()
 	if err != nil {
 		return tree
 	}
-	if len(CurrentPath) != 0 {
-		CurrentPath += "/"
+	RepoIDLen := len(RepoID)
+	BlobURL := make([]byte, RepoIDLen + 47)
+	copy(BlobURL[:], RepoID)
+	copy(BlobURL[RepoIDLen:], "/blobs/")
+	TreeURL := make([]byte, RepoIDLen + 47)
+	copy(TreeURL[:], RepoID)
+	copy(TreeURL[RepoIDLen:], "/trees/")
+	CopyPos := len(TreeURL) - 40
+
+	if len(Entries) > 1000 {
+		tree.Entries = make([]TreeEntry, 1000)
+	} else {
+		tree.Entries = make([]TreeEntry, len(Entries))
 	}
-	for e := range Trees {
-		if len(tree.Entries) > 1000 {
+	for e := range Entries {
+		if e > 1000 {
 			tree.Truncated = true
 			break
 		}
-		E_URL := RepoID
-		if Trees[e].IsDir() {
-			E_URL += "/trees/"
-		} else {
-			E_URL += "/blobs/"
-		}
-		tree.Entries = append(tree.Entries, TreeEntry{
-			CurrentPath + Trees[e].Name(),
-			fmt.Sprintf("%06x", Trees[e].Mode()),
-			string(Trees[e].Type),
-			Trees[e].Size(),
-			Trees[e].ID.String(),
-			E_URL + Trees[e].ID.String()})
 
-		if recursive && Trees[e].IsDir() {
-			tree = GetTreeBySHA(ctx, tree, CurrentPath + Trees[e].Name(), Trees[e].ID.String(), recursive)
+		tree.Entries[e].Path = Entries[e].Name()
+		tree.Entries[e].Mode = fmt.Sprintf("%06x", Entries[e].Mode())
+		tree.Entries[e].Type = string(Entries[e].Type)
+		tree.Entries[e].Size = Entries[e].Size()
+		tree.Entries[e].SHA = Entries[e].ID.String()
+
+		if Entries[e].IsDir() {
+			copy(TreeURL[CopyPos:], Entries[e].ID.String())
+			tree.Entries[e].URL = string(TreeURL[:])
+		} else {
+			copy(BlobURL[CopyPos:], Entries[e].ID.String())
+			tree.Entries[e].URL = string(BlobURL[:])
 		}
 	}
 	return tree
