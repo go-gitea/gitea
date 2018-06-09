@@ -73,6 +73,11 @@ var (
 				Value: "",
 				Usage: "New password to set for user",
 			},
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
 		},
 	}
 
@@ -121,6 +126,10 @@ var (
 func runChangePassword(c *cli.Context) error {
 	if err := argsSet(c, "username", "password"); err != nil {
 		return err
+	}
+
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
 	}
 
 	if err := initDB(); err != nil {
