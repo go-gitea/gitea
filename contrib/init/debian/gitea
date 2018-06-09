@@ -14,17 +14,20 @@
 # Do NOT "set -e"
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Git with a cup of tea"
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
+DESC="Gitea - Git with a cup of tea"
 NAME=gitea
 SERVICEVERBOSE=yes
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-WORKINGDIR=/home/git/gitea
-DAEMON=$WORKINGDIR/$NAME
-DAEMON_ARGS="web"
+WORKINGDIR=/var/lib/$NAME
+DAEMON=/usr/local/bin/$NAME
+DAEMON_ARGS="web -c /etc/$NAME/app.ini"
 USER=git
-USERBIND="setcap cap_net_bind_service=+ep"
+USERBIND=""
+# If you want to bind Gitea to a port below 1024 uncomment
+# the line below
+#USERBIND="setcap cap_net_bind_service=+ep"
 STOP_SCHEDULE="${STOP_SCHEDULE:-QUIT/5/TERM/1/KILL/5}"
 
 # Read configuration variable file if it is present
@@ -36,7 +39,7 @@ STOP_SCHEDULE="${STOP_SCHEDULE:-QUIT/5/TERM/1/KILL/5}"
 do_start()
 {
     $USERBIND $DAEMON
-    sh -c "USER=$USER start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile \\
+    sh -c "USER=$USER HOME=/home/$USER GITEA_WORK_DIR=$WORKINGDIR start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile \\
         --background --chdir $WORKINGDIR --chuid $USER \\
         --exec $DAEMON -- $DAEMON_ARGS"
 }
