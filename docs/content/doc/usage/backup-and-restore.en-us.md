@@ -34,7 +34,8 @@ directory. There should be some output similar to the following:
 
 Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
-* `custom/conf/app.ini` - Server config.
+* `custom` - All config or customerize files in `custom/`.
+* `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, sqlite file if you are using sqlite.
 * `gitea-db.sql` - SQL dump of database
 * `gitea-repo.zip` - Complete copy of the repository directory.
 * `log/` - Various logs. They are not needed for a recovery or migration.
