@@ -172,5 +172,9 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
+	if err = watchRepo(sess, uid, repo.ID, false); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
