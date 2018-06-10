@@ -448,6 +448,11 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		}
 	}
 
+	rel.Repo = repo
+	if err = rel.LoadAttributes(); err != nil {
+		return fmt.Errorf("LoadAttributes: %v", err)
+	}
+
 	mode, _ := accessLevel(x, u.ID, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
