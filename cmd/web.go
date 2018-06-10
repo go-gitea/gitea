@@ -73,11 +73,12 @@ func runHTTPRedirector() {
 	}
 }
 
-func runLetsEncrypt(listenAddr, domain string, m http.Handler) error {
+func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
 	certManager := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
 		HostPolicy: autocert.HostWhitelist(domain),
-		Cache:      autocert.DirCache("https"),
+		Cache:      autocert.DirCache(directory),
+		Email:      email,
 	}
 	go http.ListenAndServe(":80", certManager.HTTPHandler(nil)) // all traffic coming into HTTP will be redirect to HTTPS automatically
 	// required for letsencrypt validation
@@ -168,7 +169,7 @@ func runWeb(ctx *cli.Context) error {
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.LetsEncrypt:
-		err = runLetsEncrypt(listenAddr, setting.Domain, context2.ClearHandler(m))
+		err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {

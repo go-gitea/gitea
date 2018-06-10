@@ -119,6 +119,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
    on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
+- `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys
+- `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 
 ## Database (`database`)
 

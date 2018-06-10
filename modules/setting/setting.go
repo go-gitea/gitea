@@ -106,6 +106,8 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 	EnablePprof          bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -712,6 +714,8 @@ func NewContext() {
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	} else if sec.Key("PROTOCOL").String() == "letsencrypt" {
 		Protocol = LetsEncrypt
+		LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+		LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	}
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
