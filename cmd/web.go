@@ -80,8 +80,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Cache:      autocert.DirCache(directory),
 		Email:      email,
 	}
-	go http.ListenAndServe(":80", certManager.HTTPHandler(nil)) // all traffic coming into HTTP will be redirect to HTTPS automatically
-	// required for letsencrypt validation
+	go http.ListenAndServe(":http", certManager.HTTPHandler(nil)) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validatio happens here)
 	server := &http.Server{
 		Addr:    listenAddr,
 		Handler: m,
