@@ -132,6 +132,10 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
+	if c.ID <= 0 {
+		return
+	}
+
 	_, err := DeleteAttachmentsByComment(c.ID, true)
 
 	if err != nil {
