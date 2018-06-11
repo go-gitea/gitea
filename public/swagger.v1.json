@@ -5362,6 +5362,15 @@
         ],
         "summary": "List the authenticated user's access tokens",
         "operationId": "userGetTokens",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/AccessTokenList"
@@ -5384,8 +5393,10 @@
           {
             "type": "string",
             "x-go-name": "Name",
-            "name": "name",
-            "in": "query"
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
