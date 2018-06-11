@@ -62,6 +62,7 @@ Admin operations:
         - Options:
             - `--username value`, `-u value`: Username. Required.
             - `--password value`, `-p value`: New password. Required.
+            - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
         - Examples:
             - `gitea admin change-password --username myname --password asecurepassword`
     - `regenerate`
