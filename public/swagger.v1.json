@@ -2364,7 +2364,7 @@
           {
             "type": "integer",
             "description": "index of the issue",
-            "name": "repo",
+            "name": "index",
             "in": "path",
             "required": true
           }

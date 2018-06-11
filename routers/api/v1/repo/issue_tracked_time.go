@@ -37,7 +37,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
