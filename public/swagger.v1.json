@@ -4242,7 +4242,7 @@
           "organization"
         ],
         "summary": "Remove a team member",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgRemoveTeamMember",
         "parameters": [
           {
             "type": "integer",
@@ -4301,7 +4301,7 @@
           "organization"
         ],
         "summary": "Add a repository to a team",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgAddTeamRepository",
         "parameters": [
           {
             "type": "integer",
@@ -4340,7 +4340,7 @@
           "organization"
         ],
         "summary": "Remove a repository from a team",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgRemoveTeamRepository",
         "parameters": [
           {
             "type": "integer",
