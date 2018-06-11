@@ -47,9 +47,9 @@ const (
 	ActionReopenPullRequest                       // 15
 	ActionDeleteTag                               // 16
 	ActionDeleteBranch                            // 17
-	ActionMirrorSyncPush                          // 20
-	ActionMirrorSyncCreate                        // 21
-	ActionMirrorSyncDelete                        // 22
+	ActionMirrorSyncPush                          // 18
+	ActionMirrorSyncCreate                        // 19
+	ActionMirrorSyncDelete                        // 20
 )
 
 var (

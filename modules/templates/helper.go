@@ -345,8 +345,7 @@ func ActionIcon(opType models.ActionType) string {
 	switch opType {
 	case models.ActionCreateRepo, models.ActionTransferRepo:
 		return "repo"
-	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch,
-		models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
 		return "git-commit"
 	case models.ActionCreateIssue:
 		return "issue-opened"
@@ -360,6 +359,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}
