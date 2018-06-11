@@ -745,6 +745,7 @@ func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName str
 	return nil
 }
 
+// MirrorSyncPushActionOptions mirror synchronization action options.
 type MirrorSyncPushActionOptions struct {
 	RefName     string
 	OldCommitID string
