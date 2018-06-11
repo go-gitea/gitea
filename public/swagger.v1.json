@@ -7616,9 +7616,6 @@
       "description": "SearchResults",
       "schema": {
         "$ref": "#/definitions/SearchResults"
-      },
-      "headers": {
-        "body": {}
       }
     },
     "ServerVersion": {
