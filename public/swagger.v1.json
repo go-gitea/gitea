@@ -321,9 +321,13 @@
         "operationId": "renderMarkdownRaw",
         "parameters": [
           {
-            "type": "string",
+            "description": "Request body to render",
             "name": "body",
-            "in": "body"
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
