@@ -452,6 +452,15 @@
         ],
         "summary": "List an organization's webhooks",
         "operationId": "orgListHooks",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/HookList"
@@ -472,6 +481,15 @@
         ],
         "summary": "Create a hook",
         "operationId": "orgCreateHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "201": {
             "$ref": "#/responses/Hook"
@@ -489,6 +507,22 @@
         ],
         "summary": "Get a hook",
         "operationId": "orgGetHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
@@ -504,6 +538,22 @@
         ],
         "summary": "Delete a hook",
         "operationId": "orgDeleteHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
@@ -522,6 +572,22 @@
         ],
         "summary": "Update a hook",
         "operationId": "orgEditHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
