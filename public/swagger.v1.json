@@ -4607,7 +4607,7 @@
         }
       }
     },
-    "/user/following/{followee}": {
+    "/user/following/{username}": {
       "get": {
         "tags": [
           "user"
@@ -4618,7 +4618,7 @@
           {
             "type": "string",
             "description": "username of followed user",
-            "name": "followee",
+            "name": "username",
             "in": "path",
             "required": true
           }
@@ -4631,9 +4631,7 @@
             "$ref": "#/responses/notFound"
           }
         }
-      }
-    },
-    "/user/following/{username}": {
+      },
       "put": {
         "tags": [
           "user"
