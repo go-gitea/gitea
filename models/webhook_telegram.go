@@ -68,7 +68,7 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 		commitDesc string
 	)
 
-	var titleLink, linkText string
+	var titleLink string
 	if len(p.Commits) == 1 {
 		commitDesc = "1 new commit"
 		titleLink = p.Commits[0].URL
