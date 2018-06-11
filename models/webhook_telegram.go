@@ -17,6 +17,7 @@ type (
 	// TelegramPayload represents
 	TelegramPayload struct {
 		Message string `json:"text"`
+		ParseMode string `json:"parse_mode"`
 	}
 )
 
@@ -25,6 +26,7 @@ func (p *TelegramPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the TelegramPayload to json
 func (p *TelegramPayload) JSONPayload() ([]byte, error) {
+	p.ParseMode = "HTML"
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return []byte{}, err
