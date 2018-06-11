@@ -2841,13 +2841,6 @@
             "name": "repo",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the milestone to get",
-            "name": "id",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -2938,7 +2931,7 @@
           {
             "type": "integer",
             "description": "id of the milestone to delete",
-            "name": "body",
+            "name": "id",
             "in": "path",
             "required": true
           }
@@ -4381,10 +4374,10 @@
         "operationId": "topicSearch",
         "parameters": [
           {
-            "type": "integer",
-            "description": "id of the repo to get",
-            "name": "keyword",
-            "in": "path",
+            "type": "string",
+            "description": "keywords to search",
+            "name": "q",
+            "in": "query",
             "required": true
           }
         ],

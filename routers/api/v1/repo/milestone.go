@@ -55,22 +55,6 @@ func GetMilestone(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the milestone to get
-	//   type: integer
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
@@ -202,7 +186,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: body
+	// - name: id
 	//   in: path
 	//   description: id of the milestone to delete
 	//   type: integer
