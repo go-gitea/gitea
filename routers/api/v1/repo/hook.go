@@ -202,7 +202,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{user}/{repo}/hooks/{id} repository repoDeleteHook
+	// swagger:operation DELETE /repos/{owner}/{repo}/hooks/{id} repository repoDeleteHook
 	// ---
 	// summary: Delete a hook in a repository
 	// produces:
