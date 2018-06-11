@@ -16,7 +16,7 @@ import (
 type (
 	// TelegramPayload represents
 	TelegramPayload struct {
-		Message string `json:"text"`
+		Message   string `json:"text"`
 		ParseMode string `json:"parse_mode"`
 	}
 )
