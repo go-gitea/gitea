@@ -1666,6 +1666,13 @@
             "required": true
           },
           {
+            "type": "integer",
+            "description": "index of the hook",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
             "name": "body",
             "in": "body",
             "schema": {
@@ -2892,7 +2899,7 @@
           "issue"
         ],
         "summary": "Get all of a repository's milestones",
-        "operationId": "issueGetMilestones",
+        "operationId": "issueGetMilestonesList",
         "parameters": [
           {
             "type": "string",
@@ -2967,6 +2974,29 @@
         ],
         "summary": "Get a milestone",
         "operationId": "issueGetMilestone",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the milestone",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Milestone"
@@ -3032,6 +3062,13 @@
             "type": "string",
             "description": "name of the repo",
             "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the milestone",
+            "name": "id",
             "in": "path",
             "required": true
           },

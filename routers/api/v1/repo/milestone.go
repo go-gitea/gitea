@@ -16,30 +16,7 @@ import (
 
 // ListMilestones list all the milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/milestones/{id} issue issueGetMilestone
-	// ---
-	// summary: Get a milestone
-	// produces:
-	// - application/json
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Milestone"
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.Error(500, "GetMilestonesByRepoID", err)
-		return
-	}
-
-	apiMilestones := make([]*api.Milestone, len(milestones))
-	for i := range milestones {
-		apiMilestones[i] = milestones[i].APIFormat()
-	}
-	ctx.JSON(200, &apiMilestones)
-}
-
-// GetMilestone get a milestone for a repository
-func GetMilestone(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestones
+	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
 	// summary: Get all of a repository's milestones
 	// produces:
@@ -58,6 +35,45 @@ func GetMilestone(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
+	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Error(500, "GetMilestonesByRepoID", err)
+		return
+	}
+
+	apiMilestones := make([]*api.Milestone, len(milestones))
+	for i := range milestones {
+		apiMilestones[i] = milestones[i].APIFormat()
+	}
+	ctx.JSON(200, &apiMilestones)
+}
+
+// GetMilestone get a milestone for a repository
+func GetMilestone(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/milestones/{id} issue issueGetMilestone
+	// ---
+	// summary: Get a milestone
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the milestone
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Milestone"
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
@@ -135,6 +151,11 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the milestone
+	//   type: integer
 	//   required: true
 	// - name: body
 	//   in: body

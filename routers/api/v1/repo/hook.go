@@ -189,6 +189,11 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the hook
+	//   type: integer
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
