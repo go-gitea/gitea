@@ -508,13 +508,13 @@ func TopicSearch(ctx *context.Context) {
 	// ---
 	// summary: search topics via keyword
 	// produces:
-	// - application/json
+	//   - application/json
 	// parameters:
-	// - name: keyword
-	//   in: path
-	//   description: id of the repo to get
-	//   type: integer
-	//   required: true
+	//   - name: q
+	//     in: query
+	//     description: keywords to search
+	//     required: true
+	//     type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
