@@ -22,6 +22,7 @@ func BasicAuthEncode(user, pass string) string {
 type AccessToken struct {
 	Name string `json:"name"`
 	Sha1 string `json:"sha1"`
+	ID   int64  `json:"id"`
 }
 
 // AccessTokenList represents a list of API access token.

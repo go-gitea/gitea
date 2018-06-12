@@ -7512,6 +7512,10 @@
     "AccessToken": {
       "description": "AccessToken represents a API access token.",
       "headers": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
         "name": {
           "type": "string"
         },
