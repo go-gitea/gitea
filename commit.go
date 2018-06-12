@@ -274,3 +274,19 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	}
 	return nil, nil
 }
+
+// GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
+func GetFullCommitID(repoPath, shortID string) (string, error) {
+	if len(shortID) >= 40 {
+		return shortID, nil
+	}
+
+	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "exit status 128") {
+			return "", ErrNotExist{shortID, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(commitID), nil
+}
