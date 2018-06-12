@@ -176,5 +176,10 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
+	// Remove all IssueWatches a user has subscribed to in the repository
+	if err := removeIssueWatchersByRepoID(sess, uid, repo.ID); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }

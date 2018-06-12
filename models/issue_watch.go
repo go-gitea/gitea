@@ -71,3 +71,14 @@ func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error
 		Find(&watches)
 	return
 }
+
+func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
+	iw := &IssueWatch{
+		IsWatching: false,
+	}
+	_, err := e.
+		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
+		Cols("is_watching", "updated_unix").
+		Update(iw)
+	return err
+}

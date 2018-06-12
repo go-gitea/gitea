@@ -178,6 +178,11 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		if err = watchRepo(e, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, teamUser.ID, repo.ID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -396,6 +401,11 @@ func DeleteTeam(t *Team) error {
 			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
 				return err
 			}
+
+			// Remove all IssueWatches a user has subscribed to in the repositories
+			if err = removeIssueWatchersByRepoID(sess, user.ID, repo.ID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -590,6 +600,11 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		}
 
 		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+			return err
+		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
 			return err
 		}
 	}
