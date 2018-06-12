@@ -81,7 +81,7 @@ with master, skip to the [build section](#build).
 To work with tagged releases, the following commands can be used:
 ```
 $ git branch -a
-$ git checkout v1.0
+$ git checkout v1.4.2
 ```
 
 To validate a Pull Request, first enable the new branch (`xyz` is the PR id; for example
@@ -91,14 +91,14 @@ To validate a Pull Request, first enable the new branch (`xyz` is the PR id; for
 $ git fetch origin pull/xyz/head:pr-xyz
 ```
 
-To build Gitea from source at a specific tagged release (like v1.0.0), list the available
+To build Gitea from source at a specific tagged release (like v1.4.0), list the available
 tags and check out the specific tag.
 
 List available tags with the following.
 
 ```
 $ git tag -l
-$ git checkout v1.0.0  # or git checkout pr-xyz
+$ git checkout v1.4.0  # or git checkout pr-xyz
 ```
 
 ## Build
