@@ -80,7 +80,7 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 func DeleteAccessToken(ctx *context.APIContext) {
 	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessToken
 	// ---
-	// summary: Create an access token
+	// summary: delete an access token
 	// produces:
 	// - application/json
 	// parameters:

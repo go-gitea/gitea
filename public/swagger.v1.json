@@ -5449,7 +5449,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Create an access token",
+        "summary": "delete an access token",
         "operationId": "userDeleteAccessToken",
         "parameters": [
           {
