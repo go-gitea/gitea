@@ -5432,30 +5432,17 @@
             "name": "username",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "int",
-            "description": "token to be deleted",
-            "name": "token",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/responses/AccessToken"
-          },
-          "204": {
-            "$ref": "#/responses/empty"
           }
         }
       }
     },
     "/users/{username}/tokens/{token}": {
       "delete": {
-        "consumes": [
-          "application/json"
-        ],
         "produces": [
           "application/json"
         ],
@@ -5463,18 +5450,17 @@
           "user"
         ],
         "summary": "Create an access token",
-        "operationId": "userCreateToken",
+        "operationId": "userDeleteAccessToken",
         "parameters": [
           {
             "type": "string",
-            "x-go-name": "Name",
             "description": "username of user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
-            "type": "int",
+            "type": "integer",
             "description": "token to be deleted",
             "name": "token",
             "in": "path",
@@ -5482,9 +5468,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/AccessToken"
-          },
           "204": {
             "$ref": "#/responses/empty"
           }

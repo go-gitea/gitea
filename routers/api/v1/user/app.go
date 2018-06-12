@@ -78,11 +78,9 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 
 // DeleteAccessToken delete access tokens
 func DeleteAccessToken(ctx *context.APIContext) {
-	// swagger:operation DELETE /users/{username}/tokens/{token} user userCreateToken
+	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessToken
 	// ---
 	// summary: Create an access token
-	// consumes:
-	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
@@ -94,7 +92,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// - name: token
 	//   in: path
 	//   description: token to be deleted
-	//   type: int
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "204":
