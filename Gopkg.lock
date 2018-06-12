@@ -5,7 +5,7 @@
   branch = "master"
   name = "code.gitea.io/git"
   packages = ["."]
-  revision = "31f4b8e8c805438ac6d8914b38accb1d8aaf695e"
+  revision = "466ac2480dba1e78ae19d7753620b4205db76325"
 
 [[projects]]
   branch = "master"
