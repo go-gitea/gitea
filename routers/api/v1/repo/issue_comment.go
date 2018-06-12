@@ -31,7 +31,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
@@ -139,7 +139,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
