@@ -17,7 +17,7 @@ menu:
 
 ## Dependencies
 
-**Note**: [Go Programming Language](http://golang.org): Version >= 1.8
+**Note**: [Go Programming Language](http://golang.org): Version >= 1.9
 
 We are going to create a new user called `git` and install/setup everything under that user:
 
