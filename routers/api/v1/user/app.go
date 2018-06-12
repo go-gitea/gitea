@@ -94,7 +94,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// - name: token
 	//   in: path
 	//   description: token to be deleted
-	//   type: string
+	//   type: int
 	//   required: true
 	// responses:
 	//   "204":
