@@ -18,6 +18,12 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// summary: List the authenticated user's access tokens
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
@@ -46,6 +52,12 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	// - application/json
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"

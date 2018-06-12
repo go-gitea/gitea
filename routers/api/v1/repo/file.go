@@ -64,7 +64,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 // GetArchive get archive of a repository
 func GetArchive(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/archive/{filepath} repository repoGetArchive
+	// swagger:operation GET /repos/{owner}/{repo}/archive/{archive} repository repoGetArchive
 	// ---
 	// summary: Get an archive of a repository
 	// produces:
