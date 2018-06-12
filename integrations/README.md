@@ -13,7 +13,7 @@ Make sure to perform a clean build before running tests:
 
 ## Run all tests via local drone
 ```
-drone exec --local --build.event "pull_request"
+drone exec --local --build-event "pull_request"
 ```
 
 ## Run sqlite integrations tests
