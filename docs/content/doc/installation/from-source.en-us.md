@@ -1,5 +1,5 @@
 ---
-date: "2016-12-01T16:00:00+02:00"
+date: "2018-06-12T15:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
 weight: 10
@@ -15,18 +15,63 @@ menu:
 
 # Installation from source
 
-This section will not include basic [installation instructions](https://golang.org/doc/install).
+## Dependencies
 
-**Note**: Go version 1.8 or higher is required
+**Note**: [Go Programming Language](http://golang.org): Version >= 1.8
 
-## Download
+We are going to create a new user called `git` and install/setup everything under that user:
+
+```sh
+adduser \
+   --system \
+   --shell /bin/bash \
+   --gecos 'Git Version Control' \
+   --group \
+   --disabled-password \
+   --home /home/git \
+   git
+```
+
+## Installing Go
+
+If your system's Go matches the requirements, please skip this section.
+
+### Download
+
+Install Go in `/home/git/local/go` so it wouldn't interfere with future updates of your system's package manager:
+
+```sh
+$ sudo su - git
+$ cd ~
+# create a folder to install 'go'
+$ mkdir local
+# Download go (change go$VERSION.$OS-$ARCH.tar.gz to the latest release)
+$ wget https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
+# expand it to ~/local
+$ tar -C /home/git/local -xzf go$VERSION.$OS-$ARCH.tar.gz
+```
+
+### Set Up the Environment
+
+Set the paths that correspond to your system:
+
+```sh
+$ sudo su - git
+$ cd ~
+$ echo 'export GOROOT=$HOME/local/go' >> $HOME/.bashrc
+$ echo 'export GOPATH=$HOME/go' >> $HOME/.bashrc
+$ echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin' >> $HOME/.bashrc
+$ source $HOME/.bashrc
+```
+
+## Download Gitea
 
 First retrieve the source code. The easiest way is to use the Go tool. Use the following
 commands to fetch the source and switch into the source directory.
 
 ```
-go get -d -u code.gitea.io/gitea
-cd $GOPATH/src/code.gitea.io/gitea
+$ go get -d -u code.gitea.io/gitea
+$ cd $GOPATH/src/code.gitea.io/gitea
 ```
 
 Decide which version of Gitea to build and install. Currently, there are multiple options
@@ -35,15 +80,15 @@ with master, skip to the [build section](#build).
 
 To work with tagged releases, the following commands can be used:
 ```
-git branch -a
-git checkout v1.0
+$ git branch -a
+$ git checkout v1.0
 ```
 
 To validate a Pull Request, first enable the new branch (`xyz` is the PR id; for example
 `2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663)):
 
 ```
-git fetch origin pull/xyz/head:pr-xyz
+$ git fetch origin pull/xyz/head:pr-xyz
 ```
 
 To build Gitea from source at a specific tagged release (like v1.0.0), list the available
@@ -52,8 +97,8 @@ tags and check out the specific tag.
 List available tags with the following.
 
 ```
-git tag -l
-git checkout v1.0.0  # or git checkout pr-xyz
+$ git tag -l
+$ git checkout v1.0.0  # or git checkout pr-xyz
 ```
 
 ## Build
@@ -77,7 +122,7 @@ testing easier, but is not ideal for a production deployment. To include assets,
 must be built separately using the `generate` make task.
 
 ```
-TAGS="bindata" make generate build
+$ TAGS="bindata" make generate build
 ```
 
 ## Test
@@ -87,5 +132,5 @@ It can be tested from this directory or moved to a directory with test data. Whe
 launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 ```
-./gitea web
+$ ./gitea web
 ```
