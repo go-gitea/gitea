@@ -189,6 +189,11 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the hook
+	//   type: integer
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
@@ -202,7 +207,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{user}/{repo}/hooks/{id} repository repoDeleteHook
+	// swagger:operation DELETE /repos/{owner}/{repo}/hooks/{id} repository repoDeleteHook
 	// ---
 	// summary: Delete a hook in a repository
 	// produces:

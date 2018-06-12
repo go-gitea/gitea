@@ -62,9 +62,12 @@ func MarkdownRaw(ctx *context.APIContext) {
 	// ---
 	// summary: Render raw markdown as HTML
 	// parameters:
-	// - name: body
-	//   in: body
-	//   type: string
+	//     - name: body
+	//       in: body
+	//       description: Request body to render
+	//       required: true
+	//       schema:
+	//         type: string
 	// consumes:
 	//     - text/plain
 	// produces:

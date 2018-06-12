@@ -20,6 +20,12 @@ func ListHooks(ctx *context.APIContext) {
 	// summary: List an organization's webhooks
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
@@ -43,6 +49,17 @@ func GetHook(ctx *context.APIContext) {
 	// summary: Get a hook
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to get
+	//   type: integer
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
@@ -64,9 +81,17 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	// - application/json
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
+
+	//TODO in body params
 	if !utils.CheckCreateHookOption(ctx, &form) {
 		return
 	}
@@ -82,9 +107,22 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	// - application/json
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to update
+	//   type: integer
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+
+	//TODO in body params
 	hookID := ctx.ParamsInt64(":id")
 	utils.EditOrgHook(ctx, &form, hookID)
 }
@@ -96,6 +134,17 @@ func DeleteHook(ctx *context.APIContext) {
 	// summary: Delete a hook
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to delete
+	//   type: integer
+	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
