@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -73,4 +74,40 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		Name: t.Name,
 		Sha1: t.Sha1,
 	})
+}
+
+// DeleteAccessToken delete access tokens
+func DeleteAccessToken(ctx *context.APIContext) {
+	// swagger:operation DELETE /users/{username}/tokens/{token} user userCreateToken
+	// ---
+	// summary: Create an access token
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: token
+	//   in: path
+	//   description: token to be deleted
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	tokenID := ctx.ParamsInt64(":id")
+	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
+		if models.IsErrAccessTokenNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "DeleteAccessTokenByID", err)
+		}
+		return
+	}
+
+	ctx.Status(204)
 }
