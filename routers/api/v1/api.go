@@ -20,10 +20,10 @@
 //     - text/html
 //
 //     Security:
-//     - BasicAuth: []
-//     - Token: []
-//     - AccessToken: []
-//     - AuthorizationHeaderToken: []
+//     - BasicAuth :
+//     - Token :
+//     - AccessToken :
+//     - AuthorizationHeaderToken :
 //
 //     SecurityDefinitions:
 //     BasicAuth:

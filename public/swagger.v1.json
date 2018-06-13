@@ -321,9 +321,13 @@
         "operationId": "renderMarkdownRaw",
         "parameters": [
           {
-            "type": "string",
+            "description": "Request body to render",
             "name": "body",
-            "in": "body"
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -448,6 +452,15 @@
         ],
         "summary": "List an organization's webhooks",
         "operationId": "orgListHooks",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/HookList"
@@ -468,6 +481,15 @@
         ],
         "summary": "Create a hook",
         "operationId": "orgCreateHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "201": {
             "$ref": "#/responses/Hook"
@@ -485,6 +507,22 @@
         ],
         "summary": "Get a hook",
         "operationId": "orgGetHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
@@ -500,6 +538,22 @@
         ],
         "summary": "Delete a hook",
         "operationId": "orgDeleteHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
@@ -518,6 +572,22 @@
         ],
         "summary": "Update a hook",
         "operationId": "orgEditHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
@@ -994,7 +1064,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/archive/{filepath}": {
+    "/repos/{owner}/{repo}/archive/{archive}": {
       "get": {
         "produces": [
           "application/json"
@@ -1530,6 +1600,47 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a hook in a repository",
+        "operationId": "repoDeleteHook",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "patch": {
         "produces": [
           "application/json"
@@ -1551,6 +1662,13 @@
             "type": "string",
             "description": "name of the repo",
             "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the hook",
+            "name": "id",
             "in": "path",
             "required": true
           },
@@ -1825,6 +1943,100 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{id}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List an issue's tracked times",
+        "operationId": "issueTrackedTimes",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimeList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add a tracked time to a issue",
+        "operationId": "issueAddTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue to add tracked time to",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/AddTimeOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTime"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}": {
       "get": {
         "produces": [
@@ -1941,7 +2153,7 @@
           {
             "type": "integer",
             "description": "index of the issue",
-            "name": "id",
+            "name": "index",
             "in": "path",
             "required": true
           },
@@ -1988,7 +2200,7 @@
           {
             "type": "integer",
             "description": "index of the issue",
-            "name": "id",
+            "name": "index",
             "in": "path",
             "required": true
           },
@@ -2104,56 +2316,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Comment"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issues/{index}/deadline": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Set an issue deadline. If set to null, the deadline is deleted.",
-        "operationId": "issueEditIssueDeadline",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue to create or update a deadline on",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditDeadlineOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/IssueDeadline"
           }
         }
       }
@@ -2378,100 +2540,6 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issues/{index}/times": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "List an issue's tracked times",
-        "operationId": "issueTrackedTimes",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTimeList"
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Add a tracked time to a issue",
-        "operationId": "issueAddTime",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue to add tracked time to",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/AddTimeOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTime"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/error"
           }
         }
       }
@@ -2831,7 +2899,7 @@
           "issue"
         ],
         "summary": "Get all of a repository's milestones",
-        "operationId": "issueGetMilestones",
+        "operationId": "issueGetMilestonesList",
         "parameters": [
           {
             "type": "string",
@@ -2844,13 +2912,6 @@
             "type": "string",
             "description": "name of the repo",
             "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the milestone to get",
-            "name": "id",
             "in": "path",
             "required": true
           }
@@ -2913,6 +2974,29 @@
         ],
         "summary": "Get a milestone",
         "operationId": "issueGetMilestone",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the milestone",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/Milestone"
@@ -2943,7 +3027,7 @@
           {
             "type": "integer",
             "description": "id of the milestone to delete",
-            "name": "body",
+            "name": "id",
             "in": "path",
             "required": true
           }
@@ -2978,6 +3062,13 @@
             "type": "string",
             "description": "name of the repo",
             "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the milestone",
+            "name": "id",
             "in": "path",
             "required": true
           },
@@ -4029,7 +4120,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/times/{tracker}": {
+    "/repos/{owner}/{repo}/times/{user}": {
       "get": {
         "produces": [
           "application/json"
@@ -4065,49 +4156,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
-          }
-        }
-      }
-    },
-    "/repos/{user}/{repo}/hooks/{id}": {
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Delete a hook in a repository",
-        "operationId": "repoDeleteHook",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the hook to delete",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -4288,7 +4336,7 @@
           "organization"
         ],
         "summary": "Remove a team member",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgRemoveTeamMember",
         "parameters": [
           {
             "type": "integer",
@@ -4347,7 +4395,7 @@
           "organization"
         ],
         "summary": "Add a repository to a team",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgAddTeamRepository",
         "parameters": [
           {
             "type": "integer",
@@ -4386,7 +4434,7 @@
           "organization"
         ],
         "summary": "Remove a repository from a team",
-        "operationId": "orgAddTeamMember",
+        "operationId": "orgRemoveTeamRepository",
         "parameters": [
           {
             "type": "integer",
@@ -4429,10 +4477,10 @@
         "operationId": "topicSearch",
         "parameters": [
           {
-            "type": "integer",
-            "description": "id of the repo to get",
-            "name": "keyword",
-            "in": "path",
+            "type": "string",
+            "description": "keywords to search",
+            "name": "q",
+            "in": "query",
             "required": true
           }
         ],
@@ -4559,7 +4607,7 @@
         }
       }
     },
-    "/user/following/{followee}": {
+    "/user/following/{username}": {
       "get": {
         "tags": [
           "user"
@@ -4570,7 +4618,7 @@
           {
             "type": "string",
             "description": "username of followed user",
-            "name": "followee",
+            "name": "username",
             "in": "path",
             "required": true
           }
@@ -4583,9 +4631,7 @@
             "$ref": "#/responses/notFound"
           }
         }
-      }
-    },
-    "/user/following/{username}": {
+      },
       "put": {
         "tags": [
           "user"
@@ -5351,6 +5397,15 @@
         ],
         "summary": "List the authenticated user's access tokens",
         "operationId": "userGetTokens",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/AccessTokenList"
@@ -5373,8 +5428,10 @@
           {
             "type": "string",
             "x-go-name": "Name",
-            "name": "name",
-            "in": "query"
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -6055,21 +6112,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "EditDeadlineOption": {
-      "description": "EditDeadlineOption options for creating a deadline",
-      "type": "object",
-      "required": [
-        "due_date"
-      ],
-      "properties": {
-        "due_date": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Deadline"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
-    },
     "EditHookOption": {
       "description": "EditHookOption options when modify one hook",
       "type": "object",
@@ -6556,18 +6598,6 @@
         },
         "user": {
           "$ref": "#/definitions/User"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
-    },
-    "IssueDeadline": {
-      "description": "IssueDeadline represents an issue deadline",
-      "type": "object",
-      "properties": {
-        "due_date": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Deadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7568,11 +7598,6 @@
         "$ref": "#/definitions/Issue"
       }
     },
-    "IssueDeadline": {
-      "schema": {
-        "$ref": "#/definitions/IssueDeadline"
-      }
-    },
     "IssueList": {
       "description": "IssueList",
       "schema": {
@@ -7694,9 +7719,6 @@
       "description": "SearchResults",
       "schema": {
         "$ref": "#/definitions/SearchResults"
-      },
-      "headers": {
-        "body": {}
       }
     },
     "ServerVersion": {
@@ -7803,41 +7825,6 @@
       "description": "parameterBodies",
       "schema": {
         "$ref": "#/definitions/EditAttachmentOptions"
-      },
-      "headers": {
-        "AddCollaboratorOption": {},
-        "AddTimeOption": {},
-        "CreateEmailOption": {},
-        "CreateForkOption": {},
-        "CreateHookOption": {},
-        "CreateIssueCommentOption": {},
-        "CreateIssueOption": {},
-        "CreateKeyOption": {},
-        "CreateLabelOption": {},
-        "CreateMilestoneOption": {},
-        "CreateOrgOption": {},
-        "CreatePullRequestOption": {},
-        "CreateReleaseOption": {},
-        "CreateRepoOption": {},
-        "CreateStatusOption": {},
-        "CreateTeamOption": {},
-        "CreateUserOption": {},
-        "DeleteEmailOption": {},
-        "EditAttachmentOptions": {},
-        "EditDeadlineOption": {},
-        "EditHookOption": {},
-        "EditIssueCommentOption": {},
-        "EditIssueOption": {},
-        "EditLabelOption": {},
-        "EditMilestoneOption": {},
-        "EditOrgOption": {},
-        "EditPullRequestOption": {},
-        "EditReleaseOption": {},
-        "EditTeamOption": {},
-        "EditUserOption": {},
-        "IssueLabelsOption": {},
-        "MarkdownOption": {},
-        "MigrateRepoForm": {}
       }
     },
     "redirect": {
@@ -7877,24 +7864,16 @@
   },
   "security": [
     {
-      "BasicAuth": [
-        "[]"
-      ]
+      "BasicAuth": []
     },
     {
-      "Token": [
-        "[]"
-      ]
+      "Token": []
     },
     {
-      "AccessToken": [
-        "[]"
-      ]
+      "AccessToken": []
     },
     {
-      "AuthorizationHeaderToken": [
-        "[]"
-      ]
+      "AuthorizationHeaderToken": []
     }
   ]
 }
