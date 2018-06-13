@@ -7864,24 +7864,16 @@
   },
   "security": [
     {
-      "BasicAuth": [
-        "[]"
-      ]
+      "BasicAuth": []
     },
     {
-      "Token": [
-        "[]"
-      ]
+      "Token": []
     },
     {
-      "AccessToken": [
-        "[]"
-      ]
+      "AccessToken": []
     },
     {
-      "AuthorizationHeaderToken": [
-        "[]"
-      ]
+      "AuthorizationHeaderToken": []
     }
   ]
 }
