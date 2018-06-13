@@ -5,28 +5,14 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/context"
 	"fmt"
-	"code.gitea.io/gitea/modules/setting"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/git"
+	"code.gitea.io/sdk/gitea"
 )
-
-type TreeEntry struct {
-	Path		string 		`json:"path"`
-	Mode		string 		`json:"mode"`
-	Type		string 		`json:"type"`
-	Size		int64 		`json:"size,omitempty"`
-	SHA		string		`json:"sha"`
-	URL		string		`json:"url"`
-}
-
-type Tree struct {
-	SHA		string		`json:"sha"`
-	URL		string		`json:"url"`
-	Entries		[]TreeEntry	`json:"tree,omitempty"`
-	Truncated 	bool		`json:"truncated"`
-}
 
 func GetTree(ctx *context.APIContext) {
 	sha := ctx.Params("sha")
@@ -42,12 +28,12 @@ func GetTree(ctx *context.APIContext) {
 	}
 }
 
-func GetTreeBySHA(ctx *context.APIContext, sha string) *Tree {
+func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	GitTree, err := ctx.Repo.GitRepo.GetTree(sha)
 	if err != nil || GitTree == nil{
 		return nil
 	}
-	tree := new(Tree)
+	tree := new(gitea.GitTreeResponse)
 	RepoID := strings.TrimRight(setting.AppURL, "/") + "/api/v1/repos/" + ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	tree.SHA = GitTree.ID.String()
 	tree.URL = RepoID + "/trees/" + tree.SHA
@@ -70,9 +56,9 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *Tree {
 	CopyPos := len(TreeURL) - 40
 
 	if len(Entries) > 1000 {
-		tree.Entries = make([]TreeEntry, 1000)
+		tree.Entries = make([]gitea.GitTreeEntry, 1000)
 	} else {
-		tree.Entries = make([]TreeEntry, len(Entries))
+		tree.Entries = make([]gitea.GitTreeEntry, len(Entries))
 	}
 	for e := range Entries {
 		if e > 1000 {

@@ -372,16 +372,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
-
 			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
-
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(repo.Get).Delete(reqToken(), repo.Delete)
-
 				m.Group("/trees", func() {
 					m.Combo("/:sha", context.RepoRef()).Get(repo.GetTree)
 				})
-
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -392,9 +388,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
 				}, reqToken(), reqRepoWriter())
-
-
-
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(repo.IsCollaborator).
