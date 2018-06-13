@@ -619,9 +619,10 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
+				unescaped, _ := url.PathUnescape(ctx.Req.URL.String())
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
-					path.Dir(ctx.Req.URL.String()),
+					strings.TrimSuffix(unescaped, ctx.Params("*")),
 					(&url.URL{Path: ctx.Repo.BranchNameSubURL()}).String(),
 					ctx.Repo.TreePath))
 				return
