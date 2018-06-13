@@ -231,7 +231,7 @@ You can configure some of Gitea's settings via environment variables:
 
 * `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
 * `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
-* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for displayed clone UR in Gitea's UI.
+* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
 * `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 * `HTTP_PORT`: **3000**: HTTP listen port.
