@@ -2208,7 +2208,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/CreateIssueOption"
+              "$ref": "#/definitions/CreateIssueCommentOption"
             }
           }
         ],
