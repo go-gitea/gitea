@@ -42,6 +42,10 @@ func Home(ctx *context.Context) {
 			user.Dashboard(ctx)
 		}
 		return
+		// Check non-logged users landing page.
+	} else if setting.LandingPageURL != setting.LandingPageHome {
+		ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
+		return
 	}
 
 	// Check auto-login.
