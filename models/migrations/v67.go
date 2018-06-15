@@ -66,6 +66,10 @@ func removeStaleWatches(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
 
 	repoCache := make(map[int64]*Repository)
 	err := x.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
