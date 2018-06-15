@@ -55,10 +55,16 @@ func TestRender_ShortLinks(t *testing.T) {
 	rawtree := markup.URLJoin(AppSubURL, "raw", "master")
 	url := markup.URLJoin(tree, "Link")
 	otherUrl := markup.URLJoin(tree, "OtherLink")
+	encodedURL := markup.URLJoin(tree, "Link%3F")
 	imgurl := markup.URLJoin(rawtree, "Link.jpg")
+	encodedImgurl := markup.URLJoin(rawtree, "Link+%23.jpg")
+	notencodedImgurl := markup.URLJoin(rawtree, "some", "path", "Link+#.jpg")
 	urlWiki := markup.URLJoin(AppSubURL, "wiki", "Link")
 	otherUrlWiki := markup.URLJoin(AppSubURL, "wiki", "OtherLink")
+	encodedURLWiki := markup.URLJoin(AppSubURL, "wiki", "Link%3F")
 	imgurlWiki := markup.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	encodedImgurlWiki := markup.URLJoin(AppSubURL, "wiki", "raw", "Link+%23.jpg")
+	notencodedImgurlWiki := markup.URLJoin(AppSubURL, "wiki", "raw", "some", "path", "Link+#.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -101,6 +107,26 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Link]] [[OtherLink]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherUrl+`" rel="nofollow">OtherLink</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherUrlWiki+`" rel="nofollow">OtherLink</a></p>`)
+	test(
+		"[[Link?]]",
+		`<p><a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
+		`<p><a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[Link]] [[OtherLink]] [[Link?]]",
+		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherUrl+`" rel="nofollow">OtherLink</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherUrlWiki+`" rel="nofollow">OtherLink</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[Link #.jpg]]",
+		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`"/></a></p>`,
+		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`"/></a></p>`)
+	test(
+		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
+		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" alt="AltName" title="Title"/></a></p>`,
+		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
+	test(
+		"[[some/path/Link #.jpg]]",
+		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`"/></a></p>`,
+		`<p><a href="`+notencodedImgurlWiki+`" rel="nofollow"><img src="`+notencodedImgurlWiki+`"/></a></p>`)
 }
 
 func TestMisc_IsMarkdownFile(t *testing.T) {
