@@ -180,7 +180,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, teamUser.ID, repo.ID); err != nil {
+		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
