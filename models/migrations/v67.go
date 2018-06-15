@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/log"
 )
 
 func removeStaleWatches(x *xorm.Engine) error {
@@ -15,6 +16,13 @@ func removeStaleWatches(x *xorm.Engine) error {
 		ID     int64
 		UserID int64
 		RepoID int64
+	}
+
+	type IssueWatch struct {
+		ID         int64
+		UserID     int64
+		RepoID     int64
+		IsWatching bool
 	}
 
 	type Repository struct {
@@ -57,8 +65,10 @@ func removeStaleWatches(x *xorm.Engine) error {
 		return a.Mode, nil
 	}
 
+	sess := x.NewSession()
+
 	repoCache := make(map[int64]*Repository)
-	return x.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
+	err := x.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
 		func(idx int, bean interface{}) error {
 			watch := bean.(*Watch)
 
@@ -72,7 +82,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 				}
 			}
 
-			// Remove watches from now unaccessible
+			// Remove watches from now unaccessible repositories
 			mode, err := accessLevel(watch.UserID, repo)
 			if err != nil {
 				return err
@@ -82,12 +92,64 @@ func removeStaleWatches(x *xorm.Engine) error {
 				return nil
 			}
 
-			sess := x.NewSession()
 			if _, err = sess.Delete(&Watch{0, watch.UserID, repo.ID}); err != nil {
 				return err
 			}
 			_, err = sess.Exec("UPDATE `repository` SET num_watches = num_watches - 1 WHERE id = ?", repo.ID)
 
-			return sess.Commit()
+			return err
 		})
+	if err != nil {
+		return err
+	}
+
+	repoCache = make(map[int64]*Repository)
+	err = x.BufferSize(setting.IterateBufferSize).
+		Distinct("issue_watch.user_id", "issue.repo_id").
+		Join("INNER", "issue", "issue_watch.issue_id = issue.id").
+		Where("issue_watch.is_watching = ?", true).
+		Iterate(new(IssueWatch),
+			func(idx int, bean interface{}) error {
+				watch := bean.(*IssueWatch)
+
+				log.Info("watch issues from repo %s", watch.RepoID)
+
+				repo := repoCache[watch.RepoID]
+				if repo == nil {
+					repo = &Repository{
+						ID: watch.RepoID,
+					}
+					if _, err := x.Get(repo); err != nil {
+						return err
+					}
+				}
+
+				// Remove issue watches from now unaccssible repositories
+				mode, err := accessLevel(watch.UserID, repo)
+				if err != nil {
+					return err
+				}
+				has := AccessModeRead <= mode
+				if has {
+					return nil
+				}
+
+				iw := &IssueWatch{
+					IsWatching: false,
+				}
+
+				_, err = sess.
+					Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", watch.RepoID).
+					Cols("is_watching", "updated_unix").
+					Where("`issue_watch`.user_id = ?", watch.UserID).
+					Update(iw)
+
+				return err
+
+			})
+	if err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
