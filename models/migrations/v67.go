@@ -8,7 +8,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
-	"code.gitea.io/gitea/modules/log"
 )
 
 func removeStaleWatches(x *xorm.Engine) error {
@@ -115,8 +114,6 @@ func removeStaleWatches(x *xorm.Engine) error {
 		Iterate(new(IssueWatch),
 			func(idx int, bean interface{}) error {
 				watch := bean.(*IssueWatch)
-
-				log.Info("watch issues from repo %s", watch.RepoID)
 
 				repo := repoCache[watch.RepoID]
 				if repo == nil {
