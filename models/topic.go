@@ -6,12 +6,12 @@ package models
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
-	"regexp"
 )
 
 func init() {
