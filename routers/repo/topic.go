@@ -13,7 +13,7 @@ import (
 )
 
 // TopicPost response for creating repository
-func TopicPost(ctx *context.Context) {
+func TopicsPost(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]interface{}{
 			"message": "Only owners could change the topics.",
@@ -25,6 +25,33 @@ func TopicPost(ctx *context.Context) {
 	var topicsStr = strings.TrimSpace(ctx.Query("topics"))
 	if len(topicsStr) > 0 {
 		topics = strings.Split(topicsStr, ",")
+	}
+
+	topics = models.RemoveDuplicateTopics(topics)
+
+	if len(topics) > 25 {
+		log.Error(2, "Incorrect number of topics(max 25): %v", )
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": topics[:0],
+			"message": ctx.Tr("repo.topic.count_error"),
+		})
+		return
+	}
+
+	var invalidTopics = make([]string, 0)
+	for _, topic := range topics {
+		if !models.TopicValidator(topic) {
+			invalidTopics = append(invalidTopics, topic)
+		}
+	}
+
+	if len(invalidTopics) > 0 {
+		log.Error(2, "Invalid topics: %v", invalidTopics)
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": invalidTopics,
+			"message": ctx.Tr("repo.topic.pattern_error"),
+		})
+		return
 	}
 
 	err := models.SaveTopics(ctx.Repo.Repository.ID, topics...)

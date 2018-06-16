@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
+	"regexp"
 )
 
 func init() {
@@ -19,6 +20,8 @@ func init() {
 		new(RepoTopic),
 	)
 }
+
+var topicPattern = regexp.MustCompile(`^[a-z0-9+#_.-]+$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
@@ -49,6 +52,26 @@ func IsErrTopicNotExist(err error) bool {
 // Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
+}
+
+func TopicValidator(topic string) bool {
+	return len(topic) <= 35 && topicPattern.MatchString(topic)
+}
+
+// Remove duplicates from topics slice
+func RemoveDuplicateTopics(topics []string) []string {
+	// Map to record duplicates
+	saved := make(map[string]struct{}, len(topics))
+	i := 0
+	for _, v := range topics {
+		v = strings.TrimSpace(strings.ToLower(v))
+		if _, ok := saved[v]; !ok {
+			saved[v] = struct{}{}
+			topics[i] = v
+			i++
+		}
+	}
+	return topics[:i]
 }
 
 // GetTopicByName retrieves topic by name
