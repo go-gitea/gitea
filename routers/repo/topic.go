@@ -30,10 +30,10 @@ func TopicsPost(ctx *context.Context) {
 	topics = models.RemoveDuplicateTopics(topics)
 
 	if len(topics) > 25 {
-		log.Error(2, "Incorrect number of topics(max 25): %v", )
+		log.Error(2, "Incorrect number of topics(max 25)")
 		ctx.JSON(422, map[string]interface{}{
 			"invalidTopics": topics[:0],
-			"message": ctx.Tr("repo.topic.count_error"),
+			"message":       ctx.Tr("repo.topic.count_error"),
 		})
 		return
 	}
@@ -49,7 +49,7 @@ func TopicsPost(ctx *context.Context) {
 		log.Error(2, "Invalid topics: %v", invalidTopics)
 		ctx.JSON(422, map[string]interface{}{
 			"invalidTopics": invalidTopics,
-			"message": ctx.Tr("repo.topic.pattern_error"),
+			"message":       ctx.Tr("repo.topic.pattern_error"),
 		})
 		return
 	}
