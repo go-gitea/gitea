@@ -3,7 +3,7 @@
 [![Build Status](http://drone.gitea.io/api/badges/go-gitea/git/status.svg)](http://drone.gitea.io/go-gitea/git)
 [![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](http://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
-[![Coverage Status](https://coverage.gitea.io/badges/go-gitea/git/coverage.svg)](https://coverage.gitea.io/go-gitea/git)
+[![codecov](https://codecov.io/gh/go-gitea/git/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/git)
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/git)](https://goreportcard.com/report/code.gitea.io/git)
 [![GoDoc](https://godoc.org/code.gitea.io/git?status.svg)](https://godoc.org/code.gitea.io/git)
 

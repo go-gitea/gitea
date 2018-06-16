@@ -31,11 +31,13 @@ pipeline:
       - git update-ref refs/heads/test HEAD
       - PATH=/opt/git-1.7.2/bin git --version && make test
 
-  # coverage:
-  #   image: plugins/coverage:1
-  #   pull: true
-  #   secrets: [ github_token ]
-  #   server: https://coverage.gitea.io
+  coverage:
+    image: robertstettner/drone-codecov
+    secrets: [ codecov_token ]
+    files:
+      - coverage.out
+    when:
+      event: [ push, pull_request ]
 
   discord:
     image: appleboy/drone-discord:1.0.0
