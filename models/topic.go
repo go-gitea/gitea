@@ -54,11 +54,12 @@ func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
 
+// TopicValidator checks topics by length and match pattern rules
 func TopicValidator(topic string) bool {
 	return len(topic) <= 35 && topicPattern.MatchString(topic)
 }
 
-// Remove duplicates from topics slice
+// RemoveDuplicateTopics remove duplicates from topics slice
 func RemoveDuplicateTopics(topics []string) []string {
 	// Map to record duplicates
 	saved := make(map[string]struct{}, len(topics))
