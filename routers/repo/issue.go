@@ -1065,6 +1065,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
 							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
 						}
+						return
 					}
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
