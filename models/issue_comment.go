@@ -348,11 +348,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 
-	var depID int64
-	if opts.DependentIssue != nil {
-		depID = opts.DependentIssue.ID
-	}
-
 	comment := &Comment{
 		Type:             opts.Type,
 		PosterID:         opts.Doer.ID,
@@ -369,7 +364,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
-		DependentIssueID: depID,
+		DependentIssueID: opts.DependentIssueID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -584,7 +579,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Doer:           doer,
 		Repo:           issue.Repo,
 		Issue:          issue,
-		DependentIssue: dependentIssue,
+		DependentIssueID: dependentIssue.ID,
 	})
 	if err != nil {
 		return
@@ -595,7 +590,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Doer:           doer,
 		Repo:           issue.Repo,
 		Issue:          dependentIssue,
-		DependentIssue: issue,
+		DependentIssueID: issue.ID,
 	})
 	if err != nil {
 		return
@@ -611,8 +606,8 @@ type CreateCommentOptions struct {
 	Repo           *Repository
 	Issue          *Issue
 	Label          *Label
-	DependentIssue *Issue
 
+	DependentIssueID int64
 	OldMilestoneID  int64
 	MilestoneID     int64
 	AssigneeID      int64
