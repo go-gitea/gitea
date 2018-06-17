@@ -84,3 +84,5 @@ type swaggerIssueDeadline struct {
 	// in:body
 	Body api.IssueDeadline `json:"body"`
 }
+
+
