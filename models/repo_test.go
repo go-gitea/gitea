@@ -57,6 +57,9 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
 	testSuccess(markup.IssueNameStyleNumeric)
 
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
+	testSuccess(markup.IssueNameStyleRegexp)
+
 	repo, err := GetRepositoryByID(3)
 	assert.NoError(t, err)
 
@@ -65,6 +68,7 @@ func TestMetas(t *testing.T) {
 	assert.Contains(t, metas, "teams")
 	assert.Equal(t, "user3", metas["org"])
 	assert.Equal(t, ",owners,team1,", metas["teams"])
+
 }
 
 func TestGetRepositoryCount(t *testing.T) {

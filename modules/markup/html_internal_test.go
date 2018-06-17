@@ -52,6 +52,13 @@ var alphanumericMetas = map[string]string{
 	"style":  IssueNameStyleAlphanumeric,
 }
 
+var regexpMetas = map[string]string{
+	"format": "https://someurl.com/{user}/{repo}/{index}",
+	"user":   "someUser",
+	"repo":   "someRepo",
+	"style":  IssueNameStyleRegexp,
+}
+
 // these values should match the Repo const above
 var localMetas = map[string]string{
 	"user": "gogits",
@@ -194,6 +201,45 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test("test T-12 issue", "test %s issue", "T-12")
 	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
 }
+
+func TestRender_IssueIndexPattern5(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	// regexp: render inputs without valid mentions
+	test := func(s, expectedFmt string, pattern string, ids []string, names []string) {
+		metas := regexpMetas
+		metas["regexp"] = pattern
+		links := make([]interface{}, len(ids))
+		for i, id := range ids {
+			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), names[i])
+		}
+
+		expected := fmt.Sprintf(expectedFmt, links...)
+		testRenderIssueIndexPattern(t, s, expected, &postProcessCtx{metas: metas})
+	}
+
+	test("abc ISSUE-123 def", "abc %s def", "ISSUE-(\\d+)",
+		[]string{"123"},
+		[]string{"ISSUE-123"},
+	)
+
+	test("abc (ISSUE 123) def", "abc %s def",
+		"\\(ISSUE (\\d+)\\)",
+		[]string{"123"},
+		[]string{"(ISSUE 123)"},
+	)
+
+	test("abc (ISSUE 123) def (TASK 456) ghi", "abc %s def %s ghi", "\\((?:ISSUE|TASK) (\\d+)\\)",
+		[]string{"123", "456"},
+		[]string{"(ISSUE 123)", "(TASK 456)"},
+	)
+
+	metas := regexpMetas
+	metas["regexp"] = "no matches"
+	testRenderIssueIndexPattern(t, "will not match", "will not match", &postProcessCtx{metas: metas})
+}
+
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
 	if ctx.URLPrefix == "" {

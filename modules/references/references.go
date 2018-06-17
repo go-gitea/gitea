@@ -340,6 +340,24 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 	}
 }
 
+// FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
+func FindRenderizableReferenceRegexp(content string, pattern *Regexp) (bool, *RenderizableReference) {
+	match := pattern.FindStringSubmatchIndex(content)
+	if match == nil {
+		return false, nil
+	}
+
+	action, location := findActionKeywords([]byte(content), match[2])
+
+	return true, &RenderizableReference{
+		Issue:          string(content[match[2]:match[3]]),
+		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
+		Action:         action,
+		ActionLocation: location,
+		IsPull:         false,
+	}
+}
+
 // FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a string.
 func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableReference) {
 	match := issueAlphanumericPattern.FindStringSubmatchIndex(content)
@@ -537,7 +555,7 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 }
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
-func IsXrefActionable(ref *RenderizableReference, extTracker bool, alphaNum bool) bool {
+func IsXrefActionable(ref *RenderizableReference, extTracker bool) bool {
 	if extTracker {
 		// External issues cannot be automatically closed
 		return false

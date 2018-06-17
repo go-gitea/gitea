@@ -33,6 +33,7 @@ import (
 const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
+	IssueNameStyleRegexp       = "regexp"
 )
 
 var (
@@ -806,19 +807,35 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 	)
 
 	next := node.NextSibling
+
+	_, exttrack := ctx.Metas["format"]
+	notNumericStyle := ctx.Metas["style"] != IssueNameStyleNumeric
+	foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, exttrack && notNumericStyle)
+
 	for node != nil && node != next {
-		_, exttrack := ctx.Metas["format"]
-		alphanum := ctx.Metas["style"] == IssueNameStyleAlphanumeric
+		switch ctx.Metas["style"] {
+		case IssueNameStyleNumeric:
+			found = foundNumeric
+			ref = refNumeric
+		case IssueNameStyleAlphanumeric:
+			found, ref := references.FindRenderizableReferenceAlphanumeric(node.Data)
+		case IssueNameStyleRegexp:
+			// TODO: Compile only once, at regexp definition time
+			pattern, err := regexp.Compile(ctx.metas["regexp"])
+			if err == nil {
+				return
+			}
+			found, ref := references.FindRenderizableReferenceRegexp(node.Data, pattern)
+		}
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		found, ref = references.FindRenderizableReferenceNumeric(node.Data, exttrack && alphanum)
-		if exttrack && alphanum {
-			if found2, ref2 := references.FindRenderizableReferenceAlphanumeric(node.Data); found2 {
-				if !found || ref2.RefLocation.Start < ref.RefLocation.Start {
-					found = true
-					ref = ref2
-				}
+		if exttrack && notNumericStyle {
+			// If numeric (PR) was found and it was BEFORE the notNumeric
+			// pattern, use that
+			if foundNumeric && refNumeric.RefLocation.Start < ref.RefLocation.Start {
+				found = foundNumeric
+				ref = refNumeric
 			}
 		}
 		if !found {
@@ -853,7 +870,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, exttrack, alphanum) {
+		if references.IsXrefActionable(ref, exttrack) {
 			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{
