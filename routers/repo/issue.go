@@ -1059,7 +1059,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments, util.TimeStamp(0))
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return

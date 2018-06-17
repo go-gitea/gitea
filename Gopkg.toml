@@ -11,7 +11,8 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/git"
 
 [[constraint]]
-  branch = "master"
+  branch = "migration"
+  source = "github.com/JonasFranzDEV/go-sdk"
   name = "code.gitea.io/sdk"
 
 [[constraint]]

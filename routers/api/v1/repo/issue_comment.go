@@ -5,10 +5,12 @@
 package repo
 
 import (
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -144,6 +146,11 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   description: index of the issue
 	//   type: integer
 	//   required: true
+	// - name: suppress_notifications
+	//   in: query
+	//   type: boolean
+	//   description: suppresses notifications and webhooks if true. Requires repo admin permissions.
+	//   required: false
 	// - name: body
 	//   in: body
 	//   schema:
@@ -156,11 +163,37 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		ctx.Error(500, "GetIssueByIndex", err)
 		return
 	}
-
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
-	if err != nil {
-		ctx.Error(500, "CreateIssueComment", err)
-		return
+	var comment *models.Comment
+	doer := ctx.User
+	createdUnix := util.TimeStamp(0)
+	if ctx.User.IsAdmin && len(form.GhostName) > 0 {
+		doer = &models.User{
+			ID:        -1,
+			Name:      form.GhostName,
+			LowerName: strings.ToLower(form.GhostName),
+		}
+		if !form.Created.IsZero() {
+			createdUnix = util.TimeStamp(form.Created.Unix())
+		}
+	}
+	if ctx.QueryBool("suppress_notifications") && ctx.User.IsAdminOfRepo(ctx.Repo.Repository) {
+		comment, err = models.CreateComment(&models.CreateCommentOptions{
+			Type:      models.CommentTypeComment,
+			Doer:      doer,
+			Repo:      ctx.Repo.Repository,
+			Issue:     issue,
+			Content:   form.Body,
+			CreatedAt: createdUnix,
+		})
+		if err != nil {
+			ctx.Error(500, "CreateComment", err)
+		}
+	} else {
+		comment, err = models.CreateIssueComment(doer, ctx.Repo.Repository, issue, form.Body, nil, createdUnix)
+		if err != nil {
+			ctx.Error(500, "CreateIssueComment", err)
+			return
+		}
 	}
 
 	ctx.JSON(201, comment.APIFormat())

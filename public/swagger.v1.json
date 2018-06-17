@@ -1805,6 +1805,12 @@
             "required": true
           },
           {
+            "type": "boolean",
+            "description": "suppresses notifications and webhooks if true. Requires repo admin permissions.",
+            "name": "suppress_notifications",
+            "in": "query"
+          },
+          {
             "name": "body",
             "in": "body",
             "schema": {
@@ -1815,6 +1821,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Issue"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -2203,6 +2212,12 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "suppresses notifications and webhooks if true. Requires repo admin permissions.",
+            "name": "suppress_notifications",
+            "in": "query"
           },
           {
             "name": "body",
@@ -5674,6 +5689,17 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "created_at": {
+          "description": "Created will be used as creation date. This is used for migration. Requires admin permissions.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "ghost_name": {
+          "description": "GhostName will be used if poster is not existing on Gitea. Requires admin permissions.",
+          "type": "string",
+          "x-go-name": "GhostName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -5705,10 +5731,27 @@
           "type": "boolean",
           "x-go-name": "Closed"
         },
+        "created_at": {
+          "description": "Created will be used as creation date. This is used for migration. Requires admin permissions.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "due_date": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
+        },
+        "ghost_name": {
+          "description": "GhostName is used if user is not existing on the gitea instance. Requires admin permissions.",
+          "type": "string",
+          "x-go-name": "GhostName"
+        },
+        "index": {
+          "description": "Index is former index of the issue. If the index is already taken, an error will be returned. Requires admin permission. Use it only for migrations.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Index"
         },
         "labels": {
           "description": "list of label ids",

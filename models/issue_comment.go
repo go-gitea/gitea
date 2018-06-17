@@ -83,8 +83,9 @@ const (
 type Comment struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Type            CommentType
-	PosterID        int64  `xorm:"INDEX"`
-	Poster          *User  `xorm:"-"`
+	PosterID        int64 `xorm:"INDEX"`
+	Poster          *User `xorm:"-"`
+	GhostName       string
 	IssueID         int64  `xorm:"INDEX"`
 	Issue           *Issue `xorm:"-"`
 	LabelID         int64
@@ -104,7 +105,7 @@ type Comment struct {
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
@@ -126,6 +127,13 @@ func (c *Comment) LoadIssue() (err error) {
 	return
 }
 
+// BeforeInsert is invoked before XORM inserts this
+func (c *Comment) BeforeInsert() {
+	if c.CreatedUnix == util.TimeStamp(0) {
+		c.CreatedUnix = util.TimeStampNow()
+	}
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (c *Comment) AfterLoad(session *xorm.Session) {
 	var err error
@@ -139,6 +147,10 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 		if IsErrUserNotExist(err) {
 			c.PosterID = -1
 			c.Poster = NewGhostUser()
+			if len(c.GhostName) > 0 {
+				c.Poster.Name = c.GhostName
+				c.Poster.LowerName = strings.ToLower(c.GhostName)
+			}
 		} else {
 			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
 		}
@@ -348,6 +360,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:         opts.Content,
 		OldTitle:        opts.OldTitle,
 		NewTitle:        opts.NewTitle,
+		CreatedUnix:     opts.CreatedAt,
+	}
+	if opts.Doer.ID == -1 {
+		comment.GhostName = opts.Doer.Name
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -568,6 +584,7 @@ type CreateCommentOptions struct {
 	LineNum         int64
 	Content         string
 	Attachments     []string // UUIDs of attachments
+	CreatedAt       util.TimeStamp
 }
 
 // CreateComment creates comment of issue or commit.
@@ -594,7 +611,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 }
 
 // CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string) (*Comment, error) {
+func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string, createdAt util.TimeStamp) (*Comment, error) {
 	comment, err := CreateComment(&CreateCommentOptions{
 		Type:        CommentTypeComment,
 		Doer:        doer,
@@ -602,6 +619,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Issue:       issue,
 		Content:     content,
 		Attachments: attachments,
+		CreatedAt:   createdAt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("CreateComment: %v", err)

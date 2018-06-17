@@ -103,6 +103,14 @@ type CreateIssueOption struct {
 	// list of label ids
 	Labels []int64 `json:"labels"`
 	Closed bool    `json:"closed"`
+	// GhostName is used if user is not existing on the gitea instance. Requires admin permissions.
+	GhostName string `json:"ghost_name" binding:"AlphaDashDot;MaxSize(35)"`
+	// Index is former index of the issue. If the index is already taken, an error will be returned. Requires admin permission. Use it only for migrations.
+	Index int64 `json:"index"`
+	// Created will be used as creation date. This is used for migration. Requires admin permissions.
+	// swagger:strfmt date-time
+	Created               time.Time `json:"created_at"`
+	SuppressNotifications bool      `json:"-"`
 }
 
 // CreateIssue create a new issue for a given repository
@@ -112,7 +120,7 @@ func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue,
 		return nil, err
 	}
 	issue := new(Issue)
-	return issue, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues", owner, repo),
+	return issue, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues?surpress_notifications=%t", owner, repo, opt.SuppressNotifications),
 		jsonHeader, bytes.NewReader(body), issue)
 }
 
