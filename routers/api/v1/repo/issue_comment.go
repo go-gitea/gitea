@@ -147,7 +147,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateIssueOption"
+	//     "$ref": "#/definitions/CreateIssueCommentOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Comment"
