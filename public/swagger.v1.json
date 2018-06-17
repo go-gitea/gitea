@@ -7688,6 +7688,7 @@
       }
     },
     "IssueDeadline": {
+      "description": "IssueDeadline",
       "schema": {
         "$ref": "#/definitions/IssueDeadline"
       }
