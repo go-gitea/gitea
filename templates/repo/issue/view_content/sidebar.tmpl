@@ -358,7 +358,7 @@
 			{{.i18n.Tr "repo.issues.dependency.remove_header"}}
 		</div>
 		<div class="content">
-			<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/remove" id="removeDependencyForm">
+			<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/delete" id="removeDependencyForm">
 				{{$.CsrfTokenHtml}}
 				<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
 				<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
