@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// TopicPost response for creating repository
+// TopicsPost response for creating repository
 func TopicsPost(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]interface{}{
@@ -27,7 +27,20 @@ func TopicsPost(ctx *context.Context) {
 		topics = strings.Split(topicsStr, ",")
 	}
 
-	topics = models.RemoveDuplicateTopics(topics)
+	invalidTopics := make([]string, 0)
+	i := 0
+	for _, topic := range topics {
+		topic = strings.TrimSpace(strings.ToLower(topic))
+		// ignore empty string
+		if len(topic) > 0 {
+			topics[i] = topic
+			i++
+		}
+		if !models.TopicValidator(topic) {
+			invalidTopics = append(invalidTopics, topic)
+		}
+	}
+	topics = topics[:i]
 
 	if len(topics) > 25 {
 		log.Error(2, "Incorrect number of topics(max 25)")
@@ -36,13 +49,6 @@ func TopicsPost(ctx *context.Context) {
 			"message":       ctx.Tr("repo.topic.count_error"),
 		})
 		return
-	}
-
-	var invalidTopics = make([]string, 0)
-	for _, topic := range topics {
-		if !models.TopicValidator(topic) {
-			invalidTopics = append(invalidTopics, topic)
-		}
 	}
 
 	if len(invalidTopics) > 0 {

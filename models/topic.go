@@ -59,22 +59,6 @@ func TopicValidator(topic string) bool {
 	return len(topic) <= 35 && topicPattern.MatchString(topic)
 }
 
-// RemoveDuplicateTopics remove duplicates from topics slice
-func RemoveDuplicateTopics(topics []string) []string {
-	// Map to record duplicates
-	saved := make(map[string]struct{}, len(topics))
-	i := 0
-	for _, v := range topics {
-		v = strings.TrimSpace(strings.ToLower(v))
-		if _, ok := saved[v]; !ok {
-			saved[v] = struct{}{}
-			topics[i] = v
-			i++
-		}
-	}
-	return topics[:i]
-}
-
 // GetTopicByName retrieves topic by name
 func GetTopicByName(name string) (*Topic, error) {
 	var topic Topic
