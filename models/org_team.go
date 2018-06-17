@@ -719,8 +719,8 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, er
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
 	ID     int64    `xorm:"pk autoincr"`
-	TeamID int64    `xorm:"INDEX(s)"`
-	Type   UnitType `xorm:"INDEX(s)"`
+	TeamID int64    `xorm:"UNIQUE(s)"`
+	Type   UnitType `xorm:"UNIQUE(s)"`
 }
 
 // Unit returns Unit

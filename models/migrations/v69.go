@@ -21,8 +21,8 @@ func moveTeamUnitsToTeamUnitTable(x *xorm.Engine) error {
 	// TeamUnit see models/org_team.go
 	type TeamUnit struct {
 		ID     int64 `xorm:"pk autoincr"`
-		TeamID int64 `xorm:"INDEX(s)"`
-		Type   int   `xorm:"INDEX(s)"`
+		TeamID int64 `xorm:"UNIQUE(s)"`
+		Type   int   `xorm:"UNIQUE(s)"`
 	}
 
 	if err := x.Sync2(new(TeamUnit)); err != nil {
