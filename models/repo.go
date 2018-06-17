@@ -535,10 +535,13 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"format": unit.ExternalTrackerConfig().ExternalTrackerFormat,
 			"user":   repo.MustOwner().Name,
 			"repo":   repo.Name,
+			"regexp": unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern,
 		}
 		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
 		case markup.IssueNameStyleAlphanumeric:
 			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
+		case markup.IssueNameStyleRegexp:
+			repo.ExternalMetas["style"] = markup.IssueNameStyleRegexp
 		default:
 			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
 		}
