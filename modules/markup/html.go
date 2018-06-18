@@ -405,6 +405,9 @@ func RenderShortLinks(rawBytes []byte, urlPrefix string, noLink bool, isWikiMark
 			} else {
 				link = strings.Replace(link, " ", "-", -1)
 			}
+			if !strings.Contains(link, "/") {
+				link = url.PathEscape(link)
+			}
 		}
 		if image {
 			if !absoluteLink {
