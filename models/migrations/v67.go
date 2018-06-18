@@ -34,7 +34,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	log.Info("Validating existed topics...")
 	for start := 0; ; start += batchSize {
 		topics = topics[:0]
-		if err := x.Asc("id").Limit(batchSize, start).Find(&topics); err != nil {
+		if err := sess.Asc("id").Limit(batchSize, start).Find(&topics); err != nil {
 			return err
 		}
 		if len(topics) == 0 {
