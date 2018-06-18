@@ -129,7 +129,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		}
 		log.Info("Updating 'topics' field for repository with id = %v", repoID)
 		if _, err := sess.ID(repoID).Cols("topics").
-			Update(&models.Repository{ID: repoID, Topics: topicNames}); err != nil {
+			Update(&models.Repository{Topics: topicNames}); err != nil {
 			return err
 		}
 	}

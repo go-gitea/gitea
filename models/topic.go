@@ -190,6 +190,13 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		}
 	}
 
+	topicNames = topicNames[:0]
+	if err := sess.Table("topic").Cols("name").
+		Join("INNER", "repo_topic", "topic.id = repo_topic.topic_id").
+		Where("repo_topic.repo_id = ?", repoID).Find(&topicNames); err != nil {
+		return err
+	}
+
 	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
 		Topics: topicNames,
 	}); err != nil {
