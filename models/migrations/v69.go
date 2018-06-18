@@ -21,6 +21,7 @@ func moveTeamUnitsToTeamUnitTable(x *xorm.Engine) error {
 	// TeamUnit see models/org_team.go
 	type TeamUnit struct {
 		ID     int64 `xorm:"pk autoincr"`
+		OrgID  int64 `xorm:"INDEX"`
 		TeamID int64 `xorm:"UNIQUE(s)"`
 		Type   int   `xorm:"UNIQUE(s)"`
 	}
@@ -59,6 +60,7 @@ func moveTeamUnitsToTeamUnitTable(x *xorm.Engine) error {
 			var units = make([]TeamUnit, 0, len(unitTypes))
 			for _, tp := range unitTypes {
 				units = append(units, TeamUnit{
+					OrgID:  team.OrgID,
 					TeamID: team.ID,
 					Type:   tp,
 				})

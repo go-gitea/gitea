@@ -163,6 +163,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	var units = make([]TeamUnit, 0, len(allRepUnitTypes))
 	for _, tp := range allRepUnitTypes {
 		units = append(units, TeamUnit{
+			OrgID:  org.ID,
 			TeamID: t.ID,
 			Type:   tp,
 		})
@@ -251,6 +252,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		&Team{OrgID: u.ID},
 		&OrgUser{OrgID: u.ID},
 		&TeamUser{OrgID: u.ID},
+		&TeamUnit{OrgID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

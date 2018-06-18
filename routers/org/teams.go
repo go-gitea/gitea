@@ -185,7 +185,8 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, &models.TeamUnit{
-				Type: tp,
+				OrgID: ctx.Org.Organization.ID,
+				Type:  tp,
 			})
 		}
 		t.Units = units
@@ -273,6 +274,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		var units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
+				OrgID:  t.OrgID,
 				TeamID: t.ID,
 				Type:   tp,
 			})
