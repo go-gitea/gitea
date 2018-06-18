@@ -46,8 +46,8 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 				Where("topic_id = ?", topic.ID).Find(&ids); err != nil {
 				return err
 			}
-			for _, repoId := range ids {
-				touchedRepo[repoId] = struct{}{}
+			for _, id := range ids {
+				touchedRepo[id] = struct{}{}
 			}
 
 			if models.TopicValidator(topic.Name) {
@@ -117,15 +117,15 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 
 	var topicNames []string
 	log.Info("Updating repositories 'topics' fields...")
-	for repoId := range touchedRepo {
+	for repoID := range touchedRepo {
 		if err := sess.Table("topic").Cols("name").
 			Join("INNER", "repo_topic", "topic.id = repo_topic.topic_id").
-			Where("repo_topic.repo_id = ?", repoId).Find(&topicNames); err != nil {
+			Where("repo_topic.repo_id = ?", repoID).Find(&topicNames); err != nil {
 			return err
 		}
-		log.Info("Updating 'topics' field for repository with id = %v", repoId)
-		if _, err := sess.ID(repoId).Cols("topics").
-			Update(&models.Repository{ID: repoId, Topics: topicNames}); err != nil {
+		log.Info("Updating 'topics' field for repository with id = %v", repoID)
+		if _, err := sess.ID(repoID).Cols("topics").
+			Update(&models.Repository{ID: repoID, Topics: topicNames}); err != nil {
 			return err
 		}
 	}
