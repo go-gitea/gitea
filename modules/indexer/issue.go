@@ -64,7 +64,7 @@ func InitIssueIndexer(populateIndexer func() error) {
 		log.Fatal(4, "InitIssuesIndexer: create index, %v", err)
 	}
 	if err = populateIndexer(); err != nil {
-		log.Fatal(4, "InitIssueIndexer: populate index, %v", err)
+		//log.Fatal(4, "InitIssueIndexer: populate index, %v", err)
 	}
 }
 
