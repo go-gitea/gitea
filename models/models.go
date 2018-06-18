@@ -58,8 +58,8 @@ var (
 
 	// DbCfg holds the database settings
 	DbCfg struct {
-		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout                                       int
+		Type, Host, Name, User, Passwd, Path, SSLMode, JournalMode string
+		Timeout                                       		   int
 	}
 
 	// EnableSQLite3 use SQLite3
@@ -154,6 +154,7 @@ func LoadConfigs() {
 	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
 	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+	DbCfg.JournalMode = sec.Key("JOURNAL_MODE").MustString("WLA")
 
 	sec = setting.Cfg.Section("indexer")
 	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
@@ -244,8 +245,21 @@ func getEngine() (*xorm.Engine, error) {
 	default:
 		return nil, fmt.Errorf("Unknown database type: %s", DbCfg.Type)
 	}
-
-	return xorm.NewEngine(DbCfg.Type, connStr)
+	e, err := xorm.NewEngine(DbCfg.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+	if DbCfg.Type == "sqlite" {
+		journalMode := "WLA" // Using WLA as default mode
+		if len(DbCfg.JournalMode) == 0 {
+			journalMode = DbCfg.JournalMode
+		}
+		_, err := e.Exec("PRAGMA journal_mode = ?;", journalMode)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return e, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
