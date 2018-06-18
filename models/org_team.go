@@ -437,6 +437,13 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
+	// Delete team-unit.
+	if _, err := sess.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamUnit)); err != nil {
+		return err
+	}
+
 	// Delete team.
 	if _, err := sess.ID(t.ID).Delete(new(Team)); err != nil {
 		return err
