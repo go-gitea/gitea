@@ -601,9 +601,9 @@ ko-KR = ko
 [U2F]
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 ; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini
