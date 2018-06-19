@@ -217,10 +217,10 @@ func getEngine() (*xorm.Engine, error) {
 		host, port := parsePostgreSQLHostPort(DbCfg.Host)
 		if host[0] == '/' { // looks like a unix socket
 			connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-				url.QueryEscape(DbCfg.User), url.QueryEscape(DbCfg.Passwd), port, DbCfg.Name, Param, DbCfg.SSLMode, host)
+				url.PathEscape(DbCfg.User), url.PathEscape(DbCfg.Passwd), port, DbCfg.Name, Param, DbCfg.SSLMode, host)
 		} else {
 			connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-				url.QueryEscape(DbCfg.User), url.QueryEscape(DbCfg.Passwd), host, port, DbCfg.Name, Param, DbCfg.SSLMode)
+				url.PathEscape(DbCfg.User), url.PathEscape(DbCfg.Passwd), host, port, DbCfg.Name, Param, DbCfg.SSLMode)
 		}
 	case "mssql":
 		host, port := parseMSSQLHostPort(DbCfg.Host)
