@@ -192,7 +192,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 			return
 		}
 	} else {
-		// setting labels is only allowed if user is writter
+		// setting labels is not allowed if user is not a writer
 		form.Labels = make([]int64, 0)
 	}
 
