@@ -82,12 +82,18 @@ func TestRender_ShortLinks(t *testing.T) {
 	rawtree := util.URLJoin(AppSubURL, "raw", "master")
 	url := util.URLJoin(tree, "Link")
 	otherURL := util.URLJoin(tree, "Other-Link")
+	encodedURL := util.URLJoin(tree, "Link%3F")
 	imgurl := util.URLJoin(rawtree, "Link.jpg")
 	otherImgurl := util.URLJoin(rawtree, "Link+Other.jpg")
+	encodedImgurl := util.URLJoin(rawtree, "Link+%23.jpg")
+	notencodedImgurl := util.URLJoin(rawtree, "some", "path", "Link+#.jpg")
 	urlWiki := util.URLJoin(AppSubURL, "wiki", "Link")
 	otherURLWiki := util.URLJoin(AppSubURL, "wiki", "Other-Link")
+	encodedURLWiki := util.URLJoin(AppSubURL, "wiki", "Link%3F")
 	imgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
 	otherImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link+Other.jpg")
+	encodedImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link+%23.jpg")
+	notencodedImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "some", "path", "Link+#.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -134,4 +140,24 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Link]] [[Other Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a></p>`,
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a></p>`)
+	test(
+		"[[Link?]]",
+		`<p><a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
+		`<p><a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[Link]] [[Other Link]] [[Link?]]",
+		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a> <a href="`+encodedURL+`" rel="nofollow">Link?</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
+	test(
+		"[[Link #.jpg]]",
+		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`"/></a></p>`,
+		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`"/></a></p>`)
+	test(
+		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
+		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Title" alt="AltName"/></a></p>`,
+		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`" title="Title" alt="AltName"/></a></p>`)
+	test(
+		"[[some/path/Link #.jpg]]",
+		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`"/></a></p>`,
+		`<p><a href="`+notencodedImgurlWiki+`" rel="nofollow"><img src="`+notencodedImgurlWiki+`"/></a></p>`)
 }
