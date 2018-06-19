@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -165,7 +166,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/Issue"
 
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil {
+	if form.Deadline != nil && ctx.Repo.IsWriter() {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -178,15 +179,22 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	// Get all assignee IDs
-	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
-		} else {
-			ctx.Error(500, "AddAssigneeByName", err)
+	var assigneeIDs = make([]int64, 0)
+	var err error
+	if ctx.Repo.IsWriter() {
+		issue.MilestoneID = form.Milestone
+		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+			} else {
+				ctx.Error(500, "AddAssigneeByName", err)
+			}
+			return
 		}
-		return
+	} else {
+		// setting labels is not allowed if user is not a writer
+		form.Labels = make([]int64, 0)
 	}
 
 	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
