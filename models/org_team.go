@@ -178,6 +178,11 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		if err = watchRepo(e, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -374,10 +379,33 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
+	if err := t.getMembers(sess); err != nil {
+		return err
+	}
+
 	// Delete all accesses.
 	for _, repo := range t.Repos {
 		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
 			return err
+		}
+
+		// Remove watches from all users and now unaccessible repos
+		for _, user := range t.Members {
+			has, err := hasAccess(sess, user.ID, repo, AccessModeRead)
+			if err != nil {
+				return err
+			} else if has {
+				continue
+			}
+
+			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
+				return err
+			}
+
+			// Remove all IssueWatches a user has subscribed to in the repositories
+			if err = removeIssueWatchersByRepoID(sess, user.ID, repo.ID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -518,6 +546,10 @@ func AddTeamMember(team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
 			return err
 		}
+
+		if err = watchRepo(sess, userID, repo.ID, true); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
@@ -556,6 +588,23 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
 		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
+			return err
+		}
+
+		// Remove watches from now unaccessible
+		has, err := hasAccess(e, userID, repo, AccessModeRead)
+		if err != nil {
+			return err
+		} else if has {
+			continue
+		}
+
+		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+			return err
+		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
 			return err
 		}
 	}
