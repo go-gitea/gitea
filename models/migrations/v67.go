@@ -24,9 +24,10 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	defer sess.Close()
 
 	const batchSize = 100
-	var ids []int64
 	touchedRepo := make(map[int64]struct{})
 	topics := make([]*Topic, 0, batchSize)
+	delTopicIDs := make([]int64, 0, batchSize)
+	ids := make([]int64, 0, 30)
 
 	if err := sess.Begin(); err != nil {
 		return err
@@ -61,28 +62,41 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 					return err
 				}
 			} else {
-				log.Info("Deleting 'repo_topic' rows for 'topic' with id = %v and topicName = %v",
-					topic.ID, topic.Name)
-
-				if _, err := sess.Where("topic_id = ?", topic.ID).
-					Delete(&models.RepoTopic{}); err != nil {
-					return err
-				}
-
-				log.Info("Deleting 'topic' with id = %v and topicName = %v", topic.ID, topic.Name)
-				if _, err := sess.ID(topic.ID).Delete(&Topic{}); err != nil {
-					return err
-				}
+				delTopicIDs = append(delTopicIDs, topic.ID)
 			}
 		}
 	}
 
+	log.Info("Deleting incorrect topics...")
+	for start := 0; ; start+=batchSize {
+		if (start + batchSize) < len(delTopicIDs) {
+			ids = delTopicIDs[start:(start + batchSize)]
+		} else {
+			ids = delTopicIDs[start:]
+		}
+
+		log.Info("Deleting 'repo_topic' rows for topics with ids = %v", ids)
+		if _, err := sess.In("topic_id", ids).Delete(&models.RepoTopic{}); err != nil {
+			return err
+		}
+
+		log.Info("Deleting topics with id = %v", ids)
+		if _, err := sess.In("id", ids).Delete(&Topic{}); err != nil {
+			return err
+		}
+
+		if len(ids) < batchSize {
+			break
+		}
+	}
+
 	repoTopics := make([]*models.RepoTopic, 0, batchSize)
-	tmpRepoTopics := make([]*models.RepoTopic, 0, 25)
+	delRepoTopics := make([]*models.RepoTopic, 0, batchSize)
+	tmpRepoTopics := make([]*models.RepoTopic, 0, 30)
+
 	log.Info("Checking the number of topics in the repositories...")
 	for start := 0; ; start += batchSize {
 		repoTopics = repoTopics[:0]
-
 		if err := sess.Cols("repo_id").Asc("repo_id").Limit(batchSize, start).
 			GroupBy("repo_id").Having("COUNT(*) > 25").Find(&repoTopics); err != nil {
 			return err
@@ -90,8 +104,8 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		if len(repoTopics) == 0 {
 			break
 		}
-		log.Info("Number of repositories with more than 25 topics: %v", len(repoTopics))
 
+		log.Info("Number of repositories with more than 25 topics: %v", len(repoTopics))
 		for _, repoTopic := range repoTopics {
 			touchedRepo[repoTopic.RepoID] = struct{}{}
 
@@ -103,23 +117,28 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			log.Info("Repository with id = %v has %v topics", repoTopic.RepoID, len(tmpRepoTopics))
 
 			for i := len(tmpRepoTopics) - 1; i > 24; i-- {
-				log.Info("Deleting 'repo_topic' rows for 'repository' with id = %v. Topic id = %v",
-					tmpRepoTopics[i].RepoID, tmpRepoTopics[i].TopicID)
-
-				if _, err := sess.Where("repo_id = ? AND topic_id = ?", tmpRepoTopics[i].RepoID,
-					tmpRepoTopics[i].TopicID).Delete(&models.RepoTopic{}); err != nil {
-					return err
-				}
-				if _, err := sess.Exec(
-					"UPDATE topic SET repo_count = (SELECT repo_count FROM topic WHERE id = ?) - 1 WHERE id = ?",
-					tmpRepoTopics[i].TopicID, tmpRepoTopics[i].TopicID); err != nil {
-					return err
-				}
+				delRepoTopics = append(delRepoTopics, tmpRepoTopics[i])
 			}
 		}
 	}
 
-	var topicNames []string
+	log.Info("Deleting superfluous topics for repositories (more than 25 topics)...")
+	for _, repoTopic := range delRepoTopics {
+		log.Info("Deleting 'repo_topic' rows for 'repository' with id = %v. Topic id = %v",
+			repoTopic.RepoID, repoTopic.TopicID)
+
+		if _, err := sess.Where("repo_id = ? AND topic_id = ?", repoTopic.RepoID,
+			repoTopic.TopicID).Delete(&models.RepoTopic{}); err != nil {
+			return err
+		}
+		if _, err := sess.Exec(
+			"UPDATE topic SET repo_count = (SELECT repo_count FROM topic WHERE id = ?) - 1 WHERE id = ?",
+			repoTopic.TopicID, repoTopic.TopicID); err != nil {
+			return err
+		}
+	}
+
+	topicNames := make([]string, 0, 30)
 	log.Info("Updating repositories 'topics' fields...")
 	for repoID := range touchedRepo {
 		if err := sess.Table("topic").Cols("name").

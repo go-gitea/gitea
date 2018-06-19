@@ -21,7 +21,7 @@ func init() {
 	)
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9+#_.-]+$`)
+var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
