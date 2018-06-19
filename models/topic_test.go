@@ -57,11 +57,11 @@ func TestAddTopic(t *testing.T) {
 }
 
 func TestTopicValidator(t *testing.T) {
-	assert.True(t, TopicValidator("first-topic"))
-	assert.True(t, TopicValidator("#second-test_topic"))
-	assert.True(t, TopicValidator("third+project+topic.with+max_length"))
+	assert.True(t, TopicValidator("first"))
+	assert.True(t, TopicValidator("second-test-topic"))
+	assert.True(t, TopicValidator("third-project-topic-with-max-length"))
 
-	assert.False(t, TopicValidator("$fourth-topic"))
-	assert.False(t, TopicValidator("#fifth,test;topic"))
-	assert.False(t, TopicValidator("#sixth-go+project.topic+with+excess_length"))
+	assert.False(t, TopicValidator("$fourth-test,topic"))
+	assert.False(t, TopicValidator("-fifth-test-topic"))
+	assert.False(t, TopicValidator("sixth-go-project-topic-with-excess-length"))
 }
