@@ -1851,6 +1851,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		if _, err = sess.In("issue_id", issueIDs).Delete(&Reaction{}); err != nil {
 			return err
 		}
+		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{}); err != nil {
+			return err
+		}
 
 		attachments := make([]*Attachment, 0, 5)
 		if err = sess.
