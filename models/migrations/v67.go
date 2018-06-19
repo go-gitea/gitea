@@ -83,6 +83,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 				if _, err := x.Get(repo); err != nil {
 					return err
 				}
+				repoCache[watch.RepoID] = repo
 			}
 
 			// Remove watches from now unaccessible repositories
@@ -123,6 +124,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 					if _, err := x.Get(repo); err != nil {
 						return err
 					}
+					repoCache[watch.RepoID] = repo
 				}
 
 				// Remove issue watches from now unaccssible repositories
