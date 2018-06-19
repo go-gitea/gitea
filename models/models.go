@@ -194,6 +194,7 @@ func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DB
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
 			url.PathEscape(DBUser), url.PathEscape(DBPasswd), host, port, DBName, DBParam, DBSSLMode)
 	}
+	return
 }
 
 func parseMSSQLHostPort(info string) (string, string) {
