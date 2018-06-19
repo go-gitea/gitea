@@ -57,6 +57,9 @@ func TestAddTopic(t *testing.T) {
 }
 
 func TestTopicValidator(t *testing.T) {
+	assert.True(t, TopicValidator("12345"))
+	assert.True(t, TopicValidator("2-test"))
+	assert.True(t, TopicValidator("test-3"))
 	assert.True(t, TopicValidator("first"))
 	assert.True(t, TopicValidator("second-test-topic"))
 	assert.True(t, TopicValidator("third-project-topic-with-max-length"))
