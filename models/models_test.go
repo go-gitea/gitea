@@ -70,11 +70,11 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 			Host:    "/tmp/pg.sock",
 			Port:    "4321",
 			User:    "testuser",
-			Passwd:  "space space !@#$%^^%^```-=?=",
+			Passwd:  "space space !#$%^^%^```-=?=",
 			Name:    "gitea",
 			Param:   "",
 			SSLMode: "false",
-			Output:  "postgres://testuser:space%20space%20%21@%23$%25%5E%5E%25%5E%60%60%60-=%3F=@:5432/giteasslmode=false&host=/tmp/pg.sock",
+			Output:  "postgres://testuser:space%20space%20%21%23$%25%5E%5E%25%5E%60%60%60-=%3F=@:5432/giteasslmode=false&host=/tmp/pg.sock",
 		},
 		{
 			Host:    "localhost",
