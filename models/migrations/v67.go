@@ -68,7 +68,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	}
 
 	log.Info("Deleting incorrect topics...")
-	for start := 0; ; start+=batchSize {
+	for start := 0; ; start += batchSize {
 		if (start + batchSize) < len(delTopicIDs) {
 			ids = delTopicIDs[start:(start + batchSize)]
 		} else {
