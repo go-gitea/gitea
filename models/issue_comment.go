@@ -575,10 +575,10 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 
 	// Make two comments, one in each issue
 	_, err = createComment(e, &CreateCommentOptions{
-		Type:           cType,
-		Doer:           doer,
-		Repo:           issue.Repo,
-		Issue:          issue,
+		Type:             cType,
+		Doer:             doer,
+		Repo:             issue.Repo,
+		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	})
 	if err != nil {
@@ -586,10 +586,10 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	_, err = createComment(e, &CreateCommentOptions{
-		Type:           cType,
-		Doer:           doer,
-		Repo:           issue.Repo,
-		Issue:          dependentIssue,
+		Type:             cType,
+		Doer:             doer,
+		Repo:             issue.Repo,
+		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	})
 	if err != nil {
@@ -601,24 +601,24 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
-	Type           CommentType
-	Doer           *User
-	Repo           *Repository
-	Issue          *Issue
-	Label          *Label
+	Type  CommentType
+	Doer  *User
+	Repo  *Repository
+	Issue *Issue
+	Label *Label
 
 	DependentIssueID int64
-	OldMilestoneID  int64
-	MilestoneID     int64
-	AssigneeID      int64
-	RemovedAssignee bool
-	OldTitle        string
-	NewTitle        string
-	CommitID        int64
-	CommitSHA       string
-	LineNum         int64
-	Content         string
-	Attachments     []string // UUIDs of attachments
+	OldMilestoneID   int64
+	MilestoneID      int64
+	AssigneeID       int64
+	RemovedAssignee  bool
+	OldTitle         string
+	NewTitle         string
+	CommitID         int64
+	CommitSHA        string
+	LineNum          int64
+	Content          string
+	Attachments      []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.
