@@ -41,7 +41,7 @@ TEST_PGSQL_PASSWORD ?= postgres
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= testgitea
 TEST_MSSQL_USERNAME ?= sa
-TEST_MSSQL_PASSWORD ?= M$wantsaSecurePassword1
+TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
