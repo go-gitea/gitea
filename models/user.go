@@ -90,7 +90,7 @@ type User struct {
 	OwnedOrgs        []*User       `xorm:"-"`
 	Orgs             []*User       `xorm:"-"`
 	Repos            []*Repository `xorm:"-"`
-	Location            string
+	Location         string
 	Website          string
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
