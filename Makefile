@@ -43,6 +43,7 @@ TEST_MSSQL_DBNAME ?= master
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
