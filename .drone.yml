@@ -4,7 +4,7 @@ workspace:
 
 clone:
   git:
-    image: plugins/git:1
+    image: plugins/git:next
     depth: 50
     tags: true
 
