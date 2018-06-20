@@ -60,6 +60,7 @@ func Install(ctx *context.Context) {
 	form.DbUser = models.DbCfg.User
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
+	form.DbPasswd = models.DbCfg.Passwd
 
 	ctx.Data["CurDbOption"] = "MySQL"
 	switch models.DbCfg.Type {
