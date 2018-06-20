@@ -36,7 +36,7 @@ func TopicsPost(ctx *context.Context) {
 			topics[i] = topic
 			i++
 		}
-		if !models.TopicValidator(topic) {
+		if !models.ValidateTopic(topic) {
 			invalidTopics = append(invalidTopics, topic)
 		}
 	}

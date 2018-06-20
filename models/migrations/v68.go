@@ -42,7 +42,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			break
 		}
 		for _, topic := range topics {
-			if models.TopicValidator(topic.Name) {
+			if models.ValidateTopic(topic.Name) {
 				continue
 			}
 			topic.Name = strings.Replace(strings.TrimSpace(strings.ToLower(topic.Name)), " ", "-", -1)
@@ -55,7 +55,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 				touchedRepo[id] = struct{}{}
 			}
 
-			if models.TopicValidator(topic.Name) {
+			if models.ValidateTopic(topic.Name) {
 				log.Info("Updating topic: id = %v, name = %v", topic.ID, topic.Name)
 				if _, err := sess.Table("topic").ID(topic.ID).
 					Update(&Topic{Name: topic.Name}); err != nil {

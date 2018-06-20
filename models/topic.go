@@ -54,8 +54,8 @@ func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
 
-// TopicValidator checks topics by length and match pattern rules
-func TopicValidator(topic string) bool {
+// ValidateTopic checks topics by length and match pattern rules
+func ValidateTopic(topic string) bool {
 	return len(topic) <= 35 && topicPattern.MatchString(topic)
 }
 
