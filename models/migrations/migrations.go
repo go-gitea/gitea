@@ -190,6 +190,8 @@ var migrations = []Migration{
 	NewMigration("remove stale watches", removeStaleWatches),
 	// v68 -> V69
 	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
+	// v69 -> v70
+	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
 }
 
 // Migrate database to current version

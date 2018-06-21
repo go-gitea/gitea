@@ -109,6 +109,23 @@ func notifyWatchers(e Engine, act *Action) error {
 
 		act.ID = 0
 		act.UserID = watches[i].UserID
+		act.Repo.Units = nil
+
+		switch act.OpType {
+		case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
+			if !act.Repo.CheckUnitUser(act.UserID, false, UnitTypeCode) {
+				continue
+			}
+		case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
+			if !act.Repo.CheckUnitUser(act.UserID, false, UnitTypeIssues) {
+				continue
+			}
+		case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+			if !act.Repo.CheckUnitUser(act.UserID, false, UnitTypePullRequests) {
+				continue
+			}
+		}
+
 		if _, err = e.InsertOne(act); err != nil {
 			return fmt.Errorf("insert new action: %v", err)
 		}

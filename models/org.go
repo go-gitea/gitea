@@ -154,10 +154,24 @@ func CreateOrganization(org, owner *User) (err error) {
 		Name:       ownerTeamName,
 		Authorize:  AccessModeOwner,
 		NumMembers: 1,
-		UnitTypes:  allRepUnitTypes,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
+	}
+
+	// insert units for team
+	var units = make([]TeamUnit, 0, len(allRepUnitTypes))
+	for _, tp := range allRepUnitTypes {
+		units = append(units, TeamUnit{
+			OrgID:  org.ID,
+			TeamID: t.ID,
+			Type:   tp,
+		})
+	}
+
+	if _, err = sess.Insert(&units); err != nil {
+		sess.Rollback()
+		return err
 	}
 
 	if _, err = sess.Insert(&TeamUser{
@@ -238,6 +252,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		&Team{OrgID: u.ID},
 		&OrgUser{OrgID: u.ID},
 		&TeamUser{OrgID: u.ID},
+		&TeamUnit{OrgID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

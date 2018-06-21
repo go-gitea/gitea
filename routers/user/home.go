@@ -203,7 +203,11 @@ func Issues(ctx *context.Context) {
 			return
 		}
 	} else {
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs()
+		unitType := models.UnitTypeIssues
+		if isPullList {
+			unitType = models.UnitTypePullRequests
+		}
+		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
 		if err != nil {
 			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
 			return
