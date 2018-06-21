@@ -1,13 +1,13 @@
 ---
 date: "2018-06-19T16:00:00+02:00"
-title: "User Guides: API Usage"
+title: "User Guide: API Usage"
 slug: "api-usage"
 weight: 10
 toc: true
 draft: false
 menu:
   sidebar:
-    parent: "user-guides"
+    parent: "user-guide"
     name: "API Usage"
     weight: 10
     identifier: "api-usage"
