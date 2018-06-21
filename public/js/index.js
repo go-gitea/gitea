@@ -2336,8 +2336,10 @@ function initTopicbar() {
         }).done(function() {
             editDiv.hide();
             viewDiv.show();
+        }).fail(function(xhr) {
+            alert(xhr.responseJSON.message)
         })
-    })
+    });
 
     $('#topic_edit .dropdown').dropdown({
         allowAdditions: true,
