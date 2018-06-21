@@ -45,6 +45,8 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			if models.ValidateTopic(topic.Name) {
 				continue
 			}
+			log.Info("Incorrect topic: id = %v, name = %q", topic.ID, topic.Name)
+
 			topic.Name = strings.Replace(strings.TrimSpace(strings.ToLower(topic.Name)), " ", "-", -1)
 
 			if err := sess.Table("repo_topic").Cols("repo_id").
@@ -56,14 +58,20 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			}
 
 			if models.ValidateTopic(topic.Name) {
-				log.Info("Updating topic: id = %v, name = %v", topic.ID, topic.Name)
-				if _, err := sess.Table("topic").ID(topic.ID).
-					Update(&Topic{Name: topic.Name}); err != nil {
+				count, err := sess.Where("name = ?", topic.Name).Count(&Topic{})
+				if err != nil {
 					return err
 				}
-			} else {
-				delTopicIDs = append(delTopicIDs, topic.ID)
+				if count == 0 {
+					log.Info("Updating topic: id = %v, name = %q", topic.ID, topic.Name)
+					if _, err := sess.Table("topic").ID(topic.ID).
+						Update(&Topic{Name: topic.Name}); err != nil {
+						return err
+					}
+					continue
+				}
 			}
+			delTopicIDs = append(delTopicIDs, topic.ID)
 		}
 	}
 
