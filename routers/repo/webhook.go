@@ -210,7 +210,7 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GITEA,
+		HookTaskType: models.GOGS,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
