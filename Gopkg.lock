@@ -11,7 +11,7 @@
   branch = "master"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
-  revision = "b2308e3f700875a3642a78bd3f6e5db8ef6f974d"
+  revision = "ec80752c9512cf07fc62ddc42565118183743942"
 
 [[projects]]
   name = "github.com/PuerkitoBio/goquery"
