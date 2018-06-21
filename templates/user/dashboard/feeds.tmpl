@@ -13,7 +13,7 @@
 						{{else if eq .GetOpType 2}}
 							{{$.i18n.Tr "action.rename_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 5}}
-							{{ $branchLink := (printf "branch/%s" .GetBranch) | EscapePound | Escape}}
+							{{ $branchLink := .GetBranch | EscapePound | Escape}}
 							{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 6}}
 							{{ $index := index .GetIssueInfos 0}}
