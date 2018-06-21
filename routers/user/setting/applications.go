@@ -22,12 +22,7 @@ func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
-		return
-	}
-	ctx.Data["Tokens"] = tokens
+	loadApplicationsData(ctx)
 
 	ctx.HTML(200, tplSettingsApplications)
 }
@@ -38,12 +33,8 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
-		tokens, err := models.ListAccessTokens(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("ListAccessTokens", err)
-			return
-		}
-		ctx.Data["Tokens"] = tokens
+		loadApplicationsData(ctx)
+
 		ctx.HTML(200, tplSettingsApplications)
 		return
 	}
@@ -74,4 +65,13 @@ func DeleteApplication(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
+}
+
+func loadApplicationsData(ctx *context.Context) {
+	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return
+	}
+	ctx.Data["Tokens"] = tokens
 }

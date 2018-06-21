@@ -2208,7 +2208,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/CreateIssueOption"
+              "$ref": "#/definitions/CreateIssueCommentOption"
             }
           }
         ],
@@ -7901,24 +7901,16 @@
   },
   "security": [
     {
-      "BasicAuth": [
-        "[]"
-      ]
+      "BasicAuth": []
     },
     {
-      "Token": [
-        "[]"
-      ]
+      "Token": []
     },
     {
-      "AccessToken": [
-        "[]"
-      ]
+      "AccessToken": []
     },
     {
-      "AuthorizationHeaderToken": [
-        "[]"
-      ]
+      "AuthorizationHeaderToken": []
     }
   ]
 }
