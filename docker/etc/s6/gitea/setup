@@ -1,6 +1,6 @@
 #!/bin/bash
 
-/usr/sbin/update-ca-certificates
+/usr/sbin/update-ca-certificates 2>/dev/null || true
 
 if [ ! -d /data/git/.ssh ]; then
     mkdir -p /data/git/.ssh
