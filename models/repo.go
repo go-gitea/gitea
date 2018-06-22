@@ -1396,6 +1396,10 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
+	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
+		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
+	}
+
 	return nil
 }
 

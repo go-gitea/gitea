@@ -1,9 +1,10 @@
+{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminHooksNew}}
 <div class="field">
 	<h4>{{.i18n.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">
 		<div class="field">
 			<div class="ui radio non-events checkbox">
-				<input class="hidden" name="events" type="radio" value="push_only" {{if or .PageIsSettingsHooksNew .Webhook.PushOnly}}checked{{end}}>
+				<input class="hidden" name="events" type="radio" value="push_only" {{if or $isNew .Webhook.PushOnly}}checked{{end}}>
 				<label>{{.i18n.Tr "repo.settings.event_push_only" | Str2html}}</label>
 			</div>
 		</div>
@@ -119,17 +120,17 @@
 
 <div class="inline field">
 	<div class="ui checkbox">
-		<input class="hidden" name="active" type="checkbox" tabindex="0" {{if or .PageIsSettingsHooksNew .Webhook.IsActive}}checked{{end}}>
+		<input class="hidden" name="active" type="checkbox" tabindex="0" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
 		<label>{{.i18n.Tr "repo.settings.active"}}</label>
 		<span class="help">{{.i18n.Tr "repo.settings.active_helper"}}</span>
 	</div>
 </div>
 <div class="field">
-	{{if .PageIsSettingsHooksNew}}
+	{{if $isNew}}
 		<button class="ui green button">{{.i18n.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
 		<button class="ui green button">{{.i18n.Tr "repo.settings.update_webhook"}}</button>
-		<a class="ui red delete-button button" data-url="{{.BaseLink}}/settings/hooks/delete" data-id="{{.Webhook.ID}}">{{.i18n.Tr "repo.settings.delete_webhook"}}</a>
+		<a class="ui red delete-button button" data-url="{{.BaseLink}}/delete" data-id="{{.Webhook.ID}}">{{.i18n.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>
 
