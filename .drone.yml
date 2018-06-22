@@ -261,19 +261,9 @@ pipeline:
     secrets: [ gpgsign_key, gpgsign_passphrase ]
     detach_sign: true
     files:
-      - dist/release/*-amd64
-      - dist/release/*-386
-      - dist/release/*-arm64
-      - dist/release/*-arm-5
-      - dist/release/*-arm-6
-      - dist/release/*-arm-7
-      - dist/release/*-mips
-      - dist/release/*-mips64
-      - dist/release/*-mipsle
-      - dist/release/*-mips64le
-      - dist/release/*-amd64.exe
-      - dist/release/*-386.exe
-      - dist/release/*.xz
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha265
     when:
       event: [ push, tag ]
 
