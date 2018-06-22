@@ -60,7 +60,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			if models.ValidateTopic(topic.Name) {
 				unifiedTopic := Topic{Name:topic.Name}
 				exists, err := sess.Get(&unifiedTopic)
-				log.Info("Exists topic with the name %q? %v id = %v", topic.Name, exists, unifiedTopic.ID)
+				log.Info("Exists topic with the name %q? %v, id = %v", topic.Name, exists, unifiedTopic.ID)
 				if err != nil {
 					return err
 				}
@@ -70,6 +70,12 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 						"(SELECT rt1.repo_id FROM repo_topic rt1 INNER JOIN repo_topic rt2 " +
 						"ON rt1.repo_id = rt2.repo_id WHERE rt1.topic_id = ? AND rt2.topic_id = ?)",
 						topic.ID, topic.ID, unifiedTopic.ID).Update(&models.RepoTopic{TopicID:unifiedTopic.ID}); err != nil {
+						return err
+					}
+					log.Info("Updating topic `repo_count` field")
+					if _, err := sess.Exec(
+						"UPDATE topic SET repo_count = (SELECT COUNT(*) FROM repo_topic WHERE topic_id = ? GROUP BY topic_id) WHERE id = ?",
+						unifiedTopic.ID, unifiedTopic.ID); err != nil {
 						return err
 					}
 				} else {
