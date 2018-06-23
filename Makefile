@@ -74,7 +74,7 @@ all: build
 include docker/Makefile
 
 .PHONY: clean
-clean:
+clean: docker-setup-clean
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
