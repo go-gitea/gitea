@@ -3,8 +3,6 @@ ARG target=library
 #Build stage
 FROM $target/golang:1.11-alpine3.8 AS build-env
 
-#QEMU phase
-
 ARG GOARCH
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
