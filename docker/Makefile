@@ -1,6 +1,6 @@
 #Makefile related to docker
 
-QEMU_VERSION ?= v2.11.0
+QEMU_VERSION ?= v2.12.0
 QEMU_ARCH ?= amd64
 GOARCH ?= amd64
 TARGET ?= library
@@ -30,7 +30,6 @@ docker-cross : docker-setup-qemu
 #exemple TARGET=amd64 GOARCH=amd64 QEMU_ARCH=amd64 make docker-cross
 #exemple TARGET=arm32v6 GOARCH=arm QEMU_ARCH=arm make docker-cross
 
-TARGET: arm32v6
 .PHONY: docker-setup-qemu
 docker-setup-qemu:
 	@if [ "$(QEMU_ARCH)" != "amd64" ]; then \
@@ -41,4 +40,8 @@ docker-setup-qemu:
 	else cp Dockerfile docker/Dockerfile.${QEMU_ARCH}; \
 	fi;
 
-#sed -i "s/make clean generate build/make build --always-make/g" docker/Dockerfile.${QEMU_ARCH}; \
+.PHONY: docker-setup-clean
+docker-setup-clean:
+	rm docker/qemu-*-static
+	rm docker/Dockerfile.*
+#TODO add to make clean
