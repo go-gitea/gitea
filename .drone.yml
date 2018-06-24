@@ -241,28 +241,108 @@ pipeline:
       branch: [ master ]
 
   docker:
+    image: golang:1.10
+    pull: true
+    commands:
+      - GOARCH=amd64 QEMU_ARCH=amd64 make docker-generate-arch-dockerfile docker-download-qemu-binary
+      - GOARCH=arm QEMU_ARCH=arm make docker-generate-arch-dockerfile docker-download-qemu-binary
+      - GOARCH=arm64 QEMU_ARCH=aarch64 make docker-generate-arch-dockerfile docker-download-qemu-binary
+    when:
+      event: [ push, tag ]
+
+  docker:
+    image: multiarch/qemu-user-static:register
+    pull: true
+    privileged: true
+    when:
+      event: [ push, tag ]
+      
+  docker:
     image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
+    group: docker
     repo: gitea/gitea
-    tag: '${DRONE_BRANCH##release/v}-${DRONE_ARCH/\//-}'
+    tag: '${DRONE_BRANCH##release/v}-linux-amd64'
+    build_args:
+      - TARGET=amd64
+    dockerfile: docker/Dockerfile.amd64
     when:
       event: [ push ]
       branch: [ release/* ]
 
   docker:
     image: plugins/docker:17.12
-    secrets: [ docker_username, docker_password ]
     pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
     repo: gitea/gitea
-    tag: 'latest-${DRONE_ARCH/\//-}'
+    tag: '${DRONE_BRANCH##release/v}-linux-arm'
+    build_args:
+      - TARGET=arm32v6
+    dockerfile: docker/Dockerfile.arm
+    when:
+      event: [ push ]
+      branch: [ release/* ]
+
+  docker:
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: gitea/gitea
+    tag: '${DRONE_BRANCH##release/v}-linux-arm64'
+    build_args:
+      - TARGET=arm64v8
+    dockerfile: docker/Dockerfile.aarch64
+    when:
+      event: [ push ]
+      branch: [ release/* ]
+
+  docker:
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: gitea/gitea
+    tag: 'latest-linux-amd64'
+    build_args:
+      - TARGET=amd64
+    dockerfile: docker/Dockerfile.amd64
+    when:
+      event: [ push, tag ]
+
+  docker:
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: gitea/gitea
+    tag: 'latest-linux-arm'
+    build_args:
+      - TARGET=arm32v6
+    dockerfile: docker/Dockerfile.arm
+    when:
+      event: [ push, tag ]
+
+  docker:
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: gitea/gitea
+    tag: 'latest-linux-arm64'
+    build_args:
+      - TARGET=arm64v8
+    dockerfile: docker/Dockerfile.aarch64
     when:
       event: [ push, tag ]
 
   docker:
     image: plugins/manifest
+    pull: true
     secrets: [ docker_username, docker_password ]
-    platforms: linux/amd64
+    platforms: [ linux/amd64, linux/arm, linux/arm64 ]
     template: 'gitea/gitea:${DRONE_BRANCH##release/v}-OS-ARCH'
     target: 'gitea/gitea:${DRONE_BRANCH##release/v}'
     when:
@@ -271,8 +351,9 @@ pipeline:
 
   docker:
     image: plugins/manifest
+    pull: true
     secrets: [ docker_username, docker_password ]
-    platforms: linux/amd64
+    platforms: [ linux/amd64, linux/arm, linux/arm64 ]
     template: gitea/gitea:latest-OS-ARCH
     target: gitea/gitea:latest
     when:

@@ -31,18 +31,30 @@ docker-cross : docker-setup-qemu
 #exemple TARGET=amd64 GOARCH=amd64 QEMU_ARCH=amd64 make docker-cross
 #exemple TARGET=arm32v6 GOARCH=arm QEMU_ARCH=arm make docker-cross
 
-.PHONY: docker-setup-qemu
-docker-setup-qemu:
+.PHONY: docker-generate-arch-dockerfile
+docker-generate-arch-dockerfile:
 	@if [ "$(QEMU_ARCH)" != ${GOHOSTARCH} ]; then \
-	  echo "Loading qemu libs for multi-arch support."; \
-	  (cd docker && curl -sL https://github.com/multiarch/qemu-user-static/releases/download/${QEMU_VERSION}/qemu-${QEMU_ARCH}-static.tar.gz | tar xz); \
-	  docker run --rm --privileged multiarch/qemu-user-static:register --reset; \
 		echo "Generate dockerfile for specific arch."; \
 		sed "s/^#QEMU phase/COPY docker\/qemu-${QEMU_ARCH}-static* \/usr\/bin\//g" Dockerfile > docker/Dockerfile.${QEMU_ARCH}; \
 		sed -i 's/^FROM $$target\/golang:1.10-alpine3.7 AS build-env/FROM karalabe\/xgo-latest AS build-env/g' docker/Dockerfile.${QEMU_ARCH}; \
 		sed -i 's/^RUN apk --no-cache add build-base git/RUN GOARCH=$$GOHOSTARCH go get -u github.com\/jteeuwen\/go-bindata\/.../g' docker/Dockerfile.${QEMU_ARCH}; \
 		sed -i 's/make clean generate build/PATH=$$PATH:\$$GOPATH\/bin\/ XGOARCH="${GOARCH}" make clean generate release-linux \&\& mv \/build\/gitea-* .\/gitea/g' docker/Dockerfile.${QEMU_ARCH}; \
 	else cp Dockerfile docker/Dockerfile.${QEMU_ARCH}; \
+	fi;
+
+
+.PHONY: docker-download-qemu-binary
+docker-download-qemu-binary:
+	@if [ "$(QEMU_ARCH)" != ${GOHOSTARCH} ]; then \
+	  echo "Downloading qemu binary for multi-arch support."; \
+	  (cd docker && curl -sL https://github.com/multiarch/qemu-user-static/releases/download/${QEMU_VERSION}/qemu-${QEMU_ARCH}-static.tar.gz | tar xz); \
+	fi;
+
+.PHONY: docker-setup-qemu
+docker-setup-qemu: docker-generate-arch-dockerfile docker-download-qemu-binary
+	@if [ "$(QEMU_ARCH)" != ${GOHOSTARCH} ]; then \
+	  echo "Loading qemu libs for multi-arch support."; \
+	  docker run --rm --privileged multiarch/qemu-user-static:register --reset; \
 	fi;
 
 .PHONY: docker-setup-clean
