@@ -255,6 +255,18 @@ pipeline:
     when:
       event: [ push, tag ]
 
+  gpg-sign:
+    image: plugins/gpgsign:1
+    pull: true
+    secrets: [ gpgsign_key, gpgsign_passphrase ]
+    detach_sign: true
+    files:
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha265
+    when:
+      event: [ push, tag ]
+
   release:
     image: plugins/s3:1
     pull: true
