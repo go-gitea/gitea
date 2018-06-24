@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,6 +19,13 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	type Topic struct {
 		ID   int64
 		Name string `xorm:"unique"`
+	}
+
+	if err := x.Sync2(new(models.Topic)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	if err := x.Sync2(new(models.RepoTopic)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
 	}
 
 	sess := x.NewSession()
