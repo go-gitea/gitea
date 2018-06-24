@@ -4,10 +4,7 @@
 
 package builder
 
-import (
-	"fmt"
-	"sort"
-)
+import "fmt"
 
 // Neq defines not equal conditions
 type Neq map[string]interface{}
@@ -18,8 +15,7 @@ var _ Cond = Neq{}
 func (neq Neq) WriteTo(w Writer) error {
 	var args = make([]interface{}, 0, len(neq))
 	var i = 0
-	for _, k := range neq.sortedKeys() {
-		v := neq[k]
+	for k, v := range neq {
 		switch v.(type) {
 		case []int, []int64, []string, []int32, []int16, []int8:
 			if err := NotIn(k, v).WriteTo(w); err != nil {
@@ -79,16 +75,4 @@ func (neq Neq) Or(conds ...Cond) Cond {
 // IsValid tests if this condition is valid
 func (neq Neq) IsValid() bool {
 	return len(neq) > 0
-}
-
-// sortedKeys returns all keys of this Neq sorted with sort.Strings.
-// It is used internally for consistent ordering when generating
-// SQL, see https://github.com/go-xorm/builder/issues/10
-func (neq Neq) sortedKeys() []string {
-	keys := make([]string, 0, len(neq))
-	for key := range neq {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }

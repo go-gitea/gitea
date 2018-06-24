@@ -299,13 +299,12 @@
 [[projects]]
   name = "github.com/go-xorm/builder"
   packages = ["."]
-  revision = "9283e7910554af2071cdb04c71b18e5a6ee1ca40"
+  revision = "488224409dd8aa2ce7a5baf8d10d55764a913738"
 
 [[projects]]
   name = "github.com/go-xorm/core"
   packages = ["."]
-  revision = "c10e21e7e1cec20e09398f2dfae385e58c8df555"
-  version = "v0.6.0"
+  revision = "cb1d0ca71f42d3ee1bf4aba7daa16099bc31a7e9"
 
 [[projects]]
   name = "github.com/go-xorm/tidb"
@@ -315,7 +314,7 @@
 [[projects]]
   name = "github.com/go-xorm/xorm"
   packages = ["."]
-  revision = "ee5b31ecae2c7a77438875728ba1f1bbb466f3dc"
+  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
 
 [[projects]]
   branch = "master"
@@ -874,6 +873,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c3d7e9c0a37b01871b651b18a44c8a77a9a91f2e43e360178282ea9e3d667248"
+  inputs-digest = "036b8c882671cf8d2c5e2fdbe53b1bdfbd39f7ebd7765bd50276c7c4ecf16687"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -4,10 +4,7 @@
 
 package builder
 
-import (
-	"fmt"
-	"sort"
-)
+import "fmt"
 
 // Incr implements a type used by Eq
 type Incr int
@@ -22,8 +19,7 @@ var _ Cond = Eq{}
 
 func (eq Eq) opWriteTo(op string, w Writer) error {
 	var i = 0
-	for _, k := range eq.sortedKeys() {
-		v := eq[k]
+	for k, v := range eq {
 		switch v.(type) {
 		case []int, []int64, []string, []int32, []int16, []int8, []uint, []uint64, []uint32, []uint16, []interface{}:
 			if err := In(k, v).WriteTo(w); err != nil {
@@ -97,16 +93,4 @@ func (eq Eq) Or(conds ...Cond) Cond {
 // IsValid tests if this Eq is valid
 func (eq Eq) IsValid() bool {
 	return len(eq) > 0
-}
-
-// sortedKeys returns all keys of this Eq sorted with sort.Strings.
-// It is used internally for consistent ordering when generating
-// SQL, see https://github.com/go-xorm/builder/issues/10
-func (eq Eq) sortedKeys() []string {
-	keys := make([]string, 0, len(eq))
-	for key := range eq {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }
