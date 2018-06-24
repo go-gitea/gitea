@@ -245,6 +245,8 @@ You can configure some of Gitea's settings via environment variables:
 * `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
 * `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
 * `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
+* `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+* `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
 # Customization
 
