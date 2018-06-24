@@ -263,7 +263,7 @@ pipeline:
     files:
       - dist/release/*
     excludes:
-      - dist/release/*.sha265
+      - dist/release/*.sha256
     when:
       event: [ push, tag ]
 
