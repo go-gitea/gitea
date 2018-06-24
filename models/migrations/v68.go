@@ -190,8 +190,8 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	log.Info("Updating repositories 'topics' fields...")
 	for repoID := range touchedRepo {
 		if err := sess.Table("topic").Cols("name").
-			Join("INNER", "repo_topic", "topic.id = repo_topic.topic_id").
-			Where("repo_topic.repo_id = ?", repoID).Find(&topicNames); err != nil {
+			Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+			Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
 			return err
 		}
 		log.Info("Updating 'topics' field for repository with id = %v", repoID)

@@ -192,8 +192,8 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 
 	topicNames = topicNames[:0]
 	if err := sess.Table("topic").Cols("name").
-		Join("INNER", "repo_topic", "topic.id = repo_topic.topic_id").
-		Where("repo_topic.repo_id = ?", repoID).Find(&topicNames); err != nil {
+		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
 		return err
 	}
 
