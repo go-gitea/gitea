@@ -67,6 +67,11 @@ func (b *Builder) From(tableName string) *Builder {
 	return b
 }
 
+// TableName returns the table name
+func (b *Builder) TableName() string {
+	return b.tableName
+}
+
 // Into sets insert table name
 func (b *Builder) Into(tableName string) *Builder {
 	b.tableName = tableName
