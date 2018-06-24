@@ -94,8 +94,6 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		return err
 	}
 
-	sess.Init()
-
 	log.Info("Deleting incorrect topics...")
 	if err := sess.Begin(); err != nil {
 		return err
@@ -156,8 +154,6 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			}
 		}
 	}
-
-	sess.Init()
 
 	log.Info("Deleting superfluous topics for repositories (more than 25 topics)...")
 	if err := sess.Begin(); err != nil {
