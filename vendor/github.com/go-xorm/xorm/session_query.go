@@ -64,17 +64,13 @@ func (session *Session) genQuerySQL(sqlorArgs ...interface{}) (string, []interfa
 		}
 	}
 
-	if err := session.statement.processIDParam(); err != nil {
-		return "", nil, err
-	}
-
 	condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
 	if err != nil {
 		return "", nil, err
 	}
 
 	args := append(session.statement.joinArgs, condArgs...)
-	sqlStr, err := session.statement.genSelectSQL(columnStr, condSQL, true, true)
+	sqlStr, err := session.statement.genSelectSQL(columnStr, condSQL)
 	if err != nil {
 		return "", nil, err
 	}
