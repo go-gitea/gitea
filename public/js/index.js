@@ -2302,46 +2302,75 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic")
-    var editDiv = $("#topic_edit")
-    var viewDiv = $("#repo-topic")
-    var saveBtn = $("#save_topic")
+    let mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topic"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
 
     mgrBtn.click(function() {
         viewDiv.hide();
         editDiv.show();
-    })
-
-    saveBtn.click(function() {
-        var topics = $("input[name=topics]").val();
-
-        $.post($(this).data('link'), {
-            "_csrf": csrf,
-            "topics": topics
-        }).success(function(res){
-            if (res["status"] != "ok") {
-                alert(res.message);
-            } else {
-                viewDiv.children(".topic").remove();
-                if (topics.length == 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
-
-                var last = viewDiv.children("a").last();
-                for (var i=0;i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
-                }
-            }
-        }).done(function() {
-            editDiv.hide();
-            viewDiv.show();
-        }).fail(function(xhr) {
-            alert(xhr.responseJSON.message)
-        })
     });
 
-    $('#topic_edit .dropdown').dropdown({
+    function getPrompts() {
+        let hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
+
+    saveBtn.click(function() {
+        let topics = $("input[name=topics]").val();
+
+        $.post(saveBtn.data('link'), {
+            "_csrf": csrf,
+            "topics": topics
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
+                viewDiv.children(".topic").remove();
+                if (topics.length === 0) {
+                    return
+                }
+                let topicArray = topics.split(",");
+
+                let last = viewDiv.children("a").last();
+                for (let topic of topicArray) {
+                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topic+'</div>').insertBefore(last)
+                }
+                editDiv.hide();
+                viewDiv.show();
+            }
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
+
+                    let invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach((value, index) => {
+                        for (let val of invalidTopics) {
+                            if (val === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
+    });
+
+    topicDropdown.dropdown({
         allowAdditions: true,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
@@ -2360,14 +2389,14 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                var formattedResponse = {
+                let formattedResponse = {
                     success: false,
-                    results: new Array(),
+                    results: [],
                 };
 
                 if (res.topics) {
                     formattedResponse.success = true;
-                    for (var i=0;i < res.topics.length;i++) {
+                    for (let i=0;i < res.topics.length;i++) {
                         formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
                     }
                 }
@@ -2375,7 +2404,48 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
     });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        let topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
 }
 function toggleDuedateForm() {
     $('#add_deadline_form').fadeToggle(150);
