@@ -201,6 +201,10 @@ an advisor has time to code review, we will gladly welcome them back
 to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
+For security reasons, Maintainers should use 2FA for their accounts and
+if possible provide gpg signed commits. 
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+https://help.github.com/articles/signing-commits-with-gpg/
 
 ## Owners
 
@@ -211,6 +215,9 @@ be the main owner, and the other two the assistant owners. When the new
 owners have been elected, the old owners will give up ownership to the
 newly elected owners. If an owner is unable to do so, the other owners
 will assist in ceding ownership to the newly elected owners.
+For security reasons, Owners or any account with write access (like a bot)
+must use 2FA.
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
 After the election, the new owners should proactively agree
 with our [CONTRIBUTING](CONTRIBUTING.md) requirements in the
