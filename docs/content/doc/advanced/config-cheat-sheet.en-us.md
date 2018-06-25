@@ -129,8 +129,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
-- `JOURNAL_MODE` **WLA**: For SQLite3 only, the journal mode. Use `DELETE` mode if you're running Gitea on a network file system
-or your operating system does not support VFS. Please checkout the [WAL documentation](https://www.sqlite.org/wal.html) to learn more. WLA
+- `JOURNAL_MODE` **WAL**: For SQLite3 only, the journal mode. Use `DELETE` mode if you're running Gitea on a network file system
+or your operating system does not support VFS. Please checkout the [WAL documentation](https://www.sqlite.org/wal.html) to learn more. WAL
 mode will result in a better performance and reduces `database locked` errors.
 - `LOG_SQL`: **true**: Log the executed SQL.
 
