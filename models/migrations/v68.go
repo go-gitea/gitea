@@ -53,16 +53,14 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 
 	const batchSize = 100
 	touchedRepo := make(map[int64]struct{})
-	topics := make([]*Topic, 0, batchSize)
 	delTopicIDs := make([]int64, 0, batchSize)
-	ids := make([]int64, 0, 30)
 
 	log.Info("Validating existed topics...")
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	for start := 0; ; start += batchSize {
-		topics = topics[:0]
+		topics := make([]*Topic, 0, batchSize)
 		if err := x.Cols("id", "name").Asc("id").Limit(batchSize, start).Find(&topics); err != nil {
 			return err
 		}
@@ -77,7 +75,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 
 			topic.Name = strings.Replace(strings.TrimSpace(strings.ToLower(topic.Name)), " ", "-", -1)
 
-			ids = ids[:0]
+			ids := make([]int64, 0, 30)
 			if err := sess.Table("repo_topic").Cols("repo_id").
 				Where("topic_id = ?", topic.ID).Find(&ids); err != nil {
 				return err
@@ -142,13 +140,11 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		return err
 	}
 
-	repoTopics := make([]*RepoTopic, 0, batchSize)
 	delRepoTopics := make([]*RepoTopic, 0, batchSize)
-	tmpRepoTopics := make([]*RepoTopic, 0, 30)
 
 	log.Info("Checking the number of topics in the repositories...")
 	for start := 0; ; start += batchSize {
-		repoTopics = repoTopics[:0]
+		repoTopics := make([]*RepoTopic, 0, batchSize)
 		if err := x.Cols("repo_id").Asc("repo_id").Limit(batchSize, start).
 			GroupBy("repo_id").Having("COUNT(*) > 25").Find(&repoTopics); err != nil {
 			return err
@@ -161,7 +157,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		for _, repoTopic := range repoTopics {
 			touchedRepo[repoTopic.RepoID] = struct{}{}
 
-			tmpRepoTopics = tmpRepoTopics[:0]
+			tmpRepoTopics := make([]*RepoTopic, 0, 30)
 			if err := x.Where("repo_id = ?", repoTopic.RepoID).Find(&tmpRepoTopics); err != nil {
 				return err
 			}
@@ -195,10 +191,9 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		}
 	}
 
-	topicNames := make([]string, 0, 30)
 	log.Info("Updating repositories 'topics' fields...")
 	for repoID := range touchedRepo {
-		topicNames = topicNames[:0]
+		topicNames := make([]string, 0, 30)
 		if err := sess.Table("topic").Cols("name").
 			Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
 			Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
