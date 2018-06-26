@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
@@ -343,7 +344,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
