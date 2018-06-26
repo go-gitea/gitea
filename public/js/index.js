@@ -2340,8 +2340,8 @@ function initTopicbar() {
                 var topicArray = topics.split(",");
 
                 var last = viewDiv.children("a").last();
-                for (var topic of topicArray) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topic+'</div>').insertBefore(last)
+                for (var i=0; i < topicArray.length; i++) {
+                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
                 editDiv.hide();
                 viewDiv.show();
@@ -2354,9 +2354,9 @@ function initTopicbar() {
                     var invalidTopics = xhr.responseJSON.invalidTopics,
                         topicLables = topicDropdown.children('a.ui.label');
 
-                    topics.split(',').forEach((value, index) => {
-                        for (var val of invalidTopics) {
-                            if (val === value) {
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
                                 topicLables.eq(index).removeClass("green").addClass("red");
                             }
                         }
