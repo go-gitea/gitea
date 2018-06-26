@@ -2302,7 +2302,7 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    let mgrBtn = $("#manage_topic"),
+    var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
         viewDiv = $("#repo-topic"),
         saveBtn = $("#save_topic"),
@@ -2316,7 +2316,7 @@ function initTopicbar() {
     });
 
     function getPrompts() {
-        let hidePrompt = $("div.hide#validate_prompt"),
+        var hidePrompt = $("div.hide#validate_prompt"),
             prompts = {
                 countPrompt: hidePrompt.children('#count_prompt').text(),
                 formatPrompt: hidePrompt.children('#format_prompt').text()
@@ -2326,7 +2326,7 @@ function initTopicbar() {
     }
 
     saveBtn.click(function() {
-        let topics = $("input[name=topics]").val();
+        var topics = $("input[name=topics]").val();
 
         $.post(saveBtn.data('link'), {
             "_csrf": csrf,
@@ -2337,10 +2337,10 @@ function initTopicbar() {
                 if (topics.length === 0) {
                     return
                 }
-                let topicArray = topics.split(",");
+                var topicArray = topics.split(",");
 
-                let last = viewDiv.children("a").last();
-                for (let topic of topicArray) {
+                var last = viewDiv.children("a").last();
+                for (var topic of topicArray) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topic+'</div>').insertBefore(last)
                 }
                 editDiv.hide();
@@ -2351,11 +2351,11 @@ function initTopicbar() {
                 if (xhr.responseJSON.invalidTopics.length > 0) {
                     topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-                    let invalidTopics = xhr.responseJSON.invalidTopics,
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
                         topicLables = topicDropdown.children('a.ui.label');
 
                     topics.split(',').forEach((value, index) => {
-                        for (let val of invalidTopics) {
+                        for (var val of invalidTopics) {
                             if (val === value) {
                                 topicLables.eq(index).removeClass("green").addClass("red");
                             }
@@ -2389,14 +2389,14 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                let formattedResponse = {
+                var formattedResponse = {
                     success: false,
                     results: [],
                 };
 
                 if (res.topics) {
                     formattedResponse.success = true;
-                    for (let i=0;i < res.topics.length;i++) {
+                    for (var i=0;i < res.topics.length;i++) {
                         formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
                     }
                 }
@@ -2417,7 +2417,7 @@ function initTopicbar() {
     });
 
     $.fn.form.settings.rules.validateTopic = function(values, regExp) {
-        let topics = topicDropdown.children('a.ui.label'),
+        var topics = topicDropdown.children('a.ui.label'),
             status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
         if (!status) {
             topics.last().removeClass("green").addClass("red");
