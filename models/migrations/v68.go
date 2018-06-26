@@ -8,23 +8,43 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
+	"regexp"
 )
+
+var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+
+func validateTopic(topic string) bool {
+	return len(topic) <= 35 && topicPattern.MatchString(topic)
+}
 
 func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	log.Info("This migration could take up to minutes, please be patient.")
+
 	type Topic struct {
-		ID   int64
-		Name string `xorm:"unique"`
+		ID          int64
+		Name        string `xorm:"UNIQUE"`
+		RepoCount   int
+		CreatedUnix int64 `xorm:"INDEX created"`
+		UpdatedUnix int64 `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(models.Topic)); err != nil {
+	type RepoTopic struct {
+		RepoID  int64 `xorm:"UNIQUE(s)"`
+		TopicID int64 `xorm:"UNIQUE(s)"`
+	}
+
+	type Repository struct {
+		ID     int64    `xorm:"pk autoincr"`
+		Topics []string `xorm:"TEXT JSON"`
+	}
+
+	if err := x.Sync2(new(Topic)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-	if err := x.Sync2(new(models.RepoTopic)); err != nil {
+	if err := x.Sync2(new(RepoTopic)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
@@ -43,31 +63,33 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	}
 	for start := 0; ; start += batchSize {
 		topics = topics[:0]
-		if err := x.Asc("id").Limit(batchSize, start).Find(&topics); err != nil {
+		if err := x.Cols("id", "name").Asc("id").Limit(batchSize, start).Find(&topics); err != nil {
 			return err
 		}
 		if len(topics) == 0 {
 			break
 		}
 		for _, topic := range topics {
-			if models.ValidateTopic(topic.Name) {
+			if validateTopic(topic.Name) {
 				continue
 			}
 			log.Info("Incorrect topic: id = %v, name = %q", topic.ID, topic.Name)
 
 			topic.Name = strings.Replace(strings.TrimSpace(strings.ToLower(topic.Name)), " ", "-", -1)
 
-			if err := x.Table("repo_topic").Cols("repo_id").
+			ids = ids[:0]
+			if err := sess.Table("repo_topic").Cols("repo_id").
 				Where("topic_id = ?", topic.ID).Find(&ids); err != nil {
 				return err
 			}
+			log.Info("Touched repo ids: %v", ids)
 			for _, id := range ids {
 				touchedRepo[id] = struct{}{}
 			}
 
-			if models.ValidateTopic(topic.Name) {
+			if validateTopic(topic.Name) {
 				unifiedTopic := Topic{Name: topic.Name}
-				exists, err := sess.Get(&unifiedTopic)
+				exists, err := sess.Cols("id", "name").Get(&unifiedTopic)
 				log.Info("Exists topic with the name %q? %v, id = %v", topic.Name, exists, unifiedTopic.ID)
 				if err != nil {
 					return err
@@ -77,7 +99,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 					if _, err := sess.Where("topic_id = ? AND repo_id NOT IN "+
 						"(SELECT rt1.repo_id FROM repo_topic rt1 INNER JOIN repo_topic rt2 "+
 						"ON rt1.repo_id = rt2.repo_id WHERE rt1.topic_id = ? AND rt2.topic_id = ?)",
-						topic.ID, topic.ID, unifiedTopic.ID).Update(&models.RepoTopic{TopicID: unifiedTopic.ID}); err != nil {
+						topic.ID, topic.ID, unifiedTopic.ID).Update(&RepoTopic{TopicID: unifiedTopic.ID}); err != nil {
 						return err
 					}
 					log.Info("Updating topic `repo_count` field")
@@ -108,34 +130,21 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	for start := 0; ; start += batchSize {
-		if (start + batchSize) < len(delTopicIDs) {
-			ids = delTopicIDs[start:(start + batchSize)]
-		} else {
-			ids = delTopicIDs[start:]
-		}
-
-		log.Info("Deleting 'repo_topic' rows for topics with ids = %v", ids)
-		if _, err := sess.In("topic_id", ids).Delete(&models.RepoTopic{}); err != nil {
-			return err
-		}
-
-		log.Info("Deleting topics with id = %v", ids)
-		if _, err := sess.In("id", ids).Delete(&Topic{}); err != nil {
-			return err
-		}
-
-		if len(ids) < batchSize {
-			break
-		}
+	log.Info("Deleting 'repo_topic' rows for topics with ids = %v", delTopicIDs)
+	if _, err := sess.In("topic_id", delTopicIDs).Delete(&RepoTopic{}); err != nil {
+		return err
+	}
+	log.Info("Deleting topics with id = %v", delTopicIDs)
+	if _, err := sess.In("id", delTopicIDs).Delete(&Topic{}); err != nil {
+		return err
 	}
 	if err := sess.Commit(); err != nil {
 		return err
 	}
 
-	repoTopics := make([]*models.RepoTopic, 0, batchSize)
-	delRepoTopics := make([]*models.RepoTopic, 0, batchSize)
-	tmpRepoTopics := make([]*models.RepoTopic, 0, 30)
+	repoTopics := make([]*RepoTopic, 0, batchSize)
+	delRepoTopics := make([]*RepoTopic, 0, batchSize)
+	tmpRepoTopics := make([]*RepoTopic, 0, 30)
 
 	log.Info("Checking the number of topics in the repositories...")
 	for start := 0; ; start += batchSize {
@@ -176,7 +185,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			repoTopic.RepoID, repoTopic.TopicID)
 
 		if _, err := sess.Where("repo_id = ? AND topic_id = ?", repoTopic.RepoID,
-			repoTopic.TopicID).Delete(&models.RepoTopic{}); err != nil {
+			repoTopic.TopicID).Delete(&RepoTopic{}); err != nil {
 			return err
 		}
 		if _, err := sess.Exec(
@@ -189,6 +198,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 	topicNames := make([]string, 0, 30)
 	log.Info("Updating repositories 'topics' fields...")
 	for repoID := range touchedRepo {
+		topicNames = topicNames[:0]
 		if err := sess.Table("topic").Cols("name").
 			Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
 			Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
@@ -196,7 +206,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 		}
 		log.Info("Updating 'topics' field for repository with id = %v", repoID)
 		if _, err := sess.ID(repoID).Cols("topics").
-			Update(&models.Repository{Topics: topicNames}); err != nil {
+			Update(&Repository{Topics: topicNames}); err != nil {
 			return err
 		}
 	}

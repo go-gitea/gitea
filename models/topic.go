@@ -26,7 +26,7 @@ var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 // Topic represents a topic of repositories
 type Topic struct {
 	ID          int64
-	Name        string `xorm:"unique"`
+	Name        string `xorm:"UNIQUE"`
 	RepoCount   int
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -34,8 +34,8 @@ type Topic struct {
 
 // RepoTopic represents associated repositories and topics
 type RepoTopic struct {
-	RepoID  int64 `xorm:"unique(s)"`
-	TopicID int64 `xorm:"unique(s)"`
+	RepoID  int64 `xorm:"UNIQUE(s)"`
+	TopicID int64 `xorm:"UNIQUE(s)"`
 }
 
 // ErrTopicNotExist represents an error that a topic is not exist
