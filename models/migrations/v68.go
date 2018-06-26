@@ -6,12 +6,12 @@ package migrations
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
-	"regexp"
 )
 
 var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
