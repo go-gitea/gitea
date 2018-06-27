@@ -534,6 +534,13 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
+	if models.StopwatchExists(ctx.User.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+			ctx.ServerError("CreateOrStopIssueStopwatch", err)
+			return
+		}
+	}
+
 	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
 
 	log.Trace("Pull request merged: %d", pr.ID)
