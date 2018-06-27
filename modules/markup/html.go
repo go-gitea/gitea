@@ -469,6 +469,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 		} else {
 			link = strings.Replace(link, " ", "-", -1)
 		}
+		if !strings.Contains(link, "/") {
+			link = url.PathEscape(link)
+		}
 	}
 	urlPrefix := ctx.urlPrefix
 	if image {
