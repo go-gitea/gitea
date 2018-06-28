@@ -61,7 +61,7 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	tempHash := hashPassword(token, t.ScratchSalt)
+	tempHash := hashToken(token, t.ScratchSalt)
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
