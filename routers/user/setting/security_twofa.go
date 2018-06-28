@@ -170,7 +170,7 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
-	_, err = t.GenerateScratchToken()
+	token, err := t.GenerateScratchToken()
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
@@ -183,6 +183,6 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 
 	ctx.Session.Delete("twofaSecret")
 	ctx.Session.Delete("twofaUri")
-	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
+	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
