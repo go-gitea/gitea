@@ -29,7 +29,6 @@ type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
 	UID              int64 `xorm:"UNIQUE"`
 	Secret           string
-	ScratchToken     string
 	ScratchSalt      string
 	ScratchHash      string
 	LastUsedPasscode string         `xorm:"VARCHAR(10)"`
