@@ -15,55 +15,87 @@ import (
 // parameterBodies
 // swagger:response parameterBodies
 type swaggerParameterBodies struct {
+	// in:body
 	AddCollaboratorOption api.AddCollaboratorOption
 
+	// in:body
 	CreateEmailOption api.CreateEmailOption
+	// in:body
 	DeleteEmailOption api.DeleteEmailOption
 
+	// in:body
 	CreateHookOption api.CreateHookOption
-	EditHookOption   api.EditHookOption
+	// in:body
+	EditHookOption api.EditHookOption
 
+	// in:body
 	CreateIssueOption api.CreateIssueOption
-	EditIssueOption   api.EditIssueOption
+	// in:body
+	EditIssueOption api.EditIssueOption
 
+	// in:body
 	CreateIssueCommentOption api.CreateIssueCommentOption
-	EditIssueCommentOption   api.EditIssueCommentOption
+	// in:body
+	EditIssueCommentOption api.EditIssueCommentOption
 
+	// in:body
 	IssueLabelsOption api.IssueLabelsOption
 
+	// in:body
 	CreateKeyOption api.CreateKeyOption
 
+	// in:body
 	CreateLabelOption api.CreateLabelOption
-	EditLabelOption   api.EditLabelOption
+	// in:body
+	EditLabelOption api.EditLabelOption
 
+	// in:body
 	MarkdownOption api.MarkdownOption
 
+	// in:body
 	CreateMilestoneOption api.CreateMilestoneOption
-	EditMilestoneOption   api.EditMilestoneOption
+	// in:body
+	EditMilestoneOption api.EditMilestoneOption
 
+	// in:body
 	CreateOrgOption api.CreateOrgOption
-	EditOrgOption   api.EditOrgOption
+	// in:body
+	EditOrgOption api.EditOrgOption
 
+	// in:body
 	CreatePullRequestOption api.CreatePullRequestOption
-	EditPullRequestOption   api.EditPullRequestOption
+	// in:body
+	EditPullRequestOption api.EditPullRequestOption
 
+	// in:body
 	CreateReleaseOption api.CreateReleaseOption
-	EditReleaseOption   api.EditReleaseOption
+	// in:body
+	EditReleaseOption api.EditReleaseOption
 
+	// in:body
 	CreateRepoOption api.CreateRepoOption
+	// in:body
 	CreateForkOption api.CreateForkOption
 
+	// in:body
 	CreateStatusOption api.CreateStatusOption
 
+	// in:body
 	CreateTeamOption api.CreateTeamOption
-	EditTeamOption   api.EditTeamOption
+	// in:body
+	EditTeamOption api.EditTeamOption
 
+	// in:body
 	AddTimeOption api.AddTimeOption
 
+	// in:body
 	CreateUserOption api.CreateUserOption
-	EditUserOption   api.EditUserOption
+	// in:body
+	EditUserOption api.EditUserOption
 
+	// in:body
 	MigrateRepoForm auth.MigrateRepoForm
 
+	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
 }

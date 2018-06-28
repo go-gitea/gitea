@@ -21,7 +21,7 @@ func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedT
 
 // ListTrackedTimes list all the tracked times of an issue
 func ListTrackedTimes(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/times issue issueTrackedTimes
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{id}/times issue issueTrackedTimes
 	// ---
 	// summary: List an issue's tracked times
 	// produces:
@@ -37,7 +37,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: id
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
@@ -70,7 +70,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 // AddTime adds time manual to the given issue
 func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{id}/times issue issueAddTime
 	// ---
 	// summary: Add a tracked time to a issue
 	// consumes:
@@ -132,7 +132,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 // ListTrackedTimesByUser  lists all tracked times of the user
 func ListTrackedTimesByUser(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/times/{tracker} user userTrackedTimes
+	// swagger:operation GET /repos/{owner}/{repo}/times/{user} user userTrackedTimes
 	// ---
 	// summary: List a user's tracked times in a repo
 	// produces:
