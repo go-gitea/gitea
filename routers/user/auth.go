@@ -319,7 +319,7 @@ func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthFo
 
 		handleSignInFull(ctx, u, remember, false)
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
 
