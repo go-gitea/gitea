@@ -362,6 +362,13 @@ func showOrgProfile(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
+
+	canSeeOrg := models.HasOrgVisible([]*models.User{org}, ctx.User)
+	if !canSeeOrg {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
 	ctx.Data["Title"] = org.DisplayName()
 
 	page := ctx.QueryInt("page")
