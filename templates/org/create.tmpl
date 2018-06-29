@@ -15,6 +15,28 @@
 						<span class="help">{{.i18n.Tr "org.org_name_helper"}}</span>
 					</div>
 
+					<div class="inline required field {{if .Err_OrgVisibility}}error{{end}}">
+						<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .DefaultVisibilityMode 1}}checked{{end}}/>
+								<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .DefaultVisibilityMode 2}}checked{{end}}/>
+								<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui radio checkbox">
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="3" {{if eq .DefaultVisibilityMode 3}}checked{{end}}/>
+								<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
+							</div>
+						</div>
+					</div>
+
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button">
