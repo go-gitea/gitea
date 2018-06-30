@@ -32,6 +32,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing licenses (#3497)
   * Reduce repo indexer disk usage (#3452)
   * Enable caching on assets and avatars (#3376)
+  * Add repository search ordered by stars/forks. Forks column in admin repo list (#3969)
 * TRANSLATION
   * Improve English grammar and consistency (#3614)
 
