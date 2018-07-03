@@ -341,6 +341,8 @@ var (
 
 	// Picture settings
 	AvatarUploadPath      string
+	AvatarMaxWidth        int
+	AvatarMaxHeight       int
 	GravatarSource        string
 	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
@@ -1024,6 +1026,8 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
+	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"

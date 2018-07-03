@@ -402,6 +402,10 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
+; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
+; used when resizing the image.
+AVATAR_MAX_WIDTH = 4096
+AVATAR_MAX_HEIGHT = 3072
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
