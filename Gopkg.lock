@@ -294,7 +294,7 @@
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  revision = "ce924a41eea897745442daaa1739089b0f3f561d"
+  revision = "d523deb1b23d913de5bdada721a6071e71283618"
 
 [[projects]]
   name = "github.com/go-xorm/builder"
@@ -873,6 +873,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "036b8c882671cf8d2c5e2fdbe53b1bdfbd39f7ebd7765bd50276c7c4ecf16687"
+  inputs-digest = "96c83a3502bd50c5ca8e4d9b4145172267630270e587c79b7253156725eeb9b8"
   solver-name = "gps-cdcl"
   solver-version = 1
