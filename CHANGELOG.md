@@ -49,6 +49,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve English grammar and consistency (#3614)
 * DEPLOYMENT
   * Allow Gitea to run as different USER in Docker (#3961)
+  * Provide compressed release binaries (#3991)
+  * Sign release binaries (#4188)
 
 ## [1.4.3](https://github.com/go-gitea/gitea/releases/tag/v1.4.3) - 2018-06-26
 * SECURITY
