@@ -52,7 +52,7 @@
 					<div class="ui bottom attached segment">
 						<div class="ui small images">
 							{{range .Attachments}}
-								<a target="_blank" rel="noopener" href="{{AppSubUrl}}/attachments/{{.UUID}}">
+								<a target="_blank" rel="noopener noreferrer" href="{{AppSubUrl}}/attachments/{{.UUID}}">
 									{{if FilenameIsImage .Name}}
 										<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
 									{{else}}
