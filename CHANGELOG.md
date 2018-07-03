@@ -5,6 +5,8 @@ without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-06-27
+* SECURITY
+  * Limit uploaded avatar image-size to 4096x3072 by default (#4353)
 * FEATURE
   * Add cli commands to regen hooks & keys (#3979)
   * Add support for FIDO U2F (#3971)
