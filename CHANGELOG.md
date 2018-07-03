@@ -4,6 +4,54 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-06-27
+* SECURITY
+  * Limit uploaded avatar image-size to 4096x3072 by default (#4353)
+  * Do not allow to reuse TOTP passcode (#3878)
+* FEATURE
+  * Add cli commands to regen hooks & keys (#3979)
+  * Add support for FIDO U2F (#3971)
+  * Added user language setting (#3875)
+  * LDAP Public SSH Keys synchronization (#1844)
+  * Add topic support (#3711)
+  * Multiple assignees (#3705)
+  * Add protected branch whitelists for merging (#3689)
+  * Global code search support (#3664)
+  * Add label descriptions (#3662)
+  * Add issue search via API (#3612)
+  * Add repository setting to enable/disable health checks (#3607)
+  * Emoji Autocomplete (#3433)
+  * Implements generator cli for secrets (#3531)
+* ENHANCEMENT
+  * Add more webhooks support and refactor webhook templates directory (#3929)
+  * Add new option to allow only OAuth2/OpenID user registration (#3910)
+  * Add option to use paged LDAP search when synchronizing users (#3895)
+  * Symlink icons (#1416)
+  * Improve release page UI (#3693)
+  * Add admin dashboard option to run health checks (#3606)
+  * Add branch link in branch list (#3576)
+  * Reduce sql query times in retrieveFeeds (#3547)
+  * Option to enable or disable swagger endpoints (#3502)
+  * Add missing licenses (#3497)
+  * Reduce repo indexer disk usage (#3452)
+  * Enable caching on assets and avatars (#3376)
+  * Add repository search ordered by stars/forks. Forks column in admin repo list (#3969)
+  * Add Environment Variables to Docker template (#4012)
+  * LFS: make HTTP auth period configurable (#4035)
+  * Add config path as an optionial flag when changing pass via CLI (#4184)
+  * Refactor User Settings sections (#3900)
+  * Allow square brackets in external issue patterns (#3408)
+  * Add Attachment API (#3478)
+  * Add EnableTimetracking option to app settings (#3719)
+  * Add config option to enable or disable log executed SQL (#3726)
+  * Shows total tracked time in issue and milestone list (#3341)
+* TRANSLATION
+  * Improve English grammar and consistency (#3614)
+* DEPLOYMENT
+  * Allow Gitea to run as different USER in Docker (#3961)
+  * Provide compressed release binaries (#3991)
+  * Sign release binaries (#4188)
+
 ## [1.4.3](https://github.com/go-gitea/gitea/releases/tag/v1.4.3) - 2018-06-26
 * SECURITY
   * HTML-escape plain-text READMEs (#4192) (#4214)
