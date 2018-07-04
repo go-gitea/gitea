@@ -235,3 +235,48 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2")
 	sess.MakeRequest(t, req, http.StatusNotFound)
 }
+
+func TestAPIOrgRepoCreate(t *testing.T) {
+	prepareTestEnv(t)
+	testCases := []struct {
+		desc     string
+		user     *models.User
+		org      *models.User
+		repoName string
+		resp     int
+	}{
+		{
+			desc:     "owner of organization",
+			user:     models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User),
+			org:      models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User),
+			repoName: "foo",
+			resp:     http.StatusCreated,
+		},
+		{
+			desc:     "admin",
+			user:     models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User),
+			org:      models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User),
+			repoName: "foobar",
+			resp:     http.StatusCreated,
+		},
+		{
+			desc:     "non-member of organization",
+			user:     models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User),
+			org:      models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User),
+			repoName: "foobaz",
+			resp:     http.StatusForbidden,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			session := loginUser(t, tc.user.Name)
+
+			req := NewRequestf(t, "POST", "/api/v1/org/%s/repos", tc.org.LowerName)
+			resp := session.MakeRequest(t, req, tc.resp)
+
+			var apiRepo *api.Repository
+			DecodeJSON(t, resp, &apiRepo)
+			assert.Equal(t, tc.repoName, apiRepo.Name)
+		})
+	}
+}
