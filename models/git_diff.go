@@ -260,7 +260,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			if err != nil && err != bufio.ErrBufferFull {
 				return nil, fmt.Errorf("PeekByte: %v", err)
 			}
-			newLine := bytes.IndexByte(peek, '\n');
+			newLine := bytes.IndexByte(peek, '\n')
 			if newLine == -1 {
 				// Instead of reading things, and copying memory around,
 				//  we simply discard them (which doesn't allocate memory)
