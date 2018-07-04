@@ -30,7 +30,8 @@
 							<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 						</div>
 					{{end}}
-					{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
+					
+					{{if .EnableRecaptcha}}
 						<div class="inline field required">
 							<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
 						</div>

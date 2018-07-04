@@ -302,9 +302,10 @@ ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
+; Type of captcha you want to use. Options: image, recaptcha
+CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-ENABLE_RECAPTCHA  = false
 RECAPTCHA_SECRET  = 
 RECAPTCHA_SITEKEY = 
 ; Default value for KeepEmailPrivate

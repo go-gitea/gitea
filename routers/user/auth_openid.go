@@ -309,7 +309,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["EnableRecaptcha"] = setting.Service.EnableRecaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
@@ -336,17 +336,17 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["EnableRecaptcha"] = setting.Service.EnableRecaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "image" && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
 		return
 	}
 
-	if setting.Service.EnableRecaptcha {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "recaptcha" {
 		ctx.Req.ParseForm()
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {

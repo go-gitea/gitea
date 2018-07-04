@@ -1165,7 +1165,7 @@ var Service struct {
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
 	EnableCaptcha                           bool
-	EnableRecaptcha                         bool
+	CaptchaType                             string
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	DefaultKeepEmailPrivate                 bool
@@ -1193,7 +1193,7 @@ func newService() {
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
-	Service.EnableRecaptcha = sec.Key("ENABLE_RECAPTCHA").MustBool(false)
+	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString("image")
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
