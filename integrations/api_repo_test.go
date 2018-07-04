@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
@@ -234,4 +235,35 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	sess := loginUser(t, user.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2")
 	sess.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIOrgRepoCreate(t *testing.T) {
+	prepareTestEnv(t)
+	testCases := []struct {
+		desc     string
+		user     *models.User
+		org      *models.User
+		repoName string
+		resp     int
+	}{
+		{
+			desc:     "owner of organization",
+			user:     models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User),
+			org:      models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User),
+			repoName: "foo",
+			resp:     http.StatusCreated,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			session := loginUser(t, tc.user.Name)
+
+			req := NewRequestf(t, "POST", "/api/v1/org/%s/repos", tc.org.LowerName)
+			resp := session.MakeRequest(t, req, tc.resp)
+
+			var apiRepo *api.Repository
+			DecodeJSON(t, resp, &apiRepo)
+			require.Equal(t, tc.repoName, apiRepo.Name)
+		})
+	}
 }
