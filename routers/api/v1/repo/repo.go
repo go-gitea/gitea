@@ -257,13 +257,15 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
-	isOwner, err := org.IsOwnedBy(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("IsOwnedBy", err)
-		return
-	} else if !isOwner {
-		ctx.Error(403, "", "Given user is not owner of organization.")
-		return
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403, "", "Given user is not owner of organization.")
+			return
+		}
 	}
 	CreateUserRepo(ctx, org, opt)
 }
