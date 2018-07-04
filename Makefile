@@ -100,6 +100,13 @@ swagger-check: generate-swagger
 		exit 1; \
 	fi;
 
+.PHONY: swagger-validate
+swagger-validate:
+	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+	fi
+	swagger validate ./public/swagger.v1.json
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \

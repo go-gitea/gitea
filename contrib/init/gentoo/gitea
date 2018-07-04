@@ -1,11 +1,11 @@
 #!/sbin/openrc-run
 
-DIR=/home/git/gitea
+DIR=/var/lib/gitea
 USER=git
 
 start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
-command="${DIR}/gitea"
-command_args="web"
+command="/usr/local/bin/gitea"
+command_args="web -c /etc/gitea/app.ini"
 command_background=yes
 pidfile=/var/run/gitea.pid
 
