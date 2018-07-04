@@ -235,3 +235,28 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2")
 	sess.MakeRequest(t, req, http.StatusNotFound)
 }
+
+func TestAPIRepoMigrate(t *testing.T) {
+	testCases := []struct {
+		ctxUserID, userID  int64
+		cloneURL, repoName string
+		expectedStatus     int
+	}{
+		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-org", expectedStatus: http.StatusCreated},
+	}
+
+	prepareTestEnv(t)
+	for _, testCase := range testCases {
+		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		session := loginUser(t, user.Name)
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOption{
+			CloneAddr: testCase.cloneURL,
+			UID:       int(testCase.userID),
+			RepoName:  testCase.repoName,
+		})
+		session.MakeRequest(t, req, testCase.expectedStatus)
+	}
+}

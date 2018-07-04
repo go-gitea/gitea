@@ -306,6 +306,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
+	if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+		ctx.Error(403, "", "Given user is not an organization.")
+		return
+	}
+
 	if ctxUser.IsOrganization() && !ctx.User.IsAdmin {
 		// Check ownership of organization.
 		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
