@@ -13,7 +13,6 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
@@ -277,7 +276,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 
 			var apiRepo *api.Repository
 			DecodeJSON(t, resp, &apiRepo)
-			require.Equal(t, tc.repoName, apiRepo.Name)
+			assert.Equal(t, tc.repoName, apiRepo.Name)
 		})
 	}
 }
