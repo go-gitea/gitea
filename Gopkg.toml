@@ -30,11 +30,6 @@ ignored = ["google.golang.org/appengine*"]
   revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
   name = "golang.org/x/net"
 
-[[constraint]]
-  #version = "v1.0.0"
-  revision = "33197485abe227dcb254644cf5081c9a3c281669"
-  name = "github.com/pingcap/tidb"
-
 [[override]]
   name = "github.com/go-xorm/xorm"
   #version = "0.6.5"

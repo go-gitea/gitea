@@ -144,17 +144,6 @@
   revision = "098da33fde5f9220736531b3cb26a2dec86a8367"
 
 [[projects]]
-  name = "github.com/coreos/etcd"
-  packages = ["error"]
-  revision = "01c303113d0a3d5a8075864321c3aedb72035bdd"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/coreos/go-etcd"
-  packages = ["etcd"]
-  revision = "003851be7bb0694fe3cc457a49529a19388ee7cf"
-
-[[projects]]
   branch = "master"
   name = "github.com/couchbase/vellum"
   packages = [
@@ -307,11 +296,6 @@
   revision = "cb1d0ca71f42d3ee1bf4aba7daa16099bc31a7e9"
 
 [[projects]]
-  name = "github.com/go-xorm/tidb"
-  packages = ["."]
-  revision = "21e49190ce47a766fa741cf7edc831a30c12c6ac"
-
-[[projects]]
   name = "github.com/go-xorm/xorm"
   packages = ["."]
   revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
@@ -369,11 +353,6 @@
   name = "github.com/jaytaylor/html2text"
   packages = ["."]
   revision = "8fb95d837f7d6db1913fecfd7bcc5333e6499596"
-
-[[projects]]
-  name = "github.com/juju/errors"
-  packages = ["."]
-  revision = "b2c7a7da5b2995941048f60146e67702a292e468"
 
 [[projects]]
   name = "github.com/kballard/go-shellquote"
@@ -498,132 +477,10 @@
   revision = "891127d8d1b52734debe1b3c3d7e747502b6c366"
 
 [[projects]]
-  name = "github.com/ngaut/deadline"
-  packages = ["."]
-  revision = "fae8f9dfd7048de16575b9d4c255278e38c28a4f"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ngaut/go-zookeeper"
-  packages = ["zk"]
-  revision = "9c3719e318c7cfd072e41eb48cb71fcaa49d5e05"
-
-[[projects]]
-  name = "github.com/ngaut/log"
-  packages = ["."]
-  revision = "d2af3a61f64d093457fb23b25d20f4ce3cd551ce"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ngaut/pools"
-  packages = ["."]
-  revision = "b7bc8c42aac787667ba45adea78233f53f548443"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ngaut/sync2"
-  packages = ["."]
-  revision = "7a24ed77b2efb460c1468b7dc917821c66e80e55"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ngaut/tso"
-  packages = [
-    "client",
-    "proto",
-    "util"
-  ]
-  revision = "118f6c141d58f1e72577ff61f43f649bf39355ee"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/ngaut/zkhelper"
-  packages = ["."]
-  revision = "6738bdc138d469112c6687fbfcfe049ccabd6a0a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/petar/GoLLRB"
-  packages = ["llrb"]
-  revision = "53be0d36a84c2a886ca057d34b6aa4468df9ccb4"
-
-[[projects]]
   name = "github.com/philhofer/fwd"
   packages = ["."]
   revision = "bb6d471dc95d4fe11e432687f8b70ff496cf3136"
   version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/pingcap/go-hbase"
-  packages = [
-    ".",
-    "iohelper",
-    "proto"
-  ]
-  revision = "7a98d1fe4e9e115de8c77ae0e158c0d08732c550"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/pingcap/go-themis"
-  packages = [
-    ".",
-    "oracle",
-    "oracle/oracles"
-  ]
-  revision = "dbb996606c1d1fe8571fd9ac6da2254c76d2c5c9"
-
-[[projects]]
-  name = "github.com/pingcap/tidb"
-  packages = [
-    ".",
-    "ast",
-    "column",
-    "context",
-    "ddl",
-    "domain",
-    "evaluator",
-    "executor",
-    "infoschema",
-    "inspectkv",
-    "kv",
-    "kv/memkv",
-    "meta",
-    "meta/autoid",
-    "model",
-    "mysql",
-    "optimizer",
-    "optimizer/plan",
-    "parser",
-    "parser/opcode",
-    "perfschema",
-    "privilege",
-    "privilege/privileges",
-    "sessionctx",
-    "sessionctx/autocommit",
-    "sessionctx/db",
-    "sessionctx/forupdate",
-    "sessionctx/variable",
-    "store/hbase",
-    "store/localstore",
-    "store/localstore/boltdb",
-    "store/localstore/engine",
-    "store/localstore/goleveldb",
-    "structure",
-    "table",
-    "table/tables",
-    "terror",
-    "util",
-    "util/bytes",
-    "util/charset",
-    "util/codec",
-    "util/distinct",
-    "util/hack",
-    "util/segmentmap",
-    "util/sqlexec",
-    "util/stringutil",
-    "util/types"
-  ]
-  revision = "33197485abe227dcb254644cf5081c9a3c281669"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -674,24 +531,6 @@
   version = "v1.2.1"
 
 [[projects]]
-  name = "github.com/syndtr/goleveldb"
-  packages = [
-    "leveldb",
-    "leveldb/cache",
-    "leveldb/comparer",
-    "leveldb/errors",
-    "leveldb/filter",
-    "leveldb/iterator",
-    "leveldb/journal",
-    "leveldb/memdb",
-    "leveldb/opt",
-    "leveldb/storage",
-    "leveldb/table",
-    "leveldb/util"
-  ]
-  revision = "917f41c560270110ceb73c5b38be2a9127387071"
-
-[[projects]]
   branch = "master"
   name = "github.com/tinylib/msgp"
   packages = ["msgp"]
@@ -702,17 +541,6 @@
   name = "github.com/tstranex/u2f"
   packages = ["."]
   revision = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c"
-
-[[projects]]
-  name = "github.com/twinj/uuid"
-  packages = ["."]
-  revision = "89173bcdda19db0eb88aef1e1cb1cb2505561d31"
-  version = "0.10.0"
-
-[[projects]]
-  name = "github.com/ugorji/go"
-  packages = ["codec"]
-  revision = "c062049c1793b01a3cc3fe786108edabbaf7756b"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -873,6 +701,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "96c83a3502bd50c5ca8e4d9b4145172267630270e587c79b7253156725eeb9b8"
+  inputs-digest = "59451a3ad1d449f75c5e9035daf542a377c5c4a397e219bebec0aa0007ab9c39"
   solver-name = "gps-cdcl"
   solver-version = 1
