@@ -58,6 +58,7 @@ func Install(ctx *context.Context) {
 	// Database settings
 	form.DbHost = models.DbCfg.Host
 	form.DbUser = models.DbCfg.User
+	form.DbPasswd = models.DbCfg.Passwd
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
 
