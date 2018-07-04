@@ -242,7 +242,8 @@ func TestAPIRepoMigrate(t *testing.T) {
 		cloneURL, repoName string
 		expectedStatus     int
 	}{
-		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git", expectedStatus: http.StatusCreated},
+		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-own", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
 		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-org", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
