@@ -127,7 +127,7 @@
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
-{{if not (eq DefaultTheme "default")}}
+{{if not (eq DefaultTheme "gitea")}}
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css">
 {{end}}
 {{template "custom/header" .}}
