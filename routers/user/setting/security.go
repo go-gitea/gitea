@@ -22,6 +22,30 @@ func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
+	if ctx.Query("openid.return_to") != "" {
+		settingsOpenIDVerify(ctx)
+		return
+	}
+
+	loadSecurityData(ctx)
+
+	ctx.HTML(200, tplSettingsSecurity)
+}
+
+// DeleteAccountLink delete a single account link
+func DeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/security",
+	})
+}
+
+func loadSecurityData(ctx *context.Context) {
 	enrolled := true
 	_, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
@@ -71,30 +95,10 @@ func Security(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	if ctx.Query("openid.return_to") != "" {
-		settingsOpenIDVerify(ctx)
-		return
-	}
-
 	openid, err := models.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
 	}
 	ctx.Data["OpenIDs"] = openid
-
-	ctx.HTML(200, tplSettingsSecurity)
-}
-
-// DeleteAccountLink delete a single account link
-func DeleteAccountLink(ctx *context.Context) {
-	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
 }

@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -20,10 +21,12 @@ func init() {
 	)
 }
 
+var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+
 // Topic represents a topic of repositories
 type Topic struct {
 	ID          int64
-	Name        string `xorm:"unique"`
+	Name        string `xorm:"UNIQUE"`
 	RepoCount   int
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -31,8 +34,8 @@ type Topic struct {
 
 // RepoTopic represents associated repositories and topics
 type RepoTopic struct {
-	RepoID  int64 `xorm:"unique(s)"`
-	TopicID int64 `xorm:"unique(s)"`
+	RepoID  int64 `xorm:"UNIQUE(s)"`
+	TopicID int64 `xorm:"UNIQUE(s)"`
 }
 
 // ErrTopicNotExist represents an error that a topic is not exist
@@ -49,6 +52,11 @@ func IsErrTopicNotExist(err error) bool {
 // Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
+}
+
+// ValidateTopic checks topics by length and match pattern rules
+func ValidateTopic(topic string) bool {
+	return len(topic) <= 35 && topicPattern.MatchString(topic)
 }
 
 // GetTopicByName retrieves topic by name
@@ -180,6 +188,13 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		}); err != nil {
 			return err
 		}
+	}
+
+	topicNames = make([]string, 0, 25)
+	if err := sess.Table("topic").Cols("name").
+		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		return err
 	}
 
 	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{

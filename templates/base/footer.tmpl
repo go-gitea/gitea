@@ -17,7 +17,7 @@
 			</div>
 			<div class="ui right links">
 				{{if .ShowFooterBranding}}
-					<a target="_blank" rel="noopener" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
+					<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
 				{{end}}
 				<div class="ui language bottom floating slide up dropdown link item">
 					<i class="world icon"></i>
@@ -30,7 +30,7 @@
 				</div>
 				<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
 				{{if .EnableSwaggerEndpoint}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
-				<a target="_blank" rel="noopener" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
+				<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
 				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 			</div>
 		</div>
