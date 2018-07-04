@@ -262,3 +262,26 @@ func TestAPIRepoMigrate(t *testing.T) {
 		session.MakeRequest(t, req, testCase.expectedStatus)
 	}
 }
+
+func TestAPIOrgRepoCreate(t *testing.T) {
+	testCases := []struct {
+		ctxUserID         int64
+		orgName, repoName string
+		expectedStatus    int
+	}{
+		{ctxUserID: 1, orgName: "user3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "user3", repoName: "repo-own", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "user6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
+	}
+
+	prepareTestEnv(t)
+	for _, testCase := range testCases {
+		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		session := loginUser(t, user.Name)
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", testCase.orgName), &api.CreateRepoOption{
+			Name: testCase.repoName,
+		})
+		session.MakeRequest(t, req, testCase.expectedStatus)
+	}
+}
