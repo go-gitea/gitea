@@ -306,15 +306,22 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	if ctxUser.IsOrganization() && !ctx.User.IsAdmin {
-		// Check ownership of organization.
-		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOwnedBy", err)
+	if !ctx.User.IsAdmin {
+		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+			ctx.Error(403, "", "Given user is not an organization.")
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
-			return
+		}
+
+		if ctxUser.IsOrganization() {
+			// Check ownership of organization.
+			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOwnedBy", err)
+				return
+			} else if !isOwner {
+				ctx.Error(403, "", "Given user is not owner of organization.")
+				return
+			}
 		}
 	}
 
