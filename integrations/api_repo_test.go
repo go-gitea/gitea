@@ -253,6 +253,13 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 			repoName: "foo",
 			resp:     http.StatusCreated,
 		},
+		{
+			desc:     "admin",
+			user:     models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User),
+			org:      models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User),
+			repoName: "foobar",
+			resp:     http.StatusCreated,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
