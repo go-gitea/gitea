@@ -172,7 +172,7 @@ func runWeb(ctx *cli.Context) error {
 	case setting.HTTP:
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
-		if setting.LetsEncrypt {
+		if setting.EnableLetsEncrypt {
 			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
 			break
 		}
