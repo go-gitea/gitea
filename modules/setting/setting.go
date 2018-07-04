@@ -43,11 +43,10 @@ type Scheme string
 
 // enumerates all the scheme types
 const (
-	HTTP        Scheme = "http"
-	HTTPS       Scheme = "https"
-	FCGI        Scheme = "fcgi"
-	UnixSocket  Scheme = "unix"
-	LetsEncrypt Scheme = "letsencrypt"
+	HTTP       Scheme = "http"
+	HTTPS      Scheme = "https"
+	FCGI       Scheme = "fcgi"
+	UnixSocket Scheme = "unix"
 )
 
 // LandingPage describes the default page
@@ -106,6 +105,7 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 	EnablePprof          bool
+	EnableLetsEncrypt    bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
 
@@ -714,8 +714,9 @@ func NewContext() {
 			log.Fatal(4, "Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
-	} else if sec.Key("PROTOCOL").String() == "letsencrypt" {
-		Protocol = LetsEncrypt
+	}
+	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	if EnableLetsEncrypt {
 		LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 		LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	}

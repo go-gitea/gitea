@@ -172,12 +172,14 @@ func runWeb(ctx *cli.Context) error {
 	case setting.HTTP:
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
+		if setting.LetsEncrypt {
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
+			break
+		}
 		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
-	case setting.LetsEncrypt:
-		err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {

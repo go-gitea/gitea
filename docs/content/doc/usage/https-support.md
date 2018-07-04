@@ -38,8 +38,9 @@ To learn more about the config values, please checkout the [Config Cheat Sheet](
 
 ```ini
 [server]
-PROTOCOL=letsencrypt
+PROTOCOL=https
 DOMAIN=git.example.com
+ENABLE_LETSENCRYPT=true
 LETSENCRYPT_DIRECTORY=https
 LETSENCRYPT_EMAIL=email@example.com
 ```
