@@ -32,6 +32,7 @@ const (
 func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+
 	ctx.HTML(200, tplSettingsProfile)
 }
 

@@ -191,7 +191,7 @@
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
 						<label for="oauth2_auth_url">{{.i18n.Tr "admin.auths.oauth2_authURL"}}</label>
-						<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.AuthURL}}v{{end}}">
+						<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.AuthURL}}{{end}}">
 					</div>
 					<div class="oauth2_use_custom_url_field oauth2_token_url required field">
 						<label for="oauth2_token_url">{{.i18n.Tr "admin.auths.oauth2_tokenURL"}}</label>
