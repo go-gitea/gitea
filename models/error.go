@@ -102,7 +102,7 @@ func IsErrEmailAlreadyUsed(err error) bool {
 }
 
 func (err ErrEmailAlreadyUsed) Error() string {
-	return fmt.Sprintf("e-mail has been used [email: %s]", err.Email)
+	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
 }
 
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
@@ -117,7 +117,7 @@ func IsErrOpenIDAlreadyUsed(err error) bool {
 }
 
 func (err ErrOpenIDAlreadyUsed) Error() string {
-	return fmt.Sprintf("OpenID has been used [oid: %s]", err.OpenID)
+	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
 }
 
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.

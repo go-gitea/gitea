@@ -410,7 +410,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required"`
+	TagName    string `binding:"Required;GitRefName"`
 	Target     string `form:"tag_target" binding:"Required"`
 	Title      string `binding:"Required"`
 	Content    string

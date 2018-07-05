@@ -75,6 +75,12 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// enumerates all the types of captchas
+const (
+	ImageCaptcha = "image"
+	ReCaptcha    = "recaptcha"
+)
+
 // settings
 var (
 	// AppVer settings
@@ -343,6 +349,8 @@ var (
 
 	// Picture settings
 	AvatarUploadPath      string
+	AvatarMaxWidth        int
+	AvatarMaxHeight       int
 	GravatarSource        string
 	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
@@ -831,7 +839,6 @@ func NewContext() {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
-	sec = Cfg.Section("LFS")
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
@@ -1027,6 +1034,8 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
+	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
@@ -1164,6 +1173,9 @@ var Service struct {
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
 	EnableCaptcha                           bool
+	CaptchaType                             string
+	RecaptchaSecret                         string
+	RecaptchaSitekey                        string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	EnableTimetracking                      bool
@@ -1188,7 +1200,10 @@ func newService() {
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
-	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
+	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
+	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
+	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)

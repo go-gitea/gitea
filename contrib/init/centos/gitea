@@ -24,8 +24,8 @@
 # Default values
 
 NAME=gitea
-GITEA_HOME=/home/git/gitea
-GITEA_PATH=${GITEA_HOME}/$NAME
+GITEA_HOME=/var/lib/${NAME}
+GITEA_PATH=/usr/local/bin/${NAME}
 GITEA_USER=git
 SERVICENAME="Gitea - Git with a cup of tea"
 LOCKFILE=/var/lock/subsys/gitea
@@ -49,11 +49,11 @@ DAEMON_OPTS="--check $NAME"
 start() {
   cd ${GITEA_HOME}
   echo -n "Starting ${SERVICENAME}: "
-  daemon $DAEMON_OPTS "${GITEA_PATH} web > ${LOGFILE} 2>&1 &"
+  daemon $DAEMON_OPTS "${GITEA_PATH} web -c /etc/${NAME}/app.ini > ${LOGFILE} 2>&1 &"
   RETVAL=$?
   echo
   [ $RETVAL = 0 ] && touch ${LOCKFILE}
-        
+
   return $RETVAL
 }
 
@@ -63,7 +63,7 @@ stop() {
         killproc ${NAME}
         RETVAL=$?
         echo
-        [ $RETVAL = 0 ] && rm -f ${LOCKFILE} 
+        [ $RETVAL = 0 ] && rm -f ${LOCKFILE}
 }
 
 case "$1" in

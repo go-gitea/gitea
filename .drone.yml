@@ -4,7 +4,7 @@ workspace:
 
 clone:
   git:
-    image: plugins/git:1
+    image: plugins/git:next
     depth: 50
     tags: true
 
@@ -75,6 +75,7 @@ pipeline:
       - make lint
       - make fmt-check
       - make swagger-check
+      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
@@ -251,6 +252,18 @@ pipeline:
     pull: true
     repo: gitea/gitea
     default_tags: true
+    when:
+      event: [ push, tag ]
+
+  gpg-sign:
+    image: plugins/gpgsign:1
+    pull: true
+    secrets: [ gpgsign_key, gpgsign_passphrase ]
+    detach_sign: true
+    files:
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha256
     when:
       event: [ push, tag ]
 

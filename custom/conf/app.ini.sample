@@ -303,7 +303,13 @@ ENABLE_NOTIFY_MAIL = false
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
-ENABLE_CAPTCHA = true
+ENABLE_CAPTCHA = false
+; Type of captcha you want to use. Options: image, recaptcha
+CAPTCHA_TYPE = image
+; Enable recaptcha to use Google's recaptcha service
+; Go to https://www.google.com/recaptcha/admin to sign up for a key
+RECAPTCHA_SECRET  = 
+RECAPTCHA_SITEKEY = 
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -404,6 +410,10 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
+; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
+; used when resizing the image.
+AVATAR_MAX_WIDTH = 4096
+AVATAR_MAX_HEIGHT = 3072
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
@@ -603,9 +613,9 @@ ko-KR = ko
 [U2F]
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 ; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini
