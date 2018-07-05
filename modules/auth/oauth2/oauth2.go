@@ -163,7 +163,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 				profileURL = customURLMapping.ProfileURL
 			}
 		}
-		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	case "openidConnect":
