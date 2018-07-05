@@ -26,7 +26,7 @@ chmod +x gitea
 ```
 
 ## Verify GPG signature
-Gitea signs all binaries with a [GPG key](http://pool.sks-keyservers.net/pks/lookup?op=get&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vindex&fingerprint=on&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 0x2D9AE806EC1592E2
