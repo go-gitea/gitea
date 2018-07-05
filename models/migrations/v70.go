@@ -16,7 +16,7 @@ import (
 )
 
 func addScratchHash(x *xorm.Engine) error {
-	// TeamUnit see models/twofactor.go
+	// TwoFactor see models/twofactor.go
 	type TwoFactor struct {
 		ID               int64 `xorm:"pk autoincr"`
 		UID              int64 `xorm:"UNIQUE"`
