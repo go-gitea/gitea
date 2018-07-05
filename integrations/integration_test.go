@@ -47,6 +47,8 @@ func TestMain(m *testing.M) {
 		helper = &testfixtures.PostgreSQL{}
 	} else if setting.UseSQLite3 {
 		helper = &testfixtures.SQLite{}
+	} else if setting.UseMSSQL {
+		helper = &testfixtures.SQLServer{}
 	} else {
 		fmt.Println("Unsupported RDBMS for integration tests")
 		os.Exit(1)
@@ -133,12 +135,12 @@ func initIntegrationTest() {
 	case setting.UseMSSQL:
 		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, models.DbCfg.Name, models.DbCfg.User, models.DbCfg.Passwd))
+			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
 		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err := db.Exec("If(db_id(N'master') IS NULL) BEGIN CREATE DATABASE master; END;"); err != nil {
+		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 
