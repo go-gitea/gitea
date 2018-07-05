@@ -138,8 +138,7 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		// FIXME: what happens if the database already exists? ¯\_(ツ)_/¯
-		if _, err := db.Exec("CREATE DATABASE master"); err != nil {
+		if _, err := db.Exec("If(db_id(N'master') IS NULL) BEGIN CREATE DATABASE master; END;"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 
