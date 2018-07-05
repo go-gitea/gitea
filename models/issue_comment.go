@@ -400,31 +400,6 @@ func (c *Comment) AsDiff() (*Diff, error) {
 	if len(diff.Files) == 0 {
 		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
 	}
-	// Limit to CODE_COMMENT_LINES lines around comment line
-	for _, sec := range diff.Files[0].Sections {
-		var searchedLineIdx int
-		for lineIdx, line := range sec.Lines {
-			if c.Line < 0 && int64(line.LeftIdx) == c.Line {
-				searchedLineIdx = lineIdx
-				break
-			}
-			if c.Line > 0 && int64(line.RightIdx) == c.Line {
-				searchedLineIdx = lineIdx
-				break
-			}
-		}
-		if searchedLineIdx >= setting.UI.CodeCommentLines-1 {
-			first := searchedLineIdx - setting.UI.CodeCommentLines + 1
-			last := searchedLineIdx + 1
-			sec.Lines = sec.Lines[first:last]
-			diff.Files[0].Sections = []*DiffSection{sec}
-			break
-		} else if searchedLineIdx > 0 {
-			sec.Lines = sec.Lines[:searchedLineIdx+1]
-			diff.Files[0].Sections = []*DiffSection{sec}
-			break
-		}
-	}
 	return diff, nil
 }
 
@@ -777,7 +752,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		return nil, err
 	}
 	patchBuf := new(bytes.Buffer)
-	if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffPatch, treePath, patchBuf); err != nil {
+	if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
 		return nil, err
 	}
 

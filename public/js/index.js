@@ -834,7 +834,7 @@ function initPullRequestReview() {
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
-            assingMenuAttributes(commentCloud.find('.menu'));
+            var id = assingMenuAttributes(commentCloud.find('.menu'));
             commentCloud.find('.tab.segment').each(function(i, item) {
                 $(item).attr('data-tab', $(item).attr('data-tab') + id);
             });
@@ -853,7 +853,8 @@ function assingMenuAttributes(menu) {
     menu.find('.item').each(function(i, item) {
         $(item).attr('data-tab', $(item).attr('data-tab') + id);
     });
-    initCommentPreviewTab(menu.parent(".form"))
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
 }
 
 function initRepositoryCollaboration() {
