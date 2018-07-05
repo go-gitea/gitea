@@ -186,6 +186,9 @@ func NewFuncMap() []template.FuncMap {
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
 	}}
 }
 

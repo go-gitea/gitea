@@ -55,6 +55,9 @@ else
 	endif
 endif
 
+# $(call strip-suffix,filename)
+strip-suffix = $(firstword $(subst ., ,$(1)))
+
 .PHONY: all
 all: build
 
@@ -301,7 +304,7 @@ public/js/index.js: $(JAVASCRIPTS)
 
 .PHONY: stylesheets-check
 stylesheets-check: generate-stylesheets
-	@diff=$$(git diff public/css/index.css); \
+	@diff=$$(git diff public/css/*); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
@@ -311,6 +314,7 @@ stylesheets-check: generate-stylesheets
 .PHONY: generate-stylesheets
 generate-stylesheets:
 	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 
 .PHONY: swagger-ui
 swagger-ui:

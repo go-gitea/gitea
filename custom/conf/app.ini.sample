@@ -75,6 +75,8 @@ THEME_COLOR_META_TAG = `#6cc644`
 MAX_DISPLAY_FILE_SIZE = 8388608
 ; Whether the email of the user should be shown in the Explore Users page
 SHOW_USER_EMAIL = true
+; Set the default theme for the Gitea install
+DEFAULT_THEME = gitea
 
 [ui.admin]
 ; Number of users that are displayed on one page
