@@ -340,13 +340,13 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "image" && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "recaptcha" {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
 		ctx.Req.ParseForm()
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {

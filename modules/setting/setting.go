@@ -75,6 +75,12 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// enumerates all the types of captchas
+const (
+	ImageCaptcha = "image"
+	ReCaptcha    = "recaptcha"
+)
+
 // settings
 var (
 	// AppVer settings
@@ -1193,7 +1199,7 @@ func newService() {
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
-	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString("image")
+	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()

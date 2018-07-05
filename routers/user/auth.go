@@ -762,13 +762,13 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "image" && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "recaptcha" {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
@@ -904,13 +904,13 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "image" && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == "recaptcha" {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
