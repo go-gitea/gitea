@@ -94,4 +94,4 @@ Place custom files in corresponding sub-folder under `custom/options`.
 
 ## Customizing the look of Gitea
 
-Gitea has two builtin themes, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `[ui] DEFAULT_THEME` in `app.ini` to another one of the available options.
+Gitea has two built-in themes, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
