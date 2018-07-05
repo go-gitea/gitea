@@ -72,10 +72,11 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName string `binding:"Required;AlphaDashDot;MaxSize(35)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
-	Password string `binding:"Required;MaxSize(255)"`
-	Retype   string
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	Password           string `binding:"Required;MaxSize(255)"`
+	Retype             string
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
 // Validate valideates the fields

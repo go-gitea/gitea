@@ -301,7 +301,13 @@ ENABLE_NOTIFY_MAIL = false
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
-ENABLE_CAPTCHA = true
+ENABLE_CAPTCHA = false
+; Type of captcha you want to use. Options: image, recaptcha
+CAPTCHA_TYPE = image
+; Enable recaptcha to use Google's recaptcha service
+; Go to https://www.google.com/recaptcha/admin to sign up for a key
+RECAPTCHA_SECRET  = 
+RECAPTCHA_SITEKEY = 
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
