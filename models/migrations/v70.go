@@ -53,7 +53,10 @@ func addScratchHash(x *xorm.Engine) error {
 
 		for _, tfa := range tfas {
 			// generate salt
-			salt, _ := generateSalt()
+			salt, err := generateSalt()
+			if err != nil {
+				return err
+			}
 			tfa.ScratchSalt = salt
 			tfa.ScratchHash = hashToken(tfa.ScratchToken, salt)
 
