@@ -80,6 +80,23 @@
         }
     }
 }
+
+@media only screen and (min-width: 768px) {
+    .g-recaptcha {
+        margin: 0 auto !important;
+        width: 304px;
+        padding-left: 30px;
+    }
+}
+@media screen and (max-height: 575px){
+    #rc-imageselect, .g-recaptcha {
+        transform:scale(0.77);
+        -webkit-transform:scale(0.77);
+        transform-origin:0 0;
+        -webkit-transform-origin:0 0;
+    }
+}
+
 .user.activate,
 .user.forgot.password,
 .user.reset.password,

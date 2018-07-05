@@ -365,22 +365,14 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
-	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
-	for _, team := range teams {
-		// Administrators can not be limited
-		if team.Authorize >= AccessModeAdmin {
-			return nil
-		}
-		for _, unitType := range team.UnitTypes {
-			allTypes[unitType] = struct{}{}
-		}
-	}
-
 	// unique
 	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
 	for _, u := range repo.Units {
-		if _, ok := allTypes[u.Type]; ok {
-			newRepoUnits = append(newRepoUnits, u)
+		for _, team := range teams {
+			if team.UnitEnabled(u.Type) {
+				newRepoUnits = append(newRepoUnits, u)
+				break
+			}
 		}
 	}
 
@@ -789,7 +781,7 @@ var (
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
+		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener noreferrer">%[1]s</a>`, s)
 	}
 	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
@@ -1354,6 +1346,12 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 				RepoID: repo.ID,
 				Type:   tp,
 				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+			})
+		} else if tp == UnitTypePullRequests {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowSquash: true},
 			})
 		} else {
 			units = append(units, RepoUnit{
