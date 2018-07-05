@@ -298,7 +298,7 @@ var (
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
-		DefaultTheme:        `default`,
+		DefaultTheme:        `gitea`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
