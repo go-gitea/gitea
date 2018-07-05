@@ -197,7 +197,8 @@ func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DB
 	return
 }
 
-func parseMSSQLHostPort(info string) (string, string) {
+// ParseMSSQLHostPort splits the host into host and port
+func ParseMSSQLHostPort(info string) (string, string) {
 	host, port := "127.0.0.1", "1433"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -229,7 +230,7 @@ func getEngine() (*xorm.Engine, error) {
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
-		host, port := parseMSSQLHostPort(DbCfg.Host)
+		host, port := ParseMSSQLHostPort(DbCfg.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, DbCfg.Name, DbCfg.User, DbCfg.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {
