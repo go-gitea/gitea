@@ -91,3 +91,7 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 
 Place custom files in corresponding sub-folder under `custom/options`.
+
+## Customizing the look of Gitea
+
+Gitea has two built-in themes, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.

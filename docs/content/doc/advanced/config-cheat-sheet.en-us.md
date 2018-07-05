@@ -68,6 +68,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
+- `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 
 ### UI - Admin (`ui.admin`)
 
@@ -177,7 +178,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
-- `ENABLE_CAPTCHA`: **true**: Enable this to use captcha validation for registration.
+- `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
+- `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha 
+- `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha
 
 ## Webhook (`webhook`)
 
