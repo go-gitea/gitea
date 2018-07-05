@@ -956,7 +956,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).Update(new(Repository)); err != nil {
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
@@ -966,7 +966,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
