@@ -31,13 +31,13 @@
 		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" >
 			<div class="fourteen wide column">
 				<div class="field">
-				<div class="ui fluid multiple search selection dropdown">
-					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
-					{{range .Topics}}
-					<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
-					{{end}}
-					<div class="text"></div>
-				</div>
+					<div class="ui fluid multiple search selection dropdown">
+						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
+						{{range .Topics}}
+						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
+						{{end}}
+						<div class="text"></div>
+					</div>
 				</div>
 			</div>
 			<div class="one wide column">
