@@ -479,6 +479,26 @@ func findIssueReferencesInString(message string, repo *Repository) (map[int64]Ke
 	return refs, nil
 }
 
+// changeIssueStatus encapsulates the logic for changing the status of an issue based on what keywords are marked in the keyword mask
+func changeIssueStatus(mask KeywordMaskType, doer *User, repo *Repository, issue *Issue) error {
+	// take no action if both KeywordClose and KeywordOpen are set
+	switch mask & (KeywordReopen | KeywordClose) {
+	case KeywordClose:
+		if issue.RepoID == repo.ID && !issue.IsClosed {
+			if err := issue.ChangeStatus(doer, repo, true); err != nil {
+				return err
+			}
+		}
+	case KeywordReopen:
+		if issue.RepoID == repo.ID && issue.IsClosed {
+			if err := issue.ChangeStatus(doer, repo, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // UpdateIssuesComment checks if issues are manipulated by a comment
 func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comment *Comment, canOpenClose bool) error {
 	var refString string
@@ -521,19 +541,8 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		}
 
 		if canOpenClose {
-			// take no action if both KeywordClose and KeywordOpen are set
-			if (mask & (KeywordReopen | KeywordClose)) == KeywordClose {
-				if issue.RepoID == repo.ID && !issue.IsClosed {
-					if err = issue.ChangeStatus(doer, repo, true); err != nil {
-						return err
-					}
-				}
-			} else if (mask & (KeywordReopen | KeywordClose)) == KeywordReopen {
-				if issue.RepoID == repo.ID && issue.IsClosed {
-					if err = issue.ChangeStatus(doer, repo, false); err != nil {
-						return err
-					}
-				}
+			if err = changeIssueStatus(mask, doer, repo, issue); err != nil {
+				return err
 			}
 		}
 	}
@@ -568,19 +577,8 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 			}
 
 			if commitsAreMerged {
-				// take no action if both KeywordClose and KeywordOpen are set
-				if (mask & (KeywordReopen | KeywordClose)) == KeywordClose {
-					if issue.RepoID == repo.ID && !issue.IsClosed {
-						if err = issue.ChangeStatus(doer, repo, true); err != nil {
-							return err
-						}
-					}
-				} else if (mask & (KeywordReopen | KeywordClose)) == KeywordReopen {
-					if issue.RepoID == repo.ID && issue.IsClosed {
-						if err = issue.ChangeStatus(doer, repo, false); err != nil {
-							return err
-						}
-					}
+				if err = changeIssueStatus(mask, doer, repo, issue); err != nil {
+					return err
 				}
 			}
 		}
