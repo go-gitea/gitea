@@ -482,7 +482,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
-		if comment.Review == nil || comment.Review.Type <= ReviewTypePending {
+		if comment.Review != nil && comment.Review.Type <= ReviewTypePending {
 			break
 		}
 		fallthrough
