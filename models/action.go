@@ -52,20 +52,20 @@ const (
 	ActionMirrorSyncDelete                        // 20
 )
 
-// KeywordsFoundMaskType represents the bitmask of types of keywords found in a message.
-type KeywordsFoundMaskType int
+// KeywordMaskType represents the bitmask of types of keywords found in a message.
+type KeywordMaskType int
 
 // Possible bitmask types for keywords that can be found.
 const (
-	KeywordsFoundReference KeywordsFoundMaskType = 1 << iota // 1 = 1 << 0
-	KeywordsFoundReopen                                      // 2 = 1 << 1
-	KeywordsFoundClose                                       // 4 = 1 << 2
+	KeywordReference KeywordMaskType = 1 << iota // 1 = 1 << 0
+	KeywordReopen                                // 2 = 1 << 1
+	KeywordClose                                 // 4 = 1 << 2
 )
 
 // IssueKeywordsToFind represents a pairing of a pattern to use to find keywords in message and the keywords bitmask value.
 type IssueKeywordsToFind struct {
-	Pattern           *regexp.Regexp
-	KeywordsFoundMask KeywordsFoundMaskType
+	Pattern     *regexp.Regexp
+	KeywordMask KeywordMaskType
 }
 
 var (
@@ -77,16 +77,16 @@ var (
 	// populate with details to find keywords for reference, reopen, close
 	issueKeywordsToFind = []*IssueKeywordsToFind{
 		{
-			Pattern:           regexp.MustCompile(issueRefRegexpStr),
-			KeywordsFoundMask: KeywordsFoundReference,
+			Pattern:     regexp.MustCompile(issueRefRegexpStr),
+			KeywordMask: KeywordReference,
 		},
 		{
-			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords)),
-			KeywordsFoundMask: KeywordsFoundReopen,
+			Pattern:     regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords)),
+			KeywordMask: KeywordReopen,
 		},
 		{
-			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords)),
-			KeywordsFoundMask: KeywordsFoundClose,
+			Pattern:     regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords)),
+			KeywordMask: KeywordClose,
 		},
 	}
 )
@@ -462,8 +462,8 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 }
 
 // findIssueReferencesInString iterates over the keywords to find in a message and accumulates the findings into refs
-func findIssueReferencesInString(message string, repo *Repository) (map[int64]KeywordsFoundMaskType, error) {
-	refs := make(map[int64]KeywordsFoundMaskType)
+func findIssueReferencesInString(message string, repo *Repository) (map[int64]KeywordMaskType, error) {
+	refs := make(map[int64]KeywordMaskType)
 	for _, kwToFind := range issueKeywordsToFind {
 		for _, ref := range kwToFind.Pattern.FindAllString(message, -1) {
 			issue, err := getIssueFromRef(repo, ref)
@@ -472,7 +472,7 @@ func findIssueReferencesInString(message string, repo *Repository) (map[int64]Ke
 			}
 
 			if issue != nil {
-				refs[issue.ID] |= kwToFind.KeywordsFoundMask
+				refs[issue.ID] |= kwToFind.KeywordMask
 			}
 		}
 	}
@@ -507,7 +507,7 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 			continue
 		}
 
-		if (mask & KeywordsFoundReference) == KeywordsFoundReference {
+		if (mask & KeywordReference) == KeywordReference {
 			if comment != nil {
 				err = CreateCommentRefComment(doer, repo, issue, fmt.Sprintf(`%d`, comment.ID), base.EncodeSha1(uniqueID))
 			} else if commentIssue.IsPull {
@@ -521,14 +521,14 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		}
 
 		if canOpenClose {
-			// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
-			if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundClose {
+			// take no action if both KeywordClose and KeywordOpen are set
+			if (mask & (KeywordReopen | KeywordClose)) == KeywordClose {
 				if issue.RepoID == repo.ID && !issue.IsClosed {
 					if err = issue.ChangeStatus(doer, repo, true); err != nil {
 						return err
 					}
 				}
-			} else if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundReopen {
+			} else if (mask & (KeywordReopen | KeywordClose)) == KeywordReopen {
 				if issue.RepoID == repo.ID && issue.IsClosed {
 					if err = issue.ChangeStatus(doer, repo, false); err != nil {
 						return err
@@ -560,7 +560,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 				continue
 			}
 
-			if (mask & KeywordsFoundReference) == KeywordsFoundReference {
+			if (mask & KeywordReference) == KeywordReference {
 				message := fmt.Sprintf("%d %s", repo.ID, c.Sha1)
 				if err = CreateCommitRefComment(doer, repo, issue, message, c.Sha1); err != nil {
 					return err
@@ -568,14 +568,14 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 			}
 
 			if commitsAreMerged {
-				// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
-				if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundClose {
+				// take no action if both KeywordClose and KeywordOpen are set
+				if (mask & (KeywordReopen | KeywordClose)) == KeywordClose {
 					if issue.RepoID == repo.ID && !issue.IsClosed {
 						if err = issue.ChangeStatus(doer, repo, true); err != nil {
 							return err
 						}
 					}
-				} else if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundReopen {
+				} else if (mask & (KeywordReopen | KeywordClose)) == KeywordReopen {
 					if issue.RepoID == repo.ID && issue.IsClosed {
 						if err = issue.ChangeStatus(doer, repo, false); err != nil {
 							return err
