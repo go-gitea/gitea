@@ -187,6 +187,9 @@ func NewFuncMap() []template.FuncMap {
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
 		"mul": func(first int, second int64) int64 { return second * int64(first) },
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
