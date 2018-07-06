@@ -126,19 +126,19 @@ func (r *Review) publish(e *xorm.Engine) error {
 	for _, lines := range r.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
-				go func() {
-					sess := x.NewSession()
+				go func(en *xorm.Engine, review *Review, comm *Comment) {
+					sess := en.NewSession()
 					defer sess.Close()
 					if err := sendCreateCommentAction(sess, &CreateCommentOptions{
-						Doer:    comment.Poster,
-						Issue:   r.Issue,
-						Repo:    r.Issue.Repo,
-						Type:    comment.Type,
-						Content: comment.Content,
-					}, comment); err != nil {
+						Doer:    comm.Poster,
+						Issue:   review.Issue,
+						Repo:    review.Issue.Repo,
+						Type:    comm.Type,
+						Content: comm.Content,
+					}, comm); err != nil {
 						log.Warn("sendCreateCommentAction: %v", err)
 					}
-				}()
+				}(e, r, comment)
 			}
 		}
 	}
