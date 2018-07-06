@@ -127,6 +127,9 @@
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
+{{if ne DefaultTheme "gitea"}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css">
+{{end}}
 {{template "custom/header" .}}
 </head>
 <body>
@@ -174,7 +177,7 @@
 						<div class="right stackable menu">
 							<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 								<span class="text">
-									<i class="fitted octicon octicon-inbox"></i>
+									<i class="fitted octicon octicon-bell"></i>
 									<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
 
 									{{if .NotificationUnreadCount}}
