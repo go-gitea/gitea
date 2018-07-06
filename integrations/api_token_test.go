@@ -29,7 +29,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 	models.AssertExistsAndLoadBean(t, &models.AccessToken{
 		ID:   newAccessToken.ID,
 		Name: newAccessToken.Title,
-		Sha1: newAccessToken.Sha1
+		Sha1: newAccessToken.Sha1,
 	})
 
 	req = NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", newAccessToken.ID)
