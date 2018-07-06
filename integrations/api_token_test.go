@@ -10,8 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
@@ -29,7 +27,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 	DecodeJSON(t, resp, &newAccessToken)
 	models.AssertExistsAndLoadBean(t, &models.AccessToken{
 		ID:   newAccessToken.ID,
-		Name: newAccessToken.Title,
+		Name: newAccessToken.Name,
 		Sha1: newAccessToken.Sha1,
 	})
 
