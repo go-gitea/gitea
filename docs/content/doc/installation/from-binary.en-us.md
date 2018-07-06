@@ -21,8 +21,16 @@ the destination platform from the [downloads page](https://dl.gitea.io/gitea), c
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.4.2/gitea-1.4.2-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.4.3/gitea-1.4.3-linux-amd64
 chmod +x gitea
+```
+
+## Verify GPG signature
+Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vindex&fingerprint=on&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+
+```sh
+gpg --keyserver pgp.mit.edu --recv 0x2D9AE806EC1592E2
+gpg --verify gitea-1.5.0-linux-amd64.asc gitea-1.5.0-linux-amd64
 ```
 
 ## Test
