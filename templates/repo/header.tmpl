@@ -8,7 +8,7 @@
 					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 					<div class="divider"> / </div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
+					{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
 					{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 				</div>
 			</div>
@@ -60,7 +60,7 @@
 			{{end}}
 
 			{{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}
-				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank">
+				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank" rel="noopener noreferrer">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
 			{{end}}
@@ -78,7 +78,7 @@
 			{{end}}
 
 			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
-				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" {{end}}>
+				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>
 			{{end}}

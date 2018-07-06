@@ -133,7 +133,7 @@ func IsMember(ctx *context.APIContext) {
 			ctx.Error(500, "IsOrgMember", err)
 			return
 		} else if userIsMember {
-			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(userToCheck.ID)
 			if err != nil {
 				ctx.Error(500, "IsOrgMember", err)
 			} else if userToCheckIsMember {
