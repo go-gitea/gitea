@@ -273,7 +273,7 @@ func (c *Comment) EventTag() string {
 // LoadReference if comment.Type is CommentType{Issue,Commit,Comment,Pull}Ref, then load RefIssue, RefComment
 func (c *Comment) LoadReference() error {
 	if c.Type == CommentTypeIssueRef || c.Type == CommentTypePullRef {
-		issueID := int64(0)
+		var issueID int64
 		n, err := fmt.Sscanf(c.Content, "%d", &issueID)
 		if err != nil {
 			return err
@@ -309,7 +309,7 @@ func (c *Comment) LoadReference() error {
 			// this is a new style commit ref
 			contentParts := strings.SplitN(c.Content, " ", 2)
 			if len(contentParts) == 2 {
-				repoID := int64(0)
+				var repoID int64
 				n, err := fmt.Sscanf(contentParts[0], "%d", &repoID)
 				if err != nil {
 					return err
@@ -338,7 +338,7 @@ func (c *Comment) LoadReference() error {
 			}
 		}
 	} else if c.Type == CommentTypeCommentRef {
-		commentID := int64(0)
+		var commentID int64
 		n, err := fmt.Sscanf(c.Content, "%d", &commentID)
 		if err != nil {
 			return err
