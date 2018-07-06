@@ -181,6 +181,19 @@ func (c *Comment) HTMLURL() string {
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
+	if c.Type == CommentTypeCode {
+		if c.ReviewID == 0 {
+			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+		}
+		if c.Review == nil {
+			if err := c.LoadReview(); err != nil {
+				return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			}
+		}
+		if c.Review.Type <= ReviewTypePending {
+			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+		}
+	}
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
@@ -482,8 +495,15 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
-		if comment.Review != nil && comment.Review.Type <= ReviewTypePending {
-			break
+		if comment.ReviewID != 0 {
+			if comment.Review == nil {
+				if err := comment.LoadReview(); err != nil {
+					return err
+				}
+			}
+			if comment.Review.Type <= ReviewTypePending {
+				return nil
+			}
 		}
 		fallthrough
 	case CommentTypeComment:
@@ -738,6 +758,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 
 // CreateCodeComment creates a plain code comment at the specified line / path
 func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
+	var commitID, patch string
 	pr, err := GetPullRequestByIssueID(issue.ID)
 	if err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
@@ -760,16 +781,19 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err != nil {
 		return nil, err
 	}
-	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		return nil, err
+	// Only fetch diff if comment is review comment
+	if reviewID != 0 {
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			return nil, err
+		}
+		patchBuf := new(bytes.Buffer)
+		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
+			return nil, err
+		}
+		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		commitID = commit.ID.String()
 	}
-	patchBuf := new(bytes.Buffer)
-	if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
-		return nil, err
-	}
-	patch := CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
 		Doer:      doer,
@@ -778,7 +802,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		Content:   content,
 		LineNum:   line,
 		TreePath:  treePath,
-		CommitSHA: commit.ID.String(),
+		CommitSHA: commitID,
 		ReviewID:  reviewID,
 		Patch:     patch,
 	})

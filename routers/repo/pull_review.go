@@ -32,7 +32,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	var comment *models.Comment
 	defer func() {
 		if comment != nil {
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files#%s", ctx.Repo.RepoLink, issue.Index, comment.HashTag()))
+			ctx.Redirect(comment.HTMLURL())
 		} else {
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		}

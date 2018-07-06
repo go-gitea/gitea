@@ -368,7 +368,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// headers + hunk header
 	newHunk := make([]string, headerLines)
 	// transfer existing headers
-	for idx, lof := range hunk[:numbersOfLine] {
+	for idx, lof := range hunk[:headerLines] {
 		newHunk[idx] = lof
 	}
 	// transfer last n lines
