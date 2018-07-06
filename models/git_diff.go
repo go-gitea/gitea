@@ -67,6 +67,7 @@ func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
+// CanComment returns whether or not a line can get commented
 func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
