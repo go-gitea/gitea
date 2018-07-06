@@ -95,7 +95,7 @@ func ExampleCutDiffAroundLine() {
  Docker Pulls
 + cut off
 + cut off`
-	result := CutDiffAroundLine(strings.NewReader(exampleDiff), 4, false, 3)
+	result := CutDiffAroundLine(strings.NewReader(diff), 4, false, 3)
 	println(result)
 }
 
