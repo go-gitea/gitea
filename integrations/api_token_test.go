@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
 
-	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+	req := NewRequestWithValues(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
 		"name": "test-key-1",
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
