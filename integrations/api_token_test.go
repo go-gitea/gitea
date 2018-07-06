@@ -15,32 +15,36 @@ import (
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
 func TestAPICreateAndDeleteToken(t *testing.T) {
 	prepareTestEnv(t)
-	session := loginUser(t, "user1")
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
-	req := NewRequestWithValues(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
 		"name": "test-key-1",
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	req = AddBasicAuthHeader(req, user.Name)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
-	// api.AccessToken
 	var newAccessToken api.AccessToken
 	DecodeJSON(t, resp, &newAccessToken)
 	models.AssertExistsAndLoadBean(t, &models.AccessToken{
 		ID:   newAccessToken.ID,
 		Name: newAccessToken.Name,
 		Sha1: newAccessToken.Sha1,
+		UID:  user.ID,
 	})
 
 	req = NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", newAccessToken.ID)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusNoContent)
+
 	models.AssertNotExistsBean(t, &models.AccessToken{ID: newAccessToken.ID})
 }
 
 // TestAPIDeleteMissingToken ensures that error is thrown when token not found
 func TestAPIDeleteMissingToken(t *testing.T) {
 	prepareTestEnv(t)
-	session := loginUser(t, "user1")
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", models.NonexistentID)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	req = AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusNotFound)
 }
