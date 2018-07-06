@@ -136,14 +136,13 @@ func initIntegrationTest() {
 		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
-		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
 		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
-
+		defer db.Close()
 	}
 	routers.GlobalInit()
 }
