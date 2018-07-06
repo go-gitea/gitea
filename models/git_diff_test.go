@@ -71,6 +71,32 @@ func TestCutDiffAroundLine(t *testing.T) {
 
 	emptyResult := CutDiffAroundLine(strings.NewReader(exampleDiff), 6, false, 0)
 	assert.Empty(t, emptyResult)
+
+	// Line is out of scope
+	emptyResult = CutDiffAroundLine(strings.NewReader(exampleDiff), 434, false, 0)
+	assert.Empty(t, emptyResult)
+}
+
+func BenchmarkCutDiffAroundLine(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		CutDiffAroundLine(strings.NewReader(exampleDiff), 3, true, 3)
+	}
+}
+
+func ExampleCutDiffAroundLine() {
+	const diff = `diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result := CutDiffAroundLine(strings.NewReader(exampleDiff), 4, false, 3)
+	println(result)
 }
 
 func TestDiff_LoadComments(t *testing.T) {

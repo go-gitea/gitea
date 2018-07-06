@@ -266,6 +266,9 @@ func isHeader(lof string) bool {
 	return strings.HasPrefix(lof, cmdDiffHead) || strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")
 }
 
+// CutDiffAroundLine cuts a diff of a file in way that only the given line + numberOfLine above it will be shown
+// it also recalculates hunks and adds the appropriate headers to the new diff.
+// Warning: Only one-file diffs are allowed.
 func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLine int) string {
 	if line == 0 || numbersOfLine == 0 {
 		// no line or num of lines => no diff
@@ -335,6 +338,11 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				otherLine++
 			}
 		}
+	}
+
+	// No hunk found
+	if currentLine == 0 {
+		return ""
 	}
 
 	if len(hunk)-headerLines < numbersOfLine {
