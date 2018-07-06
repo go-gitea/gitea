@@ -67,6 +67,10 @@ func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
+func (d *DiffLine) CanComment() bool {
+	return len(d.Comments) == 0 && d.Type != DiffLineSection
+}
+
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
 func (d *DiffLine) GetCommentSide() string {
 	if len(d.Comments) == 0 {
