@@ -83,6 +83,9 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
+	// Redirect
+	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+
 	// Dependency Type
 	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
 
@@ -113,6 +116,4 @@ func RemoveDependency(ctx *context.Context) {
 		ctx.ServerError("RemoveIssueDependency", err)
 		return
 	}
-
-	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
 }
