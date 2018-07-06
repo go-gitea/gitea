@@ -283,6 +283,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
+## Git - Timeout settings (`git.timeout`)
+- `MIGRATE`: **600**: Migrate external repositories timeout seconds.
+- `MIRROR`: **300**: Mirror external repositories timeout seconds.
+- `CLONE`: **300**: Git clone from internal repositories timeout seconds.
+- `PULL`: **300**: Git pull from internal repositories timeout seconds.
+- `GC`: **60**: Git repository GC timeout seconds.
+
 ## API (`api`)
  
 - `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
