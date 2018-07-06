@@ -1097,7 +1097,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
 		ctx.Error(204)
 		return
 	}

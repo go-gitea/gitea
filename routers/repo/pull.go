@@ -476,6 +476,11 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireTribute"] = true
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
 	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)

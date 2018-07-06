@@ -604,7 +604,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $('#content');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
