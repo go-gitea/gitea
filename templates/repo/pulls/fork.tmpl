@@ -47,9 +47,9 @@
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui read-only checkbox">
 							<input type="checkbox" {{if .IsPrivate}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.visiblity_helper" | Safe}}</label>
+							<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
 						</div>
-						<span class="help">{{.i18n.Tr "repo.fork_visiblity_helper"}}</span>
+						<span class="help">{{.i18n.Tr "repo.fork_visibility_helper"}}</span>
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
