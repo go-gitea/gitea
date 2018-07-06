@@ -400,6 +400,10 @@ func (c *Comment) AsDiff() (*Diff, error) {
 	if len(diff.Files) == 0 {
 		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
 	}
+	secs := diff.Files[0].Sections
+	if len(secs) == 0 {
+		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
+	}
 	return diff, nil
 }
 
@@ -755,6 +759,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
 		return nil, err
 	}
+	patch := CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
@@ -766,7 +771,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		TreePath:  treePath,
 		CommitSHA: commit.ID.String(),
 		ReviewID:  reviewID,
-		Patch:     patchBuf.String(),
+		Patch:     patch,
 	})
 }
 

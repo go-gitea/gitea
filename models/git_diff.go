@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -258,6 +259,128 @@ func (diff *Diff) NumFiles() int {
 	return len(diff.Files)
 }
 
+// Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
+var hunkRegex = regexp.MustCompile(`^@@ -([0-9]+),([0-9]+) \+([0-9]+),([0-9]+) @@`)
+
+func isHeader(lof string) bool {
+	return strings.HasPrefix(lof, cmdDiffHead) || strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")
+}
+
+func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLine int) string {
+	if line == 0 || numbersOfLine == 0 {
+		// no line or num of lines => no diff
+		return ""
+	}
+	scanner := bufio.NewScanner(originalDiff)
+	hunk := make([]string, 0)
+	// begin is the start of the hunk containing searched line
+	// end is the end of the hunk ...
+	// currentLine is the line number on the side of the searched line (differentiated by old)
+	// otherLine is the line number on the opposite side of the searched line (differentiated by old)
+	var begin, end, currentLine, otherLine int64
+	var headerLines int
+	for scanner.Scan() {
+		lof := scanner.Text()
+		// Add header to enable parsing
+		if isHeader(lof) {
+			hunk = append(hunk, lof)
+			headerLines++
+		}
+		if currentLine > line {
+			break
+		}
+		// Detect "hunk" with contains commented lof
+		if strings.HasPrefix(lof, "@@") {
+			// Already got our hunk. End of hunk detected!
+			if len(hunk) > headerLines {
+				break
+			}
+			groups := hunkRegex.FindStringSubmatch(lof)
+			if old {
+				begin = com.StrTo(groups[1]).MustInt64()
+				end = com.StrTo(groups[2]).MustInt64()
+				// init otherLine with begin of opposite side
+				otherLine = com.StrTo(groups[3]).MustInt64()
+			} else {
+				begin = com.StrTo(groups[3]).MustInt64()
+				end = com.StrTo(groups[4]).MustInt64()
+				// init otherLine with begin of opposite side
+				otherLine = com.StrTo(groups[1]).MustInt64()
+			}
+			end += begin // end is for real only the number of lines in hunk
+			// lof is between begin and end
+			if begin <= line && end >= line {
+				hunk = append(hunk, lof)
+				currentLine = begin
+				continue
+			}
+		} else if len(hunk) > headerLines {
+			hunk = append(hunk, lof)
+			// Count lines in context
+			switch lof[0] {
+			case '+':
+				if !old {
+					currentLine++
+				} else {
+					otherLine++
+				}
+			case '-':
+				if old {
+					currentLine++
+				} else {
+					otherLine++
+				}
+			default:
+				currentLine++
+				otherLine++
+			}
+		}
+	}
+
+	if len(hunk)-headerLines < numbersOfLine {
+		// No need to cut the hunk => return existing hunk
+		return strings.Join(hunk, "\n")
+	}
+	var oldBegin, oldNumOfLines, newBegin, newNumOfLines int64
+	if old {
+		oldBegin = currentLine
+		newBegin = otherLine
+	} else {
+		oldBegin = otherLine
+		newBegin = currentLine
+	}
+	// headers + hunk header
+	newHunk := make([]string, headerLines)
+	// transfer existing headers
+	for idx, lof := range hunk[:numbersOfLine] {
+		newHunk[idx] = lof
+	}
+	// transfer last n lines
+	for _, lof := range hunk[len(hunk)-numbersOfLine-1:] {
+		newHunk = append(newHunk, lof)
+	}
+	// calculate newBegin, ... by counting lines
+	for i := len(hunk) - 1; i >= len(hunk)-numbersOfLine; i-- {
+		switch hunk[i][0] {
+		case '+':
+			newBegin--
+			newNumOfLines++
+		case '-':
+			oldBegin--
+			oldNumOfLines++
+		default:
+			oldBegin--
+			newBegin--
+			newNumOfLines++
+			oldNumOfLines++
+		}
+	}
+	// construct the new hunk header
+	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
+		oldBegin, oldNumOfLines, newBegin, newNumOfLines)
+	return strings.Join(newHunk, "\n")
+}
+
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some
@@ -335,7 +458,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		if curFileLinesCount >= maxLines {
 			curFile.IsIncomplete = true
 		}
-
 		switch {
 		case line[0] == ' ':
 			diffLine := &DiffLine{Type: DiffLinePlain, Content: line, LeftIdx: leftLine, RightIdx: rightLine}
