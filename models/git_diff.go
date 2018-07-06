@@ -67,6 +67,14 @@ func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
+// GetCommentSide returns the comment side of the first comment, if not set returns empty string
+func (d *DiffLine) GetCommentSide() string {
+	if len(d.Comments) == 0 {
+		return ""
+	}
+	return d.Comments[0].DiffSide()
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
