@@ -101,25 +101,6 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	}
 	var review *models.Review
 	var err error
-	defer func() {
-		if review != nil {
-			comm, err := models.CreateComment(&models.CreateCommentOptions{
-				Type:     models.CommentTypeReview,
-				Doer:     ctx.User,
-				Content:  review.Content,
-				Issue:    issue,
-				Repo:     issue.Repo,
-				ReviewID: review.ID,
-			})
-			if err != nil || comm == nil {
-				ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
-				return
-			}
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
-		} else {
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
-		}
-	}()
 
 	reviewType := form.ReviewType()
 	if reviewType == models.ReviewTypeUnknown {
@@ -142,11 +123,29 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 			ctx.ServerError("CreateReview", err)
 			return
 		}
+	} else {
+		review.Content = form.Content
+		review.Type = reviewType
+		if err = models.UpdateReview(review); err != nil {
+			ctx.ServerError("UpdateReview", err)
+			return
+		}
+	}
+	comm, err := models.CreateComment(&models.CreateCommentOptions{
+		Type:     models.CommentTypeReview,
+		Doer:     ctx.User,
+		Content:  review.Content,
+		Issue:    issue,
+		Repo:     issue.Repo,
+		ReviewID: review.ID,
+	})
+	if err != nil || comm == nil {
+		ctx.ServerError("CreateComment", err)
 		return
 	}
-	review.Content = form.Content
-	review.Type = reviewType
-	if err = models.UpdateReview(review); err != nil {
+	if err = review.Publish(); err != nil {
+		ctx.ServerError("Publish", err)
 		return
 	}
+	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }

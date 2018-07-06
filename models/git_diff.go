@@ -352,8 +352,8 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	if currentLine == 0 {
 		return ""
 	}
-
-	if len(hunk)-headerLines < numbersOfLine {
+	// headerLines + hunkLine (1) = totalNonCodeLines
+	if len(hunk)-headerLines-1 <= numbersOfLine {
 		// No need to cut the hunk => return existing hunk
 		return strings.Join(hunk, "\n")
 	}

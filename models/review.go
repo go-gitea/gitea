@@ -5,7 +5,11 @@
 package models
 
 import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/xorm"
 
 	"github.com/go-xorm/builder"
 )
@@ -95,6 +99,50 @@ func (r *Review) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes() error {
 	return r.loadAttributes(x)
+}
+
+// Publish will send notifications / actions to participants for all code comments; parts are concurrent
+func (r *Review) Publish() error {
+	return r.publish(x)
+}
+
+func (r *Review) publish(e *xorm.Engine) error {
+	if r.Type == ReviewTypePending || r.Type == ReviewTypeUnknown {
+		return fmt.Errorf("review cannot be published if type is pending or unknown")
+	}
+	if r.Issue == nil {
+		if err := r.loadIssue(e); err != nil {
+			return err
+		}
+	}
+	if err := r.Issue.loadRepo(e); err != nil {
+		return err
+	}
+	if len(r.CodeComments) == 0 {
+		if err := r.loadCodeComments(e); err != nil {
+			return err
+		}
+	}
+	for _, lines := range r.CodeComments {
+		for _, comments := range lines {
+			for _, comment := range comments {
+				go func() {
+					sess := x.NewSession()
+					defer sess.Close()
+					if err := sendCreateCommentAction(sess, &CreateCommentOptions{
+						Doer:    comment.Poster,
+						Issue:   r.Issue,
+						Repo:    r.Issue.Repo,
+						Type:    comment.Type,
+						Content: comment.Content,
+					}, comment); err != nil {
+						log.Warn("sendCreateCommentAction: %v", err)
+					}
+				}()
+			}
+		}
+	}
+	return nil
 }
 
 func getReviewByID(e Engine, id int64) (*Review, error) {

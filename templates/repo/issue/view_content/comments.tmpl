@@ -292,7 +292,7 @@
 								<div class="ui comments">
 									{{range $comms}}
 										{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
-										<div class="comment">
+										<div class="comment" id="{{.HashTag}}">
 											<a class="avatar">
 												<img src="{{.Poster.RelAvatarLink}}">
 											</a>
