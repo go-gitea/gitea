@@ -256,6 +256,11 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 	return request
 }
 
+func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
+	request.SetBasicAuth(username, userPassword)
+	return request
+}
+
 const NoExpectedStatus = -1
 
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {

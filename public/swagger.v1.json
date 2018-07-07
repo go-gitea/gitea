@@ -5441,6 +5441,39 @@
         }
       }
     },
+    "/users/{username}/tokens/{token}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "delete an access token",
+        "operationId": "userDeleteAccessToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "token to be deleted",
+            "name": "token",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/version": {
       "get": {
         "produces": [
@@ -7479,6 +7512,10 @@
     "AccessToken": {
       "description": "AccessToken represents a API access token.",
       "headers": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
         "name": {
           "type": "string"
         },
