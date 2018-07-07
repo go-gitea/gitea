@@ -99,11 +99,8 @@ func ExampleCutDiffAroundLine() {
 	println(result)
 }
 
-func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	diff := &Diff{
+func setupDefaultDiff() *Diff {
+	return &Diff{
 		Files: []*DiffFile{
 			{
 				Name: "README.md",
@@ -120,6 +117,25 @@ func TestDiff_LoadComments(t *testing.T) {
 			},
 		},
 	}
+}
+func TestDiff_LoadComments(t *testing.T) {
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	diff := setupDefaultDiff()
+	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
+}
+
+func TestDiffLine_CanComment(t *testing.T) {
+	assert.False(t, (&DiffLine{Type: DiffLineSection}).CanComment())
+	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*Comment{{Content: "bla"}}}).CanComment())
+	assert.True(t, (&DiffLine{Type: DiffLineAdd}).CanComment())
+	assert.True(t, (&DiffLine{Type: DiffLineDel}).CanComment())
+	assert.True(t, (&DiffLine{Type: DiffLinePlain}).CanComment())
+}
+
+func TestDiffLine_GetCommentSide(t *testing.T) {
+	assert.Equal(t, "previous", (&DiffLine{Comments: []*Comment{{Line: -3}}}).GetCommentSide())
+	assert.Equal(t, "proposed", (&DiffLine{Comments: []*Comment{{Line: 3}}}).GetCommentSide())
 }
