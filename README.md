@@ -90,6 +90,10 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
 
+**Why is this not hosted on a Gitea instance?**
+
+We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
+
 ## License
 
 This project is licensed under the MIT License.
