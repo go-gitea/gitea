@@ -68,6 +68,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
+- `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 
 ### UI - Admin (`ui.admin`)
 
@@ -285,6 +286,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+
+## Git - Timeout settings (`git.timeout`)
+- `MIGRATE`: **600**: Migrate external repositories timeout seconds.
+- `MIRROR`: **300**: Mirror external repositories timeout seconds.
+- `CLONE`: **300**: Git clone from internal repositories timeout seconds.
+- `PULL`: **300**: Git pull from internal repositories timeout seconds.
+- `GC`: **60**: Git repository GC timeout seconds.
 
 ## API (`api`)
  

@@ -283,6 +283,7 @@ var (
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
+		DefaultTheme        string
 
 		Admin struct {
 			UserPagingNum   int
@@ -306,6 +307,7 @@ var (
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
+		DefaultTheme:        `gitea`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
