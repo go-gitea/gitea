@@ -779,17 +779,17 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	// Get latest commit referencing the commented line
 	commit, err := gitRepo.LineBlame(pr.HeadBranch, gitRepo.Path, treePath, uint(gitLine))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.HeadBranch, gitRepo.Path, treePath, gitLine, err)
 	}
 	// Only fetch diff if comment is review comment
 	if reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
 		patchBuf := new(bytes.Buffer)
 		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
 		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 		commitID = commit.ID.String()
