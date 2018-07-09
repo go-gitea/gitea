@@ -112,3 +112,9 @@ func (ns *notificationService) NotifyIssueChangeTitle(doer *models.User, issue *
 func (ns *notificationService) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {
 }
+
+func (ns *notificationService) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}
+
+func (ns *notificationService) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}

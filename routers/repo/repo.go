@@ -176,6 +176,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		AutoInit:    form.AutoInit,
 	})
 	if err == nil {
+		notification.NotifyCreateRepository(ctx.User, ctxUser, repo)
+
 		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 		return
@@ -184,8 +186,6 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
-		} else {
-			notification.NotifyDeleteRepository(ctx.User, repo)
 		}
 	}
 
@@ -254,6 +254,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	})
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
+
+		notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
 		return
 	}
@@ -264,8 +267,6 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
-		} else {
-			notification.NotifyDeleteRepository(ctx.User, repo)
 		}
 	}
 

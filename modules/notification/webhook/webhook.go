@@ -496,3 +496,29 @@ func (w *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		go models.HookQueue.Add(issue.RepoID)
 	}
 }
+
+func (w *webhookNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   repo.APIFormat(models.AccessModeOwner),
+		Organization: u.APIFormat(),
+		Sender:       doer.APIFormat(),
+	}); err != nil {
+		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(repo.ID)
+	}
+}
+
+func (w *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   repo.APIFormat(models.AccessModeOwner),
+		Organization: u.APIFormat(),
+		Sender:       doer.APIFormat(),
+	}); err != nil {
+		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(repo.ID)
+	}
+}

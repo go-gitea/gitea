@@ -88,3 +88,9 @@ func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 func (r *indexerNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {
 }
+
+func (r *indexerNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}
+
+func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}

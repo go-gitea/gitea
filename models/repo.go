@@ -1384,15 +1384,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
-		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
-			Action:       api.HookRepoCreated,
-			Repository:   repo.APIFormat(AccessModeOwner),
-			Organization: u.APIFormat(),
-			Sender:       doer.APIFormat(),
-		}); err != nil {
-			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
-		go HookQueue.Add(repo.ID)
 	} else {
 		// Organization automatically called this in addRepository method.
 		if err = repo.recalculateAccesses(e); err != nil {
@@ -1402,8 +1394,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = newRepoAction(e, u, repo); err != nil {
-		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
 	return nil

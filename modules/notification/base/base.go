@@ -31,4 +31,6 @@ type Notifier interface {
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
 	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 		addedLabels []*models.Label, removedLabels []*models.Label)
+	NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository)
+	NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository)
 }

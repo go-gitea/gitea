@@ -234,14 +234,14 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
 					log.Error(4, "DeleteRepository: %v", err)
-				} else {
-					notification.NotifyDeleteRepository(ctx.User, repo)
 				}
 			}
 			ctx.Error(500, "CreateRepository", err)
 		}
 		return
 	}
+
+	notification.NotifyCreateRepository(ctx.User, owner, repo)
 
 	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
@@ -409,8 +409,6 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
-			} else {
-				notification.NotifyDeleteRepository(ctx.User, repo)
 			}
 		}
 		ctx.Error(500, "MigrateRepository", err)
@@ -418,6 +416,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+
+	notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
 	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 

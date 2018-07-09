@@ -110,3 +110,15 @@ func (r *actionNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models
 func (r *actionNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {
 }
+
+func (w *actionNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.NewRepoAction(doer, repo); err != nil {
+		log.Error(4, "NewRepoAction [%d]: %v", repo.ID, err)
+	}
+}
+
+func (w *actionNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.NewRepoAction(doer, repo); err != nil {
+		log.Error(4, "NewRepoAction [%d]: %v", repo.ID, err)
+	}
+}

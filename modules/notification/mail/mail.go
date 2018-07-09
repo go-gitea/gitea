@@ -87,3 +87,9 @@ func (m *mailNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.I
 func (m *mailNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {
 }
+
+func (m *mailNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}
+
+func (m *mailNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+}
