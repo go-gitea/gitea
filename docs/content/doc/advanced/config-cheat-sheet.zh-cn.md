@@ -187,6 +187,13 @@ menu:
 - `MAX_GIT_DIFF_FILES`: 比较视图中的最大现实文件数目。
 - `GC_ARGS`: 执行 `git gc` 命令的参数, 比如： `--aggressive --auto`。
 
+## Git - 超时设置 (`git.timeout`)
+- `MIGRATE`: **600**: 迁移外部仓库时的超时时间，单位秒
+- `MIRROR`: **300**: 镜像外部仓库的超时时间，单位秒
+- `CLONE`: **300**: 内部仓库间克隆的超时时间，单位秒
+- `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
+- `GC`: **60**: git仓库GC的超时时间，单位秒
+
 ## markup (`markup`)
 
 外部渲染工具支持，你可以用你熟悉的文档渲染工具. 比如一下将新增一个名字为 `asciidoc` 的渲染工具which is followed `markup.` ini section. And there are some config items below.
