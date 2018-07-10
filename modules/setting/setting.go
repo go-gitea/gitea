@@ -1206,7 +1206,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
 		}
 		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+			log.Fatal(4, "Error saving generated INTERNAL_TOKEN to custom config: %v", err)
 		}
 	}
 	return token

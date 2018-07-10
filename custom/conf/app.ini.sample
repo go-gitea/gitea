@@ -249,6 +249,10 @@ MIN_PASSWORD_LENGTH = 6
 IMPORT_LOCAL_PATHS = false
 ; Prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
+; Store INTERNAL_TOKEN in a separate file. Will be stored in this config if not set
+; formats allowed:
+; - file:/path/to/my/internal_token
+;INTERNAL_TOKEN_URI =
 
 [openid]
 ;
