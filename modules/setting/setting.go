@@ -8,6 +8,8 @@ package setting
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/mail"
 	"net/url"
@@ -924,31 +926,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
-	InternalToken = sec.Key("INTERNAL_TOKEN").String()
-	if len(InternalToken) == 0 {
-		InternalToken, err = generate.NewInternalToken()
-		if err != nil {
-			log.Fatal(4, "Error generate internal token: %v", err)
-		}
-
-		// Save secret
-		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
-			// Keeps custom settings if there is already something.
-			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
-			}
-		}
-
-		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
-
-		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
-		}
-		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
-		}
-	}
+	InternalToken = loadInternalToken(sec)
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 
@@ -1158,6 +1136,80 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+}
+
+func loadInternalToken(sec *ini.Section) string {
+	uri := sec.Key("INTERNAL_TOKEN_URI").String()
+	if len(uri) > 0 {
+		tempURI, err := url.Parse(uri)
+		if err != nil {
+			log.Warn("Failed to parse INTERNAL_TOKEN_URI (%s). Falling back to INTERNAL_TOKEN: %v", uri, err)
+			return loadOrGenerateInternalToken(sec)
+		}
+		if tempURI.Scheme == "file" {
+			if !com.IsFile(tempURI.RequestURI()) {
+				log.Warn("INTERNAL_TOKEN_URI (%s) is not a file. Falling back to INTERNAL_TOKEN", uri)
+				return loadOrGenerateInternalToken(sec)
+			}
+			fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
+			if err != nil {
+				log.Error(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
+				return loadOrGenerateInternalToken(sec)
+			}
+			defer fp.Close()
+
+			buf, err := ioutil.ReadAll(fp)
+			if err != nil {
+				log.Error(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
+				return loadOrGenerateInternalToken(sec)
+			}
+			// No token in the file, generate one and store it.
+			if len(buf) == 0 {
+				token, err := generate.NewInternalToken()
+				if err != nil {
+					log.Fatal(4, "Error generate internal token: %v", err)
+				}
+				if _, err := io.WriteString(fp, token); err != nil {
+					log.Error(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
+					return loadOrGenerateInternalToken(sec)
+				}
+				return token
+			}
+
+			return string(buf)
+		}
+	}
+	return loadOrGenerateInternalToken(sec)
+}
+
+func loadOrGenerateInternalToken(sec *ini.Section) string {
+	var err error
+	token := sec.Key("INTERNAL_TOKEN").String()
+	if len(token) == 0 {
+		token, err = generate.NewInternalToken()
+		if err != nil {
+			log.Fatal(4, "Error generate internal token: %v", err)
+		}
+
+		// Save secret
+		cfgSave := ini.Empty()
+		if com.IsFile(CustomConf) {
+			// Keeps custom settings if there is already something.
+			if err := cfgSave.Append(CustomConf); err != nil {
+				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			}
+		}
+
+		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+		}
+		if err := cfgSave.SaveTo(CustomConf); err != nil {
+			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+		}
+	}
+	return token
 }
 
 // Service settings
