@@ -1140,46 +1140,41 @@ func NewContext() {
 
 func loadInternalToken(sec *ini.Section) string {
 	uri := sec.Key("INTERNAL_TOKEN_URI").String()
-	if len(uri) > 0 {
-		tempURI, err := url.Parse(uri)
-		if err != nil {
-			log.Warn("Failed to parse INTERNAL_TOKEN_URI (%s). Falling back to INTERNAL_TOKEN: %v", uri, err)
-			return loadOrGenerateInternalToken(sec)
-		}
-		if tempURI.Scheme == "file" {
-			if !com.IsFile(tempURI.RequestURI()) {
-				log.Warn("INTERNAL_TOKEN_URI (%s) is not a file. Falling back to INTERNAL_TOKEN", uri)
-				return loadOrGenerateInternalToken(sec)
-			}
-			fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
-			if err != nil {
-				log.Error(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
-				return loadOrGenerateInternalToken(sec)
-			}
-			defer fp.Close()
-
-			buf, err := ioutil.ReadAll(fp)
-			if err != nil {
-				log.Error(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
-				return loadOrGenerateInternalToken(sec)
-			}
-			// No token in the file, generate one and store it.
-			if len(buf) == 0 {
-				token, err := generate.NewInternalToken()
-				if err != nil {
-					log.Fatal(4, "Error generate internal token: %v", err)
-				}
-				if _, err := io.WriteString(fp, token); err != nil {
-					log.Error(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
-					return loadOrGenerateInternalToken(sec)
-				}
-				return token
-			}
-
-			return string(buf)
-		}
+	if len(uri) == 0 {
+		return loadOrGenerateInternalToken(sec)
 	}
-	return loadOrGenerateInternalToken(sec)
+	tempURI, err := url.Parse(uri)
+	if err != nil {
+		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s). Falling back to INTERNAL_TOKEN: %v", uri, err)
+	}
+	switch tempURI.Scheme {
+	case "file":
+		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
+		if err != nil {
+			log.Fatal(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
+		}
+		defer fp.Close()
+
+		buf, err := ioutil.ReadAll(fp)
+		if err != nil {
+			log.Fatal(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
+		}
+		// No token in the file, generate one and store it.
+		if len(buf) == 0 {
+			token, err := generate.NewInternalToken()
+			if err != nil {
+				log.Fatal(4, "Error generate internal token: %v", err)
+			}
+			if _, err := io.WriteString(fp, token); err != nil {
+				log.Fatal(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
+			}
+			return token
+		}
+
+		return string(buf)
+	default:
+		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URL = %q)", tempURI.Scheme, uri)
+	}
 }
 
 func loadOrGenerateInternalToken(sec *ini.Section) string {
