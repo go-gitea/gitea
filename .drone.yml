@@ -75,7 +75,7 @@ pipeline:
       - make lint
       - make fmt-check
       - make swagger-check
-      - make swagger-validate
+#      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
