@@ -203,7 +203,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  build_docs:
+  build-docs:
     image: webhippie/hugo:latest
     pull: true
     commands:
@@ -212,26 +212,12 @@ pipeline:
       - make clean
       - make build
 
-  docker_docs:
-    image: plugins/docker:17.05
+  publish-docs:
+    image: lucap/drone-netlify:latest
     pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ '${DRONE_BRANCH##release/v}' ]
-    when:
-      event: [ push ]
-      branch: [ release/* ]
-
-  docker_docs:
-    image: plugins/docker:17.05
-    pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ 'latest' ]
+    secrets: [ netlify_token ]
+    site_id: 05515f14-3702-4a84-9ff3-88ba90fe08dd
+    path: docs/public/
     when:
       event: [ push ]
       branch: [ master ]
