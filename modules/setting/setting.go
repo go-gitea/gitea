@@ -112,6 +112,7 @@ var (
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
 
@@ -724,10 +725,12 @@ func NewContext() {
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
 	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-	if EnableLetsEncrypt {
-		LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
-		LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+	LetsEncryptTOS := sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	if !LetsEncryptTOS {
+		EnableLetsEncrypt = false
 	}
+	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
