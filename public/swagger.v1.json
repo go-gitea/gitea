@@ -1847,7 +1847,7 @@
           {
             "type": "string",
             "description": "if provided, only comments updated since the provided time are returned.",
-            "name": "string",
+            "name": "since",
             "in": "query"
           }
         ],
@@ -2160,7 +2160,7 @@
           {
             "type": "string",
             "description": "if provided, only comments updated since the specified time are returned.",
-            "name": "string",
+            "name": "since",
             "in": "query"
           }
         ],
