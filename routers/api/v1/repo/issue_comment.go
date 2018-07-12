@@ -36,7 +36,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   description: index of the issue
 	//   type: integer
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the specified time are returned.
 	//   type: string
@@ -90,7 +90,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the provided time are returned.
 	//   type: string
