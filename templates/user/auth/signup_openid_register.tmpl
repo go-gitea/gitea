@@ -20,7 +20,7 @@
 						<label for="email">{{.i18n.Tr "email"}}</label>
 						<input id="email" name="email" type="email" value="{{.email}}" required>
 					</div>
-					{{if .EnableCaptcha}}
+					{{if and .EnableCaptcha (eq .CaptchaType "image")}}
 						<div class="inline field">
 							<label></label>
 							{{.Captcha.CreateHtml}}
@@ -28,6 +28,11 @@
 						<div class="required inline field {{if .Err_Captcha}}error{{end}}">
 							<label for="captcha">{{.i18n.Tr "captcha"}}</label>
 							<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
+						</div>
+					{{end}}
+					{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
+						<div class="inline field required">
+							<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
 						</div>
 					{{end}}
 					<div class="inline field">

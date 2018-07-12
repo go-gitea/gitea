@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
@@ -474,7 +476,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -640,6 +642,8 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -665,6 +669,8 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -731,6 +737,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -754,10 +762,19 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		return
 	}
 
-	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
 		return
+	}
+
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+		if !valid {
+			ctx.Data["Err_Captcha"] = true
+			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
+			return
+		}
 	}
 
 	if (len(strings.TrimSpace(form.Password)) > 0 || len(strings.TrimSpace(form.Retype)) > 0) && form.Password != form.Retype {
@@ -857,6 +874,9 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
 	ctx.HTML(200, tplSignUp)
@@ -870,6 +890,9 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if !setting.Service.ShowRegistrationButton {
 		ctx.Error(403)
@@ -881,10 +904,19 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
 		return
+	}
+
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+		if !valid {
+			ctx.Data["Err_Captcha"] = true
+			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
+			return
+		}
 	}
 
 	if form.Password != form.Retype {
