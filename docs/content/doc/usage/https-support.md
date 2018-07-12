@@ -36,11 +36,14 @@ To learn more about the config values, please checkout the [Config Cheat Sheet](
 
 [Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
 
+By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf)
+
 ```ini
 [server]
 PROTOCOL=https
 DOMAIN=git.example.com
 ENABLE_LETSENCRYPT=true
+LETSENCRYPT_ACCEPTTOS=true
 LETSENCRYPT_DIRECTORY=https
 LETSENCRYPT_EMAIL=email@example.com
 ```
