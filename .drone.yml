@@ -216,7 +216,7 @@ pipeline:
     image: lucap/drone-netlify:latest
     pull: true
     secrets: [ netlify_token ]
-    site_id: 05515f14-3702-4a84-9ff3-88ba90fe08dd
+    site_id: d2260bae-7861-4c02-8646-8f6440b12672
     path: docs/public/
     when:
       event: [ push ]
