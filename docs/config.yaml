@@ -31,7 +31,7 @@ menu:
       post: active
     - name: API
       url: https://try.gitea.io/api/swagger
-      weight: 25
+      weight: 45
       pre: plug
     - name: Blog
       url: https://blog.gitea.io/
@@ -79,7 +79,7 @@ languages:
           post: active
         - name: API
           url: https://try.gitea.io/api/swagger
-          weight: 25
+          weight: 45
           pre: plug
         - name: 博客
           url: https://blog.gitea.io/
@@ -122,7 +122,7 @@ languages:
           post: active
         - name: API
           url: https://try.gitea.io/api/swagger
-          weight: 25
+          weight: 45
           pre: plug
         - name: 部落格
           url: https://blog.gitea.io/
@@ -165,7 +165,7 @@ languages:
           post: active
         - name: API
           url: https://try.gitea.io/api/swagger
-          weight: 25
+          weight: 45
           pre: plug
         - name: Blog
           url: https://blog.gitea.io/
@@ -208,7 +208,7 @@ languages:
           post: active
         - name: API
           url: https://try.gitea.io/api/swagger
-          weight: 25
+          weight: 45
           pre: plug
         - name: Blog
           url: https://blog.gitea.io/
@@ -241,17 +241,17 @@ languages:
     menu:
       page:
         - name: Site
-          url: /fr-fr/
+          url: https://gitea.io/en-us/
           weight: 10
           pre: home
           post: active
         - name: Documentation
-          url: https://docs.gitea.io/fr-fr/
+          url: /fr-fr/
           weight: 20
           pre: question
         - name: API
           url: https://try.gitea.io/api/swagger
-          weight: 25
+          weight: 45
           pre: plug
         - name: Blog
           url: https://blog.gitea.io/
