@@ -726,7 +726,7 @@ func NewContext() {
 	}
 	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 	LetsEncryptTOS := sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-	if !LetsEncryptTOS {
+	if !LetsEncryptTOS && EnableLetsEncrypt {
 		EnableLetsEncrypt = false
 	}
 	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
