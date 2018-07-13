@@ -42,13 +42,9 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	t.ScratchSalt, _ = generateSalt()
+	t.ScratchSalt, _ = generate.GetRandomString(10)
 	t.ScratchHash = hashToken(token, t.ScratchSalt)
 	return token, nil
-}
-
-func generateSalt() (string, error) {
-	return generate.GetRandomString(10)
 }
 
 func hashToken(token, salt string) string {
