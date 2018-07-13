@@ -21,7 +21,19 @@ GOFMT ?= gofmt -s
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
+ifneq ($(DRONE_TAG),)
+	VERSION ?= $(subst v,,$(DRONE_TAG))
+	GITEA_VERSION := $(VERSION)
+else
+	ifneq ($(DRONE_BRANCH),)
+		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	else
+		VERSION ?= master
+	endif
+	GITEA_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+endif
+
+LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
@@ -45,15 +57,8 @@ else
 	EXECUTABLE := gitea
 endif
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
-else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
-	else
-		VERSION ?= master
-	endif
-endif
+# $(call strip-suffix,filename)
+strip-suffix = $(firstword $(subst ., ,$(1)))
 
 .PHONY: all
 all: build
@@ -301,7 +306,7 @@ public/js/index.js: $(JAVASCRIPTS)
 
 .PHONY: stylesheets-check
 stylesheets-check: generate-stylesheets
-	@diff=$$(git diff public/css/index.css); \
+	@diff=$$(git diff public/css/*); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
@@ -311,6 +316,7 @@ stylesheets-check: generate-stylesheets
 .PHONY: generate-stylesheets
 generate-stylesheets:
 	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 
 .PHONY: swagger-ui
 swagger-ui:

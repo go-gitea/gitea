@@ -449,6 +449,17 @@ func (u *User) IsPasswordSet() bool {
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
+	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("DecodeConfig: %v", err)
+	}
+	if imgCfg.Width > setting.AvatarMaxWidth {
+		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
+	}
+	if imgCfg.Height > setting.AvatarMaxHeight {
+		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
+	}
+
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("Decode: %v", err)
@@ -971,7 +982,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).Update(new(Repository)); err != nil {
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
@@ -981,7 +992,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****

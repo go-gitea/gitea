@@ -31,14 +31,14 @@
 							{{if .Owner.Website}}
 								<li>
 									<i class="octicon octicon-link"></i>
-									<a target="_blank" rel="noopener" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
+									<a target="_blank" rel="noopener noreferrer" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
 										<i class="fa fa-openid"></i>
-										<a target="_blank" rel="noopener" href="{{.URI}}">{{.URI}}</a>
+										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
 									</li>
 								{{end}}
 							{{end}}
