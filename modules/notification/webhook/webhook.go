@@ -5,12 +5,12 @@
 package webhook
 
 import (
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/setting"
 
+	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
 )
 
