@@ -157,6 +157,10 @@ func (w *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 }
 
 func (w *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+	if err := comment.LoadIssue(); err != nil {
+		log.Error(2, "LoadIssue [comment_id: %d]: %v", comment.ID, err)
+		return
+	}
 	mode, _ := models.AccessLevel(doer.ID, comment.Issue.Repo)
 
 	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
