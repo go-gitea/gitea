@@ -66,7 +66,7 @@ func addScratchHash(x *xorm.Engine) error {
 
 		}
 	}
-	
+
 	// Commit and begin new transaction for dropping columns
 	if err := sess.Commit(); err != nil {
 		return err
