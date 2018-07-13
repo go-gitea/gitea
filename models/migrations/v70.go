@@ -53,7 +53,7 @@ func addScratchHash(x *xorm.Engine) error {
 
 		for _, tfa := range tfas {
 			// generate salt
-			salt, err := generateSalt()
+			salt, err := generate.GetRandomString(10)
 			if err != nil {
 				return err
 			}
@@ -80,10 +80,6 @@ func addScratchHash(x *xorm.Engine) error {
 	}
 	return sess.Commit()
 
-}
-
-func generateSalt() (string, error) {
-	return generate.GetRandomString(10)
 }
 
 func hashToken(token, salt string) string {
