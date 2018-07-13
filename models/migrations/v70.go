@@ -66,6 +66,14 @@ func addScratchHash(x *xorm.Engine) error {
 
 		}
 	}
+	
+	// Commit and begin new transaction for dropping columns
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+	if err := sess.Begin(); err != nil {
+		return err
+	}
 
 	if err := dropTableColumns(sess, "two_factor", "scratch_token"); err != nil {
 		return err
