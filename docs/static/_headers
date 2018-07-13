@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://fonts.gstatic.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com
   X-Frame-Options: DENY
   X-Xss-Protection: 1; mode=block
   X-Content-Type-Options: nosniff
