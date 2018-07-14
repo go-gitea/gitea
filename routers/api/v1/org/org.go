@@ -78,6 +78,11 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	canSeeOrg := models.HasOrgVisible([]*models.User{ctx.Org}, ctx.User)
+	if !canSeeOrg {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
 	ctx.JSON(200, convert.ToOrganization(ctx.Org.Organization))
 }
 
