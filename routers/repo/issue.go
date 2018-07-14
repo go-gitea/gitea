@@ -1035,6 +1035,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 				} else {
+
+					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+						ctx.ServerError("CreateOrStopIssueStopwatch", err)
+						return
+					}
+
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
 					notification.Service.NotifyIssue(issue, ctx.User.ID)

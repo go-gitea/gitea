@@ -534,17 +534,26 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if models.StopwatchExists(ctx.User.ID, issue.ID) {
-		if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-			ctx.ServerError("CreateOrStopIssueStopwatch", err)
-			return
-		}
+	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		return
 	}
 
 	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+}
+
+func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+
+	if models.StopwatchExists(user.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing pull request
