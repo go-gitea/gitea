@@ -552,7 +552,7 @@ func TestHasOrgVisibleTypePublic(t *testing.T) {
 
 	const newOrgName = "test-org-public"
 	org := &User{
-		Name: newOrgName,
+		Name:       newOrgName,
 		Visibility: VisibleTypePublic,
 	}
 
@@ -575,7 +575,7 @@ func TestHasOrgVisibleTypeLimited(t *testing.T) {
 
 	const newOrgName = "test-org-limited"
 	org := &User{
-		Name: newOrgName,
+		Name:       newOrgName,
 		Visibility: VisibleTypeLimited,
 	}
 
@@ -586,8 +586,8 @@ func TestHasOrgVisibleTypeLimited(t *testing.T) {
 	test1 := HasOrgVisible([]*User{org}, owner)
 	test2 := HasOrgVisible([]*User{org}, user3)
 	test3 := HasOrgVisible([]*User{org}, nil)
-	assert.Equal(t, test1, true) // owner of org
-	assert.Equal(t, test2, true) // user not a part of org
+	assert.Equal(t, test1, true)  // owner of org
+	assert.Equal(t, test2, true)  // user not a part of org
 	assert.Equal(t, test3, false) // logged out user
 }
 
@@ -598,7 +598,7 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 
 	const newOrgName = "test-org-private"
 	org := &User{
-		Name: newOrgName,
+		Name:       newOrgName,
 		Visibility: VisibleTypePrivate,
 	}
 
@@ -609,7 +609,7 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	test1 := HasOrgVisible([]*User{org}, owner)
 	test2 := HasOrgVisible([]*User{org}, user3)
 	test3 := HasOrgVisible([]*User{org}, nil)
-	assert.Equal(t, test1, true) // owner of org
+	assert.Equal(t, test1, true)  // owner of org
 	assert.Equal(t, test2, false) // user not a part of org
 	assert.Equal(t, test3, false) // logged out user
 }

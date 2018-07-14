@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -78,7 +79,7 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-	canSeeOrg := models.HasOrgVisible([]*models.User{ctx.Org}, ctx.User)
+	canSeeOrg := models.HasOrgVisible([]*models.User{ctx.Org.Organization}, ctx.User)
 	if !canSeeOrg {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
