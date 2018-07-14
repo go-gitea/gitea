@@ -1,3 +1,4 @@
+{{ template "base/alert" }}
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
