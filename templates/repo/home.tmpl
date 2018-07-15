@@ -28,14 +28,16 @@
 		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if .IsRepositoryAdmin}}
-		<div class="ui repo-topic-edit grid" id="topic_edit" >
+		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" >
 			<div class="fourteen wide column">
-				<div class="ui fluid multiple search selection dropdown">
-					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
-					{{range .Topics}}
-					<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
-					{{end}}
-					<div class="text"></div>
+				<div class="field">
+					<div class="ui fluid multiple search selection dropdown">
+						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
+						{{range .Topics}}
+						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
+						{{end}}
+						<div class="text"></div>
+					</div>
 				</div>
 			</div>
 			<div class="one wide column">
@@ -44,6 +46,10 @@
 			</div>
 		</div>
 		{{end}}
+		<div class="hide" id="validate_prompt">
+			<span id="count_prompt">{{.i18n.Tr "repo.topic.count_prompt"}}</span>
+			<span id="format_prompt">{{.i18n.Tr "repo.topic.format_prompt"}}</span>
+		</div>
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}

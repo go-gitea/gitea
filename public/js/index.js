@@ -2302,46 +2302,75 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic")
-    var editDiv = $("#topic_edit")
-    var viewDiv = $("#repo-topic")
-    var saveBtn = $("#save_topic")
+    var mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topic"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
 
     mgrBtn.click(function() {
         viewDiv.hide();
         editDiv.show();
-    })
+    });
+
+    function getPrompts() {
+        var hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
 
     saveBtn.click(function() {
         var topics = $("input[name=topics]").val();
 
-        $.post($(this).data('link'), {
+        $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }).success(function(res){
-            if (res["status"] != "ok") {
-                alert(res.message);
-            } else {
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length == 0) {
+                if (topics.length === 0) {
                     return
                 }
                 var topicArray = topics.split(",");
 
                 var last = viewDiv.children("a").last();
-                for (var i=0;i < topicArray.length; i++) {
+                for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
+                editDiv.hide();
+                viewDiv.show();
             }
-        }).done(function() {
-            editDiv.hide();
-            viewDiv.show();
-        }).fail(function(xhr) {
-            alert(xhr.responseJSON.message)
-        })
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
+
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
     });
 
-    $('#topic_edit .dropdown').dropdown({
+    topicDropdown.dropdown({
         allowAdditions: true,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
@@ -2362,7 +2391,7 @@ function initTopicbar() {
             onResponse: function(res) {
                 var formattedResponse = {
                     success: false,
-                    results: new Array(),
+                    results: [],
                 };
 
                 if (res.topics) {
@@ -2375,7 +2404,48 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
     });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        var topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
 }
 function toggleDuedateForm() {
     $('#add_deadline_form').fadeToggle(150);
