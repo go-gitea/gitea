@@ -278,7 +278,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Update the deadline
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
+	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.IsWriter() {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -337,4 +337,73 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	ctx.JSON(201, issue.APIFormat())
+}
+
+// UpdateIssueDeadline updates an issue deadline
+func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
+	// ---
+	// summary: Set an issue deadline. If set to null, the deadline is deleted.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to create or update a deadline on
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditDeadlineOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/IssueDeadline"
+	//   "403":
+	//     description: Not repo writer
+	//     schema:
+	//       "$ref": "#/responses/forbidden"
+	//   "404":
+	//     description: Issue not found
+	//     schema:
+	//       "$ref": "#/responses/empty"
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if !ctx.Repo.IsWriter() {
+		ctx.Status(403)
+		return
+	}
+
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
+	}
+
+	ctx.JSON(201, api.IssueDeadline{Deadline: form.Deadline})
 }
