@@ -2447,14 +2447,44 @@ function initTopicbar() {
             }
         });
 }
-function toggleDuedateForm() {
-    $('#add_deadline_form').fadeToggle(150);
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
 }
 
-function deleteDueDate(url) {
-    $.post(url, {
-        '_csrf': csrf,
-    },function( data ) {
-        window.location.reload();
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
+        realDeadline = new Date(newDate);
+    }
+
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+        }
     });
 }
