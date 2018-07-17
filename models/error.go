@@ -1259,3 +1259,88 @@ func IsErrU2FRegistrationNotExist(err error) bool {
 	_, ok := err.(ErrU2FRegistrationNotExist)
 	return ok
 }
+
+// .___                            ________                                   .___                   .__
+// |   | ______ ________ __   ____ \______ \   ____ ______   ____   ____    __| _/____   ____   ____ |__| ____   ______
+// |   |/  ___//  ___/  |  \_/ __ \ |    |  \_/ __ \\____ \_/ __ \ /    \  / __ |/ __ \ /    \_/ ___\|  |/ __ \ /  ___/
+// |   |\___ \ \___ \|  |  /\  ___/ |    `   \  ___/|  |_> >  ___/|   |  \/ /_/ \  ___/|   |  \  \___|  \  ___/ \___ \
+// |___/____  >____  >____/  \___  >_______  /\___  >   __/ \___  >___|  /\____ |\___  >___|  /\___  >__|\___  >____  >
+//          \/     \/            \/        \/     \/|__|        \/     \/      \/    \/     \/     \/        \/     \/
+
+// ErrDependencyExists represents a "DependencyAlreadyExists" kind of error.
+type ErrDependencyExists struct {
+	IssueID      int64
+	DependencyID int64
+}
+
+// IsErrDependencyExists checks if an error is a ErrDependencyExists.
+func IsErrDependencyExists(err error) bool {
+	_, ok := err.(ErrDependencyExists)
+	return ok
+}
+
+func (err ErrDependencyExists) Error() string {
+	return fmt.Sprintf("issue dependency does already exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
+// ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
+type ErrDependencyNotExists struct {
+	IssueID      int64
+	DependencyID int64
+}
+
+// IsErrDependencyNotExists checks if an error is a ErrDependencyExists.
+func IsErrDependencyNotExists(err error) bool {
+	_, ok := err.(ErrDependencyNotExists)
+	return ok
+}
+
+func (err ErrDependencyNotExists) Error() string {
+	return fmt.Sprintf("issue dependency does not exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
+// ErrCircularDependency represents a "DependencyCircular" kind of error.
+type ErrCircularDependency struct {
+	IssueID      int64
+	DependencyID int64
+}
+
+// IsErrCircularDependency checks if an error is a ErrCircularDependency.
+func IsErrCircularDependency(err error) bool {
+	_, ok := err.(ErrCircularDependency)
+	return ok
+}
+
+func (err ErrCircularDependency) Error() string {
+	return fmt.Sprintf("circular dependencies exists (two issues blocking each other) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
+// ErrDependenciesLeft represents an error where the issue you're trying to close still has dependencies left.
+type ErrDependenciesLeft struct {
+	IssueID int64
+}
+
+// IsErrDependenciesLeft checks if an error is a ErrDependenciesLeft.
+func IsErrDependenciesLeft(err error) bool {
+	_, ok := err.(ErrDependenciesLeft)
+	return ok
+}
+
+func (err ErrDependenciesLeft) Error() string {
+	return fmt.Sprintf("issue has open dependencies [issue id: %d]", err.IssueID)
+}
+
+// ErrUnknownDependencyType represents an error where an unknown dependency type was passed
+type ErrUnknownDependencyType struct {
+	Type DependencyType
+}
+
+// IsErrUnknownDependencyType checks if an error is ErrUnknownDependencyType
+func IsErrUnknownDependencyType(err error) bool {
+	_, ok := err.(ErrUnknownDependencyType)
+	return ok
+}
+
+func (err ErrUnknownDependencyType) Error() string {
+	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
+}
