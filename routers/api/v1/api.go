@@ -447,6 +447,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Combo("").Get(repo.ListTrackedTimes).
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
+
+						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 					})
 				}, mustEnableIssues)
 				m.Group("/labels", func() {
