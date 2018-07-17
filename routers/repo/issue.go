@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -301,6 +302,9 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 		return nil
 	}
 	ctx.Data["Branches"] = brs
+
+	// Contains true if the user can create issue dependencies
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
 
 	return labels
 }
@@ -665,6 +669,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	// Check if the user can use the dependencies
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
@@ -721,6 +728,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadAssigneeUser", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
+			if err = comment.LoadDepIssueDetails(); err != nil {
+				ctx.ServerError("LoadDepIssueDetails", err)
+				return
+			}
 		}
 	}
 
@@ -773,6 +785,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
+
+	// Get Dependencies
+	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -971,6 +987,12 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
+					"error": "cannot close this issue because it still has open dependencies",
+				})
+				return
+			}
 			ctx.ServerError("ChangeStatus", err)
 			return
 		}
@@ -1034,6 +1056,17 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			} else {
 				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
+
+					if models.IsErrDependenciesLeft(err) {
+						if issue.IsPull {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+						} else {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+						}
+						return
+					}
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 

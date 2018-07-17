@@ -66,6 +66,10 @@ const (
 	CommentTypeModifiedDeadline
 	// Removed a due date
 	CommentTypeRemovedDeadline
+	// Dependency added
+	CommentTypeAddDependency
+	//Dependency removed
+	CommentTypeRemoveDependency
 )
 
 // CommentTag defines comment tag type
@@ -81,23 +85,25 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID              int64 `xorm:"pk autoincr"`
-	Type            CommentType
-	PosterID        int64  `xorm:"INDEX"`
-	Poster          *User  `xorm:"-"`
-	IssueID         int64  `xorm:"INDEX"`
-	Issue           *Issue `xorm:"-"`
-	LabelID         int64
-	Label           *Label `xorm:"-"`
-	OldMilestoneID  int64
-	MilestoneID     int64
-	OldMilestone    *Milestone `xorm:"-"`
-	Milestone       *Milestone `xorm:"-"`
-	AssigneeID      int64
-	RemovedAssignee bool
-	Assignee        *User `xorm:"-"`
-	OldTitle        string
-	NewTitle        string
+	ID               int64 `xorm:"pk autoincr"`
+	Type             CommentType
+	PosterID         int64  `xorm:"INDEX"`
+	Poster           *User  `xorm:"-"`
+	IssueID          int64  `xorm:"INDEX"`
+	Issue            *Issue `xorm:"-"`
+	LabelID          int64
+	Label            *Label `xorm:"-"`
+	OldMilestoneID   int64
+	MilestoneID      int64
+	OldMilestone     *Milestone `xorm:"-"`
+	Milestone        *Milestone `xorm:"-"`
+	AssigneeID       int64
+	RemovedAssignee  bool
+	Assignee         *User `xorm:"-"`
+	OldTitle         string
+	NewTitle         string
+	DependentIssueID int64
+	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -281,6 +287,15 @@ func (c *Comment) LoadAssigneeUser() error {
 	return nil
 }
 
+// LoadDepIssueDetails loads Dependent Issue Details
+func (c *Comment) LoadDepIssueDetails() (err error) {
+	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
+		return nil
+	}
+	c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
+	return err
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -332,22 +347,24 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
 	}
+
 	comment := &Comment{
-		Type:            opts.Type,
-		PosterID:        opts.Doer.ID,
-		Poster:          opts.Doer,
-		IssueID:         opts.Issue.ID,
-		LabelID:         LabelID,
-		OldMilestoneID:  opts.OldMilestoneID,
-		MilestoneID:     opts.MilestoneID,
-		RemovedAssignee: opts.RemovedAssignee,
-		AssigneeID:      opts.AssigneeID,
-		CommitID:        opts.CommitID,
-		CommitSHA:       opts.CommitSHA,
-		Line:            opts.LineNum,
-		Content:         opts.Content,
-		OldTitle:        opts.OldTitle,
-		NewTitle:        opts.NewTitle,
+		Type:             opts.Type,
+		PosterID:         opts.Doer.ID,
+		Poster:           opts.Doer,
+		IssueID:          opts.Issue.ID,
+		LabelID:          LabelID,
+		OldMilestoneID:   opts.OldMilestoneID,
+		MilestoneID:      opts.MilestoneID,
+		RemovedAssignee:  opts.RemovedAssignee,
+		AssigneeID:       opts.AssigneeID,
+		CommitID:         opts.CommitID,
+		CommitSHA:        opts.CommitSHA,
+		Line:             opts.LineNum,
+		Content:          opts.Content,
+		OldTitle:         opts.OldTitle,
+		NewTitle:         opts.NewTitle,
+		DependentIssueID: opts.DependentIssueID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -549,6 +566,39 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 	})
 }
 
+// Creates issue dependency comment
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (err error) {
+	cType := CommentTypeAddDependency
+	if !add {
+		cType = CommentTypeRemoveDependency
+	}
+
+	// Make two comments, one in each issue
+	_, err = createComment(e, &CreateCommentOptions{
+		Type:             cType,
+		Doer:             doer,
+		Repo:             issue.Repo,
+		Issue:            issue,
+		DependentIssueID: dependentIssue.ID,
+	})
+	if err != nil {
+		return
+	}
+
+	_, err = createComment(e, &CreateCommentOptions{
+		Type:             cType,
+		Doer:             doer,
+		Repo:             issue.Repo,
+		Issue:            dependentIssue,
+		DependentIssueID: issue.ID,
+	})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -557,17 +607,18 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	OldMilestoneID  int64
-	MilestoneID     int64
-	AssigneeID      int64
-	RemovedAssignee bool
-	OldTitle        string
-	NewTitle        string
-	CommitID        int64
-	CommitSHA       string
-	LineNum         int64
-	Content         string
-	Attachments     []string // UUIDs of attachments
+	DependentIssueID int64
+	OldMilestoneID   int64
+	MilestoneID      int64
+	AssigneeID       int64
+	RemovedAssignee  bool
+	OldTitle         string
+	NewTitle         string
+	CommitID         int64
+	CommitSHA        string
+	LineNum          int64
+	Content          string
+	Attachments      []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.

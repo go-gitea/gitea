@@ -118,6 +118,7 @@ func init() {
 		new(TrackedTime),
 		new(DeletedBranch),
 		new(RepoIndexerStatus),
+		new(IssueDependency),
 		new(LFSLock),
 		new(Reaction),
 		new(IssueAssignees),

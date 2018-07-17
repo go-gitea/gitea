@@ -104,6 +104,11 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 		r.IsWriter() || issue.IsPoster(user.ID) || isAssigned)
 }
 
+// CanCreateIssueDependencies returns whether or not a user can create dependencies.
+func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
+	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
+}
+
 // GetCommitsCount returns cached commit count for current view
 func (r *Repository) GetCommitsCount() (int64, error) {
 	var contextName string

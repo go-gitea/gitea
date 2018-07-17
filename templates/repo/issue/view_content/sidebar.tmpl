@@ -249,5 +249,142 @@
 				</div>
 			{{end}}
 		</div>
+
+		{{if .Repository.IsDependenciesEnabled}}
+			<div class="ui divider"></div>
+
+			<div class="ui depending">
+				<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
+				<br>
+				{{if .BlockedByDependencies}}
+					<span class="text" data-tooltip="{{if .Issue.IsPull}}
+						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
+					{{else}}
+						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+					{{end}}" data-inverted="">
+					{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
+					</span>
+					<div class="ui relaxed divided list">
+						{{range .BlockedByDependencies}}
+							<div class="item">
+								<div class="right floated content">
+									{{if $.CanCreateIssueDependencies}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
+											<i class="delete icon text red"></i>
+										</a>
+									{{end}}
+									{{if .IsClosed}}
+										<div class="ui red mini label">
+											<i class="octicon octicon-issue-closed"></i>
+										</div>
+									{{else}}
+										<div class="ui green mini label">
+											<i class="octicon octicon-issue-opened"></i>
+										</div>
+									{{end}}
+								</div>
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if .BlockingDependencies}}
+					<span class="text" data-tooltip="{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
+						{{end}}" data-inverted="">
+					{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
+					</span>
+					<div class="ui relaxed divided list">
+						{{range .BlockingDependencies}}
+							<div class="item">
+								<div class="right floated content">
+									{{if $.CanCreateIssueDependencies}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
+											<i class="delete icon text red"></i>
+										</a>
+									{{end}}
+									{{if .IsClosed}}
+										<div class="ui red tiny label">
+											<i class="octicon octicon-issue-closed"></i>
+										</div>
+									{{else}}
+										<div class="ui green mini label">
+											<i class="octicon octicon-issue-opened"></i>
+										</div>
+									{{end}}
+								</div>
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
+					<p>{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_no_dependencies"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_no_dependencies"}}
+						{{end}}</p>
+				{{end}}
+
+				{{if .CanCreateIssueDependencies}}
+					<div>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
+							{{$.CsrfTokenHtml}}
+							<div class="ui fluid action input">
+								<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+									<input name="newDependency" type="hidden">
+									<i class="dropdown icon"></i>
+									<input type="text" class="search">
+									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
+								</div>
+								<button class="ui green icon button">
+									<i class="plus icon"></i>
+								</button>
+							</div>
+						</form>
+					</div>
+				{{end}}
+			</div>
 	</div>
 </div>
+{{if .CanCreateIssueDependencies}}
+	<input type="hidden" id="repolink" value="{{$.RepoLink}}">
+	<!-- I know, there is probably a better way to do this -->
+	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+
+	<div class="ui basic modal remove-dependency">
+		<div class="ui icon header">
+			<i class="trash icon"></i>
+			{{.i18n.Tr "repo.issues.dependency.remove_header"}}
+		</div>
+		<div class="content">
+			<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/delete" id="removeDependencyForm">
+				{{$.CsrfTokenHtml}}
+				<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
+				<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
+			</form>
+			<p>{{if .Issue.IsPull}}
+				{{.i18n.Tr "repo.issues.dependency.pr_remove_text"}}
+			{{else}}
+				{{.i18n.Tr "repo.issues.dependency.issue_remove_text"}}
+			{{end}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui basic red cancel inverted button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "repo.issues.dependency.cancel"}}
+			</div>
+			<div class="ui basic green ok inverted button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "repo.issues.dependency.remove"}}
+			</div>
+		</div>
+	</div>
+{{end}}
+		{{end}}

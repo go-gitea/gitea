@@ -202,6 +202,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					Config: &models.IssuesConfig{
 						EnableTimetracker:                form.EnableTimetracker,
 						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+						EnableDependencies:               form.EnableIssueDependencies,
 					},
 				})
 			}

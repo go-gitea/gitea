@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/git"
@@ -378,6 +379,10 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 	if form.State != nil {
 		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+				return
+			}
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
