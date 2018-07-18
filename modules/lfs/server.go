@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
@@ -87,7 +88,6 @@ var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
 
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -249,7 +249,6 @@ func PostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -443,7 +442,6 @@ func unpack(ctx *context.Context) *RequestVars {
 
 // TODO cheap hack, unify with unpack
 func unpackbatch(ctx *context.Context) *BatchVars {
-
 	r := ctx.Req
 	var bv BatchVars
 
@@ -568,11 +566,39 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		user, password := cs[:i], cs[i+1:]
 		u, err := models.GetUserByName(user)
 		if err != nil {
-			return nil, nil, "basic", err
+			if models.IsErrUserNotExist(err) {
+				isUsernameToken := len(password) == 0 || password == "x-oauth-basic"
+				authToken := user
+
+				if !isUsernameToken {
+					authToken = password
+				}
+
+				token, err := models.GetAccessTokenBySHA(authToken)
+				if err != nil {
+					return nil, nil, "basic", fmt.Errorf("Token not found")
+				}
+
+				u, err = models.GetUserByID(token.UID)
+				if err != nil {
+					return nil, nil, "basic", err
+				}
+
+				token.UpdatedUnix = util.TimeStampNow()
+				err = models.UpdateAccessToken(token)
+				if err != nil {
+					return nil, nil, "basic", err
+				}
+
+			} else {
+				return nil, nil, "basic", err
+			}
+		} else {
+			if !u.ValidatePassword(password) {
+				return nil, nil, "basic", fmt.Errorf("Basic auth failed")
+			}
 		}
-		if !u.ValidatePassword(password) {
-			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
-		}
+
 		return u, nil, "basic", nil
 	}
 
