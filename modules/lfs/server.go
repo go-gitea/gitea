@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
@@ -580,12 +579,6 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 				}
 
 				u, err = models.GetUserByID(token.UID)
-				if err != nil {
-					return nil, nil, "basic", err
-				}
-
-				token.UpdatedUnix = util.TimeStampNow()
-				err = models.UpdateAccessToken(token)
 				if err != nil {
 					return nil, nil, "basic", err
 				}
