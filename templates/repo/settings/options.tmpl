@@ -153,6 +153,12 @@
 								</div>
 							</div>
 						{{end}}
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
+								</div>
+							</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">

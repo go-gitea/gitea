@@ -182,6 +182,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha 
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha
+- `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
 
 ## Webhook (`webhook`)
 
