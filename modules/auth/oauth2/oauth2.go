@@ -174,7 +174,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "twitter":
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
 	case "discord":
-		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail),
+		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
