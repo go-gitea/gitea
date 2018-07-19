@@ -4,7 +4,6 @@
      display: block;
      overflow-x: auto;
      padding: 0.5em;
-     background-color: #2b2b2b !important;
      color: #bababa;
 }
  .repository.file.list .non-diff-file-content .code-view .lines-num, .repository.file.list .non-diff-file-content .code-view .lines-code ol {
@@ -321,6 +320,9 @@
  .markdown:not(code) .highlight pre, .markdown:not(code) pre {
      background-color: #2a2e3a;
      border: 1px solid #404552;
+}
+ .markdown:not(code) table tr:nth-child(2n) {
+     background-color: #474d61;
 }
  .ui.dropdown .menu {
      background: #2c303a;
@@ -748,4 +750,18 @@
  .ui.basic.blue.button, .ui.basic.blue.buttons .button {
      box-shadow: 0 0 0 1px #609926 inset!important;
      color: #609926!important;
+}
+ .editor-toolbar {
+     background-color: #404552;
+     a {
+          color: #87ab63 !important;
+     }
+}
+ .CodeMirror {
+     color: #9daccc;
+     background-color: #2b2b2b;
+     border-top: none;    
+}
+ .CodeMirror-gutters{
+     background-color: #2b2b2b;
 }
