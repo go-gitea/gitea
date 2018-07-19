@@ -428,6 +428,7 @@
     ".",
     "gothic",
     "providers/bitbucket",
+    "providers/discord",
     "providers/dropbox",
     "providers/facebook",
     "providers/github",
@@ -701,6 +702,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "59451a3ad1d449f75c5e9035daf542a377c5c4a397e219bebec0aa0007ab9c39"
+  inputs-digest = "d220c48e653d9306bfccb9c269cb1799c7ef7d48f904a37c741000f1159b9bb2"
   solver-name = "gps-cdcl"
   solver-version = 1
