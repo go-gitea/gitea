@@ -383,7 +383,7 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
-		Join("LEFT", "user", "`org_user`.org_id=`user`.id").
+		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
 		Where("`org_user`.uid=?", uid)
 	if !all {
 		// Only show public organizations
@@ -575,7 +575,7 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 	return teams, e.
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
-		Join("INNER", "user", "`user`.id=team_user.uid").
+		Join("INNER", "`user`", "`user`.id=team_user.uid").
 		And("`team_user`.uid = ?", userID).
 		Asc("`user`.name").
 		Cols(cols...).
