@@ -747,12 +747,12 @@ type CreateCommentOptions struct {
 	NewTitle         string
 	CommitID         int64
 	CommitSHA        string
-	Patch           string
-	LineNum         int64
-	TreePath        string
-	ReviewID        int64
-	Content         string
-	Attachments     []string // UUIDs of attachments
+	Patch            string
+	LineNum          int64
+	TreePath         string
+	ReviewID         int64
+	Content          string
+	Attachments      []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.
