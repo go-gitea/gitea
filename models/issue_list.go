@@ -166,7 +166,7 @@ func (issues IssueList) loadAssignees(e Engine) error {
 
 	var assignees = make(map[int64][]*User, len(issues))
 	rows, err := e.Table("issue_assignees").
-		Join("INNER", "user", "`user`.id = `issue_assignees`.assignee_id").
+		Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
 		In("`issue_assignees`.issue_id", issues.getIssueIDs()).
 		Rows(new(AssigneeIssue))
 	if err != nil {

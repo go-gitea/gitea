@@ -147,12 +147,12 @@ func (col *Column) ValueOfV(dataStruct *reflect.Value) (*reflect.Value, error) {
 			}
 			fieldValue = fieldValue.Elem().FieldByName(fieldPath[i+1])
 		} else {
-			return nil, fmt.Errorf("field  %v is not valid", col.FieldName)
+			return nil, fmt.Errorf("field %v is not valid", col.FieldName)
 		}
 	}
 
 	if !fieldValue.IsValid() {
-		return nil, fmt.Errorf("field  %v is not valid", col.FieldName)
+		return nil, fmt.Errorf("field %v is not valid", col.FieldName)
 	}
 
 	return &fieldValue, nil
