@@ -7,6 +7,7 @@ package markup
 import (
 	"bytes"
 	"encoding/csv"
+	"html"
 	"io"
 
 	"code.gitea.io/gitea/modules/markup"
@@ -46,7 +47,7 @@ func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string,
 		tmpBlock.WriteString("<tr>")
 		for _, field := range fields {
 			tmpBlock.WriteString("<td>")
-			tmpBlock.WriteString(field)
+			tmpBlock.WriteString(html.EscapeString(field))
 			tmpBlock.WriteString("</td>")
 		}
 		tmpBlock.WriteString("<tr>")
