@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -320,7 +321,7 @@ func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthFo
 
 		handleSignInFull(ctx, u, remember, false)
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
 
