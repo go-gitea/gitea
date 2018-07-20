@@ -4,6 +4,10 @@
 
 package builder
 
+import (
+	"fmt"
+)
+
 type optype byte
 
 const (
@@ -29,6 +33,9 @@ type Builder struct {
 	joins     []join
 	inserts   Eq
 	updates   []Eq
+	orderBy   string
+	groupBy   string
+	having    string
 }
 
 // Select creates a select Builder
@@ -65,6 +72,11 @@ func (b *Builder) Where(cond Cond) *Builder {
 func (b *Builder) From(tableName string) *Builder {
 	b.tableName = tableName
 	return b
+}
+
+// TableName returns the table name
+func (b *Builder) TableName() string {
+	return b.tableName
 }
 
 // Into sets insert table name
@@ -176,6 +188,33 @@ func (b *Builder) ToSQL() (string, []interface{}, error) {
 	}
 
 	return w.writer.String(), w.args, nil
+}
+
+// ConvertPlaceholder replaces ? to $1, $2 ... or :1, :2 ... according prefix
+func ConvertPlaceholder(sql, prefix string) (string, error) {
+	buf := StringBuilder{}
+	var j, start = 0, 0
+	for i := 0; i < len(sql); i++ {
+		if sql[i] == '?' {
+			_, err := buf.WriteString(sql[start:i])
+			if err != nil {
+				return "", err
+			}
+			start = i + 1
+
+			_, err = buf.WriteString(prefix)
+			if err != nil {
+				return "", err
+			}
+
+			j = j + 1
+			_, err = buf.WriteString(fmt.Sprintf("%d", j))
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	return buf.String(), nil
 }
 
 // ToSQL convert a builder or condtions to SQL and args

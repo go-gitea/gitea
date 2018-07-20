@@ -1769,6 +1769,7 @@ $(document).ready(function () {
     initTopicbar();
     initU2FAuth();
     initU2FRegister();
+    initIssueList();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2487,4 +2488,42 @@ function updateDeadline(deadlineString) {
             $('#deadline-err-invalid-date').show();
         }
     });
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function initIssueList() {
+    var repolink = $('#repolink').val();
+    $('.new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+            },
+
+            fullTextSearch: true
+        })
+    ;
 }

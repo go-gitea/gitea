@@ -649,6 +649,20 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	if issue.IsClosed == isClosed {
 		return nil
 	}
+
+	// Check for open dependencies
+	if isClosed && issue.Repo.IsDependenciesEnabled() {
+		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
+		noDeps, err := IssueNoDependenciesLeft(issue)
+		if err != nil {
+			return err
+		}
+
+		if !noDeps {
+			return ErrDependenciesLeft{issue.ID}
+		}
+	}
+
 	issue.IsClosed = isClosed
 	if isClosed {
 		issue.ClosedUnix = util.TimeStampNow()
@@ -1283,7 +1297,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 		And("`comment`.type = ?", CommentTypeComment).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "user", "`user`.id = `comment`.poster_id").
+		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
@@ -1597,4 +1611,34 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) 
 	}
 
 	return sess.Commit()
+}
+
+// Get Blocked By Dependencies, aka all issues this issue is blocked by.
+func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*Issue, err error) {
+	return issueDeps, e.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Where("issue_id = ?", issue.ID).
+		Find(&issueDeps)
+}
+
+// Get Blocking Dependencies, aka all issues this issue blocks.
+func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*Issue, err error) {
+	return issueDeps, e.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Where("dependency_id = ?", issue.ID).
+		Find(&issueDeps)
+}
+
+// BlockedByDependencies finds all Dependencies an issue is blocked by
+func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
+	return issue.getBlockedByDependencies(x)
+}
+
+// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
+func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
+	return issue.getBlockingDependencies(x)
 }
