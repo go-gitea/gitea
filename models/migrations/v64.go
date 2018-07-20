@@ -124,6 +124,11 @@ func addMultipleAssignees(x *xorm.Engine) error {
 	if err := sess.Commit(); err != nil {
 		return err
 	}
+
+	sess.Close()
+	sess = x.NewSession()
+	defer sess.Close()
+
 	if err := sess.Begin(); err != nil {
 		return err
 	}
