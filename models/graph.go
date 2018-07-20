@@ -66,7 +66,7 @@ func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {
 
 	var ascii string
 	var data = "|||||||"
-	lines := strings.Split(s, "DATA:")
+	lines := strings.SplitN(s, "DATA:", 2)
 
 	switch len(lines) {
 	case 1:
