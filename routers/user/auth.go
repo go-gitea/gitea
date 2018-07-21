@@ -1200,7 +1200,7 @@ func MustChangePassword(ctx *context.Context) {
 func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 
-	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/sign_up"
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMustChangePassword)
