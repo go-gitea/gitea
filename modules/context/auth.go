@@ -39,7 +39,8 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 				return
 			}
 
-			if ctx.Req.URL.Path == "/user/change_password" {
+			// prevent infinite redirection
+			if ctx.Req.URL.Path == setting.AppSubURL+"/user/change_password" {
 				return
 			} else if ctx.User.MustChangePassword {
 				ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
