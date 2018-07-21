@@ -13,7 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Replace src with raw to fix image paths (#4377) (#4386)
   * Fixes repo membership check in API (#4341) (#4379)
   * Add default merge options when adding new repository (#4369) (#4373)
-  * Fix repository last updated time update when delete a user who watchedthe repo (#4363) (#4371)
+  * Fix repository last updated time update when delete a user who watched the repo (#4363) (#4371)
   * Fix html entity escaping in branch deletion message (#4471) (#4485)
 
 ## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-07-04
