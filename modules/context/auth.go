@@ -40,9 +40,16 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 			}
 
 			// prevent infinite redirection
+			// also make sure that the form cannot be accessed by
+			// users who don't need this
 			if ctx.Req.URL.Path == setting.AppSubURL+"/user/change_password" {
+				if !ctx.User.MustChangePassword {
+					ctx.Redirect(setting.AppSubURL + "/")
+				}
 				return
-			} else if ctx.User.MustChangePassword {
+			}
+
+			if ctx.User.MustChangePassword {
 				ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 				ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 				ctx.Redirect(setting.AppSubURL + "/user/change_password")
