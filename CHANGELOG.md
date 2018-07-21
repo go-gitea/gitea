@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.5.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc2) - 2018-07-21
+* SECURITY
+  * Check that repositories can only be migrated to own user or organizations (#4366) (#4370)
+* BUGFIXES
+  * Fix column droping for MSSQL that need new transaction for that (#4440) (#4484)
+  * Redirect to correct page after using scratch token (#4458) (#4472)
+  * Replace src with raw to fix image paths (#4377) (#4386)
+  * Fixes repo membership check in API (#4341) (#4379)
+  * Add default merge options when adding new repository (#4369) (#4373)
+  * Fix repository last updated time update when delete a user who watched the repo (#4363) (#4371)
+  * Fix html entity escaping in branch deletion message (#4471) (#4485)
+
 ## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-07-04
 * SECURITY
   * Limit uploaded avatar image-size to 4096px x 3072px by default (#4353)
