@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	tplMustChangePassword = "user/auth/change_passwd"
 	// tplSignIn template for sign in page
 	tplSignIn base.TplName = "user/auth/signin"
 	// tplSignUp template path for sign up page
@@ -1184,4 +1185,70 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	ctx.Data["IsResetFailed"] = true
 	ctx.HTML(200, tplResetPassword)
+}
+
+// MustChangePassword renders the page to change a user's password
+func MustChangePassword(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+
+	ctx.HTML(200, tplMustChangePassword)
+}
+
+// MustChangePasswordPost response for updating a user's password after his/her
+// account was created by an admin
+func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
+	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/sign_up"
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplMustChangePassword)
+		return
+	}
+
+	u := ctx.User
+
+	// Make sure only requests for users who are eligible to change their password via
+	// this method passes through
+	if !u.MustChangePassword {
+		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password.. Please visit the settings page"))
+		return
+	}
+
+	if form.Password != form.Retype {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
+		return
+	}
+
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+		return
+	}
+
+	var err error
+	if u.Rands, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	if u.Salt, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	u.HashPassword(form.Password)
+	u.MustChangePassword = false
+
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
+
+	log.Trace("User updated password: %s", u.Name)
+	ctx.Redirect(setting.AppSubURL + "/")
 }
