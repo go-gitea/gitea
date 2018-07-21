@@ -524,6 +524,18 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
+
+	noDeps, err := models.IssueNoDependenciesLeft(issue)
+	if err != nil {
+		return
+	}
+
+	if !noDeps {
+		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
 	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))

@@ -1345,7 +1345,11 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+				Config: &IssuesConfig{
+					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+				},
 			})
 		} else if tp == UnitTypePullRequests {
 			units = append(units, RepoUnit{
@@ -1954,7 +1958,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := x.Select("repository.*").
-		Join("INNER", "user", "`user`.id = repository.owner_id").
+		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
