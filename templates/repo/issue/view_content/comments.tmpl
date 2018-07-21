@@ -1,7 +1,7 @@
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
-	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE, 18 = REMOVED_DEADLINE -->
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE, 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -65,7 +65,6 @@
 				{{end}}
 			</div>
 		</div>
-
 	{{else if eq .Type 1}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
@@ -233,5 +232,33 @@
 			{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 			</span>
 		</div>
-	{{end}}
+	{{else if eq .Type 19}}
+		<div class="event">
+	    	<span class="octicon octicon-primitive-dot"></span>
+	    	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+	     	</a>
+	     	<span class="text grey">
+		     	{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
+	     	</span>
+	     	<div class="detail">
+		    	<span class="octicon octicon-plus"></span>
+			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
+		 	</div>
+     	</div>
+	{{else if eq .Type 20}}
+		<div class="event">
+	     	<span class="octicon octicon-primitive-dot"></span>
+	     	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+		     	<img src="{{.Poster.RelAvatarLink}}">
+	     	</a>
+	     	<span class="text grey">
+		     	{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
+	     	</span>
+	     	<div class="detail">
+		     	<span class="text grey octicon octicon-trashcan"></span>
+			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
+	     	</div>
+     	</div>
+     {{end}}
 {{end}}
