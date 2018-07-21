@@ -22,7 +22,7 @@
   created_unix: 946684812
 -
   id: 4
-  type: 19 # code comment
+  type: 21 # code comment
   poster_id: 1
   issue_id: 2
   content: "meh..."
@@ -33,7 +33,7 @@
   invalidated: false
 -
   id: 5
-  type: 19 # code comment
+  type: 21 # code comment
   poster_id: 1
   issue_id: 2
   content: "meh..."
