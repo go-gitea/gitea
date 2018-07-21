@@ -486,7 +486,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("/:id", repo.WebHooksEdit)
 				m.Post("/:id/test", repo.TestWebhook)
 				m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
-				m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
+				m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
 				m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 				m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 				m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
@@ -523,6 +523,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
+				m.Group("/dependency", func() {
+					m.Post("/add", repo.AddDependency)
+					m.Post("/delete", repo.RemoveDependency)
+				})
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
@@ -532,8 +536,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Post("/deadline/update", reqRepoWriter, bindIgnErr(auth.DeadlineForm{}), repo.UpdateDeadline)
-				m.Post("/deadline/delete", reqRepoWriter, repo.RemoveDeadline)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)
@@ -626,7 +628,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
 
 	m.Group("/:username/:reponame", func() {
-		m.Post("/topics", repo.TopicPost)
+		m.Post("/topics", repo.TopicsPost)
 	}, context.RepoAssignment(), reqRepoAdmin)
 
 	m.Group("/:username/:reponame", func() {

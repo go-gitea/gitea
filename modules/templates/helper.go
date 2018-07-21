@@ -186,6 +186,9 @@ func NewFuncMap() []template.FuncMap {
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
 	}}
 }
 
@@ -323,7 +326,7 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
 func IsMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") > 1
+	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action

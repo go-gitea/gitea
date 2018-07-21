@@ -257,13 +257,15 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
-	isOwner, err := org.IsOwnedBy(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("IsOwnedBy", err)
-		return
-	} else if !isOwner {
-		ctx.Error(403, "", "Given user is not owner of organization.")
-		return
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403, "", "Given user is not owner of organization.")
+			return
+		}
 	}
 	CreateUserRepo(ctx, org, opt)
 }
@@ -306,15 +308,22 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	if ctxUser.IsOrganization() && !ctx.User.IsAdmin {
-		// Check ownership of organization.
-		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOwnedBy", err)
+	if !ctx.User.IsAdmin {
+		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+			ctx.Error(403, "", "Given user is not an organization.")
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
-			return
+		}
+
+		if ctxUser.IsOrganization() {
+			// Check ownership of organization.
+			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOwnedBy", err)
+				return
+			} else if !isOwner {
+				ctx.Error(403, "", "Given user is not owner of organization.")
+				return
+			}
 		}
 	}
 
@@ -508,13 +517,13 @@ func TopicSearch(ctx *context.Context) {
 	// ---
 	// summary: search topics via keyword
 	// produces:
-	// - application/json
+	//   - application/json
 	// parameters:
-	// - name: keyword
-	//   in: path
-	//   description: id of the repo to get
-	//   type: integer
-	//   required: true
+	//   - name: q
+	//     in: query
+	//     description: keywords to search
+	//     required: true
+	//     type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"

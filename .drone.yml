@@ -4,7 +4,7 @@ workspace:
 
 clone:
   git:
-    image: plugins/git:1
+    image: plugins/git:next
     depth: 50
     tags: true
 
@@ -75,6 +75,7 @@ pipeline:
       - make lint
       - make fmt-check
       - make swagger-check
+#      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
@@ -202,7 +203,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  build_docs:
+  build-docs:
     image: webhippie/hugo:latest
     pull: true
     commands:
@@ -211,26 +212,12 @@ pipeline:
       - make clean
       - make build
 
-  docker_docs:
-    image: plugins/docker:17.05
+  publish-docs:
+    image: lucap/drone-netlify:latest
     pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ '${DRONE_BRANCH##release/v}' ]
-    when:
-      event: [ push ]
-      branch: [ release/* ]
-
-  docker_docs:
-    image: plugins/docker:17.05
-    pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ 'latest' ]
+    secrets: [ netlify_token ]
+    site_id: d2260bae-7861-4c02-8646-8f6440b12672
+    path: docs/public/
     when:
       event: [ push ]
       branch: [ master ]
@@ -251,6 +238,18 @@ pipeline:
     pull: true
     repo: gitea/gitea
     default_tags: true
+    when:
+      event: [ push, tag ]
+
+  gpg-sign:
+    image: plugins/gpgsign:1
+    pull: true
+    secrets: [ gpgsign_key, gpgsign_passphrase ]
+    detach_sign: true
+    files:
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha256
     when:
       event: [ push, tag ]
 

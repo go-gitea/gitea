@@ -85,9 +85,12 @@ type link struct {
 
 var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
 
+func isOidValid(oid string) bool {
+	return oidRegExp.MatchString(oid)
+}
+
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -110,6 +113,11 @@ func ObjectOidHandler(ctx *context.Context) {
 }
 
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+	if !isOidValid(rv.Oid) {
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
+
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
@@ -222,7 +230,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !oidRegExp.MatchString(rv.Oid) {
+	if !isOidValid(rv.Oid) {
 		writeStatus(ctx, 404)
 		return
 	}
@@ -249,7 +257,6 @@ func PostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -266,6 +273,10 @@ func BatchHandler(ctx *context.Context) {
 
 	// Create a response object
 	for _, object := range bv.Objects {
+		if !isOidValid(object.Oid) {
+			continue
+		}
+
 		repository, err := models.GetRepositoryByOwnerAndName(object.User, object.Repo)
 
 		if err != nil {
@@ -292,12 +303,10 @@ func BatchHandler(ctx *context.Context) {
 			continue
 		}
 
-		if oidRegExp.MatchString(object.Oid) {
-			// Object is not found
-			meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
-			if err == nil {
-				responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
-			}
+		// Object is not found
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
+		if err == nil {
+			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
 		}
 	}
 
