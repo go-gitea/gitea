@@ -193,8 +193,8 @@ var migrations = []Migration{
 	// v69 -> v70
 	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
 	// v70 -> v71
-  NewMigration("add issue_dependencies", addIssueDependencies),
-  // v71 -> v72
+	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v71 -> v72
 	NewMigration("add visibility for user and org", addVisibilityForUserAndOrg),
 }
 
