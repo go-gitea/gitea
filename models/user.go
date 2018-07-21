@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
