@@ -1173,7 +1173,8 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 		u.HashPassword(passwd)
-		if err := models.UpdateUserCols(u, "passwd", "rands", "salt"); err != nil {
+		u.MustChangePassword = false
+		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1229,11 +1230,6 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	}
 
 	var err error
-	if u.Rands, err = models.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-
 	if u.Salt, err = models.GetUserSalt(); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
@@ -1242,7 +1238,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	u.HashPassword(form.Password)
 	u.MustChangePassword = false
 
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
