@@ -50,15 +50,14 @@
 							</div>
 						</div>
 						<div class="ui divider"></div>
-					{{end}}
 
-					<div class="required grouped field">
+						<div class="team-units required grouped field"{{if eq .Team.Authorize 3}} style="display: none"{{end}}>
 							<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
 							<br>
 							{{range $t, $unit := $.Units}}
 							<div class="field">
 								<div class="ui toggle checkbox">
-									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type}}"{{if $.Team.EnableUnit $unit.Type}} checked{{end}}>
+									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
 									<label>{{$.i18n.Tr $unit.NameKey}}</label>
 									<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
 								</div>
@@ -66,10 +65,11 @@
 							{{end}}
 						</div>
 						<div class="ui divider"></div>
+					{{end}}
 
 					<div class="field">
 						{{if .PageIsOrgTeamsNew}}
-							<button class="ui green button">{{.i18n.Tr "org.create_new_team"}}</button>
+							<button class="ui green button">{{.i18n.Tr "org.create_team"}}</button>
 							<a class="ui button" href="{{.OrgLink}}/teams">{{.i18n.Tr "cancel"}}</a>
 						{{else}}
 							<button class="ui green button">{{.i18n.Tr "org.teams.update_settings"}}</button>

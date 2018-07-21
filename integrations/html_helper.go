@@ -18,8 +18,8 @@ type HTMLDoc struct {
 }
 
 // NewHTMLParser parse html file
-func NewHTMLParser(t testing.TB, content []byte) *HTMLDoc {
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(content))
+func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
+	doc, err := goquery.NewDocumentFromReader(body)
 	assert.NoError(t, err)
 	return &HTMLDoc{doc: doc}
 }
@@ -39,4 +39,14 @@ func (doc *HTMLDoc) GetInputValueByName(name string) string {
 // GetCSRF for get CSRC token value from input
 func (doc *HTMLDoc) GetCSRF() string {
 	return doc.GetInputValueByName("_csrf")
+}
+
+// AssertElement check if element by selector exists or does not exist depending on checkExists
+func (doc *HTMLDoc) AssertElement(t testing.TB, selector string, checkExists bool) {
+	sel := doc.doc.Find(selector)
+	if checkExists {
+		assert.Equal(t, 1, sel.Length())
+	} else {
+		assert.Equal(t, 0, sel.Length())
+	}
 }

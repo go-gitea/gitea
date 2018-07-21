@@ -7,6 +7,8 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -109,7 +111,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 	key := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
 		Content:           content,
-		Created:           pubkey.CreationTime,
+		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
 		CanSign:           pubkey.CanSign(),
 		CanEncryptComms:   pubkey.PubKeyAlgo.CanEncrypt(),
 		CanEncryptStorage: pubkey.PubKeyAlgo.CanEncrypt(),
@@ -119,7 +121,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 	cannotsignkey := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
 		Content:           content,
-		Created:           pubkey.CreationTime,
+		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
 		CanSign:           false,
 		CanEncryptComms:   false,
 		CanEncryptStorage: false,
@@ -219,6 +221,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 	key, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
 	assert.NoError(t, err)
 
-	assert.Len(t, key.Emails, 1)
-	assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	if assert.Len(t, key.Emails, 1) {
+		assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	}
 }

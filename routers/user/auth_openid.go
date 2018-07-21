@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/captcha"
@@ -37,7 +39,7 @@ func SignInOpenID(ctx *context.Context) {
 	// Check auto-login.
 	isSucceed, err := AutoSignIn(ctx)
 	if err != nil {
-		ctx.Handle(500, "AutoSignIn", err)
+		ctx.ServerError("AutoSignIn", err)
 		return
 	}
 
@@ -49,12 +51,8 @@ func SignInOpenID(ctx *context.Context) {
 	}
 
 	if isSucceed {
-		if len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-			ctx.Redirect(redirectTo)
-		} else {
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.RedirectToFirst(redirectTo)
 		return
 	}
 
@@ -259,6 +257,7 @@ func ConnectOpenID(ctx *context.Context) {
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
+
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -275,7 +274,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
 		} else {
-			ctx.Handle(500, "ConnectOpenIDPost", err)
+			ctx.ServerError("ConnectOpenIDPost", err)
 		}
 		return
 	}
@@ -287,7 +286,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
-		ctx.Handle(500, "AddUserOpenID", err)
+		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
 
@@ -300,10 +299,6 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -314,6 +309,8 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -328,10 +325,6 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -343,19 +336,31 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
 		return
+	}
+
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
+		ctx.Req.ParseForm()
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+		if !valid {
+			ctx.Data["Err_Captcha"] = true
+			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
+			return
+		}
 	}
 
 	len := setting.MinPasswordLength
 	if len < 256 {
 		len = 256
 	}
-	password, err := base.GetRandomString(len)
+	password, err := generate.GetRandomString(len)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return
@@ -383,7 +388,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUpOID, &form)
 		default:
-			ctx.Handle(500, "CreateUser", err)
+			ctx.ServerError("CreateUser", err)
 		}
 		return
 	}
@@ -396,7 +401,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}
-		ctx.Handle(500, "AddUserOpenID", err)
+		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
 
@@ -404,8 +409,9 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
-		if err := models.UpdateUser(u); err != nil {
-			ctx.Handle(500, "UpdateUser", err)
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 	}

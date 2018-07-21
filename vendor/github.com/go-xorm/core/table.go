@@ -22,6 +22,7 @@ type Table struct {
 	Cacher        Cacher
 	StoreEngine   string
 	Charset       string
+	Comment       string
 }
 
 func (table *Table) Columns() []*Column {
@@ -48,7 +49,6 @@ func NewTable(name string, t reflect.Type) *Table {
 }
 
 func (table *Table) columnsByName(name string) []*Column {
-
 	n := len(name)
 
 	for k := range table.columnsMap {
@@ -74,7 +74,6 @@ func (table *Table) GetColumn(name string) *Column {
 }
 
 func (table *Table) GetColumnIdx(name string, idx int) *Column {
-
 	cols := table.columnsByName(name)
 
 	if cols != nil && idx < len(cols) {

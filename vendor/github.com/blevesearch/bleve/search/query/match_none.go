@@ -38,11 +38,11 @@ func (q *MatchNoneQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *MatchNoneQuery) Boost() float64{
+func (q *MatchNoneQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-func (q *MatchNoneQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *MatchNoneQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	return searcher.NewMatchNoneSearcher(i)
 }
 

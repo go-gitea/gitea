@@ -8,24 +8,30 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Markdown render markdown document to HTML
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
-	// swagger:route POST /markdown renderMarkdown
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
+	// swagger:operation POST /markdown miscellaneous renderMarkdown
+	// ---
+	// summary: Render a markdown document as HTML
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MarkdownOption"
+	// consumes:
+	// - application/json
+	// produces:
 	//     - text/html
-	//
-	//     Responses:
-	//       200: MarkdownRender
-	//       422: validationError
-
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MarkdownRender"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	if ctx.HasAPIError() {
 		ctx.Error(422, "", ctx.GetErrMsg())
 		return
@@ -39,7 +45,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	switch form.Mode {
 	case "gfm":
 		md := []byte(form.Text)
-		context := markdown.URLJoin(setting.AppURL, form.Context)
+		context := util.URLJoin(setting.AppURL, form.Context)
 		if form.Wiki {
 			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
 		} else {
@@ -52,17 +58,25 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 // MarkdownRaw render raw markdown HTML
 func MarkdownRaw(ctx *context.APIContext) {
-	// swagger:route POST /markdown/raw renderMarkdownRaw
-	//
-	//     Consumes:
+	// swagger:operation POST /markdown/raw miscellaneous renderMarkdownRaw
+	// ---
+	// summary: Render raw markdown as HTML
+	// parameters:
+	//     - name: body
+	//       in: body
+	//       description: Request body to render
+	//       required: true
+	//       schema:
+	//         type: string
+	// consumes:
 	//     - text/plain
-	//
-	//     Produces:
+	// produces:
 	//     - text/html
-	//
-	//     Responses:
-	//       200: MarkdownRender
-	//       422: validationError
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MarkdownRender"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {
 		ctx.Error(422, "", err)

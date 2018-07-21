@@ -40,7 +40,7 @@ func (q *TermQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *TermQuery) Boost() float64{
+func (q *TermQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -48,14 +48,14 @@ func (q *TermQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *TermQuery) Field() string{
+func (q *TermQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *TermQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *TermQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-	return searcher.NewTermSearcher(i, q.Term, field, q.BoostVal.Value(), explain)
+	return searcher.NewTermSearcher(i, q.Term, field, q.BoostVal.Value(), options)
 }

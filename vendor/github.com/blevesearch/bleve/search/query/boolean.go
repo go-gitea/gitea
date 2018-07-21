@@ -25,10 +25,11 @@ import (
 )
 
 type BooleanQuery struct {
-	Must     Query  `json:"must,omitempty"`
-	Should   Query  `json:"should,omitempty"`
-	MustNot  Query  `json:"must_not,omitempty"`
-	BoostVal *Boost `json:"boost,omitempty"`
+	Must            Query  `json:"must,omitempty"`
+	Should          Query  `json:"should,omitempty"`
+	MustNot         Query  `json:"must_not,omitempty"`
+	BoostVal        *Boost `json:"boost,omitempty"`
+	queryStringMode bool
 }
 
 // NewBooleanQuery creates a compound Query composed
@@ -55,6 +56,15 @@ func NewBooleanQuery(must []Query, should []Query, mustNot []Query) *BooleanQuer
 	return &rv
 }
 
+func NewBooleanQueryForQueryString(must []Query, should []Query, mustNot []Query) *BooleanQuery {
+	rv := NewBooleanQuery(nil, nil, nil)
+	rv.queryStringMode = true
+	rv.AddMust(must...)
+	rv.AddShould(should...)
+	rv.AddMustNot(mustNot...)
+	return rv
+}
+
 // SetMinShould requires that at least minShould of the
 // should Queries must be satisfied.
 func (q *BooleanQuery) SetMinShould(minShould float64) {
@@ -63,7 +73,9 @@ func (q *BooleanQuery) SetMinShould(minShould float64) {
 
 func (q *BooleanQuery) AddMust(m ...Query) {
 	if q.Must == nil {
-		q.Must = NewConjunctionQuery([]Query{})
+		tmp := NewConjunctionQuery([]Query{})
+		tmp.queryStringMode = q.queryStringMode
+		q.Must = tmp
 	}
 	for _, mq := range m {
 		q.Must.(*ConjunctionQuery).AddQuery(mq)
@@ -72,7 +84,9 @@ func (q *BooleanQuery) AddMust(m ...Query) {
 
 func (q *BooleanQuery) AddShould(m ...Query) {
 	if q.Should == nil {
-		q.Should = NewDisjunctionQuery([]Query{})
+		tmp := NewDisjunctionQuery([]Query{})
+		tmp.queryStringMode = q.queryStringMode
+		q.Should = tmp
 	}
 	for _, mq := range m {
 		q.Should.(*DisjunctionQuery).AddQuery(mq)
@@ -81,7 +95,9 @@ func (q *BooleanQuery) AddShould(m ...Query) {
 
 func (q *BooleanQuery) AddMustNot(m ...Query) {
 	if q.MustNot == nil {
-		q.MustNot = NewDisjunctionQuery([]Query{})
+		tmp := NewDisjunctionQuery([]Query{})
+		tmp.queryStringMode = q.queryStringMode
+		q.MustNot = tmp
 	}
 	for _, mq := range m {
 		q.MustNot.(*DisjunctionQuery).AddQuery(mq)
@@ -93,44 +109,67 @@ func (q *BooleanQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *BooleanQuery) Boost() float64{
+func (q *BooleanQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-func (q *BooleanQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *BooleanQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	var err error
 	var mustNotSearcher search.Searcher
 	if q.MustNot != nil {
-		mustNotSearcher, err = q.MustNot.Searcher(i, m, explain)
+		mustNotSearcher, err = q.MustNot.Searcher(i, m, options)
 		if err != nil {
 			return nil, err
 		}
-		if q.Must == nil && q.Should == nil {
-			q.Must = NewMatchAllQuery()
+		// if must not is MatchNone, reset it to nil
+		if _, ok := mustNotSearcher.(*searcher.MatchNoneSearcher); ok {
+			mustNotSearcher = nil
 		}
 	}
 
 	var mustSearcher search.Searcher
 	if q.Must != nil {
-		mustSearcher, err = q.Must.Searcher(i, m, explain)
+		mustSearcher, err = q.Must.Searcher(i, m, options)
 		if err != nil {
 			return nil, err
+		}
+		// if must searcher is MatchNone, reset it to nil
+		if _, ok := mustSearcher.(*searcher.MatchNoneSearcher); ok {
+			mustSearcher = nil
 		}
 	}
 
 	var shouldSearcher search.Searcher
 	if q.Should != nil {
-		shouldSearcher, err = q.Should.Searcher(i, m, explain)
+		shouldSearcher, err = q.Should.Searcher(i, m, options)
+		if err != nil {
+			return nil, err
+		}
+		// if should searcher is MatchNone, reset it to nil
+		if _, ok := shouldSearcher.(*searcher.MatchNoneSearcher); ok {
+			shouldSearcher = nil
+		}
+	}
+
+	// if all 3 are nil, return MatchNone
+	if mustSearcher == nil && shouldSearcher == nil && mustNotSearcher == nil {
+		return searcher.NewMatchNoneSearcher(i)
+	}
+
+	// if only mustNotSearcher, start with MatchAll
+	if mustSearcher == nil && shouldSearcher == nil && mustNotSearcher != nil {
+		mustSearcher, err = searcher.NewMatchAllSearcher(i, 1.0, options)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	// optimization, if only should searcher, just return it instead
 	if mustSearcher == nil && shouldSearcher != nil && mustNotSearcher == nil {
 		return shouldSearcher, nil
 	}
 
-	return searcher.NewBooleanSearcher(i, mustSearcher, shouldSearcher, mustNotSearcher, explain)
+	return searcher.NewBooleanSearcher(i, mustSearcher, shouldSearcher, mustNotSearcher, options)
 }
 
 func (q *BooleanQuery) Validate() error {

@@ -51,8 +51,5 @@ func useNewPublickeyFormat(x *xorm.Engine) error {
 	}
 
 	f.Close()
-	if err = os.Rename(tmpPath, fpath); err != nil {
-		return err
-	}
-	return nil
+	return os.Rename(tmpPath, fpath)
 }

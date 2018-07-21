@@ -9,8 +9,9 @@ import (
 	"encoding/json"
 )
 
-// Email en email information of user
+// Email an email address belonging to a user
 type Email struct {
+	// swagger:strfmt email
 	Email    string `json:"email"`
 	Verified bool   `json:"verified"`
 	Primary  bool   `json:"primary"`
@@ -22,8 +23,9 @@ func (c *Client) ListEmails() ([]*Email, error) {
 	return emails, c.getParsedResponse("GET", "/user/emails", nil, nil, &emails)
 }
 
-// CreateEmailOption options when create an email
+// CreateEmailOption options when creating email addresses
 type CreateEmailOption struct {
+	// email addresses to add
 	Emails []string `json:"emails"`
 }
 
@@ -37,8 +39,14 @@ func (c *Client) AddEmail(opt CreateEmailOption) ([]*Email, error) {
 	return emails, c.getParsedResponse("POST", "/user/emails", jsonHeader, bytes.NewReader(body), emails)
 }
 
+// DeleteEmailOption options when deleting email addresses
+type DeleteEmailOption struct {
+	// email addresses to delete
+	Emails []string `json:"emails"`
+}
+
 // DeleteEmail delete one email of current users'
-func (c *Client) DeleteEmail(opt CreateEmailOption) error {
+func (c *Client) DeleteEmail(opt DeleteEmailOption) error {
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return err

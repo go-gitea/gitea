@@ -35,8 +35,9 @@ func TestRepository_GetStargazers(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	gazers, err := repo.GetStargazers(0)
 	assert.NoError(t, err)
-	assert.Len(t, gazers, 1)
-	assert.Equal(t, int64(2), gazers[0].ID)
+	if assert.Len(t, gazers, 1) {
+		assert.Equal(t, int64(2), gazers[0].ID)
+	}
 }
 
 func TestRepository_GetStargazers2(t *testing.T) {
@@ -55,14 +56,16 @@ func TestUser_GetStarredRepos(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	starred, err := user.GetStarredRepos(false, 1, 10, "")
 	assert.NoError(t, err)
-	assert.Len(t, starred, 1)
-	assert.Equal(t, int64(4), starred[0].ID)
+	if assert.Len(t, starred, 1) {
+		assert.Equal(t, int64(4), starred[0].ID)
+	}
 
 	starred, err = user.GetStarredRepos(true, 1, 10, "")
 	assert.NoError(t, err)
-	assert.Len(t, starred, 2)
-	assert.Equal(t, int64(2), starred[0].ID)
-	assert.Equal(t, int64(4), starred[1].ID)
+	if assert.Len(t, starred, 2) {
+		assert.Equal(t, int64(2), starred[0].ID)
+		assert.Equal(t, int64(4), starred[1].ID)
+	}
 }
 
 func TestUser_GetStarredRepos2(t *testing.T) {

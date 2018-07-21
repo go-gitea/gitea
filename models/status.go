@@ -8,11 +8,11 @@ import (
 	"container/list"
 	"fmt"
 	"strings"
-	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
@@ -65,32 +65,8 @@ type CommitStatus struct {
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (status *CommitStatus) BeforeInsert() {
-	status.CreatedUnix = time.Now().Unix()
-	status.UpdatedUnix = status.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (status *CommitStatus) BeforeUpdate() {
-	status.UpdatedUnix = time.Now().Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of
-// this object.
-func (status *CommitStatus) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		status.Created = time.Unix(status.CreatedUnix, 0).Local()
-	case "updated_unix":
-		status.Updated = time.Unix(status.UpdatedUnix, 0).Local()
-	}
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
@@ -121,8 +97,8 @@ func (status *CommitStatus) APIURL() string {
 func (status *CommitStatus) APIFormat() *api.Status {
 	status.loadRepo(x)
 	apiStatus := &api.Status{
-		Created:     status.Created,
-		Updated:     status.Created,
+		Created:     status.CreatedUnix.AsTime(),
+		Updated:     status.CreatedUnix.AsTime(),
 		State:       api.StatusState(status.State),
 		TargetURL:   status.TargetURL,
 		Description: status.Description,
@@ -135,6 +111,26 @@ func (status *CommitStatus) APIFormat() *api.Status {
 	}
 
 	return apiStatus
+}
+
+// CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
+func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
+	var lastStatus *CommitStatus
+	var state CommitStatusState
+	for _, status := range statuses {
+		if status.State.IsWorseThan(state) {
+			state = status.State
+			lastStatus = status
+		}
+	}
+	if lastStatus == nil {
+		if len(statuses) > 0 {
+			lastStatus = statuses[0]
+		} else {
+			lastStatus = &CommitStatus{}
+		}
+	}
+	return lastStatus
 }
 
 // GetCommitStatuses returns all statuses for a given commit.
@@ -266,8 +262,7 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
-	Statuses []*CommitStatus
-	State    CommitStatusState
+	Status *CommitStatus
 	*SignCommit
 }
 
@@ -276,25 +271,18 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 	var (
 		newCommits = list.New()
 		e          = oldCommits.Front()
-		err        error
 	)
 
 	for e != nil {
 		c := e.Value.(SignCommit)
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
-			State:      "",
-			Statuses:   make([]*CommitStatus, 0),
 		}
-		commit.Statuses, err = GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
 		if err != nil {
 			log.Error(3, "GetLatestCommitStatus: %v", err)
 		} else {
-			for _, status := range commit.Statuses {
-				if status.State.IsWorseThan(commit.State) {
-					commit.State = status.State
-				}
-			}
+			commit.Status = CalcCommitStatus(statuses)
 		}
 
 		newCommits.PushBack(commit)

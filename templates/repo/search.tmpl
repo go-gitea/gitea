@@ -1,0 +1,49 @@
+{{template "base/head" .}}
+<div class="repository file list">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui repo-search">
+			<form class="ui form ignore-dirty" method="get">
+				<div class="ui fluid action input">
+					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+					<button class="ui button" type="submit">
+						<i class="search icon"></i>
+					</button>
+				</div>
+			</form>
+		</div>
+		{{if .Keyword}}
+			<h3>
+				{{.i18n.Tr "repo.search.results" (.Keyword|Escape) .RepoLink .RepoName | Str2html }}
+			</h3>
+			<div class="repository search">
+				{{range $result := .SearchResults}}
+					<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
+						<h4 class="ui top attached normal header">
+							<span class="file">{{.Filename}}</span>
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						</h4>
+						<div class="ui attached table segment">
+							<div class="file-body file-code code-view">
+								<table>
+									<tbody>
+										<tr>
+											<td class="lines-num">
+												{{range .LineNumbers}}
+													<a href="{{EscapePound $.SourcePath}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+												{{end}}
+											</td>
+											<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FormattedLines}}</ol></code></pre></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				{{end}}
+			</div>
+			{{template "base/paginate" .}}
+		{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}

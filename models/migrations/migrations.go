@@ -20,7 +20,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -57,6 +57,10 @@ func (m *migration) Migrate(x *xorm.Engine) error {
 type Version struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Version int64
+}
+
+func emptyMigration(x *xorm.Engine) error {
+	return nil
 }
 
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
@@ -110,7 +114,7 @@ var migrations = []Migration{
 	NewMigration("add commit status table", addCommitStatus),
 	// v30 -> 31
 	NewMigration("add primary key to external login user", addExternalLoginUserPK),
-	// 31 -> 32
+	// v31 -> 32
 	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 	// v32 -> v33
 	NewMigration("add units for team", addUnitsToRepoTeam),
@@ -122,6 +126,74 @@ var migrations = []Migration{
 	NewMigration("adds comment to an action", addCommentIDToAction),
 	// v36 -> v37
 	NewMigration("regenerate git hooks", regenerateGitHooks36),
+	// v37 -> v38
+	NewMigration("unescape user full names", unescapeUserFullNames),
+	// v38 -> v39
+	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
+	// v39 -> v40
+	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
+	// v40 -> v41
+	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v41 -> v42
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v42 -> v43
+	NewMigration("empty step", emptyMigration),
+	// v43 -> v44
+	NewMigration("empty step", emptyMigration),
+	// v44 -> v45
+	NewMigration("empty step", emptyMigration),
+	// v45 -> v46
+	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
+	// v46 -> v47
+	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
+	// v47 -> v48
+	NewMigration("add deleted branches", addDeletedBranch),
+	// v48 -> v49
+	NewMigration("add repo indexer status", addRepoIndexerStatus),
+	// v49 -> v50
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
+	// v50 -> v51
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v51 -> v52
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v52 -> v53
+	NewMigration("add lfs lock table", addLFSLock),
+	// v53 -> v54
+	NewMigration("add reactions", addReactions),
+	// v54 -> v55
+	NewMigration("add pull request options", addPullRequestOptions),
+	// v55 -> v56
+	NewMigration("add writable deploy keys", addModeToDeploKeys),
+	// v56 -> v57
+	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
+	// v57 -> v58
+	NewMigration("add closed_unix column for issues", addIssueClosedTime),
+	// v58 -> v59
+	NewMigration("add label descriptions", addLabelsDescriptions),
+	// v59 -> v60
+	NewMigration("add merge whitelist for protected branches", addProtectedBranchMergeWhitelist),
+	// v60 -> v61
+	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
+	// v61 -> v62
+	NewMigration("add size column for attachments", addSizeToAttachment),
+	// v62 -> v63
+	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
+	// v63 -> v64
+	NewMigration("add language column for user setting", addLanguageSetting),
+	// v64 -> v65
+	NewMigration("add multiple assignees", addMultipleAssignees),
+	// v65 -> v66
+	NewMigration("add u2f", addU2FReg),
+	// v66 -> v67
+	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
+	// v67 -> v68
+	NewMigration("remove stale watches", removeStaleWatches),
+	// v68 -> V69
+	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
+	// v69 -> v70
+	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// v70 -> v71
+	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
 // Migrate database to current version
@@ -155,7 +227,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.Id(1).Update(currentVersion)
+		_, err = x.ID(1).Update(currentVersion)
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
@@ -164,10 +236,63 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 			return fmt.Errorf("do migrate: %v", err)
 		}
 		currentVersion.Version = v + int64(i) + 1
-		if _, err = x.Id(1).Update(currentVersion); err != nil {
+		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
+	if tableName == "" || len(columnNames) == 0 {
+		return nil
+	}
+
+	switch {
+	case setting.UseSQLite3:
+		log.Warn("Unable to drop columns in SQLite")
+	case setting.UseMySQL, setting.UseTiDB, setting.UsePostgreSQL:
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "DROP COLUMN `" + col + "`"
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
+			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+		}
+	case setting.UseMSSQL:
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "`" + strings.ToLower(col) + "`"
+		}
+		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.Replace(cols, "`", "'", -1))
+		constraints := make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
+				sess.Rollback()
+				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+			}
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+		}
+
+		return sess.Commit()
+	default:
+		log.Fatal(4, "Unrecognized DB")
+	}
+
 	return nil
 }
 
@@ -495,10 +620,10 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	for _, org := range orgs {
-		if org.Rands, err = base.GetRandomString(10); err != nil {
+		if org.Rands, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if org.Salt, err = base.GetRandomString(10); err != nil {
+		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
 		if _, err = sess.Id(org.ID).Update(org); err != nil {
@@ -708,8 +833,7 @@ func convertDateToUnix(x *xorm.Engine) (err error) {
 		offset := 0
 		for {
 			beans := make([]*Bean, 0, 100)
-			if err = x.SQL(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
-				table.name, offset)).Find(&beans); err != nil {
+			if err = x.Table(table.name).Asc("id").Limit(100, offset).Find(&beans); err != nil {
 				return fmt.Errorf("select beans [table: %s, offset: %d]: %v", table.name, offset, err)
 			}
 			log.Trace("Table [%s]: offset: %d, beans: %d", table.name, offset, len(beans))

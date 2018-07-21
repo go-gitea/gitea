@@ -3,7 +3,13 @@
 <body>
 	<div>
 */}}
+
+	{{template "custom/body_inner_post" .}}
+
 	</div>
+
+	{{template "custom/body_outer_post" .}}
+
 	<footer>
 		<div class="ui container">
 			<div class="ui left">
@@ -11,7 +17,7 @@
 			</div>
 			<div class="ui right links">
 				{{if .ShowFooterBranding}}
-					<a target="_blank" rel="noopener" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
+					<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
 				{{end}}
 				<div class="ui language bottom floating slide up dropdown link item">
 					<i class="world icon"></i>
@@ -22,49 +28,115 @@
 						{{end}}
 					</div>
 				</div>
-				<a href="{{AppSubUrl}}/assets/librejs/librejs.html" data-jslicense="1">Javascript licenses</a>
-				<a href="{{AppSubUrl}}/swagger">API</a>
-				<a target="_blank" rel="noopener" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
+				<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
+				{{if .EnableSwaggerEndpoint}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
+				<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
 				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 			</div>
 		</div>
 	</footer>
-	<script src="{{AppSubUrl}}/js/jquery-1.11.3.min.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/jquery.are-you-sure.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
 {{if .RequireSimpleMDE}}
-	<script src="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.js"></script>
-	<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/addon/mode/loadmode.js"></script>
-	<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/meta.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/codemirror/mode/meta.js"></script>
 	<script>
-		CodeMirror.modeURL =  "{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/%N/%N.js";
+		CodeMirror.modeURL =  "{{AppSubUrl}}/vendor/plugins/codemirror/mode/%N/%N.js";
 	</script>
 {{end}}
 {{if .RequireGitGraph}}
 	<!-- graph -->
-	<script src="{{AppSubUrl}}/js/libs/gitgraph.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.js"></script>
 	<script src="{{AppSubUrl}}/js/draw.js"></script>
 {{end}}
 
-<!-- JavaScript -->
-<script src="{{AppSubUrl}}/js/semantic-2.2.1.min.js"></script>
-<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
-
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
-	<script src="{{AppSubUrl}}/plugins/highlight-9.11.0/highlight.pack.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js"></script>
 {{end}}
 {{if .RequireMinicolors}}
-	<script src="{{AppSubUrl}}/plugins/jquery.minicolors-2.2.3/jquery.minicolors.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js"></script>
 {{end}}
 {{if .RequireDatetimepicker}}
-	<script src="{{AppSubUrl}}/plugins/jquery.datetimepicker-2.4.5/jquery.datetimepicker.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.js"></script>
 {{end}}
 {{if .RequireDropzone}}
-	<script src="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
-	<script src="{{AppSubUrl}}/js/libs/autolink.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/emojify-1.1.0.min.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/clipboard-1.5.9.min.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/vue.min.js"></script>
+{{if .RequireU2F}}
+	<script src="{{AppSubUrl}}/vendor/plugins/u2f/index.js"></script>
+{{end}}
+{{if .EnableCaptcha}}
+	{{if eq .CaptchaType "recaptcha"}}
+		<script src="https://www.google.com/recaptcha/api.js" async></script>
+	{{end}}
+{{end}}
+{{if .RequireTribute}}
+	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
+
+	{{if .Assignees}}
+	<script>
+		var issuesTribute = new Tribute({
+			values: [
+			{{ range .Assignees }}
+			{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+			{{ end }}
+			],
+			noMatchTemplate: function () { return null },
+			menuItemTemplate: function (item) {
+				var user = item.original;
+				var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+				if (user.fullname && user.fullname != '') {
+					itemStr += '<span class="fullname">' + user.fullname + '</span>';
+				}
+				return itemStr;
+			}
+		})
+		issuesTribute.attach(document.getElementById('content'))
+	</script>
+	{{end}}
+	<script>
+		var emojiTribute = new Tribute({
+			collection: [{
+				trigger: ':',
+				requireLeadingSpace: true,
+				values: function (text, cb) {
+					var array = emojify.emojiNames;
+					var data = [];
+					for(var j=0; j<array.length; j++) {
+						if(array[j].indexOf(text) !== -1) {
+							data.push(array[j]);
+							if(data.length > 5) {
+								break;
+							}
+						}
+					}
+					cb(data);
+				},
+				lookup: function (item) {
+					return item;
+				},
+				selectTemplate: function (item) {
+					if (typeof item === 'undefinied') return null;
+					return ':' + item.original + ':';
+				},
+				menuItemTemplate: function (item) {
+					return '<img class="emoji" src="{{AppSubUrl}}/vendor/plugins/emojify/images/' + item.original + '.png"/>' + item.original;
+				}
+			}]
+		});
+		emojiTribute.attach(document.getElementById('content'))
+	</script>
+{{end}}
+	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/clipboard/clipboard.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/vue/vue.min.js"></script>
+
+	<!-- JavaScript -->
+	<script src="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.js"></script>
+	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
+{{template "custom/footer" .}}
 </body>
 </html>

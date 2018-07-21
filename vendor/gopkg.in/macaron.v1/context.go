@@ -15,7 +15,7 @@
 package macaron
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"html/template"
 	"io"
@@ -32,8 +32,8 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-
 	"github.com/go-macaron/inject"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // Locale reprents a localization interface.
@@ -70,6 +70,14 @@ type Request struct {
 
 func (r *Request) Body() *RequestBody {
 	return &RequestBody{r.Request.Body}
+}
+
+// ContextInvoker is an inject.FastInvoker wrapper of func(ctx *Context).
+type ContextInvoker func(ctx *Context)
+
+func (invoke ContextInvoker) Invoke(params []interface{}) ([]reflect.Value, error) {
+	invoke(params[0].(*Context))
+	return nil, nil
 }
 
 // Context represents the runtime context of current request of Macaron instance.
@@ -260,6 +268,11 @@ func (ctx *Context) SetParams(name, val string) {
 	ctx.params[name] = val
 }
 
+// ReplaceAllParams replace all current params with given params
+func (ctx *Context) ReplaceAllParams(params Params) {
+	ctx.params = params;
+}
+
 // ParamsEscape returns escapred params result.
 // e.g. ctx.ParamsEscape(":uname")
 func (ctx *Context) ParamsEscape(name string) string {
@@ -411,30 +424,29 @@ func (ctx *Context) GetSecureCookie(key string) (string, bool) {
 
 // SetSuperSecureCookie sets given cookie value to response header with secret string.
 func (ctx *Context) SetSuperSecureCookie(secret, name, value string, others ...interface{}) {
-	m := md5.Sum([]byte(secret))
-	secret = hex.EncodeToString(m[:])
-	text, err := com.AESEncrypt([]byte(secret), []byte(value))
+	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
+	text, err := com.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
+
 	ctx.SetCookie(name, hex.EncodeToString(text), others...)
 }
 
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
-func (ctx *Context) GetSuperSecureCookie(secret, key string) (string, bool) {
-	val := ctx.GetCookie(key)
+func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
+	val := ctx.GetCookie(name)
 	if val == "" {
 		return "", false
 	}
 
-	data, err := hex.DecodeString(val)
+	text, err := hex.DecodeString(val)
 	if err != nil {
 		return "", false
 	}
 
-	m := md5.Sum([]byte(secret))
-	secret = hex.EncodeToString(m[:])
-	text, err := com.AESDecrypt([]byte(secret), data)
+	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
+	text, err = com.AESGCMDecrypt(key, text)
 	return string(text), err == nil
 }
 

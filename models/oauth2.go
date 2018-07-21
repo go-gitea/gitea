@@ -56,7 +56,7 @@ var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping{
 // GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
 func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
+	if err := x.Where("is_actived = ? and type = ?", true, LoginOAuth2).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -64,13 +64,8 @@ func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 
 // GetActiveOAuth2LoginSourceByName returns a OAuth2 LoginSource based on the given name
 func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
-	loginSource := &LoginSource{
-		Name:      name,
-		Type:      LoginOAuth2,
-		IsActived: true,
-	}
-
-	has, err := x.UseBool().Get(loginSource)
+	loginSource := new(LoginSource)
+	has, err := x.Where("name = ? and type = ? and is_actived = ?", name, LoginOAuth2, true).Get(loginSource)
 	if !has || err != nil {
 		return nil, err
 	}
@@ -102,14 +97,17 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 }
 
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
-func InitOAuth2() {
-	oauth2.Init()
+func InitOAuth2() error {
+	if err := oauth2.Init(x); err != nil {
+		return err
+	}
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
 		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 	}
+	return nil
 }
 
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2

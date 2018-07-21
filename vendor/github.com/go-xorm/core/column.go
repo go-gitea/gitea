@@ -13,12 +13,13 @@ const (
 	ONLYFROMDB
 )
 
-// database column
+// Column defines database column
 type Column struct {
 	Name            string
 	TableName       string
 	FieldName       string
 	SQLType         SQLType
+	IsJSON          bool
 	Length          int
 	Length2         int
 	Nullable        bool
@@ -37,6 +38,7 @@ type Column struct {
 	SetOptions      map[string]int
 	DisableTimeZone bool
 	TimeZone        *time.Location // column specified time zone
+	Comment         string
 }
 
 func NewColumn(name, fieldName string, sqlType SQLType, len1, len2 int, nullable bool) *Column {
@@ -60,6 +62,7 @@ func NewColumn(name, fieldName string, sqlType SQLType, len1, len2 int, nullable
 		IsVersion:       false,
 		DefaultIsEmpty:  false,
 		EnumOptions:     make(map[string]int),
+		Comment:         "",
 	}
 }
 
@@ -76,16 +79,16 @@ func (col *Column) String(d Dialect) string {
 		}
 	}
 
+	if col.Default != "" {
+		sql += "DEFAULT " + col.Default + " "
+	}
+
 	if d.ShowCreateNull() {
 		if col.Nullable {
 			sql += "NULL "
 		} else {
 			sql += "NOT NULL "
 		}
-	}
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
 	}
 
 	return sql
@@ -96,16 +99,16 @@ func (col *Column) StringNoPk(d Dialect) string {
 
 	sql += d.SqlType(col) + " "
 
+	if col.Default != "" {
+		sql += "DEFAULT " + col.Default + " "
+	}
+
 	if d.ShowCreateNull() {
 		if col.Nullable {
 			sql += "NULL "
 		} else {
 			sql += "NOT NULL "
 		}
-	}
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
 	}
 
 	return sql
@@ -144,12 +147,12 @@ func (col *Column) ValueOfV(dataStruct *reflect.Value) (*reflect.Value, error) {
 			}
 			fieldValue = fieldValue.Elem().FieldByName(fieldPath[i+1])
 		} else {
-			return nil, fmt.Errorf("field  %v is not valid", col.FieldName)
+			return nil, fmt.Errorf("field %v is not valid", col.FieldName)
 		}
 	}
 
 	if !fieldValue.IsValid() {
-		return nil, fmt.Errorf("field  %v is not valid", col.FieldName)
+		return nil, fmt.Errorf("field %v is not valid", col.FieldName)
 	}
 
 	return &fieldValue, nil

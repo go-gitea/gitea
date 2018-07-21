@@ -254,14 +254,22 @@ func (dr *DictionaryRow) Key() []byte {
 }
 
 func (dr *DictionaryRow) KeySize() int {
-	return len(dr.term) + 3
+	return dictionaryRowKeySize(dr.term)
+}
+
+func dictionaryRowKeySize(term []byte) int {
+	return len(term) + 3
 }
 
 func (dr *DictionaryRow) KeyTo(buf []byte) (int, error) {
+	return dictionaryRowKeyTo(buf, dr.field, dr.term), nil
+}
+
+func dictionaryRowKeyTo(buf []byte, field uint16, term []byte) int {
 	buf[0] = 'd'
-	binary.LittleEndian.PutUint16(buf[1:3], dr.field)
-	size := copy(buf[3:], dr.term)
-	return size + 3, nil
+	binary.LittleEndian.PutUint16(buf[1:3], field)
+	size := copy(buf[3:], term)
+	return size + 3
 }
 
 func (dr *DictionaryRow) Value() []byte {
@@ -324,12 +332,20 @@ func (dr *DictionaryRow) parseDictionaryK(key []byte) error {
 }
 
 func (dr *DictionaryRow) parseDictionaryV(value []byte) error {
-	count, nread := binary.Uvarint(value)
-	if nread <= 0 {
-		return fmt.Errorf("DictionaryRow parse Uvarint error, nread: %d", nread)
+	count, err := dictionaryRowParseV(value)
+	if err != nil {
+		return err
 	}
 	dr.count = count
 	return nil
+}
+
+func dictionaryRowParseV(value []byte) (uint64, error) {
+	count, nread := binary.Uvarint(value)
+	if nread <= 0 {
+		return 0, fmt.Errorf("DictionaryRow parse Uvarint error, nread: %d", nread)
+	}
+	return count, nil
 }
 
 // TERM FIELD FREQUENCY
@@ -394,16 +410,24 @@ func (tfr *TermFrequencyRow) Key() []byte {
 }
 
 func (tfr *TermFrequencyRow) KeySize() int {
-	return 3 + len(tfr.term) + 1 + len(tfr.doc)
+	return termFrequencyRowKeySize(tfr.term, tfr.doc)
+}
+
+func termFrequencyRowKeySize(term, doc []byte) int {
+	return 3 + len(term) + 1 + len(doc)
 }
 
 func (tfr *TermFrequencyRow) KeyTo(buf []byte) (int, error) {
+	return termFrequencyRowKeyTo(buf, tfr.field, tfr.term, tfr.doc), nil
+}
+
+func termFrequencyRowKeyTo(buf []byte, field uint16, term, doc []byte) int {
 	buf[0] = 't'
-	binary.LittleEndian.PutUint16(buf[1:3], tfr.field)
-	termLen := copy(buf[3:], tfr.term)
+	binary.LittleEndian.PutUint16(buf[1:3], field)
+	termLen := copy(buf[3:], term)
 	buf[3+termLen] = ByteSeparator
-	docLen := copy(buf[3+termLen+1:], tfr.doc)
-	return 3 + termLen + 1 + docLen, nil
+	docLen := copy(buf[3+termLen+1:], doc)
+	return 3 + termLen + 1 + docLen
 }
 
 func (tfr *TermFrequencyRow) KeyAppendTo(buf []byte) ([]byte, error) {
@@ -538,7 +562,7 @@ func (tfr *TermFrequencyRow) parseKDoc(key []byte, term []byte) error {
 	return nil
 }
 
-func (tfr *TermFrequencyRow) parseV(value []byte) error {
+func (tfr *TermFrequencyRow) parseV(value []byte, includeTermVectors bool) error {
 	var bytesRead int
 	tfr.freq, bytesRead = binary.Uvarint(value)
 	if bytesRead <= 0 {
@@ -556,6 +580,10 @@ func (tfr *TermFrequencyRow) parseV(value []byte) error {
 	tfr.norm = math.Float32frombits(uint32(norm))
 
 	tfr.vectors = nil
+	if !includeTermVectors {
+		return nil
+	}
+
 	var field uint64
 	field, bytesRead = binary.Uvarint(value[currOffset:])
 	for bytesRead > 0 {
@@ -620,7 +648,7 @@ func NewTermFrequencyRowKV(key, value []byte) (*TermFrequencyRow, error) {
 		return nil, err
 	}
 
-	err = rv.parseV(value)
+	err = rv.parseV(value, true)
 	if err != nil {
 		return nil, err
 	}
@@ -630,7 +658,7 @@ func NewTermFrequencyRowKV(key, value []byte) (*TermFrequencyRow, error) {
 
 type BackIndexRow struct {
 	doc           []byte
-	termEntries   []*BackIndexTermEntry
+	termsEntries  []*BackIndexTermsEntry
 	storedEntries []*BackIndexStoreEntry
 }
 
@@ -638,10 +666,12 @@ func (br *BackIndexRow) AllTermKeys() [][]byte {
 	if br == nil {
 		return nil
 	}
-	rv := make([][]byte, len(br.termEntries))
-	for i, termEntry := range br.termEntries {
-		termRow := NewTermFrequencyRow([]byte(termEntry.GetTerm()), uint16(termEntry.GetField()), br.doc, 0, 0)
-		rv[i] = termRow.Key()
+	rv := make([][]byte, 0, len(br.termsEntries)) // FIXME this underestimates severely
+	for _, termsEntry := range br.termsEntries {
+		for i := range termsEntry.Terms {
+			termRow := NewTermFrequencyRow([]byte(termsEntry.Terms[i]), uint16(termsEntry.GetField()), br.doc, 0, 0)
+			rv = append(rv, termRow.Key())
+		}
 	}
 	return rv
 }
@@ -682,7 +712,7 @@ func (br *BackIndexRow) Value() []byte {
 
 func (br *BackIndexRow) ValueSize() int {
 	birv := &BackIndexRowValue{
-		TermEntries:   br.termEntries,
+		TermsEntries:  br.termsEntries,
 		StoredEntries: br.storedEntries,
 	}
 	return birv.Size()
@@ -690,20 +720,20 @@ func (br *BackIndexRow) ValueSize() int {
 
 func (br *BackIndexRow) ValueTo(buf []byte) (int, error) {
 	birv := &BackIndexRowValue{
-		TermEntries:   br.termEntries,
+		TermsEntries:  br.termsEntries,
 		StoredEntries: br.storedEntries,
 	}
 	return birv.MarshalTo(buf)
 }
 
 func (br *BackIndexRow) String() string {
-	return fmt.Sprintf("Backindex DocId: `%s` Term Entries: %v, Stored Entries: %v", string(br.doc), br.termEntries, br.storedEntries)
+	return fmt.Sprintf("Backindex DocId: `%s` Terms Entries: %v, Stored Entries: %v", string(br.doc), br.termsEntries, br.storedEntries)
 }
 
-func NewBackIndexRow(docID []byte, entries []*BackIndexTermEntry, storedFields []*BackIndexStoreEntry) *BackIndexRow {
+func NewBackIndexRow(docID []byte, entries []*BackIndexTermsEntry, storedFields []*BackIndexStoreEntry) *BackIndexRow {
 	return &BackIndexRow{
 		doc:           docID,
-		termEntries:   entries,
+		termsEntries:  entries,
 		storedEntries: storedFields,
 	}
 }
@@ -732,7 +762,7 @@ func NewBackIndexRowKV(key, value []byte) (*BackIndexRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	rv.termEntries = birv.TermEntries
+	rv.termsEntries = birv.TermsEntries
 	rv.storedEntries = birv.StoredEntries
 
 	return &rv, nil
@@ -850,4 +880,233 @@ func NewStoredRowKV(key, value []byte) (*StoredRow, error) {
 	rv.typ = value[0]
 	rv.value = value[1:]
 	return rv, nil
+}
+
+type backIndexFieldTermVisitor func(field uint32, term []byte)
+
+// visitBackIndexRow is designed to process a protobuf encoded
+// value, without creating unnecessary garbage.  Instead values are passed
+// to a callback, inspected first, and only copied if necessary.
+// Due to the fact that this borrows from generated code, it must be marnually
+// updated if the protobuf definition changes.
+//
+// This code originates from:
+// func (m *BackIndexRowValue) Unmarshal(data []byte) error
+// the sections which create garbage or parse unintersting sections
+// have been commented out.  This was done by design to allow for easier
+// merging in the future if that original function is regenerated
+func visitBackIndexRow(data []byte, callback backIndexFieldTermVisitor) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TermsEntries", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if msglen < 0 {
+				return ErrInvalidLengthUpsidedown
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			// dont parse term entries
+			// m.TermsEntries = append(m.TermsEntries, &BackIndexTermsEntry{})
+			// if err := m.TermsEntries[len(m.TermsEntries)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			// 	return err
+			// }
+			// instead, inspect them
+			if err := visitBackIndexRowFieldTerms(data[iNdEx:postIndex], callback); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StoredEntries", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + msglen
+			if msglen < 0 {
+				return ErrInvalidLengthUpsidedown
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			// don't parse stored entries
+			// m.StoredEntries = append(m.StoredEntries, &BackIndexStoreEntry{})
+			// if err := m.StoredEntries[len(m.StoredEntries)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			// 	return err
+			// }
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipUpsidedown(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthUpsidedown
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			// don't track unrecognized data
+			//m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	return nil
+}
+
+// visitBackIndexRowFieldTerms is designed to process a protobuf encoded
+// sub-value within the BackIndexRowValue, without creating unnecessary garbage.
+// Instead values are passed to a callback, inspected first, and only copied if
+// necessary.  Due to the fact that this borrows from generated code, it must
+// be marnually updated if the protobuf definition changes.
+//
+// This code originates from:
+// func (m *BackIndexTermsEntry) Unmarshal(data []byte) error {
+// the sections which create garbage or parse uninteresting sections
+// have been commented out.  This was done by design to allow for easier
+// merging in the future if that original function is regenerated
+func visitBackIndexRowFieldTerms(data []byte, callback backIndexFieldTermVisitor) error {
+	var theField uint32
+
+	var hasFields [1]uint64
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Field", wireType)
+			}
+			var v uint32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			// m.Field = &v
+			theField = v
+			hasFields[0] |= uint64(0x00000001)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Terms", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := iNdEx + int(stringLen)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			//m.Terms = append(m.Terms, string(data[iNdEx:postIndex]))
+			callback(theField, data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			iNdEx -= sizeOfWire
+			skippy, err := skipUpsidedown(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthUpsidedown
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			//m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+	// if hasFields[0]&uint64(0x00000001) == 0 {
+	// 	return new(github_com_golang_protobuf_proto.RequiredNotSetError)
+	// }
+
+	return nil
 }

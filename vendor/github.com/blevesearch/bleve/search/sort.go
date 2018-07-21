@@ -17,9 +17,11 @@ package search
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 
+	"github.com/blevesearch/bleve/geo"
 	"github.com/blevesearch/bleve/numeric"
 )
 
@@ -27,12 +29,15 @@ var HighTerm = strings.Repeat(string([]byte{0xff}), 10)
 var LowTerm = string([]byte{0x00})
 
 type SearchSort interface {
+	UpdateVisitor(field string, term []byte)
 	Value(a *DocumentMatch) string
 	Descending() bool
 
 	RequiresDocID() bool
 	RequiresScoring() bool
 	RequiresFields() []string
+
+	Copy() SearchSort
 }
 
 func ParseSearchSortObj(input map[string]interface{}) (SearchSort, error) {
@@ -50,6 +55,31 @@ func ParseSearchSortObj(input map[string]interface{}) (SearchSort, error) {
 		return &SortScore{
 			Desc: descending,
 		}, nil
+	case "geo_distance":
+		field, ok := input["field"].(string)
+		if !ok {
+			return nil, fmt.Errorf("search sort mode geo_distance must specify field")
+		}
+		lon, lat, foundLocation := geo.ExtractGeoPoint(input["location"])
+		if !foundLocation {
+			return nil, fmt.Errorf("unable to parse geo_distance location")
+		}
+		rvd := &SortGeoDistance{
+			Field:    field,
+			Desc:     descending,
+			Lon:      lon,
+			Lat:      lat,
+			unitMult: 1.0,
+		}
+		if distUnit, ok := input["unit"].(string); ok {
+			var err error
+			rvd.unitMult, err = geo.ParseDistanceUnit(distUnit)
+			if err != nil {
+				return nil, err
+			}
+			rvd.Unit = distUnit
+		}
+		return rvd, nil
 	case "field":
 		field, ok := input["field"].(string)
 		if !ok {
@@ -169,6 +199,20 @@ func (so SortOrder) Value(doc *DocumentMatch) {
 	for _, soi := range so {
 		doc.Sort = append(doc.Sort, soi.Value(doc))
 	}
+}
+
+func (so SortOrder) UpdateVisitor(field string, term []byte) {
+	for _, soi := range so {
+		soi.UpdateVisitor(field, term)
+	}
+}
+
+func (so SortOrder) Copy() SortOrder {
+	rv := make(SortOrder, len(so))
+	for i, soi := range so {
+		rv[i] = soi.Copy()
+	}
+	return rv
 }
 
 // Compare will compare two document matches using the specified sort order
@@ -300,13 +344,24 @@ type SortField struct {
 	Type    SortFieldType
 	Mode    SortFieldMode
 	Missing SortFieldMissing
+	values  []string
+}
+
+// UpdateVisitor notifies this sort field that in this document
+// this field has the specified term
+func (s *SortField) UpdateVisitor(field string, term []byte) {
+	if field == s.Field {
+		s.values = append(s.values, string(term))
+	}
 }
 
 // Value returns the sort value of the DocumentMatch
+// it also resets the state of this SortField for
+// processing the next document
 func (s *SortField) Value(i *DocumentMatch) string {
-	iTerms := i.CachedFieldTerms[s.Field]
-	iTerms = s.filterTermsByType(iTerms)
+	iTerms := s.filterTermsByType(s.values)
 	iTerm := s.filterTermsByMode(iTerms)
+	s.values = nil
 	return iTerm
 }
 
@@ -368,7 +423,7 @@ func (s *SortField) filterTermsByType(terms []string) []string {
 		for _, term := range terms {
 			valid, shift := numeric.ValidPrefixCodedTerm(term)
 			if valid && shift == 0 {
-				termsWithShiftZero = append(termsWithShiftZero)
+				termsWithShiftZero = append(termsWithShiftZero, term)
 			}
 		}
 		terms = termsWithShiftZero
@@ -430,9 +485,21 @@ func (s *SortField) MarshalJSON() ([]byte, error) {
 	return json.Marshal(sfm)
 }
 
+func (s *SortField) Copy() SearchSort {
+	var rv SortField
+	rv = *s
+	return &rv
+}
+
 // SortDocID will sort results by the document identifier
 type SortDocID struct {
 	Desc bool
+}
+
+// UpdateVisitor is a no-op for SortDocID as it's value
+// is not dependent on any field terms
+func (s *SortDocID) UpdateVisitor(field string, term []byte) {
+
 }
 
 // Value returns the sort value of the DocumentMatch
@@ -461,9 +528,21 @@ func (s *SortDocID) MarshalJSON() ([]byte, error) {
 	return json.Marshal("_id")
 }
 
+func (s *SortDocID) Copy() SearchSort {
+	var rv SortDocID
+	rv = *s
+	return &rv
+}
+
 // SortScore will sort results by the document match score
 type SortScore struct {
 	Desc bool
+}
+
+// UpdateVisitor is a no-op for SortScore as it's value
+// is not dependent on any field terms
+func (s *SortScore) UpdateVisitor(field string, term []byte) {
+
 }
 
 // Value returns the sort value of the DocumentMatch
@@ -490,4 +569,143 @@ func (s *SortScore) MarshalJSON() ([]byte, error) {
 		return json.Marshal("-_score")
 	}
 	return json.Marshal("_score")
+}
+
+func (s *SortScore) Copy() SearchSort {
+	var rv SortScore
+	rv = *s
+	return &rv
+}
+
+var maxDistance = string(numeric.MustNewPrefixCodedInt64(math.MaxInt64, 0))
+
+// NewSortGeoDistance creates SearchSort instance for sorting documents by
+// their distance from the specified point.
+func NewSortGeoDistance(field, unit string, lon, lat float64, desc bool) (
+	*SortGeoDistance, error) {
+
+	rv := &SortGeoDistance{
+		Field: field,
+		Desc:  desc,
+		Unit:  unit,
+		Lon:   lon,
+		Lat:   lat,
+	}
+	var err error
+	rv.unitMult, err = geo.ParseDistanceUnit(unit)
+	if err != nil {
+		return nil, err
+	}
+	return rv, nil
+}
+
+// SortGeoDistance will sort results by the distance of an
+// indexed geo point, from the provided location.
+//   Field is the name of the field
+//   Descending reverse the sort order (default false)
+type SortGeoDistance struct {
+	Field    string
+	Desc     bool
+	Unit     string
+	values   []string
+	Lon      float64
+	Lat      float64
+	unitMult float64
+}
+
+// UpdateVisitor notifies this sort field that in this document
+// this field has the specified term
+func (s *SortGeoDistance) UpdateVisitor(field string, term []byte) {
+	if field == s.Field {
+		s.values = append(s.values, string(term))
+	}
+}
+
+// Value returns the sort value of the DocumentMatch
+// it also resets the state of this SortField for
+// processing the next document
+func (s *SortGeoDistance) Value(i *DocumentMatch) string {
+	iTerms := s.filterTermsByType(s.values)
+	iTerm := s.filterTermsByMode(iTerms)
+	s.values = nil
+
+	if iTerm == "" {
+		return maxDistance
+	}
+
+	i64, err := numeric.PrefixCoded(iTerm).Int64()
+	if err != nil {
+		return maxDistance
+	}
+	docLon := geo.MortonUnhashLon(uint64(i64))
+	docLat := geo.MortonUnhashLat(uint64(i64))
+
+	dist := geo.Haversin(s.Lon, s.Lat, docLon, docLat)
+	// dist is returned in km, so convert to m
+	dist *= 1000
+	if s.unitMult != 0 {
+		dist /= s.unitMult
+	}
+	distInt64 := numeric.Float64ToInt64(dist)
+	return string(numeric.MustNewPrefixCodedInt64(distInt64, 0))
+}
+
+// Descending determines the order of the sort
+func (s *SortGeoDistance) Descending() bool {
+	return s.Desc
+}
+
+func (s *SortGeoDistance) filterTermsByMode(terms []string) string {
+	if len(terms) >= 1 {
+		return terms[0]
+	}
+
+	return ""
+}
+
+// filterTermsByType attempts to make one pass on the terms
+// return only valid prefix coded numbers with shift of 0
+func (s *SortGeoDistance) filterTermsByType(terms []string) []string {
+	var termsWithShiftZero []string
+	for _, term := range terms {
+		valid, shift := numeric.ValidPrefixCodedTerm(term)
+		if valid && shift == 0 {
+			termsWithShiftZero = append(termsWithShiftZero, term)
+		}
+	}
+	return termsWithShiftZero
+}
+
+// RequiresDocID says this SearchSort does not require the DocID be loaded
+func (s *SortGeoDistance) RequiresDocID() bool { return false }
+
+// RequiresScoring says this SearchStore does not require scoring
+func (s *SortGeoDistance) RequiresScoring() bool { return false }
+
+// RequiresFields says this SearchStore requires the specified stored field
+func (s *SortGeoDistance) RequiresFields() []string { return []string{s.Field} }
+
+func (s *SortGeoDistance) MarshalJSON() ([]byte, error) {
+	sfm := map[string]interface{}{
+		"by":    "geo_distance",
+		"field": s.Field,
+		"location": map[string]interface{}{
+			"lon": s.Lon,
+			"lat": s.Lat,
+		},
+	}
+	if s.Unit != "" {
+		sfm["unit"] = s.Unit
+	}
+	if s.Desc {
+		sfm["desc"] = true
+	}
+
+	return json.Marshal(sfm)
+}
+
+func (s *SortGeoDistance) Copy() SearchSort {
+	var rv SortGeoDistance
+	rv = *s
+	return &rv
 }

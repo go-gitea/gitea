@@ -1,5 +1,7 @@
 <div class="four wide column">
 	<div class="ui segment metas">
+		{{template "repo/issue/branch_selector_field" .}}
+
 		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
@@ -8,7 +10,8 @@
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
-					<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+					<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
 			</div>
 		</div>
@@ -16,7 +19,7 @@
 			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 			{{range .Labels}}
 				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name | Sanitize}}</a>
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 				</div>
 
 			{{end}}
@@ -38,7 +41,7 @@
 						{{.i18n.Tr "repo.issues.new.open_milestone"}}
 					</div>
 					{{range .OpenMilestones}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name | Sanitize}}</div>
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
 					{{end}}
 				{{end}}
 				{{if .ClosedMilestones}}
@@ -48,7 +51,7 @@
 						{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 					</div>
 					{{range .ClosedMilestones}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name | Sanitize}}</a>
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
 					{{end}}
 				{{end}}
 			</div>
@@ -57,7 +60,7 @@
 			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Issue.Milestone}}
-					<a class="item" href="{{.RepoLink}}/issues?milestone={{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name | Sanitize}}</a>
+					<a class="item" href="{{.RepoLink}}/issues?milestone={{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name}}</a>
 				{{end}}
 			</div>
 		</div>
@@ -65,23 +68,40 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignee dropdown">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
-				<strong>{{.i18n.Tr "repo.issues.new.assignee"}}</strong>
+				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
 			</span>
-			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignee"}}</div>
+			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
-					<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?assignee={{.ID}}" data-avatar="{{.RelAvatarLink}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</div>
+
+					{{$AssigneeID := .ID}}
+					<a class="item{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 checked
+						{{end}}
+					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+						<span class="octicon{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 octicon-check
+						{{end}}
+					{{end}}"></span>
+						<span class="text">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+						</span>
+					</a>
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-assignee list">
-			<span class="no-select item {{if .Issue.Assignee}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignee"}}</span>
+		<div class="ui assignees list">
+			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignees"}}</span>
 			<div class="selected">
-				{{if .Issue.Assignee}}
-					<a class="item" href="{{$.RepoLink}}/issues?assignee={{.Issue.Assignee.ID}}"><img class="ui avatar image" src="{{.Issue.Assignee.RelAvatarLink}}"> {{.Issue.Assignee.Name}}</a>
+				{{range .Issue.Assignees}}
+					<div class="item" style="margin-bottom: 10px;">
+						<a href="{{$.RepoLink}}/issues?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.Name}}</a>
+					</div>
 				{{end}}
 			</div>
 		</div>
@@ -100,26 +120,271 @@
 		</div>
 
 		{{if $.IssueWatch}}
-		<div class="ui divider"></div>
+			<div class="ui divider"></div>
 
-		<div class="ui watching">
-			<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
-			<div>
-				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							<i class="octicon octicon-mute"></i>
-							{{.i18n.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							<i class="octicon octicon-unmute"></i>
-							{{.i18n.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
+			<div class="ui watching">
+				<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
+				<div>
+					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
+						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+						{{$.CsrfTokenHtml}}
+						<button class="fluid ui button">
+							{{if $.IssueWatch.IsWatching}}
+								<i class="octicon octicon-mute"></i>
+								{{.i18n.Tr "repo.issues.unsubscribe"}}
+							{{else}}
+								<i class="octicon octicon-unmute"></i>
+								{{.i18n.Tr "repo.issues.subscribe"}}
+							{{end}}
+						</button>
+					</form>
+				</div>
 			</div>
-		</div>
 		{{end}}
+		{{if .Repository.IsTimetrackerEnabled }}
+			{{if .CanUseTimetracker }}
+				<div class="ui divider"></div>
+				<div class="ui timetrack">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
+					<div>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
+						{{if  $.IsStopwatchRunning}}
+							<div class="ui buttons fluid stop-cancel">
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+							</div>
+						{{else}}
+							{{if .HasUserStopwatch}}
+								<div class="ui warning message">
+									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
+								</div>
+							{{end}}
+							<div class="ui buttons two fluid start-add">
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+								<button onclick="timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
+								<div class="ui mini modal">
+									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
+									<div class="content">
+										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
+											{{$.CsrfTokenHtml}}
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+										</form>
+									</div>
+									<div class="actions">
+										<div class="ui green approve button">{{.i18n.Tr "repo.issues.add_time_short"}}</div>
+										<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+			{{if gt (len .WorkingUsers) 0}}
+				<div class="ui divider"></div>
+				<div class="ui participants comments">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+					<div>
+						{{range $user, $trackedtime := .WorkingUsers}}
+							<div class="comment">
+								<a class="avatar">
+									<img src="{{$user.RelAvatarLink}}">
+								</a>
+								<div class="content">
+									<a class="author">{{$user.DisplayName}}</a>
+									<div class="text">
+										{{$trackedtime}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		{{end}}
+
+		<div class="ui divider"></div>
+		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
+		<div class="ui form" id="deadline-loader">
+			<div class="ui negative message" id="deadline-err-invalid-date" style="display: none;">
+				<i class="close icon"></i>
+				{{.i18n.Tr "repo.issues.due_date_invalid"}}
+			</div>
+			{{if ne .Issue.DeadlineUnix 0}}
+				<p>
+					<span class="octicon octicon-calendar"></span>
+					{{.Issue.DeadlineUnix.FormatShort}}
+					{{if .Issue.IsOverdue}}
+						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
+					{{end}}
+					{{if and .IsSigned .IsRepositoryWriter}}
+						<br/>
+						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>Edit</a> -
+						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>Remove</a>
+					{{end}}
+				</p>
+			{{else}}
+				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
+			{{end}}
+
+			{{if and .IsSigned .IsRepositoryWriter}}
+				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
+					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="setDeadline();return false;">
+						{{$.CsrfTokenHtml}}
+						<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
+						<button class="ui green icon button">
+							{{if ne .Issue.DeadlineUnix 0}}
+								<i class="edit icon"></i>
+							{{else}}
+								<i class="plus icon"></i>
+							{{end}}
+						</button>
+					</form>
+				</div>
+			{{end}}
+		</div>
+
+		{{if .Repository.IsDependenciesEnabled}}
+			<div class="ui divider"></div>
+
+			<div class="ui depending">
+				<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
+				<br>
+				{{if .BlockedByDependencies}}
+					<span class="text" data-tooltip="{{if .Issue.IsPull}}
+						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
+					{{else}}
+						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+					{{end}}" data-inverted="">
+					{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
+					</span>
+					<div class="ui relaxed divided list">
+						{{range .BlockedByDependencies}}
+							<div class="item">
+								<div class="right floated content">
+									{{if $.CanCreateIssueDependencies}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
+											<i class="delete icon text red"></i>
+										</a>
+									{{end}}
+									{{if .IsClosed}}
+										<div class="ui red mini label">
+											<i class="octicon octicon-issue-closed"></i>
+										</div>
+									{{else}}
+										<div class="ui green mini label">
+											<i class="octicon octicon-issue-opened"></i>
+										</div>
+									{{end}}
+								</div>
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if .BlockingDependencies}}
+					<span class="text" data-tooltip="{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
+						{{end}}" data-inverted="">
+					{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
+					</span>
+					<div class="ui relaxed divided list">
+						{{range .BlockingDependencies}}
+							<div class="item">
+								<div class="right floated content">
+									{{if $.CanCreateIssueDependencies}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
+											<i class="delete icon text red"></i>
+										</a>
+									{{end}}
+									{{if .IsClosed}}
+										<div class="ui red tiny label">
+											<i class="octicon octicon-issue-closed"></i>
+										</div>
+									{{else}}
+										<div class="ui green mini label">
+											<i class="octicon octicon-issue-opened"></i>
+										</div>
+									{{end}}
+								</div>
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
+					<p>{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_no_dependencies"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_no_dependencies"}}
+						{{end}}</p>
+				{{end}}
+
+				{{if .CanCreateIssueDependencies}}
+					<div>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
+							{{$.CsrfTokenHtml}}
+							<div class="ui fluid action input">
+								<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+									<input name="newDependency" type="hidden">
+									<i class="dropdown icon"></i>
+									<input type="text" class="search">
+									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
+								</div>
+								<button class="ui green icon button">
+									<i class="plus icon"></i>
+								</button>
+							</div>
+						</form>
+					</div>
+				{{end}}
+			</div>
 	</div>
 </div>
+{{if .CanCreateIssueDependencies}}
+	<input type="hidden" id="repolink" value="{{$.RepoLink}}">
+	<!-- I know, there is probably a better way to do this -->
+	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+
+	<div class="ui basic modal remove-dependency">
+		<div class="ui icon header">
+			<i class="trash icon"></i>
+			{{.i18n.Tr "repo.issues.dependency.remove_header"}}
+		</div>
+		<div class="content">
+			<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/delete" id="removeDependencyForm">
+				{{$.CsrfTokenHtml}}
+				<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
+				<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
+			</form>
+			<p>{{if .Issue.IsPull}}
+				{{.i18n.Tr "repo.issues.dependency.pr_remove_text"}}
+			{{else}}
+				{{.i18n.Tr "repo.issues.dependency.issue_remove_text"}}
+			{{end}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui basic red cancel inverted button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "repo.issues.dependency.cancel"}}
+			</div>
+			<div class="ui basic green ok inverted button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "repo.issues.dependency.remove"}}
+			</div>
+		</div>
+	</div>
+{{end}}
+		{{end}}

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -65,9 +66,10 @@ func TestPullRequestsNewest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(2), prs[0].ID)
-	assert.Equal(t, int64(1), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(2), prs[0].ID)
+		assert.Equal(t, int64(1), prs[1].ID)
+	}
 }
 
 func TestPullRequestsOldest(t *testing.T) {
@@ -80,9 +82,10 @@ func TestPullRequestsOldest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(1), prs[0].ID)
-	assert.Equal(t, int64(2), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(1), prs[0].ID)
+		assert.Equal(t, int64(2), prs[1].ID)
+	}
 }
 
 func TestGetUnmergedPullRequest(t *testing.T) {
@@ -191,8 +194,12 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.AddToTaskQueue()
 
-	// briefly sleep so that background threads have time to run
-	time.Sleep(time.Millisecond)
+	select {
+	case id := <-pullRequestQueue.Queue():
+		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
+	case <-time.After(time.Second):
+		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+	}
 
 	assert.True(t, pullRequestQueue.Exist(pr.ID))
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)

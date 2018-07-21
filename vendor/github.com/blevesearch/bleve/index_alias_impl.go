@@ -425,14 +425,15 @@ func (i *indexAliasImpl) Swap(in, out []Index) {
 // could be slower in remote usages.
 func createChildSearchRequest(req *SearchRequest) *SearchRequest {
 	rv := SearchRequest{
-		Query:     req.Query,
-		Size:      req.Size + req.From,
-		From:      0,
-		Highlight: req.Highlight,
-		Fields:    req.Fields,
-		Facets:    req.Facets,
-		Explain:   req.Explain,
-		Sort:      req.Sort,
+		Query:            req.Query,
+		Size:             req.Size + req.From,
+		From:             0,
+		Highlight:        req.Highlight,
+		Fields:           req.Fields,
+		Facets:           req.Facets,
+		Explain:          req.Explain,
+		Sort:             req.Sort.Copy(),
+		IncludeLocations: req.IncludeLocations,
 	}
 	return &rv
 }

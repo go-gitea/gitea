@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-// Branch represents a repository branch.
+// Branch represents a repository branch
 type Branch struct {
 	Name   string         `json:"name"`
 	Commit *PayloadCommit `json:"commit"`

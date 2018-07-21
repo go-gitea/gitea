@@ -76,7 +76,7 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {
-		deleted, err = x.Id(openid.ID).Delete(&address)
+		deleted, err = x.ID(openid.ID).Delete(&address)
 	} else {
 		deleted, err = x.
 			Where("openid=?", openid.URI).

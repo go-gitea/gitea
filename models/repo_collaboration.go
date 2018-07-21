@@ -143,7 +143,7 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 
 	if _, err = sess.
 		Id(collaboration.ID).
-		AllCols().
+		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
 	} else if _, err = sess.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
@@ -169,6 +169,15 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
 	} else if err = repo.recalculateAccesses(sess); err != nil {
+		return err
+	}
+
+	if err = watchRepo(sess, uid, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	if err := removeIssueWatchersByRepoID(sess, uid, repo.ID); err != nil {
 		return err
 	}
 

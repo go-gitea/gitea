@@ -90,7 +90,7 @@ func (q *MatchQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *MatchQuery) Boost() float64{
+func (q *MatchQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -98,7 +98,7 @@ func (q *MatchQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *MatchQuery) Field() string{
+func (q *MatchQuery) Field() string {
 	return q.FieldVal
 }
 
@@ -114,7 +114,7 @@ func (q *MatchQuery) SetOperator(operator MatchQueryOperator) {
 	q.Operator = operator
 }
 
-func (q *MatchQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *MatchQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 
 	field := q.FieldVal
 	if q.FieldVal == "" {
@@ -160,17 +160,17 @@ func (q *MatchQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, expla
 			shouldQuery := NewDisjunctionQuery(tqs)
 			shouldQuery.SetMin(1)
 			shouldQuery.SetBoost(q.BoostVal.Value())
-			return shouldQuery.Searcher(i, m, explain)
+			return shouldQuery.Searcher(i, m, options)
 
 		case MatchQueryOperatorAnd:
 			mustQuery := NewConjunctionQuery(tqs)
 			mustQuery.SetBoost(q.BoostVal.Value())
-			return mustQuery.Searcher(i, m, explain)
+			return mustQuery.Searcher(i, m, options)
 
 		default:
 			return nil, fmt.Errorf("unhandled operator %d", q.Operator)
 		}
 	}
 	noneQuery := NewMatchNoneQuery()
-	return noneQuery.Searcher(i, m, explain)
+	return noneQuery.Searcher(i, m, options)
 }

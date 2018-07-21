@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/paginater"
@@ -67,23 +67,24 @@ func Releases(ctx *context.Context) {
 
 	opts := models.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.IsWriter(),
+		IncludeTags:   true,
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
 	if err != nil {
-		ctx.Handle(500, "GetReleasesByRepoID", err)
+		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
 
 	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
-		ctx.Handle(500, "GetReleaseCountByRepoID", err)
+		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
 
 	err = models.GetReleaseAttachments(releases...)
 	if err != nil {
-		ctx.Handle(500, "GetReleaseAttachments", err)
+		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
 
@@ -102,14 +103,14 @@ func Releases(ctx *context.Context) {
 				if models.IsErrUserNotExist(err) {
 					r.Publisher = models.NewGhostUser()
 				} else {
-					ctx.Handle(500, "GetUserByID", err)
+					ctx.ServerError("GetUserByID", err)
 					return
 				}
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
-			ctx.Handle(500, "calReleaseNumCommitsBehind", err)
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
 			return
 		}
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
@@ -145,57 +146,62 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		return
 	}
 
-	var tagCreatedUnix int64
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
-	if err == nil {
-		commit, err := tag.Commit()
-		if err == nil {
-			tagCreatedUnix = commit.Author.When.Unix()
-		}
-	}
-
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(form.Target)
-	if err != nil {
-		ctx.Handle(500, "GetBranchCommit", err)
-		return
-	}
-
-	commitsCount, err := commit.CommitsCount()
-	if err != nil {
-		ctx.Handle(500, "CommitsCount", err)
-		return
-	}
-
-	rel := &models.Release{
-		RepoID:       ctx.Repo.Repository.ID,
-		PublisherID:  ctx.User.ID,
-		Title:        form.Title,
-		TagName:      form.TagName,
-		Target:       form.Target,
-		Sha1:         commit.ID.String(),
-		NumCommits:   commitsCount,
-		Note:         form.Content,
-		IsDraft:      len(form.Draft) > 0,
-		IsPrerelease: form.Prerelease,
-		CreatedUnix:  tagCreatedUnix,
-	}
-
 	var attachmentUUIDs []string
 	if setting.AttachmentEnabled {
 		attachmentUUIDs = form.Files
 	}
 
-	if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
-		ctx.Data["Err_TagName"] = true
-		switch {
-		case models.IsErrReleaseAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
-		case models.IsErrInvalidTagName(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
-		default:
-			ctx.Handle(500, "CreateRelease", err)
+	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	if err != nil {
+		if !models.IsErrReleaseNotExist(err) {
+			ctx.ServerError("GetRelease", err)
+			return
 		}
-		return
+
+		rel := &models.Release{
+			RepoID:       ctx.Repo.Repository.ID,
+			PublisherID:  ctx.User.ID,
+			Title:        form.Title,
+			TagName:      form.TagName,
+			Target:       form.Target,
+			Note:         form.Content,
+			IsDraft:      len(form.Draft) > 0,
+			IsPrerelease: form.Prerelease,
+			IsTag:        false,
+		}
+
+		if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+			ctx.Data["Err_TagName"] = true
+			switch {
+			case models.IsErrReleaseAlreadyExist(err):
+				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
+			case models.IsErrInvalidTagName(err):
+				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
+			default:
+				ctx.ServerError("CreateRelease", err)
+			}
+			return
+		}
+	} else {
+		if !rel.IsTag {
+			ctx.Data["Err_TagName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
+			return
+		}
+
+		rel.Title = form.Title
+		rel.Note = form.Content
+		rel.Target = form.Target
+		rel.IsDraft = len(form.Draft) > 0
+		rel.IsPrerelease = form.Prerelease
+		rel.PublisherID = ctx.User.ID
+		rel.IsTag = false
+
+		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+			ctx.Data["Err_TagName"] = true
+			ctx.ServerError("UpdateRelease", err)
+			return
+		}
 	}
 	log.Trace("Release created: %s/%s:%s", ctx.User.LowerName, ctx.Repo.Repository.Name, form.TagName)
 
@@ -213,9 +219,9 @@ func EditRelease(ctx *context.Context) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Handle(404, "GetRelease", err)
+			ctx.NotFound("GetRelease", err)
 		} else {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 		}
 		return
 	}
@@ -240,10 +246,14 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Handle(404, "GetRelease", err)
+			ctx.NotFound("GetRelease", err)
 		} else {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 		}
+		return
+	}
+	if rel.IsTag {
+		ctx.NotFound("GetRelease", err)
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName
@@ -266,8 +276,8 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
-		ctx.Handle(500, "UpdateRelease", err)
+	if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		ctx.ServerError("UpdateRelease", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
@@ -275,8 +285,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	delTag := ctx.QueryBool("delTag")
-	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, delTag); err != nil {
+	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))

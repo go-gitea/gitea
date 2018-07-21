@@ -1,0 +1,43 @@
+{{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
+<input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
+<div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+	<div class="ui basic small button">
+		<span class="text branch-name">{{if .Issue.Ref}}{{.Issue.Ref}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
+		<i class="dropdown icon"></i>
+	</div>
+	<div class="menu">
+		<div class="ui icon search input">
+			<i class="filter icon"></i>
+			<input name="search" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
+		</div>
+		<div class="header">
+			<div class="ui grid">
+				<div class="two column row">
+					<a class="reference column" href="#" data-target="#branch-list">
+						<span class="text black">
+							<i class="octicon octicon-git-branch"></i> {{.i18n.Tr "repo.branches"}}
+						</span>
+					</a>
+					<a class="reference column" href="#" data-target="#tag-list">
+						<span class="text">
+							<i class="reference tags icon"></i> {{.i18n.Tr "repo.tags"}}
+						</span>
+					</a>
+				</div>
+			</div>
+		</div>
+		<div id="branch-list" class="scrolling menu reference-list-menu">
+		{{range .Branches}}
+			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+		{{end}}
+		</div>
+		<div id="tag-list" class="scrolling menu reference-list-menu" style="display: none">
+		{{range .Tags}}
+			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+		{{end}}
+		</div>
+	</div>
+</div>
+
+<div class="ui divider"></div>
+{{end}}

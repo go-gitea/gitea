@@ -13,11 +13,16 @@ import (
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/csv"
+	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/orgmode"
+
 	"github.com/urfave/cli"
 )
 
 // Version holds the current Gitea version
-var Version = "1.1.0+dev"
+var Version = "1.5.0-dev"
 
 // Tags holds the build tags used
 var Tags = ""
@@ -31,6 +36,8 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
+	app.Description = `By default, gitea will start serving using the webserver with no
+arguments - which can alternatively be run by running the subcommand web.`
 	app.Version = Version + formatBuiltWith(Tags)
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
@@ -39,8 +46,10 @@ func main() {
 		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
+		cmd.CmdGenerate,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
+	app.Action = cmd.CmdWeb.Action
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)

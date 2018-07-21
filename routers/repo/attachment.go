@@ -55,6 +55,7 @@ func UploadAttachment(ctx *context.Context) {
 	}
 
 	if !allowed {
+		log.Info("Attachment with type %s blocked from upload", fileType)
 		ctx.Error(400, ErrFileTypeForbidden.Error())
 		return
 	}

@@ -20,7 +20,7 @@ import (
 func main() {
 	var (
 		prefix      = "gitea-licenses"
-		url         = "https://api.github.com/repos/spdx/license-list/tarball"
+		url         = "https://api.github.com/repos/spdx/license-list-data/tarball"
 		destination = ""
 	)
 
@@ -70,6 +70,10 @@ func main() {
 			log.Fatalf("Failed to iterate archive. %s", err)
 		}
 
+		if !strings.Contains(hdr.Name, "/text/") {
+			continue
+		}
+
 		if filepath.Ext(hdr.Name) != ".txt" {
 			continue
 		}
@@ -81,7 +85,6 @@ func main() {
 		if strings.HasPrefix(filepath.Base(hdr.Name), "deprecated_") {
 			continue
 		}
-
 		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
 
 		if err != nil {

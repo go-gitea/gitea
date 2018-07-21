@@ -43,20 +43,20 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					<i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/issues?state={{$.State}}&milestone={{.ID}}">{{.Name | Sanitize}}</a>
+					<i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/issues?state={{$.State}}&milestone={{.ID}}">{{.Name}}</a>
 					<div class="ui right green progress" data-percent="{{.Completeness}}">
 						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
 							<div class="progress"></div>
 						</div>
 					</div>
 					<div class="meta">
-						{{ $closedDate:= TimeSince .ClosedDate $.Lang }}
+						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
 						{{if .IsClosed}}
 							<span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{else}}
 							<span class="octicon octicon-calendar"></span>
 							{{if .DeadlineString}}
-								<span {{if .IsOverDue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
 							{{else}}
 								{{$.i18n.Tr "repo.milestones.no_due_date"}}
 							{{end}}
@@ -64,6 +64,7 @@
 						<span class="issue-stats">
 							<i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
 							<i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{if .TotalTrackedTime}}<i class="octicon octicon-clock"></i> {{.TotalTrackedTime|Sec2Time}}{{end}}
 						</span>
 					</div>
 					{{if $.IsRepositoryWriter}}

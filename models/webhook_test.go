@@ -41,8 +41,9 @@ func TestWebhook_History(t *testing.T) {
 	webhook := AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
 	tasks, err := webhook.History(0)
 	assert.NoError(t, err)
-	assert.Len(t, tasks, 1)
-	assert.Equal(t, int64(1), tasks[0].ID)
+	if assert.Len(t, tasks, 1) {
+		assert.Equal(t, int64(1), tasks[0].ID)
+	}
 
 	webhook = AssertExistsAndLoadBean(t, &Webhook{ID: 2}).(*Webhook)
 	tasks, err = webhook.History(0)
@@ -72,7 +73,7 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.Equal(t, []string{"create", "push", "pull_request"},
+	assert.Equal(t, []string{"create", "delete", "fork", "push", "issues", "issue_comment", "pull_request", "repository", "release"},
 		(&Webhook{
 			HookEvent: &HookEvent{SendEverything: true},
 		}).EventsArray(),
@@ -123,36 +124,40 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hooks, err := GetActiveWebhooksByRepoID(1)
 	assert.NoError(t, err)
-	assert.Len(t, hooks, 1)
-	assert.Equal(t, int64(1), hooks[0].ID)
-	assert.True(t, hooks[0].IsActive)
+	if assert.Len(t, hooks, 1) {
+		assert.Equal(t, int64(1), hooks[0].ID)
+		assert.True(t, hooks[0].IsActive)
+	}
 }
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hooks, err := GetWebhooksByRepoID(1)
 	assert.NoError(t, err)
-	assert.Len(t, hooks, 2)
-	assert.Equal(t, int64(1), hooks[0].ID)
-	assert.Equal(t, int64(2), hooks[1].ID)
+	if assert.Len(t, hooks, 2) {
+		assert.Equal(t, int64(1), hooks[0].ID)
+		assert.Equal(t, int64(2), hooks[1].ID)
+	}
 }
 
 func TestGetActiveWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hooks, err := GetActiveWebhooksByOrgID(3)
 	assert.NoError(t, err)
-	assert.Len(t, hooks, 1)
-	assert.Equal(t, int64(3), hooks[0].ID)
-	assert.True(t, hooks[0].IsActive)
+	if assert.Len(t, hooks, 1) {
+		assert.Equal(t, int64(3), hooks[0].ID)
+		assert.True(t, hooks[0].IsActive)
+	}
 }
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hooks, err := GetWebhooksByOrgID(3)
 	assert.NoError(t, err)
-	assert.Len(t, hooks, 1)
-	assert.Equal(t, int64(3), hooks[0].ID)
-	assert.True(t, hooks[0].IsActive)
+	if assert.Len(t, hooks, 1) {
+		assert.Equal(t, int64(3), hooks[0].ID)
+		assert.True(t, hooks[0].IsActive)
+	}
 
 }
 
@@ -211,8 +216,9 @@ func TestHookTasks(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTasks, err := HookTasks(1, 1)
 	assert.NoError(t, err)
-	assert.Len(t, hookTasks, 1)
-	assert.Equal(t, int64(1), hookTasks[0].ID)
+	if assert.Len(t, hookTasks, 1) {
+		assert.Equal(t, int64(1), hookTasks[0].ID)
+	}
 
 	hookTasks, err = HookTasks(NonexistentID, 1)
 	assert.NoError(t, err)

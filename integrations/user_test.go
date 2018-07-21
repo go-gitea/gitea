@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +27,10 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf": GetCSRF(t, session, "/user/settings"),
-		"name":  "newUsername",
-		"email": "user2@example.com",
+		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"name":     "newUsername",
+		"email":    "user2@example.com",
+		"language": "en-us",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
@@ -80,18 +82,19 @@ func TestRenameReservedUsername(t *testing.T) {
 	for _, reservedUsername := range reservedUsernames {
 		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetCSRF(t, session, "/user/settings"),
-			"name":  reservedUsername,
-			"email": "user2@example.com",
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     reservedUsername,
+			"email":    "user2@example.com",
+			"language": "en-us",
 		})
 		resp := session.MakeRequest(t, req, http.StatusFound)
 
-		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.newName_reserved"),
+			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
 		)
 
 		models.AssertNotExistsBean(t, &models.User{Name: reservedUsername})

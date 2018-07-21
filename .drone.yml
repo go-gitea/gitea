@@ -1,25 +1,81 @@
 workspace:
-  base: /srv/app
+  base: /go
   path: src/code.gitea.io/gitea
 
-pipeline:
-  clone:
-    image: plugins/git
+clone:
+  git:
+    image: plugins/git:next
     depth: 50
     tags: true
 
+pipeline:
+  download_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: true
+    export_dir: options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
+
+  update-translations:
+    image: alpine:3.6
+    commands:
+      - mv ./options/locale/locale_en-US.ini ./options/
+      - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
+      - sed -i -e 's/\\\\"/"/g' ./options/locale/*.ini
+      - mv ./options/locale_en-US.ini ./options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
+
+  git_push:
+    image: appleboy/drone-git-push
+    pull: true
+    secrets: [ git_push_ssh_key ]
+    remote: git@github.com:go-gitea/gitea.git
+    force: false
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    author_name: GiteaBot
+    author_email: teabot@gitea.io
+    when:
+      event: [ push ]
+      branch: [ master ]
+
+  pre-build:
+    image: webhippie/nodejs:latest
+    pull: true
+    commands:
+      - npm install
+      - make stylesheets-check
+    when:
+      event: [ push, tag, pull_request ]
+
+  build-without-gcc:
+    image: golang:1.8
+    pull: true
+    commands:
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    when:
+      event: [ push, tag, pull_request ]
+
   build:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
-      - apk -U add openssh-client
       - make clean
       - make generate
       - make vet
       - make lint
+      - make fmt-check
+      - make swagger-check
+#      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
@@ -27,92 +83,149 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
+    group: test
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
-      - apk -U add openssh-client
+      - make unit-test-coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  test:
+    image: golang:1.10
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata sqlite
+    commands:
       - make test
     when:
-      event: [ tag, pull_request ]
+      event: [ push, pull_request ]
+      branch: [ release/* ]
 
-  test-coverage:
-    image: webhippie/golang:edge
+  test:
+    image: golang:1.10
     pull: true
-    environment:
-      TAGS: bindata sqlite
-      GOPATH: /srv/app
-    commands:
-      - apk -U add openssh-client
-      - go get github.com/wadey/gocovmerge
-      - make test-coverage
-    when:
-      event: [ push ]
-      branch: master
-
-  test-sqlite:
-    image: webhippie/golang:edge
-    pull: true
+    group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
-      - echo "Needs to be fixed" # make test-sqlite
+      - make test
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
+
+  # Commented until db locking have been resolved!
+  # test-sqlite:
+  #   image: golang:1.10
+  #   pull: true
+  #   group: test
+  #   environment:
+  #     TAGS: bindata
+  #   commands:
+  #     - make test-sqlite
+  #   when:
+  #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
+    group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
+      TEST_LDAP: "1"
     commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - make integration-test-coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  test-mysql:
+    image: golang:1.10
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      TEST_LDAP: "1"
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-mysql
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
 
   test-pgsql:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
+    group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
+      TEST_LDAP: "1"
     commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
+
+  generate-coverage:
+    image: golang:1.10
+    pull: true
+    environment:
+      TAGS: bindata
+    commands:
+      - make coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  coverage:
+    image: robertstettner/drone-codecov
+    secrets: [ codecov_token ]
+    files:
+      - coverage.all
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
 
   static:
     image: karalabe/xgo-latest:latest
     pull: true
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
+      - export PATH=$PATH:$GOPATH/bin
       - make release
     when:
       event: [ push, tag ]
 
-  coverage:
-    image: plugins/coverage
-    server: https://coverage.gitea.io
+  build-docs:
+    image: webhippie/hugo:latest
+    pull: true
+    commands:
+      - cd docs
+      - make trans-copy
+      - make clean
+      - make build
+
+  publish-docs:
+    image: lucap/drone-netlify:latest
+    pull: true
+    secrets: [ netlify_token ]
+    site_id: d2260bae-7861-4c02-8646-8f6440b12672
+    path: docs/public/
     when:
       event: [ push ]
-      branch: master
+      branch: [ master ]
 
   docker:
-    image: plugins/docker
-    repo: gitea/gitea
-    tags: [ '${DRONE_TAG##v}' ]
-    when:
-      event: [ tag ]
-      branch: [ refs/tags/* ]
-
-  docker:
-    image: plugins/docker
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
@@ -120,25 +233,45 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker
+    image: plugins/docker:17.12
+    secrets: [ docker_username, docker_password ]
+    pull: true
     repo: gitea/gitea
-    tags: [ 'latest' ]
+    default_tags: true
     when:
-      event: [ push ]
-      branch: [ master ]
+      event: [ push, tag ]
+
+  gpg-sign:
+    image: plugins/gpgsign:1
+    pull: true
+    secrets: [ gpgsign_key, gpgsign_passphrase ]
+    detach_sign: true
+    files:
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha256
+    when:
+      event: [ push, tag ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
     target: /gitea/${DRONE_TAG##v}
     when:
       event: [ tag ]
-      branch: [ refs/tags/* ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -148,7 +281,11 @@ pipeline:
       branch: [ release/* ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -158,17 +295,31 @@ pipeline:
       branch: [ master ]
 
   github:
-    image: plugins/github-release
+    image: plugins/github-release:1
+    pull: true
+    secrets: [ github_token ]
     files:
       - dist/release/*
     when:
       event: [ tag ]
-      branch: [ refs/tags/* ]
+
+  upload_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: false
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
+    when:
+      event: [ push ]
+      branch: [ master ]
 
   discord:
-    image: appleboy/drone-discord:0.0.4
-    webhook_id: ${WEBHOOK_ID}
-    webhook_token: ${WEBHOOK_TOKEN}
+    image: appleboy/drone-discord:1.0.0
+    pull: true
+    secrets: [ discord_webhook_id, discord_webhook_token ]
     when:
       event: [ push, tag, pull_request ]
       status: [ changed, failure ]
@@ -186,5 +337,10 @@ services:
     image: postgres:9.5
     environment:
       - POSTGRES_DB=test
+    when:
+      event: [ push, tag, pull_request ]
+
+  ldap:
+    image: gitea/test-openldap:latest
     when:
       event: [ push, tag, pull_request ]

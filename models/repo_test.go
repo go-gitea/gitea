@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -39,13 +39,13 @@ func TestRepo(t *testing.T) {
 		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
 	}
 
-	testSuccess(markdown.IssueNameStyleNumeric)
+	testSuccess(markup.IssueNameStyleNumeric)
 
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
-	testSuccess(markdown.IssueNameStyleAlphanumeric)
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleAlphanumeric
+	testSuccess(markup.IssueNameStyleAlphanumeric)
 
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleNumeric
-	testSuccess(markdown.IssueNameStyleNumeric)
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
+	testSuccess(markup.IssueNameStyleNumeric)
 }
 
 func TestGetRepositoryCount(t *testing.T) {
@@ -118,13 +118,12 @@ func TestGetUserFork(t *testing.T) {
 func TestForkRepository(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	// User13 has repo 11 forked from repo10
-	repo, err := GetRepositoryByID(10)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
+	// user 13 has already forked repo10
+	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	repo, err = ForkRepository(&User{ID: 13}, repo, "test", "test")
-	assert.Nil(t, repo)
+	fork, err := ForkRepository(user, user, repo, "test", "test")
+	assert.Nil(t, fork)
 	assert.Error(t, err)
 	assert.True(t, IsErrRepoAlreadyExist(err))
 }
@@ -153,4 +152,27 @@ func TestRepoLocalCopyPath(t *testing.T) {
 	expected = path.Join(tempPath, repoID)
 	setting.Repository.Local.LocalCopyPath = tempPath
 	assert.Equal(t, expected, repo.LocalCopyPath())
+}
+
+func TestTransferOwnership(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo.Owner = AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	assert.NoError(t, TransferOwnership(doer, "user2", repo))
+
+	transferredRepo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	assert.EqualValues(t, 2, transferredRepo.OwnerID)
+
+	assert.False(t, com.IsExist(RepoPath("user3", "repo3")))
+	assert.True(t, com.IsExist(RepoPath("user2", "repo3")))
+	AssertExistsAndLoadBean(t, &Action{
+		OpType:    ActionTransferRepo,
+		ActUserID: 2,
+		RepoID:    3,
+		Content:   "user3/repo3",
+	})
+
+	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
 }

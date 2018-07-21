@@ -28,11 +28,10 @@
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div class="inline field ui left">
-								<div id="search-user-box">
+								<div id="search-user-box" class="ui search">
 									<div class="ui input">
 										<input class="prompt" name="uname" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 									</div>
-									<div class="ui segment results hide"></div>
 								</div>
 							</div>
 							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_member"}}</button>

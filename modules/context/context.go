@@ -5,11 +5,11 @@
 package context
 
 import (
-	"fmt"
 	"html"
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -36,6 +36,7 @@ type Context struct {
 	Session session.Store
 
 	Link        string // current request URL
+	EscapedLink string
 	User        *models.User
 	IsSigned    bool
 	IsBasicAuth bool
@@ -75,6 +76,26 @@ func (ctx *Context) HasValue(name string) bool {
 	return ok
 }
 
+// RedirectToFirst redirects to first not empty URL
+func (ctx *Context) RedirectToFirst(location ...string) {
+	for _, loc := range location {
+		if len(loc) == 0 {
+			continue
+		}
+
+		u, err := url.Parse(loc)
+		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+			continue
+		}
+
+		ctx.Redirect(loc)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
+	return
+}
+
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -91,8 +112,8 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	ctx.HTML(200, tpl)
 }
 
-// Handle handles and logs error by given status.
-func (ctx *Context) Handle(status int, title string, err error) {
+// NotFound displays a 404 (Not Found) page and prints the given error, if any.
+func (ctx *Context) NotFound(title string, err error) {
 	if err != nil {
 		log.Error(4, "%s: %v", title, err)
 		if macaron.Env != macaron.PROD {
@@ -100,13 +121,22 @@ func (ctx *Context) Handle(status int, title string, err error) {
 		}
 	}
 
-	switch status {
-	case 404:
-		ctx.Data["Title"] = "Page Not Found"
-	case 500:
-		ctx.Data["Title"] = "Internal Server Error"
+	ctx.Data["Title"] = "Page Not Found"
+	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
+}
+
+// ServerError displays a 500 (Internal Server Error) page and prints the given
+// error, if any.
+func (ctx *Context) ServerError(title string, err error) {
+	if err != nil {
+		log.Error(4, "%s: %v", title, err)
+		if macaron.Env != macaron.PROD {
+			ctx.Data["ErrorMsg"] = err
+		}
 	}
-	ctx.HTML(status, base.TplName(fmt.Sprintf("status/%d", status)))
+
+	ctx.Data["Title"] = "Internal Server Error"
+	ctx.HTML(404, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -114,11 +144,11 @@ func (ctx *Context) Handle(status int, title string, err error) {
 // or error context description for logging purpose of 500 server error.
 func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, err error) {
 	if errck(err) {
-		ctx.Handle(404, title, err)
+		ctx.NotFound(title, err)
 		return
 	}
 
-	ctx.Handle(500, title, err)
+	ctx.ServerError(title, err)
 }
 
 // HandleText handles HTTP status code
@@ -157,7 +187,7 @@ func Contexter() macaron.Handler {
 			csrf:    x,
 			Flash:   f,
 			Session: sess,
-			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.Path, "/"),
+			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.EscapedPath(), "/"),
 			Repo: &Repository{
 				PullRequest: &PullRequest{},
 			},
@@ -175,15 +205,14 @@ func Contexter() macaron.Handler {
 			repoName := c.Params(":reponame")
 			branchName := "master"
 
-			owner, err := models.GetUserByName(ownerName)
-			if err == nil {
-				repo, err := models.GetRepositoryByName(owner.ID, repoName)
-				if err == nil && len(repo.DefaultBranch) > 0 {
-					branchName = repo.DefaultBranch
-				}
+			repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+			if err == nil && len(repo.DefaultBranch) > 0 {
+				branchName = repo.DefaultBranch
 			}
-			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", branchName)
-			c.PlainText(http.StatusOK, []byte(com.Expand(`
+			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
+			c.Header().Set("Content-Type", "text/html")
+			c.WriteHeader(http.StatusOK)
+			c.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
@@ -194,7 +223,7 @@ func Contexter() macaron.Handler {
 	</body>
 </html>
 `, map[string]string{
-				"GoGetImport":    path.Join(setting.Domain, setting.AppSubURL, ctx.Link),
+				"GoGetImport":    ComposeGoGetImport(ownerName, strings.TrimSuffix(repoName, ".git")),
 				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
 				"GoDocDirectory": prefix + "{/dir}",
 				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
@@ -213,14 +242,14 @@ func Contexter() macaron.Handler {
 			ctx.Data["SignedUserName"] = ctx.User.Name
 			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
 		} else {
-			ctx.Data["SignedUserID"] = 0
+			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""
 		}
 
 		// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 		if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 			if err := ctx.Req.ParseMultipartForm(setting.AttachmentMaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-				ctx.Handle(500, "ParseMultipartForm", err)
+				ctx.ServerError("ParseMultipartForm", err)
 				return
 			}
 		}
@@ -235,6 +264,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+		ctx.Data["EnableSwaggerEndpoint"] = setting.API.EnableSwaggerEndpoint
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
 		c.Map(ctx)

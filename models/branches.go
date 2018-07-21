@@ -6,8 +6,14 @@ package models
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
 )
 
 const (
@@ -17,25 +23,67 @@ const (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID          int64  `xorm:"pk autoincr"`
-	RepoID      int64  `xorm:"UNIQUE(s)"`
-	BranchName  string `xorm:"UNIQUE(s)"`
-	CanPush     bool
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	ID                    int64  `xorm:"pk autoincr"`
+	RepoID                int64  `xorm:"UNIQUE(s)"`
+	BranchName            string `xorm:"UNIQUE(s)"`
+	CanPush               bool   `xorm:"NOT NULL DEFAULT false"`
+	EnableWhitelist       bool
+	WhitelistUserIDs      []int64        `xorm:"JSON TEXT"`
+	WhitelistTeamIDs      []int64        `xorm:"JSON TEXT"`
+	EnableMergeWhitelist  bool           `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
+	CreatedUnix           util.TimeStamp `xorm:"created"`
+	UpdatedUnix           util.TimeStamp `xorm:"updated"`
 }
 
-// BeforeInsert before protected branch insert create and update time
-func (protectBranch *ProtectedBranch) BeforeInsert() {
-	protectBranch.CreatedUnix = time.Now().Unix()
-	protectBranch.UpdatedUnix = protectBranch.CreatedUnix
+// IsProtected returns if the branch is protected
+func (protectBranch *ProtectedBranch) IsProtected() bool {
+	return protectBranch.ID > 0
 }
 
-// BeforeUpdate before protected branch update time
-func (protectBranch *ProtectedBranch) BeforeUpdate() {
-	protectBranch.UpdatedUnix = time.Now().Unix()
+// CanUserPush returns if some user could push to this protected branch
+func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
+	if !protectBranch.EnableWhitelist {
+		return false
+	}
+
+	if base.Int64sContains(protectBranch.WhitelistUserIDs, userID) {
+		return true
+	}
+
+	if len(protectBranch.WhitelistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := IsUserInTeams(userID, protectBranch.WhitelistTeamIDs)
+	if err != nil {
+		log.Error(1, "IsUserInTeams:", err)
+		return false
+	}
+	return in
+}
+
+// CanUserMerge returns if some user could merge a pull request to this protected branch
+func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+	if !protectBranch.EnableMergeWhitelist {
+		return true
+	}
+
+	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+		return true
+	}
+
+	if len(protectBranch.WhitelistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error(1, "IsUserInTeams:", err)
+		return false
+	}
+	return in
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
@@ -46,7 +94,7 @@ func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: strings.ToLower(BranchName)}
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
@@ -57,6 +105,68 @@ func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, er
 	return rel, nil
 }
 
+// GetProtectedBranchByID getting protected branch by ID
+func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{ID: id}
+	has, err := x.Get(rel)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return rel, nil
+}
+
+// UpdateProtectBranch saves branch protection options of repository.
+// If ID is 0, it creates a new record. Otherwise, updates existing record.
+// This function also performs check if whitelist user and team's IDs have been changed
+// to avoid unnecessary whitelist delete and regenerate.
+func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, whitelistUserIDs, whitelistTeamIDs, mergeWhitelistUserIDs, mergeWhitelistTeamIDs []int64) (err error) {
+	if err = repo.GetOwner(); err != nil {
+		return fmt.Errorf("GetOwner: %v", err)
+	}
+
+	whitelist, err := updateUserWhitelist(repo, protectBranch.WhitelistUserIDs, whitelistUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.WhitelistUserIDs = whitelist
+
+	whitelist, err = updateUserWhitelist(repo, protectBranch.MergeWhitelistUserIDs, mergeWhitelistUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.MergeWhitelistUserIDs = whitelist
+
+	// if the repo is in an organization
+	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, whitelistTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.WhitelistTeamIDs = whitelist
+
+	whitelist, err = updateTeamWhitelist(repo, protectBranch.MergeWhitelistTeamIDs, mergeWhitelistTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.MergeWhitelistTeamIDs = whitelist
+
+	// Make sure protectBranch.ID is not 0 for whitelists
+	if protectBranch.ID == 0 {
+		if _, err = x.Insert(protectBranch); err != nil {
+			return fmt.Errorf("Insert: %v", err)
+		}
+		return nil
+	}
+
+	if _, err = x.ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+
+	return nil
+}
+
 // GetProtectedBranches get all protected branches
 func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
@@ -64,7 +174,11 @@ func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 }
 
 // IsProtectedBranch checks if branch is protected
-func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
+func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repo.ID,
 		BranchName: branchName,
@@ -74,14 +188,18 @@ func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
 	if err != nil {
 		return true, err
 	} else if has {
-		return true, nil
+		return !protectedBranch.CanUserPush(doer.ID), nil
 	}
 
 	return false, nil
 }
 
-// AddProtectedBranch add protection to branch
-func (repo *Repository) AddProtectedBranch(branchName string, canPush bool) error {
+// IsProtectedBranchForMerging checks if branch is protected for merging
+func (repo *Repository) IsProtectedBranchForMerging(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repo.ID,
 		BranchName: branchName,
@@ -89,53 +207,58 @@ func (repo *Repository) AddProtectedBranch(branchName string, canPush bool) erro
 
 	has, err := x.Get(protectedBranch)
 	if err != nil {
-		return err
+		return true, err
 	} else if has {
-		return nil
+		return !protectedBranch.CanUserMerge(doer.ID), nil
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-	protectedBranch.CanPush = canPush
-	if _, err = sess.InsertOne(protectedBranch); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return false, nil
 }
 
-// ChangeProtectedBranch access mode sets new access mode for the ProtectedBranch.
-func (repo *Repository) ChangeProtectedBranch(id int64, canPush bool) error {
-	ProtectedBranch := &ProtectedBranch{
-		RepoID: repo.ID,
-		ID:     id,
+// updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which have write access to the repo.
+func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
 	}
-	has, err := x.Get(ProtectedBranch)
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		has, err := hasAccess(x, userID, repo, AccessModeWrite)
+		if err != nil {
+			return nil, fmt.Errorf("HasAccess [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+		} else if !has {
+			continue // Drop invalid user ID
+		}
+
+		whitelist = append(whitelist, userID)
+	}
+
+	return
+}
+
+// updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
+// the teams from newWhitelist which have write access to the repo.
+func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	if !hasTeamsChanged {
+		return currentWhitelist, nil
+	}
+
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeWrite)
 	if err != nil {
-		return fmt.Errorf("get ProtectedBranch: %v", err)
-	} else if !has {
-		return nil
+		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}
 
-	if ProtectedBranch.CanPush == canPush {
-		return nil
-	}
-	ProtectedBranch.CanPush = canPush
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	whitelist = make([]int64, 0, len(teams))
+	for i := range teams {
+		if teams[i].HasWriteAccess() && com.IsSliceContainsInt64(newWhitelist, teams[i].ID) {
+			whitelist = append(whitelist, teams[i].ID)
+		}
 	}
 
-	if _, err = sess.Id(ProtectedBranch.ID).AllCols().Update(ProtectedBranch); err != nil {
-		return fmt.Errorf("update ProtectedBranch: %v", err)
-	}
-
-	return sess.Commit()
+	return
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
@@ -160,14 +283,102 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 	return sess.Commit()
 }
 
-// newProtectedBranch insert one queue
-func newProtectedBranch(protectedBranch *ProtectedBranch) error {
-	_, err := x.InsertOne(protectedBranch)
-	return err
+// DeletedBranch struct
+type DeletedBranch struct {
+	ID          int64          `xorm:"pk autoincr"`
+	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64          `xorm:"INDEX"`
+	DeletedBy   *User          `xorm:"-"`
+	DeletedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
-// UpdateProtectedBranch update queue
-func UpdateProtectedBranch(protectedBranch *ProtectedBranch) error {
-	_, err := x.Update(protectedBranch)
-	return err
+// AddDeletedBranch adds a deleted branch to the database
+func (repo *Repository) AddDeletedBranch(branchName, commit string, deletedByID int64) error {
+	deletedBranch := &DeletedBranch{
+		RepoID:      repo.ID,
+		Name:        branchName,
+		Commit:      commit,
+		DeletedByID: deletedByID,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.InsertOne(deletedBranch); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetDeletedBranches returns all the deleted branches
+func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
+	deletedBranches := make([]*DeletedBranch, 0)
+	return deletedBranches, x.Where("repo_id = ?", repo.ID).Desc("deleted_unix").Find(&deletedBranches)
+}
+
+// GetDeletedBranchByID get a deleted branch by its ID
+func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{ID: ID}
+	has, err := x.Get(deletedBranch)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return deletedBranch, nil
+}
+
+// RemoveDeletedBranch removes a deleted branch from the database
+func (repo *Repository) RemoveDeletedBranch(id int64) (err error) {
+	deletedBranch := &DeletedBranch{
+		RepoID: repo.ID,
+		ID:     id,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if affected, err := sess.Delete(deletedBranch); err != nil {
+		return err
+	} else if affected != 1 {
+		return fmt.Errorf("remove deleted branch ID(%v) failed", id)
+	}
+
+	return sess.Commit()
+}
+
+// LoadUser loads the user that deleted the branch
+// When there's no user found it returns a NewGhostUser
+func (deletedBranch *DeletedBranch) LoadUser() {
+	user, err := GetUserByID(deletedBranch.DeletedByID)
+	if err != nil {
+		user = NewGhostUser()
+	}
+	deletedBranch.DeletedBy = user
+}
+
+// RemoveOldDeletedBranches removes old deleted branches
+func RemoveOldDeletedBranches() {
+	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
+		return
+	}
+	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
+
+	log.Trace("Doing: DeletedBranchesCleanup")
+
+	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
+	if err != nil {
+		log.Error(4, "DeletedBranchesCleanup: %v", err)
+	}
 }

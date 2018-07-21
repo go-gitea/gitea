@@ -6,179 +6,129 @@ package models
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
 
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/analysis/analyzer/simple"
-	"github.com/blevesearch/bleve/search/query"
 )
 
-// issueIndexerUpdateQueue queue of issues that need to be updated in the issues
-// indexer
-var issueIndexerUpdateQueue chan *Issue
-
-// issueIndexer (thread-safe) index for searching issues
-var issueIndexer bleve.Index
-
-// issueIndexerData data stored in the issue indexer
-type issueIndexerData struct {
-	ID     int64
-	RepoID int64
-
-	Title   string
-	Content string
-}
-
-// numericQuery an numeric-equality query for the given value and field
-func numericQuery(value int64, field string) *query.NumericRangeQuery {
-	f := float64(value)
-	tru := true
-	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
-	q.SetField(field)
-	return q
-}
-
-// SearchIssuesByKeyword searches for issues by given conditions.
-// Returns the matching issue IDs
-func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
-	terms := strings.Fields(strings.ToLower(keyword))
-	indexerQuery := bleve.NewConjunctionQuery(
-		numericQuery(repoID, "RepoID"),
-		bleve.NewDisjunctionQuery(
-			bleve.NewPhraseQuery(terms, "Title"),
-			bleve.NewPhraseQuery(terms, "Content"),
-		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
-	search.Fields = []string{"ID"}
-
-	result, err := issueIndexer.Search(search)
-	if err != nil {
-		return nil, err
-	}
-
-	issueIDs := make([]int64, len(result.Hits))
-	for i, hit := range result.Hits {
-		issueIDs[i] = int64(hit.Fields["ID"].(float64))
-	}
-	return issueIDs, nil
-}
+// issueIndexerUpdateQueue queue of issue ids to be updated
+var issueIndexerUpdateQueue chan int64
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer() {
-	_, err := os.Stat(setting.Indexer.IssuePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err = createIssueIndexer(); err != nil {
-				log.Fatal(4, "CreateIssuesIndexer: %v", err)
-			}
-			if err = populateIssueIndexer(); err != nil {
-				log.Fatal(4, "PopulateIssuesIndex: %v", err)
-			}
-		} else {
-			log.Fatal(4, "InitIssuesIndexer: %v", err)
-		}
-	} else {
-		issueIndexer, err = bleve.Open(setting.Indexer.IssuePath)
-		if err != nil {
-			log.Fatal(4, "InitIssuesIndexer, open index: %v", err)
-		}
-	}
-	issueIndexerUpdateQueue = make(chan *Issue, setting.Indexer.UpdateQueueLength)
+	indexer.InitIssueIndexer(populateIssueIndexer)
+	issueIndexerUpdateQueue = make(chan int64, setting.Indexer.UpdateQueueLength)
 	go processIssueIndexerUpdateQueue()
-	// TODO close issueIndexer when Gitea closes
-}
-
-// createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer() error {
-	mapping := bleve.NewIndexMapping()
-	docMapping := bleve.NewDocumentMapping()
-
-	docMapping.AddFieldMappingsAt("ID", bleve.NewNumericFieldMapping())
-	docMapping.AddFieldMappingsAt("RepoID", bleve.NewNumericFieldMapping())
-
-	textFieldMapping := bleve.NewTextFieldMapping()
-	textFieldMapping.Analyzer = simple.Name
-	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
-	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
-
-	mapping.AddDocumentMapping("issues", docMapping)
-
-	var err error
-	issueIndexer, err = bleve.New(setting.Indexer.IssuePath, mapping)
-	return err
 }
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer() error {
+	batch := indexer.IssueIndexerBatch()
 	for page := 1; ; page++ {
-		repos, _, err := Repositories(&SearchRepoOptions{
-			Page:     page,
-			PageSize: 10,
+		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
+			Page:        page,
+			PageSize:    RepositoryListDefaultPageSize,
+			OrderBy:     SearchOrderByID,
+			Private:     true,
+			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			return fmt.Errorf("Repositories: %v", err)
 		}
 		if len(repos) == 0 {
-			return nil
+			return batch.Flush()
 		}
-		batch := issueIndexer.NewBatch()
 		for _, repo := range repos {
 			issues, err := Issues(&IssuesOptions{
-				RepoID:   repo.ID,
+				RepoIDs:  []int64{repo.ID},
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
-				Page:     -1, // do not page
 			})
 			if err != nil {
-				return fmt.Errorf("Issues: %v", err)
+				return err
+			}
+			if err = IssueList(issues).LoadComments(); err != nil {
+				return err
 			}
 			for _, issue := range issues {
-				err = batch.Index(issue.indexUID(), issue.issueData())
-				if err != nil {
-					return fmt.Errorf("batch.Index: %v", err)
+				if err := issue.update().AddToFlushingBatch(batch); err != nil {
+					return err
 				}
 			}
-		}
-		if err = issueIndexer.Batch(batch); err != nil {
-			return fmt.Errorf("index.Batch: %v", err)
 		}
 	}
 }
 
 func processIssueIndexerUpdateQueue() {
+	batch := indexer.IssueIndexerBatch()
 	for {
+		var issueID int64
 		select {
-		case issue := <-issueIndexerUpdateQueue:
-			if err := issueIndexer.Index(issue.indexUID(), issue.issueData()); err != nil {
-				log.Error(4, "issuesIndexer.Index: %v", err)
+		case issueID = <-issueIndexerUpdateQueue:
+		default:
+			// flush whatever updates we currently have, since we
+			// might have to wait a while
+			if err := batch.Flush(); err != nil {
+				log.Error(4, "IssueIndexer: %v", err)
 			}
+			issueID = <-issueIndexerUpdateQueue
+		}
+		issue, err := GetIssueByID(issueID)
+		if err != nil {
+			log.Error(4, "GetIssueByID: %v", err)
+		} else if err = issue.update().AddToFlushingBatch(batch); err != nil {
+			log.Error(4, "IssueIndexer: %v", err)
 		}
 	}
 }
 
-// indexUID a unique identifier for an issue used in full-text indices
-func (issue *Issue) indexUID() string {
-	return strconv.FormatInt(issue.ID, 36)
+func (issue *Issue) update() indexer.IssueIndexerUpdate {
+	comments := make([]string, 0, 5)
+	for _, comment := range issue.Comments {
+		if comment.Type == CommentTypeComment {
+			comments = append(comments, comment.Content)
+		}
+	}
+	return indexer.IssueIndexerUpdate{
+		IssueID: issue.ID,
+		Data: &indexer.IssueIndexerData{
+			RepoID:   issue.RepoID,
+			Title:    issue.Title,
+			Content:  issue.Content,
+			Comments: comments,
+		},
+	}
 }
 
-func (issue *Issue) issueData() *issueIndexerData {
-	return &issueIndexerData{
-		ID:      issue.ID,
-		RepoID:  issue.RepoID,
-		Title:   issue.Title,
-		Content: issue.Content,
+// updateNeededCols whether a change to the specified columns requires updating
+// the issue indexer
+func updateNeededCols(cols []string) bool {
+	for _, col := range cols {
+		switch col {
+		case "name", "content":
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateIssueIndexerCols update an issue in the issue indexer, given changes
+// to the specified columns
+func UpdateIssueIndexerCols(issueID int64, cols ...string) {
+	if updateNeededCols(cols) {
+		UpdateIssueIndexer(issueID)
 	}
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issue *Issue) {
-	go func() {
-		issueIndexerUpdateQueue <- issue
-	}()
+func UpdateIssueIndexer(issueID int64) {
+	select {
+	case issueIndexerUpdateQueue <- issueID:
+	default:
+		go func() {
+			issueIndexerUpdateQueue <- issueID
+		}()
+	}
 }

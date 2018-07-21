@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/repo"
 )
 
@@ -28,9 +29,9 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Handle(404, "GetUserByName", nil)
+			ctx.NotFound("GetUserByName", nil)
 		} else {
-			ctx.Handle(500, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return nil
 	}
@@ -78,7 +79,7 @@ func Profile(ctx *context.Context) {
 	// Show OpenID URIs
 	openIDs, err := models.GetUserOpenIDs(ctxUser.ID)
 	if err != nil {
-		ctx.Handle(500, "GetUserOpenIDs", err)
+		ctx.ServerError("GetUserOpenIDs", err)
 		return
 	}
 
@@ -90,7 +91,7 @@ func Profile(ctx *context.Context) {
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
 	if err != nil {
-		ctx.Handle(500, "GetOrgsByUserIDDesc", err)
+		ctx.ServerError("GetOrgsByUserIDDesc", err)
 		return
 	}
 
@@ -107,67 +108,75 @@ func Profile(ctx *context.Context) {
 	var (
 		repos   []*models.Repository
 		count   int64
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
-		orderBy = "created_unix DESC"
+		orderBy = models.SearchOrderByNewest
 	case "oldest":
-		orderBy = "created_unix ASC"
+		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = "updated_unix DESC"
-	}
-
-	// set default sort value if sort is empty.
-	if ctx.Query("sort") == "" {
-		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "activity":
-		retrieveFeeds(ctx, ctxUser, showPrivate, true, false)
+		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+			IncludePrivate:  showPrivate,
+			OnlyPerformedBy: true,
+			IncludeDeleted:  false,
+		})
 		if ctx.Written() {
 			return
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		if len(keyword) == 0 {
-			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
+			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
 			if err != nil {
-				ctx.Handle(500, "GetStarredRepos", err)
+				ctx.ServerError("GetStarredRepos", err)
 				return
 			}
 
 			count, err = ctxUser.GetStarredRepoCount(showPrivate)
 			if err != nil {
-				ctx.Handle(500, "GetStarredRepoCount", err)
+				ctx.ServerError("GetStarredRepoCount", err)
 				return
 			}
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:  keyword,
-				OwnerID:  ctxUser.ID,
-				OrderBy:  orderBy,
-				Private:  showPrivate,
-				Page:     page,
-				PageSize: setting.UI.User.RepoPagingNum,
-				Starred:  true,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Starred:     true,
+				Collaborate: util.OptionalBoolFalse,
 			})
 			if err != nil {
-				ctx.Handle(500, "SearchRepositoryByName", err)
+				ctx.ServerError("SearchRepositoryByName", err)
 				return
 			}
 		}
@@ -178,9 +187,9 @@ func Profile(ctx *context.Context) {
 	default:
 		if len(keyword) == 0 {
 			var total int
-			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
+			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
 			if err != nil {
-				ctx.Handle(500, "GetRepositories", err)
+				ctx.ServerError("GetRepositories", err)
 				return
 			}
 			ctx.Data["Repos"] = repos
@@ -190,7 +199,7 @@ func Profile(ctx *context.Context) {
 			} else {
 				count, err := models.GetPublicRepositoryCount(ctxUser)
 				if err != nil {
-					ctx.Handle(500, "GetPublicRepositoryCount", err)
+					ctx.ServerError("GetPublicRepositoryCount", err)
 					return
 				}
 				total = int(count)
@@ -200,16 +209,17 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:   keyword,
-				OwnerID:   ctxUser.ID,
-				OrderBy:   orderBy,
-				Private:   showPrivate,
-				Page:      page,
-				IsProfile: true,
-				PageSize:  setting.UI.User.RepoPagingNum,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				IsProfile:   true,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Collaborate: util.OptionalBoolFalse,
 			})
 			if err != nil {
-				ctx.Handle(500, "SearchRepositoryByName", err)
+				ctx.ServerError("SearchRepositoryByName", err)
 				return
 			}
 
@@ -218,6 +228,8 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = count
 		}
 	}
+
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 
 	ctx.HTML(200, tplProfile)
 }
@@ -264,13 +276,9 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.Handle(500, fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
-	if len(redirectTo) == 0 {
-		redirectTo = u.HomeLink()
-	}
-	ctx.Redirect(redirectTo)
+	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
 }

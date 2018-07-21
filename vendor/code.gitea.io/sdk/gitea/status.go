@@ -21,7 +21,7 @@ const (
 	// StatusSuccess is for when the Status is Success
 	StatusSuccess StatusState = "success"
 	// StatusError is for when the Status is Error
-	StatusError   StatusState = "error"
+	StatusError StatusState = "error"
 	// StatusFailure is for when the Status is Failure
 	StatusFailure StatusState = "failure"
 	// StatusWarning is for when the Status is Warning
@@ -37,8 +37,10 @@ type Status struct {
 	URL         string      `json:"url"`
 	Context     string      `json:"context"`
 	Creator     *User       `json:"creator"`
-	Created     time.Time   `json:"created_at"`
-	Updated     time.Time   `json:"updated_at"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
 }
 
 // CombinedStatus holds the combined state of several statuses for a single commit

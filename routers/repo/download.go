@@ -45,10 +45,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return err
 	}
+	defer dataRc.Close()
 
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
@@ -58,13 +59,13 @@ func SingleDownload(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Handle(404, "GetBlobByPath", nil)
+			ctx.NotFound("GetBlobByPath", nil)
 		} else {
-			ctx.Handle(500, "GetBlobByPath", err)
+			ctx.ServerError("GetBlobByPath", err)
 		}
 		return
 	}
 	if err = ServeBlob(ctx, blob); err != nil {
-		ctx.Handle(500, "ServeBlob", err)
+		ctx.ServerError("ServeBlob", err)
 	}
 }

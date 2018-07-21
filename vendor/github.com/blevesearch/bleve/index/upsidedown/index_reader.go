@@ -101,15 +101,7 @@ func (i *IndexReader) Document(id string) (doc *document.Document, err error) {
 	return
 }
 
-func (i *IndexReader) DocumentFieldTerms(id index.IndexInternalID, fields []string) (index.FieldTerms, error) {
-	back, err := backIndexRowForDoc(i.kvreader, id)
-	if err != nil {
-		return nil, err
-	}
-	if back == nil {
-		return nil, nil
-	}
-	rv := make(index.FieldTerms, len(fields))
+func (i *IndexReader) DocumentVisitFieldTerms(id index.IndexInternalID, fields []string, visitor index.DocumentFieldTermVisitor) error {
 	fieldsMap := make(map[uint16]string, len(fields))
 	for _, f := range fields {
 		id, ok := i.index.fieldCache.FieldNamed(f, false)
@@ -117,12 +109,34 @@ func (i *IndexReader) DocumentFieldTerms(id index.IndexInternalID, fields []stri
 			fieldsMap[id] = f
 		}
 	}
-	for _, entry := range back.termEntries {
-		if field, ok := fieldsMap[uint16(*entry.Field)]; ok {
-			rv[field] = append(rv[field], *entry.Term)
-		}
+
+	tempRow := BackIndexRow{
+		doc: id,
 	}
-	return rv, nil
+
+	keyBuf := GetRowBuffer()
+	if tempRow.KeySize() > len(keyBuf) {
+		keyBuf = make([]byte, 2*tempRow.KeySize())
+	}
+	defer PutRowBuffer(keyBuf)
+	keySize, err := tempRow.KeyTo(keyBuf)
+	if err != nil {
+		return err
+	}
+
+	value, err := i.kvreader.Get(keyBuf[:keySize])
+	if err != nil {
+		return err
+	}
+	if value == nil {
+		return nil
+	}
+
+	return visitBackIndexRow(value, func(field uint32, term []byte) {
+		if field, ok := fieldsMap[uint16(field)]; ok {
+			visitor(field, term)
+		}
+	})
 }
 
 func (i *IndexReader) Fields() (fields []string, err error) {

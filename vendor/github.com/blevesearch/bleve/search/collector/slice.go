@@ -29,7 +29,16 @@ func newStoreSlice(cap int, compare collectorCompare) *collectStoreSlice {
 	return rv
 }
 
-func (c *collectStoreSlice) Add(doc *search.DocumentMatch) {
+func (c *collectStoreSlice) AddNotExceedingSize(doc *search.DocumentMatch,
+	size int) *search.DocumentMatch {
+	c.add(doc)
+	if c.len() > size {
+		return c.removeLast()
+	}
+	return nil
+}
+
+func (c *collectStoreSlice) add(doc *search.DocumentMatch) {
 	// find where to insert, starting at end (lowest)
 	i := len(c.slice)
 	for ; i > 0; i-- {
@@ -44,7 +53,7 @@ func (c *collectStoreSlice) Add(doc *search.DocumentMatch) {
 	c.slice[i] = doc
 }
 
-func (c *collectStoreSlice) RemoveLast() *search.DocumentMatch {
+func (c *collectStoreSlice) removeLast() *search.DocumentMatch {
 	var rv *search.DocumentMatch
 	rv, c.slice = c.slice[len(c.slice)-1], c.slice[:len(c.slice)-1]
 	return rv
@@ -63,6 +72,6 @@ func (c *collectStoreSlice) Final(skip int, fixup collectorFixup) (search.Docume
 	return search.DocumentMatchCollection{}, nil
 }
 
-func (c *collectStoreSlice) Len() int {
+func (c *collectStoreSlice) len() int {
 	return len(c.slice)
 }

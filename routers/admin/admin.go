@@ -122,6 +122,7 @@ const (
 	syncRepositoryUpdateHook
 	reinitMissingRepository
 	syncExternalUsers
+	gitFsck
 )
 
 // Dashboard show admin panel dashboard
@@ -145,7 +146,7 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories()
+			err = models.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
 			err = models.GitGcRepos()
@@ -161,6 +162,9 @@ func Dashboard(ctx *context.Context) {
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
 			go models.SyncExternalUsers()
+		case gitFsck:
+			success = ctx.Tr("admin.dashboard.git_fsck_started")
+			go models.GitFsck()
 		}
 
 		if err != nil {
@@ -224,9 +228,9 @@ func Config(ctx *context.Context) {
 		ctx.Data["Mailer"] = setting.MailService
 	}
 
-	ctx.Data["CacheAdapter"] = setting.CacheAdapter
-	ctx.Data["CacheInterval"] = setting.CacheInterval
-	ctx.Data["CacheConn"] = setting.CacheConn
+	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
+	ctx.Data["CacheInterval"] = setting.CacheService.Interval
+	ctx.Data["CacheConn"] = setting.CacheService.Conn
 
 	ctx.Data["SessionConfig"] = setting.SessionConfig
 

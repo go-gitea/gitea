@@ -90,7 +90,7 @@ func (udc *UpsideDownCouch) Analyze(d *document.Document) *index.AnalysisResult 
 
 	rv.Rows = append(make([]index.IndexRow, 0, rowsCapNeeded), rv.Rows...)
 
-	backIndexTermEntries := make([]*BackIndexTermEntry, 0, rowsCapNeeded)
+	backIndexTermsEntries := make([]*BackIndexTermsEntry, 0, len(fieldTermFreqs))
 
 	// walk through the collated information and process
 	// once for each indexed field (unique name)
@@ -99,11 +99,11 @@ func (udc *UpsideDownCouch) Analyze(d *document.Document) *index.AnalysisResult 
 		includeTermVectors := fieldIncludeTermVectors[fieldIndex]
 
 		// encode this field
-		rv.Rows, backIndexTermEntries = udc.indexField(docIDBytes, includeTermVectors, fieldIndex, fieldLength, tokenFreqs, rv.Rows, backIndexTermEntries)
+		rv.Rows, backIndexTermsEntries = udc.indexField(docIDBytes, includeTermVectors, fieldIndex, fieldLength, tokenFreqs, rv.Rows, backIndexTermsEntries)
 	}
 
 	// build the back index row
-	backIndexRow := NewBackIndexRow(docIDBytes, backIndexTermEntries, backIndexStoredEntries)
+	backIndexRow := NewBackIndexRow(docIDBytes, backIndexTermsEntries, backIndexStoredEntries)
 	rv.Rows = append(rv.Rows, backIndexRow)
 
 	return rv
