@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"testing"
 
 	"code.gitea.io/git"
@@ -41,5 +42,34 @@ func BenchmarkParseCommitString(b *testing.B) {
 		if graphItem.Author != "Kjell Kvinge" {
 			b.Error("Did not get expected data")
 		}
+	}
+}
+
+func TestCommitStringParsing(t *testing.T) {
+	dataFirstPart := "* DATA:||4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Author|user@mail.something|4e61bac|"
+	tests := []struct {
+		shouldPass    bool
+		testName      string
+		commitMessage string
+	}{
+		{true, "normal", "not a fancy message"},
+		{true, "extra pipe", "An extra pipe: |"},
+		{true, "extra 'Data:'", "DATA: might be trouble"},
+	}
+
+	for _, test := range tests {
+
+		t.Run(test.testName, func(t *testing.T) {
+			testString := fmt.Sprintf("%s%s", dataFirstPart, test.commitMessage)
+			graphItem, err := graphItemFromString(testString, nil)
+			if err != nil && test.shouldPass {
+				t.Errorf("Could not parse %s", testString)
+				return
+			}
+
+			if test.commitMessage != graphItem.Subject {
+				t.Errorf("%s does not match %s", test.commitMessage, graphItem.Subject)
+			}
+		})
 	}
 }

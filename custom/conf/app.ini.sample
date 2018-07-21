@@ -321,6 +321,9 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Private is only for member of the organization
 ; Public is for everyone
 DEFAULT_VISIBILITY = public
+; Default value for EnableDependencies
+; Repositories will use depencies by default depending on this setting
+DEFAULT_ENABLE_DEPENDENCIES = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
