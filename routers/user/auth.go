@@ -1190,7 +1190,7 @@ func ResetPasswdPost(ctx *context.Context) {
 // MustChangePassword renders the page to change a user's password
 func MustChangePassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 
 	ctx.HTML(200, tplMustChangePassword)
 }
@@ -1200,7 +1200,7 @@ func MustChangePassword(ctx *context.Context) {
 func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 
-	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMustChangePassword)
