@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	// tplMustChangePassword template for updating a user's password
 	tplMustChangePassword = "user/auth/change_passwd"
 	// tplSignIn template for sign in page
 	tplSignIn base.TplName = "user/auth/signin"
