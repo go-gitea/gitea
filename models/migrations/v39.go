@@ -34,7 +34,7 @@ func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
 	pageSize := models.RepositoryListDefaultPageSize
 	for {
 		repos := make([]*models.Repository, 0, pageSize)
-		if err := x.Table("repository").Asc("id").Limit(pageSize, offset).Find(&repos); err != nil {
+		if err := x.Table("repository").Cols("id", "name", "owner_id").Asc("id").Limit(pageSize, offset).Find(&repos); err != nil {
 			return fmt.Errorf("select repos [offset: %d]: %v", offset, err)
 		}
 		for _, repo := range repos {
