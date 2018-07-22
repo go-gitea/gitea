@@ -2320,6 +2320,68 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/deadline": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Set an issue deadline. If set to null, the deadline is deleted.",
+        "operationId": "issueEditIssueDeadline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue to create or update a deadline on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditDeadlineOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/IssueDeadline"
+          },
+          "403": {
+            "description": "Not repo writer",
+            "schema": {
+              "$ref": "#/responses/forbidden"
+            }
+          },
+          "404": {
+            "description": "Issue not found",
+            "schema": {
+              "$ref": "#/responses/empty"
+            }
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/labels": {
       "get": {
         "produces": [
@@ -6145,6 +6207,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "EditDeadlineOption": {
+      "description": "EditDeadlineOption options for creating a deadline",
+      "type": "object",
+      "required": [
+        "due_date"
+      ],
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "EditHookOption": {
       "description": "EditHookOption options when modify one hook",
       "type": "object",
@@ -6631,6 +6708,18 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "IssueDeadline": {
+      "description": "IssueDeadline represents an issue deadline",
+      "type": "object",
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7633,6 +7722,12 @@
       "description": "Issue",
       "schema": {
         "$ref": "#/definitions/Issue"
+      }
+    },
+    "IssueDeadline": {
+      "description": "IssueDeadline",
+      "schema": {
+        "$ref": "#/definitions/IssueDeadline"
       }
     },
     "IssueList": {
