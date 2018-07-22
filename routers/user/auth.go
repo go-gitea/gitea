@@ -1037,7 +1037,7 @@ func Activate(ctx *context.Context) {
 
 		ctx.Session.Set("uid", user.ID)
 		ctx.Session.Set("uname", user.Name)
-		ctx.Redirect(setting.AppSubURL + "/user/login")
+		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
 
