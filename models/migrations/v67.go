@@ -5,27 +5,11 @@
 package migrations
 
 import (
-<<<<<<< HEAD
-	"fmt"
-
-	"code.gitea.io/gitea/modules/util"
-=======
 	"code.gitea.io/gitea/modules/setting"
->>>>>>> origin/master
 
 	"github.com/go-xorm/xorm"
 )
 
-<<<<<<< HEAD
-func addPullRequestRebaseWithMergeCommit(x *xorm.Engine) error {
-	// RepoUnit describes all units of a repository
-	type RepoUnit struct {
-		ID          int64
-		RepoID      int64                  `xorm:"INDEX(s)"`
-		Type        int                    `xorm:"INDEX(s)"`
-		Config      map[string]interface{} `xorm:"JSON"`
-		CreatedUnix util.TimeStamp         `xorm:"INDEX CREATED"`
-=======
 func removeStaleWatches(x *xorm.Engine) error {
 	type Watch struct {
 		ID     int64
@@ -78,7 +62,6 @@ func removeStaleWatches(x *xorm.Engine) error {
 			return mode, err
 		}
 		return a.Mode, nil
->>>>>>> origin/master
 	}
 
 	sess := x.NewSession()
@@ -87,26 +70,6 @@ func removeStaleWatches(x *xorm.Engine) error {
 		return err
 	}
 
-<<<<<<< HEAD
-	//Updating existing issue units
-	units := make([]*RepoUnit, 0, 100)
-	if err := sess.Where("`type` = ?", V16UnitTypePRs).Find(&units); err != nil {
-		return fmt.Errorf("Query repo units: %v", err)
-	}
-	for _, unit := range units {
-		if unit.Config == nil {
-			unit.Config = make(map[string]interface{})
-		}
-		if _, ok := unit.Config["AllowRebaseMergeCommit"]; !ok {
-			unit.Config["AllowRebaseMergeCommit"] = true
-		}
-		if _, err := sess.ID(unit.ID).Cols("config").Update(unit); err != nil {
-			return err
-		}
-	}
-	return sess.Commit()
-
-=======
 	repoCache := make(map[int64]*Repository)
 	err := x.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
 		func(idx int, bean interface{}) error {
@@ -192,5 +155,4 @@ func removeStaleWatches(x *xorm.Engine) error {
 	}
 
 	return sess.Commit()
->>>>>>> origin/master
 }
