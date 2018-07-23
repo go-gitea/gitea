@@ -92,9 +92,11 @@ See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md"
 
 ## Updating to a new version
 
-You can update to a new version of gitea by replacing the binary at `/usr/local/bin/gitea`. 
+You can update to a new version of gitea by stopping gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance. 
 The binary file name should not be changed during the update to avoid problems 
 in existing repositories. 
+
+It is recommended you do a [backup]({{< relref "../usage/backup-and-restore.en-us.md" >}}) before updating your installation.
 
 If you have carried out the installation steps as described above, the binary should 
 have the generic name `gitea`. Do not change this, i.e. to include the version number. 
