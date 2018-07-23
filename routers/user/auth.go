@@ -1247,5 +1247,12 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 
 	log.Trace("User updated password: %s", u.Name)
+
+	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.RedirectToFirst(redirectTo)
+		return
+	}
+
 	ctx.Redirect(setting.AppSubURL + "/")
 }
