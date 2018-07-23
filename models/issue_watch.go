@@ -67,7 +67,19 @@ func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "user", "`user`.id = `issue_watch`.user_id").
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").
 		Find(&watches)
 	return
+}
+
+func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
+	iw := &IssueWatch{
+		IsWatching: false,
+	}
+	_, err := e.
+		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
+		Cols("is_watching", "updated_unix").
+		Where("`issue_watch`.user_id = ?", userID).
+		Update(iw)
+	return err
 }

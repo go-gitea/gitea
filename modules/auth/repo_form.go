@@ -114,6 +114,7 @@ type RepoSettingForm struct {
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+	EnableIssueDependencies          bool
 
 	// Admin settings
 	EnableHealthCheck bool
@@ -372,7 +373,7 @@ func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required"`
+	TagName    string `binding:"Required;GitRefName"`
 	Target     string `form:"tag_target" binding:"Required"`
 	Title      string `binding:"Required"`
 	Content    string

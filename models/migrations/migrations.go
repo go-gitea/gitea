@@ -187,6 +187,14 @@ var migrations = []Migration{
 	// v66 -> v67
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
 	// v67 -> v68
+	NewMigration("remove stale watches", removeStaleWatches),
+	// v68 -> V69
+	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
+	// v69 -> v70
+	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// v70 -> v71
+	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v71 -> v72
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMergeCommit),
 }
 

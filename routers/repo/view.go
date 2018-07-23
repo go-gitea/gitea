@@ -105,7 +105,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+					ctx.Data["FileContent"] = strings.Replace(
+						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+					)
 				}
 			}
 		}
@@ -208,7 +210,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
-			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+			ctx.Data["FileContent"] = strings.Replace(
+				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+			)
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
@@ -223,6 +227,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			//Remove blank line at the end of file
+			if len(lines) > 0 && lines[len(lines)-1] == "" {
+				lines = lines[:len(lines)-1]
+			}
 			for index, line := range lines {
 				line = gotemplate.HTMLEscapeString(line)
 				if index != len(lines)-1 {

@@ -29,7 +29,7 @@
 							<label for="retype">{{.i18n.Tr "re_type"}}</label>
 							<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="off" required>
 						</div>
-						{{if .EnableCaptcha}}
+						{{if and .EnableCaptcha (eq .CaptchaType "image")}}
 							<div class="inline field">
 								<label></label>
 								{{.Captcha.CreateHtml}}
@@ -37,6 +37,11 @@
 							<div class="required inline field {{if .Err_Captcha}}error{{end}}">
 								<label for="captcha">{{.i18n.Tr "captcha"}}</label>
 								<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
+							</div>
+						{{end}}
+						{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
+							<div class="inline field required">
+								<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
 							</div>
 						{{end}}
 

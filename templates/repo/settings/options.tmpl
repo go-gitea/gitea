@@ -20,7 +20,7 @@
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.visiblity_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visiblity_fork_helper"}}</span>{{end}}</label>
+							<label>{{.i18n.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
 				{{end}}
@@ -153,6 +153,12 @@
 								</div>
 							</div>
 						{{end}}
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
+								</div>
+							</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">

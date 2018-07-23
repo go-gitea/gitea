@@ -374,9 +374,9 @@ func (u *User) GetFollowers(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.follow_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.user_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.user_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -393,9 +393,9 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.user_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.follow_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.follow_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -433,6 +433,17 @@ func (u *User) IsPasswordSet() bool {
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
+	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("DecodeConfig: %v", err)
+	}
+	if imgCfg.Width > setting.AvatarMaxWidth {
+		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
+	}
+	if imgCfg.Height > setting.AvatarMaxHeight {
+		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
+	}
+
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("Decode: %v", err)
@@ -546,28 +557,46 @@ func (u *User) GetRepositories(page, pageSize int) (err error) {
 	return err
 }
 
-// GetRepositoryIDs returns repositories IDs where user owned
-func (u *User) GetRepositoryIDs() ([]int64, error) {
+// GetRepositoryIDs returns repositories IDs where user owned and has unittypes
+func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
-	return ids, x.Table("repository").Cols("id").Where("owner_id = ?", u.ID).Find(&ids)
+
+	sess := x.Table("repository").Cols("repository.id")
+
+	if len(units) > 0 {
+		sess = sess.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
+		sess = sess.In("repo_unit.type", units)
+	}
+
+	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
 }
 
-// GetOrgRepositoryIDs returns repositories IDs where user's team owned
-func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
+// GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
+func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
-	return ids, x.Table("repository").
+
+	sess := x.Table("repository").
 		Cols("repository.id").
-		Join("INNER", "team_user", "repository.owner_id = team_user.org_id AND team_user.uid = ?", u.ID).
+		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
+		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true)
+
+	if len(units) > 0 {
+		sess = sess.Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id")
+		sess = sess.In("team_unit.type", units)
+	}
+
+	return ids, sess.
+		Where("team_user.uid = ?", u.ID).
 		GroupBy("repository.id").Find(&ids)
 }
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
-func (u *User) GetAccessRepoIDs() ([]int64, error) {
-	ids, err := u.GetRepositoryIDs()
+func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
+	ids, err := u.GetRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
 	}
-	ids2, err := u.GetOrgRepositoryIDs()
+	ids2, err := u.GetOrgRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
 	}
@@ -927,7 +956,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).Update(new(Repository)); err != nil {
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
@@ -937,7 +966,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
