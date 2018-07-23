@@ -270,8 +270,8 @@ const (
 	MergeStyleMerge MergeStyle = "merge"
 	// MergeStyleRebase rebase before merging
 	MergeStyleRebase MergeStyle = "rebase"
-	// MergeStyleRebaseMergeCommit rebase before merging with merge commit (--no-ff)
-	MergeStyleRebaseMergeCommit MergeStyle = "rebase-merge-commit"
+	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
+	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
 )
@@ -409,7 +409,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 			"git", "merge", "--ff-only", "-q", "head_repo_"+pr.HeadBranch); err != nil {
 			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
-	case MergeStyleRebaseMergeCommit:
+	case MergeStyleRebaseMerge:
 		// Checkout head branch
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),

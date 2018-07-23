@@ -91,7 +91,7 @@ type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts bool
 	AllowMerge                bool
 	AllowRebase               bool
-	AllowRebaseMergeCommit    bool
+	AllowRebaseMerge          bool
 	AllowSquash               bool
 }
 
@@ -109,7 +109,7 @@ func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
 func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
-		mergeStyle == MergeStyleRebaseMergeCommit && cfg.AllowRebaseMergeCommit ||
+		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 

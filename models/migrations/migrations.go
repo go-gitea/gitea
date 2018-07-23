@@ -195,7 +195,7 @@ var migrations = []Migration{
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
-	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMergeCommit),
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 }
 
 // Migrate database to current version

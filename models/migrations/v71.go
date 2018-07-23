@@ -12,7 +12,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addPullRequestRebaseWithMergeCommit(x *xorm.Engine) error {
+func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
@@ -37,8 +37,8 @@ func addPullRequestRebaseWithMergeCommit(x *xorm.Engine) error {
 		if unit.Config == nil {
 			unit.Config = make(map[string]interface{})
 		}
-		if _, ok := unit.Config["AllowRebaseMergeCommit"]; !ok {
-			unit.Config["AllowRebaseMergeCommit"] = true
+		if _, ok := unit.Config["AllowRebaseMerge"]; !ok {
+			unit.Config["AllowRebaseMerge"] = true
 		}
 		if _, err := sess.ID(unit.ID).Cols("config").Update(unit); err != nil {
 			return err
