@@ -202,7 +202,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	}
 
 	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+		var keywordCond = builder.NewCond()
+		keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+		keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
+		cond = cond.And(keywordCond)
 	}
 
 	if opts.Fork != util.OptionalBoolNone {
@@ -224,6 +227,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
+	if opts.Keyword != "" {
+		sess.Join("LEFT", "repo_topic", "repo_topic.repo_id = repository.id")
+		sess.Join("LEFT", "topic", "repo_topic.topic_id = topic.id")
+	}
+
 	count, err := sess.
 		Where(cond).
 		Count(new(Repository))
@@ -236,11 +244,23 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
+	if opts.Keyword != "" {
+		sess.Join("LEFT", "repo_topic", "repo_topic.repo_id = repository.id")
+		sess.Join("LEFT", "topic", "repo_topic.topic_id = topic.id")
+	}
+
+	if opts.Keyword != "" {
+		sess = sess.Select("repository.*")
+		sess = sess.GroupBy("repository.id")
+		sess = sess.OrderBy("repository." + opts.OrderBy.String())
+	} else {
+		sess = sess.OrderBy(opts.OrderBy.String())
+	}
+
 	repos := make(RepositoryList, 0, opts.PageSize)
 	if err = sess.
 		Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy.String()).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
