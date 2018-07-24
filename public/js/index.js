@@ -853,6 +853,8 @@ function assingMenuAttributes(menu) {
     menu.find('.item').each(function(i, item) {
         $(item).attr('data-tab', $(item).attr('data-tab') + id);
     });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
     initCommentPreviewTab(menu.parent(".form"));
     return id;
 }
