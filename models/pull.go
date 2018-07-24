@@ -1162,25 +1162,9 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 		if err = requests.LoadAttributes(); err != nil {
 			log.Error(4, "PullRequestList.LoadAttributes: %v", err)
 		}
-		var gitRepo *git.Repository
-		repo, err := GetRepositoryByID(repoID)
-		if err != nil {
-			log.Error(4, "GetRepositoryByID: %v", err)
-			goto REQUIRED_PROCEDURE
+		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
+			log.Error(4, "checkForInvalidation: %v", invalidationErr)
 		}
-		gitRepo, err = git.OpenRepository(repo.RepoPath())
-		if err != nil {
-			log.Error(4, "git.OpenRepository: %v", err)
-			goto REQUIRED_PROCEDURE
-		}
-		go func() {
-			err := requests.InvalidateCodeComments(doer, gitRepo, branch)
-			if err != nil {
-				log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
-			}
-		}()
-
-	REQUIRED_PROCEDURE:
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
@@ -1201,6 +1185,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 				go HookQueue.Add(pr.Issue.Repo.ID)
 			}
 		}
+
 	}
 
 	addHeadRepoTasks(prs)
@@ -1214,6 +1199,24 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	for _, pr := range prs {
 		pr.AddToTaskQueue()
 	}
+}
+
+func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, branch string) error {
+	repo, err := GetRepositoryByID(repoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("git.OpenRepository: %v", err)
+	}
+	go func() {
+		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
+		if err != nil {
+			log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
+		}
+	}()
+	return nil
 }
 
 // ChangeUsernameInPullRequests changes the name of head_user_name
