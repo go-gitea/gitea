@@ -1355,7 +1355,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
 			})
 		} else {
 			units = append(units, RepoUnit{
