@@ -790,7 +790,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -825,6 +825,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
