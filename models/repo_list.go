@@ -251,11 +251,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	}
 
 	if opts.Keyword != "" {
-		sess = sess.Select("repository.*")
-		sess = sess.GroupBy("repository.id")
-		sess = sess.OrderBy("repository." + opts.OrderBy.String())
+		sess.Select("repository.*")
+		sess.GroupBy("repository.id")
+		sess.OrderBy("repository." + opts.OrderBy.String())
 	} else {
-		sess = sess.OrderBy(opts.OrderBy.String())
+		sess.OrderBy(opts.OrderBy.String())
 	}
 
 	repos := make(RepositoryList, 0, opts.PageSize)

@@ -222,3 +222,28 @@ func TestSearchRepositoryByName(t *testing.T) {
 		})
 	}
 }
+
+func TestSearchRepositoryByTopicName(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testCases := []struct {
+		name  string
+		opts  *SearchRepoOptions
+		count int
+	}{
+		{name: "AllPublic/SearchPublicRepositoriesFromTopic",
+			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "golang"},
+			count: 1},
+		{name: "AllPublic/SearchPrivareRepositoriesFromTopic",
+			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "database", Private: true},
+			count: 2},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, count, err := SearchRepositoryByName(testCase.opts)
+			assert.NoError(t, err)
+			assert.Equal(t, int64(testCase.count), count)
+		})
+	}
+}
