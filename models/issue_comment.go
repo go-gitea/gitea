@@ -193,6 +193,7 @@ func (c *Comment) HTMLURL() string {
 		}
 		if c.Review == nil {
 			if err := c.LoadReview(); err != nil {
+				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
 				return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 			}
 		}
@@ -1061,12 +1062,15 @@ func DeleteComment(doer *User, comment *Comment) error {
 	return nil
 }
 
-func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+// CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
+type CodeComments map[string]map[int64][]*Comment
+
+func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
 }
 
-func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review *Review) (map[string]map[int64][]*Comment, error) {
-	pathToLineToComment := make(map[string]map[int64][]*Comment)
+func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review *Review) (CodeComments, error) {
+	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
 	}
@@ -1126,6 +1130,6 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
 }

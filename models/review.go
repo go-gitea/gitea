@@ -60,7 +60,7 @@ type Review struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
-	CodeComments map[string]map[int64][]*Comment `xorm:"-"`
+	CodeComments CodeComments `xorm:"-"`
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
