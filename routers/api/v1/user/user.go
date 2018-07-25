@@ -60,7 +60,7 @@ func Search(ctx *context.APIContext) {
 			AvatarURL: users[i].AvatarLink(),
 			FullName:  markup.Sanitize(users[i].FullName),
 		}
-		if ctx.IsSigned {
+		if ctx.IsSigned && (!users[i].KeepEmailPrivate || ctx.User.IsAdmin) {
 			results[i].Email = users[i].Email
 		}
 	}
