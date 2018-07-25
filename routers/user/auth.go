@@ -1035,6 +1035,7 @@ func Activate(ctx *context.Context) {
 
 		ctx.Session.Set("uid", user.ID)
 		ctx.Session.Set("uname", user.Name)
+		ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
