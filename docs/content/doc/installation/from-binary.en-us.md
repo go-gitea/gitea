@@ -96,7 +96,7 @@ You can update to a new version of gitea by stopping gitea, replacing the binary
 The binary file name should not be changed during the update to avoid problems 
 in existing repositories. 
 
-It is recommended you do a [backup]({{< relref "../usage/backup-and-restore.en-us.md" >}}) before updating your installation.
+It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
 
 If you have carried out the installation steps as described above, the binary should 
 have the generic name `gitea`. Do not change this, i.e. to include the version number. 
