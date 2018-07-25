@@ -815,10 +815,10 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
-	if err := pr.GetHeadRepo(); err != nil {
+	if err := pr.GetBaseRepo(); err != nil {
 		return nil, fmt.Errorf("GetHeadRepo: %v", err)
 	}
-	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -829,9 +829,9 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	}
 	// FIXME validate treePath
 	// Get latest commit referencing the commented line
-	commit, err := gitRepo.LineBlame(pr.HeadBranch, gitRepo.Path, treePath, uint(gitLine))
+	commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(gitLine))
 	if err != nil {
-		return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.HeadBranch, gitRepo.Path, treePath, gitLine, err)
+		return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, gitLine, err)
 	}
 	// Only fetch diff if comment is review comment
 	if reviewID != 0 {
