@@ -54,7 +54,7 @@ func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	return watches, e.Where("`watch`.repo_id=?", repoID).
 		And("`user`.is_active=?", true).
 		And("`user`.prohibit_login=?", false).
-		Join("INNER", "user", "`user`.id = `watch`.user_id").
+		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
 		Find(&watches)
 }
 
