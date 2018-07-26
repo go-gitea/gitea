@@ -172,9 +172,14 @@
     #clone-panel {
         width: 350px;
 
+        @media only screen and (max-width: 768px) {
+            width: 100%;
+        }
+
         input {
             border-radius: 0;
             padding: 5px 10px;
+            width: 50%;
         }
 
         .clone.button {
@@ -219,6 +224,12 @@
             .ui.button {
                 padding: 8px 10px;
                 font-weight: normal;
+            }
+
+            .ui.tiny.blue.buttons {
+                @media only screen and (max-width: 768px) {
+                    width: 100%;
+                }
             }
         }
 
@@ -1229,6 +1240,20 @@
         .prerelease.field {
             margin-bottom: 0;
         }
+
+        .field {
+            button, input {
+                @media only screen and (max-width: 438px) {
+                    width: 100%;
+                }
+            }
+
+            button {
+                @media only screen and (max-width: 768px) {
+                    margin-bottom: 1em;
+                }
+            }
+        }
     }
 
     &.forks {
@@ -1755,4 +1780,10 @@ tbody.commit-list {
 
 #repo-topic {
     margin-top: 5px;
+}
+
+.new-dependency-drop-list {
+	@media only screen and (max-width: 768px) {
+		width: 100%;
+	}
 }

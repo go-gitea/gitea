@@ -37,6 +37,22 @@
                     }
                 }
             }
+
+            #profile-avatar {
+                @media only screen and (max-width: 768px) {
+                    height: 250px;
+                    overflow: hidden;
+
+                    img {
+                        max-height: 768px;
+                        max-width: 768px;
+                    }
+                }
+            }
+
+            @media only screen and (max-width: 768px) {
+                width: 100%;
+            }
         }
 
         .ui.repository.list {
