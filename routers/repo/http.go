@@ -223,6 +223,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
 			models.EnvPusherName + "=" + authUser.Name,
+			models.EnvPusherEmail + "=" + authUser.Email,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
 		}
