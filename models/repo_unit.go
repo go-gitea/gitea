@@ -73,6 +73,7 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+	EnableDependencies               bool
 }
 
 // FromDB fills up a IssuesConfig from serialized format.
@@ -165,7 +166,6 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
-
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, e.Where("repo_id = ?", repoID).Find(&units)
 }

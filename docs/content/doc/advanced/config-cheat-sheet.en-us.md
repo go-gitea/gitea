@@ -68,6 +68,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
+- `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
+- `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 
 ### UI - Admin (`ui.admin`)
 
@@ -177,7 +179,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
-- `ENABLE_CAPTCHA`: **true**: Enable this to use captcha validation for registration.
+- `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
+- `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha 
+- `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha
+- `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
 
 ## Webhook (`webhook`)
 
@@ -278,6 +284,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+
+## Git - Timeout settings (`git.timeout`)
+- `MIGRATE`: **600**: Migrate external repositories timeout seconds.
+- `MIRROR`: **300**: Mirror external repositories timeout seconds.
+- `CLONE`: **300**: Git clone from internal repositories timeout seconds.
+- `PULL`: **300**: Git pull from internal repositories timeout seconds.
+- `GC`: **60**: Git repository GC timeout seconds.
 
 ## API (`api`)
  

@@ -1,0 +1,8 @@
+https://gitea-docs.netlify.com/* https://docs.gitea.io/:splat 302!
+
+/ /fr-fr/ 302! Language=fr
+/ /nl-nl/ 302! Language=nl
+/ /pt-br/ 302! Language=pt-br
+/ /zh-cn/ 302! Language=zh-cn
+/ /zh-tw/ 302! Language=zh-tw
+/ /en-us/ 302!

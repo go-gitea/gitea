@@ -790,7 +790,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -825,6 +825,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
@@ -1769,6 +1770,7 @@ $(document).ready(function () {
     initTopicbar();
     initU2FAuth();
     initU2FRegister();
+    initIssueList();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2302,46 +2304,75 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic")
-    var editDiv = $("#topic_edit")
-    var viewDiv = $("#repo-topic")
-    var saveBtn = $("#save_topic")
+    var mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topic"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
 
     mgrBtn.click(function() {
         viewDiv.hide();
         editDiv.show();
-    })
+    });
+
+    function getPrompts() {
+        var hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
 
     saveBtn.click(function() {
         var topics = $("input[name=topics]").val();
 
-        $.post($(this).data('link'), {
+        $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }).success(function(res){
-            if (res["status"] != "ok") {
-                alert(res.message);
-            } else {
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length == 0) {
+                if (topics.length === 0) {
                     return
                 }
                 var topicArray = topics.split(",");
 
                 var last = viewDiv.children("a").last();
-                for (var i=0;i < topicArray.length; i++) {
+                for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
+                editDiv.hide();
+                viewDiv.show();
             }
-        }).done(function() {
-            editDiv.hide();
-            viewDiv.show();
-        }).fail(function(xhr) {
-            alert(xhr.responseJSON.message)
-        })
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
+
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
     });
 
-    $('#topic_edit .dropdown').dropdown({
+    topicDropdown.dropdown({
         allowAdditions: true,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
@@ -2362,7 +2393,7 @@ function initTopicbar() {
             onResponse: function(res) {
                 var formattedResponse = {
                     success: false,
-                    results: new Array(),
+                    results: [],
                 };
 
                 if (res.topics) {
@@ -2375,16 +2406,125 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
     });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        var topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
 }
-function toggleDuedateForm() {
-    $('#add_deadline_form').fadeToggle(150);
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
 }
 
-function deleteDueDate(url) {
-    $.post(url, {
-        '_csrf': csrf,
-    },function( data ) {
-        window.location.reload();
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
+        realDeadline = new Date(newDate);
+    }
+
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+        }
     });
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function initIssueList() {
+    var repolink = $('#repolink').val();
+    $('.new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+            },
+
+            fullTextSearch: true
+        })
+    ;
 }
