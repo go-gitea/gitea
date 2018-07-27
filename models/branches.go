@@ -74,7 +74,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 		return true
 	}
 
-	if len(protectBranch.WhitelistTeamIDs) == 0 {
+	if len(protectBranch.MergeWhitelistTeamIDs) == 0 {
 		return false
 	}
 
