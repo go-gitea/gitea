@@ -323,6 +323,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.ServerError("GetPullRequestInfo", err)
 		return nil
 	}
+
+	if pull.IsWorkInProgress() {
+		ctx.Data["IsPullWorkInProgress"] = true
+		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -498,6 +504,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if pr.IsWorkInProgress() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
 
