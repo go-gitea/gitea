@@ -194,6 +194,8 @@ var migrations = []Migration{
 	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v70 -> v71
+	NewMigration("protect each scratch token", addScratchHash),
 }
 
 // Migrate database to current version
