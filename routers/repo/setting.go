@@ -382,7 +382,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if !u.IsActive {
-		ctx.Flash.Error("cannot add an inactive user as a collaborator")
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_inactive_user"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
 	}
