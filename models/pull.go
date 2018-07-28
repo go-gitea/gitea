@@ -214,7 +214,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 	}
 
 	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict
+		mergeable := pr.Status != PullRequestStatusConflict && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {

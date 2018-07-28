@@ -5,10 +5,12 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -27,4 +29,21 @@ func TestAPIViewPulls(t *testing.T) {
 	DecodeJSON(t, resp, &pulls)
 	expectedLen := models.GetCount(t, &models.Issue{RepoID: repo.ID}, models.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
+}
+
+// TestAPIMergePullWIP ensures that we can't merge a WIP pull request
+func TestAPIMergePullWIP(t *testing.T) {
+	prepareTestEnv(t)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable, HasMerged: false}).(*models.PullRequest)
+	pr.LoadIssue()
+
+	session := loginUser(t, owner.Name)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, pr.Index), &auth.MergePullRequestForm{
+		MergeMessageField: pr.Issue.Title,
+		Do:                string(models.MergeStyleMerge),
+	})
+
+	session.MakeRequest(t, req, http.StatusMethodNotAllowed)
 }
