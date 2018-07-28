@@ -43,8 +43,7 @@ func (templates templateFileSystem) Get(name string) (io.Reader, error) {
 	return nil, fmt.Errorf("file '%s' not found", name)
 }
 
-// Renderer implements the macaron handler for serving the templates.
-func Renderer() macaron.Handler {
+func NewTemplateFileSystem() templateFileSystem {
 	fs := templateFileSystem{}
 	fs.files = make([]macaron.TemplateFile, 0, 10)
 
@@ -110,9 +109,25 @@ func Renderer() macaron.Handler {
 		}
 	}
 
+	return fs
+}
+
+var tplFileSys = NewTemplateFileSystem()
+
+// HTMLRenderer implements the macaron handler for serving HTML templates.
+func HTMLRenderer() macaron.Handler {
 	return macaron.Renderer(macaron.RenderOptions{
 		Funcs:              NewFuncMap(),
-		TemplateFileSystem: fs,
+		TemplateFileSystem: tplFileSys,
+	})
+}
+
+// JSONRenderer implements the macaron handler for serving JSON templates.
+func JSONRenderer() macaron.Handler {
+	return macaron.Renderer(macaron.RenderOptions{
+		Funcs:              NewFuncMap(),
+		TemplateFileSystem: tplFileSys,
+		HTMLContentType:    "application/json",
 	})
 }
 
