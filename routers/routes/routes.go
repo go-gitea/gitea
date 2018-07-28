@@ -79,7 +79,7 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
-	m.Use(templates.Renderer())
+	m.Use(templates.HTMLRenderer())
 	models.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
@@ -754,6 +754,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)
+
+	if setting.API.EnableSwagger {
+		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
+	}
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)

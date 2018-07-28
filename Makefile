@@ -42,6 +42,10 @@ TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+SWAGGER_SPEC := templates/swagger/v1_json.tmpl
+SWAGGER_SPEC_S_TMPL := s|"basePath":\s*"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath":\s*"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
+
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
@@ -94,11 +98,12 @@ generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger generate spec -o ./public/swagger.v1.json
+	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff public/swagger.v1.json); \
+	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
@@ -110,7 +115,9 @@ swagger-validate:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger validate ./public/swagger.v1.json
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	swagger validate './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:

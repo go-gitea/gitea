@@ -527,11 +527,11 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwaggerEndpoint bool
-		MaxResponseItems      int
+		EnableSwagger    bool
+		MaxResponseItems int
 	}{
-		EnableSwaggerEndpoint: true,
-		MaxResponseItems:      50,
+		EnableSwagger:    true,
+		MaxResponseItems: 50,
 	}
 
 	U2F = struct {
