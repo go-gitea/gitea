@@ -198,7 +198,6 @@ var migrations = []Migration{
 	NewMigration("protect each scratch token", addScratchHash),
 	// v71 -> v72
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
-
 }
 
 // Migrate database to current version
