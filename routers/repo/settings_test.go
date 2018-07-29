@@ -119,5 +119,27 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+}
 
+func TestCollaborationPost_NonExistentUser(t *testing.T) {
+
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo1/issues/labels")
+	test.LoadUser(t, ctx, 2)
+	test.LoadRepo(t, ctx, 1)
+
+	ctx.Req.Form.Set("collaborator", "user34")
+
+	repo := &context.Repository{
+		Owner: &models.User{
+			LowerName: "user2",
+		},
+	}
+
+	ctx.Repo = repo
+
+	CollaborationPost(ctx)
+
+	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
