@@ -11,7 +11,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io/ioutil"
-	"path"
 	"strconv"
 	"strings"
 
@@ -35,7 +34,7 @@ const (
 	tplForks    base.TplName = "repo/forks"
 )
 
-func renderDirectory(ctx *context.Context, treeLink string) {
+func renderDirectory(ctx *context.Context) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
@@ -102,7 +101,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				buf = append(buf, d...)
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.Replace(
@@ -141,7 +140,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 }
 
-func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
+func renderFile(ctx *context.Context, entry *git.TreeEntry, rawLink string) {
 	ctx.Data["IsViewFile"] = true
 
 	blob := entry.Blob()
@@ -207,7 +206,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markup.Type(blob.Name()) != "" {
 			ctx.Data["IsMarkup"] = true
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.Replace(
@@ -340,9 +339,9 @@ func renderCode(ctx *context.Context) {
 	}
 
 	if entry.IsDir() {
-		renderDirectory(ctx, treeLink)
+		renderDirectory(ctx)
 	} else {
-		renderFile(ctx, entry, treeLink, rawLink)
+		renderFile(ctx, entry, rawLink)
 	}
 	if ctx.Written() {
 		return
