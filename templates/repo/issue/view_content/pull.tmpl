@@ -31,7 +31,7 @@
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
 					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.work_in_progress" .WorkInProgressPrefix | Str2html}}
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
