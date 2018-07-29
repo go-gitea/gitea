@@ -67,7 +67,7 @@ func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "user", "`user`.id = `issue_watch`.user_id").
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").
 		Find(&watches)
 	return
 }
