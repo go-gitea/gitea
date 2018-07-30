@@ -404,8 +404,8 @@
 -
   id: 33
   owner_id: 2
-  lower_name: golang-1
-  name: golang-1
+  lower_name: golang
+  name: golang
   is_private: false
   num_stars: 0
   num_forks: 0
