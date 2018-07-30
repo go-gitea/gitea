@@ -46,4 +46,5 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
+	assert.True(t, u.MustChangePassword)
 }
