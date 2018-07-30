@@ -131,6 +131,8 @@ type SearchRepoOptions struct {
 	// True -> include just mirrors
 	// False -> include just non-mirrors
 	Mirror util.OptionalBool
+	// only search topic name
+	Topic bool
 }
 
 //SearchOrderBy is used to sort the result
@@ -203,8 +205,12 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 	if opts.Keyword != "" {
 		var keywordCond = builder.NewCond()
-		keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
-		keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
+		if opts.Topic {
+			keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
+		} else {
+			keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+			keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
+		}
 		cond = cond.And(keywordCond)
 	}
 

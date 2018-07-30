@@ -233,6 +233,9 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 	}{
 		{name: "AllPublic/SearchPublicRepositoriesFromTopic",
 			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "golang"},
+			count: 2},
+		{name: "AllPublic/OnlySearchPublicRepositoriesFromTopic",
+			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "golang", Topic: true},
 			count: 1},
 		{name: "AllPublic/SearchPrivateRepositoriesFromTopic",
 			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "database", Private: true},
