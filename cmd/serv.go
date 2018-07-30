@@ -8,9 +8,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -93,6 +96,18 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 	os.Exit(1)
 }
 
+func pprofDumpMemProfileForUsername(username string) {
+	f, err := ioutil.TempFile("", fmt.Sprintf("gitea_serve_pprof_%s_", username))
+	if err != nil {
+		log.GitLogger.Fatal(4, "Could not create memory profile: %v", err)
+	}
+	runtime.GC() // get up-to-date statistics
+	if err := pprof.WriteHeapProfile(f); err != nil {
+		log.GitLogger.Fatal(4, "Could not write memory profile: %v", err)
+	}
+	f.Close()
+}
+
 func runServ(c *cli.Context) error {
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
@@ -142,6 +157,10 @@ func runServ(c *cli.Context) error {
 
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
+
+	if setting.EnablePprof {
+		defer pprofDumpMemProfileForUsername(username)
+	}
 
 	isWiki := false
 	unitType := models.UnitTypeCode

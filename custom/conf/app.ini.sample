@@ -185,6 +185,10 @@ STATIC_ROOT_PATH =
 APP_DATA_PATH = data
 ; Application level GZIP support
 ENABLE_GZIP = false
+; Application profiling (memory and cpu)
+; For "web" command it listens on localhost:6060
+; For "serve" command it dumps to disk at $TMPDIR/gitea_serve_pprof_<username>_id
+ENABLE_PPROF = false
 ; Landing page, can be "home", "explore", or "organizations"
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
