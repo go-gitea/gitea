@@ -40,4 +40,10 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 	NewUserPost(ctx, form)
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
+
+	u, err := models.GetUserByName(username)
+
+	assert.NoError(t, err)
+	assert.Equal(t, username, u.Name)
+	assert.Equal(t, email, u.Email)
 }
