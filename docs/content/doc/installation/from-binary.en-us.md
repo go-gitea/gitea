@@ -137,4 +137,9 @@ binary.
 
 To solve this, go to the admin options and run the task `Resynchronize pre-receive, 
 update and post-receive hooks of all repositories` to update all hooks to contain
-the new binary path.
+the new binary path. Please note that this overwrite all git hooks including ones
+with customizations made.
+
+If you aren't using the built-in to Gitea ssh server you will also need to re-write
+the authorized key file by running the `Update the '.ssh/authorized_keys' file with
+Gitea SSH keys.` task in the admin options.
