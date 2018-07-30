@@ -18,14 +18,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
