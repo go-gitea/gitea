@@ -45,6 +45,9 @@ var CmdServ = cli.Command{
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.BoolFlag{
+			Name: "enable-pprof",
+		},
 	},
 }
 
@@ -158,7 +161,7 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
-	if setting.EnablePprof {
+	if setting.EnablePprof || c.Bool("enable-pprof") {
 		defer pprofDumpMemProfileForUsername(username)
 	}
 
