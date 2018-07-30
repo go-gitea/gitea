@@ -13,8 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
-	"github.com/Unknwon/i18n"
 
+	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
