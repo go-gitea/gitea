@@ -147,10 +147,10 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 14},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true},
-			count: 17},
+			count: 18},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
-			count: 21},
+			count: 22},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
 			count: 13},
@@ -159,7 +159,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 11},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
-			count: 17},
+			count: 18},
 	}
 
 	for _, testCase := range testCases {
@@ -231,15 +231,12 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 		opts  *SearchRepoOptions
 		count int
 	}{
-		{name: "AllPublic/SearchPublicRepositoriesFromTopic",
-			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "golang"},
+		{name: "AllPublic/SearchPublicRepositoriesFromTopicAndName",
+			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql"},
 			count: 2},
 		{name: "AllPublic/OnlySearchPublicRepositoriesFromTopic",
-			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "golang", Topic: true},
+			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql", Topic: true},
 			count: 1},
-		{name: "AllPublic/SearchPrivateRepositoriesFromTopic",
-			opts:  &SearchRepoOptions{OwnerID: 2, AllPublic: true, Keyword: "database", Private: true},
-			count: 2},
 	}
 
 	for _, testCase := range testCases {
