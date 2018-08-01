@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -26,6 +27,7 @@ var (
 			subcmdChangePassword,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
+			subcmdAuth,
 		},
 	}
 
@@ -118,6 +120,82 @@ var (
 				Name:  "config, c",
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
+			},
+		},
+	}
+
+	subcmdAuth = cli.Command{
+		Name:  "auth",
+		Usage: "add auth sources",
+		Subcommands: []cli.Command{
+			microcmdAuthOauth,
+		},
+	}
+
+	microcmdAuthOauth = cli.Command{
+		Name:   "oauth",
+		Usage:  "Add new Oauth authentication source",
+		Action: runAddOauth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+			cli.StringFlag{
+				Name:  "name",
+				Value: "",
+				Usage: "Application Name",
+			},
+			cli.StringFlag{
+				Name:  "provider",
+				Value: "",
+				Usage: "OAuth2 Provider",
+			},
+			cli.StringFlag{
+				Name:  "key",
+				Value: "",
+				Usage: "Client ID (Key)",
+			},
+			cli.StringFlag{
+				Name:  "secret",
+				Value: "",
+				Usage: "Client Secret",
+			},
+			cli.StringFlag{
+				Name:  "secret",
+				Value: "",
+				Usage: "Client Secret",
+			},
+			cli.StringFlag{
+				Name:  "auto-discover-url",
+				Value: "",
+				Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
+			},
+			cli.StringFlag{
+				Name:  "use-custom-urls",
+				Value: "false",
+				Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
+			},
+			cli.StringFlag{
+				Name:  "custom-auth-url",
+				Value: "",
+				Usage: "Use a custom Authorize URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-token-url",
+				Value: "",
+				Usage: "Use a custom Token URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-profile-url",
+				Value: "",
+				Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-email-url",
+				Value: "",
+				Usage: "Use a custom Email URL (option for GitHub)",
 			},
 		},
 	}
@@ -261,4 +339,46 @@ func runRegenerateKeys(c *cli.Context) error {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
+}
+
+func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+	var customURLMapping *oauth2.CustomURLMapping
+	if c.IsSet("use-custom-urls") {
+		customURLMapping = &oauth2.CustomURLMapping{
+			TokenURL:   c.String("custom-token-url"),
+			AuthURL:    c.String("custom-auth-url"),
+			ProfileURL: c.String("custom-profile-url"),
+			EmailURL:   c.String("custom-email-url"),
+		}
+	} else {
+		customURLMapping = nil
+	}
+	return &models.OAuth2Config{
+		Provider:                      c.String("provider"),
+		ClientID:                      c.String("key"),
+		ClientSecret:                  c.String("secret"),
+		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
+		CustomURLMapping:              customURLMapping,
+	}
+}
+
+func runAddOauth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	if err := models.CreateLoginSource(&models.LoginSource{
+		Type:      models.LoginOAuth2,
+		Name:      c.String("name"),
+		IsActived: true,
+		Cfg:       parseOAuth2Config(c),
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
