@@ -162,6 +162,10 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
 	if issue.IsPull {
 		if err = issue.loadPullRequest(sess); err != nil {
+			// If pull request is not yet created - don't fail here, skip webhooks
+			if IsErrPullRequestNotExist(err) {
+				return nil
+			}
 			return fmt.Errorf("loadPullRequest: %v", err)
 		}
 		issue.PullRequest.Issue = issue
