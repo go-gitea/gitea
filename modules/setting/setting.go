@@ -111,6 +111,7 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 	EnablePprof          bool
+	PprofDataPath        string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -773,6 +774,7 @@ func NewContext() {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
@@ -913,6 +915,12 @@ func NewContext() {
 			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
 				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 
+		}
+	}
+
+	if PprofDataPath != "" {
+		if err := os.MkdirAll(PprofDataPath, os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", PprofDataPath, err)
 		}
 	}
 
