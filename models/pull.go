@@ -1195,12 +1195,6 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 	}
 }
 
-// Enumerate the prefixes that will help determine if a pull request is a Work In Progress
-var pullRequestWorkInProgressPrefixes = [...]string{
-	"WIP:",
-	"[WIP]",
-}
-
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
 func (pr *PullRequest) IsWorkInProgress() bool {
 	if err := pr.LoadIssue(); err != nil {
@@ -1208,7 +1202,7 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 		return false
 	}
 
-	for _, prefix := range pullRequestWorkInProgressPrefixes {
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
 		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
 			return true
 		}
@@ -1224,7 +1218,7 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 		return ""
 	}
 
-	for _, prefix := range pullRequestWorkInProgressPrefixes {
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
 		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
 			return pr.Issue.Title[0:len(prefix)]
 		}

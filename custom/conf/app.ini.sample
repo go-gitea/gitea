@@ -60,6 +60,9 @@ FILE_MAX_SIZE = 3
 ; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
+[repository.pull-request]
+WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
