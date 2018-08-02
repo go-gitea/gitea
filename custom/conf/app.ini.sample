@@ -581,8 +581,8 @@ DEFAULT_INTERVAL = 8h
 MIN_INTERVAL = 10m
 
 [api]
-; Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
-ENABLE_SWAGGER_ENDPOINT = true
+; Enables Swagger. True or false; default is true.
+ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
 
