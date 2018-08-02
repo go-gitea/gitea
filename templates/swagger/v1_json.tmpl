@@ -985,6 +985,18 @@
             "description": "if `uid` is given, search only for repos that the user owns",
             "name": "exclusive",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort repos by attribute. Supported values are \"alpha\", \"created\", \"updated\", \"size\", and \"id\". Default is \"alpha\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
