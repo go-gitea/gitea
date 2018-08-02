@@ -7,9 +7,6 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
-
-	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 )
 
@@ -74,7 +71,7 @@ func DeleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err e
 
 		if !found {
 			// This function also does comments and hooks, which is why we call it seperatly instead of directly removing the assignees here
-			if err := UpdateAssignee(issue, doer, assignee.ID); err != nil {
+			if _, err := issue.ChangeAssignee(doer, assignee.ID); err != nil {
 				return err
 			}
 		}
@@ -115,90 +112,46 @@ func AddAssigneeIfNotAssigned(issue *Issue, doer *User, assigneeID int64) (err e
 	}
 
 	if !isAssigned {
-		return issue.ChangeAssignee(doer, assigneeID)
+		_, err = issue.ChangeAssignee(doer, assigneeID)
 	}
-	return nil
-}
-
-// UpdateAssignee deletes or adds an assignee to an issue
-func UpdateAssignee(issue *Issue, doer *User, assigneeID int64) (err error) {
-	return issue.ChangeAssignee(doer, assigneeID)
+	return err
 }
 
 // ChangeAssignee changes the Assignee of this issue.
-func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
+func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
-		return err
+		return false, err
 	}
 
-	if err := issue.changeAssignee(sess, doer, assigneeID); err != nil {
-		return err
+	if removed, err = issue.changeAssignee(sess, doer, assigneeID); err != nil {
+		return false, err
 	}
 
-	return sess.Commit()
+	return removed, sess.Commit()
 }
 
-func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (err error) {
+func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (removed bool, err error) {
 
 	// Update the assignee
-	removed, err := updateIssueAssignee(sess, issue, assigneeID)
+	removed, err = updateIssueAssignee(sess, issue, assigneeID)
 	if err != nil {
-		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
+		return false, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
 
 	// Repo infos
 	if err = issue.loadRepo(sess); err != nil {
-		return fmt.Errorf("loadRepo: %v", err)
+		return false, fmt.Errorf("loadRepo: %v", err)
 	}
 
 	// Comment
 	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed); err != nil {
-		return fmt.Errorf("createAssigneeComment: %v", err)
+		return false, fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
-	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		apiPullRequest := &api.PullRequestPayload{
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		}
-		if removed {
-			apiPullRequest.Action = api.HookIssueUnassigned
-		} else {
-			apiPullRequest.Action = api.HookIssueAssigned
-		}
-		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return nil
-		}
-	} else {
-		apiIssue := &api.IssuePayload{
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		}
-		if removed {
-			apiIssue.Action = api.HookIssueUnassigned
-		} else {
-			apiIssue.Action = api.HookIssueAssigned
-		}
-		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return nil
-		}
-	}
-	go HookQueue.Add(issue.RepoID)
-	return nil
+	return removed, nil
 }
 
 // UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)

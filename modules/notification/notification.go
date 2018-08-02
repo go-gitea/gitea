@@ -48,10 +48,10 @@ func NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-// NotifyCloseIssue notifies close issue to notifiers
-func NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+// NotifyIssueChangeStatus notifies close or reopen issue to notifiers
+func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyCloseIssue(issue, doer)
+		notifier.NotifyIssueChangeStatus(doer, issue, closeOrReopen)
 	}
 }
 
@@ -118,10 +118,10 @@ func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 	}
 }
 
-// NotifyChangeMilestone notifies change milestone to notifiers
-func NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+// NotifyIssueChangeMilestone notifies change milestone to notifiers
+func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 	for _, notifier := range notifiers {
-		notifier.NotifyChangeMilestone(doer, issue)
+		notifier.NotifyIssueChangeMilestone(doer, issue)
 	}
 }
 
@@ -129,6 +129,13 @@ func NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
 func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeContent(doer, issue, oldContent)
+	}
+}
+
+// NotifyIssueChangeAssignee notifies change content to notifiers
+func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeAssignee(doer, issue, removed)
 	}
 }
 

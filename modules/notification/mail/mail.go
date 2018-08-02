@@ -36,7 +36,7 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (m *mailNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 	if err := issue.MailParticipants(); err != nil {
 		log.Error(4, "MailParticipants: %v", err)
 	}
@@ -72,10 +72,13 @@ func (m *mailNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Releas
 func (m *mailNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
-func (m *mailNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+func (m *mailNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 }
 
 func (m *mailNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
 }
 
 func (m *mailNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {

@@ -328,8 +328,10 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
-	if len(form.Body) > 0 {
-		issue.Content = form.Body
+	var oldContent string
+	if form.Body != nil {
+		oldContent = issue.Content
+		issue.Content = *form.Body
 	}
 
 	// Update Deadline
@@ -373,13 +375,18 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			return
 		}
 
-		notification.NotifyChangeMilestone(ctx.User, issue)
+		notification.NotifyIssueChangeMilestone(ctx.User, issue)
 	}
 
 	if err = models.UpdateIssue(issue); err != nil {
 		ctx.Error(500, "UpdateIssue", err)
 		return
 	}
+
+	if form.Body != nil {
+		notification.NotifyIssueChangeContent(ctx.User, issue, oldContent)
+	}
+
 	if form.State != nil {
 		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
@@ -389,6 +396,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database

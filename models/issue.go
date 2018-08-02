@@ -636,6 +636,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	// FIX: this code should be removed and add notification service out of models
 	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
@@ -810,7 +811,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	// Insert the assignees
 	for _, assigneeID := range opts.AssigneeIDs {
-		err = opts.Issue.changeAssignee(e, doer, assigneeID)
+		_, err = opts.Issue.changeAssignee(e, doer, assigneeID)
 		if err != nil {
 			return err
 		}

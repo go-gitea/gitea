@@ -59,7 +59,7 @@ func (ns *notificationService) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (ns *notificationService) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 	ns.issueQueue <- issueNotificationOpts{
 		issue,
 		doer.ID,
@@ -97,10 +97,13 @@ func (ns *notificationService) NotifyUpdateRelease(doer *models.User, rel *model
 func (ns *notificationService) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
-func (ns *notificationService) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+func (ns *notificationService) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 }
 
 func (ns *notificationService) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
 }
 
 func (ns *notificationService) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {

@@ -33,8 +33,7 @@ func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue) {
 	models.UpdateIssueIndexer(issue.ID)
 }
 
-func (r *indexerNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-
+func (r *indexerNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 }
 
 func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
@@ -73,10 +72,13 @@ func (r *indexerNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Rel
 func (r *indexerNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
-func (r *indexerNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+func (r *indexerNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (r *indexerNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
 }
 
 func (r *indexerNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {

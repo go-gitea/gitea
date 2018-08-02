@@ -61,11 +61,6 @@ func (w *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-// NotifyCloseIssue implements notification.Receiver
-func (w *webhookNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-
-}
-
 func (w *webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
 	mode, _ := models.AccessLevel(doer.ID, pr.Issue.Repo)
 	if err := models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
@@ -267,7 +262,7 @@ func (w *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Rel
 	}
 }
 
-func (w *webhookNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+func (w *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 	var hookAction api.HookIssueAction
 	if issue.MilestoneID > 0 {
 		hookAction = api.HookIssueMilestoned
@@ -309,6 +304,49 @@ func (w *webhookNotifier) NotifyChangeMilestone(doer *models.User, issue *models
 	} else {
 		go models.HookQueue.Add(issue.RepoID)
 	}
+}
+
+func (w *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(); err != nil {
+			log.Error(4, "LoadPullRequest [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			return
+		}
+		issue.PullRequest.Issue = issue
+		apiPullRequest := &api.PullRequestPayload{
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		}
+		if removed {
+			apiPullRequest.Action = api.HookIssueUnassigned
+		} else {
+			apiPullRequest.Action = api.HookIssueAssigned
+		}
+		if err := models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, apiPullRequest); err != nil {
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			return
+		}
+	} else {
+		apiIssue := &api.IssuePayload{
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		}
+		if removed {
+			apiIssue.Action = api.HookIssueUnassigned
+		} else {
+			apiIssue.Action = api.HookIssueAssigned
+		}
+		if err := models.PrepareWebhooks(issue.Repo, models.HookEventIssues, apiIssue); err != nil {
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			return
+		}
+	}
+	go models.HookQueue.Add(issue.RepoID)
 }
 
 func (w *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
@@ -420,9 +458,8 @@ func (w *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 	}
 }
 
-/*
 func (w *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
-	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	mode, _ := models.AccessLevel(issue.Poster.ID, issue.Repo)
 	var err error
 	if issue.IsPull {
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
@@ -458,7 +495,7 @@ func (w *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 	} else {
 		go models.HookQueue.Add(issue.Repo.ID)
 	}
-}*/
+}
 
 func (w *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 	addedLabels []*models.Label, removedLabels []*models.Label) {

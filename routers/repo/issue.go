@@ -935,7 +935,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			return
 		}
 
-		notification.NotifyChangeMilestone(ctx.User, issue)
+		notification.NotifyIssueChangeMilestone(ctx.User, issue)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
@@ -961,10 +961,13 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
+			removed, err := issue.ChangeAssignee(ctx.User, assigneeID)
+			if err != nil {
 				ctx.ServerError("ChangeAssignee", err)
 				return
 			}
+
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, removed)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1004,6 +1007,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 			ctx.ServerError("ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
@@ -1078,7 +1083,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
-					notification.NotifyCloseIssue(issue, ctx.User)
+					notification.NotifyIssueChangeStatus(ctx.User, issue, form.Status == "close")
 				}
 			}
 		}

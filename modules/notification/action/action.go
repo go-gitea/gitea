@@ -45,7 +45,7 @@ func (r *actionNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (r *actionNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (r *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 }
 
 func (r *actionNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
@@ -95,10 +95,13 @@ func (r *actionNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Rele
 func (r *actionNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
-func (r *actionNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+func (r *actionNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
 }
 
 func (r *actionNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (r *actionNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
 }
 
 func (r *actionNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {

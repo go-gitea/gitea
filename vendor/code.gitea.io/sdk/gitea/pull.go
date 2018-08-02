@@ -111,7 +111,7 @@ func (c *Client) CreatePullRequest(owner, repo string, opt CreatePullRequestOpti
 // EditPullRequestOption options when modify pull request
 type EditPullRequestOption struct {
 	Title     string   `json:"title"`
-	Body      string   `json:"body"`
+	Body      *string  `json:"body"`
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone int64    `json:"milestone"`
