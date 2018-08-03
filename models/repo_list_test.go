@@ -235,7 +235,7 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql"},
 			count: 2},
 		{name: "AllPublic/OnlySearchPublicRepositoriesFromTopic",
-			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql", Topic: true},
+			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql", TopicOnly: true},
 			count: 1},
 	}
 
