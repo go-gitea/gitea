@@ -16,10 +16,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/pprof"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
@@ -148,6 +148,10 @@ func runServ(c *cli.Context) error {
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
 	if setting.EnablePprof || c.Bool("enable-pprof") {
+		if err := os.MkdirAll(PprofDataPath, os.ModePerm); err != nil {
+			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+		}
+
 		stopCPUProfiler := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
 		defer func() {
 			stopCPUProfiler()
