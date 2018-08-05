@@ -148,7 +148,7 @@ func runServ(c *cli.Context) error {
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
 	if setting.EnablePprof || c.Bool("enable-pprof") {
-		if err := os.MkdirAll(PprofDataPath, os.ModePerm); err != nil {
+		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
 			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}
 
