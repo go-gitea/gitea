@@ -1,4 +1,4 @@
-{{$file := .}}
+{{$file := .file}}
 {{$highlightClass := $file.GetHighlightClass}}
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
@@ -15,9 +15,27 @@
 				<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}">{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}</span>
 			</td>
 			{{end}}
-			<td class="lines-code">
+			<td class="lines-code {{if (not $line.RightIdx)}}lines-code-old{{end}}">
+				{{if and $.root.SignedUserID $line.CanComment}}
+					<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>
+				{{end}}
 				<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</code></pre>
 			</td>
 		</tr>
+		{{if gt (len $line.Comments) 0}}
+		<tr>
+			<td colspan="2" class="lines-num"></td>
+			<td class="add-comment-left add-comment-right">
+				<div class="field comment-code-cloud">
+					<div class="comment-list">
+						<ui class="ui comments">
+						{{ template "repo/diff/comments" dict "root" $.root "comments" $line.Comments}}
+						</ui>
+					</div>
+					{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $.root "comment" (index $line.Comments 0)}}
+				</div>
+			</td>
+		</tr>
+		{{end}}
 	{{end}}
 {{end}}

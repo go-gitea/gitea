@@ -264,7 +264,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
-			ctx.Data["IsPullReuqestBroken"] = true
+			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = "deleted"
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
@@ -302,7 +302,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 	}
 
 	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
-		ctx.Data["IsPullReuqestBroken"] = true
+		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["HeadTarget"] = "deleted"
 		ctx.Data["NumCommits"] = 0
 		ctx.Data["NumFiles"] = 0
@@ -313,7 +313,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
-			ctx.Data["IsPullReuqestBroken"] = true
+			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = "deleted"
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
@@ -456,6 +456,12 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetDiffRange", err)
 		return
 	}
+
+	if err = diff.LoadComments(issue, ctx.User); err != nil {
+		ctx.ServerError("LoadComments", err)
+		return
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
@@ -470,7 +476,16 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
-
+	ctx.Data["RequireTribute"] = true
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
+	if err != nil && !models.IsErrReviewNotExist(err) {
+		ctx.ServerError("GetCurrentReview", err)
+		return
+	}
 	ctx.HTML(200, tplPullFiles)
 }
 
