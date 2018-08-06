@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -23,7 +24,7 @@ import (
 )
 
 // NonexistentID an ID that will never exist
-const NonexistentID = 9223372036854775807
+const NonexistentID = int64(math.MaxInt64)
 
 // giteaRoot a path to the gitea root
 var giteaRoot string
