@@ -1,13 +1,16 @@
 {{if .DiffNotAvailable}}
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
-	<div class="diff-detail-box diff-box">
+	<div class="diff-detail-box diff-box ui sticky">
 		<div>
 			<i class="fa fa-retweet"></i>
 			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			<div class="ui right">
 				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+				{{if $.SignedUserID}}
+					{{template "repo/diff/new_review" .}}
+				{{end}}
 			</div>
 		</div>
 		<ol class="detail-files hide" id="diff-files">
@@ -100,21 +103,59 @@
 													<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
 														<td class="lines-num lines-num-old">
 															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}">{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}</span>
+
 														</td>
-														<td class="lines-code halfwidth">
+														<td class="lines-code lines-code-old halfwidth">
+															{{if and $.root.SignedUserID $line.CanComment}}
+																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
+															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
 														<td class="lines-num lines-num-new">
 															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}">{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}</span>
 														</td>
-														<td class="lines-code halfwidth">
+
+														<td class="lines-code lines-code-new halfwidth">
+															{{if and $.root.SignedUserID $line.CanComment}}
+																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
+															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
 													</tr>
+													{{if gt (len $line.Comments) 0}}
+														<tr class="add-code-comment">
+															<td class="lines-num"></td>
+															<td class="add-comment-left">
+																{{if eq $line.GetCommentSide "previous"}}
+																	<div class="field comment-code-cloud">
+																		<div class="comment-list">
+																			<ui class="ui comments">
+																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
+																			</ui>
+																		</div>
+																	{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																	</div>
+																{{end}}
+															</td>
+															<td class="lines-num"></td>
+															<td class="add-comment-right">
+																{{if eq $line.GetCommentSide "proposed"}}
+																	<div class="field comment-code-cloud">
+																		<div class="comment-list">
+																			<ui class="ui comments">
+																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
+																			</ui>
+																		</div>
+																		{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																	</div>
+																{{end}}
+															</td>
+														</tr>
+													{{end}}
 												{{end}}
 											{{end}}
 										{{else}}
-											{{template "repo/diff/section_unified" .}}
+											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
 									</tbody>
 								</table>
@@ -134,6 +175,28 @@
 			</h4>
 		</div>
 	{{end}}
+
+	<div id="pull_review_add_comment" class="hide">
+		{{template "repo/diff/new_comment" dict "root" .}}
+	</div>
+	<div class="hide" id="edit-content-form">
+		<div class="ui comment form">
+			<div class="ui top attached tabular menu">
+				<a class="active write item">{{$.i18n.Tr "write"}}</a>
+				<a class="preview item" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+			</div>
+			<div class="ui bottom attached active write tab segment">
+				<textarea tabindex="1" id="content" name="content"></textarea>
+			</div>
+			<div class="ui bottom attached tab preview segment markdown">
+			{{$.i18n.Tr "loading"}}
+			</div>
+			<div class="text right edit buttons">
+				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+			</div>
+		</div>
+	</div>
 
 	{{if .IsSplitStyle}}
 		<script>

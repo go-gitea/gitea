@@ -124,6 +124,7 @@ func init() {
 		new(IssueAssignees),
 		new(U2FRegistration),
 		new(TeamUnit),
+		new(Review),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

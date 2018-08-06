@@ -733,6 +733,22 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadDepIssueDetails", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
+			if err = comment.LoadReview(); err != nil && !models.IsErrReviewNotExist(err) {
+				ctx.ServerError("LoadReview", err)
+				return
+			}
+			if comment.Review == nil {
+				continue
+			}
+			if err = comment.Review.LoadAttributes(); err != nil {
+				ctx.ServerError("Review.LoadAttributes", err)
+				return
+			}
+			if err = comment.Review.LoadCodeComments(); err != nil {
+				ctx.ServerError("Review.LoadCodeComments", err)
+				return
+			}
 		}
 	}
 
@@ -1114,7 +1130,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
 		ctx.Error(204)
 		return
 	}
@@ -1148,7 +1164,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
 		ctx.Error(204)
 		return
 	}
