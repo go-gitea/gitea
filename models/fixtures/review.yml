@@ -1,0 +1,32 @@
+-
+  id: 1
+  type: 1
+  reviewer_id: 1
+  issue_id: 2
+  content: "Demo Review"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 2
+  type: 1
+  reviewer_id: 534543
+  issue_id: 534543
+  content: "Invalid Review #1"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 3
+  type: 1
+  reviewer_id: 1
+  issue_id: 343545
+  content: "Invalid Review #2"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 4
+  type: 0 # Pending review
+  reviewer_id: 1
+  issue_id: 2
+  content: "Pending Review"
+  updated_unix: 946684810
+  created_unix: 946684810
