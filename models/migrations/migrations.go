@@ -194,9 +194,11 @@ var migrations = []Migration{
 	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
-	// v70 -> v71
-	NewMigration("protect each scratch token", addScratchHash),
 	// v71 -> v72
+	NewMigration("protect each scratch token", addScratchHash),
+	// v72 -> v73
+	NewMigration("add review", addReview),
+	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
 }
 

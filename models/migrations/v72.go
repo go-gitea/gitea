@@ -5,14 +5,27 @@
 package migrations
 
 import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-xorm/xorm"
 )
 
-func addMustChangePassword(x *xorm.Engine) error {
-	type User struct {
-		ID                 int64 `xorm:"pk autoincr"`
-		MustChangePassword bool  `xorm:"NOT NULL DEFAULT false"`
+func addReview(x *xorm.Engine) error {
+	// Review see models/review.go
+	type Review struct {
+		ID          int64 `xorm:"pk autoincr"`
+		Type        string
+		ReviewerID  int64 `xorm:"index"`
+		IssueID     int64 `xorm:"index"`
+		Content     string
+		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync2(new(User))
+	if err := x.Sync2(new(Review)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return nil
 }
