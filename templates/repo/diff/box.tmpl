@@ -137,7 +137,7 @@
 
 	{{if .IsSplitStyle}}
 		<script>
-			(function() {
+			document.addEventListener('DOMContentLoaded', function() {
 				$('tr.add-code').each(function() {
 					var prev = $(this).prev();
 					if(prev.is('.del-code') && prev.children().eq(3).text().trim() === '') {
@@ -154,7 +154,7 @@
 						$(this).remove();
 					}
 				});
-			}());
+			});
 		</script>
 	{{end}}
 {{end}}
