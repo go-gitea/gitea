@@ -604,7 +604,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $('#content');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -759,6 +759,104 @@ function initRepository() {
             }
         });
     }
+}
+
+function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
+
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
+
+    $('.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var path = $(this).data('path');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+            var id = assingMenuAttributes(commentCloud.find('.menu'));
+            commentCloud.find('.tab.segment').each(function(i, item) {
+                $(item).attr('data-tab', $(item).attr('data-tab') + id);
+            });
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
+        }
+        commentCloud.find('textarea').focus();
+    });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
 }
 
 function initRepositoryCollaboration() {
@@ -1771,6 +1869,7 @@ $(document).ready(function () {
     initU2FAuth();
     initU2FRegister();
     initIssueList();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2527,4 +2626,14 @@ function initIssueList() {
             fullTextSearch: true
         })
     ;
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('.comment-form-reply').show();
+    }else {
+        console.log("Hey");
+        form.closest('.comment-code-cloud').remove()
+    }
 }

@@ -69,6 +69,8 @@ ISSUE_PAGING_NUM = 10
 FEED_MAX_COMMIT_NUM = 5
 ; Number of maximum commits displayed in commit graph.
 GRAPH_MAX_COMMIT_NUM = 100
+; Number of line of codes shown for a code comment
+CODE_COMMENT_LINES = 4
 ; Value of `theme-color` meta tag, used by Android >= 5.0
 ; An invalid color like "none" or "disable" will have the default style
 ; More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
