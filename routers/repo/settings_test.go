@@ -97,24 +97,42 @@ func TestCollaborationPost(t *testing.T) {
 	assert.True(t, exists)
 }
 
-func TestCollaborationPost_InactiveUser(t *testing.T) {
+func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
-	test.LoadUser(t, ctx, 9)
+	test.LoadUser(t, ctx, 4)
 	test.LoadRepo(t, ctx, 1)
 
-	ctx.Req.Form.Set("collaborator", "user9")
+	ctx.Req.Form.Set("collaborator", "user4")
+
+	u := &models.User{
+		LowerName: "user2",
+		Type:      models.UserTypeIndividual,
+	}
+
+	re := &models.Repository{
+		ID:    2,
+		Owner: u,
+	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
-			LowerName: "user2",
-		},
+		Owner:      u,
+		Repository: re,
 	}
 
 	ctx.Repo = repo
 
+	CollaborationPost(ctx)
+
+	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+
+	exists, err := re.IsCollaborator(4)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Try adding the same collaborator again
 	CollaborationPost(ctx)
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
