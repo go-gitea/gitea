@@ -90,6 +90,20 @@ cp gitea /usr/local/bin/gitea
 
 See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
 
+## Updating to a new version
+
+You can update to a new version of gitea by stopping gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance. 
+The binary file name should not be changed during the update to avoid problems 
+in existing repositories. 
+
+It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
+
+If you have carried out the installation steps as described above, the binary should 
+have the generic name `gitea`. Do not change this, i.e. to include the version number. 
+
+See below for troubleshooting instructions to repair broken repositories after 
+an update of your gitea version.
+
 ## Troubleshooting
 
 ### Old glibc versions
@@ -107,3 +121,25 @@ For errors like `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:30
 bind: address already in use` gitea needs to be started on another free port. This
 is possible using `./gitea web -p $PORT`. It's possible another instance of gitea
 is already running.
+
+### Git error after updating to a new version of gitea
+
+If the binary file name has been changed during the update to a new version of gitea, 
+git hooks in existing repositories will not work any more. In that case, a git 
+error will be displayed when pushing to the repository.
+
+```
+remote: ./hooks/pre-receive.d/gitea: line 2: [...]: No such file or directory
+```
+
+The `[...]` part of the error message will contain the path to your previous gitea 
+binary.
+
+To solve this, go to the admin options and run the task `Resynchronize pre-receive, 
+update and post-receive hooks of all repositories` to update all hooks to contain
+the new binary path. Please note that this overwrite all git hooks including ones
+with customizations made.
+
+If you aren't using the built-in to Gitea ssh server you will also need to re-write
+the authorized key file by running the `Update the '.ssh/authorized_keys' file with
+Gitea SSH keys.` task in the admin options.
