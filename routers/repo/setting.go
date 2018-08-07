@@ -381,6 +381,12 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
+	if !u.IsActive {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_inactive_user"))
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		return
+	}
+
 	// Organization is not allowed to be added as a collaborator.
 	if u.IsOrganization() {
 		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
