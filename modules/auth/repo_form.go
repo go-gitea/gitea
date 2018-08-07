@@ -402,6 +402,13 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 	}
 }
 
+func (f SubmitReviewForm) HasEmptyContent() bool {
+	reviewType := f.ReviewType()
+
+	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+		len(strings.TrimSpace(f.Content)) == 0
+}
+
 // __________       .__
 // \______   \ ____ |  |   ____ _____    ______ ____
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
