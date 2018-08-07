@@ -187,6 +187,12 @@ STATIC_ROOT_PATH =
 APP_DATA_PATH = data
 ; Application level GZIP support
 ENABLE_GZIP = false
+; Application profiling (memory and cpu)
+; For "web" command it listens on localhost:6060
+; For "serve" command it dumps to disk at PPROF_DATA_PATH as (cpuprofile|memprofile)_<username>_<temporary id>
+ENABLE_PPROF = false
+; PPROF_DATA_PATH, use an absolute path when you start gitea as service
+PPROF_DATA_PATH = data/tmp/pprof
 ; Landing page, can be "home", "explore", or "organizations"
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
@@ -215,7 +221,7 @@ USER = root
 PASSWD =
 ; For "postgres" only, either "disable", "require" or "verify-full"
 SSL_MODE = disable
-; For "sqlite3" and "tidb", use absolute path when you start gitea as service
+; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
 SQLITE_TIMEOUT = 500
