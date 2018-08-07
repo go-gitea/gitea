@@ -278,6 +278,7 @@ var (
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
 		GraphMaxCommitNum   int
+		CodeCommentLines    int
 		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
@@ -304,6 +305,7 @@ var (
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
+		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
