@@ -402,6 +402,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 	}
 }
 
+// HasEmptyContent checks if the content of the review form is empty.
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
