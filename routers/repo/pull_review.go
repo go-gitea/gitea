@@ -107,6 +107,13 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 	}
+
+	if form.HasEmptyContent() {
+		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+
 	review, err = models.GetCurrentReview(ctx.User, issue)
 	if err != nil {
 		if !models.IsErrReviewNotExist(err) {
