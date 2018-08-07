@@ -401,6 +401,12 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
+	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
 	if err = ctx.Repo.Repository.AddCollaborator(u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
