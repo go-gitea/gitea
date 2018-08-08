@@ -112,13 +112,11 @@ func NewTemplateFileSystem() templateFileSystem {
 	return fs
 }
 
-var tplFileSys = NewTemplateFileSystem()
-
 // HTMLRenderer implements the macaron handler for serving HTML templates.
 func HTMLRenderer() macaron.Handler {
 	return macaron.Renderer(macaron.RenderOptions{
 		Funcs:              NewFuncMap(),
-		TemplateFileSystem: tplFileSys,
+		TemplateFileSystem: NewTemplateFileSystem(),
 	})
 }
 
@@ -126,7 +124,7 @@ func HTMLRenderer() macaron.Handler {
 func JSONRenderer() macaron.Handler {
 	return macaron.Renderer(macaron.RenderOptions{
 		Funcs:              NewFuncMap(),
-		TemplateFileSystem: tplFileSys,
+		TemplateFileSystem: NewTemplateFileSystem(),
 		HTMLContentType:    "application/json",
 	})
 }
