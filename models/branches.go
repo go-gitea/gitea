@@ -74,7 +74,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 		return true
 	}
 
-	if len(protectBranch.WhitelistTeamIDs) == 0 {
+	if len(protectBranch.MergeWhitelistTeamIDs) == 0 {
 		return false
 	}
 
@@ -175,6 +175,24 @@ func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 
 // IsProtectedBranch checks if branch is protected
 func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
+	protectedBranch := &ProtectedBranch{
+		RepoID:     repo.ID,
+		BranchName: branchName,
+	}
+
+	has, err := x.Exist(protectedBranch)
+	if err != nil {
+		return true, err
+	}
+	return has, nil
+}
+
+// IsProtectedBranchForPush checks if branch is protected for push
+func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) (bool, error) {
 	if doer == nil {
 		return true, nil
 	}
