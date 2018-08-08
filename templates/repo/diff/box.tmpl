@@ -8,7 +8,7 @@
 			<div class="ui right">
 				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
-				{{if $.SignedUserID}}
+				{{if and .PageIsPullFiles $.SignedUserID}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
 			</div>
