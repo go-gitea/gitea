@@ -184,6 +184,24 @@ func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, 
 		BranchName: branchName,
 	}
 
+	has, err := x.Exist(protectedBranch)
+	if err != nil {
+		return true, err
+	}
+	return has, nil
+}
+
+// IsProtectedBranchForPush checks if branch is protected for push
+func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
+	protectedBranch := &ProtectedBranch{
+		RepoID:     repo.ID,
+		BranchName: branchName,
+	}
+
 	has, err := x.Get(protectedBranch)
 	if err != nil {
 		return true, err
