@@ -70,7 +70,7 @@ func parseCmd(cmd string) (string, string) {
 	if len(ss) != 2 {
 		return "", ""
 	}
-	return ss[0], strings.Replace(ss[1], "'/", "'", 1)
+	return ss[0], ss[1]
 }
 
 var (
@@ -138,7 +138,7 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	repoPath := strings.ToLower(strings.Trim(args, "'"))
+	repoPath := strings.ToLower(strings.TrimLeft(strings.Trim(args, "'"), "/"))
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
 		fail("Invalid repository path", "Invalid repository path: %v", args)
