@@ -1075,10 +1075,7 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	}
 
 	// Load issues.
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
-	}
+	issueIDs := prs.getIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := e.
 		Where("id > 0").
@@ -1097,9 +1094,42 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	return nil
 }
 
+func (prs PullRequestList) getIssueIDs() []int64 {
+	issueIDs := make([]int64, 0, len(prs))
+	for i := range prs {
+		issueIDs = append(issueIDs, prs[i].IssueID)
+	}
+	return issueIDs
+}
+
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(x)
+}
+
+func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
+	if len(prs) == 0 {
+		return nil
+	}
+	issueIDs := prs.getIssueIDs()
+	var codeComments []*Comment
+	if err := e.
+		Where("type = ? and invalidated = ?", CommentTypeCode, false).
+		In("issue_id", issueIDs).
+		Find(&codeComments); err != nil {
+		return fmt.Errorf("find code comments: %v", err)
+	}
+	for _, comment := range codeComments {
+		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
+func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
+	return prs.invalidateCodeComments(x, doer, repo, branch)
 }
 
 func addHeadRepoTasks(prs []*PullRequest) {
@@ -1128,10 +1158,13 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	}
 
 	if isSync {
-		if err = PullRequestList(prs).LoadAttributes(); err != nil {
+		requests := PullRequestList(prs)
+		if err = requests.LoadAttributes(); err != nil {
 			log.Error(4, "PullRequestList.LoadAttributes: %v", err)
 		}
-
+		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
+			log.Error(4, "checkForInvalidation: %v", invalidationErr)
+		}
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
@@ -1152,6 +1185,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 				go HookQueue.Add(pr.Issue.Repo.ID)
 			}
 		}
+
 	}
 
 	addHeadRepoTasks(prs)
@@ -1165,6 +1199,24 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	for _, pr := range prs {
 		pr.AddToTaskQueue()
 	}
+}
+
+func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, branch string) error {
+	repo, err := GetRepositoryByID(repoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("git.OpenRepository: %v", err)
+	}
+	go func() {
+		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
+		if err != nil {
+			log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
+		}
+	}()
+	return nil
 }
 
 // ChangeUsernameInPullRequests changes the name of head_user_name

@@ -20,3 +20,24 @@
   issue_id: 1 # in repo_id 1
   content: "meh..."
   created_unix: 946684812
+-
+  id: 4
+  type: 21 # code comment
+  poster_id: 1
+  issue_id: 2
+  content: "meh..."
+  review_id: 4
+  line: 4
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: false
+-
+  id: 5
+  type: 21 # code comment
+  poster_id: 1
+  issue_id: 2
+  content: "meh..."
+  line: -4
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: false

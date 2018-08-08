@@ -462,6 +462,12 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetDiffRange", err)
 		return
 	}
+
+	if err = diff.LoadComments(issue, ctx.User); err != nil {
+		ctx.ServerError("LoadComments", err)
+		return
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
@@ -476,7 +482,16 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
-
+	ctx.Data["RequireTribute"] = true
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
+	if err != nil && !models.IsErrReviewNotExist(err) {
+		ctx.ServerError("GetCurrentReview", err)
+		return
+	}
 	ctx.HTML(200, tplPullFiles)
 }
 

@@ -1344,3 +1344,25 @@ func IsErrUnknownDependencyType(err error) bool {
 func (err ErrUnknownDependencyType) Error() string {
 	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
 }
+
+//  __________            .__
+//  \______   \ _______  _|__| ______  _  __
+//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
+//  |    |   \  ___/\   /|  \  ___/\     /
+//  |____|_  /\___  >\_/ |__|\___  >\/\_/
+//  \/     \/             \/
+
+// ErrReviewNotExist represents a "ReviewNotExist" kind of error.
+type ErrReviewNotExist struct {
+	ID int64
+}
+
+// IsErrReviewNotExist checks if an error is a ErrReviewNotExist.
+func IsErrReviewNotExist(err error) bool {
+	_, ok := err.(ErrReviewNotExist)
+	return ok
+}
+
+func (err ErrReviewNotExist) Error() string {
+	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
+}
