@@ -83,17 +83,14 @@ func HTTP(ctx *context.Context) {
 
 	// check access
 	if askAuth {
-		if setting.Service.EnableReverseProxyAuth {
-			authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-			if len(authUsername) == 0 {
-				ctx.HandleText(401, "reverse proxy login error. authUsername empty")
-				return
-			}
+		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+		if setting.Service.EnableReverseProxyAuth && len(authUsername) > 0 {
 			authUser, err = models.GetUserByName(authUsername)
 			if err != nil {
 				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
 				return
 			}
+		}
 		} else {
 			authHead := ctx.Req.Header.Get("Authorization")
 			if len(authHead) == 0 {
