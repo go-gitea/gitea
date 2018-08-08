@@ -31,6 +31,10 @@ ignored = ["google.golang.org/appengine*"]
   name = "golang.org/x/net"
 
 [[override]]
+  name = "github.com/gliderlabs/ssh"
+  revision = "d3a6756290240931faaf90ec97ddd5d9290623d8"
+
+[[override]]
   name = "github.com/go-xorm/xorm"
   #version = "0.6.5"
   revision = "ad69f7d8f0861a29438154bb0a20b60501298480"
