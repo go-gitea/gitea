@@ -85,9 +85,9 @@ func (r *Repository) CanCreateBranch() bool {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected
+//   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName, doer)
+	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
 	if err != nil {
 		return false, err
 	}
