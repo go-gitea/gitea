@@ -4,9 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.5.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc2) - 2018-07-21
+## [1.5.0](https://github.com/go-gitea/gitea/releases/tag/v1.5.0) - 2018-08-10
 * SECURITY
   * Check that repositories can only be migrated to own user or organizations (#4366) (#4370)
+  * Limit uploaded avatar image-size to 4096px x 3072px by default (#4353)
+  * Do not allow to reuse TOTP passcode (#3878)
 * BUGFIXES
   * Fix column droping for MSSQL that need new transaction for that (#4440) (#4484)
   * Redirect to correct page after using scratch token (#4458) (#4472)
@@ -15,11 +17,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add default merge options when adding new repository (#4369) (#4373)
   * Fix repository last updated time update when delete a user who watched the repo (#4363) (#4371)
   * Fix html entity escaping in branch deletion message (#4471) (#4485)
-
-## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-07-04
-* SECURITY
-  * Limit uploaded avatar image-size to 4096px x 3072px by default (#4353)
-  * Do not allow to reuse TOTP passcode (#3878)
+  * Fix out-of-transaction query in removeOrgUser (#4521) (#4524)
+  * Fix incorrect MergeWhitelistTeamIDs check in CanUserMerge function (#4519)
+  * Fix panic issue on update avatar email (#4580) (#4590)
+  * Fix bugs when too many IN variables (#4594) (#4597)
+  * Push whitelist now doesn't apply to branch deletion (#4601) (#4640)
+  * Site admin could create repos even MAX_CREATION_LIMIT=0 (#4645) (#4650)
 * FEATURE
   * Add cli commands to regen hooks & keys (#3979)
   * Add support for FIDO U2F (#3971)
