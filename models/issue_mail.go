@@ -87,7 +87,9 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, participants[i].Name)
 	}
 
-	SendIssueCommentMail(issue, doer, content, comment, tos)
+	for _, to := range tos {
+		SendIssueCommentMail(issue, doer, content, comment, []string{to})
+	}
 
 	// Mail mentioned people and exclude watchers.
 	names = append(names, doer.Name)
@@ -99,7 +101,12 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 		tos = append(tos, mentions[i])
 	}
-	SendIssueMentionMail(issue, doer, content, comment, getUserEmailsByNames(e, tos))
+
+	emails := getUserEmailsByNames(e, tos)
+
+	for _, to := range emails {
+		SendIssueMentionMail(issue, doer, content, comment, []string{to})
+	}
 
 	return nil
 }
