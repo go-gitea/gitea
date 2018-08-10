@@ -84,6 +84,7 @@ _Symbols used in table:_
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Issue search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Global issue search | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
