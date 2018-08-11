@@ -987,7 +987,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
+	handleSignInFull(ctx, u, false, true)
 }
 
 // Activate render activate user page
