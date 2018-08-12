@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -36,8 +37,14 @@ func TestAPIMergePullWIP(t *testing.T) {
 	prepareTestEnv(t)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable, HasMerged: false}).(*models.PullRequest)
+	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, models.Cond("has_merged = ?", false)).(*models.PullRequest)
 	pr.LoadIssue()
+	pr.Issue.ChangeTitle(owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
+
+	// force reload
+	pr.LoadAttributes()
+
+	assert.Contains(t, pr.Issue.Title, setting.Repository.PullRequest.WorkInProgressPrefixes[0])
 
 	session := loginUser(t, owner.Name)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, pr.Index), &auth.MergePullRequestForm{
