@@ -1662,17 +1662,13 @@ function initWipTitle() {
         var $issueTitle = $("#issue_title");
         var value = $issueTitle.val().trim().toUpperCase();
 
-        var addPrefix = true;
         for (var i in wipPrefixes) {
             if (value.startsWith(wipPrefixes[i].toUpperCase())) {
-                addPrefix = false;
-                break;
+                return;
             }
         }
 
-        if (addPrefix) {
-            $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
-        }
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
     });
 }
 
