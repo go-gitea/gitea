@@ -3,35 +3,19 @@
 	<i class="dropdown icon"></i>
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=">
-			{{ if eq .WhitespaceBehavior "" }}
-				<i class="circle dot icon"></i>
-			{{else}}
-				<i class="circle outline icon"></i>
-			{{end}}
+			<i class="circle {{ if eq .WhitespaceBehavior "" }}dot{{else}}outline{{end}} icon"></i>
 			{{.i18n.Tr "repo.diff.whitespace_show_everything"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
-			{{ if eq .WhitespaceBehavior "ignore-all" }}
-				<i class="circle dot icon"></i>
-			{{else}}
-				<i class="circle outline icon"></i>
-			{{end}}
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-all" }}dot{{else}}outline{{end}} icon"></i>
 			{{.i18n.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
-			{{ if eq .WhitespaceBehavior "ignore-change" }}
-				<i class="circle dot icon"></i>
-			{{else}}
-				<i class="circle outline icon"></i>
-			{{end}}
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-change" }}dot{{else}}outline{{end}} icon"></i>
 			{{.i18n.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
-			{{ if eq .WhitespaceBehavior "ignore-eol" }}
-				<i class="circle dot icon"></i>
-			{{else}}
-				<i class="circle outline icon"></i>
-			{{end}}
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-eol" }}dot{{else}}outline{{end}} icon"></i>
 			{{.i18n.Tr "repo.diff.whitespace_ignore_at_eol"}}
 		</a>
 	</div>
