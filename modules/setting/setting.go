@@ -224,6 +224,11 @@ var (
 			LocalCopyPath string
 			LocalWikiPath string
 		} `ini:"-"`
+
+		// Pull request settings
+		PullRequest struct {
+			WorkInProgressPrefixes []string
+		} `ini:"repository.pull-request"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -266,6 +271,13 @@ var (
 		}{
 			LocalCopyPath: "tmp/local-repo",
 			LocalWikiPath: "tmp/local-wiki",
+		},
+
+		// Pull request settings
+		PullRequest: struct {
+			WorkInProgressPrefixes []string
+		}{
+			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
 		},
 	}
 	RepoRootPath string
@@ -1031,6 +1043,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {

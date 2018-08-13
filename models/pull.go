@@ -214,7 +214,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 	}
 
 	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict
+		mergeable := pr.Status != PullRequestStatusConflict && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {
@@ -1245,6 +1245,37 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
 	}
+}
+
+// IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
+func (pr *PullRequest) IsWorkInProgress() bool {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error(4, "LoadIssue: %v", err)
+		return false
+	}
+
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
+		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
+// It returns an empty string when none were found
+func (pr *PullRequest) GetWorkInProgressPrefix() string {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error(4, "LoadIssue: %v", err)
+		return ""
+	}
+
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
+		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+			return pr.Issue.Title[0:len(prefix)]
+		}
+	}
+	return ""
 }
 
 // TestPullRequests checks and tests untested patches of pull requests.

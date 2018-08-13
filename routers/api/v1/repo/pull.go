@@ -510,7 +510,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() || pr.HasMerged {
+	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
 		ctx.Status(405)
 		return
 	}
