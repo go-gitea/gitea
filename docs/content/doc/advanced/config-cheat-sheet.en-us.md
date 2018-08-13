@@ -62,6 +62,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
+   
+### Repository - Pull Request (`repository.pull-request`)
+- `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
+ title to mark them as Work In Progress
 
 ## UI (`ui`)
 

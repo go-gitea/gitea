@@ -1655,6 +1655,23 @@ function u2fRegisterRequest() {
     });
 }
 
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
+    });
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -1869,6 +1886,7 @@ $(document).ready(function () {
     initU2FAuth();
     initU2FRegister();
     initIssueList();
+    initWipTitle();
     initPullRequestReview();
 
     // Repo clone url.
