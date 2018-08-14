@@ -57,8 +57,8 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	defer func() {
 		if !isSucceed {
 			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
-			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
+			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		}
 	}()
 
@@ -78,7 +78,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed = true
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	return true, nil
 }
 
@@ -92,13 +92,13 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
 		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
 		return true
 	}
@@ -443,9 +443,9 @@ func handleSignIn(ctx *context.Context, u *models.User, remember bool) {
 func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	}
 
 	ctx.Session.Delete("openid_verified_uri")
@@ -469,10 +469,10 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		}
 	}
 
-	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
+	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 	// Register last login
 	u.SetLastLogin()
@@ -482,7 +482,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	}
 
 	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
 		}
@@ -563,7 +563,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 			ctx.Session.Set("uname", u.Name)
 
 			// Clear whatever CSRF has right now, force to generate a new one
-			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 			// Register last login
 			u.SetLastLogin()
@@ -573,7 +573,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 			}
 
 			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
-				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
 			}
@@ -864,10 +864,10 @@ func SignOut(ctx *context.Context) {
 	ctx.Session.Delete("socialId")
 	ctx.Session.Delete("socialName")
 	ctx.Session.Delete("socialEmail")
-	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
-	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
-	ctx.SetCookie("lang", "", -1, setting.AppSubURL) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
