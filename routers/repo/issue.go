@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -302,6 +303,9 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 	}
 	ctx.Data["Branches"] = brs
 
+	// Contains true if the user can create issue dependencies
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+
 	return labels
 }
 
@@ -352,6 +356,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -445,6 +450,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["ReadOnly"] = false
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	renderAttachmentSettings(ctx)
 
 	var (
@@ -665,6 +671,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	// Check if the user can use the dependencies
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
@@ -721,6 +730,27 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadAssigneeUser", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
+			if err = comment.LoadDepIssueDetails(); err != nil {
+				ctx.ServerError("LoadDepIssueDetails", err)
+				return
+			}
+		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
+			if err = comment.LoadReview(); err != nil && !models.IsErrReviewNotExist(err) {
+				ctx.ServerError("LoadReview", err)
+				return
+			}
+			if comment.Review == nil {
+				continue
+			}
+			if err = comment.Review.LoadAttributes(); err != nil {
+				ctx.ServerError("Review.LoadAttributes", err)
+				return
+			}
+			if err = comment.Review.LoadCodeComments(); err != nil {
+				ctx.ServerError("Review.LoadCodeComments", err)
+				return
+			}
 		}
 	}
 
@@ -773,6 +803,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
+
+	// Get Dependencies
+	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -971,6 +1005,12 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
+					"error": "cannot close this issue because it still has open dependencies",
+				})
+				return
+			}
 			ctx.ServerError("ChangeStatus", err)
 			return
 		}
@@ -1034,6 +1074,17 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			} else {
 				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
+
+					if models.IsErrDependenciesLeft(err) {
+						if issue.IsPull {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+						} else {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+						}
+						return
+					}
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
@@ -1081,7 +1132,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
 		ctx.Error(204)
 		return
 	}
@@ -1115,7 +1166,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
 		ctx.Error(204)
 		return
 	}
@@ -1489,52 +1540,4 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
-}
-
-// UpdateDeadline adds or updates a deadline
-func UpdateDeadline(ctx *context.Context, form auth.DeadlineForm) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.ServerError("ChangeIssueDeadline", errors.New(ctx.GetErrMsg()))
-		return
-	}
-
-	// Make unix of deadline string
-	deadline, err := time.ParseInLocation("2006-01-02", form.DateString, time.Local)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.invalid_due_date_format"))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-		return
-	}
-
-	if err = models.UpdateIssueDeadline(issue, util.TimeStamp(deadline.Unix()), ctx.User); err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.error_modifying_due_date"))
-	}
-
-	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-	return
-}
-
-// RemoveDeadline removes a deadline
-func RemoveDeadline(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.ServerError("RemoveIssueDeadline", errors.New(ctx.GetErrMsg()))
-		return
-	}
-
-	if err := models.UpdateIssueDeadline(issue, 0, ctx.User); err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.error_removing_due_date"))
-	}
-
-	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-	return
 }

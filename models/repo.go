@@ -781,7 +781,7 @@ var (
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
+		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener noreferrer">%[1]s</a>`, s)
 	}
 	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
@@ -1345,7 +1345,17 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+				Config: &IssuesConfig{
+					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+				},
+			})
+		} else if tp == UnitTypePullRequests {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowSquash: true},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1405,7 +1415,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 // CreateRepository creates a repository for the user/organization u.
 func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
-	if !u.CanCreateRepo() {
+	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
@@ -1952,7 +1962,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := x.Select("repository.*").
-		Join("INNER", "user", "`user`.id = repository.owner_id").
+		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)

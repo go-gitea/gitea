@@ -278,13 +278,13 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
-	if setting.API.EnableSwaggerEndpoint {
+	if setting.API.EnableSwagger {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
 
 	m.Group("/v1", func() {
 		// Miscellaneous
-		if setting.API.EnableSwaggerEndpoint {
+		if setting.API.EnableSwagger {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
@@ -302,6 +302,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
+					m.Combo("/:id").Delete(user.DeleteAccessToken)
 				}, reqBasicAuth())
 			})
 		})
@@ -446,6 +447,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Combo("").Get(repo.ListTrackedTimes).
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
+
+						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 					})
 				}, mustEnableIssues)
 				m.Group("/labels", func() {

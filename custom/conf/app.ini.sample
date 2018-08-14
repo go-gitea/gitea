@@ -60,6 +60,10 @@ FILE_MAX_SIZE = 3
 ; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
+[repository.pull-request]
+; List of prefixes used in Pull Request title to mark them as Work In Progress
+WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
@@ -67,6 +71,10 @@ EXPLORE_PAGING_NUM = 20
 ISSUE_PAGING_NUM = 10
 ; Number of maximum commits displayed in one activity feed
 FEED_MAX_COMMIT_NUM = 5
+; Number of maximum commits displayed in commit graph.
+GRAPH_MAX_COMMIT_NUM = 100
+; Number of line of codes shown for a code comment
+CODE_COMMENT_LINES = 4
 ; Value of `theme-color` meta tag, used by Android >= 5.0
 ; An invalid color like "none" or "disable" will have the default style
 ; More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
@@ -75,6 +83,8 @@ THEME_COLOR_META_TAG = `#6cc644`
 MAX_DISPLAY_FILE_SIZE = 8388608
 ; Whether the email of the user should be shown in the Explore Users page
 SHOW_USER_EMAIL = true
+; Set the default theme for the Gitea install
+DEFAULT_THEME = gitea
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -181,6 +191,12 @@ STATIC_ROOT_PATH =
 APP_DATA_PATH = data
 ; Application level GZIP support
 ENABLE_GZIP = false
+; Application profiling (memory and cpu)
+; For "web" command it listens on localhost:6060
+; For "serve" command it dumps to disk at PPROF_DATA_PATH as (cpuprofile|memprofile)_<username>_<temporary id>
+ENABLE_PPROF = false
+; PPROF_DATA_PATH, use an absolute path when you start gitea as service
+PPROF_DATA_PATH = data/tmp/pprof
 ; Landing page, can be "home", "explore", or "organizations"
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
@@ -209,7 +225,7 @@ USER = root
 PASSWD =
 ; For "postgres" only, either "disable", "require" or "verify-full"
 SSL_MODE = disable
-; For "sqlite3" and "tidb", use absolute path when you start gitea as service
+; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
 SQLITE_TIMEOUT = 500
@@ -301,13 +317,22 @@ ENABLE_NOTIFY_MAIL = false
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
-ENABLE_CAPTCHA = true
+ENABLE_CAPTCHA = false
+; Type of captcha you want to use. Options: image, recaptcha
+CAPTCHA_TYPE = image
+; Enable recaptcha to use Google's recaptcha service
+; Go to https://www.google.com/recaptcha/admin to sign up for a key
+RECAPTCHA_SECRET  = 
+RECAPTCHA_SITEKEY = 
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Default value for EnableDependencies
+; Repositories will use depencies by default depending on this setting
+DEFAULT_ENABLE_DEPENDENCIES = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -402,6 +427,10 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
+; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
+; used when resizing the image.
+AVATAR_MAX_WIDTH = 4096
+AVATAR_MAX_HEIGHT = 3072
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
@@ -564,8 +593,8 @@ DEFAULT_INTERVAL = 8h
 MIN_INTERVAL = 10m
 
 [api]
-; Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
-ENABLE_SWAGGER_ENDPOINT = true
+; Enables Swagger. True or false; default is true.
+ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
 

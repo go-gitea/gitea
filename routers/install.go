@@ -58,6 +58,7 @@ func Install(ctx *context.Context) {
 	// Database settings
 	form.DbHost = models.DbCfg.Host
 	form.DbUser = models.DbCfg.User
+	form.DbPasswd = models.DbCfg.Passwd
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
 
@@ -176,7 +177,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if err = models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/installation/install_from_binary.html"), tplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)

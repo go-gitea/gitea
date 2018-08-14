@@ -118,11 +118,13 @@ func init() {
 		new(TrackedTime),
 		new(DeletedBranch),
 		new(RepoIndexerStatus),
+		new(IssueDependency),
 		new(LFSLock),
 		new(Reaction),
 		new(IssueAssignees),
 		new(U2FRegistration),
 		new(TeamUnit),
+		new(Review),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
