@@ -24,7 +24,7 @@
 				</div>
 				<div class="ui compact labeled button" tabindex="0">
 					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-						<i class="icon fa-star{{if not $.IsStaringRepo}}-o{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
+						<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
 					</a>
 					<a class="ui basic label" href="{{.Link}}/stars">
 						{{.NumStars}}

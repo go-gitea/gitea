@@ -47,3 +47,16 @@
     padding-top: 15px;
     padding-bottom: @footer-margin * 2;
 }
+
+footer {
+	@media only screen and (max-width: 880px) {
+		text-align: center;
+	}
+
+	.ui.container .left, .ui.container .right {
+		@media only screen and (max-width: 880px) {
+			display: inline;
+			float: none;
+		}
+	}
+}

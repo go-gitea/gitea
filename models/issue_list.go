@@ -9,6 +9,11 @@ import "fmt"
 // IssueList defines a list of issues
 type IssueList []*Issue
 
+const (
+	// default variables number on IN () in SQL
+	defaultMaxInSize = 50
+)
+
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
@@ -26,11 +31,20 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 
 	repoIDs := issues.getRepoIDs()
 	repoMaps := make(map[int64]*Repository, len(repoIDs))
-	err := e.
-		In("id", repoIDs).
-		Find(&repoMaps)
-	if err != nil {
-		return nil, fmt.Errorf("find repository: %v", err)
+	var left = len(repoIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		err := e.
+			In("id", repoIDs[:limit]).
+			Find(&repoMaps)
+		if err != nil {
+			return nil, fmt.Errorf("find repository: %v", err)
+		}
+		left = left - limit
+		repoIDs = repoIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -61,11 +75,20 @@ func (issues IssueList) loadPosters(e Engine) error {
 
 	posterIDs := issues.getPosterIDs()
 	posterMaps := make(map[int64]*User, len(posterIDs))
-	err := e.
-		In("id", posterIDs).
-		Find(&posterMaps)
-	if err != nil {
-		return err
+	var left = len(posterIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		err := e.
+			In("id", posterIDs[:limit]).
+			Find(&posterMaps)
+		if err != nil {
+			return err
+		}
+		left = left - limit
+		posterIDs = posterIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -99,23 +122,34 @@ func (issues IssueList) loadLabels(e Engine) error {
 	}
 
 	var issueLabels = make(map[int64][]*Label, len(issues)*3)
-	rows, err := e.Table("label").
-		Join("LEFT", "issue_label", "issue_label.label_id = label.id").
-		In("issue_label.issue_id", issues.getIssueIDs()).
-		Asc("label.name").
-		Rows(new(LabelIssue))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var labelIssue LabelIssue
-		err = rows.Scan(&labelIssue)
+	var issueIDs = issues.getIssueIDs()
+	var left = len(issueIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.Table("label").
+			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
+			In("issue_label.issue_id", issueIDs[:limit]).
+			Asc("label.name").
+			Rows(new(LabelIssue))
 		if err != nil {
 			return err
 		}
-		issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
+
+		for rows.Next() {
+			var labelIssue LabelIssue
+			err = rows.Scan(&labelIssue)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
+		}
+		rows.Close()
+		left = left - limit
+		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -141,11 +175,20 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	err := e.
-		In("id", milestoneIDs).
-		Find(&milestoneMaps)
-	if err != nil {
-		return err
+	var left = len(milestoneIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		err := e.
+			In("id", milestoneIDs[:limit]).
+			Find(&milestoneMaps)
+		if err != nil {
+			return err
+		}
+		left = left - limit
+		milestoneIDs = milestoneIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -165,23 +208,35 @@ func (issues IssueList) loadAssignees(e Engine) error {
 	}
 
 	var assignees = make(map[int64][]*User, len(issues))
-	rows, err := e.Table("issue_assignees").
-		Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
-		In("`issue_assignees`.issue_id", issues.getIssueIDs()).
-		Rows(new(AssigneeIssue))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var assigneeIssue AssigneeIssue
-		err = rows.Scan(&assigneeIssue)
+	var issueIDs = issues.getIssueIDs()
+	var left = len(issueIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.Table("issue_assignees").
+			Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
+			In("`issue_assignees`.issue_id", issueIDs[:limit]).
+			Rows(new(AssigneeIssue))
 		if err != nil {
 			return err
 		}
 
-		assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+		for rows.Next() {
+			var assigneeIssue AssigneeIssue
+			err = rows.Scan(&assigneeIssue)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+
+			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+		}
+		rows.Close()
+
+		left = left - limit
+		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -207,21 +262,32 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 	}
 
 	pullRequestMaps := make(map[int64]*PullRequest, len(issuesIDs))
-	rows, err := e.
-		In("issue_id", issuesIDs).
-		Rows(new(PullRequest))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var pr PullRequest
-		err = rows.Scan(&pr)
+	var left = len(issuesIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.
+			In("issue_id", issuesIDs[:limit]).
+			Rows(new(PullRequest))
 		if err != nil {
 			return err
 		}
-		pullRequestMaps[pr.IssueID] = &pr
+
+		for rows.Next() {
+			var pr PullRequest
+			err = rows.Scan(&pr)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			pullRequestMaps[pr.IssueID] = &pr
+		}
+
+		rows.Close()
+		left = left - limit
+		issuesIDs = issuesIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -236,22 +302,34 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 	}
 
 	var attachments = make(map[int64][]*Attachment, len(issues))
-	rows, err := e.Table("attachment").
-		Join("INNER", "issue", "issue.id = attachment.issue_id").
-		In("issue.id", issues.getIssueIDs()).
-		Rows(new(Attachment))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var attachment Attachment
-		err = rows.Scan(&attachment)
+	var issuesIDs = issues.getIssueIDs()
+	var left = len(issuesIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.Table("attachment").
+			Join("INNER", "issue", "issue.id = attachment.issue_id").
+			In("issue.id", issuesIDs[:limit]).
+			Rows(new(Attachment))
 		if err != nil {
 			return err
 		}
-		attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
+
+		for rows.Next() {
+			var attachment Attachment
+			err = rows.Scan(&attachment)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
+		}
+
+		rows.Close()
+		left = left - limit
+		issuesIDs = issuesIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -266,22 +344,33 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 	}
 
 	var comments = make(map[int64][]*Comment, len(issues))
-	rows, err := e.Table("comment").
-		Join("INNER", "issue", "issue.id = comment.issue_id").
-		In("issue.id", issues.getIssueIDs()).
-		Rows(new(Comment))
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var comment Comment
-		err = rows.Scan(&comment)
+	var issuesIDs = issues.getIssueIDs()
+	var left = len(issuesIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.Table("comment").
+			Join("INNER", "issue", "issue.id = comment.issue_id").
+			In("issue.id", issuesIDs[:limit]).
+			Rows(new(Comment))
 		if err != nil {
 			return err
 		}
-		comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
+
+		for rows.Next() {
+			var comment Comment
+			err = rows.Scan(&comment)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
+		}
+		rows.Close()
+		left = left - limit
+		issuesIDs = issuesIDs[limit:]
 	}
 
 	for _, issue := range issues {
@@ -307,25 +396,35 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 		}
 	}
 
-	// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
-	rows, err := e.Table("tracked_time").
-		Select("issue_id, sum(time) as time").
-		In("issue_id", ids).
-		GroupBy("issue_id").
-		Rows(new(totalTimesByIssue))
-	if err != nil {
-		return err
-	}
+	var left = len(ids)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
 
-	defer rows.Close()
-
-	for rows.Next() {
-		var totalTime totalTimesByIssue
-		err = rows.Scan(&totalTime)
+		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
+		rows, err := e.Table("tracked_time").
+			Select("issue_id, sum(time) as time").
+			In("issue_id", ids[:limit]).
+			GroupBy("issue_id").
+			Rows(new(totalTimesByIssue))
 		if err != nil {
 			return err
 		}
-		trackedTimes[totalTime.IssueID] = totalTime.Time
+
+		for rows.Next() {
+			var totalTime totalTimesByIssue
+			err = rows.Scan(&totalTime)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			trackedTimes[totalTime.IssueID] = totalTime.Time
+		}
+		rows.Close()
+		left = left - limit
+		ids = ids[limit:]
 	}
 
 	for _, issue := range issues {
