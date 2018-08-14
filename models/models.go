@@ -155,7 +155,7 @@ func LoadConfigs() {
 	if len(DbCfg.Passwd) == 0 {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
-	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
+	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 
