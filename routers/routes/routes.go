@@ -674,7 +674,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/merge", reqRepoWriter, bindIgnErr(auth.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
 				m.Group("/reviews", func() {
 					m.Post("/comments", bindIgnErr(auth.CodeCommentForm{}), repo.CreateCodeComment)
 					m.Post("/submit", bindIgnErr(auth.SubmitReviewForm{}), repo.SubmitReview)
