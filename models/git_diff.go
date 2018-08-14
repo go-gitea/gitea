@@ -633,6 +633,13 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 // passing the empty string as beforeCommitID returns a diff from the
 // parent commit.
 func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID, maxLines, maxLineCharacters, maxFiles, "")
+}
+
+// GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
+// Passing the empty string as beforeCommitID returns a diff from the parent commit.
+// The whitespaceBehavior is either an empty string or a git flag
+func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
@@ -644,17 +651,21 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 	}
 
 	var cmd *exec.Cmd
-	// if "after" commit given
-	if len(beforeCommitID) == 0 {
-		// First commit of repository.
-		if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", "show", afterCommitID)
-		} else {
-			c, _ := commit.Parent(0)
-			cmd = exec.Command("git", "diff", "-M", c.ID.String(), afterCommitID)
-		}
+	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
+		cmd = exec.Command("git", "show", afterCommitID)
 	} else {
-		cmd = exec.Command("git", "diff", "-M", beforeCommitID, afterCommitID)
+		actualBeforeCommitID := beforeCommitID
+		if len(actualBeforeCommitID) == 0 {
+			parentCommit, _ := commit.Parent(0)
+			actualBeforeCommitID = parentCommit.ID.String()
+		}
+		diffArgs := []string{"diff", "-M"}
+		if len(whitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, whitespaceBehavior)
+		}
+		diffArgs = append(diffArgs, actualBeforeCommitID)
+		diffArgs = append(diffArgs, afterCommitID)
+		cmd = exec.Command("git", diffArgs...)
 	}
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
