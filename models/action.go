@@ -480,20 +480,20 @@ func findIssueReferencesInString(message string, repo *Repository) (map[int64]Ke
 }
 
 // changeIssueStatus encapsulates the logic for changing the status of an issue based on what keywords are marked in the keyword mask
-func changeIssueStatus(mask KeywordMaskType, doer *User, repo *Repository, issue *Issue) error {
+func changeIssueStatus(mask KeywordMaskType, doer *User, issue *Issue) error {
 	// take no action if both KeywordClose and KeywordOpen are set
-	switch mask & (KeywordReopen | KeywordClose) {
+	switch mask {
 	case KeywordClose:
-		if issue.RepoID == repo.ID && !issue.IsClosed {
-			if err := issue.ChangeStatus(doer, repo, true); err != nil {
-				return err
+		if err := issue.ChangeStatus(doer, issue.Repo, true); err != nil {
+			// Don't return the error when dependencies are still open as this would cause a push, merge, etc. to fail
+			if IsErrDependenciesLeft(err) {
+				return nil
 			}
+			return err
 		}
 	case KeywordReopen:
-		if issue.RepoID == repo.ID && issue.IsClosed {
-			if err := issue.ChangeStatus(doer, repo, false); err != nil {
-				return err
-			}
+		if err := issue.ChangeStatus(doer, issue.Repo, false); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -506,11 +506,6 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		refString = comment.Content
 	} else {
 		refString = commentIssue.Title + ": " + commentIssue.Content
-	}
-
-	uniqueID := fmt.Sprintf("%d", commentIssue.ID)
-	if comment != nil {
-		uniqueID += fmt.Sprintf("@%d", comment.ID)
 	}
 
 	refs, err := findIssueReferencesInString(refString, repo)
@@ -529,19 +524,20 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 
 		if (mask & KeywordReference) == KeywordReference {
 			if comment != nil {
-				err = CreateCommentRefComment(doer, repo, issue, fmt.Sprintf(`%d`, comment.ID), base.EncodeSha1(uniqueID))
+				err = CreateCommentRefComment(doer, issue, commentIssue.ID, comment.ID)
 			} else if commentIssue.IsPull {
-				err = CreatePullRefComment(doer, repo, issue, fmt.Sprintf(`%d`, commentIssue.ID), base.EncodeSha1(uniqueID))
+				err = CreatePullRefComment(doer, issue, commentIssue.ID)
 			} else {
-				err = CreateIssueRefComment(doer, repo, issue, fmt.Sprintf(`%d`, commentIssue.ID), base.EncodeSha1(uniqueID))
+				err = CreateIssueRefComment(doer, issue, commentIssue.ID)
 			}
 			if err != nil {
 				return err
 			}
 		}
 
-		if canOpenClose {
-			if err = changeIssueStatus(mask, doer, repo, issue); err != nil {
+		// only change issue status if this is a pull request in the issue's repo
+		if canOpenClose && comment == nil && commentIssue.IsPull && repo.ID == issue.RepoID {
+			if err = changeIssueStatus(mask&(KeywordReopen|KeywordClose), doer, issue); err != nil {
 				return err
 			}
 		}
@@ -570,14 +566,14 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 			}
 
 			if (mask & KeywordReference) == KeywordReference {
-				message := fmt.Sprintf("%d %s", repo.ID, c.Sha1)
-				if err = CreateCommitRefComment(doer, repo, issue, message, c.Sha1); err != nil {
+				if err = CreateCommitRefComment(doer, issue, repo.ID, c.Sha1); err != nil {
 					return err
 				}
 			}
 
-			if commitsAreMerged {
-				if err = changeIssueStatus(mask, doer, repo, issue); err != nil {
+			// only change issue status if the commit is merged to the issue's repo
+			if commitsAreMerged && repo.ID == issue.RepoID {
+				if err = changeIssueStatus(mask&(KeywordReopen|KeywordClose), doer, issue); err != nil {
 					return err
 				}
 			}

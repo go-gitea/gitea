@@ -11,9 +11,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -21,8 +18,11 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -128,13 +128,15 @@ type Comment struct {
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
-	// Reference issue in commit message, comments, issues, or pull requests
-	RefExists  bool     `xorm:"-"`
-	RefIssue   *Issue   `xorm:"-"`
-	RefComment *Comment `xorm:"-"`
-	RefMessage string   `xorm:"-"`
-	RefURL     string   `xorm:"-"`
-	// the commit SHA for commit refs otherwise a SHA of a unique reference identifier
+	// Reference issue in commit, comments, issues, or pull requests
+	RefExists         bool     `xorm:"-"`
+	RefIssue          *Issue   `xorm:"-"`
+	RefComment        *Comment `xorm:"-"`
+	RefCommitMessage  string   `xorm:"-"`
+	RefCommitShortSHA string   `xorm:"-"`
+	RefURL            string   `xorm:"-"`
+	// CommentType*Ref types use this as a unique reference identifier to prevent duplicate references
+	// other types use it for the commit SHA
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*Attachment `xorm:"-"`
@@ -285,56 +287,39 @@ func (c *Comment) LoadReference() error {
 				return err
 			}
 
-			pullOrIssue := "issues"
-			if refIssue.IsPull {
-				pullOrIssue = "pulls"
-			}
-
 			c.RefIssue = refIssue
-			c.RefURL = fmt.Sprintf("%s/%s/%d", refIssue.Repo.Link(), pullOrIssue, refIssue.Index)
+			c.RefURL = refIssue.HTMLURL()
 			c.RefExists = true
 		}
 	} else if c.Type == CommentTypeCommitRef {
-		if strings.HasPrefix(c.Content, `<a href="`) && strings.HasSuffix(c.Content, `</a>`) {
-			// this is an old style commit ref
-			content := strings.TrimSuffix(strings.TrimPrefix(c.Content, `<a href="`), `</a>`)
-			contentParts := strings.SplitN(content, `">`, 2)
-
-			if len(contentParts) == 2 {
-				c.RefURL = contentParts[0]
-				c.RefMessage = contentParts[1]
-				c.RefExists = true
+		contentParts := strings.SplitN(c.Content, " ", 2)
+		if len(contentParts) == 2 {
+			var repoID int64
+			n, err := fmt.Sscanf(contentParts[0], "%d", &repoID)
+			if err != nil {
+				return err
 			}
-		} else {
-			// this is a new style commit ref
-			contentParts := strings.SplitN(c.Content, " ", 2)
-			if len(contentParts) == 2 {
-				var repoID int64
-				n, err := fmt.Sscanf(contentParts[0], "%d", &repoID)
+
+			if n == 1 {
+				refRepo, err := GetRepositoryByID(repoID)
 				if err != nil {
 					return err
 				}
 
-				if n == 1 {
-					refRepo, err := GetRepositoryByID(repoID)
-					if err != nil {
-						return err
-					}
-
-					gitRepo, err := git.OpenRepository(refRepo.RepoPath())
-					if err != nil {
-						return err
-					}
-
-					refCommit, err := gitRepo.GetCommit(contentParts[1][:40])
-					if err != nil {
-						return err
-					}
-
-					c.RefURL = fmt.Sprintf("%s/commit/%s", refRepo.Link(), refCommit.ID.String())
-					c.RefMessage = refCommit.CommitMessage
-					c.RefExists = true
+				gitRepo, err := git.OpenRepository(refRepo.RepoPath())
+				if err != nil {
+					return err
 				}
+
+				refCommit, err := gitRepo.GetCommit(contentParts[1][:40])
+				if err != nil {
+					return err
+				}
+
+				c.RefCommitMessage = refCommit.CommitMessage
+				c.RefCommitShortSHA = base.TruncateString(refCommit.ID.String(), 10)
+				c.RefURL = fmt.Sprintf("%s/commit/%s", refRepo.Link(), refCommit.ID.String())
+				c.RefExists = true
 			}
 		}
 	} else if c.Type == CommentTypeCommentRef {
@@ -355,14 +340,9 @@ func (c *Comment) LoadReference() error {
 				return err
 			}
 
-			pullOrIssue := "issues"
-			if refIssue.IsPull {
-				pullOrIssue = "pulls"
-			}
-
 			c.RefIssue = refIssue
 			c.RefComment = refComment
-			c.RefURL = fmt.Sprintf("%s/%s/%d#%s", refIssue.Repo.Link(), pullOrIssue, refIssue.Index, refComment.HashTag())
+			c.RefURL = refComment.HTMLURL()
 			c.RefExists = true
 		}
 	}
@@ -883,7 +863,9 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 
 	if opts.Type == CommentTypeComment {
 		UpdateIssueIndexer(opts.Issue.ID)
+	}
 
+	if opts.Type == CommentTypeComment || opts.Type == CommentTypeCode {
 		if err = CreateOrUpdateCommentAction(comment.Poster, opts.Repo, opts.Issue, comment); err != nil {
 			return nil, err
 		}
@@ -973,7 +955,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 }
 
 // createRefComment creates a commit, comment, issue, or pull request reference comment to issue.
-func createRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string, commentType CommentType) error {
+func createRefComment(doer *User, issue *Issue, content string, refSHA string, commentType CommentType) error {
 	if len(refSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty SHA")
 	}
@@ -993,7 +975,7 @@ func createRefComment(doer *User, repo *Repository, issue *Issue, content, refSH
 	_, err = CreateComment(&CreateCommentOptions{
 		Type:      commentType,
 		Doer:      doer,
-		Repo:      repo,
+		Repo:      issue.Repo,
 		Issue:     issue,
 		CommitSHA: refSHA,
 		Content:   content,
@@ -1002,23 +984,27 @@ func createRefComment(doer *User, repo *Repository, issue *Issue, content, refSH
 }
 
 // CreateCommitRefComment creates a commit reference comment to issue.
-func CreateCommitRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
-	return createRefComment(doer, repo, issue, content, commitSHA, CommentTypeCommitRef)
+func CreateCommitRefComment(doer *User, issue *Issue, commitRepoID int64, commitSHA string) error {
+	content := fmt.Sprintf("%d %s", commitRepoID, commitSHA)
+	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypeCommitRef)
 }
 
 // CreateCommentRefComment creates a comment reference comment to issue.
-func CreateCommentRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
-	return createRefComment(doer, repo, issue, content, refSHA, CommentTypeCommentRef)
+func CreateCommentRefComment(doer *User, issue *Issue, commentIssueID int64, commentID int64) error {
+	content := fmt.Sprintf("%d", commentID)
+	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypeCommentRef)
 }
 
 // CreateIssueRefComment creates a comment reference comment to issue.
-func CreateIssueRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
-	return createRefComment(doer, repo, issue, content, refSHA, CommentTypeIssueRef)
+func CreateIssueRefComment(doer *User, issue *Issue, commentIssueID int64) error {
+	content := fmt.Sprintf(`%d`, commentIssueID)
+	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypeIssueRef)
 }
 
 // CreatePullRefComment creates a comment reference comment to issue.
-func CreatePullRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
-	return createRefComment(doer, repo, issue, content, refSHA, CommentTypePullRef)
+func CreatePullRefComment(doer *User, issue *Issue, commentIssueID int64) error {
+	content := fmt.Sprintf(`%d`, commentIssueID)
+	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypePullRef)
 }
 
 // GetCommentByID returns the comment by given ID.
