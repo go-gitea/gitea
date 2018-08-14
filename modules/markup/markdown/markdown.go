@@ -121,7 +121,7 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 		link = []byte(lnk)
 	}
 
-	// Put a link around it pointint to ifself by default
+	// Put a link around it pointing to itself by default
 	out.WriteString(`<a href="`)
 	out.Write(link)
 	out.WriteString(`">`)
