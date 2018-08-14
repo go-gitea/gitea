@@ -75,6 +75,11 @@ func Test_IsValidExternalURL(t *testing.T) {
 			url:         "http://192.168.1.2/api/v1/user/follow",
 			valid:       true,
 		},
+		{
+			description: "Local URL",
+			url:         "http://LOCALHOST:1234/whatever",
+			valid:       false,
+		},
 	}
 
 	for _, testCase := range cases {

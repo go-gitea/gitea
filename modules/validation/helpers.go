@@ -66,7 +66,7 @@ func IsValidExternalURL(uri string) bool {
 	}
 
 	// Currently check only if not loopback IP is provided to keep compatibility
-	if isLoopbackIP(u.Hostname()) {
+	if isLoopbackIP(u.Hostname()) || strings.ToLower(u.Hostname()) == "localhost" {
 		return false
 	}
 
