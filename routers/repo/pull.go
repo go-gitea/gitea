@@ -323,6 +323,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.ServerError("GetPullRequestInfo", err)
 		return nil
 	}
+
+	if pull.IsWorkInProgress() {
+		ctx.Data["IsPullWorkInProgress"] = true
+		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -513,6 +519,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if pr.IsWorkInProgress() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
 
@@ -747,6 +759,7 @@ func CompareAndPullRequest(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -790,6 +803,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	renderAttachmentSettings(ctx)
 
 	var (
