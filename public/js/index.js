@@ -954,7 +954,6 @@ String.prototype.endsWith = function (pattern) {
     }
 })(jQuery);
 
-
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
         codeMirrorEditor.toTextArea();
@@ -1660,6 +1659,7 @@ function initWipTitle() {
         e.preventDefault();
 
         var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
         var value = $issueTitle.val().trim().toUpperCase();
 
         for (var i in wipPrefixes) {
