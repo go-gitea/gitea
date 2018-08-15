@@ -39,3 +39,21 @@ func TestCreateComment(t *testing.T) {
 	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
 	AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
+
+func TestFetchCodeComments(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	res, err := FetchCodeComments(issue, user)
+	assert.NoError(t, err)
+	assert.Contains(t, res, "README.md")
+	assert.Contains(t, res["README.md"], int64(4))
+	assert.Len(t, res["README.md"][4], 1)
+	assert.Equal(t, int64(4), res["README.md"][4][0].ID)
+
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	res, err = FetchCodeComments(issue, user2)
+	assert.NoError(t, err)
+	assert.Len(t, res, 1)
+}
