@@ -55,3 +55,37 @@ func Activity(ctx *context.Context) {
 
 	ctx.HTML(200, tplActivity)
 }
+
+// ActivityAuthors renders JSON with top commit authors for given time period over all branches
+func ActivityAuthors(ctx *context.Context) {
+	timeUntil := time.Now()
+	var timeFrom time.Time
+
+	switch ctx.Params("period") {
+	case "daily":
+		timeFrom = timeUntil.Add(-time.Hour * 24)
+	case "halfweekly":
+		timeFrom = timeUntil.Add(-time.Hour * 72)
+	case "weekly":
+		timeFrom = timeUntil.Add(-time.Hour * 168)
+	case "monthly":
+		timeFrom = timeUntil.AddDate(0, -1, 0)
+	default:
+		timeFrom = timeUntil.Add(-time.Hour * 168)
+	}
+
+	var err error
+	code, err := models.GetActivityStatsAuthors(ctx.Repo.Repository, timeFrom)
+	if err != nil {
+		ctx.ServerError("GetActivityStatsAuthors", err)
+		return
+	}
+
+	authors, err := code.GetTopAuthors(10)
+	if err != nil {
+		ctx.ServerError("GetTopAuthors", err)
+		return
+	}
+
+	ctx.JSON(200, authors)
+}
