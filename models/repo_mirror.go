@@ -181,7 +181,15 @@ func (m *Mirror) runSync() bool {
 		}
 	}
 
-	cache.Remove(m.Repo.GetCommitsCountCacheKey(m.Repo.DefaultBranch, true))
+	branches, err := m.Repo.GetBranches()
+	if err != nil {
+		log.Error(4, "GetBranches: %v", err)
+		return false
+	}
+
+	for i := range branches {
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
+	}
 
 	m.UpdatedUnix = util.TimeStampNow()
 	return true
