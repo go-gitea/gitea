@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -179,6 +180,8 @@ func (m *Mirror) runSync() bool {
 			return false
 		}
 	}
+
+	cache.Remove(m.Repo.GetCommitsCountCacheKey(m.Repo.DefaultBranch, true))
 
 	m.UpdatedUnix = util.TimeStampNow()
 	return true
