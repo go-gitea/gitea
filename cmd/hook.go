@@ -216,29 +216,40 @@ func runHookPostReceive(c *cli.Context) error {
 
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
 			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
-			repository, err := private.GetRepository(repoID)
+			repo, pullRequestAllowed, err := private.GetRepository(repoID)
 			if err != nil {
-				log.GitLogger.Error(2, "get repository: %v", err)
+				log.GitLogger.Error(2, "get repo: %v", err)
+				break
+			}
+			if !pullRequestAllowed {
 				break
 			}
 
-			// Don't propose to create new PR if it's default branch
-			if branch == repository.DefaultBranch {
+			baseRepo := repo
+			if repo.IsFork {
+				baseRepo = repo.BaseRepo
+			}
+
+			if !repo.IsFork && branch == baseRepo.DefaultBranch {
 				break
 			}
 
-			pr, err := private.ActivePullRequest(repoID, repository.DefaultBranch, branch)
+			pr, err := private.ActivePullRequest(baseRepo.ID, repo.ID, baseRepo.DefaultBranch, branch)
 			if err != nil {
 				log.GitLogger.Error(2, "get active pr: %v", err)
 				break
 			}
+
 			fmt.Fprintln(os.Stderr, "")
 			if pr == nil {
+				if repo.IsFork {
+					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+				}
 				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
-				fmt.Fprintf(os.Stderr, "  %s%s/%s/compare/%s...%s\n", setting.AppURL, repoUser, repoName, url.QueryEscape(repository.DefaultBranch), url.QueryEscape(branch))
+				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), url.QueryEscape(baseRepo.DefaultBranch), url.QueryEscape(branch))
 			} else {
 				fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-				fmt.Fprintf(os.Stderr, "  %s%s/%s/pulls/%d\n", setting.AppURL, repoUser, repoName, pr.Index)
+				fmt.Fprintf(os.Stderr, "  %s/pulls/%d\n", baseRepo.HTMLURL(), pr.Index)
 			}
 			fmt.Fprintln(os.Stderr, "")
 		}
