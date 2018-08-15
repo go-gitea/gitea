@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -174,6 +175,7 @@ func runHookPostReceive(c *cli.Context) error {
 	hookSetup("hooks/post-receive.log")
 
 	// the environment setted on serv command
+	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
 	repoUser := os.Getenv(models.EnvRepoUsername)
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
 	repoName := os.Getenv(models.EnvRepoName)
@@ -211,6 +213,36 @@ func runHookPostReceive(c *cli.Context) error {
 		}); err != nil {
 			log.GitLogger.Error(2, "Update: %v", err)
 		}
+
+		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
+			repository, err := private.GetRepository(repoID)
+			if err != nil {
+				log.GitLogger.Error(2, "get repository: %v", err)
+				break
+			}
+
+			// Don't propose to create new PR if it's default branch
+			if branch == repository.DefaultBranch {
+				break
+			}
+
+			pr, err := private.ActivePullRequest(repoID, repository.DefaultBranch, branch)
+			if err != nil {
+				log.GitLogger.Error(2, "get active pr: %v", err)
+				break
+			}
+			fmt.Fprintln(os.Stderr, "")
+			if pr == nil {
+				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
+				fmt.Fprintf(os.Stderr, "  %s%s/%s/compare/%s...%s\n", setting.AppURL, repoUser, repoName, url.QueryEscape(repository.DefaultBranch), url.QueryEscape(branch))
+			} else {
+				fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
+				fmt.Fprintf(os.Stderr, "  %s%s/%s/pulls/%d\n", setting.AppURL, repoUser, repoName, pr.Index)
+			}
+			fmt.Fprintln(os.Stderr, "")
+		}
+
 	}
 
 	return nil
