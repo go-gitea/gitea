@@ -5,11 +5,25 @@
 package models
 
 import (
+	"bufio"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/process"
 
 	"github.com/go-xorm/xorm"
 )
+
+type CodeActivityStats struct {
+	AuthorCount              int64
+	CommitCount              int64
+	ChangedFiles             int64
+	Additions                int64
+	Deletions                int64
+	CommitCountInAllBranches int64
+}
 
 // ActivityStats represets issue and pull request information.
 type ActivityStats struct {
@@ -24,28 +38,34 @@ type ActivityStats struct {
 	UnresolvedIssues            IssueList
 	PublishedReleases           []*Release
 	PublishedReleaseAuthorCount int64
+	Code                        *CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(repoID int64, timeFrom time.Time, releases, issues, prs bool) (*ActivityStats, error) {
-	stats := &ActivityStats{}
+func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+	stats := &ActivityStats{Code: &CodeActivityStats{}}
 	if releases {
-		if err := stats.FillReleases(repoID, timeFrom); err != nil {
+		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %v", err)
 		}
 	}
 	if prs {
-		if err := stats.FillPullRequests(repoID, timeFrom); err != nil {
+		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillPullRequests: %v", err)
 		}
 	}
 	if issues {
-		if err := stats.FillIssues(repoID, timeFrom); err != nil {
+		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillIssues: %v", err)
 		}
 	}
-	if err := stats.FillUnresolvedIssues(repoID, timeFrom, issues, prs); err != nil {
+	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
+	}
+	if code {
+		if err := stats.Code.FillFromGit(repo, timeFrom); err != nil {
+			return nil, fmt.Errorf("FillFromGit: %v", err)
+		}
 	}
 	return stats, nil
 }
@@ -268,4 +288,84 @@ func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Sessio
 	return x.Where("release.repo_id = ?", repoID).
 		And("release.is_draft = ?", false).
 		And("release.created_unix >= ?", fromTime.Unix())
+}
+
+// FillFromGit returns code statistics for acitivity page
+func (stats *CodeActivityStats) FillFromGit(repo *Repository, fromTime time.Time) error {
+	gitPath := repo.RepoPath()
+	since := fromTime.Format(time.RFC3339)
+
+	if stdout, stderr, err := process.GetManager().ExecDir(-1, gitPath,
+		fmt.Sprintf("FillFromGit.RevList (git rev-list): %s", gitPath),
+		"git", "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)); err != nil {
+		return fmt.Errorf("git rev-list --count --branch [%s]: %s", gitPath, stderr)
+	} else {
+		if c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return err
+		} else {
+			stats.CommitCountInAllBranches = c
+		}
+	}
+
+	if stdout, stderr, err := process.GetManager().ExecDir(-1, gitPath,
+		fmt.Sprintf("FillFromGit.RevList (git rev-list): %s", gitPath),
+		"git", "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%an%n%ae%n", "--first-parent", "--date=iso", fmt.Sprintf("--since='%s'", since), repo.DefaultBranch); err != nil {
+		return fmt.Errorf("git log --numstat --first-parent [%s -> %s]: %s", repo.DefaultBranch, gitPath, stderr)
+	} else {
+		scanner := bufio.NewScanner(strings.NewReader(stdout))
+		scanner.Split(bufio.ScanLines)
+		stats.CommitCount = 0
+		stats.Additions = 0
+		stats.Deletions = 0
+		authors := make(map[string]int64)
+		files := make(map[string]bool)
+		p := 0
+		for scanner.Scan() {
+			l := strings.TrimSpace(scanner.Text())
+			if l == "---" {
+				p = 1
+			} else if p == 0 {
+				continue
+			} else {
+				p++
+			}
+			if p > 4 && len(l) == 0 {
+				continue
+			}
+			switch p {
+			case 1: // Seperator
+			case 2: // Commit sha-1
+				stats.CommitCount++
+			case 3: // Author
+				//fmt.Println("Author: " + l)
+			case 4: // E-mail
+				email := strings.ToLower(l)
+				i := authors[email]
+				authors[email] = i + 1
+			default: // Changed fileB
+				fmt.Println("L:" + l)
+				if parts := strings.Fields(l); len(parts) >= 3 {
+					if parts[0] != "-" {
+						if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
+							stats.Additions += c
+						}
+					}
+					if parts[1] != "-" {
+						if c, err := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64); err == nil {
+							stats.Deletions += c
+						}
+					}
+					if _, ok := files[parts[2]]; !ok {
+						files[parts[2]] = true
+					}
+				} else {
+					fmt.Println("err fields")
+				}
+			}
+		}
+		stats.AuthorCount = int64(len(authors))
+		stats.ChangedFiles = int64(len(files))
+	}
+
+	return nil
 }

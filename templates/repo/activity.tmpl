@@ -81,6 +81,15 @@
 		</div>
 		{{end}}
 
+		<span>
+		      Excluding merges, <strong>{{.Activity.Code.AuthorCount}} authors</strong>
+		      has pushed <strong>{{.Activity.Code.CommitCount}} commits</strong> to {{.Repository.DefaultBranch}}
+			  and <strong>{{.Activity.Code.CommitCountInAllBranches}} commits</strong> to all branches.
+			  On {{.Repository.DefaultBranch}}, <strong>{{.Activity.Code.ChangedFiles}} files</strong> have changed
+			  and there have been <strong>{{.Activity.Code.Additions}} additions</strong>
+			  and <strong>{{.Activity.Code.Deletions}} deletions</strong>.
+		</span>
+
 		{{if gt .Activity.PublishedReleaseCount 0}}
 			<h4 class="ui horizontal divider header" id="published-releases">
 				<i class="text octicon octicon-tag"></i>
