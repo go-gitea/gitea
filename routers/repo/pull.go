@@ -484,6 +484,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["IsOwner"] = ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))
 	ctx.Data["IsImageFile"] = commit.IsImageFile
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
