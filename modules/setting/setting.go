@@ -111,6 +111,7 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 	EnablePprof          bool
+	PprofDataPath        string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -223,6 +224,11 @@ var (
 			LocalCopyPath string
 			LocalWikiPath string
 		} `ini:"-"`
+
+		// Pull request settings
+		PullRequest struct {
+			WorkInProgressPrefixes []string
+		} `ini:"repository.pull-request"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -266,6 +272,13 @@ var (
 			LocalCopyPath: "tmp/local-repo",
 			LocalWikiPath: "tmp/local-wiki",
 		},
+
+		// Pull request settings
+		PullRequest: struct {
+			WorkInProgressPrefixes []string
+		}{
+			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+		},
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
@@ -277,6 +290,7 @@ var (
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
 		GraphMaxCommitNum   int
+		CodeCommentLines    int
 		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
@@ -303,6 +317,7 @@ var (
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
+		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
@@ -773,6 +788,10 @@ func NewContext() {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
+	if !filepath.IsAbs(PprofDataPath) {
+		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
+	}
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
@@ -1024,6 +1043,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
