@@ -103,10 +103,6 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	var err error
 
 	reviewType := form.ReviewType()
-	if reviewType == models.ReviewTypeUnknown {
-		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
-		return
-	}
 
 	switch reviewType {
 	case models.ReviewTypeUnknown:
