@@ -782,6 +782,10 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	if err := pr.PushToBaseRepo(); err != nil {
+		return fmt.Errorf("PushToBaseRepo: %v", err)
+	}
+
 	UpdateIssueIndexer(pull.ID)
 
 	pr.Issue = pull
