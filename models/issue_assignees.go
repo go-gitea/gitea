@@ -134,14 +134,14 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		return err
 	}
 
-	if err := issue.changeAssignee(sess, doer, assigneeID); err != nil {
+	if err := issue.changeAssignee(sess, doer, assigneeID, false); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (err error) {
+func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (err error) {
 
 	// Update the assignee
 	removed, err := updateIssueAssignee(sess, issue, assigneeID)
@@ -161,6 +161,10 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 
 	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
 	if issue.IsPull {
+		// if pull request is in the middle of creation - don't call webhook
+		if isCreate {
+			return nil
+		}
 		if err = issue.loadPullRequest(sess); err != nil {
 			return fmt.Errorf("loadPullRequest: %v", err)
 		}
