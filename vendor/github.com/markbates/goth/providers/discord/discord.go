@@ -164,7 +164,7 @@ func userFromReader(r io.Reader, user *goth.User) error {
 
 	user.Name = u.Name
 	user.Email = u.Email
-	user.AvatarURL = "https://discordapp.com/api/users/" + u.ID + "/avatars/" + u.AvatarID + ".jpg"
+	user.AvatarURL = "https://media.discordapp.net/avatars/" + u.ID + "/" + u.AvatarID + ".jpg"
 	user.UserID = u.ID
 
 	return nil
