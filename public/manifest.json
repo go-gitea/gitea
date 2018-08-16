@@ -1,0 +1,20 @@
+{
+    "short_name": "Gitea",
+    "name": "Gitea - Git with a cup of tea",
+    "icons": [
+      {
+        "src": "/img/gitea-lg.png",
+        "type": "image/png",
+        "sizes": "880x880"
+      },
+      {
+        "src": "/img/gitea-sm.png",
+        "type": "image/png",
+        "sizes": "120x120"
+      }
+    ],
+    "start_url": "/",
+    "background_color": "#FAFAFA",
+    "display": "standalone",
+    "theme_color": "#609926"
+  }
