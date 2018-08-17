@@ -800,26 +800,24 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		baseGitRepo *git.Repository
 	)
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
-		return nil
+		return fmt.Errorf("GetBranch: %v", err)
 	}
 	if baseCommit, err = baseBranch.GetCommit(); err != nil {
-		return nil
+		return fmt.Errorf("GetCommit: %v", err)
 	}
 	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
-		return nil
+		return fmt.Errorf("GetBranch: %v", err)
 	}
 	if headCommit, err = headBranch.GetCommit(); err != nil {
-		return nil
+		return fmt.Errorf("GetCommit: %v", err)
 	}
 	if baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath()); err != nil {
-		log.Error(4, "OpenRepository", err)
-		return nil
+		return fmt.Errorf("OpenRepository: %v", err)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
 	if err != nil {
-		log.Error(4, "CommitsBetweenIDs: %v", err)
-		return nil
+		return fmt.Errorf("CommitsBetweenIDs: %v", err)
 	}
 
 	commits := ListToPushCommits(l)
