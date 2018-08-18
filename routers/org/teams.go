@@ -98,11 +98,11 @@ func TeamsAction(ctx *context.Context) {
 
 		if ctx.Org.Team.IsMember(u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
-			page = "team"
 		} else {
 			err = ctx.Org.Team.AddMember(u.ID)
-			page = "team"
 		}
+
+		page = "team"
 	}
 
 	if err != nil {
