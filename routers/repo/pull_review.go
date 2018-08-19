@@ -123,7 +123,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 			}
 
 			ctx.Flash.Error(translated)
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
 	}
