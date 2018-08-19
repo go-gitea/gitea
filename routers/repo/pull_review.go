@@ -130,7 +130,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 
 	if form.HasEmptyContent() {
 		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
