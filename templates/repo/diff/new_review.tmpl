@@ -16,11 +16,11 @@
 							  placeholder="{{$.i18n.Tr "repo.diff.review.placeholder"}}"></textarea>
 				</div>
 				<div class="ui divider"></div>
-				<button type="submit" name="type" value="approve"
+				<button type="submit" name="type" value="approve" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
 						class="ui submit green tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.approve"}}</button>
 				<button type="submit" name="type" value="comment"
-						class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</button>
-				<button type="submit" name="type" value="reject"
+					        class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</button>
+				<button type="submit" name="type" value="reject" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
 						class="ui submit red tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.reject"}}</button>
 			</form>
 		</div>
