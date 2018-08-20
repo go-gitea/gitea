@@ -1127,7 +1127,6 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	}
 
 	mode, _ := AccessLevel(doer, c.Issue.Repo)
-
 	issue, err := GetIssueByID(c.IssueID)
 	if err != nil {
 		return err
