@@ -26,11 +26,13 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     # Substitude the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
     RUN_MODE=${RUN_MODE:-"dev"} \
+    RUN_USER=${USER:-"git"} \
     SSH_DOMAIN=${SSH_DOMAIN:-"localhost"} \
     HTTP_PORT=${HTTP_PORT:-"3000"} \
     ROOT_URL=${ROOT_URL:-""} \
     DISABLE_SSH=${DISABLE_SSH:-"false"} \
-    SSH_PORT=${SSH_PORT:-"22"} \
+    SSH_PORT=${SSH_PORT:-"2222"} \
+    SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-$SSH_PORT} \
     DB_TYPE=${DB_TYPE:-"sqlite3"} \
     DB_HOST=${DB_HOST:-"localhost:3306"} \
     DB_NAME=${DB_NAME:-"gitea"} \
@@ -41,12 +43,6 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"} \
     SECRET_KEY=${SECRET_KEY:-""} \
     envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
-
-    chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
 
-# only chown if current owner is not already the gitea ${USER}. No recursive check to save time
-if ! [[ $(ls -ld /data/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/gitea; fi
-if ! [[ $(ls -ld /app/gitea  | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /app/gitea;  fi
-if ! [[ $(ls -ld /data/git   | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/git;   fi
 chmod 0755 /data/gitea /app/gitea /data/git
