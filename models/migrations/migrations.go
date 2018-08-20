@@ -202,6 +202,8 @@ var migrations = []Migration{
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
 	// v74 -> v75
 	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	// v75 -> v76
+	NewMigration("reformat old-style reference comments, add new-style reference comments", reformatAndAddReferenceComments),
 }
 
 // Migrate database to current version
