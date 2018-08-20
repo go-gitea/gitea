@@ -37,50 +37,54 @@ const (
 // Enumerate all the comment types
 const (
 	// Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
-	CommentTypeComment CommentType = iota
-	CommentTypeReopen
-	CommentTypeClose
+	CommentTypeComment CommentType = iota // 0
+	CommentTypeReopen                     // 1
+	CommentTypeClose                      // 2
 
 	// References.
-	CommentTypeIssueRef
+	CommentTypeIssueRef // 3
 	// Reference from a commit (not part of a pull request)
-	CommentTypeCommitRef
+	CommentTypeCommitRef // 4
 	// Reference from a comment
-	CommentTypeCommentRef
+	CommentTypeCommentRef // 5
 	// Reference from a pull request
-	CommentTypePullRef
+	CommentTypePullRef // 6
 	// Labels changed
-	CommentTypeLabel
+	CommentTypeLabel // 7
 	// Milestone changed
-	CommentTypeMilestone
+	CommentTypeMilestone // 8
 	// Assignees changed
-	CommentTypeAssignees
+	CommentTypeAssignees // 9
 	// Change Title
-	CommentTypeChangeTitle
+	CommentTypeChangeTitle // 10
 	// Delete Branch
-	CommentTypeDeleteBranch
+	CommentTypeDeleteBranch // 11
 	// Start a stopwatch for time tracking
-	CommentTypeStartTracking
+	CommentTypeStartTracking // 12
 	// Stop a stopwatch for time tracking
-	CommentTypeStopTracking
+	CommentTypeStopTracking // 13
 	// Add time manual for time tracking
-	CommentTypeAddTimeManual
+	CommentTypeAddTimeManual // 14
 	// Cancel a stopwatch for time tracking
-	CommentTypeCancelTracking
+	CommentTypeCancelTracking // 15
 	// Added a due date
-	CommentTypeAddedDeadline
+	CommentTypeAddedDeadline // 16
 	// Modified the due date
-	CommentTypeModifiedDeadline
+	CommentTypeModifiedDeadline // 17
 	// Removed a due date
-	CommentTypeRemovedDeadline
+	CommentTypeRemovedDeadline // 18
 	// Dependency added
-	CommentTypeAddDependency
+	CommentTypeAddDependency // 19
 	//Dependency removed
-	CommentTypeRemoveDependency
+	CommentTypeRemoveDependency // 20
 	// Comment a line of code
-	CommentTypeCode
+	CommentTypeCode // 21
 	// Reviews a pull request by giving general feedback
-	CommentTypeReview
+	CommentTypeReview // 22
+	// Reference from a code review
+	CommentTypeReviewRef // 23
+	// Reference from a code comment
+	CommentTypeCodeRef // 24
 )
 
 // CommentTag defines comment tag type
@@ -272,7 +276,7 @@ func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
 }
 
-// LoadReference if comment.Type is CommentType{Issue,Commit,Comment,Pull}Ref, then load RefIssue, RefComment
+// LoadReference if comment.Type is CommentType{Issue,Commit,Comment,Pull,Review,Code}Ref, then load RefIssue, RefComment, etc.
 func (c *Comment) LoadReference() error {
 	if c.Type == CommentTypeIssueRef || c.Type == CommentTypePullRef {
 		var issueID int64
@@ -322,7 +326,7 @@ func (c *Comment) LoadReference() error {
 				c.RefExists = true
 			}
 		}
-	} else if c.Type == CommentTypeCommentRef {
+	} else if c.Type == CommentTypeCommentRef || c.Type == CommentTypeReviewRef || c.Type == CommentTypeCodeRef {
 		var commentID int64
 		n, err := fmt.Sscanf(c.Content, "%d", &commentID)
 		if err != nil {
@@ -865,11 +869,12 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		UpdateIssueIndexer(opts.Issue.ID)
 	}
 
-	if opts.Type == CommentTypeComment || opts.Type == CommentTypeCode {
+	if opts.Type == CommentTypeComment || opts.Type == CommentTypeCode || opts.Type == CommentTypeReview {
 		if err = CreateOrUpdateCommentAction(comment.Poster, opts.Repo, opts.Issue, comment); err != nil {
 			return nil, err
 		}
 	}
+
 	return comment, nil
 }
 
@@ -991,20 +996,35 @@ func CreateCommitRefComment(doer *User, issue *Issue, commitRepoID int64, commit
 
 // CreateCommentRefComment creates a comment reference comment to issue.
 func CreateCommentRefComment(doer *User, issue *Issue, commentIssueID int64, commentID int64) error {
-	content := fmt.Sprintf("%d", commentID)
-	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypeCommentRef)
+	return createCommentRefComment(doer, issue, commentIssueID, commentID, CommentTypeCommentRef)
 }
 
-// CreateIssueRefComment creates a comment reference comment to issue.
+// CreateIssueRefComment creates an issue reference comment to issue.
 func CreateIssueRefComment(doer *User, issue *Issue, commentIssueID int64) error {
 	content := fmt.Sprintf(`%d`, commentIssueID)
 	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypeIssueRef)
 }
 
-// CreatePullRefComment creates a comment reference comment to issue.
+// CreatePullRefComment creates a pull request reference comment to issue.
 func CreatePullRefComment(doer *User, issue *Issue, commentIssueID int64) error {
 	content := fmt.Sprintf(`%d`, commentIssueID)
 	return createRefComment(doer, issue, content, base.EncodeSha1(content), CommentTypePullRef)
+}
+
+// CreateReviewRefComment creates a review reference comment to issue.
+func CreateReviewRefComment(doer *User, issue *Issue, commentIssueID int64, commentID int64) error {
+	return createCommentRefComment(doer, issue, commentIssueID, commentID, CommentTypeReviewRef)
+}
+
+// CreateCodeRefComment creates a code comment reference comment to issue.
+func CreateCodeRefComment(doer *User, issue *Issue, commentIssueID int64, commentID int64) error {
+	return createCommentRefComment(doer, issue, commentIssueID, commentID, CommentTypeCodeRef)
+}
+
+// createCommentRefComment is the common implementation for Create{Comment,Review,Code}RefComment functions
+func createCommentRefComment(doer *User, issue *Issue, commentIssueID int64, commentID int64, commentType CommentType) error {
+	content := fmt.Sprintf(`%d`, commentID)
+	return createRefComment(doer, issue, content, base.EncodeSha1(content), commentType)
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1097,15 +1117,6 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		return err
 	} else if c.Type == CommentTypeComment {
 		UpdateIssueIndexer(c.IssueID)
-
-		issue, err := GetIssueByID(c.IssueID)
-		if err != nil {
-			return err
-		}
-
-		if err = CreateOrUpdateCommentAction(c.Poster, issue.Repo, issue, c); err != nil {
-			return err
-		}
 	}
 
 	if err := c.LoadIssue(); err != nil {
@@ -1116,6 +1127,18 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	}
 
 	mode, _ := AccessLevel(doer, c.Issue.Repo)
+
+	issue, err := GetIssueByID(c.IssueID)
+	if err != nil {
+		return err
+	}
+
+	if c.Type == CommentTypeComment || c.Type == CommentTypeCode || c.Type == CommentTypeReview {
+		if err = CreateOrUpdateCommentAction(c.Poster, issue.Repo, issue, c); err != nil {
+			return err
+		}
+	}
+
 	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,
 		Issue:   c.Issue.APIFormat(),

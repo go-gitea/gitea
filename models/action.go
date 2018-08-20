@@ -499,10 +499,14 @@ func changeIssueStatus(mask KeywordMaskType, doer *User, issue *Issue) error {
 	return nil
 }
 
-// UpdateIssuesComment checks if issues are manipulated by a comment
+// UpdateIssuesComment checks if issues are manipulated by a regular comment, code comment, or review comment (also issue/pull request title and description)
 func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comment *Comment, canOpenClose bool) error {
 	var refString string
 	if comment != nil {
+		if comment.Type != CommentTypeComment && comment.Type != CommentTypeCode && comment.Type != CommentTypeReview {
+			return nil
+		}
+
 		refString = comment.Content
 	} else {
 		refString = commentIssue.Title + ": " + commentIssue.Content
@@ -523,8 +527,12 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		}
 
 		if (mask & KeywordReference) == KeywordReference {
-			if comment != nil {
+			if comment != nil && comment.Type == CommentTypeComment {
 				err = CreateCommentRefComment(doer, issue, commentIssue.ID, comment.ID)
+			} else if comment != nil && comment.Type == CommentTypeCode {
+				err = CreateCodeRefComment(doer, issue, commentIssue.ID, comment.ID)
+			} else if comment != nil && comment.Type == CommentTypeReview {
+				err = CreateReviewRefComment(doer, issue, commentIssue.ID, comment.ID)
 			} else if commentIssue.IsPull {
 				err = CreatePullRefComment(doer, issue, commentIssue.ID)
 			} else {

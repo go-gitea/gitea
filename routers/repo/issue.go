@@ -725,7 +725,12 @@ func ViewIssue(ctx *context.Context) {
 			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
 				participants = append(participants, comment.Poster)
 			}
-		} else if comment.Type == models.CommentTypeIssueRef || comment.Type == models.CommentTypeCommitRef || comment.Type == models.CommentTypeCommentRef || comment.Type == models.CommentTypePullRef {
+		} else if comment.Type == models.CommentTypeIssueRef ||
+			comment.Type == models.CommentTypeCommitRef ||
+			comment.Type == models.CommentTypeCommentRef ||
+			comment.Type == models.CommentTypePullRef ||
+			comment.Type == models.CommentTypeReviewRef ||
+			comment.Type == models.CommentTypeCodeRef {
 			if err = comment.LoadReference(); err != nil {
 				continue
 			}

@@ -133,6 +133,32 @@
 				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
 			</div>
 		</div>
+	{{else if and (eq .Type 23) .RefExists}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.review_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-comment-discussion"></span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
+			</div>
+		</div>
+	{{else if and (eq .Type 24) .RefExists}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.code_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-comment-discussion"></span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
+			</div>
+		</div>
 	{{else if eq .Type 7}}
 		{{if .Label}}
 			<div class="event">
