@@ -328,7 +328,13 @@ func pushUpdate(branch string, opts PushUpdateOptions) (repo *Repository, err er
 				continue
 			}
 
-			l, err := headGitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
+			mergeBase, err := headGitRepo.GetMergeBase(baseCommit.ID.String(), headCommit.ID.String())
+			if err != nil {
+				log.Error(4, "GetMergeBase: %v", err)
+				continue
+			}
+
+			l, err := headGitRepo.CommitsBetweenIDs(headCommit.ID.String(), mergeBase)
 			if err != nil {
 				log.Error(4, "CommitsBetweenIDs: %v", err)
 				continue

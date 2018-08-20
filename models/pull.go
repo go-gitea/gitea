@@ -815,7 +815,12 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 
-	l, err := baseGitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
+	mergeBase, err := baseGitRepo.GetMergeBase(baseCommit.ID.String(), headCommit.ID.String())
+	if err != nil {
+		return fmt.Errorf("GetMergeBase: %v", err)
+	}
+
+	l, err := baseGitRepo.CommitsBetweenIDs(headCommit.ID.String(), mergeBase)
 	if err != nil {
 		return fmt.Errorf("CommitsBetweenIDs: %v", err)
 	}
