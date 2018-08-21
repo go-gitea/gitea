@@ -186,7 +186,8 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
-	if t.Authorize < models.AccessModeAdmin {
+
+	if t.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, &models.TeamUnit{
@@ -275,7 +276,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < models.AccessModeAdmin {
+	if t.Authorize < models.AccessModeOwner {
 		var units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
