@@ -112,6 +112,10 @@ var (
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
+	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -737,6 +741,14 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
+	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	LetsEncryptTOS := sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	if !LetsEncryptTOS && EnableLetsEncrypt {
+		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
+		EnableLetsEncrypt = false
+	}
+	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
