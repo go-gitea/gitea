@@ -154,6 +154,9 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if form.MaxRepoCreation != nil {
 		u.MaxRepoCreation = *form.MaxRepoCreation
 	}
+	if form.AllowCreateOrganization != nil {
+		u.AllowCreateOrganization = *form.AllowCreateOrganization
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
