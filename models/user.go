@@ -374,9 +374,9 @@ func (u *User) GetFollowers(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.follow_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.user_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.user_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -393,9 +393,9 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.user_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.follow_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.follow_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -683,7 +683,35 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "error", "new", ".", ".."}
+	reservedUsernames = []string{
+		"admin",
+		"api",
+		"assets",
+		"avatars",
+		"commits",
+		"css",
+		"debug",
+		"error",
+		"explore",
+		"help",
+		"img",
+		"install",
+		"issues",
+		"js",
+		"less",
+		"new",
+		"org",
+		"plugins",
+		"pulls",
+		"raw",
+		"repo",
+		"stars",
+		"template",
+		"user",
+		"vendor",
+		".",
+		"..",
+	}
 	reservedUserPatterns = []string{"*.keys"}
 )
 

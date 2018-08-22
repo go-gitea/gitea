@@ -15,7 +15,7 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
-  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
   name = "golang.org/x/crypto"
 
 [[constraint]]
@@ -33,7 +33,7 @@ ignored = ["google.golang.org/appengine*"]
 [[override]]
   name = "github.com/go-xorm/xorm"
   #version = "0.6.5"
-  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
+  revision = "ad69f7d8f0861a29438154bb0a20b60501298480"
 
 [[override]]
   name = "github.com/go-sql-driver/mysql"

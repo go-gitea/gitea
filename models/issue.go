@@ -964,7 +964,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	// Insert the assignees
 	for _, assigneeID := range opts.AssigneeIDs {
-		err = opts.Issue.changeAssignee(e, doer, assigneeID)
+		err = opts.Issue.changeAssignee(e, doer, assigneeID, true)
 		if err != nil {
 			return err
 		}
@@ -1297,7 +1297,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 		And("`comment`.type = ?", CommentTypeComment).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "user", "`user`.id = `comment`.poster_id").
+		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
