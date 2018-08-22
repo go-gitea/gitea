@@ -590,17 +590,13 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 				}
 
 				u, err = models.GetUserByID(token.UID)
-				if err != nil {
-					return nil, nil, "basic", err
-				}
+			}
 
-			} else {
-				return nil, nil, "basic", err
-			}
-		} else {
-			if !u.ValidatePassword(password) {
-				return nil, nil, "basic", fmt.Errorf("Basic auth failed")
-			}
+			return nil, nil, "basic", err
+		}
+
+		if !u.ValidatePassword(password) {
+			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
 		}
 
 		return u, nil, "basic", nil
