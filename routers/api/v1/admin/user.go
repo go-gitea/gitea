@@ -157,6 +157,9 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if form.AllowCreateOrganization != nil {
 		u.AllowCreateOrganization = *form.AllowCreateOrganization
 	}
+	if form.ProhibitLogin != nil {
+		u.ProhibitLogin = *form.ProhibitLogin
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
