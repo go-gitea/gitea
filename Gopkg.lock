@@ -563,14 +563,18 @@
 [[projects]]
   name = "golang.org/x/crypto"
   packages = [
+    "acme",
+    "acme/autocert",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
     "md4",
     "pbkdf2",
+    "poly1305",
     "ssh"
   ]
-  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
 
 [[projects]]
   name = "golang.org/x/net"
