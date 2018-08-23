@@ -7,6 +7,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
@@ -126,13 +128,98 @@ var (
 
 	subcmdAuth = cli.Command{
 		Name:  "auth",
-		Usage: "add auth sources",
+		Usage: "Modify external auth providers",
 		Subcommands: []cli.Command{
-			microcmdAuthOauth,
+			microcmdAuthAddOauth,
 		},
 	}
 
-	microcmdAuthOauth = cli.Command{
+	microcmdAuthList = cli.Command{
+		Name:   "list",
+		Usage:  "List auth sources",
+		Action: runListAuth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+		},
+	}
+
+	microcmdAuthUpdateOauth = cli.Command{
+		Name:   "update-oauth",
+		Usage:  "Update existing Oauth authentication source",
+		Action: runUpdateOauth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+			cli.Int64Flag{
+				Name:  "id",
+				Usage: "ID of Oauth authentication source that will be updated",
+			},
+			cli.StringFlag{
+				Name:  "name",
+				Value: "",
+				Usage: "Application Name",
+			},
+			cli.StringFlag{
+				Name:  "provider",
+				Value: "",
+				Usage: "OAuth2 Provider",
+			},
+			cli.StringFlag{
+				Name:  "key",
+				Value: "",
+				Usage: "Client ID (Key)",
+			},
+			cli.StringFlag{
+				Name:  "secret",
+				Value: "",
+				Usage: "Client Secret",
+			},
+			cli.StringFlag{
+				Name:  "secret",
+				Value: "",
+				Usage: "Client Secret",
+			},
+			cli.StringFlag{
+				Name:  "auto-discover-url",
+				Value: "",
+				Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
+			},
+			cli.StringFlag{
+				Name:  "use-custom-urls",
+				Value: "false",
+				Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
+			},
+			cli.StringFlag{
+				Name:  "custom-auth-url",
+				Value: "",
+				Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-token-url",
+				Value: "",
+				Usage: "Use a custom Token URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-profile-url",
+				Value: "",
+				Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
+			},
+			cli.StringFlag{
+				Name:  "custom-email-url",
+				Value: "",
+				Usage: "Use a custom Email URL (option for GitHub)",
+			},
+		},
+	}
+
+	microcmdAuthAddOauth = cli.Command{
 		Name:   "add-oauth",
 		Usage:  "Add new Oauth authentication source",
 		Action: runAddOauth,
@@ -379,6 +466,58 @@ func runAddOauth(c *cli.Context) error {
 	}); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func runUpdateOauth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	if err := models.UpdateSource(&models.LoginSource{
+		ID:        c.Int64("id"),
+		Type:      models.LoginOAuth2,
+		Name:      c.String("name"),
+		IsActived: true,
+		Cfg:       parseOAuth2Config(c),
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runListAuth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	loginSources, err := models.LoginSources()
+
+	if err != nil {
+		return err
+	}
+
+	// loop through each source and print
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	for _, source := range loginSources {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+	}
+	w.Flush()
 
 	return nil
 }
