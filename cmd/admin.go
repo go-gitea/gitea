@@ -202,11 +202,6 @@ var (
 				Usage: "Client Secret",
 			},
 			cli.StringFlag{
-				Name:  "secret",
-				Value: "",
-				Usage: "Client Secret",
-			},
-			cli.StringFlag{
 				Name:  "auto-discover-url",
 				Value: "",
 				Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
@@ -263,11 +258,6 @@ var (
 				Name:  "key",
 				Value: "",
 				Usage: "Client ID (Key)",
-			},
-			cli.StringFlag{
-				Name:  "secret",
-				Value: "",
-				Usage: "Client Secret",
 			},
 			cli.StringFlag{
 				Name:  "secret",
@@ -503,13 +493,59 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	if err := models.UpdateSource(&models.LoginSource{
-		ID:        c.Int64("id"),
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
-	}); err != nil {
+	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	if c.IsSet("name") {
+		source.Name = c.String("name")
+	}
+
+	if c.IsSet("provider") {
+		source.Cfg.Provider = c.String("provider")
+	}
+
+	if c.IsSet("key") {
+		source.Cfg.ClientID = c.String("key")
+	}
+
+	if c.IsSet("secret") {
+		source.Cfg.ClientSecret = c.String("secret")
+	}
+
+	if c.IsSet("auto-discover-url") {
+		source.Cfg.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
+	}
+
+	// update custom URL mapping
+	var customURLMapping *oauth2.CustomURLMapping
+
+	if source.Cfg.CustomURLMapping != nil {
+		customURLMapping.TokenURL = source.Cfg.CustomURLMapping.TokenURL
+		customURLMapping.AuthURL = source.Cfg.CustomURLMapping.AuthURL
+		customURLMapping.ProfileURL = source.Cfg.CustomURLMapping.ProfileURL
+		customURLMapping.Email = source.Cfg.CustomURLMapping.Email
+	}
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
+		customURLMapping.TokenURL = c.String("custom-token-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-auth-url") {
+		customURLMapping.AuthURL = c.String("custom-auth-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-profile-url") {
+		customURLMapping.ProfileURL = c.String("custom-profile-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-email-url") {
+		customURLMapping.EmailURL = c.String("custom-email-url")
+	}
+
+	source.Cfg.CustomURLMapping = customURLMapping
+
+	if err := models.UpdateSource(source); err != nil {
 		return err
 	}
 
