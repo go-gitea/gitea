@@ -223,7 +223,8 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
-; For "postgres" only, either "disable", "require" or "verify-full"
+; For Postgres, either "disable" (default), "require", or "verify-full"
+; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
 ; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
