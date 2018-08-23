@@ -62,6 +62,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
+   
+### Repository - Pull Request (`repository.pull-request`)
+- `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
+ title to mark them as Work In Progress
 
 ## UI (`ui`)
 
@@ -121,6 +125,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
    on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
+- `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
+   By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf)
+- `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt
+- `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys
+- `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 
 ## Database (`database`)
 
