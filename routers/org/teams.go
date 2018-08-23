@@ -187,16 +187,36 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
 
-	if t.Authorize < models.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range form.Units {
+	var units []*models.TeamUnit
+
+	switch t.Authorize {
+
+	case models.AccessModeAdmin:
+		// If admin, just give all units regardless of the options
+		// coming in from the UI
+
+		units = make([]*models.TeamUnit, 0, len(models.Units))
+
+		for tp := range models.Units {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
-				Type:  tp,
+				OrgID:  t.OrgID,
+				TeamID: t.ID,
+				Type:   tp,
 			})
 		}
-		t.Units = units
+
+	case models.AccessModeRead, models.AccessModeWrite:
+		units = make([]*models.TeamUnit, 0, len(form.Units))
+		for _, tp := range form.Units {
+			units = append(units, &models.TeamUnit{
+				OrgID:  t.OrgID,
+				TeamID: t.ID,
+				Type:   tp,
+			})
+		}
 	}
+
+	t.Units = units
 
 	ctx.Data["Team"] = t
 
@@ -275,9 +295,29 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			t.Authorize = auth
 		}
 	}
+
 	t.Description = form.Description
-	if t.Authorize < models.AccessModeOwner {
-		var units = make([]models.TeamUnit, 0, len(form.Units))
+
+	var units []models.TeamUnit
+
+	switch t.Authorize {
+
+	case models.AccessModeAdmin:
+		// If admin, just give all units regardless of the options
+		// coming in from the UI
+
+		units = make([]models.TeamUnit, 0, len(models.Units))
+
+		for tp := range models.Units {
+			units = append(units, models.TeamUnit{
+				OrgID:  t.OrgID,
+				TeamID: t.ID,
+				Type:   tp,
+			})
+		}
+
+	case models.AccessModeRead, models.AccessModeWrite:
+		units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
 				OrgID:  t.OrgID,
@@ -285,10 +325,9 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 				Type:   tp,
 			})
 		}
-		models.UpdateTeamUnits(t, units)
-	} else {
-		models.UpdateTeamUnits(t, nil)
 	}
+
+	models.UpdateTeamUnits(t, units)
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)
