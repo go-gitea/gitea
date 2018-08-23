@@ -498,34 +498,36 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
+	oAuth2Config := source.OAuth2()
+
 	if c.IsSet("name") {
 		source.Name = c.String("name")
 	}
 
 	if c.IsSet("provider") {
-		source.Cfg.Provider = c.String("provider")
+		oAuth2Config.Provider = c.String("provider")
 	}
 
 	if c.IsSet("key") {
-		source.Cfg.ClientID = c.String("key")
+		oAuth2Config.ClientID = c.String("key")
 	}
 
 	if c.IsSet("secret") {
-		source.Cfg.ClientSecret = c.String("secret")
+		oAuth2Config.ClientSecret = c.String("secret")
 	}
 
 	if c.IsSet("auto-discover-url") {
-		source.Cfg.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
+		oAuth2Config.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
 	}
 
 	// update custom URL mapping
 	var customURLMapping *oauth2.CustomURLMapping
 
-	if source.Cfg.CustomURLMapping != nil {
-		customURLMapping.TokenURL = source.Cfg.CustomURLMapping.TokenURL
-		customURLMapping.AuthURL = source.Cfg.CustomURLMapping.AuthURL
-		customURLMapping.ProfileURL = source.Cfg.CustomURLMapping.ProfileURL
-		customURLMapping.Email = source.Cfg.CustomURLMapping.Email
+	if oAuth2Config.CustomURLMapping != nil {
+		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
+		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
+		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
+		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
 	}
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
 		customURLMapping.TokenURL = c.String("custom-token-url")
@@ -543,7 +545,8 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.EmailURL = c.String("custom-email-url")
 	}
 
-	source.Cfg.CustomURLMapping = customURLMapping
+	oAuth2Config.CustomURLMapping = customURLMapping
+	source.Cfg = oAuth2Config
 
 	if err := models.UpdateSource(source); err != nil {
 		return err
