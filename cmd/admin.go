@@ -133,7 +133,7 @@ var (
 	}
 
 	microcmdAuthOauth = cli.Command{
-		Name:   "oauth",
+		Name:   "add-oauth",
 		Usage:  "Add new Oauth authentication source",
 		Action: runAddOauth,
 		Flags: []cli.Flag{
@@ -180,7 +180,7 @@ var (
 			cli.StringFlag{
 				Name:  "custom-auth-url",
 				Value: "",
-				Usage: "Use a custom Authorize URL (option for GitLab/GitHub)",
+				Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
 			},
 			cli.StringFlag{
 				Name:  "custom-token-url",
