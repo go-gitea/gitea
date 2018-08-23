@@ -131,6 +131,9 @@ var (
 		Usage: "Modify external auth providers",
 		Subcommands: []cli.Command{
 			microcmdAuthAddOauth,
+			microcmdAuthUpdateOauth,
+			microcmdAuthList,
+			microcmdAuthDelete,
 		},
 	}
 
@@ -143,6 +146,23 @@ var (
 				Name:  "config, c",
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
+			},
+		},
+	}
+
+	microcmdAuthDelete = cli.Command{
+		Name:   "delete",
+		Usage:  "Delete specific auth source",
+		Action: runDeleteAuth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+			cli.Int64Flag{
+				Name:  "id",
+				Usage: "ID of authentication source that will be deleted",
 			},
 		},
 	}
@@ -519,5 +539,29 @@ func runListAuth(c *cli.Context) error {
 	}
 	w.Flush()
 
+	return nil
+}
+
+func runDeleteAuth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	if err = models.DeleteSource(source); err != nil {
+		return err
+	}
 	return nil
 }
