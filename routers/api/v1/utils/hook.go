@@ -5,6 +5,8 @@
 package utils
 
 import (
+	"strings"
+
 	api "code.gitea.io/sdk/gitea"
 
 	"encoding/json"
@@ -13,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/routers/utils"
 	"github.com/Unknwon/com"
 )
 
@@ -119,8 +122,13 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			ctx.Error(422, "", "Missing config option: channel")
 			return nil, false
 		}
+
+		if !utils.IsValidSlackChannel(channel) {
+			ctx.Error(400, "", "Invalid slack channel name")
+		}
+
 		meta, err := json.Marshal(&models.SlackMeta{
-			Channel:  channel,
+			Channel:  strings.TrimSpace(channel),
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
 			Color:    form.Config["color"],

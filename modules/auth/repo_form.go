@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/routers/utils"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -223,6 +224,10 @@ type NewSlackHookForm struct {
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+func (f NewSlackHookForm) HasInvalidChannel() bool {
+	return !utils.IsValidSlackChannel(f.Channel)
 }
 
 // NewDiscordHookForm form for creating discord hook
