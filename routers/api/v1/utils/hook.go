@@ -5,12 +5,11 @@
 package utils
 
 import (
+	"encoding/json"
+	"net/http"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
-
-	"encoding/json"
-	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
