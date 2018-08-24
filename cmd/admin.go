@@ -167,134 +167,80 @@ var (
 		},
 	}
 
+	oauthCLIFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "custom/conf/app.ini",
+			Usage: "Custom configuration file path",
+		},
+		cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of Oauth authentication source (used in update command)",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Application Name",
+		},
+		cli.StringFlag{
+			Name:  "provider",
+			Value: "",
+			Usage: "OAuth2 Provider",
+		},
+		cli.StringFlag{
+			Name:  "key",
+			Value: "",
+			Usage: "Client ID (Key)",
+		},
+		cli.StringFlag{
+			Name:  "secret",
+			Value: "",
+			Usage: "Client Secret",
+		},
+		cli.StringFlag{
+			Name:  "auto-discover-url",
+			Value: "",
+			Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
+		},
+		cli.StringFlag{
+			Name:  "use-custom-urls",
+			Value: "false",
+			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
+		},
+		cli.StringFlag{
+			Name:  "custom-auth-url",
+			Value: "",
+			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-token-url",
+			Value: "",
+			Usage: "Use a custom Token URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-profile-url",
+			Value: "",
+			Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-email-url",
+			Value: "",
+			Usage: "Use a custom Email URL (option for GitHub)",
+		},
+	}
+
 	microcmdAuthUpdateOauth = cli.Command{
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-			cli.Int64Flag{
-				Name:  "id",
-				Usage: "ID of Oauth authentication source that will be updated",
-			},
-			cli.StringFlag{
-				Name:  "name",
-				Value: "",
-				Usage: "Application Name",
-			},
-			cli.StringFlag{
-				Name:  "provider",
-				Value: "",
-				Usage: "OAuth2 Provider",
-			},
-			cli.StringFlag{
-				Name:  "key",
-				Value: "",
-				Usage: "Client ID (Key)",
-			},
-			cli.StringFlag{
-				Name:  "secret",
-				Value: "",
-				Usage: "Client Secret",
-			},
-			cli.StringFlag{
-				Name:  "auto-discover-url",
-				Value: "",
-				Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
-			},
-			cli.StringFlag{
-				Name:  "use-custom-urls",
-				Value: "false",
-				Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
-			},
-			cli.StringFlag{
-				Name:  "custom-auth-url",
-				Value: "",
-				Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-token-url",
-				Value: "",
-				Usage: "Use a custom Token URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-profile-url",
-				Value: "",
-				Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-email-url",
-				Value: "",
-				Usage: "Use a custom Email URL (option for GitHub)",
-			},
-		},
+		Flags:  oauthCLIFlags,
 	}
 
 	microcmdAuthAddOauth = cli.Command{
 		Name:   "add-oauth",
 		Usage:  "Add new Oauth authentication source",
 		Action: runAddOauth,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-			cli.StringFlag{
-				Name:  "name",
-				Value: "",
-				Usage: "Application Name",
-			},
-			cli.StringFlag{
-				Name:  "provider",
-				Value: "",
-				Usage: "OAuth2 Provider",
-			},
-			cli.StringFlag{
-				Name:  "key",
-				Value: "",
-				Usage: "Client ID (Key)",
-			},
-			cli.StringFlag{
-				Name:  "secret",
-				Value: "",
-				Usage: "Client Secret",
-			},
-			cli.StringFlag{
-				Name:  "auto-discover-url",
-				Value: "",
-				Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
-			},
-			cli.StringFlag{
-				Name:  "use-custom-urls",
-				Value: "false",
-				Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
-			},
-			cli.StringFlag{
-				Name:  "custom-auth-url",
-				Value: "",
-				Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-token-url",
-				Value: "",
-				Usage: "Use a custom Token URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-profile-url",
-				Value: "",
-				Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
-			},
-			cli.StringFlag{
-				Name:  "custom-email-url",
-				Value: "",
-				Usage: "Use a custom Email URL (option for GitHub)",
-			},
-		},
+		Flags:  oauthCLIFlags,
 	}
 )
 
