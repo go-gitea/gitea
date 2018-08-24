@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 )
 
@@ -157,7 +159,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if form.EnableWiki {
 			if form.EnableExternalWiki {
-				if !strings.HasPrefix(form.ExternalWikiURL, "http://") && !strings.HasPrefix(form.ExternalWikiURL, "https://") {
+				if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return
@@ -181,8 +183,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if form.EnableIssues {
 			if form.EnableExternalTracker {
-				if !strings.HasPrefix(form.ExternalTrackerURL, "http://") && !strings.HasPrefix(form.ExternalTrackerURL, "https://") {
+				if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
+					ctx.Redirect(repo.Link() + "/settings")
+					return
+				}
+				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalURL(form.TrackerURLFormat) {
+					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return
 				}
