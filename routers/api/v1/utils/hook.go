@@ -124,6 +124,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 
 		if !utils.IsValidSlackChannel(channel) {
 			ctx.Error(400, "", "Invalid slack channel name")
+			return nil, false
 		}
 
 		meta, err := json.Marshal(&models.SlackMeta{
