@@ -226,6 +226,7 @@ func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// HasInvalidChannel validates the channel name is in the right format
 func (f NewSlackHookForm) HasInvalidChannel() bool {
 	return !utils.IsValidSlackChannel(f.Channel)
 }
