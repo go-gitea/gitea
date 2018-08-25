@@ -2,6 +2,7 @@
 	<a class="avatar text
 	{{if .Issue.PullRequest.HasMerged}}purple
 	{{else if .Issue.IsClosed}}grey
+	{{else if .IsPullWorkInProgress}}grey
 	{{else if .IsPullRequestBroken}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
@@ -26,6 +27,11 @@
 				<div class="item text red">
 					<span class="octicon octicon-x"></span>
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
+				</div>
+			{{else if .IsPullWorkInProgress}}
+				<div class="item text grey">
+					<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">

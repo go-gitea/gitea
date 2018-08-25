@@ -1,0 +1,28 @@
+<div class="ui top right pointing dropdown custom" id="review-box">
+	<div class="ui tiny green button btn-review">
+		<span class="text">{{.i18n.Tr "repo.diff.review"}}</span>
+		<i class="dropdown icon"></i>
+	</div>
+	<div class="menu">
+		<div class="ui clearing segment">
+			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
+			{{.CsrfTokenHtml}}
+				<i class="ui right floated link icon close"></i>
+				<div class="header">
+				{{$.i18n.Tr "repo.diff.review.header"}}
+				</div>
+				<div class="ui field">
+					<textarea name="content" tabindex="0" rows="2"
+							  placeholder="{{$.i18n.Tr "repo.diff.review.placeholder"}}"></textarea>
+				</div>
+				<div class="ui divider"></div>
+				<button type="submit" name="type" value="approve" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
+						class="ui submit green tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.approve"}}</button>
+				<button type="submit" name="type" value="comment"
+					        class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</button>
+				<button type="submit" name="type" value="reject" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
+						class="ui submit red tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.reject"}}</button>
+			</form>
+		</div>
+	</div>
+</div>

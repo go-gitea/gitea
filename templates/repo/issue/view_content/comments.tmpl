@@ -1,7 +1,7 @@
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
-	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE, 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY -->
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE, 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE, 22 = REVIEW -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -260,5 +260,93 @@
 			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
 	     	</div>
      	</div>
-     {{end}}
+	{{else if eq .Type 22}}
+	    <div class="event" id="{{.HashTag}}">
+	    	<span class="octicon octicon-{{.Review.Type.Icon}}"></span>
+	    	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+	    		<img src="{{.Poster.RelAvatarLink}}">
+	    	</a>
+	    	<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+	    		{{if eq .Review.Type 1}}
+	    			{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+	    		{{else if eq .Review.Type 2}}
+	    			{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+	    		{{else if eq .Review.Type 3}}
+	    			{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+	    		{{else}}
+	    			{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+	    		{{end}}
+	    	</span>
+	    	{{if .Content}}
+	    		<div class="detail">
+					<span class="octicon octicon-quote"></span>
+	    			<span class="text grey">{{.Content}}</span>
+	    		</div>
+	    	{{end}}
+			{{ range $filename, $lines := .Review.CodeComments}}
+				{{range $line, $comms := $lines}}
+						<div class="ui segments">
+							<div class="ui segment">
+								{{$invalid := (index $comms 0).Invalidated}}
+							{{if $invalid}}
+								<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
+									<i class="octicon octicon-fold"></i>
+									{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+								</button>
+								<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									<i class="octicon octicon-fold"></i>
+									{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+								</button>
+							{{end}}
+								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
+							</div>
+							{{$diff := ((index $comms 0).MustAsDiff)}}
+							{{if $diff}}
+								{{$file := (index $diff.Files 0)}}
+								<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
+									<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
+										<div class="file-body file-code code-view code-diff code-diff-unified">
+											<table>
+												<tbody>
+													{{template "repo/diff/section_unified" dict "file" $file "root" $}}
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+							{{end}}
+							<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $invalid}} hide{{end}}">
+								<div class="ui comments">
+									{{range $comms}}
+										{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+										<div class="comment" id="{{.HashTag}}">
+											<a class="avatar">
+												<img src="{{.Poster.RelAvatarLink}}">
+											</a>
+											<div class="content">
+												<a class="author" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a>
+												<div class="metadata">
+													<span class="date">{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}</span>
+												</div>
+												<div class="text">
+													<div class="render-content markdown has-emoji">
+													{{if .RenderedContent}}
+														{{.RenderedContent|Str2html}}
+													{{else}}
+														<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+													{{end}}
+													</div>
+													<div class="raw-content hide">{{.Content}}</div>
+												</div>
+											</div>
+										</div>
+									{{end}}
+								</div>
+								{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" true "root" $ "comment" (index $comms 0)}}
+							</div>
+						</div>
+				{{end}}
+			{{end}}
+	    </div>
+	{{end}}
 {{end}}

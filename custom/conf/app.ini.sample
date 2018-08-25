@@ -60,6 +60,10 @@ FILE_MAX_SIZE = 3
 ; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
+[repository.pull-request]
+; List of prefixes used in Pull Request title to mark them as Work In Progress
+WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
@@ -69,6 +73,8 @@ ISSUE_PAGING_NUM = 10
 FEED_MAX_COMMIT_NUM = 5
 ; Number of maximum commits displayed in commit graph.
 GRAPH_MAX_COMMIT_NUM = 100
+; Number of line of codes shown for a code comment
+CODE_COMMENT_LINES = 4
 ; Value of `theme-color` meta tag, used by Android >= 5.0
 ; An invalid color like "none" or "disable" will have the default style
 ; More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
@@ -185,6 +191,12 @@ STATIC_ROOT_PATH =
 APP_DATA_PATH = data
 ; Application level GZIP support
 ENABLE_GZIP = false
+; Application profiling (memory and cpu)
+; For "web" command it listens on localhost:6060
+; For "serve" command it dumps to disk at PPROF_DATA_PATH as (cpuprofile|memprofile)_<username>_<temporary id>
+ENABLE_PPROF = false
+; PPROF_DATA_PATH, use an absolute path when you start gitea as service
+PPROF_DATA_PATH = data/tmp/pprof
 ; Landing page, can be "home", "explore", or "organizations"
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
@@ -211,9 +223,10 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
-; For "postgres" only, either "disable", "require" or "verify-full"
+; For Postgres, either "disable" (default), "require", or "verify-full"
+; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
-; For "sqlite3" and "tidb", use absolute path when you start gitea as service
+; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
 SQLITE_TIMEOUT = 500
