@@ -50,7 +50,7 @@ func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
 	h := hmac.New(sha1.New, []byte(key))
 	fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), now.UnixNano())
 	tok := fmt.Sprintf("%s:%d", h.Sum(nil), now.UnixNano())
-	return base64.URLEncoding.EncodeToString([]byte(tok))
+	return base64.RawURLEncoding.EncodeToString([]byte(tok))
 }
 
 // Valid returns true if token is a valid, unexpired token returned by Generate.
@@ -61,7 +61,7 @@ func ValidToken(token, key, userID, actionID string) bool {
 // validTokenAtTime is like Valid, but it uses now to check if the token is expired.
 func validTokenAtTime(token, key, userID, actionID string, now time.Time) bool {
 	// Decode the token.
-	data, err := base64.URLEncoding.DecodeString(token)
+	data, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
 		return false
 	}
