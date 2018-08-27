@@ -225,8 +225,8 @@
 					{{end}}
 					{{if and .IsSigned .IsRepositoryWriter}}
 						<br/>
-						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>Edit</a> -
-						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>Remove</a>
+						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
+						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
 					{{end}}
 				</p>
 			{{else}}
