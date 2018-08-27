@@ -153,14 +153,18 @@
 					</div>
 
 					{{if .IsSigned}}
-						<a class="item{{if .PageIsDashboard}} active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
-						<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
-						<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
-					{{else}}
-						<a class="item{{if .PageIsHome}} active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
+						<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
+						<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
+						<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
+						<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+					{{else if .IsLandingPageHome}}
+						<a class="item {{if .PageIsHome}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
+						<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+					{{else if .IsLandingPageExplore}}
+						<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "home"}}</a>
+					{{else if .IsLandingPageOrganizations}}
+						<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "home"}}</a>
 					{{end}}
-
-					<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
 
 					{{template "custom/extra_links" .}}
 
