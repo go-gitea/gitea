@@ -1242,7 +1242,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/UserList"
+            "$ref": "#/responses/CollaboratorList"
           }
         }
       }
@@ -5855,6 +5855,47 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Collaborator": {
+      "description": "Collaborator represents a collaborator",
+      "type": "object",
+      "properties": {
+        "avatar_url": {
+          "description": "URL to the user's avatar",
+          "type": "string",
+          "x-go-name": "AvatarURL"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "x-go-name": "Email"
+        },
+        "full_name": {
+          "description": "the user's full name",
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "id": {
+          "description": "the user's id",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "language": {
+          "description": "User locale",
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "login": {
+          "description": "the user's username",
+          "type": "string",
+          "x-go-name": "UserName"
+        },
+        "permissions": {
+          "$ref": "#/definitions/Permission"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Comment": {
       "description": "Comment represents a comment on a commit or issue",
       "type": "object",
@@ -7919,6 +7960,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Branch"
+        }
+      }
+    },
+    "Collaborator": {
+      "description": "Collaborator",
+      "schema": {
+        "$ref": "#/definitions/Collaborator"
+      }
+    },
+    "CollaboratorList": {
+      "description": "CollaboratorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Collaborator"
         }
       }
     },

@@ -22,6 +22,20 @@ type swaggerResponseRepositoryList struct {
 	Body []api.Repository `json:"body"`
 }
 
+// Collaborator
+// swagger:response Collaborator
+type swaggerResponseCollaborator struct {
+	// in:body
+	Body api.Collaborator `json:"body"`
+}
+
+// CollaboratorList
+// swagger:response CollaboratorList
+type swaggerResponseCollaboratorList struct {
+	// in:body
+	Body []api.Collaborator `json:"body"`
+}
+
 // Branch
 // swagger:response Branch
 type swaggerResponseBranch struct {

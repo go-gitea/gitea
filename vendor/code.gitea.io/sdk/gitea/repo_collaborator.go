@@ -11,8 +11,8 @@ import (
 )
 
 // ListCollaborators list a repository's collaborators
-func (c *Client) ListCollaborators(user, repo string) ([]*User, error) {
-	collaborators := make([]*User, 0, 10)
+func (c *Client) ListCollaborators(user, repo string) ([]*Collaborator, error) {
+	collaborators := make([]*Collaborator, 0, 10)
 	err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/collaborators", user, repo),
 		nil, nil, &collaborators)

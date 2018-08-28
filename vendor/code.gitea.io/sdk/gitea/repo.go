@@ -48,6 +48,25 @@ type Repository struct {
 	Permissions *Permission `json:"permissions,omitempty"`
 }
 
+// Collaborator represents a collaborator
+// swagger:model
+type Collaborator struct {
+	// the user's id
+	ID int64 `json:"id"`
+	// the user's username
+	UserName string `json:"login"`
+	// the user's full name
+	FullName string `json:"full_name"`
+	// swagger:strfmt email
+	Email string `json:"email"`
+	// URL to the user's avatar
+	AvatarURL string `json:"avatar_url"`
+	// User locale
+	Language string `json:"language"`
+	// Permissions
+	Permissions *Permission `json:"permissions,omitempty"`
+}
+
 // ListMyRepos lists all repositories for the authenticated user that has access to.
 func (c *Client) ListMyRepos() ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)

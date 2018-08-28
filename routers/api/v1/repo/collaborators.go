@@ -33,7 +33,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/UserList"
+	//     "$ref": "#/responses/CollaboratorList"
 	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
@@ -43,7 +43,7 @@ func ListCollaborators(ctx *context.APIContext) {
 		ctx.Error(500, "ListCollaborators", err)
 		return
 	}
-	users := make([]*api.User, len(collaborators))
+	users := make([]*api.Collaborator, len(collaborators))
 	for i, collaborator := range collaborators {
 		users[i] = collaborator.APIFormat()
 	}

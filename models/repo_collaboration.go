@@ -6,6 +6,8 @@ package models
 
 import (
 	"fmt"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // Collaboration represent the relation between an individual and a repository.
@@ -76,6 +78,25 @@ func (repo *Repository) getCollaborations(e Engine) ([]*Collaboration, error) {
 type Collaborator struct {
 	*User
 	Collaboration *Collaboration
+}
+
+// APIFormat converts a Collaborator to api.Collaborator
+func (c *Collaborator) APIFormat() *api.Collaborator {
+	mode := c.Collaboration.Mode
+	permission := &api.Permission{
+		Admin: mode >= AccessModeAdmin,
+		Push:  mode >= AccessModeWrite,
+		Pull:  mode >= AccessModeRead,
+	}
+	return &api.Collaborator{
+		ID:          c.ID,
+		UserName:    c.Name,
+		FullName:    c.FullName,
+		Email:       c.getEmail(),
+		AvatarURL:   c.AvatarLink(),
+		Language:    c.Language,
+		Permissions: permission,
+	}
 }
 
 func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
