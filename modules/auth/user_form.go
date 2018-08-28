@@ -188,10 +188,10 @@ type NewAccessTokenForm struct {
 	Name string `binding:"Required;MaxSize(255)"`
 	MatchOwner []string `binding:"OmitEmpty"`
 	MatchRepo []string `binding:"OmitEmpty"`
-	RegexMatchBranch []string `binding:"OmitEmpty"`
-	RegexMatchRoute []string `binding:"OmitEmpty"`
+	WildcardMatchBranch []string `binding:"OmitEmpty"`
+	WildcardMatchRoute []string `binding:"OmitEmpty"`
 	MatchMethod []string `binding:"OmitEmpty"`
-	Expires int64 `binding:"OmitEmpty"`
+	ExpiresAt int64 `binding:"OmitEmpty"`
 }
 
 // Validate valideates the fields
