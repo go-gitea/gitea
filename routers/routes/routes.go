@@ -785,13 +785,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 	})
 
 	// Progressive Web App
-	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *macaron.Context) {
+	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
 	})
-	
-	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *macaron.Context) {
+
+	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/serviceworker_js")
-    })
+	})
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)
