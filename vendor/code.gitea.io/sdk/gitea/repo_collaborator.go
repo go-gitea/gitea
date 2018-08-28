@@ -20,17 +20,12 @@ func (c *Client) ListCollaborators(user, repo string) ([]*Collaborator, error) {
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
-func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, error) {
-	status, err := c.getStatusCode("GET",
+func (c *Client) IsCollaborator(user, repo, collaborator string) (*Permission, error) {
+	var permission *Permission
+	err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator),
-		nil, nil)
-	if err != nil {
-		return false, err
-	}
-	if status == 204 {
-		return true, nil
-	}
-	return false, nil
+		nil, nil, &permission)
+	return permission, err
 }
 
 // AddCollaboratorOption options when adding a user as a collaborator of a repository

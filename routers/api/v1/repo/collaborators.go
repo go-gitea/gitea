@@ -50,11 +50,11 @@ func ListCollaborators(ctx *context.APIContext) {
 	ctx.JSON(200, users)
 }
 
-// IsCollaborator check if a user is a collaborator of a repository
+// IsCollaborator check if a user is a collaborator of a repository  and return their permissions
 func IsCollaborator(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/collaborators/{collaborator} repository repoCheckCollaborator
 	// ---
-	// summary: Check if a user is a collaborator of a repository
+	// summary: Check if a user is a collaborator of a repository and return their permissions
 	// produces:
 	// - application/json
 	// parameters:
@@ -74,8 +74,8 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/Permission"
 	//   "404":
 	//     "$ref": "#/responses/empty"
 	if !ctx.Repo.IsWriter() {
@@ -91,16 +91,16 @@ func IsCollaborator(ctx *context.APIContext) {
 		}
 		return
 	}
-	isColab, err := ctx.Repo.Repository.IsCollaborator(user.ID)
+	mode, err := models.AccessLevel(user.ID, ctx.Repo.Repository)
 	if err != nil {
-		ctx.Error(500, "IsCollaborator", err)
-		return
+		ctx.Error(500, "AccessLevel", err)
 	}
-	if isColab {
-		ctx.Status(204)
-	} else {
-		ctx.Status(404)
+	permission := &api.Permission{
+		Admin: mode >= models.AccessModeAdmin,
+		Push:  mode >= models.AccessModeWrite,
+		Pull:  mode >= models.AccessModeRead,
 	}
+	ctx.JSON(200, permission)
 }
 
 // AddCollaborator add a collaborator to a repository

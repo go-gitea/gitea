@@ -78,6 +78,13 @@ type swaggerResponseReleaseList struct {
 	Body []api.Release `json:"body"`
 }
 
+// Permission
+// swagger:response Permission
+type swaggerResponsePermission struct {
+	// in:body
+	Body api.Permission `json:"body"`
+}
+
 // PullRequest
 // swagger:response PullRequest
 type swaggerResponsePullRequest struct {

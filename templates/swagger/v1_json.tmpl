@@ -1281,8 +1281,8 @@
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/Permission"
           },
           "404": {
             "$ref": "#/responses/empty"
@@ -8117,6 +8117,12 @@
         "items": {
           "$ref": "#/definitions/Organization"
         }
+      }
+    },
+    "Permission": {
+      "description": "Permission",
+      "schema": {
+        "$ref": "#/definitions/Permission"
       }
     },
     "PublicKey": {
