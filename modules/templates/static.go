@@ -129,6 +129,15 @@ func JSONRenderer() macaron.Handler {
 	})
 }
 
+// JSRenderer implements the macaron handler for serving JS templates.
+func JSRenderer() macaron.Handler {
+	return macaron.Renderer(macaron.RenderOptions{
+		Funcs:              NewFuncMap(),
+		TemplateFileSystem: NewTemplateFileSystem(),
+		HTMLContentType:    "application/javascript",
+	})
+}
+
 // Mailer provides the templates required for sending notification mails.
 func Mailer() *template.Template {
 	for _, funcs := range NewFuncMap() {
