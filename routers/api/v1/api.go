@@ -64,6 +64,35 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
+func sudo() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		sudo := ctx.Query("sudo")
+		if len(sudo) <= 0 {
+			sudo = ctx.Req.Header.Get("Sudo")
+		}
+
+		if len(sudo) > 0 {
+			if ctx.User.IsAdmin {
+				user, err := models.GetUserByName(sudo)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						ctx.Status(404)
+					} else {
+						ctx.Error(500, "GetUserByName", err)
+					}
+					return
+				}
+				ctx.User = user
+			} else {
+				ctx.JSON(403, map[string]string{
+					"message": "Only administrators allowed to sudo.",
+				})
+				return
+			}
+		}
+	}
+}
+
 func repoAssignment() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		userName := ctx.Params(":username")
@@ -589,5 +618,5 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, context.APIContexter())
+	}, context.APIContexter(), sudo())
 }
