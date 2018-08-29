@@ -112,6 +112,10 @@ var (
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
+	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -224,6 +228,11 @@ var (
 			LocalCopyPath string
 			LocalWikiPath string
 		} `ini:"-"`
+
+		// Pull request settings
+		PullRequest struct {
+			WorkInProgressPrefixes []string
+		} `ini:"repository.pull-request"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -266,6 +275,13 @@ var (
 		}{
 			LocalCopyPath: "tmp/local-repo",
 			LocalWikiPath: "tmp/local-wiki",
+		},
+
+		// Pull request settings
+		PullRequest: struct {
+			WorkInProgressPrefixes []string
+		}{
+			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
 		},
 	}
 	RepoRootPath string
@@ -725,6 +741,14 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
+	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	LetsEncryptTOS := sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	if !LetsEncryptTOS && EnableLetsEncrypt {
+		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
+		EnableLetsEncrypt = false
+	}
+	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
@@ -1031,6 +1055,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {

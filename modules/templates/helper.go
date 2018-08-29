@@ -103,12 +103,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":    base.EllipsisString,
-		"DiffTypeToStr":     DiffTypeToStr,
-		"DiffLineTypeToStr": DiffLineTypeToStr,
-		"Sha1":              Sha1,
-		"ShortSha":          base.ShortSha,
-		"MD5":               base.EncodeMD5,
+		"EllipsisString":        base.EllipsisString,
+		"DiffTypeToStr":         DiffTypeToStr,
+		"DiffLineTypeToStr":     DiffLineTypeToStr,
+		"Sha1":                  Sha1,
+		"ShortSha":              base.ShortSha,
+		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -164,6 +164,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
+		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
 		},
 		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
