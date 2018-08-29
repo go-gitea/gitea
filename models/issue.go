@@ -24,19 +24,19 @@ import (
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo            *Repository `xorm:"-"`
-	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID        int64       `xorm:"INDEX"`
-	Poster          *User       `xorm:"-"`
-	Title           string      `xorm:"name"`
-	Content         string      `xorm:"TEXT"`
-	RenderedContent string      `xorm:"-"`
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
-	Priority        int
+	ID              int64        `xorm:"pk autoincr"`
+	RepoID          int64        `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo            *Repository  `xorm:"-"`
+	Index           int64        `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID        int64        `xorm:"INDEX"`
+	Poster          *User        `xorm:"-"`
+	Title           string       `xorm:"name"`
+	Content         string       `xorm:"TEXT"`
+	RenderedContent string       `xorm:"-"`
+	Labels          []*Label     `xorm:"-"`
+	MilestoneID     int64        `xorm:"INDEX"`
+	Milestone       *Milestone   `xorm:"-"`
+	Priority        int          `xorm:"priority"` // Indicates priority in list display
 	AssigneeID      int64        `xorm:"-"`
 	Assignee        *User        `xorm:"-"`
 	IsClosed        bool         `xorm:"INDEX"`
@@ -1270,6 +1270,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	if err := opts.setupSession(sess); err != nil {
 		return nil, err
+	}
+	// issues with high-level priorities are first in the result set.
+	if opts.SortType != "priority" {
+		sortIssuesSession(sess, "priority")
 	}
 	sortIssuesSession(sess, opts.SortType)
 

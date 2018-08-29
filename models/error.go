@@ -521,11 +521,11 @@ func (err ErrLastOrgOwner) Error() string {
 	return fmt.Sprintf("user is the last member of owner team [uid: %d]", err.UID)
 }
 
-//.____   ____________________
-//|    |  \_   _____/   _____/
-//|    |   |    __) \_____  \
-//|    |___|     \  /        \
-//|_______ \___  / /_______  /
+// .____   ____________________
+// |    |  \_   _____/   _____/
+// |    |   |    __) \_____  \
+// |    |___|     \  /        \
+// |_______ \___  / /_______  /
 //        \/   \/          \/
 
 // ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
@@ -875,6 +875,23 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+// ErrIssueInvalidPriority represents a "IssueInvalidPriority" kind of error.
+type ErrIssueInvalidPriority struct {
+	ID              int64
+	RepoID          int64
+	DesiredPriority int
+}
+
+// ErrIssueInvalidPriority checks if an error is a ErrIssueInvalidPriority.
+func IsErrIssueInvalidPriority(err error) bool {
+	_, ok := err.(ErrIssueInvalidPriority)
+	return ok
+}
+
+func (err ErrIssueInvalidPriority) Error() string {
+	return fmt.Sprintf("issue exceeds the threshold priority [id: %d, repo_id: %d, desired_priority: %d]", err.ID, err.RepoID, err.DesiredPriority)
 }
 
 // __________      .__  .__ __________                                     __

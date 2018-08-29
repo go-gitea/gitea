@@ -517,7 +517,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
 		}, context.CheckUnit(models.UnitTypeIssues))
-		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
+		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
 			m.Group("/:index", func() {
@@ -537,6 +537,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
+				m.Patch("/priority", reqRepoWriter, context.RepoRef(), context.CheckAnyUnit(models.UnitTypeIssues), repo.UpdateIssuePriority)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)

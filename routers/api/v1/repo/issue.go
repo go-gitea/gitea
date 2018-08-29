@@ -178,6 +178,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		Poster:       ctx.User,
 		Content:      form.Body,
 		DeadlineUnix: deadlineUnix,
+		Priority:     models.LowestPriority,
 	}
 
 	var assigneeIDs = make([]int64, 0)
@@ -415,4 +416,75 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	}
 
 	ctx.JSON(201, api.IssueDeadline{Deadline: form.Deadline})
+}
+
+// UpdateIssuePriority updates an issue priority.
+func UpdateIssuePriority(ctx *context.APIContext, form api.EditPriorityOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/priority issue issueUpdateIssuePriority
+	// ---
+	// summary: Update the priority of an issue.
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to update priority on
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditPriorityOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Issue"
+	//   "403":
+	//     description: Not repo writer
+	//     schema:
+	//       "$ref": "#/responses/forbidden"
+	//   "404":
+	//     description: Issue not found
+	//     schema:
+	//       "$ref": "#/responses/empty"
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Status(http.StatusNotFound)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	if !ctx.Repo.IsWriter() {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	if form.Priority < models.LowestPriority || form.Priority > models.HighestPriority {
+		ctx.Error(http.StatusInternalServerError,
+			"UpdateIssuePriority", fmt.Sprintf("Invalid priority [%v]", form.Priority))
+
+		return
+	}
+
+	if err := models.UpdateIssuePriority(issue, ctx.User); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, issue.APIFormat())
 }

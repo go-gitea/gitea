@@ -1541,3 +1541,21 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		"html": html,
 	})
 }
+
+// UpdateIssuePriority updates an issue priority.
+func UpdateIssuePriority(ctx *context.Context, form auth.EditPriorityForm) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	issue.Priority = form.Priority
+
+	if err := models.UpdateIssuePriority(issue, ctx.User); err != nil {
+		ctx.Error(http.StatusInternalServerError)
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, tplIssues)
+}

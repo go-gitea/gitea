@@ -287,7 +287,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger", misc.Swagger) //Render V1 by default
+		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	m.Group("/v1", func() {
@@ -457,6 +457,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+
+						m.Combo("/priority").Patch(reqToken(), bind(api.EditPriorityOption{}), repo.UpdateIssuePriority)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
