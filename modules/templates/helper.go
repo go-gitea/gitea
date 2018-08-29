@@ -165,6 +165,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
 		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {

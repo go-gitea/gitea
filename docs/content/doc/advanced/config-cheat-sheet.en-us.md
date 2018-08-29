@@ -138,7 +138,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-- `SSL_MODE`: **disable**: For PostgreSQL only.
+- `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 
