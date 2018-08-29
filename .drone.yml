@@ -22,7 +22,7 @@ pipeline:
       branch: [ master ]
 
   update-translations:
-    image: alpine:3.6
+    image: alpine:3.7
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
@@ -64,7 +64,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
       TAGS: bindata sqlite
@@ -83,7 +83,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -95,7 +95,7 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -107,7 +107,7 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -130,7 +130,7 @@ pipeline:
   #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -145,7 +145,7 @@ pipeline:
       branch: [ master ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -159,7 +159,7 @@ pipeline:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -173,7 +173,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   generate-coverage:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
       TAGS: bindata
