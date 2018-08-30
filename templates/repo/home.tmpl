@@ -118,6 +118,14 @@
 							</div>
 						</div>
 					</div>
+				{{else}}
+					{{if not .IsViewFile}}
+						<div class="ui tiny blue buttons">
+							<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui compact button">
+								{{.i18n.Tr "repo.file_history"}}
+							</a>
+						</div>
+					{{end}}
 				{{end}}
 			</div>
 		</div>
