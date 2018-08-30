@@ -11,7 +11,7 @@ import (
 const (
 	// PriorityDefault defines the default priority
 	PriorityDefault = 0
-	// PriorityDefault defines the pinned priority
+	// PriorityPinned defines the pinned priority
 	PriorityPinned = 10
 )
 

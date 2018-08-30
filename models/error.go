@@ -884,7 +884,7 @@ type ErrIssueInvalidPriority struct {
 	DesiredPriority int
 }
 
-// ErrIssueInvalidPriority checks if an error is a ErrIssueInvalidPriority.
+// IsErrIssueInvalidPriority checks if an error is a ErrIssueInvalidPriority.
 func IsErrIssueInvalidPriority(err error) bool {
 	_, ok := err.(ErrIssueInvalidPriority)
 	return ok
