@@ -11,12 +11,27 @@ import (
 const (
 	// PriorityDefault defines the default priority
 	PriorityDefault = 0
-	// PriorityPinned defines the pinned priority
-	PriorityPinned = 10
 )
 
 // UpdateIssuePriority update priority for a specific issue
-func UpdateIssuePriority(issue *Issue, doer *User) error {
+func UpdateIssuePriority(issue *Issue) error {
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+
+	if issue.Priority < PriorityDefault {
+		return ErrIssueInvalidPriority{ID: issue.ID, RepoID: issue.Repo.ID, DesiredPriority: issue.Priority}
+	}
+
+	_, err := AutoTransaction(func(session *xorm.Session) (interface{}, error) {
+		return nil, updateIssueCols(session, &Issue{ID: issue.ID, Priority: issue.Priority}, "priority")
+	}, x)
+
+	return err
+}
+
+// PinIssue to pin an issue
+func PinIssue(issue *Issue, doer *User) error {
 	if err := issue.loadRepo(x); err != nil {
 		return err
 	}
@@ -27,12 +42,21 @@ func UpdateIssuePriority(issue *Issue, doer *User) error {
 		return ErrUserDoesNotHaveAccessToRepo{UserID: doer.ID, RepoName: issue.Repo.Name}
 	}
 
-	if issue.Priority < PriorityDefault {
-		return ErrIssueInvalidPriority{ID: issue.ID, RepoID: issue.Repo.ID, DesiredPriority: issue.Priority}
-	}
-
 	_, err := AutoTransaction(func(session *xorm.Session) (interface{}, error) {
-		return nil, updateIssueCols(session, &Issue{ID: issue.ID, Priority: issue.Priority}, "priority")
+		var p int64
+		_, err := session.Table("issue").
+			Select("MAX(priority)").Where("repo_id=? and is_pull=0", issue.Repo.ID).Get(&p)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = session.Table("issue").Where("id = ?", issue.ID).
+			Update(map[string]interface{}{"priority": p + 10})
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	}, x)
 
 	return err

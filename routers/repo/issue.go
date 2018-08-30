@@ -1551,7 +1551,7 @@ func UpdateIssuePriority(ctx *context.Context, form auth.EditPriorityForm) {
 
 	issue.Priority = form.Priority
 
-	if err := models.UpdateIssuePriority(issue, ctx.User); err != nil {
+	if err := models.UpdateIssuePriority(issue); err != nil {
 		ctx.Error(http.StatusInternalServerError)
 
 		return
@@ -1562,7 +1562,18 @@ func UpdateIssuePriority(ctx *context.Context, form auth.EditPriorityForm) {
 
 // PinIssue pin an issue by index
 func PinIssue(ctx *context.Context) {
-	UpdateIssuePriority(ctx, auth.EditPriorityForm{Priority: models.PriorityPinned})
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := models.PinIssue(issue, ctx.User); err != nil {
+		ctx.Error(http.StatusInternalServerError)
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, tplIssues)
 }
 
 // UnpinIssue pin an issue by index

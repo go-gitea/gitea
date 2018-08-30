@@ -457,8 +457,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
-						m.Combo("/deadline").Patch(reqToken(), repo.PinIssue)
-						m.Combo("/priority").Patch(reqToken(), repo.UnpinIssue)
+						m.Combo("/pin").Patch(reqToken(), repo.PinIssue)
+						m.Combo("/unpin").Patch(reqToken(), repo.UnpinIssue)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

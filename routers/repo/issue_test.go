@@ -24,7 +24,7 @@ func TestUpdateIssuePriority(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Issue{
 		ID: 1,
-	}, models.Cond("priority = ?", models.PriorityPinned))
+	}, models.Cond("priority = ?", 15))
 
 	ctx = test.MockContext(t, "user2/repo1/issues/1/unpin")
 	test.LoadUser(t, ctx, 2)

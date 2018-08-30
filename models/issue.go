@@ -665,6 +665,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 
 	issue.IsClosed = isClosed
 	if isClosed {
+		issue.Priority = PriorityDefault
 		issue.ClosedUnix = util.TimeStampNow()
 	} else {
 		issue.ClosedUnix = 0

@@ -467,9 +467,7 @@ func PinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	issue.Priority = models.PriorityPinned
-
-	if err := models.UpdateIssuePriority(issue, ctx.User); err != nil {
+	if err := models.PinIssue(issue, ctx.User); err != nil {
 		ctx.Error(500, "PinIssue", err)
 		return
 	}
@@ -529,7 +527,7 @@ func UnpinIssue(ctx *context.APIContext) {
 
 	issue.Priority = models.PriorityDefault
 
-	if err := models.UpdateIssuePriority(issue, ctx.User); err != nil {
+	if err := models.UpdateIssuePriority(issue); err != nil {
 		ctx.Error(500, "UnpinIssue", err)
 		return
 	}
