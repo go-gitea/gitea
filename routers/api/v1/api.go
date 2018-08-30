@@ -62,6 +62,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
@@ -94,6 +95,7 @@ func sudo() macaron.Handler {
 					}
 					return
 				}
+				log.Trace("Sudo from (%s) to: %s", ctx.User.Name, user.Name)
 				ctx.User = user
 			} else {
 				ctx.JSON(403, map[string]string{
