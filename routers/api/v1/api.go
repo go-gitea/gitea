@@ -24,6 +24,8 @@
 //     - Token :
 //     - AccessToken :
 //     - AuthorizationHeaderToken :
+//     - SudoParam :
+//     - SudoHeader :
 //
 //     SecurityDefinitions:
 //     BasicAuth:
@@ -40,6 +42,16 @@
 //          type: apiKey
 //          name: Authorization
 //          in: header
+//     SudoParam:
+//          type: apiKey
+//          name: sudo
+//          in: query
+//          description: Sudo API request as the user provided as the key. Admin privileges are required.
+//     SudoHeader:
+//          type: apiKey
+//          name: Sudo
+//          in: header
+//          description: Sudo API request as the user provided as the key. Admin privileges are required.
 //
 // swagger:meta
 package v1
