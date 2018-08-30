@@ -1559,3 +1559,13 @@ func UpdateIssuePriority(ctx *context.Context, form auth.EditPriorityForm) {
 
 	ctx.JSON(http.StatusOK, tplIssues)
 }
+
+// PinIssue pin an issue by index
+func PinIssue(ctx *context.Context) {
+	UpdateIssuePriority(ctx, auth.EditPriorityForm{Priority: models.PriorityPinned})
+}
+
+// UnpinIssue pin an issue by index
+func UnpinIssue(ctx *context.Context) {
+	UpdateIssuePriority(ctx, auth.EditPriorityForm{Priority: models.PriorityDefault})
+}

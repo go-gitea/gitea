@@ -9,16 +9,10 @@ import (
 )
 
 const (
-	// LowestPriority defines the lowest-level priority
-	LowestPriority = iota + 1
-	// LowPriority defines the low-level priority
-	LowPriority
-	// MediumPriority defines the medium-level priority
-	MediumPriority
-	// HighPriority defines the high-level priority
-	HighPriority
-	// HighestPriority defines the highest-level priority
-	HighestPriority
+	// PriorityDefault defines the default priority
+	PriorityDefault = 0
+	// PriorityDefault defines the pinned priority
+	PriorityPinned = 10
 )
 
 // UpdateIssuePriority update priority for a specific issue
@@ -33,7 +27,7 @@ func UpdateIssuePriority(issue *Issue, doer *User) error {
 		return ErrUserDoesNotHaveAccessToRepo{UserID: doer.ID, RepoName: issue.Repo.Name}
 	}
 
-	if issue.Priority > HighestPriority || issue.Priority < LowestPriority {
+	if issue.Priority < PriorityDefault {
 		return ErrIssueInvalidPriority{ID: issue.ID, RepoID: issue.Repo.ID, DesiredPriority: issue.Priority}
 	}
 

@@ -17,21 +17,15 @@ func TestUpdateIssuePriority(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
 	doer := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 
-	issue.Priority = HighestPriority
+	issue.Priority = PriorityPinned
 
 	err := UpdateIssuePriority(issue, doer)
 	assert.NoError(t, err)
 
 	issue = AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	assert.EqualValues(t, HighestPriority, issue.Priority)
+	assert.EqualValues(t, PriorityPinned, issue.Priority)
 
 	issue.Priority = -1
-	err = UpdateIssuePriority(issue, doer)
-	assert.Error(t, err)
-	assert.EqualValues(
-		t, err, ErrIssueInvalidPriority{ID: issue.ID, RepoID: issue.Repo.ID, DesiredPriority: issue.Priority})
-
-	issue.Priority = 6
 	err = UpdateIssuePriority(issue, doer)
 	assert.Error(t, err)
 	assert.EqualValues(

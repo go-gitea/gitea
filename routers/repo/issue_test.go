@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,20 +16,23 @@ import (
 func TestUpdateIssuePriority(t *testing.T) {
 	models.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/issues/1/priority")
+	ctx := test.MockContext(t, "user2/repo1/issues/1/pin")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	test.LoadGitRepo(t, ctx)
-	UpdateIssuePriority(ctx, auth.EditPriorityForm{Priority: 2})
+	PinIssue(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Issue{
 		ID: 1,
-	}, models.Cond("priority = ?", 2))
+	}, models.Cond("priority = ?", models.PriorityPinned))
 
-	ctx = test.MockContext(t, "user2/repo1/issues/1/priority")
+	ctx = test.MockContext(t, "user2/repo1/issues/1/unpin")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	test.LoadGitRepo(t, ctx)
-	UpdateIssuePriority(ctx, auth.EditPriorityForm{Priority: -1})
-	assert.EqualValues(t, http.StatusInternalServerError, ctx.Resp.Status())
+	UnpinIssue(ctx)
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	models.AssertExistsAndLoadBean(t, &models.Issue{
+		ID: 1,
+	}, models.Cond("priority = ?", models.PriorityDefault))
 }

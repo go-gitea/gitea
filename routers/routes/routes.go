@@ -537,7 +537,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Patch("/priority", reqRepoWriter, context.RepoRef(), context.CheckAnyUnit(models.UnitTypeIssues), repo.UpdateIssuePriority)
+				m.Patch("/pin", reqRepoWriter, context.RepoRef(), context.CheckAnyUnit(models.UnitTypeIssues), repo.PinIssue)
+				m.Patch("/unpin", reqRepoWriter, context.RepoRef(), context.CheckAnyUnit(models.UnitTypeIssues), repo.UnpinIssue)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)
