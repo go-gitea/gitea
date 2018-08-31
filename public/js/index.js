@@ -117,6 +117,14 @@ function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     })
 }
 
+function updateIssuePriority(url, afterSuccess) {
+    $.ajax({
+        type: "PATCH",
+        url: url,
+        success: afterSuccess
+    })
+}
+
 function initReactionSelector(parent) {
     var reactions = '';
     if (!parent) {
@@ -1860,6 +1868,20 @@ $(document).ready(function () {
         }).get().join();
         var url = this.dataset.url
         updateIssuesMeta(url, action, issueIDs, elementId, function() {
+            location.reload();
+        });
+    });
+
+    $('.issue-pin').click(function () {
+        var url = this.dataset.url
+        updateIssuePriority(url, function() {
+            location.reload();
+        });
+    });
+
+    $('.issue-unpin').click(function () {
+        var url = this.dataset.url
+        updateIssuePriority(url, function() {
             location.reload();
         });
     });

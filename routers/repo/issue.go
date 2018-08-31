@@ -248,6 +248,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
+	ctx.Data["IsWriter"] = ctx.Repo.IsWriter()
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
 	} else {

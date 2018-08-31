@@ -181,9 +181,11 @@
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
-					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}}></input>
-					</div>
+					{{if $.IsWriter}}
+						<div class="ui checkbox issue-checkbox">
+							<input type="checkbox" data-issue-id={{.ID}}></input>
+						</div>
+					{{end}}
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
@@ -192,6 +194,14 @@
 					{{end}}
 					{{range .Labels}}
 						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+					{{end}}
+
+					{{if $.IsWriter}}
+						{{if eq .Priority 0}}
+							<span class="comment ui right"><div class="ui blue active basic button issue-pin" data-url="{{$.Link}}/{{.Index}}/pin">pin</div></span>
+						{{else}}
+							<span class="comment ui right"><div class="ui basic button issue-unpin" data-url="{{$.Link}}/{{.Index}}/unpin">unpin</div></span>
+						{{end}}
 					{{end}}
 
 					{{if .NumComments}}
