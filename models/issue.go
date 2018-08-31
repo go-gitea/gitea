@@ -671,7 +671,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 		issue.ClosedUnix = 0
 	}
 
-	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err = updateIssueCols(e, issue, "is_closed", "closed_unix", "priority"); err != nil {
 		return err
 	}
 
