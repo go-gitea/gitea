@@ -152,3 +152,9 @@ type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 }
+
+// EditPriorityOption options for updating priority
+type EditPriorityOption struct {
+	// required:true
+	Priority int `json:"priority"`
+}
