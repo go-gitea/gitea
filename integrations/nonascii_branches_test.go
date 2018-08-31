@@ -28,6 +28,17 @@ func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route,
 	resp = session.MakeRequest(t, req, expectedStatus)
 }
 
+func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch string) {
+	location := path.Join("/", user, repo, "settings/branches")
+	csrf := GetCSRF(t, session, location)
+	req := NewRequestWithValues(t, "POST", location, map[string]string{
+		"_csrf":  csrf,
+		"action": "default_branch",
+		"branch": branch,
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+}
+
 func TestNonasciiBranches(t *testing.T) {
 	testRedirects := []struct {
 		from   string
@@ -109,17 +120,17 @@ func TestNonasciiBranches(t *testing.T) {
 		// Files
 		{
 			from:   "README.md",
-			to:     "branch/%d0%93%d0%bb%d0%b0%d0%b2%d0%bd%d0%b0%d1%8f%d0%92%d0%b5%d1%82%d0%ba%d0%b0/README.md",
+			to:     "branch/Plus+Is+Not+Space/README.md",
 			status: http.StatusOK,
 		},
 		{
 			from:   "Файл.md",
-			to:     "branch/%d0%93%d0%bb%d0%b0%d0%b2%d0%bd%d0%b0%d1%8f%d0%92%d0%b5%d1%82%d0%ba%d0%b0/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
 			status: http.StatusOK,
 		},
 		{
 			from:   "ファイル.md",
-			to:     "branch/%d0%93%d0%bb%d0%b0%d0%b2%d0%bd%d0%b0%d1%8f%d0%92%d0%b5%d1%82%d0%ba%d0%b0/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
+			to:     "branch/Plus+Is+Not+Space/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
 			status: http.StatusNotFound, // it's not on default branch
 		},
 		// Same but url-encoded (few tests)
@@ -135,7 +146,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "%D0%A4%D0%B0%D0%B9%D0%BB.md",
-			to:     "branch/%d0%93%d0%bb%d0%b0%d0%b2%d0%bd%d0%b0%d1%8f%d0%92%d0%b5%d1%82%d0%ba%d0%b0/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
 			status: http.StatusOK,
 		},
 		{
@@ -156,8 +167,12 @@ func TestNonasciiBranches(t *testing.T) {
 	repo := "utf8"
 	session := loginUser(t, user)
 
+	setDefaultBranch(t, session, user, repo, "Plus+Is+Not+Space")
+
 	for _, test := range testRedirects {
 		testSrcRouteRedirect(t, session, user, repo, test.from, test.to, test.status)
 	}
+
+	setDefaultBranch(t, session, user, repo, "master")
 
 }
