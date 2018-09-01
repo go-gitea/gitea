@@ -32,6 +32,12 @@
 							<label for="location">{{.i18n.Tr "org.settings.location"}}</label>
 							<input id="location" name="location"  value="{{.Org.Location}}">
 						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "org.settings.hidden_profile_popup"}}"><strong>{{.i18n.Tr "org.settings.hidden_profile"}}</strong></label>
+								<input id="keep_profile_private" name="keep_profile_private" type="checkbox" {{if .Org.IsHidden}}checked{{end}}>
+							</div>
+						</div>
 
 						{{if .SignedUser.IsAdmin}}
 						<div class="ui divider"></div>

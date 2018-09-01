@@ -17,6 +17,12 @@
 					<p class="help text blue">{{$.i18n.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
+				<div class="inline field">
+					<div class="ui checkbox" id="keep-profile-private">
+						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_profile_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_profile_private"}}</strong></label>
+						<input name="keep_profile_private" type="checkbox" {{if .SignedUser.IsHidden}}checked{{end}}>
+					</div>
+				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">

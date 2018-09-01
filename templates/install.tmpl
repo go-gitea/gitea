@@ -226,6 +226,12 @@
 							</div>
 							<div class="inline field">
 								<div class="ui checkbox">
+									<label class="poping up" data-content="{{.i18n.Tr "install.default_keep_profile_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_profile_private"}}</strong></label>
+									<input name="default_keep_profile_private" type="checkbox" {{if .default_keep_profile_private}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox">
 									<label class="poping up" data-content="{{.i18n.Tr "install.default_keep_email_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_email_private"}}</strong></label>
 									<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
 								</div>

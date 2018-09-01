@@ -48,6 +48,7 @@ type InstallForm struct {
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
+	DefaultKeepProfilePrivate      bool
 	DefaultAllowCreateOrganization bool
 	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
@@ -105,13 +106,14 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"AlphaDashDot;MaxSize(35)"`
-	FullName         string `binding:"MaxSize(100)"`
-	Email            string `binding:"Required;Email;MaxSize(254)"`
-	KeepEmailPrivate bool
-	Website          string `binding:"ValidUrl;MaxSize(255)"`
-	Location         string `binding:"MaxSize(50)"`
-	Language         string `binding:"Size(5)"`
+	Name               string `binding:"AlphaDashDot;MaxSize(35)"`
+	FullName           string `binding:"MaxSize(100)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	KeepEmailPrivate   bool
+	KeepProfilePrivate bool
+	Website            string `binding:"ValidUrl;MaxSize(255)"`
+	Location           string `binding:"MaxSize(50)"`
+	Language           string `binding:"Size(5)"`
 }
 
 // Validate validates the fields

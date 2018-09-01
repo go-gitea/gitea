@@ -108,6 +108,7 @@ type User struct {
 	// Permissions
 	IsActive                bool `xorm:"INDEX"` // Activate primary email
 	IsAdmin                 bool
+	IsHidden                bool `xorm:"NOT NULL DEFAULT false"`
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
@@ -782,6 +783,7 @@ func CreateUser(u *User) (err error) {
 	}
 
 	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.IsHidden = setting.Service.DefaultKeepProfilePrivate
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
@@ -1333,6 +1335,7 @@ type SearchUserOptions struct {
 	Page          int
 	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
+	ShowHidden    bool // Show hidden users too
 	SearchByEmail bool // Search by email as well as username/full name
 }
 
@@ -1353,7 +1356,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
-
+	if !opts.ShowHidden {
+		cond = cond.And(builder.Eq{"is_hidden": false})
+	}
 	return cond
 }
 

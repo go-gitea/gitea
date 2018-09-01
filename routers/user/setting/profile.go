@@ -89,6 +89,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.FullName = form.FullName
 	ctx.User.Email = form.Email
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
+	ctx.User.IsHidden = form.KeepProfilePrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
 	ctx.User.Language = form.Language
