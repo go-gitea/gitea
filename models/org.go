@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -124,6 +125,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.MaxRepoCreation = -1
 	org.NumTeams = 1
 	org.NumMembers = 1
+	org.IsHidden = setting.Service.DefaultKeepProfilePrivate
 	org.Type = UserTypeOrganization
 
 	sess := x.NewSession()

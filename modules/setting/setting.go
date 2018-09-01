@@ -1212,6 +1212,7 @@ var Service struct {
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	DefaultKeepEmailPrivate                 bool
+	DefaultKeepProfilePrivate               bool
 	DefaultAllowCreateOrganization          bool
 	EnableTimetracking                      bool
 	DefaultEnableTimetracking               bool
@@ -1241,6 +1242,7 @@ func newService() {
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.DefaultKeepProfilePrivate = sec.Key("DEFAULT_KEEP_PROFILE_PRIVATE").MustBool(false)
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
 	if Service.EnableTimetracking {
