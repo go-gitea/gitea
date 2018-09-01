@@ -148,8 +148,6 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: team deleted
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return

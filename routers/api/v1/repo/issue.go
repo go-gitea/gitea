@@ -387,12 +387,8 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
 	//     description: Not repo writer
-	//     schema:
-	//       "$ref": "#/responses/forbidden"
 	//   "404":
 	//     description: Issue not found
-	//     schema:
-	//       "$ref": "#/responses/empty"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

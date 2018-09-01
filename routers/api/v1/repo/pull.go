@@ -434,12 +434,8 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: pull request has been merged
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: pull request has not been merged
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
