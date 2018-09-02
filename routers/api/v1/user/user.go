@@ -45,10 +45,7 @@ func Search(ctx *context.APIContext) {
 
 	users, _, err := models.SearchUsers(opts)
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		ctx.Error(500, "UserSearch", err)
 		return
 	}
 
@@ -65,10 +62,7 @@ func Search(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
-		"ok":   true,
-		"data": results,
-	})
+	ctx.JSON(200, results)
 }
 
 // GetInfo get user's information
