@@ -257,7 +257,16 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, fmt.Errorf("Unknown database type: %s", DbCfg.Type)
 	}
 
-	return xorm.NewEngine(DbCfg.Type, connStr)
+	engine, err := xorm.NewEngine(DbCfg.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if DbCfg.Type == "sqlite3" {
+		engine.SetMaxOpenConns(1)
+	}
+
+	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine

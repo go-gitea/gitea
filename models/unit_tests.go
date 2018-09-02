@@ -79,6 +79,7 @@ func createTestEngine(fixturesDir string) error {
 	if err != nil {
 		return err
 	}
+	x.SetMaxOpenConns(1)
 	x.SetMapper(core.GonicMapper{})
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
