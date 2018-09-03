@@ -1155,7 +1155,7 @@ func NewContext() {
 
 	extensionReg := regexp.MustCompile(`\.\w`)
 	for _, sec := range Cfg.Section("markup").ChildSections() {
-		name := strings.TrimLeft(sec.Name(), "markup.")
+		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {
 			log.Warn("name is empty, markup " + sec.Name() + "ignored")
 			continue
