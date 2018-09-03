@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.5.1](https://github.com/go-gitea/gitea/releases/tag/v1.5.1) - 2018-09-03
+* SECURITY
+  * Don't disclose emails of all users when sending out emails (#4784)
+  * Improve URL validation for external wiki and external issues (#4710) (#4740)
+  * Make cookies HttpOnly and obey COOKIE_SECURE flag (#4706) (#4707)
+* BUGFIXES
+  * Fix missing release title in webhook (#4783) (#4800)
+  * Make sure to reset commit count in the cache on mirror syncing (#4770)
+  * Fixed bug where team with admin privelege type doesn't get any unit (#4759)
+  * Fix failure on creating pull request with assignees (#4583) (#4727)
+  * Hide org/create menu item in Dashboard if user has no rights (#4678) (#4686)
+* TRANSLATION
+  * Fix incorrect caption of webhook setting (#4701) (#4718)
+
 ## [1.5.0](https://github.com/go-gitea/gitea/releases/tag/v1.5.0) - 2018-08-10
 * SECURITY
   * Check that repositories can only be migrated to own user or organizations (#4366) (#4370)
