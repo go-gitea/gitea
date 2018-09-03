@@ -64,8 +64,8 @@
 			{{ $l := Subtract $n 1}}
 			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			<div class="right fitted item" id="file-buttons">
-				{{if .Repository.CanEnableEditor}}
-					<div class="ui tiny blue buttons">
+				<div class="ui tiny blue buttons">
+					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
 								{{.i18n.Tr "repo.editor.new_file"}}
@@ -76,8 +76,13 @@
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
-					</div>
-				{{end}}
+					{{end}}
+					{{if and (ne $n 0) (not .IsViewFile)}}
+						<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui button">
+							{{.i18n.Tr "repo.file_history"}}
+						</a>
+					{{end}}
+				</div>
 
 			</div>
 			<div class="fitted item">
