@@ -13,7 +13,7 @@ const (
 	PriorityDefault = 0
 )
 
-// UpdateIssuePriority update priority for a specific issue
+// UpdateIssuePriority updates the priority
 func UpdateIssuePriority(issue *Issue) error {
 	if err := issue.loadRepo(x); err != nil {
 		return err
