@@ -103,14 +103,34 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	var err error
 
 	reviewType := form.ReviewType()
-	if reviewType == models.ReviewTypeUnknown {
+
+	switch reviewType {
+	case models.ReviewTypeUnknown:
 		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
+
+	// can not approve/reject your own PR
+	case models.ReviewTypeApprove, models.ReviewTypeReject:
+
+		if issue.Poster.ID == ctx.User.ID {
+
+			var translated string
+
+			if reviewType == models.ReviewTypeApprove {
+				translated = ctx.Tr("repo.issues.review.self.approval")
+			} else {
+				translated = ctx.Tr("repo.issues.review.self.rejection")
+			}
+
+			ctx.Flash.Error(translated)
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			return
+		}
 	}
 
 	if form.HasEmptyContent() {
 		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
