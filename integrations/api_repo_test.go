@@ -152,7 +152,6 @@ func TestAPISearchRepo(t *testing.T) {
 				} else {
 					testName = "AnonymousUser"
 					session = emptyTestSession(t)
-					
 				}
 
 				t.Run(testName, func(t *testing.T) {
