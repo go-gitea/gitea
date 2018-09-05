@@ -69,7 +69,7 @@ func TestAPICreateComment(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	token, session := getTokenForLoggedInUser(session)
+	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
