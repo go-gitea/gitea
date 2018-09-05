@@ -217,7 +217,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    This is common on linux systems.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM` and `SENDMAIL_PATH`.
-- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system. (can be
+- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 
 ## Cache (`cache`)
