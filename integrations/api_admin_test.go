@@ -70,6 +70,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	DecodeJSON(t, resp, &newPublicKey)
 
 	session = loginUser(t, normalUsername)
+	token = getTokenForLoggedInUser(t, session)
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token="+token,
 		adminUsername, newPublicKey.ID)
 	session.MakeRequest(t, req, http.StatusForbidden)
