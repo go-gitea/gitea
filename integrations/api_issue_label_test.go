@@ -49,7 +49,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
-		owner.Name, repo.Name, issue.Index)
+		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
 		Labels: []int64{label.ID},
 	})
