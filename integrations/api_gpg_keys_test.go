@@ -173,11 +173,11 @@ func testCreateGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, e
 }
 
 func testCreateInvalidGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	testCreateGPGKey(t, makeRequest, expected, token, "invalid_key")
+	testCreateGPGKey(t, makeRequest, token, expected, "invalid_key")
 }
 
 func testCreateNoneRegistredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	testCreateGPGKey(t, makeRequest, expected, token, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGUygBCACjCNbKvMGgp0fd5vyFW9olE1CLCSyyF9gQN2hSuzmZLuAZF2Kh
 dCMCG2T1UwzUB/yWUFWJ2BtCwSjuaRv+cGohqEy6bhEBV90peGA33lHfjx7wP25O
@@ -198,7 +198,7 @@ INx/MmBfmtCq05FqNclvU+sj2R3N1JJOtBOjZrJHQbJhzoILou8AkxeX1A+q9OAz
 
 func testCreateValidGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
 	//User2 <user2@example.com> //primary & activated
-	testCreateGPGKey(t, makeRequest, expected, token, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGVsMBCACuxgZ7W7rI9xN08Y4M7B8yx/6/I4Slm94+wXf8YNRvAyqj30dW
 VJhyBcnfNRDLKSQp5o/hhfDkCgdqBjLa1PnHlGS3PXJc0hP/FyYPD2BFvNMPpCYS
@@ -232,7 +232,7 @@ uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 
 func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
 	//User2 <user21@example.com> //secondary and not activated
-	testCreateGPGKey(t, makeRequest, expected, token, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGWN4BCAC18V4tVGO65VLCV7p14FuXJlUtZ5CuYMvgEkcOqrvRaBSW9ao4
 PGESOhJpfWpnW3QgJniYndLzPpsmdHEclEER6aZjiNgReWPOjHD5tykWocZAJqXD
