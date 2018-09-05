@@ -94,8 +94,9 @@ func TestAPIEditComment(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d",
-		repoOwner.Name, repo.Name, comment.ID)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
+		repoOwner.Name, repo.Name, comment.ID, token)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
 		"body": newCommentBody,
 	})
@@ -118,8 +119,9 @@ func TestAPIDeleteComment(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d",
-		repoOwner.Name, repo.Name, comment.ID)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
+		repoOwner.Name, repo.Name, comment.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	models.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
