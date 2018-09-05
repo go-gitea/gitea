@@ -233,10 +233,10 @@ func TestAPIOrgRepos(t *testing.T) {
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	prepareTestEnv(t)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
-	sess := loginUser(t, user.Name)
+	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
-	sess.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIRepoMigrate(t *testing.T) {
