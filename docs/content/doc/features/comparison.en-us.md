@@ -37,6 +37,9 @@ _Symbols used in table:_
 | Multiple OS support | ✓ | ✓ | ✘ | ✘ | ✘ | ✘ | ✓ |
 | Easy upgrade process | ✓ | ✓ | ✘ | ✓ | ✓ | ✘ | ✓ |
 | Markdown support | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Orgmode support | ✓ | ✘ | ✓ | ✘ | ✘ | ✘ | ? |
+| CSV support | ✓ | ✘ | ✓ | ✘ | ✘ | ✓ | ? |
+| Third-party render tool support | ✓ | ✘ | ✘ | ✘ | ✘ | ✓ | ? |
 | Static Git-powered pages | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Integrated Git-powered wiki | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Deploy Tokens | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
