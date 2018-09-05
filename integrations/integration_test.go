@@ -223,6 +223,24 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+func getTokenForLoggedInUser(t testing.TB) (*TestSession, string){
+	req := NewRequest(t, "GET", "/user/settings/applications")
+	resp := MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"name": "api-testing-token",
+	})
+	resp = MakeRequest(t, req, http.StatusFound)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	if err != nil {
+		return t, ""// probably a non-HTML response
+	}
+	token := htmlDoc.Find(".ui.info.message p").Text()
+
+	return t, token
+}
+
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
