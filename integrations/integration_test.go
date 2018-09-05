@@ -223,7 +223,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) (string) {
+func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
