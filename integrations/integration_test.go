@@ -233,7 +233,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info.message p").Text()
+	token := htmlDoc.doc.Find(".ui.info.message").Text()
 	fmt.Println(token)
 	return token
 }
