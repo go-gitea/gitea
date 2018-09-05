@@ -56,7 +56,7 @@ _Symbols used in table:_
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
 | Repository topics | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Repository code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Global code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Global code search | ✓ | ✘ | ✓ | ✘ | ✓ | ✓ | ✓ |
 | Git LFS 2.0 | ✓ | ✘ | ✓ | ✓ | ✓ | ⁄ | ✓ |
 | Group Milestones | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
