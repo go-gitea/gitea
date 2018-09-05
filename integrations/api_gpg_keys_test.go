@@ -28,7 +28,7 @@ func TestGPGKeys(t *testing.T) {
 		token       string
 		results     []int
 	}{
-		{name: "NoLogin", makeRequest: MakeRequest, token: token,
+		{name: "NoLogin", makeRequest: MakeRequest, token: "",
 			results: []int{http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
 		},
 		{name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
