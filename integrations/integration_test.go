@@ -232,9 +232,9 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"name":  "api-testing-token",
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	htmlDoc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return t, "" // probably a non-HTML response
+		return "" // probably a non-HTML response
 	}
 	token := htmlDoc.Find(".ui.info.message p").Text()
 
