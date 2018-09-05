@@ -21,7 +21,8 @@ func TestAPITeam(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
 
 	session := loginUser(t, user.Name)
-	req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiTeam api.Team
