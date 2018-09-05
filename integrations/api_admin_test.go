@@ -37,8 +37,8 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 		OwnerID:     keyOwner.ID,
 	})
 
-	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
-		keyOwner.Name, newPublicKey.ID, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token="+token,
+		keyOwner.Name, newPublicKey.ID)
 	session.MakeRequest(t, req, http.StatusNoContent)
 	models.AssertNotExistsBean(t, &models.PublicKey{ID: newPublicKey.ID})
 }
@@ -49,7 +49,7 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d?token=%s", models.NonexistentID, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d?token="+token, models.NonexistentID)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -70,7 +70,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	DecodeJSON(t, resp, &newPublicKey)
 
 	session = loginUser(t, normalUsername)
-	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
-		adminUsername, newPublicKey.ID, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token="+token,
+		adminUsername, newPublicKey.ID)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
