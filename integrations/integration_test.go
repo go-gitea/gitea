@@ -232,6 +232,8 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"name":  "api-testing-token",
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
+	req = NewRequest(t, "GET", "/user/settings/applications")
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	token := htmlDoc.doc.Find(".ui.info p").Text()
 	t.Log("Token:", token)
