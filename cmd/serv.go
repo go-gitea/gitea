@@ -165,8 +165,8 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvRepoName, reponame)
 
 	repo, err := private.GetRepositoryByOwnerAndName(username, reponame)
-	if err != nil { //TODO manage error with internal api
-		if models.IsErrRepoNotExist(err) {
+	if err != nil {
+		if strings.Contains(err.Error(), "Failed to get repository: repository does not exist") {
 			fail(accessDenied, "Repository does not exist: %s/%s", username, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
