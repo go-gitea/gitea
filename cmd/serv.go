@@ -231,7 +231,11 @@ func runServ(c *cli.Context) error {
 				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
 			}
 			// Check if this deploy key belongs to current repository.
-			if !private.HasDeployKey(key.ID, repo.ID) {
+			b, err := private.HasDeployKey(key.ID, repo.ID)
+			if err != nil {
+				fail("Key access denied", "Failed to access internal api]: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
+			}
+			if !b {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 

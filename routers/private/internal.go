@@ -66,12 +66,23 @@ func GetPublicKeyByID(ctx *macaron.Context) {
 	ctx.JSON(200, convert.ToPublicKey("", key)) //TODO check if api link is needed
 }
 
+//HasDeployKey chainload to models.HasDeployKey
+func HasDeployKey(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.ParamsInt64(":keyid")
+	if models.HasDeployKey(repoID, keyID) {
+		ctx.PlainText(200, []byte("success"))
+	}
+	ctx.PlainText(404, []byte("not found"))
+}
+
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
 		m.Get("/ssh/:id", GetPublicKeyByID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
+		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
 		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)

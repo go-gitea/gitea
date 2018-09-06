@@ -52,6 +52,20 @@ func newInternalRequest(url, method string) *httplib.Request {
 
 //TODO move on specific file
 
+func HasDeployKey(keyID, repoID int64) (bool, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/has-keys/%d", repoID, keyID)
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d", keyID)
 	log.GitLogger.Trace("GetPublicKeyByID: %s", reqURL)
