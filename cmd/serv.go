@@ -218,11 +218,11 @@ func runServ(c *cli.Context) error {
 			}
 
 			// Check if this deploy key belongs to current repository. //TODO maybe not needed anymore
-			b, err := private.HasDeployKey(key.ID, repo.ID)
+			has, err := private.HasDeployKey(key.ID, repo.ID)
 			if err != nil {
 				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
-			if !b {
+			if !has {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 
@@ -254,8 +254,12 @@ func runServ(c *cli.Context) error {
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
 			}
-			//TODO use private
-			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
+
+			check, err := private.CheckUnitUser(repo.ID, user.ID, user.IsAdmin, unitType)
+			if err != nil {
+				fail("You do not have allowed for this action", "Failed to access internal api: [user.Name: %s, repoPath: %s]", user.Name, repoPath)
+			}
+			if !check {
 				fail("You do not have allowed for this action",
 					"User %s does not have allowed access to repository %s 's code",
 					user.Name, repoPath)

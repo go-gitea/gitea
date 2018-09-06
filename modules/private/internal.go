@@ -130,6 +130,22 @@ func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
 	return &pKey, nil
 }
 
+func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (bool, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/checkunituser?isAdmin=%t&unitType=%d", repoID, userID, isAdmin, unitType)
+	log.GitLogger.Trace("AccessLevel: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/accesslevel", repoID, userID)
 	log.GitLogger.Trace("AccessLevel: %s", reqURL)
