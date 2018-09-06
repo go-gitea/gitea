@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,6 +48,30 @@ func newInternalRequest(url, method string) *httplib.Request {
 		})
 	}
 	return req
+}
+
+//TODO move on specific file
+func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
+	// Ask for running deliver hook and test pull request tasks.
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repo/%s/%s", ownerName, repoName)
+	log.GitLogger.Trace("GetRepositoryByOwnerAndName: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return nil, err
+	}
+	var repo models.Repository
+	if err := json.NewDecoder(resp.Body).Decode(&repo); err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to get repository: %s", decodeJSONError(resp).Err)
+	}
+
+	return &repo, nil
 }
 
 // UpdatePublicKeyUpdated update publick key updates

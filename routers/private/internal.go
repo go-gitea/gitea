@@ -36,6 +36,22 @@ func UpdatePublicKey(ctx *macaron.Context) {
 	ctx.PlainText(200, []byte("success"))
 }
 
+//TODO move on specific file
+//GetRepositoryByOwnerAndName
+func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
+	//TODO use repo.Get(ctx *context.APIContext) ?
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, repo.APIFormat(models.AccessModeAdmin)) //TODO verify only use for internal but maybe a lower access is enough
+}
+
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
@@ -43,6 +59,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
+		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)
 		m.Get("/branch/:id/*", GetProtectedBranchBy)
 		m.Get("/repository/:rid", GetRepository)
 		m.Get("/active-pull-request", GetActivePullRequest)

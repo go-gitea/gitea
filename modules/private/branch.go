@@ -33,7 +33,7 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBra
 
 	// All 2XX status codes are accepted and others will return an error
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
+		return nil, fmt.Errorf("Failed to get protected branch: %s", decodeJSONError(resp).Err)
 	}
 
 	return &branch, nil
