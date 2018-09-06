@@ -54,8 +54,7 @@ func newInternalRequest(url, method string) *httplib.Request {
 
 // UpdatePublicKeyUpdated update publick key updates
 func UpdateDeployKeyUpdated(keyID int64, repoID int64) error {
-	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("/repositories/%d/keys/%d/update", keyID, repoID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d/update", repoID, keyID)
 	log.GitLogger.Trace("UpdateDeployKeyUpdated: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "POST").Response()

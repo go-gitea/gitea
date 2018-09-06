@@ -104,7 +104,7 @@ func GetUserByKeyID(ctx *macaron.Context) {
 func HasDeployKey(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")
 	keyID := ctx.ParamsInt64(":keyid")
-	if models.HasDeployKey(repoID, keyID) {
+	if models.HasDeployKey(keyID, repoID) {
 		ctx.PlainText(200, []byte("success"))
 		return
 	}
