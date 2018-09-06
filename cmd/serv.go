@@ -25,8 +25,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-//TODO add tests
-
 const (
 	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
@@ -217,7 +215,7 @@ func runServ(c *cli.Context) error {
 				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
 			}
 
-			// Check if this deploy key belongs to current repository. //TODO maybe not needed anymore
+			// Check if this deploy key belongs to current repository.
 			has, err := private.HasDeployKey(key.ID, repo.ID)
 			if err != nil {
 				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)

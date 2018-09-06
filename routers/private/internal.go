@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	macaron "gopkg.in/macaron.v1"
 )
@@ -24,41 +23,6 @@ func CheckInternalToken(ctx *macaron.Context) {
 	}
 }
 
-// UpdateDeployKey update deploy key updates
-func UpdateDeployKey(ctx *macaron.Context) {
-	repoID := ctx.ParamsInt64(":repoid")
-	keyID := ctx.ParamsInt64(":keyid")
-	deployKey, err := models.GetDeployKeyByRepo(keyID, repoID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	deployKey.UpdatedUnix = util.TimeStampNow()
-	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	ctx.PlainText(200, []byte("success"))
-}
-
-// UpdatePublicKey update publick key updates
-func UpdatePublicKey(ctx *macaron.Context) {
-	keyID := ctx.ParamsInt64(":id")
-	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-
-	ctx.PlainText(200, []byte("success"))
-}
-
-//TODO move on specific file
 //GetRepositoryByOwnerAndName chainload to models.GetRepositoryByOwnerAndName
 func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
 	//TODO use repo.Get(ctx *context.APIContext) ?
@@ -72,43 +36,6 @@ func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
 		return
 	}
 	ctx.JSON(200, repo)
-}
-
-//GetPublicKeyByID chainload to models.GetPublicKeyByID
-func GetPublicKeyByID(ctx *macaron.Context) {
-	keyID := ctx.ParamsInt64(":id")
-	key, err := models.GetPublicKeyByID(keyID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	ctx.JSON(200, key)
-}
-
-//GetUserByKeyID chainload to models.GetUserByKeyID
-func GetUserByKeyID(ctx *macaron.Context) {
-	keyID := ctx.ParamsInt64(":id")
-	user, err := models.GetUserByKeyID(keyID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	ctx.JSON(200, user)
-}
-
-//HasDeployKey chainload to models.HasDeployKey
-func HasDeployKey(ctx *macaron.Context) {
-	repoID := ctx.ParamsInt64(":repoid")
-	keyID := ctx.ParamsInt64(":keyid")
-	if models.HasDeployKey(keyID, repoID) {
-		ctx.PlainText(200, []byte("success"))
-		return
-	}
-	ctx.PlainText(404, []byte("not found"))
 }
 
 //AccessLevel chainload to models.AccessLevel
@@ -150,22 +77,6 @@ func CheckUnitUser(ctx *macaron.Context) {
 	ctx.PlainText(404, []byte("no access"))
 }
 
-/*
-//GetDeployKeyByRepo chainload to models.GetDeployKeyByRepo
-func GetDeployKeyByRepo(ctx *macaron.Context) {
-	repoID := ctx.ParamsInt64(":repoid")
-	keyID := ctx.ParamsInt64(":keyid")
-	key, err := models.GetDeployKeyByRepo(repoID, keyID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	ctx.JSON(200, key)
-}
-*/
-
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
@@ -176,7 +87,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
 		m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
 		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
-		//m.Get("/repositories/:repoid/keys/:keyid", GetDeployKeyByRepo)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)

@@ -50,85 +50,6 @@ func newInternalRequest(url, method string) *httplib.Request {
 	return req
 }
 
-//TODO move on specific file
-
-// UpdatePublicKeyUpdated update publick key updates
-func UpdateDeployKeyUpdated(keyID int64, repoID int64) error {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d/update", repoID, keyID)
-	log.GitLogger.Trace("UpdateDeployKeyUpdated: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "POST").Response()
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	// All 2XX status codes are accepted and others will return an error
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("Failed to update deploy key: %s", decodeJSONError(resp).Err)
-	}
-	return nil
-}
-
-/*
-func GetDeployKeyByRepo(keyID, repoID int64) (*models.DeployKey, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d", repoID, keyID)
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get repository: %s", decodeJSONError(resp).Err)
-	}
-
-	var key models.DeployKey
-	if err := json.NewDecoder(resp.Body).Decode(&key); err != nil {
-		return nil, err
-	}
-	return &key, nil
-}
-*/
-func HasDeployKey(keyID, repoID int64) (bool, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/has-keys/%d", repoID, keyID)
-	log.GitLogger.Trace("HasDeployKey: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		return true, nil
-	}
-	return false, nil
-}
-
-func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d", keyID)
-	log.GitLogger.Trace("GetPublicKeyByID: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get repository: %s", decodeJSONError(resp).Err)
-	}
-
-	var pKey models.PublicKey
-	if err := json.NewDecoder(resp.Body).Decode(&pKey); err != nil {
-		return nil, err
-	}
-	return &pKey, nil
-}
-
 func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/checkunituser?isAdmin=%t&unitType=%d", repoID, userID, isAdmin, unitType)
 	log.GitLogger.Trace("AccessLevel: %s", reqURL)
@@ -167,28 +88,6 @@ func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
 	return &a, nil
 }
 
-func GetUserByKeyID(keyID int64) (*models.User, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/user", keyID)
-	log.GitLogger.Trace("GetUserByKeyID: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get user: %s", decodeJSONError(resp).Err)
-	}
-
-	var user models.User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repo/%s/%s", ownerName, repoName)
 	log.GitLogger.Trace("GetRepositoryByOwnerAndName: %s", reqURL)
@@ -209,24 +108,4 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository
 	}
 
 	return &repo, nil
-}
-
-// UpdatePublicKeyUpdated update publick key updates
-func UpdatePublicKeyUpdated(keyID int64) error {
-	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update", keyID)
-	log.GitLogger.Trace("UpdatePublicKeyUpdated: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "POST").Response()
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	// All 2XX status codes are accepted and others will return an error
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
-	}
-	return nil
 }
