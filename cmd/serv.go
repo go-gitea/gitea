@@ -54,6 +54,7 @@ func setup(logPath string) error {
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 	return nil
 	//TODO clean this
+	//TODO add tests
 	/*
 		models.LoadConfigs()
 
