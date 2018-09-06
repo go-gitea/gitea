@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
@@ -230,23 +229,18 @@ func runServ(c *cli.Context) error {
 			if key.Mode < requestedMode {
 				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
 			}
-			// Check if this deploy key belongs to current repository.
+
+			// Check if this deploy key belongs to current repository. //TODO maybe not needed anymore
 			b, err := private.HasDeployKey(key.ID, repo.ID)
 			if err != nil {
-				fail("Key access denied", "Failed to access internal api]: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
+				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 			if !b {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 
 			// Update deploy key activity.
-			deployKey, err := private.GetDeployKeyByRepo(key.ID, repo.ID)
-			if err != nil {
-				fail("Internal error", "GetDeployKey: %v", err)
-			}
-
-			deployKey.UpdatedUnix = util.TimeStampNow()
-			if err = private.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
 		} else {

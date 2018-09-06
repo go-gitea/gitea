@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/modules/util"
 
 	macaron "gopkg.in/macaron.v1"
 )
@@ -22,6 +22,27 @@ func CheckInternalToken(ctx *macaron.Context) {
 	if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
 		ctx.Error(403)
 	}
+}
+
+// UpdateDeployKey update deploy key updates
+func UpdateDeployKey(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.ParamsInt64(":keyid")
+	deployKey, err := models.GetDeployKeyByRepo(keyID, repoID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	deployKey.UpdatedUnix = util.TimeStampNow()
+	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.PlainText(200, []byte("success"))
 }
 
 // UpdatePublicKey update publick key updates
@@ -50,7 +71,7 @@ func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
 		})
 		return
 	}
-	ctx.JSON(200, repo.APIFormat(models.AccessModeAdmin)) //TODO verify only use for internal but maybe a lower access is enough
+	ctx.JSON(200, repo)
 }
 
 //GetPublicKeyByID chainload to models.GetPublicKeyByID
@@ -63,7 +84,7 @@ func GetPublicKeyByID(ctx *macaron.Context) {
 		})
 		return
 	}
-	ctx.JSON(200, convert.ToPublicKey("", key)) //TODO check if api link is needed
+	ctx.JSON(200, key)
 }
 
 //HasDeployKey chainload to models.HasDeployKey
@@ -76,12 +97,30 @@ func HasDeployKey(ctx *macaron.Context) {
 	ctx.PlainText(404, []byte("not found"))
 }
 
+/*
+//GetDeployKeyByRepo chainload to models.GetDeployKeyByRepo
+func GetDeployKeyByRepo(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.ParamsInt64(":keyid")
+	key, err := models.GetDeployKeyByRepo(repoID, keyID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, key)
+}
+*/
+
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
 		m.Get("/ssh/:id", GetPublicKeyByID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
+		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
+		//m.Get("/repositories/:repoid/keys/:keyid", GetDeployKeyByRepo)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)

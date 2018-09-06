@@ -52,6 +52,46 @@ func newInternalRequest(url, method string) *httplib.Request {
 
 //TODO move on specific file
 
+// UpdatePublicKeyUpdated update publick key updates
+func UpdateDeployKeyUpdated(keyID int64, repoID int64) error {
+	// Ask for running deliver hook and test pull request tasks.
+	reqURL := setting.LocalURL + fmt.Sprintf("/repositories/%d/keys/%d/update", keyID, repoID)
+	log.GitLogger.Trace("UpdateDeployKeyUpdated: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "POST").Response()
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	// All 2XX status codes are accepted and others will return an error
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("Failed to update deploy key: %s", decodeJSONError(resp).Err)
+	}
+	return nil
+}
+
+/*
+func GetDeployKeyByRepo(keyID, repoID int64) (*models.DeployKey, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d", repoID, keyID)
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to get repository: %s", decodeJSONError(resp).Err)
+	}
+
+	var key models.DeployKey
+	if err := json.NewDecoder(resp.Body).Decode(&key); err != nil {
+		return nil, err
+	}
+	return &key, nil
+}
+*/
 func HasDeployKey(keyID, repoID int64) (bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/has-keys/%d", repoID, keyID)
 	resp, err := newInternalRequest(reqURL, "GET").Response()
