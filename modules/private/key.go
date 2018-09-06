@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// UpdatePublicKeyUpdated update publick key updates
+// UpdateDeployKeyUpdated update deploy key updates
 func UpdateDeployKeyUpdated(keyID int64, repoID int64) error {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d/update", repoID, keyID)
 	log.GitLogger.Trace("UpdateDeployKeyUpdated: %s", reqURL)
@@ -72,6 +72,7 @@ func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
 	return &pKey, nil
 }
 
+// GetUserByKeyID get user attached to key
 func GetUserByKeyID(keyID int64) (*models.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/user", keyID)
 	log.GitLogger.Trace("GetUserByKeyID: %s", reqURL)
@@ -94,7 +95,7 @@ func GetUserByKeyID(keyID int64) (*models.User, error) {
 	return &user, nil
 }
 
-// UpdatePublicKeyUpdated update publick key updates
+// UpdatePublicKeyUpdated update public key updates
 func UpdatePublicKeyUpdated(keyID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update", keyID)

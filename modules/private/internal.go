@@ -50,6 +50,7 @@ func newInternalRequest(url, method string) *httplib.Request {
 	return req
 }
 
+// CheckUnitUser check whether user could visit the unit of this repository
 func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/checkunituser?isAdmin=%t&unitType=%d", repoID, userID, isAdmin, unitType)
 	log.GitLogger.Trace("AccessLevel: %s", reqURL)
@@ -66,6 +67,8 @@ func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType)
 	return false, nil
 }
 
+// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
+// user does not have access.
 func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/accesslevel", repoID, userID)
 	log.GitLogger.Trace("AccessLevel: %s", reqURL)
@@ -88,6 +91,7 @@ func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
 	return &a, nil
 }
 
+// GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repo/%s/%s", ownerName, repoName)
 	log.GitLogger.Trace("GetRepositoryByOwnerAndName: %s", reqURL)
