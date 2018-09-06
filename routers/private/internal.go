@@ -110,6 +110,27 @@ func HasDeployKey(ctx *macaron.Context) {
 	ctx.PlainText(404, []byte("not found"))
 }
 
+//GetUserByKeyID chainload to models.GetUserByKeyID
+func AccessLevel(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	userID := ctx.ParamsInt64(":userid")
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	al, err := models.AccessLevel(userID, repo)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, al)
+}
+
 /*
 //GetDeployKeyByRepo chainload to models.GetDeployKeyByRepo
 func GetDeployKeyByRepo(ctx *macaron.Context) {
@@ -134,6 +155,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
+		m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
 		//m.Get("/repositories/:repoid/keys/:keyid", GetDeployKeyByRepo)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)

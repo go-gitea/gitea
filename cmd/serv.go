@@ -25,6 +25,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+//TODO add tests
+
 const (
 	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
@@ -52,21 +54,6 @@ func setup(logPath string) error {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 	return nil
-	//TODO clean this
-	//TODO add tests
-	/*
-		models.LoadConfigs()
-
-		if setting.UseSQLite3 || setting.UseTiDB {
-			workPath := setting.AppWorkPath
-			if err := os.Chdir(workPath); err != nil {
-				log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workPath, err)
-			}
-		}
-
-		setting.NewXORMLogService(true)
-		return models.SetEngine()
-	*/
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -255,12 +242,12 @@ func runServ(c *cli.Context) error {
 					user.Name, repoPath)
 			}
 
-			mode, err := private.AccessLevel(user.ID, repo)
+			mode, err := private.AccessLevel(user.ID, repo.ID)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
-			} else if mode < requestedMode {
+			} else if *mode < requestedMode {
 				clientMessage := accessDenied
-				if mode >= models.AccessModeRead {
+				if *mode >= models.AccessModeRead {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
@@ -328,7 +315,6 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
-	//TODO check if need access to database
 	if isWiki {
 		if err = repo.InitWiki(); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)

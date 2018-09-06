@@ -130,6 +130,28 @@ func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
 	return &pKey, nil
 }
 
+func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/accesslevel", repoID, userID)
+	log.GitLogger.Trace("AccessLevel: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to get user access level: %s", decodeJSONError(resp).Err)
+	}
+
+	var a models.AccessMode
+	if err := json.NewDecoder(resp.Body).Decode(&a); err != nil {
+		return nil, err
+	}
+
+	return &a, nil
+}
+
 func GetUserByKeyID(keyID int64) (*models.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/user", keyID)
 	log.GitLogger.Trace("GetUserByKeyID: %s", reqURL)
