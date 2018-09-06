@@ -77,7 +77,7 @@ _Symbols used in table:_
 | Issue templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Labels | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Multiple assignees for issues | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
