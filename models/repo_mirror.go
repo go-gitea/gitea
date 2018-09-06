@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -247,7 +248,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 	branches, err := m.Repo.GetBranches()
 	if err != nil {
 		log.Error(4, "GetBranches: %v", err)
-		return false
+		return nil, false
 	}
 
 	for i := range branches {
