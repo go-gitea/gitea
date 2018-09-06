@@ -87,6 +87,19 @@ func GetPublicKeyByID(ctx *macaron.Context) {
 	ctx.JSON(200, key)
 }
 
+//GetUserByKeyID chainload to models.GetUserByKeyID
+func GetUserByKeyID(ctx *macaron.Context) {
+	keyID := ctx.ParamsInt64(":id")
+	user, err := models.GetUserByKeyID(keyID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, user)
+}
+
 //HasDeployKey chainload to models.HasDeployKey
 func HasDeployKey(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")
@@ -118,6 +131,7 @@ func GetDeployKeyByRepo(ctx *macaron.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
 		m.Get("/ssh/:id", GetPublicKeyByID)
+		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
 		//m.Get("/repositories/:repoid/keys/:keyid", GetDeployKeyByRepo)

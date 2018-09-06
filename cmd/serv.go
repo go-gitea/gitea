@@ -267,7 +267,7 @@ func runServ(c *cli.Context) error {
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
 			}
-			//TODO verify that it doesn't need access to DB
+			//TODO use private
 			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
 				fail("You do not have allowed for this action",
 					"User %s does not have allowed access to repository %s 's code",

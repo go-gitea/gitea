@@ -94,6 +94,8 @@ func GetDeployKeyByRepo(keyID, repoID int64) (*models.DeployKey, error) {
 */
 func HasDeployKey(keyID, repoID int64) (bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/has-keys/%d", repoID, keyID)
+	log.GitLogger.Trace("HasDeployKey: %s", reqURL)
+
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
 		return false, err
@@ -126,6 +128,28 @@ func GetPublicKeyByID(keyID int64) (*models.PublicKey, error) {
 		return nil, err
 	}
 	return &pKey, nil
+}
+
+func GetUserByKeyID(keyID int64) (*models.User, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/user", keyID)
+	log.GitLogger.Trace("GetUserByKeyID: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to get user: %s", decodeJSONError(resp).Err)
+	}
+
+	var user models.User
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
