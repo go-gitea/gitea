@@ -273,18 +273,26 @@ func mustAllowPulls(ctx *context.Context) {
 	}
 }
 
+func mustEnableIssuesOrPulls(ctx *context.Context) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
+		!ctx.Repo.Repository.AllowsPulls() {
+		ctx.Status(404)
+		return
+	}
+}
+
 // RegisterRoutes registers all v1 APIs routes to web application.
 // FIXME: custom form error response
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
-	if setting.API.EnableSwaggerEndpoint {
+	if setting.API.EnableSwagger {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
 
 	m.Group("/v1", func() {
 		// Miscellaneous
-		if setting.API.EnableSwaggerEndpoint {
+		if setting.API.EnableSwagger {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
@@ -450,7 +458,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 					})
-				}, mustEnableIssues)
+				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(), bind(api.CreateLabelOption{}), repo.CreateLabel)

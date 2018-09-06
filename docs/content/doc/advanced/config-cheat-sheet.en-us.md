@@ -62,12 +62,17 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
+   
+### Repository - Pull Request (`repository.pull-request`)
+- `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
+ title to mark them as Work In Progress
 
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
+- `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 
 ### UI - Admin (`ui.admin`)
@@ -120,6 +125,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
    on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
+- `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
+   By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
+- `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
+- `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
+- `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 
 ## Database (`database`)
 
@@ -128,7 +138,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-- `SSL_MODE`: **disable**: For PostgreSQL only.
+- `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 
@@ -180,8 +190,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    for reverse authentication.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
-- `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha 
-- `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha
+- `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
+- `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
 
 ## Webhook (`webhook`)
@@ -207,8 +217,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    This is common on linux systems.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM` and `SENDMAIL_PATH`.
-- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system. (can be
-   command or full path)
+- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
+   command or full path).
 
 ## Cache (`cache`)
 
@@ -232,7 +242,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    `http://cn.gravatar.com/avatar/`.
 - `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
-   http://www.libravatar.org)
+   [http://www.libravatar.org](http://www.libravatar.org)).
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store local and cached files.
 
 ## Attachment (`attachment`)
@@ -294,7 +304,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## API (`api`)
  
 - `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
-- `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page
+- `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 
 ## i18n (`i18n`)
 

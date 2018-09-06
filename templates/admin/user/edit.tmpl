@@ -92,7 +92,7 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
-						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}}>
+						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
 					</div>
 				</div>
 				{{if not .DisableRegularOrgCreation}}

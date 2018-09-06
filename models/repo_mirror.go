@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -241,6 +242,16 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 			}
 			return nil, false
 		}
+	}
+
+	branches, err := m.Repo.GetBranches()
+	if err != nil {
+		log.Error(4, "GetBranches: %v", err)
+		return false
+	}
+
+	for i := range branches {
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
 	}
 
 	m.UpdatedUnix = util.TimeStampNow()
