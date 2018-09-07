@@ -73,3 +73,7 @@ using BasicAuth, as follows:
 $ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 [{"name":"test","sha1":"..."},{"name":"dev","sha1":"..."}]
 ```
+
+## Sudo
+
+The API allows admin users to sudo API requests as another user. Simply add either a `sudo=` parameter or `Sudo:` request header with the username of the user to sudo.
