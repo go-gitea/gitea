@@ -10,31 +10,8 @@
 
 	{{template "custom/body_outer_post" .}}
 
-	<footer>
-		<div class="ui container">
-			<div class="ui left">
-				© Gitea {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
-			</div>
-			<div class="ui right links">
-				{{if .ShowFooterBranding}}
-					<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
-				{{end}}
-				<div class="ui language bottom floating slide up dropdown link item">
-					<i class="world icon"></i>
-					<div class="text">{{.LangName}}</div>
-					<div class="menu">
-						{{range .AllLangs}}
-							<a class="item {{if eq $.Lang .Lang}}active selected{{end}}" href="{{if eq $.Lang .Lang}}#{{else}}{{$.Link}}?lang={{.Lang}}{{end}}">{{.Name}}</a>
-						{{end}}
-					</div>
-				</div>
-				<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
-				{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
-				<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
-				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
-			</div>
-		</div>
-	</footer>
+	{{template "base/footer_content" .}}
+
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
 {{if .RequireSimpleMDE}}
