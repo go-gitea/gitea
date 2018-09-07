@@ -103,12 +103,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":    base.EllipsisString,
-		"DiffTypeToStr":     DiffTypeToStr,
-		"DiffLineTypeToStr": DiffLineTypeToStr,
-		"Sha1":              Sha1,
-		"ShortSha":          base.ShortSha,
-		"MD5":               base.EncodeMD5,
+		"EllipsisString":        base.EllipsisString,
+		"DiffTypeToStr":         DiffTypeToStr,
+		"DiffLineTypeToStr":     DiffLineTypeToStr,
+		"Sha1":                  Sha1,
+		"ShortSha":              base.ShortSha,
+		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -391,6 +391,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}

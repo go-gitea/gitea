@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 )
@@ -69,5 +71,32 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	session = loginUser(t, normalUsername)
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d",
 		adminUsername, newPublicKey.ID)
+	session.MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAPISudoUser(t *testing.T) {
+	prepareTestEnv(t)
+	adminUsername := "user1"
+	normalUsername := "user2"
+	session := loginUser(t, adminUsername)
+
+	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s", normalUsername)
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var user api.User
+	DecodeJSON(t, resp, &user)
+
+	assert.Equal(t, normalUsername, user.UserName)
+}
+
+func TestAPISudoUserForbidden(t *testing.T) {
+	prepareTestEnv(t)
+	adminUsername := "user1"
+	normalUsername := "user2"
+
+	session := loginUser(t, normalUsername)
+
+	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s", adminUsername)
+	req := NewRequest(t, "GET", urlStr)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }

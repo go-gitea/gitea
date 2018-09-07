@@ -5,7 +5,7 @@
 		</div>
 		<div class="ui grid">
 			<div class="ui thirteen wide column">
-				<div class="{{if eq .GetOpType 5}}push news{{end}}">
+				<div class="{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}push news{{end}}">
 					<p>
 						<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetActFullName}}">{{.ShortActUserName}}</a>
 						{{if eq .GetOpType 1}}
@@ -49,9 +49,16 @@
 						{{else if eq .GetOpType 17}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.delete_branch" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 18}}
+							{{ $branchLink := .GetBranch | EscapePound}}
+							{{$.i18n.Tr "action.mirror_sync_push" .GetRepoLink $branchLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 19}}
+							{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 20}}
+							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
 						{{end}}
 					</p>
-					{{if eq .GetOpType 5}}
+					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
 						<div class="content">
 							<ul>
 								{{ $push := ActionContent2Commits .}}
