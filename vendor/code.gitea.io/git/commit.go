@@ -34,14 +34,18 @@ type CommitGPGSignature struct {
 }
 
 // similar to https://github.com/git/git/blob/3bc53220cb2dcf709f7a027a3f526befd021d858/commit.c#L1128
-func newGPGSignatureFromCommitline(data []byte, signatureStart int) (*CommitGPGSignature, error) {
+func newGPGSignatureFromCommitline(data []byte, signatureStart int, tag bool) (*CommitGPGSignature, error) {
 	sig := new(CommitGPGSignature)
 	signatureEnd := bytes.LastIndex(data, []byte("-----END PGP SIGNATURE-----"))
 	if signatureEnd == -1 {
 		return nil, fmt.Errorf("end of commit signature not found")
 	}
 	sig.Signature = strings.Replace(string(data[signatureStart:signatureEnd+27]), "\n ", "\n", -1)
-	sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	if tag {
+		sig.Payload = string(data[:signatureStart-1])
+	} else {
+		sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	}
 	return sig, nil
 }
 
@@ -273,4 +277,20 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		}
 	}
 	return nil, nil
+}
+
+// GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
+func GetFullCommitID(repoPath, shortID string) (string, error) {
+	if len(shortID) >= 40 {
+		return shortID, nil
+	}
+
+	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "exit status 128") {
+			return "", ErrNotExist{shortID, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(commitID), nil
 }
