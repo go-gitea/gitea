@@ -182,10 +182,6 @@ func CreateOrganization(org, owner *User) (err error) {
 		return fmt.Errorf("insert team-user relation: %v", err)
 	}
 
-	if err = os.MkdirAll(UserPath(org.Name), os.ModePerm); err != nil {
-		return fmt.Errorf("create directory: %v", err)
-	}
-
 	return sess.Commit()
 }
 
