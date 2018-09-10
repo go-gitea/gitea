@@ -78,7 +78,7 @@ l:
 				}
 				commit.Committer = sig
 			case "gpgsig":
-				sig, err := newGPGSignatureFromCommitline(data, nextline+spacepos+1)
+				sig, err := newGPGSignatureFromCommitline(data, nextline+spacepos+1, false)
 				if err != nil {
 					return nil, err
 				}
@@ -86,7 +86,20 @@ l:
 			}
 			nextline += eol + 1
 		case eol == 0:
-			commit.CommitMessage = string(data[nextline+1:])
+			cm := string(data[nextline+1:])
+
+			// Tag GPG signatures are stored below the commit message
+			sigindex := strings.Index(cm, "-----BEGIN PGP SIGNATURE-----")
+			if sigindex != -1 {
+				sig, err := newGPGSignatureFromCommitline(data, (nextline+1)+sigindex, true)
+				if err == nil && sig != nil {
+					// remove signature from commit message
+					cm = cm[:sigindex-1]
+					commit.Signature = sig
+				}
+			}
+
+			commit.CommitMessage = cm
 			break l
 		default:
 			break l

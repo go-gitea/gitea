@@ -56,7 +56,7 @@ _Symbols used in table:_
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
 | Repository topics | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Repository code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Global code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Global code search | ✓ | ✘ | ✓ | ✘ | ✓ | ✓ | ✓ |
 | Git LFS 2.0 | ✓ | ✘ | ✓ | ✓ | ✓ | ⁄ | ✓ |
 | Group Milestones | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
@@ -77,7 +77,7 @@ _Symbols used in table:_
 | Issue templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Labels | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Multiple assignees for issues | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
