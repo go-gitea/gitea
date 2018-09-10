@@ -83,8 +83,9 @@ func TestAPISudoUser(t *testing.T) {
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
+	token = getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s", normalUsername)
+	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s&token=%s", normalUsername, token)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var user api.User
@@ -99,8 +100,9 @@ func TestAPISudoUserForbidden(t *testing.T) {
 	normalUsername := "user2"
 
 	session := loginUser(t, normalUsername)
+	token = getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s", adminUsername)
+	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s&token=%s", adminUsername, token)
 	req := NewRequest(t, "GET", urlStr)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
