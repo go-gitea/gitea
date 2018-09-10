@@ -391,6 +391,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}
