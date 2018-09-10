@@ -150,7 +150,7 @@ var (
 		},
 	}
 
-	IDFlag = cli.Int64Flag{
+	idFlag = cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of OAuth authentication source",
 	}
@@ -165,7 +165,7 @@ var (
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
 			},
-			IDFlag,
+			idFlag,
 		},
 	}
 
@@ -231,7 +231,7 @@ var (
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags, IDFlag),
+		Flags:  append(oauthCLIFlags, idFlag),
 	}
 
 	microcmdAuthAddOauth = cli.Command{
