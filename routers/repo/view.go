@@ -152,6 +152,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath
+
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())
@@ -311,6 +313,7 @@ func renderCode(ctx *context.Context) {
 	if len(ctx.Repo.Repository.Description) > 0 {
 		title += ": " + ctx.Repo.Repository.Description
 	}
+
 	ctx.Data["Title"] = title
 	ctx.Data["RequireHighlightJS"] = true
 
