@@ -313,7 +313,6 @@ func renderCode(ctx *context.Context) {
 	if len(ctx.Repo.Repository.Description) > 0 {
 		title += ": " + ctx.Repo.Repository.Description
 	}
-
 	ctx.Data["Title"] = title
 	ctx.Data["RequireHighlightJS"] = true
 
