@@ -150,6 +150,11 @@ var (
 		},
 	}
 
+	IDFlag = cli.Int64Flag{
+		Name:  "id",
+		Usage: "ID of OAuth authentication source",
+	}
+
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
@@ -160,10 +165,7 @@ var (
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
 			},
-			cli.Int64Flag{
-				Name:  "id",
-				Usage: "ID of authentication source that will be deleted",
-			},
+			IDFlag,
 		},
 	}
 
@@ -172,10 +174,6 @@ var (
 			Name:  "config, c",
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
-		},
-		cli.Int64Flag{
-			Name:  "id",
-			Usage: "ID of Oauth authentication source (used in update command)",
 		},
 		cli.StringFlag{
 			Name:  "name",
@@ -233,7 +231,7 @@ var (
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
-		Flags:  oauthCLIFlags,
+		Flags:  append(oauthCLIFlags, IDFlag),
 	}
 
 	microcmdAuthAddOauth = cli.Command{
