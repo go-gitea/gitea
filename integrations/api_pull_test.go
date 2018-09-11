@@ -20,7 +20,8 @@ func TestAPIViewPulls(t *testing.T) {
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, "user2")
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all", owner.Name, repo.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+token, owner.Name, repo.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
