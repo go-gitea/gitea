@@ -371,15 +371,8 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
 		fmt.Sprintf("PullRequest.Merge (git clone): %s", tmpBasePath),
-		"git", "clone", baseGitRepo.Path, tmpBasePath); err != nil {
+		"git", "clone", "-s", "--no-checkout", "-b", pr.BaseBranch, baseGitRepo.Path, tmpBasePath); err != nil {
 		return fmt.Errorf("git clone: %s", stderr)
-	}
-
-	// Check out base branch.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-		"git", "checkout", pr.BaseBranch); err != nil {
-		return fmt.Errorf("git checkout: %s", stderr)
 	}
 
 	// Add head repo remote.
@@ -389,13 +382,21 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 	}
 
-	// Merge commits.
+	// Read base branch index
+	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", tmpBasePath),
+		"git", "read-tree", "HEAD"); err != nil {
+		return fmt.Errorf("git read-tree HEAD: %s", stderr)
+	}
+
+	// Fetch head branch
 	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git fetch): %s", tmpBasePath),
 		"git", "fetch", "head_repo"); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 	}
 
+	// Merge commits.
 	switch mergeStyle {
 	case MergeStyleMerge:
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
