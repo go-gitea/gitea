@@ -235,8 +235,8 @@ func (repo *Repository) getFilesChanged(id1 string, id2 string) ([]string, error
 }
 
 // FileCommitsCount return the number of files at a revison
-func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
-	return commitsCount(repo.Path, revision, file)
+func (repo *Repository) FileCommitsCount(revision, file string, max int) (int64, error) {
+	return commitsCount(repo.Path, revision, file, max)
 }
 
 // CommitsByFileAndRange return the commits accroding revison file and the page
@@ -281,8 +281,8 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 }
 
 // CommitsCountBetween return numbers of commits between two commits
-func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	return commitsCount(repo.Path, start+"..."+end, "")
+func (repo *Repository) CommitsCountBetween(start, end string, max int) (int64, error) {
+	return commitsCount(repo.Path, start+"..."+end, "", max)
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.

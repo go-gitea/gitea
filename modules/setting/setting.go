@@ -512,6 +512,7 @@ var (
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
 		MaxGitDiffFiles          int
+		MaxGitCommits            int
 		GCArgs                   []string `delim:" "`
 		Timeout                  struct {
 			Migrate int
@@ -525,6 +526,7 @@ var (
 		MaxGitDiffLines:          1000,
 		MaxGitDiffLineCharacters: 5000,
 		MaxGitDiffFiles:          100,
+		MaxGitCommits:            0,
 		GCArgs:                   []string{},
 		Timeout: struct {
 			Migrate int

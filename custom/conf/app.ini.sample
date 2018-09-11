@@ -590,6 +590,9 @@ MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
+; Max number of commits which are fetched and shown
+; Set this to improve performance on large repositories
+MAX_GIT_COMMITS = 0
 
 ; Operation timeout in seconds
 [git.timeout]

@@ -146,7 +146,7 @@ func FileHistory(ctx *context.Context) {
 	}
 
 	branchName := ctx.Repo.BranchName
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName)
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName, setting.Git.MaxGitCommits)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return

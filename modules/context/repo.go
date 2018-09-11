@@ -100,7 +100,7 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 		contextName = r.CommitID
 	}
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
-		return r.Commit.CommitsCount()
+		return r.Commit.CommitsCount(setting.Git.MaxGitCommits)
 	})
 }
 
@@ -370,6 +370,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
+		ctx.Data["MaxGitCommits"] = setting.Git.MaxGitCommits
 		// repo is bare and display enable
 		if ctx.Repo.Repository.IsBare {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch

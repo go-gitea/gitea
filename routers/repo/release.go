@@ -39,7 +39,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 			if err != nil {
 				return fmt.Errorf("GetBranchCommit: %v", err)
 			}
-			countCache[release.Target], err = commit.CommitsCount()
+			countCache[release.Target], err = commit.CommitsCount(setting.Git.MaxGitCommits)
 			if err != nil {
 				return fmt.Errorf("CommitsCount: %v", err)
 			}

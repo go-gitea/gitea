@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -142,7 +143,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		createdAt = sig.When
 	}
 
-	commitsCount, err := commit.CommitsCount()
+	commitsCount, err := commit.CommitsCount(setting.Git.MaxGitCommits)
 	if err != nil {
 		return fmt.Errorf("CommitsCount: %v", err)
 	}

@@ -161,9 +161,12 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 	return err
 }
 
-func commitsCount(repoPath, revision, relpath string) (int64, error) {
+func commitsCount(repoPath, revision, relpath string, max int) (int64, error) {
 	var cmd *Command
 	cmd = NewCommand("rev-list", "--count")
+	if max > 0 {
+		cmd.AddArguments("--max-count", strconv.Itoa(max))
+	}
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)
@@ -178,13 +181,13 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath, revision string) (int64, error) {
-	return commitsCount(repoPath, revision, "")
+func CommitsCount(repoPath, revision string, max int) (int64, error) {
+	return commitsCount(repoPath, revision, "", max)
 }
 
 // CommitsCount returns number of total commits of until current revision.
-func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+func (c *Commit) CommitsCount(max int) (int64, error) {
+	return CommitsCount(c.repo.Path, c.ID.String(), max)
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize

@@ -137,7 +137,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 
 		rel.Sha1 = commit.ID.String()
 		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
-		rel.NumCommits, err = commit.CommitsCount()
+		rel.NumCommits, err = commit.CommitsCount(setting.Git.MaxGitCommits)
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
