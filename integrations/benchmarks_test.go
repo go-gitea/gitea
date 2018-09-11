@@ -5,12 +5,16 @@
 package integrations
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/test"
 	api "code.gitea.io/sdk/gitea"
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkRepo(b *testing.B) {
@@ -108,6 +112,43 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 			})
 		})
 	}
+}
+
+func benchmarkPullMergeHelper(b *testing.B, style models.MergeStyle) {
+	repoName := "gitea"
+
+	prepareTestEnv(b)
+	session := loginUser(b, "user2")
+	testRepoMigrate(b, session, "https://github.com/go-gitea/gitea.git", repoName)
+
+	req := NewRequest(b, "GET", "/user/logout")
+	session.MakeRequest(b, req, http.StatusFound)
+
+	session = loginUser(b, "user1")
+	testRepoFork(b, session, "user2", repoName, "user1", repoName)
+
+	b.StopTimer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		branchName := fmt.Sprintf("pull%d", i)
+		testEditFileToNewBranch(b, session, "user1", repoName, "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) ver%d\n", i))
+		resp := testPullCreate(b, session, "user1", repoName, branchName, fmt.Sprintf("This is a pull title for v%d", i))
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(b, "pulls", elem[3])
+		b.StartTimer()
+		testPullMerge(b, session, elem[1], elem[2], elem[4], style)
+		b.StopTimer()
+	}
+}
+
+func BenchmarkPullMerge(b *testing.B) {
+	benchmarkPullMergeHelper(b, models.MergeStyleMerge)
+}
+func BenchmarkPullRebase(b *testing.B) {
+	benchmarkPullMergeHelper(b, models.MergeStyleRebase)
+}
+func BenchmarkPullSquash(b *testing.B) {
+	benchmarkPullMergeHelper(b, models.MergeStyleSquash)
 }
 
 //TODO list commits /repos/{owner}/{repo}/commits

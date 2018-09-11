@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle models.MergeStyle) *httptest.ResponseRecorder {
+func testPullMerge(t testing.TB, session *TestSession, user, repo, pullnum string, mergeStyle models.MergeStyle) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
