@@ -231,7 +231,7 @@ var (
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags, idFlag),
+		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
 	}
 
 	microcmdAuthAddOauth = cli.Command{
