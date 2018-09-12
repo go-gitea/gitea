@@ -24,6 +24,8 @@
 //     - Token :
 //     - AccessToken :
 //     - AuthorizationHeaderToken :
+//     - SudoParam :
+//     - SudoHeader :
 //
 //     SecurityDefinitions:
 //     BasicAuth:
@@ -40,6 +42,16 @@
 //          type: apiKey
 //          name: Authorization
 //          in: header
+//     SudoParam:
+//          type: apiKey
+//          name: sudo
+//          in: query
+//          description: Sudo API request as the user provided as the key. Admin privileges are required.
+//     SudoHeader:
+//          type: apiKey
+//          name: Sudo
+//          in: header
+//          description: Sudo API request as the user provided as the key. Admin privileges are required.
 //
 // swagger:meta
 package v1
@@ -50,6 +62,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
@@ -63,6 +76,36 @@ import (
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 )
+
+func sudo() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		sudo := ctx.Query("sudo")
+		if len(sudo) <= 0 {
+			sudo = ctx.Req.Header.Get("Sudo")
+		}
+
+		if len(sudo) > 0 {
+			if ctx.User.IsAdmin {
+				user, err := models.GetUserByName(sudo)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						ctx.Status(404)
+					} else {
+						ctx.Error(500, "GetUserByName", err)
+					}
+					return
+				}
+				log.Trace("Sudo from (%s) to: %s", ctx.User.Name, user.Name)
+				ctx.User = user
+			} else {
+				ctx.JSON(403, map[string]string{
+					"message": "Only administrators allowed to sudo.",
+				})
+				return
+			}
+		}
+	}
+}
 
 func repoAssignment() macaron.Handler {
 	return func(ctx *context.APIContext) {
@@ -132,7 +175,7 @@ func repoAssignment() macaron.Handler {
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.IsSigned {
+		if true != ctx.Data["IsApiToken"] {
 			ctx.Error(401)
 			return
 		}
@@ -273,18 +316,26 @@ func mustAllowPulls(ctx *context.Context) {
 	}
 }
 
+func mustEnableIssuesOrPulls(ctx *context.Context) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
+		!ctx.Repo.Repository.AllowsPulls() {
+		ctx.Status(404)
+		return
+	}
+}
+
 // RegisterRoutes registers all v1 APIs routes to web application.
 // FIXME: custom form error response
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
-	if setting.API.EnableSwaggerEndpoint {
+	if setting.API.EnableSwagger {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
 
 	m.Group("/v1", func() {
 		// Miscellaneous
-		if setting.API.EnableSwaggerEndpoint {
+		if setting.API.EnableSwagger {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
@@ -450,7 +501,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 					})
-				}, mustEnableIssues)
+				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(), bind(api.CreateLabelOption{}), repo.CreateLabel)
@@ -581,5 +632,5 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, context.APIContexter())
+	}, context.APIContexter(), sudo())
 }

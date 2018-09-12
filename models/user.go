@@ -683,7 +683,35 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "error", "new", ".", ".."}
+	reservedUsernames = []string{
+		"admin",
+		"api",
+		"assets",
+		"avatars",
+		"commits",
+		"css",
+		"debug",
+		"error",
+		"explore",
+		"help",
+		"img",
+		"install",
+		"issues",
+		"js",
+		"less",
+		"new",
+		"org",
+		"plugins",
+		"pulls",
+		"raw",
+		"repo",
+		"stars",
+		"template",
+		"user",
+		"vendor",
+		".",
+		"..",
+	}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -769,8 +797,6 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 
 	if _, err = sess.Insert(u); err != nil {
-		return err
-	} else if err = os.MkdirAll(UserPath(u.Name), os.ModePerm); err != nil {
 		return err
 	}
 
@@ -870,7 +896,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
-	return os.Rename(UserPath(u.Name), UserPath(newUserName))
+	// Do not fail if directory does not exist
+	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("Rename user directory: %v", err)
+	}
+
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user

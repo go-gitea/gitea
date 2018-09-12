@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
     "/admin/users": {
       "post": {
@@ -985,6 +985,18 @@
             "description": "if `uid` is given, search only for repos that the user owns",
             "name": "exclusive",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort repos by attribute. Supported values are \"alpha\", \"created\", \"updated\", \"size\", and \"id\". Default is \"alpha\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1145,7 +1157,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "List a repository's branches",
+        "summary": "Retrieve a specific branch from a repository",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -6484,6 +6496,10 @@
           "type": "boolean",
           "x-go-name": "Admin"
         },
+        "allow_create_organization": {
+          "type": "boolean",
+          "x-go-name": "AllowCreateOrganization"
+        },
         "allow_git_hook": {
           "type": "boolean",
           "x-go-name": "AllowGitHook"
@@ -6517,6 +6533,10 @@
         "password": {
           "type": "string",
           "x-go-name": "Password"
+        },
+        "prohibit_login": {
+          "type": "boolean",
+          "x-go-name": "ProhibitLogin"
         },
         "source_id": {
           "type": "integer",
@@ -7988,6 +8008,18 @@
     "BasicAuth": {
       "type": "basic"
     },
+    "SudoHeader": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "Sudo",
+      "in": "header"
+    },
+    "SudoParam": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "sudo",
+      "in": "query"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -8006,6 +8038,12 @@
     },
     {
       "AuthorizationHeaderToken": []
+    },
+    {
+      "SudoParam": []
+    },
+    {
+      "SudoHeader": []
     }
   ]
 }

@@ -23,6 +23,7 @@ const (
 	EnvRepoUsername = "GITEA_REPO_USER_NAME"
 	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
 	EnvPusherName   = "GITEA_PUSHER_NAME"
+	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
 )
 

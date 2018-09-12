@@ -32,7 +32,8 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = t.GenerateScratchToken(); err != nil {
+	token, err := t.GenerateScratchToken()
+	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
@@ -42,7 +43,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", t.ScratchToken))
+	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
@@ -170,7 +171,7 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
-	err = t.GenerateScratchToken()
+	token, err := t.GenerateScratchToken()
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
@@ -183,6 +184,6 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 
 	ctx.Session.Delete("twofaSecret")
 	ctx.Session.Delete("twofaUri")
-	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
+	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }

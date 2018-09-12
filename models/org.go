@@ -182,10 +182,6 @@ func CreateOrganization(org, owner *User) (err error) {
 		return fmt.Errorf("insert team-user relation: %v", err)
 	}
 
-	if err = os.MkdirAll(UserPath(org.Name), os.ModePerm); err != nil {
-		return fmt.Errorf("create directory: %v", err)
-	}
-
 	return sess.Commit()
 }
 
@@ -454,7 +450,7 @@ func AddOrgUser(orgID, uid int64) error {
 func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	ou := new(OrgUser)
 
-	has, err := x.
+	has, err := sess.
 		Where("uid=?", userID).
 		And("org_id=?", orgID).
 		Get(ou)

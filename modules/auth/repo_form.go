@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/routers/utils"
+
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -225,6 +227,11 @@ func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// HasInvalidChannel validates the channel name is in the right format
+func (f NewSlackHookForm) HasInvalidChannel() bool {
+	return !utils.IsValidSlackChannel(f.Channel)
+}
+
 // NewDiscordHookForm form for creating discord hook
 type NewDiscordHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
@@ -361,6 +368,53 @@ type MergePullRequestForm struct {
 // Validate validates the fields
 func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// CodeCommentForm form for adding code comments for PRs
+type CodeCommentForm struct {
+	Content  string `binding:"Required"`
+	Side     string `binding:"Required;In(previous,proposed)"`
+	Line     int64
+	TreePath string `form:"path" binding:"Required"`
+	IsReview bool   `form:"is_review"`
+}
+
+// Validate validates the fields
+func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// SubmitReviewForm for submitting a finished code review
+type SubmitReviewForm struct {
+	Content string
+	Type    string `binding:"Required;In(approve,comment,reject)"`
+}
+
+// Validate validates the fields
+func (f *SubmitReviewForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// ReviewType will return the corresponding reviewtype for type
+func (f SubmitReviewForm) ReviewType() models.ReviewType {
+	switch f.Type {
+	case "approve":
+		return models.ReviewTypeApprove
+	case "comment":
+		return models.ReviewTypeComment
+	case "reject":
+		return models.ReviewTypeReject
+	default:
+		return models.ReviewTypeUnknown
+	}
+}
+
+// HasEmptyContent checks if the content of the review form is empty.
+func (f SubmitReviewForm) HasEmptyContent() bool {
+	reviewType := f.ReviewType()
+
+	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+		len(strings.TrimSpace(f.Content)) == 0
 }
 
 // __________       .__
