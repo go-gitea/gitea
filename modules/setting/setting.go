@@ -741,8 +741,8 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
-	EnableLetsEncrypt := sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-	LetsEncryptTOS := sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
 	if !LetsEncryptTOS && EnableLetsEncrypt {
 		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
 		EnableLetsEncrypt = false
