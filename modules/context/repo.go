@@ -8,7 +8,6 @@ package context
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"path"
 	"strings"
 
@@ -624,11 +623,10 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				unescaped, _ := url.PathUnescape(ctx.Req.URL.Path)
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
-					strings.TrimSuffix(unescaped, ctx.Params("*")),
-					(&url.URL{Path: ctx.Repo.BranchNameSubURL()}).String(),
+					strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")),
+					ctx.Repo.BranchNameSubURL(),
 					ctx.Repo.TreePath))
 				return
 			}
