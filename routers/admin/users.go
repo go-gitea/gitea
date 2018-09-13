@@ -82,7 +82,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 		Passwd:             form.Password,
 		IsActive:           true,
 		LoginType:          models.LoginPlain,
-		MustChangePassword: true,
+		MustChangePassword: form.MustChangePassword,
 	}
 
 	if len(form.LoginType) > 0 {
