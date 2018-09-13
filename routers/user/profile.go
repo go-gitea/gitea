@@ -105,6 +105,8 @@ func Profile(ctx *context.Context) {
 		page = 1
 	}
 
+	topicOnly := ctx.QueryBool("topic")
+
 	var (
 		repos   []*models.Repository
 		count   int64
@@ -174,6 +176,7 @@ func Profile(ctx *context.Context) {
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Starred:     true,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -217,6 +220,7 @@ func Profile(ctx *context.Context) {
 				IsProfile:   true,
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)

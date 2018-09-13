@@ -20,7 +20,7 @@
 			{{if .Topics }}
 				<div>
 				{{range .Topics}}
-					{{if ne . "" }}<div class="ui green basic label topic">{{.}}</div>{{end}}
+					{{if ne . "" }}<a href="/explore/repos?q={{.}}&topic=1"><div class="ui green basic label topic">{{.}}</div></a>{{end}}
 				{{end}}
 				</div>
 			{{end}}

@@ -5,13 +5,13 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 
-	"fmt"
 	"github.com/stretchr/testify/assert"
 )
 
