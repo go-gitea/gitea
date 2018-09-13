@@ -77,11 +77,12 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	u := &models.User{
-		Name:      form.UserName,
-		Email:     form.Email,
-		Passwd:    form.Password,
-		IsActive:  true,
-		LoginType: models.LoginPlain,
+		Name:               form.UserName,
+		Email:              form.Email,
+		Passwd:             form.Password,
+		IsActive:           true,
+		LoginType:          models.LoginPlain,
+		MustChangePassword: true,
 	}
 
 	if len(form.LoginType) > 0 {

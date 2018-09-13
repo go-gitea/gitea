@@ -83,18 +83,23 @@ type User struct {
 	Email            string `xorm:"NOT NULL"`
 	KeepEmailPrivate bool
 	Passwd           string `xorm:"NOT NULL"`
-	LoginType        LoginType
-	LoginSource      int64 `xorm:"NOT NULL DEFAULT 0"`
-	LoginName        string
-	Type             UserType
-	OwnedOrgs        []*User       `xorm:"-"`
-	Orgs             []*User       `xorm:"-"`
-	Repos            []*Repository `xorm:"-"`
-	Location         string
-	Website          string
-	Rands            string `xorm:"VARCHAR(10)"`
-	Salt             string `xorm:"VARCHAR(10)"`
-	Language         string `xorm:"VARCHAR(5)"`
+
+	// MustChangePassword is an attribute that determines if a user
+	// is to change his/her password after registration.
+	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
+
+	LoginType   LoginType
+	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
+	LoginName   string
+	Type        UserType
+	OwnedOrgs   []*User       `xorm:"-"`
+	Orgs        []*User       `xorm:"-"`
+	Repos       []*Repository `xorm:"-"`
+	Location    string
+	Website     string
+	Rands       string `xorm:"VARCHAR(10)"`
+	Salt        string `xorm:"VARCHAR(10)"`
+	Language    string `xorm:"VARCHAR(5)"`
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
