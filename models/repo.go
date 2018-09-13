@@ -1818,6 +1818,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&Watch{RepoID: repoID},
+		&Stopwatch{RepoID: repoID},
 		&Star{RepoID: repoID},
 		&Mirror{RepoID: repoID},
 		&Milestone{RepoID: repoID},
