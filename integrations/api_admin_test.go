@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
