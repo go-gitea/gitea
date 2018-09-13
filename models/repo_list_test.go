@@ -147,10 +147,10 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 14},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true},
-			count: 17},
+			count: 19},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
-			count: 21},
+			count: 23},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
 			count: 13},
@@ -159,7 +159,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 11},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
-			count: 17},
+			count: 19},
 	}
 
 	for _, testCase := range testCases {
@@ -219,6 +219,31 @@ func TestSearchRepositoryByName(t *testing.T) {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestSearchRepositoryByTopicName(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testCases := []struct {
+		name  string
+		opts  *SearchRepoOptions
+		count int
+	}{
+		{name: "AllPublic/SearchPublicRepositoriesFromTopicAndName",
+			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql"},
+			count: 2},
+		{name: "AllPublic/OnlySearchPublicRepositoriesFromTopic",
+			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql", TopicOnly: true},
+			count: 1},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, count, err := SearchRepositoryByName(testCase.opts)
+			assert.NoError(t, err)
+			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
 }
