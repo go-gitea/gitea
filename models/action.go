@@ -537,12 +537,14 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	refName := git.RefEndName(opts.RefFullName)
-	if repo.IsBare && refName != repo.DefaultBranch {
+
+	// Change default branch and bare status only if pushed ref is non-empty branch.
+	if repo.IsBare && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
 		repo.DefaultBranch = refName
+		repo.IsBare = false
 	}
 
 	// Change repository bare status and update last updated time.
-	repo.IsBare = repo.IsBare && opts.Commits.Len <= 0
 	if err = UpdateRepository(repo, false); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
 	}
