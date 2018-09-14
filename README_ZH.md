@@ -11,13 +11,6 @@
 [![GitHub release](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest)
 [![Become a backer/sponsor of gitea](https://opencollective.com/gitea/tiers/backer/badge.svg?label=backer&color=brightgreen)](https://opencollective.com/gitea)
 
-| | | |
-|:---:|:---:|:---:|
-|![Dashboard](https://image.ibb.co/dms6DG/1.png)|![Repository](https://image.ibb.co/m6MSLw/2.png)|![Commits History](https://image.ibb.co/cjrSLw/3.png)|
-|![Branches](https://image.ibb.co/e6vbDG/4.png)|![Issues](https://image.ibb.co/bJTJSb/5.png)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
-|![Releases](https://image.ibb.co/cUzgfw/7.png)|![Activity](https://image.ibb.co/eZgGDG/8.png)|![Wiki](https://image.ibb.co/dYV9YG/9.png)|
-|![Diff](https://image.ibb.co/ewA9YG/10.png)|![Organization](https://image.ibb.co/ceOwDG/11.png)|![Profile](https://image.ibb.co/c44Q7b/12.png)|
-
 ## 目标
 
 Gitea 的首要目标是创建一个极易安装，运行非常快速，安装和使用体验良好的自建 Git 服务。我们采用 Go 作为后端语言，这使我们只要生成一个可执行程序即可。并且他还支持跨平台，支持 Linux, macOS 和 Windows 以及各种架构，除了 x86，amd64，还包括 ARM 和 PowerPC。
@@ -47,3 +40,12 @@ Fork -> Patch -> Push -> Pull Request
 ## 授权许可
 
 本项目采用 MIT 开源授权许可证，完整的授权说明已放置在 [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) 文件中。
+
+## 截图
+
+| | | |
+|:---:|:---:|:---:|
+|![Dashboard](https://image.ibb.co/dms6DG/1.png)|![Repository](https://image.ibb.co/m6MSLw/2.png)|![Commits History](https://image.ibb.co/cjrSLw/3.png)|
+|![Branches](https://image.ibb.co/e6vbDG/4.png)|![Issues](https://image.ibb.co/bJTJSb/5.png)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
+|![Releases](https://image.ibb.co/cUzgfw/7.png)|![Activity](https://image.ibb.co/eZgGDG/8.png)|![Wiki](https://image.ibb.co/dYV9YG/9.png)|
+|![Diff](https://image.ibb.co/ewA9YG/10.png)|![Organization](https://image.ibb.co/ceOwDG/11.png)|![Profile](https://image.ibb.co/c44Q7b/12.png)|
