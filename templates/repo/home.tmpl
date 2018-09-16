@@ -54,7 +54,7 @@
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Repository.Owner.Name}}:{{.BranchName}}">
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{.Repository.Owner.Name}}:{{.BranchName | EscapePound}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
