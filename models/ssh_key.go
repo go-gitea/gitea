@@ -732,7 +732,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
-		return nil, fmt.Errorf("addDeployKey: %v", err)
+		return nil, err
 	}
 
 	return key, sess.Commit()
