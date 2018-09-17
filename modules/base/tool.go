@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -27,9 +28,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -70,6 +74,21 @@ func DetectEncoding(content []byte) (string, error) {
 
 	log.Debug("Detected encoding: %s", result.Charset)
 	return result.Charset, err
+}
+
+// DetectEncodingAndConvert detects the encoding of content and coverts to UTF-8 if possible
+func DetectEncodingAndConvert(content []byte) []byte {
+	charsetLabel, err := DetectEncoding(content)
+	if charsetLabel != "UTF-8" && err == nil {
+		encoding, _ := charset.Lookup(charsetLabel)
+		if encoding != nil {
+			d := encoding.NewDecoder()
+			if buf, _, err := transform.Bytes(d, content); err == nil {
+				return buf
+			}
+		}
+	}
+	return content
 }
 
 // BasicAuthDecode decode basic auth string
