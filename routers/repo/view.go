@@ -151,6 +151,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, rawLink string) {
 	}
 	defer dataRc.Close()
 
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
+
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())

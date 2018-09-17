@@ -392,7 +392,7 @@ func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, 
 	if err != nil {
 		return err
 	}
-	if c.CommitSHA != commit.ID.String() {
+	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
 		c.Invalidated = true
 		return UpdateComment(doer, c, "")
 	}
@@ -824,17 +824,18 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
-	// FIXME differentiate between previous and proposed line
-	var gitLine = line
-	if gitLine < 0 {
-		gitLine *= -1
-	}
+
 	// FIXME validate treePath
 	// Get latest commit referencing the commented line
-	commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(gitLine))
-	if err != nil {
-		return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, gitLine, err)
+	// No need for get commit for base branch changes
+	if line > 0 {
+		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
+		if err != nil {
+			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+		}
+		commitID = commit.ID.String()
 	}
+
 	// Only fetch diff if comment is review comment
 	if reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
@@ -846,7 +847,6 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
 		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-		commitID = commit.ID.String()
 	}
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,

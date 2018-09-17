@@ -1157,7 +1157,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "List a repository's branches",
+        "summary": "Retrieve a specific branch from a repository",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -8008,6 +8008,18 @@
     "BasicAuth": {
       "type": "basic"
     },
+    "SudoHeader": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "Sudo",
+      "in": "header"
+    },
+    "SudoParam": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "sudo",
+      "in": "query"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -8026,6 +8038,12 @@
     },
     {
       "AuthorizationHeaderToken": []
+    },
+    {
+      "SudoParam": []
+    },
+    {
+      "SudoHeader": []
     }
   ]
 }

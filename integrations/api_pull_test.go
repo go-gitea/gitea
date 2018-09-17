@@ -23,7 +23,8 @@ func TestAPIViewPulls(t *testing.T) {
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, "user2")
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all", owner.Name, repo.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+token, owner.Name, repo.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
@@ -47,7 +48,8 @@ func TestAPIMergePullWIP(t *testing.T) {
 	assert.Contains(t, pr.Issue.Title, setting.Repository.PullRequest.WorkInProgressPrefixes[0])
 
 	session := loginUser(t, owner.Name)
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, pr.Index), &auth.MergePullRequestForm{
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s", owner.Name, repo.Name, pr.Index, token), &auth.MergePullRequestForm{
 		MergeMessageField: pr.Issue.Title,
 		Do:                string(models.MergeStyleMerge),
 	})

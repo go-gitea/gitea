@@ -586,7 +586,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	if err != nil {
 		ctx.Data["HasError"] = true
 		switch {
-		case models.IsErrKeyAlreadyExist(err):
+		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
