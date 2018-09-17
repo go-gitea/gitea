@@ -2,7 +2,7 @@
 	{{if $.hidden}}
 		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> {{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
 	{{end}}
-	<form class="ui form {{if $.hidden}}hide comment-form{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
 		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
@@ -34,8 +34,10 @@
 								class="ui submit green tiny button btn-start-review">{{$.root.i18n.Tr "repo.diff.comment.start_review"}}</button>
 					{{end}}
 				{{end}}
+				{{if not $.root.CurrentReview}}
 				<button type="submit"
 					class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
+				{{end}}
 				{{if or (not $.HasComments) $.hidden}}
 					<button type="button" class="ui submit tiny basic button btn-cancel" onclick="cancelCodeComment(this);">{{$.root.i18n.Tr "cancel"}}</button>
 				{{end}}

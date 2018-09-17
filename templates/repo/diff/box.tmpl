@@ -125,7 +125,7 @@
 
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
-															{{if and $.root.SignedUserID $line.CanComment}}
+															{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}
 																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
