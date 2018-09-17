@@ -13,9 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
+	_ "image/jpeg" // Needed for jpeg support
 	"image/png"
 	"os"
 	"path/filepath"
