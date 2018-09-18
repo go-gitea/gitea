@@ -1459,7 +1459,7 @@ function searchUsers() {
             url: suburl + '/api/v1/users/search?q={query}',
             onResponse: function(response) {
                 var items = [];
-                $.each(response.data, function (i, item) {
+                $.each(response, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
                         title += ' (' + item.full_name + ')';
