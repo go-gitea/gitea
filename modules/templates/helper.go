@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -103,12 +104,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":        base.EllipsisString,
-		"DiffTypeToStr":         DiffTypeToStr,
-		"DiffLineTypeToStr":     DiffLineTypeToStr,
-		"Sha1":                  Sha1,
-		"ShortSha":              base.ShortSha,
-		"MD5":                   base.EncodeMD5,
+		"EllipsisString":    base.EllipsisString,
+		"DiffTypeToStr":     DiffTypeToStr,
+		"DiffLineTypeToStr": DiffLineTypeToStr,
+		"Sha1":              Sha1,
+		"ShortSha":          base.ShortSha,
+		"MD5":               base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -282,6 +283,28 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	}
 
 	return result, err
+}
+
+// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
+func ToUTF8WithFallback(content []byte) []byte {
+	charsetLabel, err := base.DetectEncoding(content)
+	if err != nil || charsetLabel == "UTF-8" {
+		return content
+	}
+
+	encoding, _ := charset.Lookup(charsetLabel)
+	if encoding == nil {
+		return content
+	}
+
+	// If there is an error, we concatenate the nicely decoded part and the
+	// original left over. This way we won't loose data.
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
+	if err != nil {
+		return append(result, content[n:]...)
+	}
+
+	return result
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error

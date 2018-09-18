@@ -100,7 +100,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = base.DetectEncodingAndConvert(append(buf, d...))
+				buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
@@ -205,7 +205,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = base.DetectEncodingAndConvert(append(buf, d...))
+		buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
