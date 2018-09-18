@@ -23,7 +23,7 @@ func TestCurrentUsername(t *testing.T) {
 	}
 	// Windows whoami is weird, so just skip remaining tests
 	if runtime.GOOS == "windows" {
-		return
+		t.Skip("skipped test because of weird whoami on Windows")
 	}
 	whoami, err := getWhoamiOutput()
 	if err != nil {
