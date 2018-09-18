@@ -289,13 +289,22 @@ func runCreateUser(c *cli.Context) error {
 		return err
 	}
 
+	var changePassword bool
+
+	if c.IsSet("must-change-password") {
+		changePassword = c.Bool("must-change-password")
+	} else {
+		// always default to true
+		changePassword = true
+	}
+
 	if err := models.CreateUser(&models.User{
 		Name:               c.String("name"),
 		Email:              c.String("email"),
 		Passwd:             c.String("password"),
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
-		MustChangePassword: c.Bool("must-change-password"),
+		MustChangePassword: changePassword,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
