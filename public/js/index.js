@@ -780,7 +780,7 @@ function initPullRequestReview() {
         $("#show-outdated-" + id).removeClass('hide');
     });
 
-    $('.comment-form-reply').on('click', function (e) {
+    $('button.comment-form-reply').on('click', function (e) {
         e.preventDefault();
         $(this).hide();
         var form = $(this).parent().find('.comment-form')
@@ -2649,7 +2649,7 @@ function cancelCodeComment(btn) {
     var form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
-        form.parent().find('.comment-form-reply').show();
+        form.parent().find('button.comment-form-reply').show();
     }else {
         console.log("Hey");
         form.closest('.comment-code-cloud').remove()

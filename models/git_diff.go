@@ -273,7 +273,7 @@ func (diff *Diff) NumFiles() int {
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
-var hunkRegex = regexp.MustCompile(`^@@ -([0-9]+),([0-9]+) \+([0-9]+),([0-9]+) @@`)
+var hunkRegex = regexp.MustCompile(`^@@ -([0-9]+),([0-9]+) \+([0-9]+)(,([0-9]+))? @@`)
 
 func isHeader(lof string) bool {
 	return strings.HasPrefix(lof, cmdDiffHead) || strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")
@@ -319,7 +319,11 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				otherLine = com.StrTo(groups[3]).MustInt64()
 			} else {
 				begin = com.StrTo(groups[3]).MustInt64()
-				end = com.StrTo(groups[4]).MustInt64()
+				if groups[5] != "" {
+					end = com.StrTo(groups[5]).MustInt64()
+				} else {
+					end = 0
+				}
 				// init otherLine with begin of opposite side
 				otherLine = com.StrTo(groups[1]).MustInt64()
 			}

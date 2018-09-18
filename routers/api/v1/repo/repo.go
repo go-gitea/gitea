@@ -91,6 +91,7 @@ func Search(ctx *context.APIContext) {
 		OwnerID:     ctx.QueryInt64("uid"),
 		Page:        ctx.QueryInt("page"),
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:   ctx.QueryBool("topic"),
 		Collaborate: util.OptionalBoolNone,
 	}
 

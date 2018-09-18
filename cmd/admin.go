@@ -7,9 +7,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -26,6 +29,7 @@ var (
 			subcmdChangePassword,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
+			subcmdAuth,
 		},
 	}
 
@@ -120,6 +124,121 @@ var (
 				Usage: "Custom configuration file path",
 			},
 		},
+	}
+
+	subcmdAuth = cli.Command{
+		Name:  "auth",
+		Usage: "Modify external auth providers",
+		Subcommands: []cli.Command{
+			microcmdAuthAddOauth,
+			microcmdAuthUpdateOauth,
+			microcmdAuthList,
+			microcmdAuthDelete,
+		},
+	}
+
+	microcmdAuthList = cli.Command{
+		Name:   "list",
+		Usage:  "List auth sources",
+		Action: runListAuth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+		},
+	}
+
+	idFlag = cli.Int64Flag{
+		Name:  "id",
+		Usage: "ID of OAuth authentication source",
+	}
+
+	microcmdAuthDelete = cli.Command{
+		Name:   "delete",
+		Usage:  "Delete specific auth source",
+		Action: runDeleteAuth,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+			idFlag,
+		},
+	}
+
+	oauthCLIFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "custom/conf/app.ini",
+			Usage: "Custom configuration file path",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Application Name",
+		},
+		cli.StringFlag{
+			Name:  "provider",
+			Value: "",
+			Usage: "OAuth2 Provider",
+		},
+		cli.StringFlag{
+			Name:  "key",
+			Value: "",
+			Usage: "Client ID (Key)",
+		},
+		cli.StringFlag{
+			Name:  "secret",
+			Value: "",
+			Usage: "Client Secret",
+		},
+		cli.StringFlag{
+			Name:  "auto-discover-url",
+			Value: "",
+			Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
+		},
+		cli.StringFlag{
+			Name:  "use-custom-urls",
+			Value: "false",
+			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
+		},
+		cli.StringFlag{
+			Name:  "custom-auth-url",
+			Value: "",
+			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-token-url",
+			Value: "",
+			Usage: "Use a custom Token URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-profile-url",
+			Value: "",
+			Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
+		},
+		cli.StringFlag{
+			Name:  "custom-email-url",
+			Value: "",
+			Usage: "Use a custom Email URL (option for GitHub)",
+		},
+	}
+
+	microcmdAuthUpdateOauth = cli.Command{
+		Name:   "update-oauth",
+		Usage:  "Update existing Oauth authentication source",
+		Action: runUpdateOauth,
+		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
+	}
+
+	microcmdAuthAddOauth = cli.Command{
+		Name:   "add-oauth",
+		Usage:  "Add new Oauth authentication source",
+		Action: runAddOauth,
+		Flags:  oauthCLIFlags,
 	}
 )
 
@@ -261,4 +380,171 @@ func runRegenerateKeys(c *cli.Context) error {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
+}
+
+func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+	var customURLMapping *oauth2.CustomURLMapping
+	if c.IsSet("use-custom-urls") {
+		customURLMapping = &oauth2.CustomURLMapping{
+			TokenURL:   c.String("custom-token-url"),
+			AuthURL:    c.String("custom-auth-url"),
+			ProfileURL: c.String("custom-profile-url"),
+			EmailURL:   c.String("custom-email-url"),
+		}
+	} else {
+		customURLMapping = nil
+	}
+	return &models.OAuth2Config{
+		Provider:                      c.String("provider"),
+		ClientID:                      c.String("key"),
+		ClientSecret:                  c.String("secret"),
+		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
+		CustomURLMapping:              customURLMapping,
+	}
+}
+
+func runAddOauth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	if err := models.CreateLoginSource(&models.LoginSource{
+		Type:      models.LoginOAuth2,
+		Name:      c.String("name"),
+		IsActived: true,
+		Cfg:       parseOAuth2Config(c),
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runUpdateOauth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	oAuth2Config := source.OAuth2()
+
+	if c.IsSet("name") {
+		source.Name = c.String("name")
+	}
+
+	if c.IsSet("provider") {
+		oAuth2Config.Provider = c.String("provider")
+	}
+
+	if c.IsSet("key") {
+		oAuth2Config.ClientID = c.String("key")
+	}
+
+	if c.IsSet("secret") {
+		oAuth2Config.ClientSecret = c.String("secret")
+	}
+
+	if c.IsSet("auto-discover-url") {
+		oAuth2Config.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
+	}
+
+	// update custom URL mapping
+	var customURLMapping *oauth2.CustomURLMapping
+
+	if oAuth2Config.CustomURLMapping != nil {
+		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
+		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
+		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
+		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
+	}
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
+		customURLMapping.TokenURL = c.String("custom-token-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-auth-url") {
+		customURLMapping.AuthURL = c.String("custom-auth-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-profile-url") {
+		customURLMapping.ProfileURL = c.String("custom-profile-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-email-url") {
+		customURLMapping.EmailURL = c.String("custom-email-url")
+	}
+
+	oAuth2Config.CustomURLMapping = customURLMapping
+	source.Cfg = oAuth2Config
+
+	if err := models.UpdateSource(source); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runListAuth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	loginSources, err := models.LoginSources()
+
+	if err != nil {
+		return err
+	}
+
+	// loop through each source and print
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	for _, source := range loginSources {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+	}
+	w.Flush()
+
+	return nil
+}
+
+func runDeleteAuth(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+
+	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	if err = models.DeleteSource(source); err != nil {
+		return err
+	}
+	return nil
 }
