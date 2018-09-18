@@ -59,6 +59,11 @@ var (
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
 			},
+			cli.StringFlag{
+				Name:  "must-change-password",
+				Value: "false",
+				Usage: "Force the user to change his/her password after initial login",
+			},
 		},
 	}
 
@@ -286,11 +291,12 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if err := models.CreateUser(&models.User{
-		Name:     c.String("name"),
-		Email:    c.String("email"),
-		Passwd:   c.String("password"),
-		IsActive: true,
-		IsAdmin:  c.Bool("admin"),
+		Name:               c.String("name"),
+		Email:              c.String("email"),
+		Passwd:             c.String("password"),
+		IsActive:           true,
+		IsAdmin:            c.Bool("admin"),
+		MustChangePassword: c.Bool("must-change-password"),
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
