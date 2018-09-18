@@ -59,9 +59,8 @@ var (
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
 			},
-			cli.StringFlag{
+			cli.BoolFlag{
 				Name:  "must-change-password",
-				Value: "false",
 				Usage: "Force the user to change his/her password after initial login",
 			},
 		},
