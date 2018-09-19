@@ -15,6 +15,21 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// appendPrivateInformation appends the owner and key type information to api.PublicKey
+func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
+	apiKey.ReadOnly = key.Mode == models.AccessModeRead
+	if repository.ID == key.RepoID {
+		apiKey.Repository = repository.APIFormat(key.Mode)
+	} else {
+		repo, err := models.GetRepositoryByID(key.RepoID)
+		if err != nil {
+			return apiKey, err
+		}
+		apiKey.Repository = repo.APIFormat(key.Mode)
+	}
+	return apiKey, nil
+}
+
 func composeDeployKeysAPILink(repoPath string) string {
 	return setting.AppURL + "api/v1/repos/" + repoPath + "/keys/"
 }
@@ -54,6 +69,9 @@ func ListDeployKeys(ctx *context.APIContext) {
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
+		if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], ctx.Repo.Repository)
+		}
 	}
 
 	ctx.JSON(200, &apiKeys)
@@ -102,7 +120,11 @@ func GetDeployKey(ctx *context.APIContext) {
 	}
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
-	ctx.JSON(200, convert.ToDeployKey(apiLink, key))
+	apiKey := convert.ToDeployKey(apiLink, key)
+	if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Repo.Repository)
+	}
+	ctx.JSON(200, apiKey)
 }
 
 // HandleCheckKeyStringError handle check key error
