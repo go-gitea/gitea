@@ -21,7 +21,19 @@ GOFMT ?= gofmt -s
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
+ifneq ($(DRONE_TAG),)
+	VERSION ?= $(subst v,,$(DRONE_TAG))
+	GITEA_VERSION := $(VERSION)
+else
+	ifneq ($(DRONE_BRANCH),)
+		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	else
+		VERSION ?= master
+	endif
+	GITEA_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+endif
+
+LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
@@ -29,6 +41,10 @@ SOURCES ?= $(shell find . -name "*.go" -type f)
 TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
+
+SWAGGER_SPEC := templates/swagger/v1_json.tmpl
+SWAGGER_SPEC_S_TMPL := s|"basePath":\s*"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath":\s*"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -45,15 +61,8 @@ else
 	EXECUTABLE := gitea
 endif
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
-else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
-	else
-		VERSION ?= master
-	endif
-endif
+# $(call strip-suffix,filename)
+strip-suffix = $(firstword $(subst ., ,$(1)))
 
 .PHONY: all
 all: build
@@ -89,11 +98,12 @@ generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger generate spec -o ./public/swagger.v1.json
+	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff public/swagger.v1.json); \
+	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
@@ -105,7 +115,9 @@ swagger-validate:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger validate ./public/swagger.v1.json
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	swagger validate './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:
@@ -301,7 +313,7 @@ public/js/index.js: $(JAVASCRIPTS)
 
 .PHONY: stylesheets-check
 stylesheets-check: generate-stylesheets
-	@diff=$$(git diff public/css/index.css); \
+	@diff=$$(git diff public/css/*); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
@@ -311,6 +323,7 @@ stylesheets-check: generate-stylesheets
 .PHONY: generate-stylesheets
 generate-stylesheets:
 	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 
 .PHONY: swagger-ui
 swagger-ui:

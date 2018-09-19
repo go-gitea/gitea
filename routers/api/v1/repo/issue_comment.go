@@ -31,12 +31,12 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the specified time are returned.
 	//   type: string
@@ -90,7 +90,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the provided time are returned.
 	//   type: string
@@ -139,7 +139,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
@@ -147,7 +147,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateIssueOption"
+	//     "$ref": "#/definitions/CreateIssueCommentOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Comment"

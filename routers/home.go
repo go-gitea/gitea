@@ -42,6 +42,10 @@ func Home(ctx *context.Context) {
 			user.Dashboard(ctx)
 		}
 		return
+		// Check non-logged users landing page.
+	} else if setting.LandingPageURL != setting.LandingPageHome {
+		ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
+		return
 	}
 
 	// Check auto-login.
@@ -118,6 +122,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
+	topicOnly := ctx.QueryBool("topic")
 
 	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 		Page:      page,
@@ -127,6 +132,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Keyword:   keyword,
 		OwnerID:   opts.OwnerID,
 		AllPublic: true,
+		TopicOnly: topicOnly,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByName", err)

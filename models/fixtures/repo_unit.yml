@@ -74,3 +74,38 @@
   type: 1
   config: "{}"
   created_unix: 1524304355
+
+-
+  id: 12
+  repo_id: 33
+  type: 1
+  config: "{}"
+  created_unix: 1535593231
+
+-
+  id: 13
+  repo_id: 33
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 1535593231
+
+-
+  id: 14
+  repo_id: 33
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowSquash\":true}"
+  created_unix: 1535593231
+
+-
+  id: 15
+  repo_id: 33
+  type: 4
+  config: "{}"
+  created_unix: 1535593231
+
+-
+  id: 16
+  repo_id: 33
+  type: 5
+  config: "{}"
+  created_unix: 1535593231

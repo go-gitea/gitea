@@ -1,0 +1,23 @@
+<div class="ui dropdown tiny button">
+	{{.i18n.Tr "repo.diff.whitespace_button"}}
+	<i class="dropdown icon"></i>
+	<div class="menu">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=">
+			<i class="circle {{ if eq .WhitespaceBehavior "" }}dot{{else}}outline{{end}} icon"></i>
+			{{.i18n.Tr "repo.diff.whitespace_show_everything"}}
+		</a>
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-all" }}dot{{else}}outline{{end}} icon"></i>
+			{{.i18n.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
+		</a>
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-change" }}dot{{else}}outline{{end}} icon"></i>
+			{{.i18n.Tr "repo.diff.whitespace_ignore_amount_changes"}}
+		</a>
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
+			<i class="circle {{ if eq .WhitespaceBehavior "ignore-eol" }}dot{{else}}outline{{end}} icon"></i>
+			{{.i18n.Tr "repo.diff.whitespace_ignore_at_eol"}}
+		</a>
+	</div>
+</div>
+<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>

@@ -191,10 +191,10 @@ func PostProcess(
 ) ([]byte, error) {
 	// create the context from the parameters
 	ctx := &postProcessCtx{
-		metas:          metas,
-		urlPrefix:      urlPrefix,
-		isWikiMarkdown: isWikiMarkdown,
-		procs:          defaultProcessors,
+		metas:                   metas,
+		urlPrefix:               urlPrefix,
+		isWikiMarkdown:          isWikiMarkdown,
+		procs:                   defaultProcessors,
 		visitLinksForShortLinks: true,
 	}
 	return ctx.postProcess(rawHTML)
@@ -468,6 +468,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			link = strings.Replace(link, " ", "+", -1)
 		} else {
 			link = strings.Replace(link, " ", "-", -1)
+		}
+		if !strings.Contains(link, "/") {
+			link = url.PathEscape(link)
 		}
 	}
 	urlPrefix := ctx.urlPrefix

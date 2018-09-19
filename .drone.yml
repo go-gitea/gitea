@@ -4,7 +4,7 @@ workspace:
 
 clone:
   git:
-    image: plugins/git:1
+    image: plugins/git:next
     depth: 50
     tags: true
 
@@ -22,7 +22,7 @@ pipeline:
       branch: [ master ]
 
   update-translations:
-    image: alpine:3.6
+    image: alpine:3.7
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.8
+    image: golang:1.9
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -64,7 +64,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
       TAGS: bindata sqlite
@@ -75,6 +75,7 @@ pipeline:
       - make lint
       - make fmt-check
       - make swagger-check
+      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
@@ -82,7 +83,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -94,7 +95,7 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -106,7 +107,7 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -129,7 +130,7 @@ pipeline:
   #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -144,7 +145,7 @@ pipeline:
       branch: [ master ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -158,7 +159,7 @@ pipeline:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -172,7 +173,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   generate-coverage:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
       TAGS: bindata
@@ -202,7 +203,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  build_docs:
+  build-docs:
     image: webhippie/hugo:latest
     pull: true
     commands:
@@ -211,26 +212,12 @@ pipeline:
       - make clean
       - make build
 
-  docker_docs:
-    image: plugins/docker:17.05
+  publish-docs:
+    image: lucap/drone-netlify:latest
     pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ '${DRONE_BRANCH##release/v}' ]
-    when:
-      event: [ push ]
-      branch: [ release/* ]
-
-  docker_docs:
-    image: plugins/docker:17.05
-    pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/docs
-    context: docs
-    dockerfile: docs/Dockerfile
-    tags: [ 'latest' ]
+    secrets: [ netlify_token ]
+    site_id: d2260bae-7861-4c02-8646-8f6440b12672
+    path: docs/public/
     when:
       event: [ push ]
       branch: [ master ]
@@ -251,6 +238,18 @@ pipeline:
     pull: true
     repo: gitea/gitea
     default_tags: true
+    when:
+      event: [ push, tag ]
+
+  gpg-sign:
+    image: plugins/gpgsign:1
+    pull: true
+    secrets: [ gpgsign_key, gpgsign_passphrase ]
+    detach_sign: true
+    files:
+      - dist/release/*
+    excludes:
+      - dist/release/*.sha256
     when:
       event: [ push, tag ]
 

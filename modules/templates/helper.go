@@ -103,12 +103,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":    base.EllipsisString,
-		"DiffTypeToStr":     DiffTypeToStr,
-		"DiffLineTypeToStr": DiffLineTypeToStr,
-		"Sha1":              Sha1,
-		"ShortSha":          base.ShortSha,
-		"MD5":               base.EncodeMD5,
+		"EllipsisString":        base.EllipsisString,
+		"DiffTypeToStr":         DiffTypeToStr,
+		"DiffLineTypeToStr":     DiffLineTypeToStr,
+		"Sha1":                  Sha1,
+		"ShortSha":              base.ShortSha,
+		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -165,6 +165,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
 		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
@@ -185,6 +188,35 @@ func NewFuncMap() []template.FuncMap {
 		"Sec2Time": models.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
+		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				switch key := values[i].(type) {
+				case string:
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				case map[string]interface{}:
+					m := values[i].(map[string]interface{})
+					for i, v := range m {
+						dict[i] = v
+					}
+				default:
+					return nil, errors.New("dict values must be maps")
+				}
+			}
+			return dict, nil
 		},
 	}}
 }
@@ -323,7 +355,7 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
 func IsMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") > 1
+	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action
@@ -359,6 +391,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}

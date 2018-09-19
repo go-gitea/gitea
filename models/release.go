@@ -88,6 +88,7 @@ func (r *Release) APIFormat() *api.Release {
 		ID:           r.ID,
 		TagName:      r.TagName,
 		Target:       r.Target,
+		Title:        r.Title,
 		Note:         r.Note,
 		URL:          r.APIURL(),
 		TarURL:       r.TarURL(),
@@ -446,6 +447,11 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
+	}
+
+	rel.Repo = repo
+	if err = rel.LoadAttributes(); err != nil {
+		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	mode, _ := accessLevel(x, u.ID, rel.Repo)

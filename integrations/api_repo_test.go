@@ -67,16 +67,16 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 15},
-			user:  {count: 15},
-			user2: {count: 15}},
+			nil:   {count: 19},
+			user:  {count: 19},
+			user2: {count: 19}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
 			nil:   {count: 10},
 			user:  {count: 10},
 			user2: {count: 10}},
 		},
-		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search", expectedResults: expectedResults{
+		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search?default", expectedResults: expectedResults{
 			nil:   {count: 10},
 			user:  {count: 10},
 			user2: {count: 10}},
@@ -143,9 +143,11 @@ func TestAPISearchRepo(t *testing.T) {
 				var session *TestSession
 				var testName string
 				var userID int64
+				var token string
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 					session = loginUser(t, userToLogin.Name)
+					token = getTokenForLoggedInUser(t, session)
 					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
@@ -153,7 +155,7 @@ func TestAPISearchRepo(t *testing.T) {
 				}
 
 				t.Run(testName, func(t *testing.T) {
-					request := NewRequest(t, "GET", testCase.requestURL)
+					request := NewRequest(t, "GET", testCase.requestURL+"&token="+token)
 					response := session.MakeRequest(t, request, http.StatusOK)
 
 					var body api.SearchResults
@@ -214,8 +216,8 @@ func TestAPIOrgRepos(t *testing.T) {
 	sourceOrg := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
-
-	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiRepos []*api.Repository
@@ -231,7 +233,58 @@ func TestAPIOrgRepos(t *testing.T) {
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	prepareTestEnv(t)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
-	sess := loginUser(t, user.Name)
-	req := NewRequestf(t, "GET", "/api/v1/repositories/2")
-	sess.MakeRequest(t, req, http.StatusNotFound)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
+	session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIRepoMigrate(t *testing.T) {
+	testCases := []struct {
+		ctxUserID, userID  int64
+		cloneURL, repoName string
+		expectedStatus     int
+	}{
+		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-own", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-org", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
+	}
+
+	prepareTestEnv(t)
+	for _, testCase := range testCases {
+		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOption{
+			CloneAddr: testCase.cloneURL,
+			UID:       int(testCase.userID),
+			RepoName:  testCase.repoName,
+		})
+		session.MakeRequest(t, req, testCase.expectedStatus)
+	}
+}
+
+func TestAPIOrgRepoCreate(t *testing.T) {
+	testCases := []struct {
+		ctxUserID         int64
+		orgName, repoName string
+		expectedStatus    int
+	}{
+		{ctxUserID: 1, orgName: "user3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "user3", repoName: "repo-own", expectedStatus: http.StatusCreated},
+		{ctxUserID: 2, orgName: "user6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
+	}
+
+	prepareTestEnv(t)
+	for _, testCase := range testCases {
+		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos?token="+token, testCase.orgName), &api.CreateRepoOption{
+			Name: testCase.repoName,
+		})
+		session.MakeRequest(t, req, testCase.expectedStatus)
+	}
 }
