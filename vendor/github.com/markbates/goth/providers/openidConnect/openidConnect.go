@@ -200,7 +200,17 @@ func (p *Provider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
 func (p *Provider) validateClaims(claims map[string]interface{}) (time.Time, error) {
 	audience := getClaimValue(claims, []string{audienceClaim})
 	if audience != p.ClientKey {
-		return time.Time{}, errors.New("audience in token does not match client key")
+		found := false
+		audiences := getClaimValues(claims, []string{audienceClaim})
+		for _, aud := range audiences {
+			if aud == p.ClientKey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return time.Time{}, errors.New("audience in token does not match client key")
+		}
 	}
 
 	issuer := getClaimValue(claims, []string{issuerClaim})
@@ -353,6 +363,24 @@ func getClaimValue(data map[string]interface{}, claims []string) string {
 	}
 
 	return ""
+}
+
+func getClaimValues(data map[string]interface{}, claims []string) []string {
+	var result []string
+
+	for _, claim := range claims {
+		if value, ok := data[claim]; ok {
+			if stringValues, ok := value.([]interface{}); ok {
+				for _, stringValue := range stringValues {
+					if s, ok := stringValue.(string); ok && len(s) > 0 {
+						result = append(result, s)
+					}
+				}
+			}
+		}
+	}
+
+	return result
 }
 
 // decodeJWT decodes a JSON Web Token into a simple map
