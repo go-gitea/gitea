@@ -18,14 +18,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -732,7 +732,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
-		return nil, fmt.Errorf("addDeployKey: %v", err)
+		return nil, err
 	}
 
 	return key, sess.Commit()

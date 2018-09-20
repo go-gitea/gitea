@@ -213,6 +213,7 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
 	var text, title string
 	var color int
+	url := fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
 	switch p.Action {
 	case api.HookIssueOpened:
 		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
@@ -268,7 +269,7 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 			{
 				Title:       title,
 				Description: text,
-				URL:         p.Issue.URL,
+				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
