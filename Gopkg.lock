@@ -547,7 +547,7 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:fb22af9d8c1a6166ad299705648db460ba2c28a830f7f6cdd830019d7c3fd96f"
+  digest = "1:23f75ae90fcc38dac6fad6881006ea7d0f2c78db5f9f81f3df558dc91460e61f"
   name = "github.com/markbates/goth"
   packages = [
     ".",
@@ -562,8 +562,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "4933f155d89c3c52ab4ca545c6602cf4a1e87913"
-  version = "1.45.5"
+  revision = "f9c6649ab984d6ea71ef1e13b7b1cdffcf4592d3"
+  version = "v1.46.1"
 
 [[projects]]
   digest = "1:3ef954101983406a71171c4dc816a73e01bb3de608b3dd063627aa67a459f3e3"
