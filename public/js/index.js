@@ -2431,7 +2431,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', 'flex'); // show Semantic UI Grid
     });
 
     function getPrompts() {
