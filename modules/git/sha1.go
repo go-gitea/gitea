@@ -9,13 +9,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // EmptySHA defines empty git SHA
 const EmptySHA = "0000000000000000000000000000000000000000"
 
 // SHA1 a git commit name
-type SHA1 [20]byte
+type SHA1 plumbing.Hash
 
 // Equal returns true if s has the same SHA1 as caller.
 // Support 40-length-string, []byte, SHA1.

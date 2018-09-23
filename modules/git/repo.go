@@ -16,6 +16,11 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
+
+	"gopkg.in/src-d/go-billy.v4/osfs"
+	gogit "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 // Repository represents a Git repository.
@@ -24,6 +29,9 @@ type Repository struct {
 
 	commitCache *ObjectCache
 	tagCache    *ObjectCache
+
+	gogitRepo    *gogit.Repository
+	gogitStorage *filesystem.Storage
 }
 
 const prettyLogFormat = `--pretty=format:%H`
@@ -77,10 +85,19 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		return nil, errors.New("no such file or directory")
 	}
 
+	fs := osfs.New(repoPath)
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true})
+	gogitRepo, err := gogit.Open(storage, fs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repository{
-		Path:        repoPath,
-		commitCache: newObjectCache(),
-		tagCache:    newObjectCache(),
+		Path:         repoPath,
+		gogitRepo:    gogitRepo,
+		gogitStorage: storage,
+		commitCache:  newObjectCache(),
+		tagCache:     newObjectCache(),
 	}, nil
 }
 

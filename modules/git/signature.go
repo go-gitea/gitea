@@ -8,14 +8,12 @@ import (
 	"bytes"
 	"strconv"
 	"time"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // Signature represents the Author or Committer information.
-type Signature struct {
-	Email string
-	Name  string
-	When  time.Time
-}
+type Signature object.Signature
 
 const (
 	// GitTimeLayout is the (default) time layout used by git.
