@@ -57,7 +57,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 		return nil, err
 	}
 	for _, entry := range entries {
-		if entry.Type == git.ObjectBlob && entry.Name() == target {
+		if entry.IsRegular() && entry.Name() == target {
 			return entry, nil
 		}
 	}
@@ -125,7 +125,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		}
 		pages := make([]PageMeta, 0, len(entries))
 		for _, entry := range entries {
-			if entry.Type != git.ObjectBlob {
+			if !entry.IsRegular() {
 				continue
 			}
 			wikiName, err := models.WikiFilenameToName(entry.Name())
@@ -259,7 +259,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Type != git.ObjectBlob {
+		if !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
