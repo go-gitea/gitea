@@ -5,8 +5,6 @@
 package git
 
 import (
-	"path"
-
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
@@ -16,7 +14,7 @@ import (
 func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, error) {
 	entryPaths := make([]string, len(tes))
 	for i, entry := range tes {
-		entryPaths[i] = path.Join(treePath, entry.Name())
+		entryPaths[i] = entry.Name()
 	}
 
 	c, err := commit.repo.gogitRepo.CommitObject(plumbing.Hash(commit.ID))
@@ -24,7 +22,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		return nil, err
 	}
 
-	revs, err := getLastCommitForPaths(c, entryPaths)
+	revs, err := getLastCommitForPaths(c, treePath, entryPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +43,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	return commitsInfo, nil
 }
 
-func getLastCommitForPaths(c *object.Commit, paths []string) ([]*object.Commit, error) {
+func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([]*object.Commit, error) {
 	cIter := object.NewCommitIterCTime(c, nil, nil)
 	result := make([]*object.Commit, len(paths))
 	remainingResults := len(paths)
@@ -54,6 +52,14 @@ func getLastCommitForPaths(c *object.Commit, paths []string) ([]*object.Commit, 
 	if err != nil {
 		return nil, err
 	}
+
+	if treePath != "" {
+		cTree, err = cTree.Tree(treePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	lastTreeHash := cTree.Hash
 
 	currentEntryHashes := make([]plumbing.Hash, len(paths))
 	for i, path := range paths {
@@ -72,6 +78,21 @@ func getLastCommitForPaths(c *object.Commit, paths []string) ([]*object.Commit, 
 			if err != nil {
 				return err
 			}
+
+			if treePath != "" {
+				parentTree, err = parentTree.Tree(treePath)
+				// the whole tree doesn't exist
+				if err != nil {
+					return nil
+				}
+			}
+
+			// bail-out early if this tree branch was not changed in the commit
+			if lastTreeHash == parentTree.Hash {
+				copy(newEntryHashes, currentEntryHashes)
+				return nil
+			}
+			lastTreeHash = parentTree.Hash
 
 			for i, path := range paths {
 				// skip path if we already found it
