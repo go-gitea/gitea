@@ -162,5 +162,10 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([
 		return nil
 	})
 
+	// only one commit in the repository
+	if resultTree == nil {
+		resultTree = c
+	}
+
 	return result, resultTree, nil
 }
