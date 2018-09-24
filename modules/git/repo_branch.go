@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
@@ -29,7 +28,11 @@ func IsBranchExist(repoPath, name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
-	return IsBranchExist(repo.Path, name)
+	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // Branch represents a Git branch.
@@ -64,24 +67,21 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	r, err := git.PlainOpen(repo.Path)
+	var branchNames []string
+
+	branches, err := repo.gogitRepo.Branches()
 	if err != nil {
 		return nil, err
 	}
 
-	branchIter, err := r.Branches()
-	if err != nil {
-		return nil, err
-	}
-	branches := make([]string, 0)
-	if err = branchIter.ForEach(func(branch *plumbing.Reference) error {
-		branches = append(branches, branch.Name().Short())
+	branches.ForEach(func(branch *plumbing.Reference) error {
+		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
 		return nil
-	}); err != nil {
-		return nil, err
-	}
+	})
 
-	return branches, nil
+	// TODO: Sort?
+
+	return branchNames, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch

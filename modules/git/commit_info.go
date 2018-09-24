@@ -55,12 +55,18 @@ func convertCommit(c *object.Commit) *Commit {
 		}
 	}
 
+	parents := make([]SHA1, len(c.ParentHashes))
+	for i, parentHash := range c.ParentHashes {
+		parents[i] = SHA1(parentHash)
+	}
+
 	return &Commit{
 		ID:            SHA1(c.Hash),
 		CommitMessage: c.Message,
 		Committer:     &commiter,
 		Author:        &author,
 		Signature:     pgpSignaure,
+		parents:       parents,
 	}
 }
 

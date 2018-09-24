@@ -4,16 +4,17 @@
 
 package git
 
+import "gopkg.in/src-d/go-git.v4/plumbing"
+
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	treePath := filepathFromSHA1(repo.Path, id.String())
-	if isFile(treePath) {
-		_, err := NewCommand("ls-tree", id.String()).RunInDir(repo.Path)
-		if err != nil {
-			return nil, ErrNotExist{id.String(), ""}
-		}
+	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id))
+	if err != nil {
+		return nil, err
 	}
 
-	return NewTree(repo, id), nil
+	tree := NewTree(repo, id)
+	tree.gogitTree = gogitTree
+	return tree, nil
 }
 
 // GetTree find the tree object in the repository.
