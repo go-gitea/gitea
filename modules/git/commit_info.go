@@ -11,7 +11,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, error) {
+func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, *Commit, error) {
 	entryPaths := make([]string, len(tes))
 	for i, entry := range tes {
 		entryPaths[i] = entry.Name()
@@ -19,12 +19,12 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 
 	c, err := commit.repo.gogitRepo.CommitObject(plumbing.Hash(commit.ID))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	revs, err := getLastCommitForPaths(c, treePath, entryPaths)
+	revs, treeCommit, err := getLastCommitForPaths(c, treePath, entryPaths)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	commit.repo.gogitStorage.Close()
@@ -40,23 +40,45 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		}
 		commitsInfo[i] = []interface{}{entry, commit}
 	}
-	return commitsInfo, nil
+	return commitsInfo, convertCommit(treeCommit), nil
 }
 
-func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([]*object.Commit, error) {
+func convertCommit(c *object.Commit) *Commit {
+	commiter := Signature(c.Committer)
+	author := Signature(c.Author)
+
+	var pgpSignaure *CommitGPGSignature
+	if c.PGPSignature != "" {
+		pgpSignaure = &CommitGPGSignature{
+			Signature: c.PGPSignature,
+			Payload:   c.Message, // FIXME: This is not correct
+		}
+	}
+
+	return &Commit{
+		ID:            SHA1(c.Hash),
+		CommitMessage: c.Message,
+		Committer:     &commiter,
+		Author:        &author,
+		Signature:     pgpSignaure,
+	}
+}
+
+func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([]*object.Commit, *object.Commit, error) {
 	cIter := object.NewCommitIterCTime(c, nil, nil)
 	result := make([]*object.Commit, len(paths))
+	var resultTree *object.Commit
 	remainingResults := len(paths)
 
 	cTree, err := c.Tree()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if treePath != "" {
 		cTree, err = cTree.Tree(treePath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	lastTreeHash := cTree.Hash
@@ -65,7 +87,7 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([
 	for i, path := range paths {
 		cEntry, err := cTree.FindEntry(path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		currentEntryHashes[i] = cEntry.Hash
 	}
@@ -91,6 +113,9 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([
 			if lastTreeHash == parentTree.Hash {
 				copy(newEntryHashes, currentEntryHashes)
 				return nil
+			} else if resultTree == nil {
+				// save the latest commit that updated treePath
+				resultTree = current
 			}
 			lastTreeHash = parentTree.Hash
 
@@ -136,5 +161,5 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([
 		return nil
 	})
 
-	return result, nil
+	return result, resultTree, nil
 }
