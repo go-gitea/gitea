@@ -276,11 +276,13 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		}
 		return nil, err
 	}
-	rd, err := entry.Blob().Data()
+
+	rd, err := entry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
 
+	defer rd.Close()
 	scanner := bufio.NewScanner(rd)
 	c.submoduleCache = newObjectCache()
 	var ismodule bool

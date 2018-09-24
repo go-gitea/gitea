@@ -94,11 +94,12 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		dataRc, err := blob.Data()
+		dataRc, err := blob.DataAsync()
 		if err != nil {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
+		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
 		ctx.Data["FileName"] = blob.Name()

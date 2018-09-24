@@ -106,10 +106,11 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	}
 
 	// read the link
-	r, err := te.Blob().Data()
+	r, err := te.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
+	defer r.Close()
 	buf := make([]byte, te.Size())
 	_, err = io.ReadFull(r, buf)
 	if err != nil {

@@ -81,11 +81,12 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
 // given tree entry. Writes to ctx if an error occurs.
 func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
-	reader, err := entry.Blob().Data()
+	reader, err := entry.Blob().DataAsync()
 	if err != nil {
 		ctx.ServerError("Blob.Data", err)
 		return nil
 	}
+	defer reader.Close()
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
