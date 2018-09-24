@@ -44,9 +44,6 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 }
 
 func convertCommit(c *object.Commit) *Commit {
-	commiter := Signature(c.Committer)
-	author := Signature(c.Author)
-
 	var pgpSignaure *CommitGPGSignature
 	if c.PGPSignature != "" {
 		pgpSignaure = &CommitGPGSignature{
@@ -58,8 +55,8 @@ func convertCommit(c *object.Commit) *Commit {
 	return &Commit{
 		ID:            c.Hash,
 		CommitMessage: c.Message,
-		Committer:     &commiter,
-		Author:        &author,
+		Committer:     &c.Committer,
+		Author:        &c.Author,
 		Signature:     pgpSignaure,
 		parents:       c.ParentHashes,
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 // Signature represents the Author or Committer information.
-type Signature object.Signature
+type Signature = object.Signature
 
 const (
 	// GitTimeLayout is the (default) time layout used by git.
