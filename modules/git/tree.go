@@ -74,7 +74,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
 	for i, entry := range t.gogitTree.Entries {
 		entries[i] = &TreeEntry{
-			ID:             SHA1(entry.Hash),
+			ID:             entry.Hash,
 			gogitTreeEntry: &t.gogitTree.Entries[i],
 			ptree:          t,
 		}

@@ -32,7 +32,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	commitsInfo := make([][]interface{}, len(tes))
 	for i, entry := range tes {
 		commit := &Commit{
-			ID:            SHA1(revs[i].Hash),
+			ID:            revs[i].Hash,
 			CommitMessage: revs[i].Message,
 			Committer: &Signature{
 				When: revs[i].Committer.When,
@@ -55,18 +55,13 @@ func convertCommit(c *object.Commit) *Commit {
 		}
 	}
 
-	parents := make([]SHA1, len(c.ParentHashes))
-	for i, parentHash := range c.ParentHashes {
-		parents[i] = SHA1(parentHash)
-	}
-
 	return &Commit{
-		ID:            SHA1(c.Hash),
+		ID:            c.Hash,
 		CommitMessage: c.Message,
 		Committer:     &commiter,
 		Author:        &author,
 		Signature:     pgpSignaure,
-		parents:       parents,
+		parents:       c.ParentHashes,
 	}
 }
 
