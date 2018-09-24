@@ -105,6 +105,9 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([
 				parentTree, err = parentTree.Tree(treePath)
 				// the whole tree doesn't exist
 				if err != nil {
+					if resultTree == nil {
+						resultTree = current
+					}
 					return nil
 				}
 			}
