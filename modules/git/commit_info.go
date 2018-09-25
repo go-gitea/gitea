@@ -5,6 +5,9 @@
 package git
 
 import (
+	"fmt"
+	"strings"
+
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
@@ -43,21 +46,57 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	return commitsInfo, convertCommit(treeCommit), nil
 }
 
-func convertCommit(c *object.Commit) *Commit {
-	var pgpSignaure *CommitGPGSignature
-	if c.PGPSignature != "" {
-		pgpSignaure = &CommitGPGSignature{
-			Signature: c.PGPSignature,
-			Payload:   c.Message, // FIXME: This is not correct
+func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
+	if c.PGPSignature == "" {
+		return nil
+	}
+
+	var w strings.Builder
+	var err error
+
+	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
+		return nil
+	}
+
+	for _, parent := range c.ParentHashes {
+		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
+			return nil
 		}
 	}
 
+	if _, err = fmt.Fprint(&w, "author "); err != nil {
+		return nil
+	}
+
+	if err = c.Author.Encode(&w); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
+		return nil
+	}
+
+	if err = c.Committer.Encode(&w); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
+		return nil
+	}
+
+	return &CommitGPGSignature{
+		Signature: c.PGPSignature,
+		Payload:   w.String(),
+	}
+}
+
+func convertCommit(c *object.Commit) *Commit {
 	return &Commit{
 		ID:            c.Hash,
 		CommitMessage: c.Message,
 		Committer:     &c.Committer,
 		Author:        &c.Author,
-		Signature:     pgpSignaure,
+		Signature:     convertPGPSignature(c),
 		parents:       c.ParentHashes,
 	}
 }
