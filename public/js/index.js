@@ -834,10 +834,8 @@ function initPullRequestReview() {
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
-            var id = assingMenuAttributes(commentCloud.find('.menu'));
-            commentCloud.find('.tab.segment').each(function(i, item) {
-                $(item).attr('data-tab', $(item).attr('data-tab') + id);
-            });
+            assingMenuAttributes(commentCloud.find('.menu'));
+
             td.find("input[name='line']").val(idx);
             td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
             td.find("input[name='path']").val(path);
@@ -860,8 +858,6 @@ function assingMenuAttributes(menu) {
 }
 
 function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
-
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -1187,8 +1183,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -2650,8 +2644,7 @@ function cancelCodeComment(btn) {
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
         form.parent().find('button.comment-form-reply').show();
-    }else {
-        console.log("Hey");
+    } else {
         form.closest('.comment-code-cloud').remove()
     }
 }
