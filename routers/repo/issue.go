@@ -576,6 +576,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
+	err = issue.LoadAttributes()
+	if err != nil {
+		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
+
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
 	var iw *models.IssueWatch
@@ -697,7 +703,17 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		if err := comment.LoadPoster(); err != nil {
+			ctx.ServerError("LoadPoster", err)
+			return
+		}
+
 		if comment.Type == models.CommentTypeComment {
+			if err := comment.LoadAttachments(); err != nil {
+				ctx.ServerError("LoadAttachments", err)
+				return
+			}
+
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 

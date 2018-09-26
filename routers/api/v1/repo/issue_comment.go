@@ -51,7 +51,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	// comments,err:=models.GetCommentsByIssueIDSince(, since)
-	issue, err := models.GetRawIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetRawIssueByIndex", err)
 		return

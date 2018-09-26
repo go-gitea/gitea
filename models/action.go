@@ -330,13 +330,15 @@ type PushCommits struct {
 	Commits    []*PushCommit
 	CompareURL string
 
-	avatars map[string]string
+	avatars    map[string]string
+	emailUsers map[string]*User
 }
 
 // NewPushCommits creates a new PushCommits object.
 func NewPushCommits() *PushCommits {
 	return &PushCommits{
-		avatars: make(map[string]string),
+		avatars:    make(map[string]string),
+		emailUsers: make(map[string]*User),
 	}
 }
 
@@ -344,16 +346,31 @@ func NewPushCommits() *PushCommits {
 // api.PayloadCommit format.
 func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
+
+	var err error
 	for i, commit := range pc.Commits {
 		authorUsername := ""
-		author, err := GetUserByEmail(commit.AuthorEmail)
-		if err == nil {
+		author, ok := pc.emailUsers[commit.AuthorEmail]
+		if !ok {
+			author, err = GetUserByEmail(commit.AuthorEmail)
+			if err == nil {
+				authorUsername = author.Name
+				pc.emailUsers[commit.AuthorEmail] = author
+			}
+		} else {
 			authorUsername = author.Name
 		}
+
 		committerUsername := ""
-		committer, err := GetUserByEmail(commit.CommitterEmail)
-		if err == nil {
-			// TODO: check errors other than email not found.
+		committer, ok := pc.emailUsers[commit.CommitterEmail]
+		if !ok {
+			committer, err = GetUserByEmail(commit.CommitterEmail)
+			if err == nil {
+				// TODO: check errors other than email not found.
+				committerUsername = committer.Name
+				pc.emailUsers[commit.CommitterEmail] = committer
+			}
+		} else {
 			committerUsername = committer.Name
 		}
 		commits[i] = &api.PayloadCommit{
@@ -379,17 +396,27 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 // AvatarLink tries to match user in database with e-mail
 // in order to show custom avatar, and falls back to general avatar link.
 func (pc *PushCommits) AvatarLink(email string) string {
-	_, ok := pc.avatars[email]
+	avatar, ok := pc.avatars[email]
+	if ok {
+		return avatar
+	}
+
+	u, ok := pc.emailUsers[email]
 	if !ok {
-		u, err := GetUserByEmail(email)
+		var err error
+		u, err = GetUserByEmail(email)
 		if err != nil {
 			pc.avatars[email] = base.AvatarLink(email)
 			if !IsErrUserNotExist(err) {
 				log.Error(4, "GetUserByEmail: %v", err)
+				return ""
 			}
 		} else {
-			pc.avatars[email] = u.RelAvatarLink()
+			pc.emailUsers[email] = u
 		}
+	}
+	if u != nil {
+		pc.avatars[email] = u.RelAvatarLink()
 	}
 
 	return pc.avatars[email]
