@@ -322,11 +322,13 @@ func (issue *Issue) State() api.StateType {
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func (issue *Issue) APIFormat() *api.Issue {
+	issue.loadLabels(x)
 	apiLabels := make([]*api.Label, len(issue.Labels))
 	for i := range issue.Labels {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
 
+	issue.loadPoster(x)
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
@@ -344,6 +346,8 @@ func (issue *Issue) APIFormat() *api.Issue {
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
+	issue.loadAssignees(x)
+
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
@@ -351,6 +355,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
+		issue.loadPullRequest(x)
 		apiIssue.PullRequest = &api.PullRequestMeta{
 			HasMerged: issue.PullRequest.HasMerged,
 		}
@@ -733,6 +738,9 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	if err = issue.loadRepo(sess); err != nil {
 		return err
 	}
+	if err = issue.loadPoster(sess); err != nil {
+		return err
+	}
 
 	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
 		return err
@@ -745,8 +753,10 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
+		if err = issue.loadPullRequest(sess); err != nil {
+			return err
+		}
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
-		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),

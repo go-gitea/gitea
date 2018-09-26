@@ -347,6 +347,9 @@ func NewPushCommits() *PushCommits {
 func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 
+	if pc.emailUsers == nil {
+		pc.emailUsers = make(map[string]*User)
+	}
 	var err error
 	for i, commit := range pc.Commits {
 		authorUsername := ""
