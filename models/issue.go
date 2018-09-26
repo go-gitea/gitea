@@ -664,7 +664,7 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 	return updateIssueCols(x, issue, cols...)
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Nothing should be performed if current status is same as target status
 	if issue.IsClosed == isClosed {
 		return nil
@@ -715,7 +715,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, repo, issue); err != nil {
+	if _, err = createStatusComment(e, doer, issue); err != nil {
 		return err
 	}
 
@@ -723,14 +723,18 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.changeStatus(sess, doer, repo, isClosed); err != nil {
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
 		return err
 	}
 
@@ -746,7 +750,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(mode),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -754,12 +758,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
+		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
-			Repository: repo.APIFormat(mode),
+			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		}
 		if isClosed {
@@ -767,12 +771,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiIssue.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventIssues, apiIssue)
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
-		go HookQueue.Add(repo.ID)
+		go HookQueue.Add(issue.Repo.ID)
 	}
 
 	return nil

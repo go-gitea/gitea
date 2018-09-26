@@ -874,6 +874,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return nil
 	}
+	issue.Repo = ctx.Repo.Repository
 	checkIssueRights(ctx, issue)
 	if ctx.Written() {
 		return nil
@@ -1055,7 +1056,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 				if models.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -1132,7 +1133,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, isClosed); err != nil {
+				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {

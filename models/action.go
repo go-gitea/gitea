@@ -506,7 +506,8 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 				continue
 			}
 
-			if err = issue.ChangeStatus(doer, repo, true); err != nil {
+			issue.Repo = repo
+			if err = issue.ChangeStatus(doer, true); err != nil {
 				// Don't return an error when dependencies are open as this would let the push fail
 				if IsErrDependenciesLeft(err) {
 					return nil
@@ -531,7 +532,8 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 				continue
 			}
 
-			if err = issue.ChangeStatus(doer, repo, false); err != nil {
+			issue.Repo = repo
+			if err = issue.ChangeStatus(doer, false); err != nil {
 				return err
 			}
 		}

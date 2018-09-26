@@ -350,6 +350,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 
 	pr.LoadIssue()
 	issue := pr.Issue
+	issue.Repo = ctx.Repo.Repository
 
 	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
@@ -383,7 +384,6 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-
 		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -422,7 +422,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return

@@ -535,7 +535,7 @@ func (pr *PullRequest) setMerged() (err error) {
 		return err
 	}
 
-	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
+	if err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {

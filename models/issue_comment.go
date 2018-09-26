@@ -617,7 +617,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	return nil
 }
 
-func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue) (*Comment, error) {
+func createStatusComment(e *xorm.Session, doer *User, issue *Issue) (*Comment, error) {
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
@@ -625,7 +625,7 @@ func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *I
 	return createComment(e, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
-		Repo:  repo,
+		Repo:  issue.Repo,
 		Issue: issue,
 	})
 }
