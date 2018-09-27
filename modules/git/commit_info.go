@@ -5,19 +5,17 @@
 package git
 
 import (
-	"fmt"
-	"strings"
-
+	"github.com/emirpasic/gods/trees/binaryheap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
 func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, *Commit, error) {
-	entryPaths := make([]string, len(tes))
+	entryPaths := make([]string, len(tes)+1)
+	entryPaths[0] = ""
 	for i, entry := range tes {
-		entryPaths[i] = entry.Name()
+		entryPaths[i+1] = entry.Name()
 	}
 
 	c, err := commit.repo.gogitRepo.CommitObject(plumbing.Hash(commit.ID))
@@ -25,7 +23,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		return nil, nil, err
 	}
 
-	revs, treeCommit, err := getLastCommitForPaths(c, treePath, entryPaths)
+	revs, err := getLastCommitForPaths(c, treePath, entryPaths)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -34,177 +32,196 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 
 	commitsInfo := make([][]interface{}, len(tes))
 	for i, entry := range tes {
-		commit := &Commit{
-			ID:            revs[i].Hash,
-			CommitMessage: revs[i].Message,
-			Committer: &Signature{
-				When: revs[i].Committer.When,
-			},
-		}
-		commitsInfo[i] = []interface{}{entry, commit}
-	}
-	return commitsInfo, convertCommit(treeCommit), nil
-}
-
-func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
-	if c.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
-		return nil
-	}
-
-	for _, parent := range c.ParentHashes {
-		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
-			return nil
+		if rev, ok := revs[entry.Name()]; ok {
+			commit := convertCommit(rev)
+			commitsInfo[i] = []interface{}{entry, commit}
+		} else {
+			commitsInfo[i] = []interface{}{entry, nil}
 		}
 	}
 
-	if _, err = fmt.Fprint(&w, "author "); err != nil {
-		return nil
+	var treeCommit *Commit
+	if rev, ok := revs[""]; ok {
+		treeCommit = convertCommit(rev)
 	}
-
-	if err = c.Author.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
-		return nil
-	}
-
-	if err = c.Committer.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: c.PGPSignature,
-		Payload:   w.String(),
-	}
+	return commitsInfo, treeCommit, nil
 }
 
-func convertCommit(c *object.Commit) *Commit {
-	return &Commit{
-		ID:            c.Hash,
-		CommitMessage: c.Message,
-		Committer:     &c.Committer,
-		Author:        &c.Author,
-		Signature:     convertPGPSignature(c),
-		parents:       c.ParentHashes,
-	}
+type commitAndPaths struct {
+	commit *object.Commit
+	// Paths that are still on the branch represented by commit
+	paths []string
+	// Set of hashes for the paths
+	hashes map[string]plumbing.Hash
 }
 
-func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) ([]*object.Commit, *object.Commit, error) {
-	cIter := object.NewCommitIterCTime(c, nil, nil)
-	result := make([]*object.Commit, len(paths))
-	var resultTree *object.Commit
-	remainingResults := len(paths)
-
-	cTree, err := c.Tree()
+func getCommitTree(c *object.Commit, treePath string) (*object.Tree, error) {
+	tree, err := c.Tree()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
+	// Optimize deep traversals by focusing only on the specific tree
 	if treePath != "" {
-		cTree, err = cTree.Tree(treePath)
+		tree, err = tree.Tree(treePath)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	lastTreeHash := cTree.Hash
 
-	currentEntryHashes := make([]plumbing.Hash, len(paths))
-	for i, path := range paths {
-		cEntry, err := cTree.FindEntry(path)
-		if err != nil {
-			return nil, nil, err
+	return tree, nil
+}
+
+func getFullPath(treePath, path string) string {
+	if treePath != "" {
+		if path != "" {
+			return treePath + "/" + path
+		} else {
+			return treePath
 		}
-		currentEntryHashes[i] = cEntry.Hash
+	}
+	return path
+}
+
+func getFileHashes(c *object.Commit, treePath string, paths []string) (map[string]plumbing.Hash, error) {
+	tree, err := getCommitTree(c, treePath)
+	if err == object.ErrDirectoryNotFound {
+		// The whole tree didn't exist, so return empty map
+		return make(map[string]plumbing.Hash), nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	cIter.ForEach(func(current *object.Commit) error {
-		newEntryHashes := make([]plumbing.Hash, len(paths))
-
-		err := current.Parents().ForEach(func(parent *object.Commit) error {
-			parentTree, err := parent.Tree()
-			if err != nil {
-				return err
+	hashes := make(map[string]plumbing.Hash)
+	for _, path := range paths {
+		if path != "" {
+			entry, err := tree.FindEntry(path)
+			if err == nil {
+				hashes[path] = entry.Hash
 			}
-
-			if treePath != "" {
-				parentTree, err = parentTree.Tree(treePath)
-				// the whole tree doesn't exist
-				if err != nil {
-					if resultTree == nil {
-						resultTree = current
-					}
-					return nil
-				}
-			}
-
-			// bail-out early if this tree branch was not changed in the commit
-			if lastTreeHash == parentTree.Hash {
-				copy(newEntryHashes, currentEntryHashes)
-				return nil
-			} else if resultTree == nil {
-				// save the latest commit that updated treePath
-				resultTree = current
-			}
-			lastTreeHash = parentTree.Hash
-
-			for i, path := range paths {
-				// skip path if we already found it
-				if currentEntryHashes[i] != plumbing.ZeroHash {
-					// find parents that contain the path
-					if parentEntry, err := parentTree.FindEntry(path); err == nil {
-						// if the hash for the path differs in the parent then the current commit changed it
-						if parentEntry.Hash == currentEntryHashes[i] {
-							newEntryHashes[i] = currentEntryHashes[i]
-						} else {
-							// mark for saving the result below
-							newEntryHashes[i] = plumbing.ZeroHash
-							// stop any further processing for this file
-							currentEntryHashes[i] = plumbing.ZeroHash
-						}
-					}
-				}
-			}
-
-			return nil
-		})
-		if err != nil {
-			return err
+		} else {
+			hashes[path] = tree.Hash
 		}
+	}
 
-		// if a file didn't exist in any parent commit then it must have been created in the
-		// current one. also we mark changed files in the loop above as not present in the
-		// parent to simplify processing
-		for i, newEntryHash := range newEntryHashes {
-			if newEntryHash == plumbing.ZeroHash && result[i] == nil {
-				result[i] = current
-				remainingResults--
-			}
+	return hashes, nil
+}
+
+func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (map[string]*object.Commit, error) {
+	// We do a tree traversal with nodes sorted by commit time
+	seen := make(map[plumbing.Hash]bool)
+	heap := binaryheap.NewWith(func(a, b interface{}) int {
+		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
+			return 1
 		}
-
-		if remainingResults == 0 {
-			return storer.ErrStop
-		}
-
-		currentEntryHashes = newEntryHashes
-		return nil
+		return -1
 	})
 
-	// only one commit in the repository
-	if resultTree == nil {
-		resultTree = c
+	result := make(map[string]*object.Commit)
+	initialHashes, err := getFileHashes(c, treePath, paths)
+	if err != nil {
+		return nil, err
 	}
 
-	return result, resultTree, nil
+	// Start search from the root commit and with full set of paths
+	heap.Push(&commitAndPaths{c, paths, initialHashes})
+
+	for {
+		cIn, ok := heap.Pop()
+		if !ok {
+			break
+		}
+		current := cIn.(*commitAndPaths)
+		currentID := current.commit.ID()
+
+		if seen[currentID] {
+			continue
+		}
+		seen[currentID] = true
+
+		// Load the parent commits for the one we are currently examining
+		numParents := current.commit.NumParents()
+		var parents []*object.Commit
+		for i := 0; i < numParents; i++ {
+			parent, err := current.commit.Parent(i)
+			if err != nil {
+				break
+			}
+			parents = append(parents, parent)
+		}
+
+		// Examine the current commit and set of interesting paths
+		numOfParentsWithPath := make([]int, len(current.paths))
+		pathChanged := make([]bool, len(current.paths))
+		parentHashes := make([]map[string]plumbing.Hash, len(parents))
+		for j, parent := range parents {
+			parentHashes[j], err = getFileHashes(parent, treePath, current.paths)
+			if err != nil {
+				break
+			}
+
+			for i, path := range current.paths {
+				if parentHashes[j][path] != plumbing.ZeroHash {
+					numOfParentsWithPath[i]++
+					if parentHashes[j][path] != current.hashes[path] {
+						pathChanged[i] = true
+					}
+				}
+			}
+		}
+
+		var remainingPaths []string
+		for i, path := range current.paths {
+			switch numOfParentsWithPath[i] {
+			case 0:
+				// The path didn't exist in any parent, so it must have been created by
+				// this commit. The results could already contain some newer change from
+				// different path, so don't override that.
+				if result[path] == nil {
+					result[path] = current.commit
+				}
+			case 1:
+				// The file is present on exactly one parent, so check if it was changed
+				// and save the revision if it did.
+				if pathChanged[i] {
+					if result[path] == nil {
+						result[path] = current.commit
+					}
+				} else {
+					remainingPaths = append(remainingPaths, path)
+				}
+			default:
+				// The file is present on more than one of the parent paths, so this is
+				// a merge. We have to examine all the parent trees to find out where
+				// the change occured. pathChanged[i] would tell us that the file was
+				// changed during the merge, but it wouldn't tell us the relevant commit
+				// that introduced it.
+				remainingPaths = append(remainingPaths, path)
+			}
+		}
+
+		if len(remainingPaths) > 0 {
+			// Add the parent nodes along with remaining paths to the heap for further
+			// processing.
+			for j, parent := range parents {
+				if seen[parent.ID()] {
+					continue
+				}
+
+				// Combine remainingPath with paths available on the parent branch
+				// and make union of them
+				var remainingPathsForParent []string
+				for _, path := range remainingPaths {
+					if parentHashes[j][path] != plumbing.ZeroHash {
+						remainingPathsForParent = append(remainingPathsForParent, path)
+					}
+				}
+
+				heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+			}
+		}
+	}
+
+	return result, nil
 }
