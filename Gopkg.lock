@@ -352,11 +352,11 @@
   revision = "66031fcb37a0fff002a1f028eb0b3a815c78306b"
 
 [[projects]]
-  digest = "1:6fb9cae2a3b4518e048a899b273e23b671802b611ccfcca0b576ecc08bb7b8f5"
+  digest = "1:758d2371fcdee6d02565901b348729053c636055e67ef6e17aa466c7ff6cc57c"
   name = "github.com/go-macaron/toolbox"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "99a42f20e9e88daec5c0d7beb4e7eac134680ab0"
+  revision = "a77f45a7ce909c0ff14b28279fa1a2b674acb70f"
 
 [[projects]]
   digest = "1:747c1fcb10f8f6734551465ab73c6ed9c551aa6e66250fb6683d1624f554546a"
