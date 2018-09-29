@@ -2425,7 +2425,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', ''); // show Semantic UI Grid
     });
 
     function getPrompts() {
@@ -2456,7 +2456,7 @@ function initTopicbar() {
                 for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
-                editDiv.hide();
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
                 viewDiv.show();
             }
         }).fail(function(xhr){
