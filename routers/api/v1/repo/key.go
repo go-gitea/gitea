@@ -52,10 +52,28 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: key_id
+	//   in: query
+	//   description: the key_id to search for
+	//   type: integer
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	var keys []*models.DeployKey
+	var err error
+
+	fingerprint := ctx.Query("fingerprint")
+	keyID := ctx.QueryInt64("key_id")
+	if fingerprint != "" || keyID != 0 {
+		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
+	} else {
+		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID)
+	}
+
 	if err != nil {
 		ctx.Error(500, "ListDeployKeys", err)
 		return

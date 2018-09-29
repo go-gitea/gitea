@@ -61,7 +61,25 @@ func composePublicKeysAPILink() string {
 }
 
 func listPublicKeys(ctx *context.APIContext, user *models.User) {
-	keys, err := models.ListPublicKeys(user.ID)
+	var keys []*models.PublicKey
+	var err error
+
+	fingerprint := ctx.Query("fingerprint")
+	username := ctx.Params("username")
+
+	if fingerprint != "" {
+		// Querying not just listing
+		if username != "" {
+			// Restrict to provided uid
+			keys, err = models.SearchPublicKey(user.ID, fingerprint)
+		} else {
+			// Unrestricted
+			keys, err = models.SearchPublicKey(0, fingerprint)
+		}
+	} else {
+		// Use ListPublicKeys
+		keys, err = models.ListPublicKeys(user.ID)
+	}
 
 	if err != nil {
 		ctx.Error(500, "ListPublicKeys", err)
@@ -85,6 +103,11 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	// swagger:operation GET /user/keys user userCurrentListKeys
 	// ---
 	// summary: List the authenticated user's public keys
+	// parameters:
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// produces:
 	// - application/json
 	// responses:
@@ -106,6 +129,10 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
