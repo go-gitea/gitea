@@ -28,7 +28,7 @@
 								<span class="ui green label">{{$.i18n.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</span>
 							<span class="commit">
 								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
@@ -38,19 +38,19 @@
 					<div class="ui twelve wide column detail">
 						{{if .IsTag}}
 							<h4>
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</h4>
 							<div class="download">
 							{{if $.Repository.UnitEnabled $.UnitTypeCode}}
 								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
-								<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
-								<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 							{{end}}
 							</div>
 						{{else}}
 							<h3>
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}">{{.Title}}</a>
-								{{if $.IsRepositoryWriter}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
+								{{if $.IsRepositoryWriter}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
 							</h3>
 							<p class="text grey">
 								<span class="author">
@@ -68,10 +68,10 @@
 								<ul class="list">
 									{{if $.Repository.UnitEnabled $.UnitTypeCode}}
 									<li>
-										<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+										<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 									</li>
 									<li>
-										<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+										<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
 									</li>
 									{{end}}
 									{{if .Attachments}}

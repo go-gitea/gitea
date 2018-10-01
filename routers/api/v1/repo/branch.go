@@ -16,7 +16,7 @@ import (
 func GetBranch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
 	// ---
-	// summary: List a repository's branches
+	// summary: Retrieve a specific branch from a repository
 	// produces:
 	// - application/json
 	// parameters:

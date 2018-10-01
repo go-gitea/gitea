@@ -125,10 +125,6 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		ctx.Status(403)
 		return
 	}
-	if !ctx.Repo.GitRepo.IsTagExist(form.TagName) {
-		ctx.Status(404)
-		return
-	}
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
