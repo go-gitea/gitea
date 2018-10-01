@@ -57,10 +57,13 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	commit := convertCommit(gogitCommit)
 	commit.repo = repo
 
-	if tree, err := gogitCommit.Tree(); err != nil {
-		commit.Tree.ID = tree.Hash
-		commit.Tree.gogitTree = tree
+	tree, err := gogitCommit.Tree()
+	if err != nil {
+		return nil, err
 	}
+
+	commit.Tree.ID = tree.Hash
+	commit.Tree.gogitTree = tree
 
 	data, err := NewCommand("name-rev", id.String()).RunInDirBytes(repo.Path)
 	if err != nil {
