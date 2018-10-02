@@ -885,12 +885,12 @@
   version = "v2.3.2"
 
 [[projects]]
-  digest = "1:e2144032dcf8e856fb733151391669dc2d32d79ebb69e3c4151efa605f5e8a01"
+  digest = "1:9c541fc507676a69ea8aaed1af53278a5241d26ce0f192c993fec2ac5b78f795"
   name = "gopkg.in/testfixtures.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b9ef14dc461bf934d8df2dfc6f1f456be5664cca"
-  version = "v2.0.0"
+  revision = "fa3fb89109b0b31957a5430cef3e93e535de362b"
+  version = "v2.5.0"
 
 [[projects]]
   digest = "1:ad6f94355d292690137613735965bd3688844880fdab90eccf66321910344942"
