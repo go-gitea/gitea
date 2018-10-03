@@ -185,8 +185,9 @@ type Repository struct {
 	NumOpenMilestones   int `xorm:"-"`
 	NumReleases         int `xorm:"-"`
 
-	IsPrivate bool `xorm:"INDEX"`
-	IsBare    bool `xorm:"INDEX"`
+	IsPrivate  bool `xorm:"INDEX"`
+	IsBare     bool `xorm:"INDEX"`
+	IsArchived bool `xorm:"INDEX"`
 
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
@@ -290,6 +291,7 @@ func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repo
 		FullName:      repo.FullName(),
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
+		Archived:      repo.IsArchived,
 		Empty:         repo.IsBare,
 		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
@@ -2387,6 +2389,36 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+}
+
+// ToggleArchiveRepo changes the status if a repo is archived or not
+func (repo *Repository) ToggleArchiveRepo() (err error) {
+	repo.IsArchived = !repo.IsArchived
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+
+	// Enable/Disable issues and pull requests
+	if repo.IsArchived {
+		if _, err = x.
+			Where("repo_id = ? AND (type = ? OR type = ?)", repo.ID, UnitTypeIssues, UnitTypePullRequests).
+			Delete(new(RepoUnit)); err != nil {
+			return err
+		}
+	} else {
+		var units []RepoUnit
+		units = append(units, RepoUnit{
+			RepoID: repo.ID,
+			Type:   UnitTypeIssues,
+		})
+		units = append(units, RepoUnit{
+			RepoID: repo.ID,
+			Type:   UnitTypePullRequests,
+		})
+
+		if _, err = x.Insert(units); err != nil {
+			return err
+		}
+	}
+	return
 }
 
 // ___________           __
