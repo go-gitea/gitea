@@ -664,8 +664,23 @@ func LinkAccount(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["user_name"] = gothUser.(goth.User).NickName
-	ctx.Data["email"] = gothUser.(goth.User).Email
+	uname := gothUser.(goth.User).NickName
+	email := gothUser.(goth.User).Email
+	ctx.Data["user_name"] = uname
+	ctx.Data["email"] = email
+
+	if "" != uname {
+		u, _ := models.GetUserByName(uname)
+		if u != nil {
+			ctx.Data["user_name_exists"] = "true"
+		}
+	}
+	if "" != email {
+		u, _ := models.GetUserByEmail(email)
+		if u != nil {
+			ctx.Data["email_exists"] = "true"
+		}
+	}
 
 	ctx.HTML(200, tplLinkAccount)
 }

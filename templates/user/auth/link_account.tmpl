@@ -8,8 +8,13 @@
 		</div>
 	</div>
 </div>
+
+{{if or .user_name_exists .email_exists}}
 <div class="ui user signin container icon">
 {{template "user/auth/signin_inner" .}}
 </div>
+{{else}}
 {{template "user/auth/signup_inner" .}}
+{{end}}
+
 {{template "base/footer" .}}
