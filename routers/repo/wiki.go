@@ -294,7 +294,7 @@ func WikiRaw(ctx *context.Context) {
 	if strings.HasSuffix(providedPath, ".md") {
 		providedPath = providedPath[:len(providedPath)-3]
 	}
-	wikiPath := models.WikiNameToFilename(providedPath)
+	wikiPath := models.WikiNameToFilenameRaw(providedPath)
 	var entry *git.TreeEntry
 	if commit != nil {
 		entry, err = findEntryForFile(commit, wikiPath)
