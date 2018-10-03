@@ -42,6 +42,12 @@ func WikiNameToFilename(name string) string {
 	return url.QueryEscape(name) + ".md"
 }
 
+// WikiNameToFilename converts a wiki name to its corresponding raw filename.
+func WikiNameToFilenameRaw(name string) string {
+	name = strings.Replace(name, " ", "-", -1)
+	return url.QueryEscape(name) 
+}
+
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
 func WikiFilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
