@@ -24,7 +24,7 @@
 							<a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
 							<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 						</div>
-						{{if .Repository.CanEnableEditor}}
+						{{if and .Repository.CanEnableEditor (not .Repository.IsArchived)}}
 							{{if .CanEditFile}}
 								<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-pencil btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
 							{{else}}
