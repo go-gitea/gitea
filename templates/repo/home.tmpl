@@ -24,7 +24,7 @@
 			{{end}}
 		</div>
 		<div class="ui repo-topic" id="repo-topic">
-		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if .IsRepositoryAdmin}}
