@@ -181,7 +181,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 // GetMilestonesByRepoID returns all milestones of a repository.
 func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ?", repoID).Find(&miles)
+	return miles, x.Where("repo_id = ?", repoID).Asc("deadline_unix").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
