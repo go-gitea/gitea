@@ -91,7 +91,7 @@ DEFAULT_THEME = gitea
 USER_PAGING_NUM = 50
 ; Number of repos that are displayed on one page
 REPO_PAGING_NUM = 50
-; Number of notices that are displayed on in one page
+; Number of notices that are displayed on one page
 NOTICE_PAGING_NUM = 25
 ; Number of organizations that are displayed on one page
 ORG_PAGING_NUM = 50
