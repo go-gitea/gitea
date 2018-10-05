@@ -356,7 +356,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 		if err := repo.ToggleArchiveRepo(); err != nil {
 			log.Error(4, "Tried to archive a repo: %s", err)
-			ctx.Error(500)
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
 		}
