@@ -10,15 +10,18 @@
 					data-tab="auth-link-signup-tab">
 					{{.i18n.Tr "auth_link_signup_tab"}}
 				</div>
-				<div class="item {{if or .user_name_exists .email_exists}}active{{end}}" data-tab="auth-link-signin-tab">
+				<div class="item {{if or .user_name_exists .email_exists}}active{{end}}"
+					data-tab="auth-link-signin-tab">
 					{{.i18n.Tr "auth_link_signin_tab"}}
 				</div>
 			</div>
 			
-			<div class="ui tab" data-tab="auth-link-signup-tab">
+			<div class="ui tab {{if not (or .user_name_exists .email_exists)}}active{{end}}"
+				data-tab="auth-link-signup-tab">
 				{{template "user/auth/signup_inner" .}}
 			</div>
-			<div class="ui tab" data-tab="auth-link-signin-tab">
+			<div class="ui tab {{if or .user_name_exists .email_exists}}active{{end}}"
+				data-tab="auth-link-signin-tab">
 				<div class="ui user signin container icon">
 					{{template "user/auth/signin_inner" .}}
 				</div>
