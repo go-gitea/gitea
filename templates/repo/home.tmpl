@@ -34,7 +34,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;" href="/explore/repos?q={{.Name}}&topic=1">{{.Name}}<i class="delete icon"></i></a>
+						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}<i class="delete icon"></i></a>
 						{{end}}
 						<div class="text"></div>
 					</div>
