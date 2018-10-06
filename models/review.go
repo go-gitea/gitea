@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 
 	"github.com/go-xorm/builder"
@@ -216,6 +217,34 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
 	}
+
+	var reviewHookType HookEventType
+	var action api.HookIssueAction
+
+	if opts.Type == ReviewTypeApprove {
+		reviewHookType = HookEventPullRequestApproved
+		action = api.HookPullRequestApproved
+	} else if opts.Type == ReviewTypeReject {
+		reviewHookType = HookEventPullRequestRejected
+		action = api.HookPullRequestRejected
+	} else {
+		// Webhook for a review comment does not exists
+		return review, nil
+	}
+
+	mode, _ := AccessLevel(opts.Issue.Poster.ID, opts.Issue.Repo)
+	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+		Action:      action,
+		Index:       opts.Issue.Index,
+		PullRequest: opts.Issue.PullRequest.APIFormat(),
+		Repository:  opts.Issue.Repo.APIFormat(mode),
+		Sender:      opts.Reviewer.APIFormat(),
+	}); err != nil {
+		return nil, err
+	} else {
+		go HookQueue.Add(opts.Issue.Repo.RepoID)
+	}
+
 	return review, nil
 }
 

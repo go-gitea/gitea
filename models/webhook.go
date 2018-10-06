@@ -425,15 +425,17 @@ type HookEventType string
 
 // Types of hook events
 const (
-	HookEventCreate       HookEventType = "create"
-	HookEventDelete       HookEventType = "delete"
-	HookEventFork         HookEventType = "fork"
-	HookEventPush         HookEventType = "push"
-	HookEventIssues       HookEventType = "issues"
-	HookEventIssueComment HookEventType = "issue_comment"
-	HookEventPullRequest  HookEventType = "pull_request"
-	HookEventRepository   HookEventType = "repository"
-	HookEventRelease      HookEventType = "release"
+	HookEventCreate              HookEventType = "create"
+	HookEventDelete              HookEventType = "delete"
+	HookEventFork                HookEventType = "fork"
+	HookEventPush                HookEventType = "push"
+	HookEventIssues              HookEventType = "issues"
+	HookEventIssueComment        HookEventType = "issue_comment"
+	HookEventPullRequest         HookEventType = "pull_request"
+	HookEventRepository          HookEventType = "repository"
+	HookEventRelease             HookEventType = "release"
+	HookEventPullRequestApproved HookEventType = "pr_approved"
+	HookEventPullRequestRejected HookEventType = "pr_rejected"
 )
 
 // HookRequest represents hook task request information.
