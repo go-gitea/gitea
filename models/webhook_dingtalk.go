@@ -271,6 +271,33 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 	}, nil
 }
 
+func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event HookEventType) (*DingtalkPayload, error) {
+	var text, title string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseActionText(event)
+		if err != nil {
+			return nil, err
+		}
+
+		title = fmt.Sprintf("[%s] Review on pull request %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+
+	}
+
+	return &DingtalkPayload{
+		MsgType: "actionCard",
+		ActionCard: dingtalk.ActionCard{
+			Text: title + "\r\n\r\n" + text,
+			//Markdown:    "# " + title + "\n" + text,
+			Title:       title,
+			HideAvatar:  "0",
+			SingleTitle: "view pull request",
+			SingleURL:   p.PullRequest.HTMLURL,
+		},
+	}, nil
+}
+
 func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, error) {
 	var title, url string
 	switch p.Action {
@@ -369,6 +396,8 @@ func GetDingtalkPayload(p api.Payloader, event HookEventType, meta string) (*Din
 		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case HookEventPullRequest:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
+	case HookEventPullRequestApproved, HookEventPullRequestRejected:
+		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))
 	case HookEventRelease:
