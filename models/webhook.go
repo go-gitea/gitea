@@ -434,8 +434,8 @@ const (
 	HookEventPullRequest         HookEventType = "pull_request"
 	HookEventRepository          HookEventType = "repository"
 	HookEventRelease             HookEventType = "release"
-	HookEventPullRequestApproved HookEventType = "pr_approved"
-	HookEventPullRequestRejected HookEventType = "pr_rejected"
+	HookEventPullRequestApproved HookEventType = "pull_request_approved"
+	HookEventPullRequestRejected HookEventType = "pull_request_rejected"
 )
 
 // HookRequest represents hook task request information.
