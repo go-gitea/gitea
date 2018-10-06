@@ -244,9 +244,8 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		Sender:      opts.Reviewer.APIFormat(),
 	}); err != nil {
 		return nil, err
-	} else {
-		go HookQueue.Add(opts.Issue.Repo.ID)
 	}
+	go HookQueue.Add(opts.Issue.Repo.ID)
 
 	return review, nil
 }
