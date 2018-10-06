@@ -289,13 +289,11 @@ func runCreateUser(c *cli.Context) error {
 		return err
 	}
 
-	var changePassword bool
+	// always default to true
+	var changePassword = true
 
 	if c.IsSet("must-change-password") {
 		changePassword = c.Bool("must-change-password")
-	} else {
-		// always default to true
-		changePassword = true
 	}
 
 	if err := models.CreateUser(&models.User{
