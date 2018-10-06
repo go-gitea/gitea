@@ -275,7 +275,7 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event Hook
 	var text, title string
 	switch p.Action {
 	case api.HookIssueSynchronized:
-		action, err := parseActionText(event)
+		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
 		}

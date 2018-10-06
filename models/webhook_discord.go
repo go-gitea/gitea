@@ -405,7 +405,7 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 	var color int
 	switch p.Action {
 	case api.HookIssueSynchronized:
-		action, err := parseActionText(event)
+		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
 		}
@@ -537,7 +537,7 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 	return s, nil
 }
 
-func parseActionText(event HookEventType) (string, error) {
+func parseHookPullRequestEventType(event HookEventType) (string, error) {
 	if event == HookEventPullRequestApproved {
 		return "approved", nil
 	} else if event == HookEventPullRequestRejected {

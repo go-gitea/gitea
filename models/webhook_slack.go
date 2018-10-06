@@ -335,7 +335,7 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 	var text, title, attachmentText string
 	switch p.Action {
 	case api.HookIssueSynchronized:
-		action, err := parseActionText(event)
+		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
 		}
