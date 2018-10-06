@@ -6,6 +6,8 @@
 package user
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -126,6 +128,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+	ctx.Data["AllowPassword"] = true
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 
@@ -145,6 +148,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+	ctx.Data["AllowPassword"] = true
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 
@@ -648,9 +652,10 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 func LinkAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["AllowPassword"] = setting.Service.RequireExternalRegistrationPassword && !setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -675,9 +680,11 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	// Only allow a password if local login is enabled (TODO) except if SecondFactorAuthentication is enabled
+	ctx.Data["AllowPassword"] = !setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -743,9 +750,11 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	// TODO implement the same for local accounts, once email-based Second Factor Auth is available
+	ctx.Data["AllowPassword"] = setting.Service.RequireExternalRegistrationPassword && !setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -769,13 +778,13 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.RequireExternalRegistrationCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
+	if setting.Service.RequireExternalRegistrationCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
@@ -784,15 +793,29 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		}
 	}
 
-	if (len(strings.TrimSpace(form.Password)) > 0 || len(strings.TrimSpace(form.Retype)) > 0) && form.Password != form.Retype {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplLinkAccount, &form)
-		return
-	}
-	if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplLinkAccount, &form)
-		return
+	if setting.Service.AllowOnlyExternalRegistration || !setting.Service.RequireExternalRegistrationPassword {
+		// Generating a random password a stop-gap shim to get around the password requirement
+		// Eventually the database should be changed to indicate "Second Factor" enabled accounts
+		// that do not introduce the security vulnerabilities of a password
+		bytes := make([]byte, 16)
+		_, err := rand.Read(bytes)
+		if nil != err {
+			ctx.ServerError("CreateUser", err)
+			return
+		}
+		form.Password = hex.EncodeToString(bytes)
+	} else {
+		// TODO Retype password should move to frontend JavaScript, not be required by server
+		if (len(strings.TrimSpace(form.Password)) > 0 || len(strings.TrimSpace(form.Retype)) > 0) && form.Password != form.Retype {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplLinkAccount, &form)
+			return
+		}
+		if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplLinkAccount, &form)
+			return
+		}
 	}
 
 	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.(goth.User).Provider)
@@ -884,6 +907,8 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
+	ctx.Data["AllowPassword"] = true
+
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
 	ctx.HTML(200, tplSignUp)
@@ -899,6 +924,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+
+	ctx.Data["AllowPassword"] = true
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if !setting.Service.ShowRegistrationButton {
