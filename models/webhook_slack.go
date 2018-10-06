@@ -335,13 +335,9 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 	var text, title, attachmentText string
 	switch p.Action {
 	case api.HookIssueSynchronized:
-		var action string
-		if event == HookEventPullRequestRejected {
-			action = "rejected"
-		} else if event == HookEventPullRequestApproved {
-			action = "approved"
-		} else {
-			return nil, errors.New("unknown event type")
+		action, err := parseActionText(event)
+		if err != nil {
+			return nil, err
 		}
 
 		text = fmt.Sprintf("[%s] Review on pull request %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
