@@ -432,12 +432,6 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
-	// HookPullRequestApproved is an issue action for when a pull request is
-	// approved
-	HookPullRequestApproved HookIssueAction = "pr_approved"
-	// HookPullRequestRejected is an issue action for when a pull request is
-	// rejected
-	HookPullRequestRejected HookIssueAction = "pr_rejected"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.

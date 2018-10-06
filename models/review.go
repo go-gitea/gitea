@@ -219,25 +219,30 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	}
 
 	var reviewHookType HookEventType
-	var action api.HookIssueAction
 
 	if opts.Type == ReviewTypeApprove {
 		reviewHookType = HookEventPullRequestApproved
-		action = api.HookPullRequestApproved
 	} else if opts.Type == ReviewTypeReject {
 		reviewHookType = HookEventPullRequestRejected
-		action = api.HookPullRequestRejected
 	} else {
 		// Webhook for a review comment does not exists
 		return review, nil
 	}
 
+	pr := opts.Issue.PullRequest
+
+	// For some weird reason, pr#Issues is nil
+	if err := pr.LoadIssue(); err != nil {
+		return nil, err
+	}
+
 	mode, _ := AccessLevel(opts.Issue.Poster.ID, opts.Issue.Repo)
 	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:     action,
-		Index:      opts.Issue.Index,
-		Repository: opts.Issue.Repo.APIFormat(mode),
-		Sender:     opts.Reviewer.APIFormat(),
+		Action:      api.HookIssueSynchronized,
+		Index:       opts.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  opts.Issue.Repo.APIFormat(mode),
+		Sender:      opts.Reviewer.APIFormat(),
 	}); err != nil {
 		return nil, err
 	} else {
