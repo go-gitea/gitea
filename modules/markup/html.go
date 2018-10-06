@@ -194,7 +194,7 @@ func PostProcess(
 		metas:                   metas,
 		urlPrefix:               urlPrefix,
 		isWikiMarkdown:          isWikiMarkdown,
-		procs:          	 defaultProcessors,
+		procs:                   defaultProcessors,
 		visitLinksForShortLinks: true,
 	}
 	return ctx.postProcess(rawHTML)
