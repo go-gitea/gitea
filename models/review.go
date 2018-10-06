@@ -231,7 +231,6 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 
 	pr := opts.Issue.PullRequest
 
-	// For some weird reason, pr#Issues is nil
 	if err := pr.LoadIssue(); err != nil {
 		return nil, err
 	}
