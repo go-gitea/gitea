@@ -148,7 +148,6 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		headCommit *git.Commit
 		err        error
 	)
-
 	apiIssue := pr.Issue.APIFormat()
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
