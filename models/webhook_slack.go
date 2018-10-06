@@ -341,7 +341,7 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 		} else if event == HookEventPullRequestApproved {
 			action = "approved"
 		} else {
-			return nil, errors.New("unkown event type")
+			return nil, errors.New("unknown event type")
 		}
 
 		text = fmt.Sprintf("[%s] Review on pull request %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
