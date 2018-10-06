@@ -234,15 +234,14 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 
 	mode, _ := AccessLevel(opts.Issue.Poster.ID, opts.Issue.Repo)
 	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      action,
-		Index:       opts.Issue.Index,
-		PullRequest: opts.Issue.PullRequest.APIFormat(),
-		Repository:  opts.Issue.Repo.APIFormat(mode),
-		Sender:      opts.Reviewer.APIFormat(),
+		Action:     action,
+		Index:      opts.Issue.Index,
+		Repository: opts.Issue.Repo.APIFormat(mode),
+		Sender:     opts.Reviewer.APIFormat(),
 	}); err != nil {
 		return nil, err
 	} else {
-		go HookQueue.Add(opts.Issue.Repo.RepoID)
+		go HookQueue.Add(opts.Issue.Repo.ID)
 	}
 
 	return review, nil
