@@ -122,7 +122,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 	defer conn.Close()
 
-	isSecureConn := false
+	isSecureConn := opts.IsTLSEnabled
 	// Start TLS directly if the port ends with 465 (SMTPS protocol)
 	if strings.HasSuffix(port, "465") {
 		conn = tls.Client(conn, tlsconfig)

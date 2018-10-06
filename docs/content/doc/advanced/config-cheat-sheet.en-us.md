@@ -62,7 +62,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
-   
+
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
@@ -219,6 +219,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
      `FROM` and `SENDMAIL_PATH`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
+- ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
 
@@ -302,8 +303,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `GC`: **60**: Git repository GC timeout seconds.
 
 ## API (`api`)
- 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
+
+- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 
 ## i18n (`i18n`)

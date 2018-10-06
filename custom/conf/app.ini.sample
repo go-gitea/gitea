@@ -323,8 +323,8 @@ ENABLE_CAPTCHA = false
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-RECAPTCHA_SECRET  = 
-RECAPTCHA_SITEKEY = 
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -378,6 +378,8 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
+; Should SMTP connection use TLS
+IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
