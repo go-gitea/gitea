@@ -328,6 +328,38 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	}, nil
 }
 
+func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event HookEventType) (*SlackPayload, error) {
+	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
+		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	var text, title, attachmentText string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		var action string
+		if event == HookEventPullRequestRejected {
+			action = "rejected"
+		} else if event == HookEventPullRequestApproved {
+			action = "approved"
+		} else {
+			return nil, errors.New("unkown event type")
+		}
+
+		text = fmt.Sprintf("[%s] Review on pull request %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
+	}
+
+	return &SlackPayload{
+		Channel:  slack.Channel,
+		Text:     text,
+		Username: slack.Username,
+		IconURL:  slack.IconURL,
+		Attachments: []SlackAttachment{{
+			Color: slack.Color,
+			Title: title,
+			Text:  attachmentText,
+		}},
+	}, nil
+}
+
 func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	var text, title, attachmentText string
@@ -376,6 +408,8 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
+	case HookEventPullRequestRejected, HookEventPullRequestApproved:
+		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
 	case HookEventRelease:
