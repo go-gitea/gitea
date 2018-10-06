@@ -33,7 +33,16 @@ func Search(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/UserList"
+	//     description: "SearchResults of a successful search"
+	//     schema:
+	//       type: object
+	//       properties:
+	//         ok:
+	//           type: boolean
+	//         data:
+	//           type: array
+	//           items:
+	//             "$ref": "#/definitions/User"
 	opts := &models.SearchUserOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		Type:     models.UserTypeIndividual,
