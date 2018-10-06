@@ -3,7 +3,7 @@
 		{{end}}
 		<h4 class="ui top attached header center">
 			{{if .LinkAccountMode}}
-				{{.i18n.Tr "auth_link_signin_title"}}
+				{{.i18n.Tr "auth.oauth_signin_title"}}
 			{{else}}
 				{{.i18n.Tr "auth.login_userpass"}}
 			{{end}}
@@ -33,7 +33,7 @@
 				<label></label>
 				<button class="ui green button">
 					{{if .LinkAccountMode}}
-						{{.i18n.Tr "auth_link_signin_submit"}}
+						{{.i18n.Tr "auth.oauth_signin_submit"}}
 					{{else}}
 						{{.i18n.Tr "sign_in"}}
 					{{end}}

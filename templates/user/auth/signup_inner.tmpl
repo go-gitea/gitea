@@ -5,7 +5,7 @@
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{if .LinkAccountMode}}
-						{{.i18n.Tr "auth_link_signup_title"}}
+						{{.i18n.Tr "auth.oauth_signup_title"}}
 					{{else}}
 						{{.i18n.Tr "sign_up"}}
 					{{end}}
@@ -53,7 +53,7 @@
 							<label></label>
 							<button class="ui green button">
 								{{if .LinkAccountMode}}
-									{{.i18n.Tr "auth_link_signup_submit"}}
+									{{.i18n.Tr "auth.oauth_signup_submit"}}
 								{{else}}
 									{{.i18n.Tr "auth.create_new_account"}}
 								{{end}}

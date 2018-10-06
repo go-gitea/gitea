@@ -669,16 +669,18 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["user_name"] = uname
 	ctx.Data["email"] = email
 
-	if "" != uname {
-		u, _ := models.GetUserByName(uname)
-		if u != nil {
-			ctx.Data["user_name_exists"] = "true"
-		}
-	}
-	if "" != email {
+	if len(email) != 0 {
+		// ignoring the "user not found" error
 		u, _ := models.GetUserByEmail(email)
 		if u != nil {
-			ctx.Data["email_exists"] = "true"
+			ctx.Data["user_exists"] = true
+		}
+	} else if len(uname) != 0 {
+		// ignoring the "user not found" error
+		u, _ := models.GetUserByName(uname)
+		fmt.Println("Error retrieving username:", err)
+		if u != nil {
+			ctx.Data["user_exists"] = true
 		}
 	}
 
