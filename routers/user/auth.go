@@ -509,6 +509,37 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	return setting.AppSubURL + "/"
 }
 
+func handleRegister(ctx *context.Context, u *models.User, remember bool, obeyRedirect bool) {
+	// Auto-set admin for the only user.
+	if models.CountUsers() == 1 {
+		u.IsAdmin = true
+		u.IsActive = true
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
+	}
+
+	// Send confirmation email
+	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
+		models.SendActivateAccountMail(ctx.Context, u)
+		ctx.Data["IsSendRegisterMail"] = true
+		ctx.Data["Email"] = u.Email
+		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.HTML(200, TplActivate)
+
+		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
+	// Complete the signin without logging in again
+	handleSignInFull(ctx, u, remember, true)
+}
+
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
@@ -834,14 +865,20 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		ctx.ServerError("CreateUser", err)
 	}
 
+	// TODO LoginName should come from form.UserName... shouldn't it?
 	u := &models.User{
-		Name:        form.UserName,
-		Email:       form.Email,
-		Passwd:      form.Password,
-		IsActive:    !setting.Service.RegisterEmailConfirm,
-		LoginType:   models.LoginOAuth2,
-		LoginSource: loginSource.ID,
-		LoginName:   gothUser.(goth.User).UserID,
+		Name:     form.UserName,
+		Email:    form.Email,
+		Passwd:   form.Password,
+		IsActive: !setting.Service.RegisterEmailConfirm,
+	}
+
+	// This will link the account in such a way that it cannot be removed
+	// TODO why is this different from normal linking?
+	if setting.Service.AllowOnlyExternalRegistration {
+		u.LoginType = models.LoginOAuth2
+		u.LoginSource = loginSource.ID
+		u.LoginName = gothUser.(goth.User).UserID
 	}
 
 	if err := models.CreateUser(u); err != nil {
@@ -865,32 +902,16 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	}
 	log.Trace("Account created: %s", u.Name)
 
-	// Auto-set admin for the only user.
-	if models.CountUsers() == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
-			ctx.ServerError("UpdateUser", err)
+	// This will link the account in such a way that it can be removed
+	if !setting.Service.AllowOnlyExternalRegistration {
+		err = models.LinkAccountToUser(u, gothUser.(goth.User))
+		if err != nil {
+			ctx.ServerError("UserLinkAccount", err)
 			return
 		}
 	}
 
-	// Send confirmation email
-	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
-		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(200, TplActivate)
-
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	handleRegister(ctx, u, form.Remember, true)
 }
 
 // SignOut sign out from login status
@@ -1003,33 +1024,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	}
 	log.Trace("Account created: %s", u.Name)
 
-	// Auto-set admin for the only user.
-	if models.CountUsers() == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-	}
-
-	// Send confirmation email, no need for social account.
-	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
-		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(200, TplActivate)
-
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
-	handleSignInFull(ctx, u, false, true)
+	handleRegister(ctx, u, form.Remember, true)
 }
 
 // Activate render activate user page

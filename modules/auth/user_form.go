@@ -80,6 +80,7 @@ type RegisterForm struct {
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"Required;MaxSize(255)"`
 	Retype             string
+	Remember           bool
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
