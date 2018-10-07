@@ -893,8 +893,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Redirect(setting.AppSubURL + "/user/login")
 }
 
-// SignOut sign out from login status
-func SignOut(ctx *context.Context) {
+func handleSignOut(ctx *context.Context) {
 	ctx.Session.Delete("uid")
 	ctx.Session.Delete("uname")
 	ctx.Session.Delete("socialId")
@@ -904,6 +903,11 @@ func SignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie("lang", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+}
+
+// SignOut sign out from login status
+func SignOut(ctx *context.Context) {
+	handleSignOut(ctx)
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
@@ -1178,6 +1182,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 func ResetPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 
+	// TODO for security and convenience, show the username / email here
+
 	code := ctx.Query("code")
 	if len(code) == 0 {
 		ctx.Error(404)
@@ -1222,6 +1228,10 @@ func ResetPasswdPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
+
+		// Just in case the user is signed in to another account
+		handleSignOut(ctx)
+
 		u.HashPassword(passwd)
 		u.MustChangePassword = false
 		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
@@ -1230,6 +1240,9 @@ func ResetPasswdPost(ctx *context.Context) {
 		}
 
 		log.Trace("User password reset: %s", u.Name)
+
+		// TODO change the former form to have password retype and remember me,
+		// then sign in here instead of redirecting
 		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
