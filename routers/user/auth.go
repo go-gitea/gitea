@@ -1178,77 +1178,89 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.HTML(200, tplForgotPassword)
 }
 
-// ResetPasswd render the reset password page
-func ResetPasswd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
-
-	// TODO for security and convenience, show the username / email here
-
+func commonResetPassword(ctx *context.Context) *models.User {
 	code := ctx.Query("code")
-	if len(code) == 0 {
-		ctx.Error(404)
-		return
-	}
+
+	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
 
-	if u := models.VerifyUserActiveCode(code); u != nil {
-		ctx.Data["IsResetForm"] = true
+	if nil != ctx.User {
+		ctx.Data["user_signed_in"] = true
 	}
+
+	if len(code) == 0 {
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		return nil
+	}
+
+	// Fail early, don't frustrate the user
+	u := models.VerifyUserActiveCode(code)
+	if u == nil {
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		return nil
+	}
+
+	// Show the user that they are affecting the account that they intended to
+	ctx.Data["user_email"] = u.Email
+
+	if nil != ctx.User && u.ID != ctx.User.ID {
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
+		return nil
+	}
+
+	return u
+}
+
+// ResetPasswd render the reset password page
+func ResetPasswd(ctx *context.Context) {
+	ctx.Data["IsResetForm"] = true
+
+	_ = commonResetPassword(ctx)
 
 	ctx.HTML(200, tplResetPassword)
 }
 
 // ResetPasswdPost response from reset password request
 func ResetPasswdPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
+	u := commonResetPassword(ctx)
 
-	code := ctx.Query("code")
-	if len(code) == 0 {
-		ctx.Error(404)
+	if u == nil {
+		// Flash error has been set
+		ctx.HTML(200, tplResetPassword)
 		return
 	}
-	ctx.Data["Code"] = code
 
-	if u := models.VerifyUserActiveCode(code); u != nil {
-		// Validate password length.
-		passwd := ctx.Query("password")
-		if len(passwd) < setting.MinPasswordLength {
-			ctx.Data["IsResetForm"] = true
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
-			return
-		}
-
-		var err error
-		if u.Rands, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-
-		// Just in case the user is signed in to another account
-		handleSignOut(ctx)
-
-		u.HashPassword(passwd)
-		u.MustChangePassword = false
-		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-
-		log.Trace("User password reset: %s", u.Name)
-
-		// TODO change the former form to have password retype and remember me,
-		// then sign in here instead of redirecting
-		ctx.Redirect(setting.AppSubURL + "/user/login")
+	// Validate password length.
+	passwd := ctx.Query("password")
+	if len(passwd) < setting.MinPasswordLength {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		return
 	}
+
+	var err error
+	if u.Rands, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+	if u.Salt, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	u.HashPassword(passwd)
+	u.MustChangePassword = false
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	log.Trace("User password reset: %s", u.Name)
 
 	ctx.Data["IsResetFailed"] = true
-	ctx.HTML(200, tplResetPassword)
+	remember := len(ctx.Query("remember")) != 0
+	handleSignInFull(ctx, u, remember, true)
 }
 
 // MustChangePassword renders the page to change a user's password
