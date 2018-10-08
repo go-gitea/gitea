@@ -9,6 +9,9 @@ body {
 img {
     border-radius: 3px;
 }
+table {
+    border-collapse: collapse;
+}
 .rounded {
     border-radius: .28571429rem !important;
 }
@@ -154,6 +157,10 @@ pre, code {
 
     &.floating.label {
         z-index: 10;
+    }
+
+    &.transparent.label {
+        background-color: transparent;
     }
 
     &.menu,
@@ -371,7 +378,11 @@ pre, code {
     }
 }
 
+.file-comment {
+    font: 12px Consolas,"Liberation Mono",Menlo,Courier,monospace;
+    color: rgba(0,0,0,.87);
 
+}
 
 .overflow.menu {
     .items {
@@ -402,6 +413,11 @@ pre, code {
             }
         }
     }
+}
+
+.user-menu > .item {
+    width: 100%;
+    border-radius: 0 !important;
 }
 
 .scrolling.menu {
@@ -443,6 +459,12 @@ footer {
 
 .hide {
     display: none;
+    &.show-outdated {
+        display: none !important;
+    }
+    &.hide-outdated {
+        display: none !important;
+    }
 }
 .center {
     text-align: center;

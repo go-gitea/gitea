@@ -37,6 +37,9 @@ _Symbols used in table:_
 | Multiple OS support | ✓ | ✓ | ✘ | ✘ | ✘ | ✘ | ✓ |
 | Easy upgrade process | ✓ | ✓ | ✘ | ✓ | ✓ | ✘ | ✓ |
 | Markdown support | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Orgmode support | ✓ | ✘ | ✓ | ✘ | ✘ | ✘ | ? |
+| CSV support | ✓ | ✘ | ✓ | ✘ | ✘ | ✓ | ? |
+| Third-party render tool support | ✓ | ✘ | ✘ | ✘ | ✘ | ✓ | ? |
 | Static Git-powered pages | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Integrated Git-powered wiki | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Deploy Tokens | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -53,7 +56,7 @@ _Symbols used in table:_
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
 | Repository topics | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Repository code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Global code search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Global code search | ✓ | ✘ | ✓ | ✘ | ✓ | ✓ | ✓ |
 | Git LFS 2.0 | ✓ | ✘ | ✓ | ✓ | ✓ | ⁄ | ✓ |
 | Group Milestones | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
@@ -74,7 +77,7 @@ _Symbols used in table:_
 | Issue templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Labels | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Multiple assignees for issues | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
@@ -84,6 +87,7 @@ _Symbols used in table:_
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Issue search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Global issue search | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
@@ -92,8 +96,8 @@ _Symbols used in table:_
 | Pull/Merge requests | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Squash merging | ✓ | ✘ | ✓ | ✘ | ✓ | ✓ | ✓ |
 | Rebase merging | ✓ | ✓ | ✓ | ✘ | ⁄ | ✘ | ✓ |
-| Pull/Merge request inline comments | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Pull/Merge request approval | ✘ | ✘ | ⁄ | ✓ | ✓ | ✓ | ✓ |
+| Pull/Merge request inline comments | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Pull/Merge request approval | ✓ | ✘ | ⁄ | ✓ | ✓ | ✓ | ✓ |
 | Merge conflict resolution | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Restrict push and merge access to certain users | ✓ | ✘ | ✓ | ⁄ | ✓ | ✓ | ✓ |
 | Revert specific commits or a merge request | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |

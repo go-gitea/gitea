@@ -15,7 +15,7 @@ func TestAddTopic(t *testing.T) {
 
 	topics, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(topics))
+	assert.EqualValues(t, 4, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		Limit: 2,
@@ -32,7 +32,7 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, SaveTopics(2, "golang"))
 	topics, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(topics))
+	assert.EqualValues(t, 4, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
@@ -47,7 +47,7 @@ func TestAddTopic(t *testing.T) {
 
 	topics, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, len(topics))
+	assert.EqualValues(t, 5, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,

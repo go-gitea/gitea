@@ -102,7 +102,7 @@
 .user.reset.password,
 .user.signin,
 .user.signup {
-    @input-padding: 200px!important;
+    @input-padding: 200px;
     #create-page-form;
     form {
         width: 700px!important;
@@ -112,6 +112,12 @@
         }
         .inline.field > label {
             width: @input-padding;
+        }
+
+        .inline.field > label, input {
+            @media only screen and (max-width: 768px) {
+                width: 100% !important;
+            }
         }
     }
 }
@@ -137,17 +143,33 @@
                 padding-left: 0 !important;
                 text-align: center;
             }
+
+            @media only screen and (max-width: 768px) {
+                label, input, .selection.dropdown {
+                    width: 100% !important;
+                }
+
+                .field button, .field a {
+                    margin-bottom: 1em;
+                    width: 100%;
+                }
+            }
         }
     }
 
 	&.new.repo {
 		.ui.form {
-			.selection.dropdown:not(.owner) {
-				width: 50%!important;
-			}
 			@media only screen and (min-width: 768px) {
 				#auto-init {
 					margin-left: @create-page-form-input-padding+15px;
+				}
+			}
+
+			.selection.dropdown:not(.owner) {
+				width: 50%!important;
+
+				@media only screen and (max-width: 768px) {
+					width: 100% !important;
 				}
 			}
 		}
@@ -174,4 +196,17 @@
     textarea {
         font-family: monospace;
     }
+}
+
+.new.org .ui.form {
+	@media only screen and (max-width: 768px) {
+		.field button, .field a{
+			margin-bottom: 1em;
+			width: 100%;
+		}
+
+		.field input {
+			width: 100% !important;
+		}
+	}
 }

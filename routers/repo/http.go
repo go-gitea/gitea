@@ -83,12 +83,8 @@ func HTTP(ctx *context.Context) {
 
 	// check access
 	if askAuth {
-		if setting.Service.EnableReverseProxyAuth {
-			authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-			if len(authUsername) == 0 {
-				ctx.HandleText(401, "reverse proxy login error. authUsername empty")
-				return
-			}
+		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+		if setting.Service.EnableReverseProxyAuth && len(authUsername) > 0 {
 			authUser, err = models.GetUserByName(authUsername)
 			if err != nil {
 				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
@@ -226,6 +222,11 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
 		}
+
+		if !authUser.KeepEmailPrivate {
+			environ = append(environ, models.EnvPusherEmail+"="+authUser.Email)
+		}
+
 		if isWiki {
 			environ = append(environ, models.EnvRepoIsWiki+"=true")
 		} else {

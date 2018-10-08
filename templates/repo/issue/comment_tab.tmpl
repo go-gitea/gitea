@@ -1,14 +1,14 @@
 <div class="field">
 	<div class="ui top attached tabular menu" data-write="write" data-preview="preview">
-		<a class="active item" data-tab="write">{{.i18n.Tr "repo.release.write"}}</a>
-		<a class="item" data-tab="preview" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.RepoLink}}">{{.i18n.Tr "repo.release.preview"}}</a>
+		<a class="active item" data-tab="write">{{.i18n.Tr "write"}}</a>
+		<a class="item" data-tab="preview" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.RepoLink}}">{{.i18n.Tr "preview"}}</a>
 	</div>
 	<div class="ui bottom attached active tab segment" data-tab="write">
 		<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.Repo.RepoLink}}">
 {{if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end}}</textarea>
 	</div>
 	<div class="ui bottom attached tab segment markdown" data-tab="preview">
-		{{.i18n.Tr "repo.release.loading"}}
+		{{.i18n.Tr "loading"}}
 	</div>
 </div>
 {{if .IsAttachmentEnabled}}

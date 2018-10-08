@@ -59,7 +59,7 @@ to override can be found in the `templates` directory of Gitea source. Override 
 making a copy of the file under `custom/templates` using a full path structure
 matching source.
 
-Any statement contained inside `{{` and `}}` are Gitea's templete syntax and
+Any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Adding links and tabs

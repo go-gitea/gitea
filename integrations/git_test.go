@@ -75,7 +75,8 @@ func TestGit(t *testing.T) {
 
 				t.Run("CreateRepo", func(t *testing.T) {
 					session := loginUser(t, "user2")
-					req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+					token := getTokenForLoggedInUser(t, session)
+					req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+token, &api.CreateRepoOption{
 						AutoInit:    true,
 						Description: "Temporary repo",
 						Name:        "repo-tmp-17",
@@ -166,7 +167,8 @@ func TestGit(t *testing.T) {
 			t.Run("Standard", func(t *testing.T) {
 				t.Run("CreateRepo", func(t *testing.T) {
 					session := loginUser(t, "user2")
-					req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+					token := getTokenForLoggedInUser(t, session)
+					req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+token, &api.CreateRepoOption{
 						AutoInit:    true,
 						Description: "Temporary repo",
 						Name:        "repo-tmp-18",

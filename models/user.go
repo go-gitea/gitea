@@ -83,18 +83,23 @@ type User struct {
 	Email            string `xorm:"NOT NULL"`
 	KeepEmailPrivate bool
 	Passwd           string `xorm:"NOT NULL"`
-	LoginType        LoginType
-	LoginSource      int64 `xorm:"NOT NULL DEFAULT 0"`
-	LoginName        string
-	Type             UserType
-	OwnedOrgs        []*User       `xorm:"-"`
-	Orgs             []*User       `xorm:"-"`
-	Repos            []*Repository `xorm:"-"`
-	Location         string
-	Website          string
-	Rands            string `xorm:"VARCHAR(10)"`
-	Salt             string `xorm:"VARCHAR(10)"`
-	Language         string `xorm:"VARCHAR(5)"`
+
+	// MustChangePassword is an attribute that determines if a user
+	// is to change his/her password after registration.
+	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
+
+	LoginType   LoginType
+	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
+	LoginName   string
+	Type        UserType
+	OwnedOrgs   []*User       `xorm:"-"`
+	Orgs        []*User       `xorm:"-"`
+	Repos       []*Repository `xorm:"-"`
+	Location    string
+	Website     string
+	Rands       string `xorm:"VARCHAR(10)"`
+	Salt        string `xorm:"VARCHAR(10)"`
+	Language    string `xorm:"VARCHAR(5)"`
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -374,9 +379,9 @@ func (u *User) GetFollowers(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.follow_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.user_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.user_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -393,9 +398,9 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.user_id=?", u.ID)
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", `"user".id=follow.follow_id`)
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	} else {
-		sess = sess.Join("LEFT", "follow", "user.id=follow.follow_id")
+		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	}
 	return users, sess.Find(&users)
 }
@@ -683,7 +688,35 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "error", "new", ".", ".."}
+	reservedUsernames = []string{
+		"admin",
+		"api",
+		"assets",
+		"avatars",
+		"commits",
+		"css",
+		"debug",
+		"error",
+		"explore",
+		"help",
+		"img",
+		"install",
+		"issues",
+		"js",
+		"less",
+		"new",
+		"org",
+		"plugins",
+		"pulls",
+		"raw",
+		"repo",
+		"stars",
+		"template",
+		"user",
+		"vendor",
+		".",
+		"..",
+	}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -769,8 +802,6 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 
 	if _, err = sess.Insert(u); err != nil {
-		return err
-	} else if err = os.MkdirAll(UserPath(u.Name), os.ModePerm); err != nil {
 		return err
 	}
 
@@ -870,7 +901,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
-	return os.Rename(UserPath(u.Name), UserPath(newUserName))
+	// Do not fail if directory does not exist
+	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("Rename user directory: %v", err)
+	}
+
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user

@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -103,12 +104,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":    base.EllipsisString,
-		"DiffTypeToStr":     DiffTypeToStr,
-		"DiffLineTypeToStr": DiffLineTypeToStr,
-		"Sha1":              Sha1,
-		"ShortSha":          base.ShortSha,
-		"MD5":               base.EncodeMD5,
+		"EllipsisString":        base.EllipsisString,
+		"DiffTypeToStr":         DiffTypeToStr,
+		"DiffLineTypeToStr":     DiffLineTypeToStr,
+		"Sha1":                  Sha1,
+		"ShortSha":              base.ShortSha,
+		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -165,6 +166,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
 		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
@@ -188,6 +192,32 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				switch key := values[i].(type) {
+				case string:
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				case map[string]interface{}:
+					m := values[i].(map[string]interface{})
+					for i, v := range m {
+						dict[i] = v
+					}
+				default:
+					return nil, errors.New("dict values must be maps")
+				}
+			}
+			return dict, nil
 		},
 	}}
 }
@@ -246,13 +276,35 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	}
 
 	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't loose data.
+	// original left over. This way we won't lose data.
 	result, n, err := transform.String(encoding.NewDecoder(), string(content))
 	if err != nil {
 		result = result + string(content[n:])
 	}
 
 	return result, err
+}
+
+// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
+func ToUTF8WithFallback(content []byte) []byte {
+	charsetLabel, err := base.DetectEncoding(content)
+	if err != nil || charsetLabel == "UTF-8" {
+		return content
+	}
+
+	encoding, _ := charset.Lookup(charsetLabel)
+	if encoding == nil {
+		return content
+	}
+
+	// If there is an error, we concatenate the nicely decoded part and the
+	// original left over. This way we won't lose data.
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
+	if err != nil {
+		return append(result, content[n:]...)
+	}
+
+	return result
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error
@@ -362,6 +414,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}

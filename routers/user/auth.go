@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -27,6 +28,8 @@ import (
 )
 
 const (
+	// tplMustChangePassword template for updating a user's password
+	tplMustChangePassword = "user/auth/change_passwd"
 	// tplSignIn template for sign in page
 	tplSignIn base.TplName = "user/auth/signin"
 	// tplSignUp template path for sign up page
@@ -56,8 +59,8 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	defer func() {
 		if !isSucceed {
 			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
-			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
+			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		}
 	}()
 
@@ -77,7 +80,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed = true
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	return true, nil
 }
 
@@ -91,13 +94,13 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
 		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
 		return true
 	}
@@ -305,7 +308,11 @@ func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthFo
 	// Validate the passcode with the stored TOTP secret.
 	if twofa.VerifyScratchToken(form.Token) {
 		// Invalidate the scratch token.
-		twofa.ScratchToken = ""
+		_, err = twofa.GenerateScratchToken()
+		if err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
 		if err = models.UpdateTwoFactor(twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -320,7 +327,7 @@ func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthFo
 
 		handleSignInFull(ctx, u, remember, false)
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
 
@@ -438,9 +445,9 @@ func handleSignIn(ctx *context.Context, u *models.User, remember bool) {
 func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	}
 
 	ctx.Session.Delete("openid_verified_uri")
@@ -464,10 +471,10 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		}
 	}
 
-	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
+	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 	// Register last login
 	u.SetLastLogin()
@@ -477,7 +484,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	}
 
 	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
 		}
@@ -558,7 +565,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 			ctx.Session.Set("uname", u.Name)
 
 			// Clear whatever CSRF has right now, force to generate a new one
-			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 			// Register last login
 			u.SetLastLogin()
@@ -568,7 +575,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 			}
 
 			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
-				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
 			}
@@ -859,10 +866,10 @@ func SignOut(ctx *context.Context) {
 	ctx.Session.Delete("socialId")
 	ctx.Session.Delete("socialName")
 	ctx.Session.Delete("socialEmail")
-	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
-	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
-	ctx.SetCookie("lang", "", -1, setting.AppSubURL) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
@@ -982,7 +989,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
+	handleSignInFull(ctx, u, false, true)
 }
 
 // Activate render activate user page
@@ -1034,6 +1042,7 @@ func Activate(ctx *context.Context) {
 
 		ctx.Session.Set("uid", user.ID)
 		ctx.Session.Set("uname", user.Name)
+		ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
@@ -1171,7 +1180,8 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 		u.HashPassword(passwd)
-		if err := models.UpdateUserCols(u, "passwd", "rands", "salt"); err != nil {
+		u.MustChangePassword = false
+		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1183,4 +1193,72 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	ctx.Data["IsResetFailed"] = true
 	ctx.HTML(200, tplResetPassword)
+}
+
+// MustChangePassword renders the page to change a user's password
+func MustChangePassword(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
+
+	ctx.HTML(200, tplMustChangePassword)
+}
+
+// MustChangePasswordPost response for updating a user's password after his/her
+// account was created by an admin
+func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
+	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+
+	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplMustChangePassword)
+		return
+	}
+
+	u := ctx.User
+
+	// Make sure only requests for users who are eligible to change their password via
+	// this method passes through
+	if !u.MustChangePassword {
+		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password.. Please visit the settings page"))
+		return
+	}
+
+	if form.Password != form.Retype {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
+		return
+	}
+
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+		return
+	}
+
+	var err error
+	if u.Salt, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	u.HashPassword(form.Password)
+	u.MustChangePassword = false
+
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "salt"); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
+
+	log.Trace("User updated password: %s", u.Name)
+
+	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.RedirectToFirst(redirectTo)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
 }

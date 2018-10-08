@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
     "/admin/users": {
       "post": {
@@ -985,6 +985,18 @@
             "description": "if `uid` is given, search only for repos that the user owns",
             "name": "exclusive",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort repos by attribute. Supported values are \"alpha\", \"created\", \"updated\", \"size\", and \"id\". Default is \"alpha\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1145,7 +1157,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "List a repository's branches",
+        "summary": "Retrieve a specific branch from a repository",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -2316,6 +2328,68 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Comment"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/deadline": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Set an issue deadline. If set to null, the deadline is deleted.",
+        "operationId": "issueEditIssueDeadline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue to create or update a deadline on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditDeadlineOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/IssueDeadline"
+          },
+          "403": {
+            "description": "Not repo writer",
+            "schema": {
+              "$ref": "#/responses/forbidden"
+            }
+          },
+          "404": {
+            "description": "Issue not found",
+            "schema": {
+              "$ref": "#/responses/empty"
+            }
           }
         }
       }
@@ -5138,7 +5212,21 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/UserList"
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/User"
+                  }
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
@@ -6145,6 +6233,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "EditDeadlineOption": {
+      "description": "EditDeadlineOption options for creating a deadline",
+      "type": "object",
+      "required": [
+        "due_date"
+      ],
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "EditHookOption": {
       "description": "EditHookOption options when modify one hook",
       "type": "object",
@@ -6407,6 +6510,10 @@
           "type": "boolean",
           "x-go-name": "Admin"
         },
+        "allow_create_organization": {
+          "type": "boolean",
+          "x-go-name": "AllowCreateOrganization"
+        },
         "allow_git_hook": {
           "type": "boolean",
           "x-go-name": "AllowGitHook"
@@ -6440,6 +6547,10 @@
         "password": {
           "type": "string",
           "x-go-name": "Password"
+        },
+        "prohibit_login": {
+          "type": "boolean",
+          "x-go-name": "ProhibitLogin"
         },
         "source_id": {
           "type": "integer",
@@ -6631,6 +6742,18 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "IssueDeadline": {
+      "description": "IssueDeadline represents an issue deadline",
+      "type": "object",
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7635,6 +7758,12 @@
         "$ref": "#/definitions/Issue"
       }
     },
+    "IssueDeadline": {
+      "description": "IssueDeadline",
+      "schema": {
+        "$ref": "#/definitions/IssueDeadline"
+      }
+    },
     "IssueList": {
       "description": "IssueList",
       "schema": {
@@ -7893,6 +8022,18 @@
     "BasicAuth": {
       "type": "basic"
     },
+    "SudoHeader": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "Sudo",
+      "in": "header"
+    },
+    "SudoParam": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "sudo",
+      "in": "query"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -7911,6 +8052,12 @@
     },
     {
       "AuthorizationHeaderToken": []
+    },
+    {
+      "SudoParam": []
+    },
+    {
+      "SudoHeader": []
     }
   ]
 }
