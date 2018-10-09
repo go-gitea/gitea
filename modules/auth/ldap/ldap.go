@@ -193,8 +193,24 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		var ok bool
 		userDN, ok = ls.sanitizedUserDN(name)
+
 		if !ok {
 			return nil
+		}
+
+		err = bindUser(l, userDN, passwd)
+		if err != nil {
+			return nil
+		}
+
+		if ls.UserBase != "" {
+			// not everyone has a CN compatible with input name so we need to find
+			// the real userDN in that case
+
+			userDN, ok = ls.findUserDN(l, name)
+			if !ok {
+				return nil
+			}
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
@@ -218,7 +234,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
-	if directBind || !ls.AttributesInBind {
+	if !ls.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
