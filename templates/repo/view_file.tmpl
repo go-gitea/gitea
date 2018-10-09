@@ -47,6 +47,22 @@
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
 				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
+			{{else if .IsCadFile}}
+				{{if .IsCadFileSourceDisplayable}}
+					<table>
+					<tbody>
+						<tr>
+						{{if .IsFileTooLarge}}
+							<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
+						{{else}}
+							<td class="lines-num">{{.LineNums}}</td>
+							<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
+						{{end}}
+						</tr>
+					</tbody>
+					</table>
+				{{end}}
+				<span>This is a CAD file. Is its source displayable? {{.IsCadFileSourceDisplayable}}</span>
 			{{else if not .IsTextFile}}
 				<div class="view-raw ui center">
 					{{if .IsImageFile}}

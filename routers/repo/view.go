@@ -167,6 +167,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	isTextFile := base.IsTextFile(buf)
 	ctx.Data["IsTextFile"] = isTextFile
+	
+	// ---- Gitea for CAD changes ----
+	isCadFile, isCadFileSourceDisplayable := base.IsCadFile(blob.Name(), buf)
+	ctx.Data["IsCadFile"] = isCadFile
+	ctx.Data["IsCadFileSourceDisplayable"] = isCadFileSourceDisplayable
+	// ---- End Gitea for CAD changes ----
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {

@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"path/filepath"  // ---- Gitea for CAD ----
 	"strconv"
 	"strings"
 	"time"
@@ -575,6 +576,50 @@ func IsPDFFile(data []byte) bool {
 func IsVideoFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "video/") != -1
 }
+
+// ---- Gitea for CAD changes ----
+func IsCadFile(filename string, content []byte) (bool, bool){
+	// first bool if whether it is a CAD file or not
+	// second bool is whether it is a scripted CAD file where the script should be displayed
+	extension := filepath.Ext(filename)
+	if isPythonExtension(extension) == true{
+		// check if part or assembly is in the file
+		if strings.Contains(string(content), "part") || strings.Contains(string(content), "assembly"){
+			return true, true
+		} else {
+			return false, false
+		}
+	} else {
+		return isCadExtension(extension), false
+	}
+}
+
+func isCadExtension(extension string) bool {
+	extension_lowercase := strings.ToLower(extension)
+    switch extension_lowercase {
+    case
+        ".fcstd",
+        ".stepzip",
+        ".step",
+        ".stp",
+        ".iges",
+        ".igs",
+        ".stl",
+        ".brep":
+        return true
+    }
+    return false
+}
+
+func isPythonExtension(extension string) bool {
+	extension_lowercase := strings.ToLower(extension)
+    if extension_lowercase == ".py" {
+        return true
+    }
+    return false
+}
+
+// ---- End Gitea for CAD changes ----
 
 // EntryIcon returns the octicon class for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
