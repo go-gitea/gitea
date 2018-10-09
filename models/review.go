@@ -235,7 +235,11 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		return nil, err
 	}
 
-	mode, _ := AccessLevel(opts.Issue.Poster.ID, opts.Issue.Repo)
+	mode, err := AccessLevel(opts.Issue.Poster.ID, opts.Issue.Repo)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       opts.Issue.Index,
