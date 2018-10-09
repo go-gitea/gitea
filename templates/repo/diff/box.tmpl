@@ -122,10 +122,9 @@
 													<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
 														<td class="lines-num lines-num-old">
 															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}">{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}</span>
-
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
-															{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}
+															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
 																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
@@ -135,7 +134,7 @@
 														</td>
 
 														<td class="lines-code lines-code-new halfwidth">
-															{{if and $.root.SignedUserID $line.CanComment}}
+															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
