@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitea
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: gitea
+  labels:
+    app: gitea
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: gitea
+      labels:
+        app: gitea
+    spec:
+      containers:
+      - name: gitea
+        image: gitea/gitea:latest
+        imagePullPolicy: Always
+        volumeMounts:
+          - mountPath: "/var/lib/gitea"
+            name: "root"
+          - mountPath: "/data"
+            name: "data"
+        ports:
+          - containerPort: 22
+            name: ssh
+            protocol: TCP
+          - containerPort: 3000
+            name: http
+            protocol: TCP
+      restartPolicy: Always
+      volumes:
+        # Set up a data directory for gitea
+        # For production usage, you should consider using PV/PVC instead(or simply using storage like NAS)
+        # For more details, please see https://kubernetes.io/docs/concepts/storage/volumes/
+      - name: "root"
+        hostPath:
+          # directory location on host
+          path: "/var/lib/gitea"
+          # this field is optional
+          type: Directory
+      - name: "data"
+        hostPath:
+          path: "/data/gitea"
+          type: Directory
+  selector:
+    matchLabels:
+      app: gitea
+---
+# Using cluster mode
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea-web
+  namespace: gitea
+  labels:
+    app: gitea-web
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+    name: http
+  selector:
+    app: gitea
+---
+# Using node-port mode
+# This mainly open a specific TCP port for SSH usage on each host,
+# so you can use a proxy layer to handle it(e.g. slb, nginx)
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea-ssh
+  namespace: gitea
+  labels:
+    app: gitea-ssh
+spec:
+  ports:
+  - port: 22
+    targetPort: 22
+    nodePort: 30022
+    name: ssh
+  selector:
+    app: gitea
+  type: NodePort
+---
+# Ingress is always suitable for HTTP usage,
+# we suggest using an proxy layer such as slb to send traffic to different ports.
+# Usually 80/443 for web and 22 directly for SSH.
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gitea
+  namespace: gitea
+spec:
+  rules:
+  - host: your-gitea-host.com
+    http:
+      paths:
+      - backend:
+          serviceName: gitea-web
+          servicePort: 80
