@@ -4,6 +4,22 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.5.2](https://github.com/go-gitea/gitea/releases/tag/v1.5.2) - 2018-10-09
+* SECURITY
+  * Enforce token on api routes (#4840) (#4905)
+* BUGFIXES
+  * Remove links from topics in edit mode (#5030)
+  * Detect charset and convert non UTF-8 files for display (#4950) (#4994)
+  * Fix layout of the topics editing form (#4971) (#4993)
+  * Fix null pointer dereference in ParseCommitWithSignature (#4964)
+  * Fix url in discord webhook (#4951)
+  * Fix font-cropping UI bug in diff (#4726) (#4929)
+  * Fix bug forget to remove Stopwatch when remove repository (#4933)
+  * Fix bug when repo remained bare if multiple branches pushed (#4927)
+  * Fix redirect with non-ascii branch names (#4764) (#4887)
+  * Fix issues api allow pulls (#4852) (#4862)
+  * Fix trimming of markup section names (#4864)
+
 ## [1.5.1](https://github.com/go-gitea/gitea/releases/tag/v1.5.1) - 2018-09-03
 * SECURITY
   * Don't disclose emails of all users when sending out emails (#4784)
