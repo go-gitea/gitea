@@ -105,6 +105,17 @@
 
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
+{{if .GoogleAnalyticsID}}
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id={{.GoogleAnalyticsID}}"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', '{{GoogleAnalyticsID}}');
+	</script>
+{{end}}
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />

@@ -94,6 +94,9 @@ var (
 	AppDataPath    string
 	AppWorkPath    string
 
+	// User settings
+	GoogleAnalyticsID string
+
 	// Server settings
 	Protocol             Scheme
 	Domain               string
@@ -724,6 +727,7 @@ func NewContext() {
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
+	GoogleAnalyticsID = Cfg.Section("").Key("GOOGLE_ANALYTICS_ID").String()
 
 	Protocol = HTTP
 	if sec.Key("PROTOCOL").String() == "https" {
