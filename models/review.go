@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
-	"github.com/go-xorm/xorm"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // ReviewType defines the sort of feedback a review gives
