@@ -16,6 +16,7 @@
   - [Maintainers](#maintainers)
   - [Owners](#owners)
   - [Versions](#versions)
+  - [Releasing Gitea](#releasing-gitea)
   - [Copyright](#copyright)
 
 ## Introduction
@@ -255,6 +256,17 @@ Since the `master` branch is a tip version, if you wish to use Gitea
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
+
+## Releasing Gitea
+
+* Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
+* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+* If this is a big version, then you have to create a new branch named `release/v$vmaj.$vmin`
+* Create PR for changelog on branch `release/v$vmaj.$vmin`
+* After your PR reviewed and merged,  and CI passed, add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporory file to only include the changelog this version which you added to `CHANGELOG.md`. 
+* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
+* Send PR for changelog on branch `master`.
+* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
 
 ## Copyright
 
