@@ -2,7 +2,7 @@
 <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
 
 <script src="http://mrdoob.github.com/three.js/build/three.min.js"></script>
-<script src="http://github.com/osv-team/gitea/tree/cad/public/js/OrbitControls.js"></script>
+
 
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="ui top attached header" id="{{if .ReadmeExist}}repo-readme{{else}}repo-read-file{{end}}">
@@ -165,8 +165,6 @@ function init(){
     // on initialise la camera que l’on place ensuite sur la scène
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000 );
     camera.position.set(0, 0, 1000);
-	controls = new THREE.OrbitControls( camera );
-    controls.addEventListener( 'change', render );
     scene.add(camera);
 
     // on créé un  cube au quel on définie un matériau puis on l’ajoute à la scène
@@ -176,7 +174,7 @@ function init(){
     scene.add( mesh );
 
     // on effectue le rendu de la scène
-    renderer.render( scene, camera );
+    render();
 }
 
 function onWindowResize() {
@@ -187,13 +185,6 @@ function onWindowResize() {
   renderer.setSize( window.innerWidth, window.innerHeight );
 
   render();
-
-}
-
-function animate() {
-
-  requestAnimationFrame( animate );
-  controls.update();
 
 }
 
