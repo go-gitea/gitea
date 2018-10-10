@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -275,13 +276,35 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	}
 
 	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't loose data.
+	// original left over. This way we won't lose data.
 	result, n, err := transform.String(encoding.NewDecoder(), string(content))
 	if err != nil {
 		result = result + string(content[n:])
 	}
 
 	return result, err
+}
+
+// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
+func ToUTF8WithFallback(content []byte) []byte {
+	charsetLabel, err := base.DetectEncoding(content)
+	if err != nil || charsetLabel == "UTF-8" {
+		return content
+	}
+
+	encoding, _ := charset.Lookup(charsetLabel)
+	if encoding == nil {
+		return content
+	}
+
+	// If there is an error, we concatenate the nicely decoded part and the
+	// original left over. This way we won't lose data.
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
+	if err != nil {
+		return append(result, content[n:]...)
+	}
+
+	return result
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error

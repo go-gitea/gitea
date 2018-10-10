@@ -352,11 +352,11 @@
   revision = "66031fcb37a0fff002a1f028eb0b3a815c78306b"
 
 [[projects]]
-  digest = "1:6fb9cae2a3b4518e048a899b273e23b671802b611ccfcca0b576ecc08bb7b8f5"
+  digest = "1:758d2371fcdee6d02565901b348729053c636055e67ef6e17aa466c7ff6cc57c"
   name = "github.com/go-macaron/toolbox"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "99a42f20e9e88daec5c0d7beb4e7eac134680ab0"
+  revision = "a77f45a7ce909c0ff14b28279fa1a2b674acb70f"
 
 [[projects]]
   digest = "1:747c1fcb10f8f6734551465ab73c6ed9c551aa6e66250fb6683d1624f554546a"
@@ -547,7 +547,7 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:fb22af9d8c1a6166ad299705648db460ba2c28a830f7f6cdd830019d7c3fd96f"
+  digest = "1:23f75ae90fcc38dac6fad6881006ea7d0f2c78db5f9f81f3df558dc91460e61f"
   name = "github.com/markbates/goth"
   packages = [
     ".",
@@ -562,8 +562,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "4933f155d89c3c52ab4ca545c6602cf4a1e87913"
-  version = "1.45.5"
+  revision = "f9c6649ab984d6ea71ef1e13b7b1cdffcf4592d3"
+  version = "v1.46.1"
 
 [[projects]]
   digest = "1:3ef954101983406a71171c4dc816a73e01bb3de608b3dd063627aa67a459f3e3"
@@ -885,12 +885,12 @@
   version = "v2.3.2"
 
 [[projects]]
-  digest = "1:e2144032dcf8e856fb733151391669dc2d32d79ebb69e3c4151efa605f5e8a01"
+  digest = "1:9c541fc507676a69ea8aaed1af53278a5241d26ce0f192c993fec2ac5b78f795"
   name = "gopkg.in/testfixtures.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b9ef14dc461bf934d8df2dfc6f1f456be5664cca"
-  version = "v2.0.0"
+  revision = "fa3fb89109b0b31957a5430cef3e93e535de362b"
+  version = "v2.5.0"
 
 [[projects]]
   digest = "1:ad6f94355d292690137613735965bd3688844880fdab90eccf66321910344942"

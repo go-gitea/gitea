@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+
 	"github.com/Unknwon/paginater"
 )
 
@@ -98,7 +99,8 @@ func renderDirectory(ctx *context.Context) {
 				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = append(buf, d...)
+				buf = templates.ToUTF8WithFallback(append(buf, d...))
+
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
@@ -202,7 +204,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, rawLink string) {
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = append(buf, d...)
+		buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
