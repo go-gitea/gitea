@@ -5316,7 +5316,21 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/UserList"
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/User"
+                  }
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }

@@ -788,7 +788,7 @@ function initPullRequestReview() {
         $("#show-outdated-" + id).removeClass('hide');
     });
 
-    $('.comment-form-reply').on('click', function (e) {
+    $('button.comment-form-reply').on('click', function (e) {
         e.preventDefault();
         $(this).hide();
         var form = $(this).parent().find('.comment-form')
@@ -842,10 +842,8 @@ function initPullRequestReview() {
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
-            var id = assingMenuAttributes(commentCloud.find('.menu'));
-            commentCloud.find('.tab.segment').each(function(i, item) {
-                $(item).attr('data-tab', $(item).attr('data-tab') + id);
-            });
+            assingMenuAttributes(commentCloud.find('.menu'));
+
             td.find("input[name='line']").val(idx);
             td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
             td.find("input[name='path']").val(path);
@@ -868,8 +866,6 @@ function assingMenuAttributes(menu) {
 }
 
 function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
-
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -1195,8 +1191,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -2453,7 +2447,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', ''); // show Semantic UI Grid
     });
 
     function getPrompts() {
@@ -2484,7 +2478,7 @@ function initTopicbar() {
                 for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
-                editDiv.hide();
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2671,9 +2665,8 @@ function cancelCodeComment(btn) {
     var form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
-        form.parent().find('.comment-form-reply').show();
-    }else {
-        console.log("Hey");
+        form.parent().find('button.comment-form-reply').show();
+    } else {
         form.closest('.comment-code-cloud').remove()
     }
 }

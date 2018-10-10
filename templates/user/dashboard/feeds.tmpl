@@ -13,8 +13,8 @@
 						{{else if eq .GetOpType 2}}
 							{{$.i18n.Tr "action.rename_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 5}}
-							{{ $branchLink := .GetBranch | EscapePound}}
-							{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink .GetBranch .ShortRepoPath | Str2html}}
+							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 6}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.create_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
@@ -24,7 +24,8 @@
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{$.i18n.Tr "action.push_tag" .GetRepoLink $branchLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}

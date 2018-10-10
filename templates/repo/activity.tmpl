@@ -92,7 +92,7 @@
 						<div class="ui green label">{{$.i18n.Tr "repo.activity.published_release_label"}}</div>
 						{{.TagName}}
 						{{if not .IsTag}}
-							<a class="title has-emoji" href="{{$.Repository.HTMLURL}}/src/{{.TagName}}">{{.Title}}</a>
+							<a class="title has-emoji" href="{{$.Repository.HTMLURL}}/src/{{.TagName | EscapePound}}">{{.Title}}</a>
 						{{end}}
 						{{TimeSinceUnix .CreatedUnix $.Lang}}
 					</p>
