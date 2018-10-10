@@ -1,6 +1,9 @@
 <script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script>
 <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
 
+<script src="http://mrdoob.github.com/three.js/build/three.min.js"></script>
+<script src="http://github.com/osv-team/gitea/tree/cad/public/js/OrbitControls.js"></script>
+
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="ui top attached header" id="{{if .ReadmeExist}}repo-readme{{else}}repo-read-file{{end}}">
 		<div class="ui stackable grid">
@@ -83,6 +86,11 @@
 								</x3d>
 							</td>
 						</tr>
+						<tr>
+							<td id="container" colspan="2">
+
+							</td>
+						</tr>
 
 						<tr>
 							<td colspan="2">
@@ -135,6 +143,64 @@
 		</div>
 	</div>
 </div>
+
+<script type="text/javascript">
+  init();
+  animate();
+
+function init(){
+    // on initialise le moteur de rendu
+    renderer = new THREE.WebGLRenderer();
+
+    // si WebGL ne fonctionne pas sur votre navigateur vous pouvez utiliser le moteur de rendu Canvas à la place
+    // renderer = new THREE.CanvasRenderer();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    // on initialise la scène
+    scene = new THREE.Scene();
+
+    // on initialise la camera que l’on place ensuite sur la scène
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.set(0, 0, 1000);
+	controls = new THREE.OrbitControls( camera );
+    controls.addEventListener( 'change', render );
+    scene.add(camera);
+
+    // on créé un  cube au quel on définie un matériau puis on l’ajoute à la scène
+    var geometry = new THREE.CubeGeometry( 200, 200, 200 );
+    var material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+    mesh = new THREE.Mesh( geometry, material );
+    scene.add( mesh );
+
+    // on effectue le rendu de la scène
+    renderer.render( scene, camera );
+}
+
+function onWindowResize() {
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize( window.innerWidth, window.innerHeight );
+
+  render();
+
+}
+
+function animate() {
+
+  requestAnimationFrame( animate );
+  controls.update();
+
+}
+
+function render() {
+  renderer.render( scene, camera );
+}
+</script>
 
 <script>
 function submitDeleteForm() {
