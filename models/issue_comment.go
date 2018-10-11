@@ -80,6 +80,10 @@ const (
 	CommentTypeCode
 	// Reviews a pull request by giving general feedback
 	CommentTypeReview
+	// Lock an issue, giving only collaborators access
+	CommentTypeLock
+	// Unlocks a previously locked issue
+	CommentTypeUnlock
 )
 
 // CommentTag defines comment tag type
