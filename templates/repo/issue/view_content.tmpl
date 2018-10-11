@@ -69,6 +69,7 @@
 			{{end}}
 
 			{{if .IsSigned}}
+				{{ if not .Issue.IsLocked }}
 				<div class="comment form">
 					<a class="avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
@@ -97,6 +98,7 @@
 						</form>
 					</div>
 				</div>
+				{{ end }}
 			{{else}}
 				<div class="ui warning message">
 					{{.i18n.Tr "repo.issues.sign_in_require_desc" .SignInLink | Safe}}
