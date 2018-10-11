@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/Unknwon/com"
-	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
@@ -66,7 +65,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP(source, context2.ClearHandler(handler))
+	var err = runHTTP(source, handler)
 
 	if err != nil {
 		log.Fatal(4, "Failed to start port redirection: %v", err)
@@ -170,23 +169,23 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
-		err = runHTTP(listenAddr, context2.ClearHandler(m))
+		err = runHTTP(listenAddr, m)
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
 			break
 		}
 		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
 		}
-		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, m)
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {
 			log.Fatal(4, "Failed to bind %s", listenAddr, err)
 		}
 		defer listener.Close()
-		err = fcgi.Serve(listener, context2.ClearHandler(m))
+		err = fcgi.Serve(listener, m)
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
@@ -202,7 +201,7 @@ func runWeb(ctx *cli.Context) error {
 		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
 			log.Fatal(4, "Failed to set permission of unix socket: %v", err)
 		}
-		err = http.Serve(listener, context2.ClearHandler(m))
+		err = http.Serve(listener, m)
 	default:
 		log.Fatal(4, "Invalid protocol: %s", setting.Protocol)
 	}

@@ -418,37 +418,6 @@
   revision = "5f1c01d9f64b941dd9582c638279d046eda6ca31"
 
 [[projects]]
-  digest = "1:c01767916c59f084bb7c41a7d5877c0f3099b1595cfa066e84ec6ad6b084dd89"
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
-  version = "v1.1.1"
-
-[[projects]]
-  digest = "1:9ad9280c98033812aec525d43d4e8137021642dc942bf271b4710f9ac93d0d0b"
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "757bef944d0f21880861c2dd9c871ca543023cba"
-
-[[projects]]
-  digest = "1:0faa8131e5822f3420f82426667a29c5c425c3cb7e0fcf0c5d1c718d6e6ba19b"
-  name = "github.com/gorilla/securecookie"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983"
-  version = "v1.1.1"
-
-[[projects]]
-  digest = "1:ee5531f1e32c0082a6da68a605bc60284711d99b15d38dfba335a1ec52a58c20"
-  name = "github.com/gorilla/sessions"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "ca9ada44574153444b00d3fd9c8559e4cc95f896"
-  version = "v1.1"
-
-[[projects]]
   digest = "1:18231f2a4af6633fbcd94baab40320d16e826a7f732094ba3420ab547206949b"
   name = "github.com/issue9/identicon"
   packages = ["."]
@@ -951,7 +920,6 @@
     "github.com/go-xorm/xorm",
     "github.com/gogits/chardet",
     "github.com/gogits/cron",
-    "github.com/gorilla/context",
     "github.com/issue9/identicon",
     "github.com/jaytaylor/html2text",
     "github.com/kballard/go-shellquote",
