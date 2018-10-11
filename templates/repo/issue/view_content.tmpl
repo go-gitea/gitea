@@ -69,7 +69,7 @@
 			{{end}}
 
 			{{if .IsSigned}}
-				{{ if not .Issue.IsLocked }}
+				{{ if or .IsRepoAdmin .IsRepoWriter (or (not .Issue.IsLocked)) }}
 				<div class="comment form">
 					<a class="avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
