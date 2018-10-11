@@ -138,8 +138,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = true
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
+		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
+		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 }
 
@@ -252,7 +252,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		if ctx.Repo.CanEnableEditor() {
-			ctx.Data["CanEditFile"] = true
+			ctx.Data["CanEditFile"] = !ctx.Repo.Repository.IsArchived
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 		} else if !ctx.Repo.IsViewBranch {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
@@ -269,7 +269,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
+		ctx.Data["CanDeleteFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
