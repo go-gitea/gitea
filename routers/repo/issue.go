@@ -1102,6 +1102,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
+	}
+
+	if issue.IsLocked && (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
