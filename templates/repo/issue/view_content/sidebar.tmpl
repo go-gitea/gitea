@@ -339,10 +339,10 @@
 			<div class="ui divider"></div>
 			<div class="ui watching">
 				<div>
-					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/lock">
+					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{ else }}/lock{{ end }}">
 						<input type="hidden" name="lock" value="{{if .Issue.IsLocked}}0{{else}}1{{end}}" />
 						{{$.CsrfTokenHtml}}
-						<button class="fluid ui button">
+						<button class="fluid ui button {{if .Issue.IsLocked }} negative {{ end }}">
 							{{if .Issue.IsLocked}}
 								<i class="octicon octicon-key"></i>
 								{{.i18n.Tr "repo.issues.unlock"}}
