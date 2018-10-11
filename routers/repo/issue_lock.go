@@ -13,17 +13,23 @@ import (
 
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo.
-func LockIssue(c *context.Context) {
-	issue := GetActionIssue(c)
-	if c.Written() {
+func LockIssue(ctx *context.Context) {
+
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if err := models.LockIssue(c.User, issue); err != nil {
-		c.ServerError("LockIssue", err)
+	if issue.IsLocked {
+		ctx.Flash.Error(ctx.Tr("repo.issues.lock_duplicate"))
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
-	url := issue.HTMLURL()
-	c.Redirect(url, http.StatusSeeOther)
+	if err := models.LockIssue(ctx.User, issue); err != nil {
+		ctx.ServerError("LockIssue", err)
+		return
+	}
+
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 }
