@@ -33,3 +33,25 @@ func LockIssue(ctx *context.Context) {
 
 	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 }
+
+// UnlockIssue unlocks a previously locked issue.
+func UnlockIssue(ctx *context.Context) {
+
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !issue.IsLocked {
+		ctx.Flash.Error(ctx.Tr("repo.issues.unlock_error"))
+		ctx.Redirect(issue.HTMLURL())
+		return
+	}
+
+	if err := models.UnlockIssue(ctx.User, issue); err != nil {
+		ctx.ServerError("UnlockIssue", err)
+		return
+	}
+
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+}
