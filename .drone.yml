@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.9
+    image: golang:1.11
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -119,7 +119,7 @@ pipeline:
 
   # Commented until db locking have been resolved!
   # test-sqlite:
-  #   image: golang:1.10
+  #   image: golang:1.11
   #   pull: true
   #   group: test
   #   environment:
