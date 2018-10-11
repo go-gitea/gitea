@@ -880,6 +880,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && ctx.Repo.IsAdmin() && ctx.User.IsAdmin
+	ctx.Data["IsWriter"] = ctx.IsSigned && ctx.Repo.IsWriter() && ctx.User.IsAdmin
 	ctx.HTML(200, tplIssueView)
 }
 
