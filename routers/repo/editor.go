@@ -56,12 +56,6 @@ func getParentTreeFields(treePath string) (treeNames []string, treePaths []strin
 }
 
 func editFile(ctx *context.Context, isNewFile bool) {
-	// Don't allow editing if the repo is archived
-	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound("", nil)
-		return
-	}
-
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
@@ -153,12 +147,6 @@ func NewFile(ctx *context.Context) {
 }
 
 func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bool) {
-	// Don't allow editing if the repo is archived
-	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound("", nil)
-		return
-	}
-
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
@@ -364,12 +352,6 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
-	// Don't allow deleting if the repo is archived
-	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound("", nil)
-		return
-	}
-
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
@@ -389,12 +371,6 @@ func DeleteFile(ctx *context.Context) {
 
 // DeleteFilePost response for deleting file
 func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
-	// Don't allow deleting if the repo is archived
-	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound("", nil)
-		return
-	}
-
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
