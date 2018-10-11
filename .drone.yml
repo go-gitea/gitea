@@ -77,7 +77,6 @@ pipeline:
       - make swagger-check
       - make swagger-validate
       - make misspell-check
-      - make test-vendor
       - make build
     when:
       event: [ push, tag, pull_request ]

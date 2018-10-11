@@ -172,23 +172,6 @@ coverage:
 unit-test-coverage:
 	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
-.PHONY: vendor
-vendor:
-	@hash dep > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/golang/dep/cmd/dep; \
-	fi
-	dep ensure -vendor-only
-
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff vendor/); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
-		echo "$${diff}"; \
-		exit 1; \
-	fi;
-#TODO add dep status -missing when implemented
-
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
