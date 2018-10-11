@@ -1105,6 +1105,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	if issue.IsLocked {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+
 	var attachments []string
 	if setting.AttachmentEnabled {
 		attachments = form.Files
