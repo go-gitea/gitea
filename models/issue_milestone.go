@@ -178,7 +178,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesByRepoID returns all milestones of a repository.
+// GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
 	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, 0).
