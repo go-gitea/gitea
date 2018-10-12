@@ -359,16 +359,14 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 
-	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-	    			{{$.i18n.Tr "repo.issues.lock_comment" $createdStr | Safe}}
-	    		</span>
+			{{ $formatting := "" }}
+			{{ if .Content }}
+				{{ $formatting = "as " }}
+			{{ end }}
 
-	    		{{if .Content}}
-	    			<div class="detail">
-					<span class="octicon octicon-quote"></span>
-	    				<span class="text grey">{{.Content}}</span>
-	    			</div>
-	    		{{end}}
+	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+				{{$.i18n.Tr "repo.issues.lock_comment" $formatting .Content $createdStr | Safe}}
+	    		</span>
 		</div>
 	{{else if eq .Type 24}}
 		<div class="event">
