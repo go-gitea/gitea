@@ -365,9 +365,12 @@
 			<div class="content">
 				<div class="ui warning message text left">
 					{{ if .Issue.IsLocked }}
-						{{.i18n.Tr "repo.issues.unlock.notice"}}<br>
+						{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
+						{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
 					{{ else }}
-						{{.i18n.Tr "repo.issues.lock.notice"}}<br>
+						{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
+						{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
+						{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
 					{{ end }}
 				</div>
 
