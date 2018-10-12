@@ -2395,29 +2395,6 @@ func CheckRepoStats() {
 func (repo *Repository) ToggleArchiveRepo() (err error) {
 	repo.IsArchived = !repo.IsArchived
 	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
-
-	// Enable/Disable issues and pull requests
-	if repo.IsArchived {
-		if _, err = x.
-			Where("repo_id = ? AND (type = ? OR type = ?)", repo.ID, UnitTypeIssues, UnitTypePullRequests).
-			Delete(new(RepoUnit)); err != nil {
-			return err
-		}
-	} else {
-		var units []RepoUnit
-		units = append(units, RepoUnit{
-			RepoID: repo.ID,
-			Type:   UnitTypeIssues,
-		})
-		units = append(units, RepoUnit{
-			RepoID: repo.ID,
-			Type:   UnitTypePullRequests,
-		})
-
-		if _, err = x.Insert(units); err != nil {
-			return err
-		}
-	}
 	return
 }
 
