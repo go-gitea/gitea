@@ -84,7 +84,7 @@ func (r *Repository) CanCreateBranch() bool {
 	return r.Repository.CanCreateBranch() && r.IsWriter()
 }
 
-// IsArchived returns whether or not a repo is archived
+// RepoMustNotBeArchived checks if a repo is archived
 func RepoMustNotBeArchived() macaron.Handler {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
