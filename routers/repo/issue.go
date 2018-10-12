@@ -878,10 +878,16 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Issue"] = issue
 	ctx.Data["ReadOnly"] = true
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
+<<<<<<< HEAD
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && ctx.Repo.IsAdmin() && ctx.User.IsAdmin
 	ctx.Data["IsWriter"] = ctx.IsSigned && ctx.Repo.IsWriter() && ctx.User.IsAdmin
+=======
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
+	ctx.Data["IsRepoWriter"] = ctx.IsSigned && (ctx.Repo.IsWriter() || ctx.User.IsAdmin)
+	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+>>>>>>> update UI to include lock reasons
 	ctx.HTML(200, tplIssueView)
 }
 

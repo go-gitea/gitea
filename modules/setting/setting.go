@@ -237,6 +237,11 @@ var (
 		PullRequest struct {
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
+
+		// Issue Setting
+		Issue struct {
+			LockReasons []string
+		} `ini:"repository.issue"`
 	}{
 		AnsiCharset:              "",
 		ForcePrivate:             false,
@@ -287,6 +292,13 @@ var (
 			WorkInProgressPrefixes []string
 		}{
 			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+		},
+
+		// Issue settings
+		Issue: struct {
+			LockReasons []string
+		}{
+			LockReasons: defaultIssuesLockReason,
 		},
 	}
 	RepoRootPath string

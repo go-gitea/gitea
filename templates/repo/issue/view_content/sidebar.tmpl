@@ -377,7 +377,30 @@
 				<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{ else }}/lock{{ end }}"
 					method="post">
 					{{.CsrfTokenHtml}}
+
 					<div class="field">
+						<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
+					</div>
+
+					<div class="field">
+						<div class="ui fluid dropdown selection" tabindex="0">
+
+							<select name="reason">
+								<option value=""> </option>
+								{{range .LockReasons}}
+									<option value="{{.}}">{{.}}</option>
+								{{end}}
+							</select>
+							<i class="dropdown icon"></i>
+
+							<div class="default text"> </div>
+
+							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+								{{range .LockReasons}}
+									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{end}}
+							</div>
+						</div>
 					</div>
 
 					<div class="text right actions">
