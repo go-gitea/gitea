@@ -4,29 +4,37 @@
 
 package models
 
+// IssueLockOptions defines options for locking and/or unlocking an issue/PR
+type IssueLockOptions struct {
+	Doer   *User
+	Issue  *Issue
+	Reason string
+}
+
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo
-func LockIssue(user *User, issue *Issue) error {
-	issue.IsLocked = true
-	return lockOrUnlockIssue(user, issue, CommentTypeLock)
+func LockIssue(opts *IssueLockOptions) error {
+	opts.Issue.IsLocked = true
+	return lockOrUnlockIssue(opts, CommentTypeLock)
 }
 
 // UnlockIssue unlocks a previously locked issue.
-func UnlockIssue(user *User, issue *Issue) error {
-	issue.IsLocked = false
-	return lockOrUnlockIssue(user, issue, CommentTypeUnlock)
+func UnlockIssue(opts *IssueLockOptions) error {
+	opts.Issue.IsLocked = false
+	return lockOrUnlockIssue(opts, CommentTypeUnlock)
 }
 
-func lockOrUnlockIssue(user *User, issue *Issue, commentType CommentType) error {
-	if err := UpdateIssueCols(issue, "is_locked"); err != nil {
+func lockOrUnlockIssue(opts *IssueLockOptions, commentType CommentType) error {
+	if err := UpdateIssueCols(opts.Issue, "is_locked"); err != nil {
 		return err
 	}
 
 	_, err := CreateComment(&CreateCommentOptions{
-		Doer:  user,
-		Issue: issue,
-		Repo:  issue.Repo,
-		Type:  commentType,
+		Doer:    opts.Doer,
+		Issue:   opts.Issue,
+		Repo:    opts.Issue.Repo,
+		Type:    commentType,
+		Content: opts.Reason,
 	})
 	return err
 }

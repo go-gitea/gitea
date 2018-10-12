@@ -33,7 +33,11 @@ func LockIssue(ctx *context.Context, form auth.IssueLockForm) {
 		return
 	}
 
-	if err := models.LockIssue(ctx.User, issue); err != nil {
+	if err := models.LockIssue(&models.IssueLockOptions{
+		Doer:   ctx.User,
+		Issue:  issue,
+		Reason: form.Reason,
+	}); err != nil {
 		ctx.ServerError("LockIssue", err)
 		return
 	}
@@ -55,7 +59,10 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := models.UnlockIssue(ctx.User, issue); err != nil {
+	if err := models.UnlockIssue(&models.IssueLockOptions{
+		Doer:  ctx.User,
+		Issue: issue,
+	}); err != nil {
 		ctx.ServerError("UnlockIssue", err)
 		return
 	}
