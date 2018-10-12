@@ -558,7 +558,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 
-				m.Post("/lock", reqRepoWriter, repo.LockIssue)
+				m.Post("/lock", reqRepoWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoWriter, repo.UnlockIssue)
 			})
 

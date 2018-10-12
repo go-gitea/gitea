@@ -8,12 +8,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo.
-func LockIssue(ctx *context.Context) {
+func LockIssue(ctx *context.Context, form auth.IssueLockForm) {
 
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
@@ -22,6 +23,12 @@ func LockIssue(ctx *context.Context) {
 
 	if issue.IsLocked {
 		ctx.Flash.Error(ctx.Tr("repo.issues.lock_duplicate"))
+		ctx.Redirect(issue.HTMLURL())
+		return
+	}
+
+	if !form.HasValidReason() {
+		ctx.Flash.Error(ctx.Tr("repo.issues.lock.unknown_reason"))
 		ctx.Redirect(issue.HTMLURL())
 		return
 	}
