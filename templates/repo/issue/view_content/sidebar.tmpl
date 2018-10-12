@@ -378,6 +378,7 @@
 					method="post">
 					{{.CsrfTokenHtml}}
 
+					{{ if not .Issue.IsLocked }}
 					<div class="field">
 						<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
 					</div>
@@ -402,6 +403,7 @@
 							</div>
 						</div>
 					</div>
+					{{ end }}
 
 					<div class="text right actions">
 						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
