@@ -378,13 +378,6 @@
 	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
 	    			{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 	    		</span>
-
-	    		{{if .Content}}
-	    			<div class="detail">
-					<span class="octicon octicon-quote"></span>
-	    				<span class="text grey">{{.Content}}</span>
-	    			</div>
-	    		{{end}}
 		</div>
 	{{end}}
 {{end}}
