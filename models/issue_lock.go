@@ -14,17 +14,28 @@ type IssueLockOptions struct {
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo
 func LockIssue(opts *IssueLockOptions) error {
-	opts.Issue.IsLocked = true
-	return lockOrUnlockIssue(opts, CommentTypeLock)
+	return updateIssueLock(opts, true)
 }
 
 // UnlockIssue unlocks a previously locked issue.
 func UnlockIssue(opts *IssueLockOptions) error {
-	opts.Issue.IsLocked = false
-	return lockOrUnlockIssue(opts, CommentTypeUnlock)
+	return updateIssueLock(opts, false)
 }
 
-func lockOrUnlockIssue(opts *IssueLockOptions, commentType CommentType) error {
+func updateIssueLock(opts *IssueLockOptions, lock bool) error {
+	if opts.Issue.IsLocked == lock {
+		return nil
+	}
+
+	opts.Issue.IsLocked = lock
+
+	var commentType CommentType
+	if opts.Issue.IsLocked {
+		commentType = CommentTypeLock
+	} else {
+		commentType = CommentTypeUnlock
+	}
+
 	if err := UpdateIssueCols(opts.Issue, "is_locked"); err != nil {
 		return err
 	}
