@@ -86,8 +86,8 @@ pipeline:
     image: golang:1.11
     pull: true
     environment:
-      TAGS: bindata sqlite
-      GO111MODULE: on
+      - TAGS="bindata sqlite"
+      - GO111MODULE=on
     commands:
       - make clean
       - make generate
