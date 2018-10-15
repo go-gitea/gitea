@@ -354,6 +354,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Error(403)
 			return
 		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
 		if err := repo.ToggleArchiveRepo(); err != nil {
 			log.Error(4, "Tried to archive a repo: %s", err)
 			if repo.IsArchived {
