@@ -82,7 +82,7 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  build:
+  build-with-go-module:
     image: golang:1.11
     pull: true
     environment:
