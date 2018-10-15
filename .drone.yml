@@ -82,6 +82,19 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  build:
+    image: golang:1.11
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GO111MODULE: on
+    commands:
+      - make clean
+      - make generate
+      - make build
+    when:
+      event: [ push, tag, pull_request ]
+
   test:
     image: golang:1.11
     pull: true
