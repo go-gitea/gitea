@@ -490,7 +490,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue, ctx.User.ID)
+	notification.NotifyNewIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -1014,6 +1014,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 			ctx.ServerError("ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
@@ -1072,7 +1074,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			if pr != nil {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
-				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
+				isClosed := form.Status == "close"
+				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, isClosed); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {
@@ -1088,7 +1091,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
-					notification.Service.NotifyIssue(issue, ctx.User.ID)
+					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 				}
 			}
 		}
@@ -1116,7 +1119,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue, ctx.User.ID)
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }

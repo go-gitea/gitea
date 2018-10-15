@@ -79,7 +79,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	}
 	// Send no notification if comment is pending
 	if !form.IsReview {
-		notification.Service.NotifyIssue(issue, ctx.User.ID)
+		notification.NotifyCreateIssueComment(ctx.User, issue.Repo, issue, comment)
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
