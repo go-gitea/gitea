@@ -254,10 +254,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	// ***** START: User *****
 	m.Group("/user", func() {
-		m.Get("/reset_password", user.ResetPasswd)
-		m.Post("/reset_password", user.ResetPasswdPost)
-	})
-	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
 		m.Group("", func() {
@@ -383,6 +379,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Any("/activate", user.Activate, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/email2user", user.Email2User)
+		m.Get("/recover_account", user.ResetPasswd)
+		m.Post("/recover_account", user.ResetPasswdPost)
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Get("/logout", user.SignOut)
