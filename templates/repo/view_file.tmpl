@@ -1,7 +1,41 @@
 <script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script>
 <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
 
-<script src="http://mrdoob.github.com/three.js/build/three.min.js"></script>
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/three.js"></script>
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/controls/TrackballControls.js"></script>
+<script type="text/javascript" charset="UTF-8" src="{{AppSubUrl}}/cadviewer/libs/three/loaders/STLLoader.js"></script>
+
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/libs/util/Stats.js"></script>
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/libs/util/dat.gui.js"></script>
+
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/js/util.js"></script>
+<script type="text/javascript" src="{{AppSubUrl}}/cadviewer/js/baseLoaderScene.js"></script>
+
+<script>
+	function init() {
+
+  // setup the scene for rendering
+  var camera = initCamera(new THREE.Vector3(50, 50, 50));
+  var loaderScene = new BaseLoaderScene(camera);
+  camera.lookAt(new THREE.Vector3(0, 15, 0));
+
+  // load the model: model from http://www.thingiverse.com/thing:69709
+  var loader = new THREE.STLLoader();
+  loader.load("{{AppSubUrl}}/cadviewer/js/SolidHead_2_lowPoly_42k.stl", function (geometry) {
+    var mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 1,
+      roughness: 0.5,
+    });
+    var group = new THREE.Mesh(geometry, mat);
+    group.rotation.x = -0.5 * Math.PI;
+    group.scale.set(0.3, 0.3, 0.3);
+
+    // call the default render loop.
+    loaderScene.render(group, camera);
+  });
+}
+</script>
 
 
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
@@ -56,9 +90,10 @@
 			{{else if .IsCadFile}}
 				<table>
 					<tbody>
+					<!-- x3dom viewer-->
 						<tr>
 							<td colspan="2">
-								<x3d width='600px' height='400px'>
+								<x3d width='1100px' height='800px'>
 									<scene>
 										<shape>
 											<appearance>
@@ -86,17 +121,34 @@
 								</x3d>
 							</td>
 						</tr>
-						<tr>
-							<td id="container" colspan="2">
+					<!-- x3dom viewer-->
 
+					<!-- three.js viewer container -->
+						<tr>
+							<td id="threejs-td" colspan="2">
+								<div id="webgl-output">
+									<script type="text/javascript">
+										(function () {
+											// your page initialization code here
+											// the DOM will be available here
+											init()
+										})();
+									</script>
+
+								</div>
 							</td>
 						</tr>
+					<!-- end three.js viewer container -->
 
+					<!-- debug message -->
 						<tr>
 							<td colspan="2">
 								This is a CAD file. Is its source displayable? {{.IsCadFileSourceDisplayable}}
 							</td>
 						</tr>
+					<!-- end debug message -->
+
+					<!-- source code display / or not-->
 						{{if .IsCadFileSourceDisplayable}}
 
 						<tr>
@@ -109,6 +161,7 @@
 						</tr>
 
 						{{end}}
+					<!-- source code display / or not-->
 						</tbody>
 					</table>
 
@@ -143,55 +196,6 @@
 		</div>
 	</div>
 </div>
-
-<script type="text/javascript">
-  init();
-  animate();
-
-function init(){
-    // on initialise le moteur de rendu
-    renderer = new THREE.WebGLRenderer();
-
-    // si WebGL ne fonctionne pas sur votre navigateur vous pouvez utiliser le moteur de rendu Canvas à la place
-    // renderer = new THREE.CanvasRenderer();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.getElementById('container').appendChild(renderer.domElement);
-
-    window.addEventListener( 'resize', onWindowResize, false );
-
-    // on initialise la scène
-    scene = new THREE.Scene();
-
-    // on initialise la camera que l’on place ensuite sur la scène
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set(0, 0, 1000);
-    scene.add(camera);
-
-    // on créé un  cube au quel on définie un matériau puis on l’ajoute à la scène
-    var geometry = new THREE.CubeGeometry( 200, 200, 200 );
-    var material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-    mesh = new THREE.Mesh( geometry, material );
-    scene.add( mesh );
-
-    // on effectue le rendu de la scène
-    render();
-}
-
-function onWindowResize() {
-
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize( window.innerWidth, window.innerHeight );
-
-  render();
-
-}
-
-function render() {
-  renderer.render( scene, camera );
-}
-</script>
 
 <script>
 function submitDeleteForm() {

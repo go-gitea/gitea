@@ -1,0 +1,280 @@
+ /*
+	Colorpicker for Bootstrap
+	Copyright 2012 Stefan Petre 
+	Licensed under the Apache License v2.0
+	http://www.apache.org/licenses/LICENSE-2.0
+*/
+.colorpicker-saturation {
+  width: 200px;
+  height: 200px;
+  background-image: url(../img/saturation.png);
+  cursor: crosshair;
+  float: left; }
+
+.colorpicker-saturation i {
+  display: block;
+  height: 5px;
+  width: 5px;
+  border: 1px solid black;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -4px 0 0 -4px; }
+
+.colorpicker-saturation i b {
+  display: block;
+  height: 5px;
+  width: 5px;
+  border: 1px solid white;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px; }
+
+.colorpicker-hue,
+.colorpicker-alpha {
+  width: 60px;
+  height: 200px;
+  float: left;
+  cursor: row-resize;
+  margin-left: 4px;
+  margin-bottom: 4px; }
+
+.colorpicker-hue i,
+.colorpicker-alpha i {
+  display: block;
+  height: 1px;
+  background: #000;
+  border-top: 1px solid white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  margin-top: -1px; }
+
+.colorpicker-hue {
+  background-image: url(../img/hue.png); }
+
+.colorpicker-alpha {
+  background-image: url(../img/alpha.png);
+  display: none; }
+
+.colorpicker {
+  position: absolute;
+  *zoom: 1;
+  top: 0;
+  left: 0;
+  padding: 4px;
+  min-width: 120px;
+  margin-top: 1px;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  background-color: #969696; }
+
+.colorpicker div {
+  position: relative; }
+
+.colorpicker.alpha {
+  min-width: 140px; }
+
+.colorpicker.alpha .colorpicker-alpha {
+  display: block; }
+
+.colorpicker-color {
+  height: 20px;
+  margin-top: 5px;
+  clear: both;
+  background-image: url(../img/alpha.png);
+  background-position: 0 100%; }
+
+.colorpicker-color div {
+  height: 20px; }
+
+.input-append.color .add-on i,
+.input-prepend.color .add-on i {
+  display: block;
+  cursor: pointer;
+  width: 16px;
+  height: 16px; }
+
+.literally {
+  position: relative;
+  background-color: white;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none; }
+  .literally canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: default;
+    width: 100%;
+    background-color: blue; }
+
+/* toolbar structure */
+.literally {
+  /* action/tool buttons */
+  /* buttons derived from
+   * https://github.com/necolas/css3-github-buttons/blob/master/gh-buttons.css
+   */
+  /* overrides extra padding on button elements in Firefox */
+  /* did my own button groups */ }
+  .literally .toolbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: gainsboro; }
+    .literally .toolbar, .literally .toolbar * {
+      box-sizing: border-box; }
+  .literally .toolbar-row {
+    border-top: 1px solid #c8c8c8; }
+    .literally .toolbar-row:first-child {
+      width: 100%;
+      height: 30px; }
+    .literally .toolbar-row .toolbar-row-left, .literally .toolbar-row .toolbar-row-right {
+      margin-top: 3px;
+      margin-bottom: 3px;
+      height: 24px;
+      line-height: 24px; }
+    .literally .toolbar-row .toolbar-row-left {
+      float: left;
+      padding-left: 3px; }
+    .literally .toolbar-row .toolbar-row-right {
+      width: 13em;
+      float: right;
+      text-align: right;
+      padding-right: 3px; }
+    .literally .toolbar-row .color-square {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      border: 1px solid #c8c8c8;
+      margin-right: 3px; }
+      .literally .toolbar-row .color-square.primary-picker, .literally .toolbar-row .color-square.secondary-picker {
+        float: left; }
+      .literally .toolbar-row .color-square.background-picker {
+        display: inline-block; }
+  .literally .tools {
+    float: left; }
+    .literally .tools .button {
+      text-align: center;
+      width: 30px;
+      height: 24px;
+      padding: 0;
+      position: relative; }
+      .literally .tools .button .tool-image-wrapper {
+        height: 24px;
+        padding-top: 3px; }
+        .literally .tools .button .tool-image-wrapper img {
+          width: 18px;
+          height: 18px;
+          vertical-align: top; }
+  .literally .zoom-display {
+    text-align: center;
+    width: 1.5em;
+    border-radius: 5px;
+    background-color: #333;
+    font-weight: bold;
+    color: white;
+    display: inline-block;
+    line-height: 14px;
+    padding: 5px 5px 5px 5px; }
+  .literally .tool-options-container {
+    display: inline-block; }
+  .literally .button {
+    display: inline-block;
+    padding-left: 5px;
+    padding-right: 5px;
+    text-align: center;
+    text-decoration: none;
+    text-shadow: 1px 1px 0 white;
+    color: #333;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    background-color: #f4f4f4;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#f4f4f4), to(#ececec));
+    background-image: -moz-linear-gradient(#f4f4f4, #ececec);
+    background-image: -ms-linear-gradient(#f4f4f4, #ececec);
+    background-image: -o-linear-gradient(#f4f4f4, #ececec);
+    background-image: linear-gradient(#f4f4f4, #ececec);
+    background-color: #ececec;
+    -moz-background-clip: padding;
+    /* for Firefox 3.6 */
+    background-clip: padding-box;
+    border-radius: 5px;
+    /* IE hacks */
+    zoom: 1;
+    *display: inline; }
+  .literally .button:hover,
+  .literally .button:focus,
+  .literally .button:active,
+  .literally .button.active {
+    text-decoration: none;
+    text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3);
+    color: #fff;
+    background-color: #599bdc;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#599bdc), to(#3072b3));
+    background-image: -moz-linear-gradient(#599bdc, #3072b3);
+    background-image: -ms-linear-gradient(#599bdc, #3072b3);
+    background-image: -o-linear-gradient(#599bdc, #3072b3);
+    background-image: linear-gradient(#599bdc, #3072b3); }
+  .literally .button:active,
+  .literally .button.active {
+    background-color: #3072b3;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#3072b3), to(#599bdc));
+    background-image: -moz-linear-gradient(#3072b3, #599bdc);
+    background-image: -ms-linear-gradient(#3072b3, #599bdc);
+    background-image: -o-linear-gradient(#3072b3, #599bdc);
+    background-image: linear-gradient(#3072b3, #599bdc); }
+  .literally .button::-moz-focus-inner {
+    padding: 0;
+    border: 0; }
+  .literally .button.danger {
+    color: white;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
+    background-color: #f37873;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#f37873), to(#b33630));
+    background-image: -moz-linear-gradient(#f37873, #b33630);
+    background-image: -ms-linear-gradient(#f37873, #b33630);
+    background-image: -o-linear-gradient(#f37873, #b33630);
+    background-image: linear-gradient(#f37873, #b33630); }
+  .literally .button.danger:hover,
+  .literally .button.danger:focus,
+  .literally .button.danger:active {
+    border-color: #b53f3a;
+    border-bottom-color: #a0302a;
+    color: #fff;
+    background-color: #dc5f59;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#dc5f59), to(#b33630));
+    background-image: -moz-linear-gradient(#dc5f59, #b33630);
+    background-image: -ms-linear-gradient(#dc5f59, #b33630);
+    background-image: -o-linear-gradient(#dc5f59, #b33630);
+    background-image: linear-gradient(#dc5f59, #b33630); }
+  .literally .button.danger:active,
+  .literally .button.danger.active {
+    border-color: #a0302a;
+    border-bottom-color: #bf4843;
+    background-color: #b33630;
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#b33630), to(#dc5f59));
+    background-image: -moz-linear-gradient(#b33630, #dc5f59);
+    background-image: -ms-linear-gradient(#b33630, #dc5f59);
+    background-image: -o-linear-gradient(#b33630, #dc5f59);
+    background-image: linear-gradient(#b33630, #dc5f59); }
+  .literally .button-group {
+    display: inline-block; }
+    .literally .button-group .button {
+      border-radius: 0;
+      border-left: 1px solid #d4d4d4; }
+      .literally .button-group .button:first-child {
+        border-radius: 5px 0px 0px 5px;
+        border-left: none; }
+      .literally .button-group .button:last-child {
+        border-radius: 0px 5px 5px 0px; }
