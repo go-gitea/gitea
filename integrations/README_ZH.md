@@ -1,52 +1,51 @@
-# Integrations tests
+# 关于集成测试
 
-Integration tests can be run with make commands for the
-appropriate backends, namely:
+使用如下 make 命令可以运行指定的集成测试：
 ```shell
 make test-mysql
 make test-pgsql
 make test-sqlite
 ```
 
-Make sure to perform a clean build before running tests:
+在执行集成测试命令前请确保清理了之前的构建环境，清理命令如下：
 ```
 make clean build
 ```
 
-## Run all tests via local drone
+## 如何在本地 drone 服务器上运行所有测试
 ```
 drone exec --local --build-event "pull_request"
 ```
 
-## Run sqlite integrations tests
-Start tests 
+## 如何使用 sqlite 数据库进行集成测试
+使用该命令执行集成测试
 ```
 make test-sqlite
 ```
 
-## Run mysql integrations tests
-Setup a mysql database inside docker
+## 如何使用 mysql 数据库进行集成测试
+首先在docker容器里部署一个 mysql 数据库
 ```
 docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" --rm --name mysql mysql:5.7 #(just ctrl-c to stop db and clean the container) 
 ```
-Start tests based on the database container
+之后便可以基于这个数据库进行集成测试
 ```
 TEST_MYSQL_HOST="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mysql):3306" TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' make test-mysql
 ```
 
-## Run pgsql integrations tests
-Setup a pgsql database inside docker
+## 如何使用 pgsql 数据库进行集成测试
+同上，首先在 docker 容器里部署一个 pgsql 数据库
 ```
 docker run -e "POSTGRES_DB=test" --rm --name pgsql postgres:9.5 #(just ctrl-c to stop db and clean the container) 
 ```
-Start tests based on the database container
+之后便可以基于这个数据库进行集成测试
 ```
 TEST_PGSQL_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pgsql) TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
 ```
 
-## Running individual tests
+## 如何进行自定义的集成测试
 
-Example command to run GPG test with sqlite backend:
+下面的示例展示了怎样基于 sqlite 数据库进行 GPG 测试：
 ```
 go test -c code.gitea.io/gitea/integrations \
   -o integrations.sqlite.test -tags 'sqlite' &&
