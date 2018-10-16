@@ -27,8 +27,10 @@ type Notifier interface {
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
 	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
 		addedLabels []*models.Label, removedLabels []*models.Label)
+
 	NotifyNewPullRequest(*models.PullRequest)
 	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
+	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
 		*models.Issue, *models.Comment)

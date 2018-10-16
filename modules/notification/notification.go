@@ -61,6 +61,13 @@ func NotifyNewPullRequest(pr *models.PullRequest) {
 	}
 }
 
+// NotifyPullRequestReview notifies new pull request review
+func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestReview(pr, review, comment)
+	}
+}
+
 // NotifyUpdateComment notifies update comment to notifiers
 func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 	for _, notifier := range notifiers {

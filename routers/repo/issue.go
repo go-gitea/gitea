@@ -1004,18 +1004,20 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
-		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
-					"error": "cannot close this issue because it still has open dependencies",
-				})
+		if issue.IsClosed != isClosed {
+			if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+				if models.IsErrDependenciesLeft(err) {
+					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
+						"error": "cannot close this issue because it still has open dependencies",
+					})
+					return
+				}
+				ctx.ServerError("ChangeStatus", err)
 				return
 			}
-			ctx.ServerError("ChangeStatus", err)
-			return
-		}
 
-		notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
+			notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
+		}
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
