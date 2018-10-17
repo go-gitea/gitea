@@ -57,6 +57,23 @@ var (
 	}
 )
 
+// MustAllowUserComment checks to make sure if an issue is locked.
+// If locked and user has permissions to write to the repository,
+// then the comment is allowed, else it is blocked
+func MustAllowUserComment(ctx *context.Context) {
+
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if issue.IsLocked && !ctx.Repo.IsWriter() && !ctx.User.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+}
+
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
@@ -878,16 +895,13 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Issue"] = issue
 	ctx.Data["ReadOnly"] = true
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
-<<<<<<< HEAD
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && ctx.Repo.IsAdmin() && ctx.User.IsAdmin
 	ctx.Data["IsWriter"] = ctx.IsSigned && ctx.Repo.IsWriter() && ctx.User.IsAdmin
-=======
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["IsRepoWriter"] = ctx.IsSigned && (ctx.Repo.IsWriter() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
->>>>>>> update UI to include lock reasons
 	ctx.HTML(200, tplIssueView)
 }
 
