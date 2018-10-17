@@ -261,11 +261,13 @@ be reviewed by two maintainers and must pass the automatic tests.
 
 * Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
 * Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
-* If this is a big version, then you have to create a new branch named `release/v$vmaj.$vmin`
-* Create PR for changelog on branch `release/v$vmaj.$vmin`
-* After your PR reviewed and merged,  and CI passed, add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`. 
+* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
+  * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
+  * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
+* If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
+* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`. 
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
-* Send PR for changelog on branch `master`.
+* If needed send PR for changelog on branch `master`.
 * Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
 
 ## Copyright
