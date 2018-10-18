@@ -1,0 +1,26 @@
+		{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
+		{{template "base/alert" .}}
+		{{end}}
+		<h4 class="ui top attached header center">
+			{{.i18n.Tr "settings.change_password"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.ChangePasscodeLink}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
+				<label for="password">{{.i18n.Tr "password"}}</label>
+				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+			</div>
+
+
+			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+				<label for="retype">{{.i18n.Tr "re_type"}}</label>
+				<input id="retype" name="retype" type="password" autocomplete="off" required>
+			</div>
+
+			<div class="inline field">
+				<label></label>
+				<button class="ui green button">{{.i18n.Tr "settings.change_password" }}</button>
+			</div>
+			</form>
+		</div>
