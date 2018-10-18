@@ -239,6 +239,8 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	if len(reviews) == 0 {
 		return nil, ErrReviewNotExist{}
 	}
+	reviews[0].Reviewer = reviewer
+	reviews[0].Issue = issue
 	return reviews[0], nil
 }
 
