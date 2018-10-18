@@ -24,23 +24,23 @@
 			{{end}}
 		</div>
 		<div class="ui repo-topic" id="repo-topic">
-		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if .IsRepositoryAdmin}}
-		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" >
+		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;" href="/explore/repos?q={{.Name}}&topic=1">{{.Name}}<i class="delete icon"></i></a>
+						<div class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
 						{{end}}
 						<div class="text"></div>
 					</div>
 				</div>
 			</div>
-			<div class="one wide column">
+			<div class="two wide column">
 				<a class="ui compact button primary" href="javascript:;" id="save_topic"
 				data-link="{{.RepoLink}}/topics">{{.i18n.Tr "repo.topic.done"}}</a>
 			</div>

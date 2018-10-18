@@ -42,14 +42,21 @@
         top: -13px;
     }
 
-    .attached.tab {
-        border: none;
-        padding: 0;
-        margin: 0;
+    .attached
+    {
+        &.tab {
+            border: none;
+            padding: 0;
+            margin: 0;
 
-        &.markdown {
-            padding: 1em;
-            min-height: 168px;
+            &.markdown {
+                padding: 1em;
+                min-height: 168px;
+            }
+        }
+
+        &.header {
+            padding: .1rem 1rem;
         }
     }
 
@@ -92,8 +99,12 @@
         }
     }
 
-    .comment-form-reply {
-        margin: 0.5em !important;
+    button.comment-form-reply {
+        margin: 0.5em 0.5em 0.5em 4.5em;
+    }
+
+    form.comment-form-reply {
+        margin: 0 0 0 4em;
     }
 }
 
