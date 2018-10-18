@@ -63,6 +63,10 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 			}
 		}
 	}
+	reviewID := review.ID
+	if reviewID == 0 {
+		reviewID = form.Reply
+	}
 	//FIXME check if line, commit and treepath exist
 	comment, err := models.CreateCodeComment(
 		ctx.User,
@@ -71,15 +75,15 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		form.Content,
 		form.TreePath,
 		signedLine,
-		review.ID,
+		reviewID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
 		return
 	}
 	// Send no notification if comment is pending
-	if !form.IsReview {
-		notification.Service.NotifyIssue(issue, ctx.User.ID)
+	if !form.IsReview || form.Reply != 0 {
+		notification.NotifyCreateIssueComment(ctx.User, issue.Repo, issue, comment)
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
