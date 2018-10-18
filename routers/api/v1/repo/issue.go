@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -207,6 +208,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		return
 	}
 
+	notification.NotifyNewIssue(issue)
+
 	if form.Closed {
 		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
@@ -337,6 +340,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database to assign some automatic values

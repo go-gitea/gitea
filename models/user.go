@@ -1338,6 +1338,7 @@ func GetUser(user *User) (bool, error) {
 type SearchUserOptions struct {
 	Keyword       string
 	Type          UserType
+	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
 	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
@@ -1356,7 +1357,12 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		if opts.SearchByEmail {
 			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
 		}
+
 		cond = cond.And(keywordCond)
+	}
+
+	if opts.UID > 0 {
+		cond = cond.And(builder.Eq{"id": opts.UID})
 	}
 
 	if !opts.IsActive.IsNone() {
