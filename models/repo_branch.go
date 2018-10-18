@@ -90,6 +90,8 @@ func (repo *Repository) DeleteLocalBranch(branchName string) error {
 type Branch struct {
 	Path string
 	Name string
+
+	gitRepo *git.Repository
 }
 
 // GetBranchesByPath returns a branch by it's path
@@ -107,8 +109,9 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 	branches := make([]*Branch, len(brs))
 	for i := range brs {
 		branches[i] = &Branch{
-			Path: path,
-			Name: brs[i],
+			Path:    path,
+			Name:    brs[i],
+			gitRepo: gitRepo,
 		}
 	}
 	return branches, nil
@@ -260,9 +263,13 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 
 // GetCommit returns all the commits of a branch
 func (branch *Branch) GetCommit() (*git.Commit, error) {
-	gitRepo, err := git.OpenRepository(branch.Path)
-	if err != nil {
-		return nil, err
+	if branch.gitRepo != nil {
+		return branch.gitRepo.GetBranchCommit(branch.Name)
+	} else {
+		gitRepo, err := git.OpenRepository(branch.Path)
+		if err != nil {
+			return nil, err
+		}
+		return gitRepo.GetBranchCommit(branch.Name)
 	}
-	return gitRepo.GetBranchCommit(branch.Name)
 }
