@@ -205,11 +205,14 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 	if opts.Keyword != "" {
 		var keywordCond = builder.NewCond()
-		if opts.TopicOnly {
-			keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
-		} else {
-			keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
-			keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(opts.Keyword)})
+		// separate keyword
+		for _, v := range strings.Split(opts.Keyword, ",") {
+			if opts.TopicOnly {
+				keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			} else {
+				keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(v)})
+				keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			}
 		}
 		cond = cond.And(keywordCond)
 	}
