@@ -59,7 +59,22 @@ func DetectEncoding(content []byte) (string, error) {
 		return "UTF-8", nil
 	}
 
-	result, err := chardet.NewTextDetector().DetectBest(content)
+	textDetector := chardet.NewTextDetector()
+	var detectContent []byte
+	if len(content) < 1024 {
+		// Check if original content is valid
+		if _, err := textDetector.DetectBest(content); err != nil {
+			return "", err
+		}
+		times := 1024 / len(content)
+		detectContent = make([]byte, 0, times*len(content))
+		for i := 0; i < times; i++ {
+			detectContent = append(detectContent, content...)
+		}
+	} else {
+		detectContent = content
+	}
+	result, err := textDetector.DetectBest(detectContent)
 	if err != nil {
 		return "", err
 	}
