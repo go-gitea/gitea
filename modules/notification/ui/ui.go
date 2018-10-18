@@ -80,7 +80,11 @@ func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest) {
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment) {
+func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, c *models.Comment) {
+	ns.issueQueue <- issueNotificationOpts{
+		pr.Issue,
+		r.Reviewer.ID,
+	}
 }
 
 func (ns *notificationService) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {

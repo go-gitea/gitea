@@ -184,5 +184,13 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		ctx.ServerError("Publish", err)
 		return
 	}
+
+	pr, err := issue.GetPullRequest()
+	if err != nil {
+		ctx.ServerError("GetPullRequest", err)
+		return
+	}
+	notification.NotifyPullRequestReview(pr, review, comm)
+
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
