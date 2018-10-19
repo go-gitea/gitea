@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -243,7 +244,8 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 
 func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
 	AssertNotExistsBean(t, actionBean)
-	_, err := CommitRepoAction(opts)
+	evt, err := CommitRepoAction(opts)
+	notification.NotifyCommitsPushed(evt.Pusher, evt.OpType, evt.Repo, evt.RefName, evt.Data)
 	assert.NoError(t, err)
 	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
