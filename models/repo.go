@@ -251,7 +251,7 @@ func (repo *Repository) APIURL() string {
 
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
-	return repo.innerAPIFormat(mode, false)
+	return repo.innerAPIFormat(x, mode, false)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -265,22 +265,22 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
-func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
+func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	permission := &api.Permission{
 		Admin: mode >= AccessModeAdmin,
 		Push:  mode >= AccessModeWrite,
 		Pull:  mode >= AccessModeRead,
 	}
 	if !isParent {
-		err := repo.GetBaseRepo()
+		err := repo.getBaseRepo(e)
 		if err != nil {
 			log.Error(4, "APIFormat: %v", err)
 		}
 		if repo.BaseRepo != nil {
-			parent = repo.BaseRepo.innerAPIFormat(mode, true)
+			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
 	return &api.Repository{
@@ -617,11 +617,15 @@ func (repo *Repository) GetMirror() (err error) {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
+	return repo.getBaseRepo(x)
+}
+
+func (repo *Repository) getBaseRepo(e Engine) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
 
-	repo.BaseRepo, err = GetRepositoryByID(repo.ForkID)
+	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
 	return err
 }
 
@@ -889,7 +893,7 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
 }
 
-func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
+func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
 	repoName := repo.Name
 	if isWiki {
 		repoName += ".wiki"
@@ -900,7 +904,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		sshUser = setting.SSH.BuiltinServerUser
 	}
 
-	repo.Owner = repo.MustOwner()
+	repo.Owner = repo.mustOwner(e)
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
@@ -915,7 +919,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink() (cl *CloneLink) {
-	return repo.cloneLink(false)
+	return repo.cloneLink(x, false)
 }
 
 // MigrateRepoOptions contains the repository migrate options
@@ -1192,7 +1196,7 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 	}
 }
 
-func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	// Clone to temporary path and do the init commit.
 	_, stderr, err := process.GetManager().Exec(
 		fmt.Sprintf("initRepository(git clone): %s", repoPath),
@@ -1208,7 +1212,7 @@ func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRep
 		return fmt.Errorf("getRepoInitFile[%s]: %v", opts.Readme, err)
 	}
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    repo.Description,
@@ -1281,7 +1285,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 
 		defer os.RemoveAll(tmpDir)
 
-		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(e, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
 		}
 
@@ -1386,7 +1390,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("addRepository: %v", err)
 		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
-			Repository:   repo.APIFormat(AccessModeOwner),
+			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),
 			Sender:       doer.APIFormat(),
 		}); err != nil {
