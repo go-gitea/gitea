@@ -310,6 +310,11 @@ REGISTER_EMAIL_CONFIRM = false
 DISABLE_REGISTRATION = false
 ; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
+; Automatically create user accounts for new oauth2 users.
+ENABLE_OAUTH2_AUTO_REGISTRATION = false
+; Whether a new auto registered oauth2 user needs to confirm their email.
+; Do not include to use the REGISTER_EMAIL_CONFIRM setting.
+; OAUTH2_REGISTER_EMAIL_CONFIRM =
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification

@@ -546,10 +546,28 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		// no existing user is found, request attach or new account
-		ctx.Session.Set("linkAccountGothUser", gothUser)
-		ctx.Redirect(setting.AppSubURL + "/user/link_account")
-		return
+		if setting.Service.EnableOAuth2AutoRegister {
+			// create new user with details from oauth2 provider
+			u = &models.User{
+				Name:        gothUser.UserID,
+				FullName:    gothUser.Name,
+				Email:       gothUser.Email,
+				IsActive:    !setting.Service.OAuth2RegisterEmailConfirm,
+				LoginType:   models.LoginOAuth2,
+				LoginSource: loginSource.ID,
+				LoginName:   gothUser.UserID,
+			}
+
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u) {
+				// error already handled
+				return
+			}
+		} else {
+			// no existing user is found, request attach or new account
+			ctx.Session.Set("linkAccountGothUser", gothUser)
+			ctx.Redirect(setting.AppSubURL + "/user/link_account")
+			return
+		}
 	}
 
 	handleOAuth2SignIn(ctx, u)

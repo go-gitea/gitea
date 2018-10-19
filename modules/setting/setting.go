@@ -1203,6 +1203,9 @@ var Service struct {
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
+	EnableOAuth2AutoRegister                bool
+	OAuth2RegisterEmailConfirm              bool
+	OAuth2OpenIDConnectScopes               []string
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
 	EnableReverseProxyAuth                  bool
@@ -1233,6 +1236,19 @@ func newService() {
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
+	Service.EnableOAuth2AutoRegister = sec.Key("ENABLE_OAUTH2_AUTO_REGISTRATION").MustBool()
+	Service.OAuth2RegisterEmailConfirm = sec.Key("OAUTH2_REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
+	if !sec.HasKey("OAUTH2_OPENID_CONNECT_SCOPES") && Service.EnableOAuth2AutoRegister {
+		Service.OAuth2OpenIDConnectScopes = []string{"profile", "email"}
+	} else {
+		pats := sec.Key("OAUTH2_OPENID_CONNECT_SCOPES").Strings(" ")
+		Service.OAuth2OpenIDConnectScopes = make([]string, 0, len(pats))
+		for _, scope := range pats {
+			if scope != "" {
+				Service.OAuth2OpenIDConnectScopes = append(Service.OAuth2OpenIDConnectScopes, scope)
+			}
+		}
+	}
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
