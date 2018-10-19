@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -161,6 +162,8 @@ func TestTransferOwnership(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	repo.Owner = AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	assert.NoError(t, TransferOwnership(doer, "user2", repo))
+
+	notification.NotifyRepositoryTransfered(doer, doer, repo)
 
 	transferredRepo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
