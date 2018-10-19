@@ -705,17 +705,6 @@ func CommitRepoAction(opts CommitRepoActionOptions) (*CommitRepoEvent, error) {
 	return &event, nil
 }
 
-func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err error) {
-	// Remove watch for organization.
-	if oldOwner.IsOrganization() {
-		if err = watchRepo(e, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
-		}
-	}
-
-	return nil
-}
-
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	RequestedUser    *User

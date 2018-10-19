@@ -243,7 +243,8 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 
 func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
 	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, CommitRepoAction(opts))
+	_, err := CommitRepoAction(opts)
+	assert.NoError(t, err)
 	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -352,33 +353,6 @@ func TestCommitRepoAction(t *testing.T) {
 
 		testCorrectRepoAction(t, s.commitRepoActionOptions, &s.action)
 	}
-}
-
-func TestTransferRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user2.ID}).(*Repository)
-
-	repo.OwnerID = user4.ID
-	repo.Owner = user4
-
-	actionBean := &Action{
-		OpType:    ActionTransferRepo,
-		ActUserID: user2.ID,
-		ActUser:   user2,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, TransferRepoAction(user2, user2, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-
-	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
-	assert.NoError(t, err)
-	CheckConsistencyFor(t, &Action{})
 }
 
 func TestGetFeeds(t *testing.T) {

@@ -1542,8 +1542,13 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = transferRepoAction(sess, doer, owner, repo); err != nil {
-		return fmt.Errorf("transferRepoAction: %v", err)
+	}
+
+	// Remove watch for organization.
+	if owner.IsOrganization() {
+		if err = watchRepo(sess, owner.ID, repo.ID, false); err != nil {
+			return fmt.Errorf("watchRepo [false]: %v", err)
+		}
 	}
 
 	// Rename remote repository to new path and delete local copy.
