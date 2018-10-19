@@ -60,6 +60,15 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     type: object
+	//     required:
+	//       - name
+	//     properties:
+	//       name:
+	//         type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"
