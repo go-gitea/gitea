@@ -361,7 +361,11 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
-func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
+func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
+	return c.mailParticipants(x, opType, issue)
+}
+
+func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
 	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
@@ -631,9 +635,6 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	if act.OpType > 0 {
 		if err = notifyWatchers(e, act); err != nil {
 			log.Error(4, "notifyWatchers: %v", err)
-		}
-		if err = comment.MailParticipants(e, act.OpType, opts.Issue); err != nil {
-			log.Error(4, "MailParticipants: %v", err)
 		}
 	}
 	return nil

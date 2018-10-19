@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
 )
 
@@ -23,6 +24,7 @@ func RegisterNotifier(notifier base.Notifier) {
 
 func init() {
 	RegisterNotifier(ui.NewNotifier())
+	RegisterNotifier(mail.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
