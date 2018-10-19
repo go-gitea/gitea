@@ -2230,10 +2230,13 @@ const (
 	archiveCleanup = "archive_cleanup"
 )
 
+// TaskStartIfNotRunning sets value of given name to true if not already in pool.
+// Returns whether set value was set to true
 func TaskStartIfNotRunning(name string) bool {
 	return taskStatusTable.StartIfNotRunning(name)
 }
 
+// TaskStop sets value of given name to false in the pool.
 func TaskStop(name string) {
 	taskStatusTable.Stop(name)
 }
