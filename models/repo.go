@@ -268,7 +268,7 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	permission := &api.Permission{
 		Admin: mode >= AccessModeAdmin,
 		Push:  mode >= AccessModeWrite,
@@ -893,7 +893,7 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
 }
 
-func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
+func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
 	repoName := repo.Name
 	if isWiki {
 		repoName += ".wiki"
@@ -904,7 +904,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		sshUser = setting.SSH.BuiltinServerUser
 	}
 
-	repo.Owner = repo.MustOwner()
+	repo.Owner = repo.mustOwner(e)
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
@@ -919,7 +919,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink() (cl *CloneLink) {
-	return repo.cloneLink(false)
+	return repo.cloneLink(x, false)
 }
 
 // MigrateRepoOptions contains the repository migrate options
@@ -1196,7 +1196,7 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 	}
 }
 
-func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	// Clone to temporary path and do the init commit.
 	_, stderr, err := process.GetManager().Exec(
 		fmt.Sprintf("initRepository(git clone): %s", repoPath),
@@ -1212,7 +1212,7 @@ func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRep
 		return fmt.Errorf("getRepoInitFile[%s]: %v", opts.Readme, err)
 	}
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    repo.Description,
@@ -1285,7 +1285,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 
 		defer os.RemoveAll(tmpDir)
 
-		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(e, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
 		}
 
