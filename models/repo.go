@@ -251,7 +251,7 @@ func (repo *Repository) APIURL() string {
 
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
-	return repo.innerAPIFormat(mode, false)
+	return repo.innerAPIFormat(x, mode, false)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -265,7 +265,7 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
-func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
+func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	cloneLink := repo.CloneLink()
@@ -275,12 +275,12 @@ func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repo
 		Pull:  mode >= AccessModeRead,
 	}
 	if !isParent {
-		err := repo.GetBaseRepo()
+		err := repo.getBaseRepo(e)
 		if err != nil {
 			log.Error(4, "APIFormat: %v", err)
 		}
 		if repo.BaseRepo != nil {
-			parent = repo.BaseRepo.innerAPIFormat(mode, true)
+			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
 	return &api.Repository{
@@ -617,11 +617,15 @@ func (repo *Repository) GetMirror() (err error) {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
+	return repo.getBaseRepo(x)
+}
+
+func (repo *Repository) getBaseRepo(e Engine) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
 
-	repo.BaseRepo, err = GetRepositoryByID(repo.ForkID)
+	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
 	return err
 }
 
@@ -1386,7 +1390,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("addRepository: %v", err)
 		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
-			Repository:   repo.APIFormat(AccessModeOwner),
+			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),
 			Sender:       doer.APIFormat(),
 		}); err != nil {
