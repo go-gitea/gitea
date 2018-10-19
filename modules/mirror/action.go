@@ -14,16 +14,16 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
-// MirrorSyncPushActionOptions mirror synchronization action options.
-type MirrorSyncPushActionOptions struct {
+// SyncPushActionOptions mirror synchronization action options.
+type SyncPushActionOptions struct {
 	RefName     string
 	OldCommitID string
 	NewCommitID string
 	Commits     *models.PushCommits
 }
 
-// MirrorSyncPushAction adds new action for mirror synchronization of pushed commits.
-func MirrorSyncPushAction(repo *models.Repository, opts MirrorSyncPushActionOptions) error {
+// SyncPushAction adds new action for mirror synchronization of pushed commits.
+func SyncPushAction(repo *models.Repository, opts SyncPushActionOptions) error {
 	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
@@ -54,14 +54,14 @@ func MirrorSyncPushAction(repo *models.Repository, opts MirrorSyncPushActionOpti
 	return nil
 }
 
-// MirrorSyncCreateAction adds new action for mirror synchronization of new reference.
-func MirrorSyncCreateAction(repo *models.Repository, refName string) error {
+// SyncCreateAction adds new action for mirror synchronization of new reference.
+func SyncCreateAction(repo *models.Repository, refName string) error {
 	notification.NotifyRepoMirrorSync(models.ActionMirrorSyncCreate, repo, refName, nil)
 	return nil
 }
 
-// MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
-func MirrorSyncDeleteAction(repo *models.Repository, refName string) error {
+// SyncDeleteAction adds new action for mirror synchronization of delete reference.
+func SyncDeleteAction(repo *models.Repository, refName string) error {
 	notification.NotifyRepoMirrorSync(models.ActionMirrorSyncDelete, repo, refName, nil)
 	return nil
 }

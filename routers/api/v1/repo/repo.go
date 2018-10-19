@@ -569,7 +569,7 @@ func MirrorSync(ctx *context.APIContext) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
-	go mirror.MirrorQueue.Add(repo.ID)
+	go mirror.Queue.Add(repo.ID)
 	ctx.Status(200)
 }
 

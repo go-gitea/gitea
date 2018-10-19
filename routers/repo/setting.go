@@ -159,7 +159,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		go mirror.MirrorQueue.Add(repo.ID)
+		go mirror.Queue.Add(repo.ID)
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 

@@ -24,14 +24,14 @@ func NewContext() {
 		err   error
 	)
 	if setting.Cron.UpdateMirror.Enabled {
-		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, mirror.MirrorUpdate)
+		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, mirror.Update)
 		if err != nil {
 			log.Fatal(4, "Cron[Update mirrors]: %v", err)
 		}
 		if setting.Cron.UpdateMirror.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go mirror.MirrorUpdate()
+			go mirror.Update()
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {

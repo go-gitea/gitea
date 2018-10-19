@@ -22,27 +22,27 @@ import (
 )
 
 const (
-	mirrorUpdate = "mirror_update"
+	updateCronName = "mirror_update"
 )
 
-// MirrorQueue holds an UniqueQueue object of the mirror
-var MirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
+// Queue holds an UniqueQueue object of the mirror
+var Queue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
 
 // gitShortEmptySha Git short empty SHA
 const gitShortEmptySha = "0000000"
 
-// mirrorSyncResult contains information of a updated reference.
+// syncResult contains information of a updated reference.
 // If the oldCommitID is "0000000", it means a new reference, the value of newCommitID is empty.
 // If the newCommitID is "0000000", it means the reference is deleted, the value of oldCommitID is empty.
-type mirrorSyncResult struct {
+type syncResult struct {
 	refName     string
 	oldCommitID string
 	newCommitID string
 }
 
 // parseRemoteUpdateOutput detects create, update and delete operations of references from upstream.
-func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
-	results := make([]*mirrorSyncResult, 0, 3)
+func parseRemoteUpdateOutput(output string) []*syncResult {
+	results := make([]*syncResult, 0, 3)
 	lines := strings.Split(output, "\n")
 	for i := range lines {
 		// Make sure reference name is presented before continue
@@ -55,12 +55,12 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 
 		switch {
 		case strings.HasPrefix(lines[i], " * "): // New reference
-			results = append(results, &mirrorSyncResult{
+			results = append(results, &syncResult{
 				refName:     refName,
 				oldCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
-			results = append(results, &mirrorSyncResult{
+			results = append(results, &syncResult{
 				refName:     refName,
 				newCommitID: gitShortEmptySha,
 			})
@@ -75,7 +75,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				log.Error(2, "Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
-			results = append(results, &mirrorSyncResult{
+			results = append(results, &syncResult{
 				refName:     refName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
@@ -109,7 +109,7 @@ func sanitizeOutput(output, repoPath string) (string, error) {
 }
 
 // runSync returns true if sync finished without error.
-func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(m *models.Mirror) ([]*syncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -186,12 +186,12 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	return parseRemoteUpdateOutput(output), true
 }
 
-// MirrorUpdate checks and updates mirror repositories.
-func MirrorUpdate() {
-	if !models.TaskStartIfNotRunning(mirrorUpdate) {
+// Update checks and updates mirror repositories.
+func Update() {
+	if !models.TaskStartIfNotRunning(updateCronName) {
 		return
 	}
-	defer models.TaskStop(mirrorUpdate)
+	defer models.TaskStop(updateCronName)
 
 	log.Trace("Doing: MirrorUpdate")
 
@@ -202,7 +202,7 @@ func MirrorUpdate() {
 			return nil
 		}
 
-		MirrorQueue.Add(m.RepoID)
+		Queue.Add(m.RepoID)
 		return nil
 	}); err != nil {
 		log.Error(4, "MirrorUpdate: %v", err)
@@ -213,9 +213,9 @@ func MirrorUpdate() {
 // TODO: sync more mirrors at same time.
 func SyncMirrors() {
 	// Start listening on new sync requests.
-	for repoID := range MirrorQueue.Queue() {
+	for repoID := range Queue.Queue() {
 		log.Trace("SyncMirrors [repo_id: %v]", repoID)
-		MirrorQueue.Remove(repoID)
+		Queue.Remove(repoID)
 
 		m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
 		if err != nil {
@@ -253,7 +253,7 @@ func SyncMirrors() {
 
 			// Create reference
 			if result.oldCommitID == gitShortEmptySha {
-				if err = MirrorSyncCreateAction(m.Repo, result.refName); err != nil {
+				if err = SyncCreateAction(m.Repo, result.refName); err != nil {
 					log.Error(2, "MirrorSyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
 				}
 				continue
@@ -261,7 +261,7 @@ func SyncMirrors() {
 
 			// Delete reference
 			if result.newCommitID == gitShortEmptySha {
-				if err = MirrorSyncDeleteAction(m.Repo, result.refName); err != nil {
+				if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
 					log.Error(2, "MirrorSyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
 				}
 				continue
@@ -283,7 +283,7 @@ func SyncMirrors() {
 				log.Error(2, "CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
 				continue
 			}
-			if err = MirrorSyncPushAction(m.Repo, MirrorSyncPushActionOptions{
+			if err = SyncPushAction(m.Repo, SyncPushActionOptions{
 				RefName:     result.refName,
 				OldCommitID: oldCommitID,
 				NewCommitID: newCommitID,
