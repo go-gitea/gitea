@@ -810,49 +810,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		LoginName:   gothUser.(goth.User).UserID,
 	}
 
-	if err := models.CreateUser(u); err != nil {
-		switch {
-		case models.IsErrUserAlreadyExist(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplLinkAccount, &form)
-		case models.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplLinkAccount, &form)
-		case models.IsErrNameReserved(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplLinkAccount, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplLinkAccount, &form)
-		default:
-			ctx.ServerError("CreateUser", err)
-		}
-		return
-	}
-	log.Trace("Account created: %s", u.Name)
-
-	// Auto-set admin for the only user.
-	if models.CountUsers() == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-	}
-
-	// Send confirmation email
-	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
-		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(200, TplActivate)
-
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
-		}
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u) {
+		// error already handled
 		return
 	}
 
@@ -943,27 +902,64 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		Passwd:   form.Password,
 		IsActive: !setting.Service.RegisterEmailConfirm,
 	}
+
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u) {
+		// error already handled
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
+	handleSignInFull(ctx, u, false, true)
+}
+
+// CreateAndHandleCreatedUser calls createUserInContext and
+// then handleUserCreated.
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User) (ok bool) {
+	ok = createUserInContext(ctx, tpl, form, u)
+	if !ok {
+		return
+	}
+	ok = handleUserCreated(ctx, u)
+	return
+}
+
+// CreateUserInContext creates a user and handles errors within a given context.
+// Optionaly a template can be specified.
+func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
+		// handle error without template
+		if len(tpl) == 0 {
+			ctx.ServerError("CreateUser", err)
+			return
+		}
+
+		// handle error with template
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tpl, &form)
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tpl, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, &form)
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
 		return
 	}
 	log.Trace("Account created: %s", u.Name)
+	return true
+}
 
+// HandleUserCreated does additional steps after a new user is created.
+// It auto-sets admin for the only user and
+// sends a confirmation email if required.
+func handleUserCreated(ctx *context.Context, u *models.User) (ok bool) {
 	// Auto-set admin for the only user.
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
@@ -975,8 +971,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		}
 	}
 
-	// Send confirmation email, no need for social account.
-	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
+	// Send confirmation email
+	if !u.IsActive && u.ID > 1 {
 		models.SendActivateAccountMail(ctx.Context, u)
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
@@ -989,8 +985,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
-	handleSignInFull(ctx, u, false, true)
+	return true
 }
 
 // Activate render activate user page
