@@ -27,6 +27,9 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/Unknwon/paginater"
+
+	"os"
+	"os/exec"
 )
 
 const (
@@ -172,6 +175,21 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isCadFile, isCadFileSourceDisplayable := base.IsCadFile(blob.Name(), buf)
 	ctx.Data["IsCadFile"] = isCadFile
 	ctx.Data["IsCadFileSourceDisplayable"] = isCadFileSourceDisplayable
+
+	// TODO
+	if isCadFile {
+		fmt.Println("Calling Python")
+		cmd := exec.Command("/opt/miniconda3/bin/python", "/home/guillaume/_Repositories/github/osv-team/gitea/routers/repo/view_cad_converter.py", rawLink + "/" + ctx.Repo.TreePath, "/home/guillaume/converted_cad")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		fmt.Println(cmd.Run())
+		fmt.Println("Calling Python ... Done")
+		// -- Write buf to a temp file
+		// -- Convert buf to STL, JSON, X3D
+		// -- Pass the path to the converted file to the template
+		// -- Cache !!
+	}
+
 	// ---- End Gitea for CAD changes ----
 
 	//Check for LFS meta file
