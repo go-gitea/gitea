@@ -584,10 +584,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
-	}
-
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
@@ -925,18 +921,6 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
 	}
 
 	pr.Issue = pull

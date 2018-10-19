@@ -14,9 +14,12 @@ type Notifier interface {
 	Run()
 
 	NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository)
+	NotifyRepositoryChangedName(doer *models.User, oldRepoName string, repo *models.Repository)
+	NotifyRepositoryTransfered(doer *models.User, oldOwner *models.User, newRepo *models.Repository)
 	NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository)
 	NotifyDeleteRepository(doer *models.User, repo *models.Repository)
 	NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository)
+	NotifyRepoMirrorSync(opType models.ActionType, repo *models.Repository, refName string, data []byte)
 
 	NotifyNewIssue(*models.Issue)
 	NotifyIssueChangeStatus(*models.User, *models.Issue, bool)
@@ -40,4 +43,6 @@ type Notifier interface {
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+
+	NotifyCommitsPushed(pusher *models.User, opType models.ActionType, repo *models.Repository, refName string, data []byte)
 }

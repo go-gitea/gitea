@@ -1362,9 +1362,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = newRepoAction(e, doer, repo); err != nil {
-		return fmt.Errorf("newRepoAction: %v", err)
-	}
 
 	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
@@ -1732,6 +1729,12 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+// UpdateRepositoryCols updates repository special columns
+func UpdateRepositoryCols(repo *Repository, cols ...string) error {
+	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
 }
 
 // UpdateRepositoryUnits updates a repository's units
@@ -2217,11 +2220,18 @@ func SyncRepositoryHooks() error {
 var taskStatusTable = sync.NewStatusTable()
 
 const (
-	mirrorUpdate   = "mirror_update"
 	gitFsck        = "git_fsck"
 	checkRepos     = "check_repos"
 	archiveCleanup = "archive_cleanup"
 )
+
+func TaskStartIfNotRunning(name string) bool {
+	return taskStatusTable.StartIfNotRunning(name)
+}
+
+func TaskStop(name string) {
+	taskStatusTable.Stop(name)
+}
 
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {

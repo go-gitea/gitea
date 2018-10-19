@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -23,14 +24,14 @@ func NewContext() {
 		err   error
 	)
 	if setting.Cron.UpdateMirror.Enabled {
-		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, models.MirrorUpdate)
+		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, mirror.MirrorUpdate)
 		if err != nil {
 			log.Fatal(4, "Cron[Update mirrors]: %v", err)
 		}
 		if setting.Cron.UpdateMirror.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go models.MirrorUpdate()
+			go mirror.MirrorUpdate()
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {

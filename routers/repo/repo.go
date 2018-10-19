@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -175,6 +176,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		AutoInit:    form.AutoInit,
 	})
 	if err == nil {
+		notification.NotifyCreateRepository(ctx.User, ctxUser, repo)
+
 		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 		return
@@ -250,6 +253,8 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err == nil {
+		notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
 		return

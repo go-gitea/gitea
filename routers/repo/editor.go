@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/uploader"
@@ -309,7 +310,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.UpdateRepoFile(ctx.Repo.Repository, ctx.User, &uploader.UpdateRepoFileOptions{
+	evt, err := uploader.UpdateRepoFile(ctx.Repo.Repository, ctx.User, &uploader.UpdateRepoFileOptions{
 		LastCommitID: lastCommit,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -318,11 +319,14 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		Message:      message,
 		Content:      strings.Replace(form.Content, "\r", "", -1),
 		IsNewFile:    isNewFile,
-	}); err != nil {
+	})
+	if err != nil {
 		ctx.Data["Err_TreePath"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
 		return
 	}
+
+	notification.NotifyCommitsPushed(evt.Pusher, evt.OpType, evt.Repo, evt.RefName, evt.Data)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(form.TreePath))
 }
@@ -448,16 +452,19 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &uploader.DeleteRepoFileOptions{
+	evt, err := uploader.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &uploader.DeleteRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
 		TreePath:     ctx.Repo.TreePath,
 		Message:      message,
-	}); err != nil {
+	})
+	if err != nil {
 		ctx.ServerError("DeleteRepoFile", err)
 		return
 	}
+
+	notification.NotifyCommitsPushed(evt.Pusher, evt.OpType, evt.Repo, evt.RefName, evt.Data)
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName)
@@ -583,18 +590,21 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &uploader.UploadRepoFileOptions{
+	evt, err := uploader.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &uploader.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
 		TreePath:     form.TreePath,
 		Message:      message,
 		Files:        form.Files,
-	}); err != nil {
+	})
+	if err != nil {
 		ctx.Data["Err_TreePath"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
 		return
 	}
+
+	notification.NotifyCommitsPushed(evt.Pusher, evt.OpType, evt.Repo, evt.RefName, evt.Data)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + form.TreePath)
 }

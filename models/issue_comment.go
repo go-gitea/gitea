@@ -635,12 +635,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
 		return err
 	}
-	// Notify watchers for whatever action comes in, ignore if no action type.
-	if act.OpType > 0 {
-		if err = notifyWatchers(e, act); err != nil {
-			log.Error(4, "notifyWatchers: %v", err)
-		}
-	}
+
 	return nil
 }
 

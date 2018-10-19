@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mirror"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
@@ -242,6 +244,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
+	notification.NotifyCreateRepository(ctx.User, owner, repo)
+
 	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
 
@@ -424,6 +428,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
+	notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+
 	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
 	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
@@ -563,7 +569,7 @@ func MirrorSync(ctx *context.APIContext) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
-	go models.MirrorQueue.Add(repo.ID)
+	go mirror.MirrorQueue.Add(repo.ID)
 	ctx.Status(200)
 }
 

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 
@@ -95,7 +96,7 @@ func GlobalInit() {
 			log.Fatal(4, "Failed to initialize issue indexer: %v", err)
 		}
 		models.InitRepoIndexer()
-		models.InitSyncMirrors()
+		mirror.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
 		log.NewGitLogger(path.Join(setting.LogRootPath, "http.log"))

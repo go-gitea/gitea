@@ -1160,18 +1160,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	if err = NotifyWatchers(&Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
-	}
-
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,

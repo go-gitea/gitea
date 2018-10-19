@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mirror"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -109,9 +111,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		if isNameChanged {
-			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error(4, "RenameRepoAction: %v", err)
-			}
+			notification.NotifyRepositoryChangedName(ctx.User, oldRepoName, repo)
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -159,7 +159,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		go models.MirrorQueue.Add(repo.ID)
+		go mirror.MirrorQueue.Add(repo.ID)
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -345,6 +345,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("NewRepoRedirect", err)
 			return
 		}
+		notification.NotifyRepositoryTransfered(ctx.User, ctx.Repo.Owner, repo)
 
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))

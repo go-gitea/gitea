@@ -274,49 +274,6 @@ func (a *Action) GetIssueContent() string {
 	return issue.Content
 }
 
-func newRepoAction(e Engine, u *User, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: u.ID,
-		ActUser:   u,
-		OpType:    ActionCreateRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("notify watchers '%d/%d': %v", u.ID, repo.ID, err)
-	}
-
-	log.Trace("action.newRepoAction: %s/%s", u.Name, repo.Name)
-	return err
-}
-
-// NewRepoAction adds new action for creating repository.
-func NewRepoAction(u *User, repo *Repository) (err error) {
-	return newRepoAction(x, u, repo)
-}
-
-func renameRepoAction(e Engine, actUser *User, oldRepoName string, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: actUser.ID,
-		ActUser:   actUser,
-		OpType:    ActionRenameRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   oldRepoName,
-	}); err != nil {
-		return fmt.Errorf("notify watchers: %v", err)
-	}
-
-	log.Trace("action.renameRepoAction: %s/%s", actUser.Name, repo.Name)
-	return nil
-}
-
-// RenameRepoAction adds new action for renaming a repository.
-func RenameRepoAction(actUser *User, oldRepoName string, repo *Repository) error {
-	return renameRepoAction(x, actUser, oldRepoName, repo)
-}
-
 func issueIndexTrimRight(c rune) bool {
 	return !unicode.IsDigit(c)
 }
@@ -572,17 +529,26 @@ type CommitRepoActionOptions struct {
 	Commits     *PushCommits
 }
 
+// CommitRepoEvent represent commits finished event
+type CommitRepoEvent struct {
+	Pusher  *User
+	Repo    *Repository
+	OpType  ActionType
+	RefName string
+	Data    []byte
+}
+
 // CommitRepoAction adds new commit action to the repository, and prepare
 // corresponding webhooks.
-func CommitRepoAction(opts CommitRepoActionOptions) error {
+func CommitRepoAction(opts CommitRepoActionOptions) (*CommitRepoEvent, error) {
 	pusher, err := GetUserByName(opts.PusherName)
 	if err != nil {
-		return fmt.Errorf("GetUserByName [%s]: %v", opts.PusherName, err)
+		return nil, fmt.Errorf("GetUserByName [%s]: %v", opts.PusherName, err)
 	}
 
 	repo, err := GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
+		return nil, fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
 	}
 
 	refName := git.RefEndName(opts.RefFullName)
@@ -595,7 +561,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	// Change repository empty status and update last updated time.
 	if err = UpdateRepository(repo, false); err != nil {
-		return fmt.Errorf("UpdateRepository: %v", err)
+		return nil, fmt.Errorf("UpdateRepository: %v", err)
 	}
 
 	isNewBranch := false
@@ -629,20 +595,15 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	data, err := json.Marshal(opts.Commits)
 	if err != nil {
-		return fmt.Errorf("Marshal: %v", err)
+		return nil, fmt.Errorf("Marshal: %v", err)
 	}
 
-	if err = NotifyWatchers(&Action{
-		ActUserID: pusher.ID,
-		ActUser:   pusher,
-		OpType:    opType,
-		Content:   string(data),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   refName,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("NotifyWatchers: %v", err)
+	var event = CommitRepoEvent{
+		Pusher:  pusher,
+		OpType:  opType,
+		Data:    data,
+		Repo:    repo,
+		RefName: refName,
 	}
 
 	defer func() {
@@ -675,7 +636,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 				Repo:    apiRepo,
 				Sender:  apiPusher,
 			}); err != nil {
-				return fmt.Errorf("PrepareWebhooks: %v", err)
+				return nil, fmt.Errorf("PrepareWebhooks: %v", err)
 			}
 		}
 
@@ -689,7 +650,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Repo:       apiRepo,
 			Sender:     apiPusher,
 		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks.(delete branch): %v", err)
+			return nil, fmt.Errorf("PrepareWebhooks.(delete branch): %v", err)
 		}
 
 	case ActionPushTag: // Create
@@ -710,7 +671,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Repo:    apiRepo,
 			Sender:  apiPusher,
 		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
+			return nil, fmt.Errorf("PrepareWebhooks: %v", err)
 		}
 	case ActionDeleteTag: // Delete Tag
 		isHookEventPush = true
@@ -722,7 +683,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Repo:       apiRepo,
 			Sender:     apiPusher,
 		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks.(delete tag): %v", err)
+			return nil, fmt.Errorf("PrepareWebhooks.(delete tag): %v", err)
 		}
 	}
 
@@ -737,26 +698,14 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Pusher:     apiPusher,
 			Sender:     apiPusher,
 		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
+			return nil, fmt.Errorf("PrepareWebhooks: %v", err)
 		}
 	}
 
-	return nil
+	return &event, nil
 }
 
 func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionTransferRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwner.Name, repo.Name),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
 		if err = watchRepo(e, oldOwner.ID, repo.ID, false); err != nil {
@@ -765,94 +714,6 @@ func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err e
 	}
 
 	return nil
-}
-
-// TransferRepoAction adds new action for transferring repository,
-// the Owner field of repository is assumed to be new owner.
-func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
-	return transferRepoAction(x, doer, oldOwner, repo)
-}
-
-func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue) error {
-	return notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	})
-}
-
-// MergePullRequestAction adds new action for merging pull request.
-func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error {
-	return mergePullRequestAction(x, actUser, repo, pull)
-}
-
-func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName string, data []byte) error {
-	if err := notifyWatchers(e, &Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(),
-		OpType:    opType,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
-		Content:   string(data),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-	return nil
-}
-
-// MirrorSyncPushActionOptions mirror synchronization action options.
-type MirrorSyncPushActionOptions struct {
-	RefName     string
-	OldCommitID string
-	NewCommitID string
-	Commits     *PushCommits
-}
-
-// MirrorSyncPushAction adds new action for mirror synchronization of pushed commits.
-func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) error {
-	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-	}
-
-	apiCommits := opts.Commits.ToAPIPayloadCommits(repo.HTMLURL())
-
-	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-	apiPusher := repo.MustOwner().APIFormat()
-	if err := PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
-		Ref:        opts.RefName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + opts.Commits.CompareURL,
-		Commits:    apiCommits,
-		Repo:       repo.APIFormat(AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
-	}); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
-	}
-
-	data, err := json.Marshal(opts.Commits)
-	if err != nil {
-		return err
-	}
-
-	return mirrorSyncAction(x, ActionMirrorSyncPush, repo, opts.RefName, data)
-}
-
-// MirrorSyncCreateAction adds new action for mirror synchronization of new reference.
-func MirrorSyncCreateAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncCreate, repo, refName, nil)
-}
-
-// MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
-func MirrorSyncDeleteAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncDelete, repo, refName, nil)
 }
 
 // GetFeedsOptions options for retrieving feeds

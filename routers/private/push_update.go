@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 
 	macaron "gopkg.in/macaron.v1"
 )
@@ -32,7 +33,7 @@ func PushUpdate(ctx *macaron.Context) {
 		return
 	}
 
-	err := models.PushUpdate(branch, opt)
+	event, err := models.PushUpdate(branch, opt)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(404)
@@ -43,5 +44,8 @@ func PushUpdate(ctx *macaron.Context) {
 		}
 		return
 	}
+
+	notification.NotifyCommitsPushed(event.Pusher, event.OpType, event.Repo, event.RefName, event.Data)
+
 	ctx.Status(202)
 }

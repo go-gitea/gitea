@@ -106,3 +106,19 @@ func (*NullNotifier) NotifyCreateRepository(doer *models.User, u *models.User, r
 // NotifyMigrateRepository places a place holder function
 func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
+
+// NotifyRepositoryTransfered places a place holder function
+func (*NullNotifier) NotifyRepositoryTransfered(doer *models.User, oldOwner *models.User, newRepo *models.Repository) {
+}
+
+// NotifyRepositoryChangedName places a place holder function
+func (*NullNotifier) NotifyRepositoryChangedName(doer *models.User, oldRepoName string, repo *models.Repository) {
+}
+
+// NotifyRepoMirrorSync places a place holder function
+func (*NullNotifier) NotifyRepoMirrorSync(opType models.ActionType, repo *models.Repository, refName string, data []byte) {
+}
+
+// NotifyCommitsPushed places a place holder function
+func (*NullNotifier) NotifyCommitsPushed(pusher *models.User, opType models.ActionType, repo *models.Repository, refName string, data []byte) {
+}

@@ -7,6 +7,7 @@ package notification
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -27,6 +28,7 @@ func init() {
 	RegisterNotifier(ui.NewNotifier())
 	RegisterNotifier(mail.NewNotifier())
 	RegisterNotifier(indexer.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -171,9 +173,37 @@ func NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repo
 	}
 }
 
-// NotifyMigrateRepository notifies create repository to notifiers
+// NotifyMigrateRepository notifies migrate repository to notifiers
 func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
+	}
+}
+
+// NotifyRepositoryChangedName notifies change repository name to notifiers
+func NotifyRepositoryChangedName(doer *models.User, oldRepoName string, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepositoryChangedName(doer, oldRepoName, repo)
+	}
+}
+
+// NotifyRepositoryTransfered notifies transfer repository to notifiers
+func NotifyRepositoryTransfered(doer *models.User, oldOwner *models.User, newRepo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepositoryTransfered(doer, oldOwner, newRepo)
+	}
+}
+
+// NotifyRepoMirrorSync notifies mirror repository sync to notifiers
+func NotifyRepoMirrorSync(opType models.ActionType, repo *models.Repository, refName string, data []byte) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepoMirrorSync(opType, repo, refName, data)
+	}
+}
+
+// NotifyCommitsPushed notifies when commits push to notifiers
+func NotifyCommitsPushed(pusher *models.User, opType models.ActionType, repo *models.Repository, refName string, data []byte) {
+	for _, notifier := range notifiers {
+		notifier.NotifyCommitsPushed(pusher, opType, repo, refName, data)
 	}
 }

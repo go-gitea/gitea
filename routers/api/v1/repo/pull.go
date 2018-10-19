@@ -590,6 +590,8 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
+	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
+
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Status(200)
 }
