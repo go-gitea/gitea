@@ -424,16 +424,12 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	if err := models.CreateLoginSource(&models.LoginSource{
+	return models.CreateLoginSource(&models.LoginSource{
 		Type:      models.LoginOAuth2,
 		Name:      c.String("name"),
 		IsActived: true,
 		Cfg:       parseOAuth2Config(c),
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func runUpdateOauth(c *cli.Context) error {
@@ -504,11 +500,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	if err := models.UpdateSource(source); err != nil {
-		return err
-	}
-
-	return nil
+	return models.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -555,8 +547,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.DeleteSource(source); err != nil {
-		return err
-	}
-	return nil
+	return models.DeleteSource(source)
 }
