@@ -508,10 +508,10 @@ func SignInOAuth(ctx *context.Context) {
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
-	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
+	user, _, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
-		handleOAuth2SignIn(user, gothUser, ctx, err)
+		handleOAuth2SignIn(ctx, user)
 		return
 	}
 
@@ -540,10 +540,6 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
 
-	handleOAuth2SignIn(u, gothUser, ctx, err)
-}
-
-func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context, err error) {
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -556,9 +552,13 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 		return
 	}
 
+	handleOAuth2SignIn(ctx, u)
+}
+
+func handleOAuth2SignIn(ctx *context.Context, u *models.User) {
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = models.GetTwoFactorByUID(u.ID)
+	_, err := models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Session.Set("uid", u.ID)
