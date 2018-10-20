@@ -38,12 +38,11 @@ func (rt ReviewType) Icon() string {
 		return "eye"
 	case ReviewTypeReject:
 		return "x"
+	case ReviewTypeComment, ReviewTypeUnknown:
+		return "comment"
 	default:
-	case ReviewTypeComment:
-	case ReviewTypeUnknown:
 		return "comment"
 	}
-	return "comment"
 }
 
 // Review represents collection of code comments giving feedback for a PR
