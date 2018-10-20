@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
+	"net/http"
 )
 
 // Search search users
@@ -154,9 +155,9 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Status(404)
+			ctx.Status(http.StatusNotFound)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
@@ -167,5 +168,9 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	}
 
 	heatmap, err := models.GetUserHeatmapDataByUser(ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
+		return
+	}
 	ctx.JSON(200, heatmap)
 }

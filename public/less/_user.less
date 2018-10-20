@@ -58,6 +58,14 @@
         .ui.repository.list {
             margin-top: 25px;
         }
+
+        #cal-heatmap{
+            width: 107%; // Fixes newest contributions not showing
+
+            svg:not(:root) {
+                overflow: inherit;
+            }
+        }
     }
 
     &.followers {

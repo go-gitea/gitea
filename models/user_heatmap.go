@@ -6,17 +6,17 @@ import (
 )
 
 type UserHeatmapData struct {
-	Timestamp     util.TimeStamp
-	Contributions int64
+	Timestamp     util.TimeStamp `json:"date"`
+	Contributions int64          `json:"count"`
 }
 
-func GetUserHeatmapDataByUser(user *User) (*map[util.TimeStamp]int64, error) {
-	var hdata []UserHeatmapData
+func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) {
+	//var hdata []UserHeatmapData
 
 	sec := setting.Cfg.Section("database")
 	dbtype := sec.Key("DB_TYPE").String()
 	// Sqlite doesn't has the "DATE_FORMAT" function, so we need a special case for that
-	if dbtype == "sqlite" {
+	if dbtype == "sqlite3" {
 		err := x.Select("created_unix as timestamp, count(user_id) as contributions").
 			Table("action").
 			Where("user_id = ?", user.ID).
@@ -41,10 +41,11 @@ func GetUserHeatmapDataByUser(user *User) (*map[util.TimeStamp]int64, error) {
 	}
 
 	// Bring our heatmap in the format needed by cal-heatmap
-	fullHeatmap := make(map[util.TimeStamp]int64)
+	/*fullHeatmap := make(map[util.TimeStamp]int64)
 	for _, h := range hdata {
 		fullHeatmap[h.Timestamp] = h.Contributions
 	}
 
-	return &fullHeatmap, nil
+	return &fullHeatmap, nil*/
+	return
 }
