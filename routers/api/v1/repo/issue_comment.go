@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -162,6 +163,8 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
+
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
