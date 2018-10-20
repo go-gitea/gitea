@@ -361,24 +361,27 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err := repo.ToggleArchiveRepo(); err != nil {
-			log.Error(4, "Tried to archive a repo: %s", err)
-			if repo.IsArchived {
+		var err error
+		if repo.IsArchived {
+			err = repo.SetArchiveRepoState(false)
+			if err != nil {
 				ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
-			} else {
+			}
+			ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+		} else {
+			err = repo.SetArchiveRepoState(true)
+			if err != nil {
 				ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			}
+			ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+		}
+		if err != nil {
+			log.Error(4, "Tried to archive a repo: %s", err)
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
 		}
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		if repo.IsArchived {
-			ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
-		} else {
-			ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
-		}
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	default:

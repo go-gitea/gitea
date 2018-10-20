@@ -2391,9 +2391,9 @@ func CheckRepoStats() {
 	// ***** END: Repository.NumForks *****
 }
 
-// ToggleArchiveRepo changes the status if a repo is archived or not
-func (repo *Repository) ToggleArchiveRepo() (err error) {
-	repo.IsArchived = !repo.IsArchived
+// SetArchiveRepoState sets if a repo is archived
+func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
+	repo.IsArchived = isArchived
 	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
 	return
 }
