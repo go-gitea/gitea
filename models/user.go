@@ -378,12 +378,8 @@ func (u *User) GetFollowers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
-		Where("follow.follow_id=?", u.ID)
-	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
-	} else {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
-	}
+		Where("follow.follow_id=?", u.ID).
+		Join("LEFT", "follow", "`user`.id=follow.user_id")
 	return users, sess.Find(&users)
 }
 
@@ -397,12 +393,8 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
-		Where("follow.user_id=?", u.ID)
-	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
-	} else {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
-	}
+		Where("follow.user_id=?", u.ID).
+		Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	return users, sess.Find(&users)
 }
 
