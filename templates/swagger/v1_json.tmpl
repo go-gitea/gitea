@@ -267,6 +267,14 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "repository",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateRepoOption"
+            }
           }
         ],
         "responses": {
