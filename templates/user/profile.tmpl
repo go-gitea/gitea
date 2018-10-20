@@ -95,8 +95,10 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
-					<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">Loading Heatmap...</div>
-					<div id="user-heatmap"></div>
+					{{if .EnableHeatmap}}
+						<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">Loading Heatmap...</div>
+						<div id="user-heatmap"></div>
+					{{end}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>

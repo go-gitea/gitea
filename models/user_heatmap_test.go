@@ -26,5 +26,4 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	heatmap, err := GetUserHeatmapDataByUser(user)
 	assert.NoError(t, err)
 	assert.Equal(t, len(actions), len(heatmap))
-
 }
