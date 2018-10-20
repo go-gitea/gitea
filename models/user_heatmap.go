@@ -1,6 +1,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -14,15 +15,15 @@ type UserHeatmapData struct {
 func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) {
 
 	var groupBy string
-	switch DbCfg.Type {
-	case "sqlite3":
+	switch {
+	case setting.UseSQLite3:
 		groupBy = "strftime('%Y-%m-%d', created_unix, 'unixepoch')"
-	case "tidb":
-	case "mysql":
+	case setting.UseTiDB:
+	case setting.UseMySQL:
 		groupBy = "DATE_FORMAT(FROM_UNIXTIME(created_unix), '%Y%m%d')"
-	case "postgres":
+	case setting.UsePostgreSQL:
 		groupBy = "date_trunc('day', created_unix)"
-	case "mssql":
+	case setting.UseMSSQL:
 		groupBy = "dateadd(DAY,0, datediff(day,0, dateadd(s, created_unix, '19700101')))"
 	}
 
