@@ -149,9 +149,11 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     type: array
-	//     items:
-	//       "$ref": "#/definitions/UserHeatmapData"
+	//     description: "The user's heatmap data"
+	//     schema:
+	//       type: array
+	//       items:
+	//         "$ref": "#/definitions/UserHeatmapData"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	u, err := models.GetUserByName(ctx.Params(":username"))
