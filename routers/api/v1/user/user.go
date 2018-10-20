@@ -27,6 +27,10 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: keyword
 	//   type: string
+	// - name: uid
+	//   in: query
+	//   description: ID of the user to search for
+	//   type: integer
 	// - name: limit
 	//   in: query
 	//   description: maximum number of users to return
@@ -45,6 +49,7 @@ func Search(ctx *context.APIContext) {
 	//             "$ref": "#/definitions/User"
 	opts := &models.SearchUserOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
+		UID:      com.StrTo(ctx.Query("uid")).MustInt64(),
 		Type:     models.UserTypeIndividual,
 		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
 	}
