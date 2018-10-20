@@ -136,8 +136,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 
 // GetUserHeatmapData is the handler to get a users heatmap
 func GetUserHeatmapData(ctx *context.APIContext) {
-
-	// swagger:operation GET /users/{username}/heatmap user GetUserHeatmapData
+	// swagger:operation GET /users/{username}/heatmap user userGetHeatmapData
 	// ---
 	// summary: Get a user's heatmap
 	// produces:
@@ -150,10 +149,9 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     schema:
-	//       type: array
-	//         items:
-	//           "$ref": "#/definitions/UserHeatmap"
+	//     type: array
+	//     items:
+	//       "$ref": "#/definitions/UserHeatmapData"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	u, err := models.GetUserByName(ctx.Params(":username"))

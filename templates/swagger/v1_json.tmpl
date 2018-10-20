@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/admin/users": {
       "post": {
@@ -5373,6 +5373,33 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GPGKeyList"
+          }
+        }
+      }
+    },
+    "/users/{username}/heatmap": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user's heatmap",
+        "operationId": "userGetHeatmapData",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {},
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
