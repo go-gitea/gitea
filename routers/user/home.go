@@ -213,7 +213,7 @@ func Issues(ctx *context.Context) {
 			return
 		}
 	}
-	if len(userRepoIDs) <= 0 {
+	if len(userRepoIDs) == 0 {
 		userRepoIDs = []int64{-1}
 	}
 
