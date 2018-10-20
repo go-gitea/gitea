@@ -270,7 +270,7 @@ func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType
 		Join("INNER", "user", "review.reviewer_id = `user`.id").
 		Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)", pullID, ReviewTypeApprove, ReviewTypeReject).
 		GroupBy("`user`.id").
-		OrderBy("review.updated_unix").
+		OrderBy("review_updated_unix").
 		Find(&issueReviewers)
 	return
 }
