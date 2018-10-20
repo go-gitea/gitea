@@ -149,14 +149,12 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: "The user's heatmap data"
-	//     schema:
-	//       type: array
-	//       items:
-	//         "$ref": "#/definitions/UserHeatmapData"
+	//     "$ref": "#/definitions/UserHeatmapData"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	u, err := models.GetUserByName(ctx.Params(":username"))
+
+	// Get the user to throw an error if it does not exist
+	_, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Status(http.StatusNotFound)
@@ -164,11 +162,6 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
-	}
-
-	// Hide user e-mail when API caller isn't signed in.
-	if !ctx.IsSigned {
-		u.Email = ""
 	}
 
 	heatmap, err := models.GetUserHeatmapDataByUser(ctx.User)
