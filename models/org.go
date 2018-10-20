@@ -677,7 +677,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
-	if len(repoIDs) <= 0 {
+	if len(repoIDs) == 0 {
 		return repos, nil
 	}
 
@@ -705,7 +705,7 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
-	if len(repoIDs) <= 0 {
+	if len(repoIDs) == 0 {
 		return repos, nil
 	}
 
