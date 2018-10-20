@@ -5,8 +5,8 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
 	"code.gitea.io/gitea/models"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // User
