@@ -348,6 +348,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
+				m.Get("/heatmap", user.GetUserHeatmapData)
 
 				m.Get("/repos", user.ListUserRepos)
 				m.Group("/tokens", func() {

@@ -132,3 +132,40 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/User"
 	ctx.JSON(200, ctx.User.APIFormat())
 }
+
+func GetUserHeatmapData(ctx *context.APIContext) {
+
+	// swagger:operation GET /users/{username}/heatmap user GetUserHeatmapData
+	// ---
+	// summary: Get a user's heatmap
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserHeatmap"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	u, err := models.GetUserByName(ctx.Params(":username"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+
+	// Hide user e-mail when API caller isn't signed in.
+	if !ctx.IsSigned {
+		u.Email = ""
+	}
+
+	heatmap, err := models.GetUserHeatmapDataByUser(ctx.User)
+	ctx.JSON(200, heatmap)
+}
