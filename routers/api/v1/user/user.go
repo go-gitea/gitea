@@ -149,7 +149,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/UserHeatmapData"
+	//     "$ref": "#/responses/UserHeatmapData"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 

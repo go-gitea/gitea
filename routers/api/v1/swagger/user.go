@@ -36,8 +36,9 @@ type swaggerModelEditUserOption struct {
 	Options api.EditUserOption
 }
 
-// swagger:model UserHeatmapData
-type swaggerModelUserHeatmapData struct {
+// UserHeatmapData
+// swagger:response UserHeatmapData
+type swaggerResponseUserHeatmapData struct {
 	// in:body
 	Body []models.UserHeatmapData `json:"body"`
 }
