@@ -123,6 +123,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -254,6 +255,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   in: path
 	//   description: index of the issue to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -377,6 +379,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//   in: path
 	//   description: index of the issue to create or update a deadline on
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body

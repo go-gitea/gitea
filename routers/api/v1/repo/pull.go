@@ -101,6 +101,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the pull request to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -301,6 +302,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//   in: path
 	//   description: index of the pull request to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -430,6 +432,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the pull request
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -474,6 +477,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   in: path
 	//   description: index of the pull request to merge
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":

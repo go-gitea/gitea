@@ -150,6 +150,13 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "key",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateKeyOption"
+            }
           }
         ],
         "responses": {
@@ -185,6 +192,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to delete",
             "name": "id",
             "in": "path",
@@ -504,6 +512,14 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateHookOption"
+            }
           }
         ],
         "responses": {
@@ -533,6 +549,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to get",
             "name": "id",
             "in": "path",
@@ -564,6 +581,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to delete",
             "name": "id",
             "in": "path",
@@ -598,10 +616,18 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to update",
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditHookOption"
+            }
           }
         ],
         "responses": {
@@ -956,6 +982,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id owns or contributes to",
             "name": "uid",
             "in": "query"
@@ -1598,6 +1625,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to get",
             "name": "id",
             "in": "path",
@@ -1636,6 +1664,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to delete",
             "name": "id",
             "in": "path",
@@ -1677,6 +1706,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the hook",
             "name": "id",
             "in": "path",
@@ -1724,6 +1754,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to test",
             "name": "id",
             "in": "path",
@@ -1892,6 +1923,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of comment to delete",
             "name": "id",
             "in": "path",
@@ -1933,6 +1965,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the comment to edit",
             "name": "id",
             "in": "path",
@@ -1980,6 +2013,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "id",
             "in": "path",
@@ -2021,6 +2055,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to add tracked time to",
             "name": "id",
             "in": "path",
@@ -2074,6 +2109,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to get",
             "name": "index",
             "in": "path",
@@ -2115,6 +2151,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to edit",
             "name": "index",
             "in": "path",
@@ -2162,6 +2199,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2209,6 +2247,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2261,6 +2300,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of comment to delete",
             "name": "id",
             "in": "path",
@@ -2310,6 +2350,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the comment to edit",
             "name": "id",
             "in": "path",
@@ -2360,6 +2401,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to create or update a deadline on",
             "name": "index",
             "in": "path",
@@ -2413,6 +2455,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2457,6 +2500,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2505,6 +2549,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2550,6 +2595,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2590,6 +2636,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2597,6 +2644,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to remove",
             "name": "id",
             "in": "path",
@@ -2711,6 +2759,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to get",
             "name": "id",
             "in": "path",
@@ -2746,6 +2795,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to delete",
             "name": "id",
             "in": "path",
@@ -2860,6 +2910,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to get",
             "name": "id",
             "in": "path",
@@ -2895,6 +2946,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to delete",
             "name": "id",
             "in": "path",
@@ -2936,6 +2988,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to edit",
             "name": "id",
             "in": "path",
@@ -3057,6 +3110,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone",
             "name": "id",
             "in": "path",
@@ -3092,6 +3146,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone to delete",
             "name": "id",
             "in": "path",
@@ -3133,6 +3188,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone",
             "name": "id",
             "in": "path",
@@ -3287,6 +3343,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to get",
             "name": "index",
             "in": "path",
@@ -3328,6 +3385,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to edit",
             "name": "index",
             "in": "path",
@@ -3375,6 +3433,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request",
             "name": "index",
             "in": "path",
@@ -3416,6 +3475,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to merge",
             "name": "index",
             "in": "path",
@@ -3573,6 +3633,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to get",
             "name": "id",
             "in": "path",
@@ -3608,6 +3669,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to delete",
             "name": "id",
             "in": "path",
@@ -3649,6 +3711,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to edit",
             "name": "id",
             "in": "path",
@@ -3696,6 +3759,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3737,6 +3801,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3790,6 +3855,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3797,6 +3863,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to get",
             "name": "attachment_id",
             "in": "path",
@@ -3835,6 +3902,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3842,6 +3910,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to delete",
             "name": "attachment_id",
             "in": "path",
@@ -3883,6 +3952,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3890,6 +3960,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to edit",
             "name": "attachment_id",
             "in": "path",
@@ -4233,6 +4304,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the repo to get",
             "name": "id",
             "in": "path",
@@ -4259,6 +4331,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team to get",
             "name": "id",
             "in": "path",
@@ -4280,6 +4353,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team to delete",
             "name": "id",
             "in": "path",
@@ -4340,6 +4414,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4366,6 +4441,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4397,6 +4473,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4430,6 +4507,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4456,6 +4534,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4495,6 +4574,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4792,6 +4872,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to get",
             "name": "id",
             "in": "path",
@@ -4819,6 +4900,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to delete",
             "name": "id",
             "in": "path",
@@ -4895,6 +4977,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to get",
             "name": "id",
             "in": "path",
@@ -4922,6 +5005,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to delete",
             "name": "id",
             "in": "path",
@@ -5188,6 +5272,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "ID of the user to search for",
             "name": "uid",
             "in": "query"
@@ -5511,7 +5596,7 @@
             "required": true
           },
           {
-            "name": "body",
+            "name": "accessToken",
             "in": "body",
             "schema": {
               "type": "object",
@@ -5553,6 +5638,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "token to be deleted",
             "name": "token",
             "in": "path",
