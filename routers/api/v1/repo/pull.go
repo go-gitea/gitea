@@ -38,6 +38,33 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: Page number
+	//   type: integer
+	// - name: state
+	//   in: query
+	//   description: "State of pull request: open or closed (optional)"
+	//   type: string
+	//   enum: [closed, open, all]
+	// - name: sort
+	//   in: query
+	//   description: "Type of sort"
+	//   type: string
+	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
+	// - name: milestone
+	//   in: query
+	//   description: "ID of the milestone"
+	//   type: integer
+	//   format: int64
+	// - name: labels
+	//   in: query
+	//   description: "Label IDs"
+	//   type: array
+	//   collectionFormat: multi
+	//   items:
+	//     type: integer
+	//     format: int64
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"

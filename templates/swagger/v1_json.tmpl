@@ -3266,6 +3266,55 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "Page number",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "closed",
+              "open",
+              "all"
+            ],
+            "type": "string",
+            "description": "State of pull request: open or closed (optional)",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "mostcomment",
+              "leastcomment",
+              "priority"
+            ],
+            "type": "string",
+            "description": "Type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the milestone",
+            "name": "milestone",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "collectionFormat": "multi",
+            "description": "Label IDs",
+            "name": "labels",
+            "in": "query"
           }
         ],
         "responses": {
