@@ -54,29 +54,21 @@
 	<script src="{{AppSubUrl}}/vendor/plugins/d3/d3.v4.min.js" charset="utf-8"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/calendar-heatmap/calendar-heatmap.js" charset="utf-8"></script>
 	<script type="text/javascript">
-		var chartRawData = [
-			{"date":1531766422,"count":3},
-			{"date":1532422453,"count":1},
-			{"date":1538577294,"count":3},
-			{"date":1539803278,"count":5},
-			{"date":1539852016,"count":4},
-			{"date":1540036193,"count":1}
-		];
+		$.get( '{{AppSubUrl}}/api/v1/users/{{.Owner.Name}}/heatmap', function( chartRawData ) {
+			var chartData = [];
+			for (var i = 0; i < chartRawData.length; i++) {
+				chartData[i] = {date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions};
+			}
 
-		var chartData = [];
-		for (var i = 0; i < chartRawData.length; i++) {
-			chartData[i] = {date: new Date(chartRawData[i].date * 1000), count: chartRawData[i].count};
-		}
+			$('#loading-heatmap').removeClass('active');
 
-		console.log(chartRawData);
-		console.log(chartData);
-
-		var heatmap = calendarHeatmap()
-			.data(chartData)
-			.selector('#cal-heatmap')
-			.colorRange(['#f4f4f4', '#267b57'])
-			.tooltipEnabled(true);
-		heatmap();
+			var heatmap = calendarHeatmap()
+				.data(chartData)
+				.selector('#user-heatmap')
+				.colorRange(['#f4f4f4', '#459928'])
+				.tooltipEnabled(true);
+			heatmap();
+		});
 	</script>
 {{end}}
 {{if .RequireTribute}}

@@ -6,8 +6,8 @@ import (
 )
 
 type UserHeatmapData struct {
-	Timestamp     util.TimeStamp `json:"date"`
-	Contributions int64          `json:"count"`
+	Timestamp     util.TimeStamp `json:"timestamp"`
+	Contributions int64          `json:"contributions"`
 }
 
 func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) {
