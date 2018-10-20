@@ -80,7 +80,7 @@ import (
 func sudo() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		sudo := ctx.Query("sudo")
-		if len(sudo) <= 0 {
+		if len(sudo) == 0 {
 			sudo = ctx.Req.Header.Get("Sudo")
 		}
 
