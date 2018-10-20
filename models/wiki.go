@@ -57,7 +57,7 @@ func WikiFilenameToName(filename string) (string, error) {
 
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink() *CloneLink {
-	return repo.cloneLink(true)
+	return repo.cloneLink(x, true)
 }
 
 // WikiPath returns wiki data path by given user and repository name.
