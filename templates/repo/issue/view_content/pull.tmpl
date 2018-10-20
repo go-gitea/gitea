@@ -1,7 +1,7 @@
 <div class="comment box">
 	<div class="content">
 		<div class="ui segment">
-			<h4>Reviewers</h4>
+			<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
 			<div class="ui divider"></div>
 			{{range .PullReviewersWithType}}
 				{{ $createdStr:= TimeSinceUnix .ReviewUpdatedUnix $.Lang }}
