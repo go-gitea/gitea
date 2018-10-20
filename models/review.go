@@ -38,12 +38,11 @@ func (rt ReviewType) Icon() string {
 		return "eye"
 	case ReviewTypeReject:
 		return "x"
+	case ReviewTypeComment, ReviewTypeUnknown:
+		return "comment"
 	default:
-	case ReviewTypeComment:
-	case ReviewTypeUnknown:
 		return "comment"
 	}
-	return "comment"
 }
 
 // Review represents collection of code comments giving feedback for a PR
@@ -239,6 +238,8 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	if len(reviews) == 0 {
 		return nil, ErrReviewNotExist{}
 	}
+	reviews[0].Reviewer = reviewer
+	reviews[0].Issue = issue
 	return reviews[0], nil
 }
 
