@@ -224,6 +224,14 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
           }
         ],
         "responses": {
