@@ -265,11 +265,11 @@ type PullReviewersWithType struct {
 
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses
 func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
-	err = x.Select("`user`.*, review.type, review.updated_unix as review_updated_unix").
+	err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
 		Table("review").
 		Join("INNER", "user", "review.reviewer_id = `user`.id").
 		Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)", pullID, ReviewTypeApprove, ReviewTypeReject).
-		GroupBy("`user`.id, review.type").
+		GroupBy("`user`.id").
 		OrderBy("review.updated_unix").
 		Find(&issueReviewers)
 	return
