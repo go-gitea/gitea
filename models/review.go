@@ -255,3 +255,18 @@ func UpdateReview(r *Review) error {
 	}
 	return nil
 }
+
+type IssueReviewersWithType struct {
+	User `xorm:"extends"`
+	Type ReviewType
+}
+
+func GetReviewersByIssueID(issueID int64) (issueReviewers []*IssueReviewersWithType, err error) {
+	err = x.Select("`user`.*, review.type").
+		Table("review").
+		Join("INNER", "user", "review.reviewer_id = `user`.id").
+		Where("review.issue_id = ?", issueID).
+		GroupBy("`user`.id, review.type").
+		Find(&issueReviewers)
+	return
+}
