@@ -4,7 +4,7 @@
 			<h4>Reviewers</h4>
 			<div class="ui divider"></div>
 			{{range .PullReviewersWithType}}
-				{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+				{{ $createdStr:= TimeSinceUnix .ReviewUpdatedUnix $.Lang }}
 				<div class="review-item">
 					<span class="type-icon text {{if eq .Type 1}}green
 						{{else if eq .Type 2}}grey
