@@ -1,3 +1,37 @@
+<div class="comment box">
+	<div class="content">
+		<div class="ui segment">
+			<h4>Reviewers</h4>
+			<div class="ui divider"></div>
+			{{range .PullReviewersWithType}}
+				{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+				<div class="review-item">
+					<span class="type-icon text {{if eq .Type 1}}green
+						{{else if eq .Type 2}}grey
+						{{else if eq .Type 3}}red
+						{{else}}grey{{end}}">
+						<span class="octicon octicon-{{.Type.Icon}}"></span>
+					</span>
+					<a class="ui avatar image" href="{{.HomeLink}}">
+						<img src="{{.RelAvatarLink}}">
+					</a>
+					<span class="text grey"><a href="{{.HomeLink}}">{{.Name}}</a>
+						{{if eq .Type 1}}
+							{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+						{{else if eq .Type 2}}
+							{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+						{{else if eq .Type 3}}
+							{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+						{{end}}
+					</span>
+					<div class="ui divider"></div>
+				</div>
+			{{end}}
+		</div>
+	</div>
+</div>
 <div class="comment merge box">
 	<a class="avatar text
 	{{if .Issue.PullRequest.HasMerged}}purple
