@@ -5,6 +5,7 @@
 package user
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -13,7 +14,6 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
-	"net/http"
 )
 
 // Search search users
