@@ -1380,7 +1380,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.Page = 1
 	}
 	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
+		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
 	users = make([]*User, 0, opts.PageSize)
