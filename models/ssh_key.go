@@ -376,7 +376,7 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
-	if len(key.Fingerprint) <= 0 {
+	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = calcFingerprint(key.Content)
 		if err != nil {
 			return err
