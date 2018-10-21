@@ -36,7 +36,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	// Check access token.
 	if IsAPIPath(ctx.Req.URL.Path) {
 		tokenSHA := ctx.Query("token")
-		if len(tokenSHA) <= 0 {
+		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
 		}
 		if len(tokenSHA) == 0 {
@@ -63,6 +63,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error(4, "UpdateAccessToken: %v", err)
 			}
+			ctx.Data["IsApiToken"] = true
 			return t.UID
 		}
 	}
@@ -136,7 +137,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				}
 				return nil, false
 			}
-
+			ctx.Data["IsApiToken"] = true
 			return u, true
 		}
 	}

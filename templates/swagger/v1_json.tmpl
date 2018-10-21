@@ -1157,7 +1157,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "List a repository's branches",
+        "summary": "Retrieve a specific branch from a repository",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -5205,6 +5205,12 @@
           },
           {
             "type": "integer",
+            "description": "ID of the user to search for",
+            "name": "uid",
+            "in": "query"
+          },
+          {
+            "type": "integer",
             "description": "maximum number of users to return",
             "name": "limit",
             "in": "query"
@@ -5212,7 +5218,21 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/UserList"
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/User"
+                  }
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
@@ -8008,6 +8028,18 @@
     "BasicAuth": {
       "type": "basic"
     },
+    "SudoHeader": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "Sudo",
+      "in": "header"
+    },
+    "SudoParam": {
+      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+      "type": "apiKey",
+      "name": "sudo",
+      "in": "query"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -8026,6 +8058,12 @@
     },
     {
       "AuthorizationHeaderToken": []
+    },
+    {
+      "SudoParam": []
+    },
+    {
+      "SudoHeader": []
     }
   ]
 }

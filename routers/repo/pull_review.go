@@ -79,7 +79,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	}
 	// Send no notification if comment is pending
 	if !form.IsReview {
-		notification.Service.NotifyIssue(issue, ctx.User.ID)
+		notification.NotifyCreateIssueComment(ctx.User, issue.Repo, issue, comment)
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
@@ -128,13 +128,23 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		}
 	}
 
-	if form.HasEmptyContent() {
+	review, err = models.GetCurrentReview(ctx.User, issue)
+	if err == nil {
+		review.Issue = issue
+		if errl := review.LoadCodeComments(); errl != nil {
+			ctx.ServerError("LoadCodeComments", err)
+			return
+		}
+	}
+
+	if ((err == nil && len(review.CodeComments) == 0) ||
+		(err != nil && models.IsErrReviewNotExist(err))) &&
+		form.HasEmptyContent() {
 		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
-	review, err = models.GetCurrentReview(ctx.User, issue)
 	if err != nil {
 		if !models.IsErrReviewNotExist(err) {
 			ctx.ServerError("GetCurrentReview", err)
@@ -174,5 +184,13 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		ctx.ServerError("Publish", err)
 		return
 	}
+
+	pr, err := issue.GetPullRequest()
+	if err != nil {
+		ctx.ServerError("GetPullRequest", err)
+		return
+	}
+	notification.NotifyPullRequestReview(pr, review, comm)
+
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
