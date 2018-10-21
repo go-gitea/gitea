@@ -13,7 +13,6 @@ type UserHeatmapData struct {
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
 func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) {
-
 	var groupBy string
 	switch {
 	case setting.UseSQLite3:
@@ -21,17 +20,17 @@ func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) 
 	case setting.UseMySQL:
 		groupBy = "DATE_FORMAT(FROM_UNIXTIME(created_unix), '%Y%m%d')"
 	case setting.UsePostgreSQL:
-		groupBy = "date_trunc('day', created_unix)"
+		groupBy = "EXTRACT(epoch from TO_TIMESTAMP(TO_CHAR(TO_TIMESTAMP(created_unix), 'DD Mon YYYY'), 'DD Mon YYYY'))"
 	case setting.UseMSSQL:
 		groupBy = "dateadd(DAY,0, datediff(day,0, dateadd(s, created_unix, '19700101')))"
 	}
 
-	err = x.Select("created_unix as timestamp, count(user_id) as contributions").
+	err = x.Select(groupBy+" as timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
 		And("created_unix > ?", (util.TimeStampNow() - 31536000)).
-		GroupBy(groupBy).
-		OrderBy("created_unix").
+		GroupBy("timestamp").
+		OrderBy("timestamp").
 		Find(&hdata)
 	return
 }
