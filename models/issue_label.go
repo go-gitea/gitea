@@ -134,7 +134,7 @@ func NewLabels(labels ...*Label) error {
 // If pass repoID as 0, then ORM will ignore limitation of repository
 // and can return arbitrary label with any valid ID.
 func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, error) {
-	if len(labelName) <= 0 {
+	if len(labelName) == 0 {
 		return nil, ErrLabelNotExist{0, repoID}
 	}
 

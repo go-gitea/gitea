@@ -60,6 +60,15 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: accessToken
+	//   in: body
+	//   schema:
+	//     type: object
+	//     required:
+	//       - name
+	//     properties:
+	//       name:
+	//         type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"
@@ -95,6 +104,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//   in: path
 	//   description: token to be deleted
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
