@@ -123,6 +123,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -254,6 +255,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   in: path
 	//   description: index of the issue to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -377,6 +379,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//   in: path
 	//   description: index of the issue to create or update a deadline on
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -387,12 +390,8 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
 	//     description: Not repo writer
-	//     schema:
-	//       "$ref": "#/responses/forbidden"
 	//   "404":
 	//     description: Issue not found
-	//     schema:
-	//       "$ref": "#/responses/empty"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

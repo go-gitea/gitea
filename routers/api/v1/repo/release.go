@@ -33,6 +33,7 @@ func GetRelease(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -199,6 +200,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	//   in: path
 	//   description: id of the release to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -278,6 +280,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
