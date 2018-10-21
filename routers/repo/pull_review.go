@@ -63,9 +63,8 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 			}
 		}
 	}
-	reviewID := review.ID
-	if reviewID == 0 {
-		reviewID = form.Reply
+	if review.ID == 0 {
+		review.ID = form.Reply
 	}
 	//FIXME check if line, commit and treepath exist
 	comment, err := models.CreateCodeComment(
@@ -75,7 +74,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		form.Content,
 		form.TreePath,
 		signedLine,
-		reviewID,
+		review.ID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
