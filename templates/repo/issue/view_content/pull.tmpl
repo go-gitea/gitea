@@ -3,9 +3,9 @@
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
-				<div class="ui divider"></div>
 				{{range .PullReviewersWithType}}
 					{{ $createdStr:= TimeSinceUnix .ReviewUpdatedUnix $.Lang }}
+					<div class="ui divider"></div>
 					<div class="review-item">
 						<span class="type-icon text {{if eq .Type 1}}green
 							{{else if eq .Type 2}}grey
@@ -14,7 +14,7 @@
 							<span class="octicon octicon-{{.Type.Icon}}"></span>
 						</span>
 						<a class="ui avatar image" href="{{.HomeLink}}">
-							<img src="{{.RelAvatarLink}}">k
+							<img src="{{.RelAvatarLink}}">
 						</a>
 						<span class="text grey"><a href="{{.HomeLink}}">{{.Name}}</a>
 							{{if eq .Type 1}}
@@ -27,7 +27,6 @@
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{end}}
 						</span>
-						<div class="ui divider"></div>
 					</div>
 				{{end}}
 			</div>
