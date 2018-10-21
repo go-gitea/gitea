@@ -36,6 +36,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: since
 	//   in: query
@@ -144,6 +145,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -193,6 +195,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -234,6 +237,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -293,6 +297,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -326,6 +331,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

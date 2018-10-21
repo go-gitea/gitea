@@ -31,6 +31,7 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: ID of the user to search for
 	//   type: integer
+	//   format: int64
 	// - name: limit
 	//   in: query
 	//   description: maximum number of users to return
