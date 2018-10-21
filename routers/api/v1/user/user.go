@@ -155,7 +155,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// Get the user to throw an error if it does not exist
-	_, err := models.GetUserByName(ctx.Params(":username"))
+	user, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Status(http.StatusNotFound)
@@ -165,7 +165,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		return
 	}
 
-	heatmap, err := models.GetUserHeatmapDataByUser(ctx.User)
+	heatmap, err := models.GetUserHeatmapDataByUser(user)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return
