@@ -228,6 +228,10 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   description: username of the user
 	//   type: string
 	//   required: true
+	// - name: key
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PublicKey"
@@ -259,6 +263,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
