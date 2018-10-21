@@ -81,6 +81,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the key to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -191,6 +192,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
