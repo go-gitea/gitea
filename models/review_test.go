@@ -3,6 +3,7 @@ package models
 import (
 	"testing"
 
+	"fmt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -104,4 +105,81 @@ func TestUpdateReview(t *testing.T) {
 	review.Content = "Updated Review"
 	assert.NoError(t, UpdateReview(review))
 	AssertExistsAndLoadBean(t, &Review{ID: 1, Content: "Updated Review"})
+}
+
+func TestGetReviewersByPullID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user1 := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+
+	// Create some reviews
+	expectedReviews := make(map[int64]*PullReviewersWithType)
+	reviews := []CreateReviewOptions{
+		{
+			Content:  "New Review 1",
+			Type:     ReviewTypeComment,
+			Issue:    issue,
+			Reviewer: user1,
+		},
+		{
+			Content:  "New Review 3",
+			Type:     ReviewTypePending,
+			Issue:    issue,
+			Reviewer: user2,
+		},
+		{
+			Content:  "New Review 4",
+			Type:     ReviewTypeReject,
+			Issue:    issue,
+			Reviewer: user3,
+		},
+		{
+			Content:  "New Review 5",
+			Type:     ReviewTypeApprove,
+			Issue:    issue,
+			Reviewer: user4,
+		},
+	}
+	for _, test := range reviews {
+		rev, err := CreateReview(test)
+		assert.NoError(t, err)
+		// Only look for non-pending reviews
+		if test.Type > 0 {
+			expectedReviews[test.Reviewer.ID] = &PullReviewersWithType{
+				User:              *test.Reviewer,
+				Type:              test.Type,
+				ReviewUpdatedUnix: rev.UpdatedUnix,
+			}
+		}
+	}
+
+	allReviews, err := GetReviewersByPullID(issue.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedReviews, allReviews)
+
+	// Add another one, this time overwriting a previously "pending" one
+	newReview := CreateReviewOptions{
+		Content:  "New Review 56",
+		Type:     ReviewTypeReject,
+		Issue:    issue,
+		Reviewer: user2,
+	}
+	rev, err := CreateReview(newReview)
+	assert.NoError(t, err)
+	fmt.Println(rev.Reviewer.ID)
+	fmt.Println(newReview.Reviewer.ID)
+	expectedReviews[newReview.Reviewer.ID] = &PullReviewersWithType{
+		User:              *rev.Reviewer,
+		Type:              rev.Type,
+		ReviewUpdatedUnix: rev.UpdatedUnix,
+	}
+
+	// Check it
+	allReviews, err = GetReviewersByPullID(issue.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedReviews, allReviews)
 }
