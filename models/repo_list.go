@@ -173,11 +173,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	var starred bool
 	if opts.OwnerID > 0 {
 		if opts.Starred {
-			starred = true
-			cond = builder.Eq{"star.uid": opts.OwnerID}
+			cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.OwnerID})))
 		} else {
 			var accessCond = builder.NewCond()
 			if opts.Collaborate != util.OptionalBoolTrue {
@@ -207,11 +205,13 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		var keywordCond = builder.NewCond()
 		// separate keyword
 		for _, v := range strings.Split(opts.Keyword, ",") {
-			if opts.TopicOnly {
-				keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
-			} else {
+			subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
+				Join("INNER", "topic", "topic.id = repo_topic.topic_id").
+				Where(builder.Like{"topic.name", strings.ToLower(v)}).
+				GroupBy("repo_topic.repo_id")
+			keywordCond = keywordCond.Or(builder.In("id", subQuery))
+			if !opts.TopicOnly {
 				keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(v)})
-				keywordCond = keywordCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
 			}
 		}
 		cond = cond.And(keywordCond)
@@ -232,15 +232,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if starred {
-		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	}
-
-	if opts.Keyword != "" {
-		sess.Join("LEFT", "repo_topic", "repo_topic.repo_id = repository.id")
-		sess.Join("LEFT", "topic", "repo_topic.topic_id = topic.id")
-	}
-
 	count, err := sess.
 		Where(cond).
 		Count(new(Repository))
@@ -249,27 +240,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	// Set again after reset by Count()
-	if starred {
-		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	}
-
-	if opts.Keyword != "" {
-		sess.Join("LEFT", "repo_topic", "repo_topic.repo_id = repository.id")
-		sess.Join("LEFT", "topic", "repo_topic.topic_id = topic.id")
-	}
-
-	if opts.Keyword != "" {
-		sess.Select("repository.*")
-		sess.GroupBy("repository.id")
-		sess.OrderBy("repository." + opts.OrderBy.String())
-	} else {
-		sess.OrderBy(opts.OrderBy.String())
-	}
-
 	repos := make(RepositoryList, 0, opts.PageSize)
 	if err = sess.
 		Where(cond).
+		OrderBy(opts.OrderBy.String()).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
