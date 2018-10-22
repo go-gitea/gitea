@@ -30,6 +30,7 @@ import (
 
 	"os"
 	"os/exec"
+	"bufio"
 )
 
 const (
@@ -176,18 +177,57 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsCadFile"] = isCadFile
 	ctx.Data["IsCadFileSourceDisplayable"] = isCadFileSourceDisplayable
 
-	// TODO
 	if isCadFile {
+		// TODO
+		// - Build a list from the dat file -> pass it to the template -> for loop in template
+		// - private repo -> how?
+		// - cache -> how?
+
+		// - DEBUG
 		fmt.Println("Calling Python")
-		cmd := exec.Command("/opt/miniconda3/bin/python", "/home/guillaume/_Repositories/github/osv-team/gitea/routers/repo/view_cad_converter.py", rawLink + "/" + ctx.Repo.TreePath, "/home/guillaume/converted_cad")
+
+		// -- conversion script parameters
+		python_path := "/opt/miniconda3/bin/python"
+		conversion_script_path := "/home/guillaume/_Repositories/github/osv-team/gitea/routers/repo/view_cad_converter.py"
+		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
+		// converted_files_folder := "/home/guillaume/converted_cad"
+		converted_files_folder := "/home/guillaume/_Repositories/github/osv-team/gitea/public/converted_files"
+
+		// -- Conversion script definition
+		cmd := exec.Command(python_path, conversion_script_path, cad_file_raw_url, converted_files_folder)
+
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		fmt.Println(cmd.Run())
+
+		// -- Run the conversion script
+		status := cmd.Run()
+
+		// -- Retrieve the dat file and build the list
+		descriptor_filename := converted_files_folder + "/" + path.Base(cad_file_raw_url) + ".dat"
+		file, err := os.Open(descriptor_filename)
+		if err != nil {
+			ctx.ServerError("DatFile", err)
+    			return
+  		}
+		defer file.Close()
+
+		var lines []string
+  		scanner := bufio.NewScanner(file)
+
+  		for scanner.Scan() {
+    			lines = append(lines, scanner.Text())
+  		}
+
+  		ctx.Data["ConvertedFiles"] = lines
+
+		// -- DEBUG
+		fmt.Println("descriptor_filename : ")
+		fmt.Println(descriptor_filename)
+		fmt.Println("Lines : ")
+		fmt.Println(lines)
+		fmt.Println("Status : ")
+		fmt.Println(status)
 		fmt.Println("Calling Python ... Done")
-		// -- Write buf to a temp file
-		// -- Convert buf to STL, JSON, X3D
-		// -- Pass the path to the converted file to the template
-		// -- Cache !!
 	}
 
 	// ---- End Gitea for CAD changes ----

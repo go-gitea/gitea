@@ -20,16 +20,31 @@
   camera.lookAt(new THREE.Vector3(0, 15, 0));
 
   // load the model: model from http://www.thingiverse.com/thing:69709
-  var loader = new THREE.STLLoader();
+  /*var loader = new THREE.STLLoader();
   loader.load("{{AppSubUrl}}/cadviewer/js/SolidHead_2_lowPoly_42k.stl", function (geometry) {
     var mat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       metalness: 1,
       roughness: 0.5,
     });
+
     var group = new THREE.Mesh(geometry, mat);
     group.rotation.x = -0.5 * Math.PI;
-    group.scale.set(0.3, 0.3, 0.3);
+    group.scale.set(0.3, 0.3, 0.3);*/
+
+    {{range .ConvertedFiles}}
+      var loader = new THREE.STLLoader();
+      loader.load("{{AppSubUrl}}/converted_files/{{.}}", function (geometry) {
+      var mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 1,
+        roughness: 0.5,
+      });
+
+      var group = new THREE.Mesh(geometry, mat);
+      group.rotation.x = -0.5 * Math.PI;
+      group.scale.set(0.3, 0.3, 0.3);
+    {{end}}
 
     // call the default render loop.
     loaderScene.render(group, camera);
@@ -155,6 +170,13 @@
 						<td>{{EscapePound $.RawFileLink}}
 						</td>
 					</tr>
+					{{range .ConvertedFiles}}
+					<tr>
+						<td>
+							{{.}}
+						</td>
+					</tr>
+					{{end}}
 					<!-- end debug message -->
 
 					<!-- source code display / or not-->
