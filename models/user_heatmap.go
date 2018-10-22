@@ -20,7 +20,7 @@ func GetUserHeatmapDataByUser(user *User) (hdata []*UserHeatmapData, err error) 
 	var groupBy string
 	switch {
 	case setting.UseSQLite3:
-		groupBy = "CAST(strftime('%Y-%m-%d', created_unix, 'unixepoch') AS INT)"
+		groupBy = "strftime('%s', strftime('%Y-%m-%d', created_unix, 'unixepoch'))"
 	case setting.UseMySQL:
 		groupBy = "UNIX_TIMESTAMP(DATE_FORMAT(FROM_UNIXTIME(created_unix), '%Y%m%d'))"
 	case setting.UsePostgreSQL:
