@@ -5,11 +5,14 @@
 package models
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -328,6 +331,59 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 	return nil
 }
 
+func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
+	var buf bytes.Buffer
+
+	getDiffTreeFromBranch := func(repoPath, branch string) (string, error) {
+		var stdout, stderr string
+		// Compute the diff-tree for sparse-checkout
+		stdout, stderr, err := process.GetManager().ExecDir(-1, repoPath,
+			fmt.Sprintf("PullRequest.Merge (git diff-tree): %s", repoPath),
+			"git", "diff-tree", "--no-commit-id", "--name-only", "-r", branch)
+		if err != nil {
+			return "", fmt.Errorf("git diff-tree [%s/%s]: %s", repoPath, branch, stderr)
+		}
+		return stdout, nil
+	}
+
+	listBase, err := getDiffTreeFromBranch(repoPath, baseBranch)
+	if err != nil {
+		return "", err
+	}
+	if _, err := buf.WriteString(listBase); err != nil {
+		return "", err
+	}
+	listHead, err := getDiffTreeFromBranch(repoPath, baseBranch)
+	if err != nil {
+		return "", err
+	}
+	if _, err := buf.WriteString(listHead); err != nil {
+		return "", err
+	}
+
+	//.Deduplicate
+	seen := make(map[string]struct{})
+	scanner := bufio.NewScanner(&buf)
+	for scanner.Scan() {
+		seen[scanner.Text()] = struct{}{}
+	}
+
+	// Sorting for eaiser debugging
+	sorted := []string{}
+	for k := range seen {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+
+	var result strings.Builder
+	for _, v := range sorted {
+		if _, err := result.WriteString(v); err != nil {
+			return "", err
+		}
+	}
+	return result.String(), nil
+}
+
 // Merge merges pull request to base repository.
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle, message string) (err error) {
@@ -382,18 +438,36 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 	}
 
-	// Read base branch index
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", tmpBasePath),
-		"git", "read-tree", "HEAD"); err != nil {
-		return fmt.Errorf("git read-tree HEAD: %s", stderr)
-	}
-
 	// Fetch head branch
 	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git fetch): %s", tmpBasePath),
 		"git", "fetch", "head_repo"); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+	}
+
+	// Enable sparse-checkout
+	sparseCheckoutList, err := getDiffTree(tmpBasePath, pr.BaseBranch, pr.HeadBranch)
+	if err != nil {
+		return fmt.Errorf("getDiffTree: %v", err)
+	}
+	log.Debug("sparseCheckoutList:\n", sparseCheckoutList)
+
+	sparseCheckoutListPath := filepath.Join(tmpBasePath, ".git", "info", "sparse-checkout")
+	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
+		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
+	}
+
+	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+		fmt.Sprintf("PullRequest.Merge (git config): %s", tmpBasePath),
+		"git", "config", "--local", "core.sparseCheckout", "true"); err != nil {
+		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", stderr)
+	}
+
+	// Read base branch index
+	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", tmpBasePath),
+		"git", "read-tree", "HEAD"); err != nil {
+		return fmt.Errorf("git read-tree HEAD: %s", stderr)
 	}
 
 	// Merge commits.
