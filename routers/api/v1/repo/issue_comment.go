@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -35,6 +36,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: since
 	//   in: query
@@ -143,6 +145,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -162,6 +165,8 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
+
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
@@ -190,6 +195,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -231,6 +237,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -290,6 +297,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -323,6 +331,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
