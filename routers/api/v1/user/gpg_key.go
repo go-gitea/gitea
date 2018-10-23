@@ -80,6 +80,7 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of key to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -143,6 +144,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

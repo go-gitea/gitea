@@ -38,11 +38,13 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -84,6 +86,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -129,6 +132,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: name
 	//   in: query
@@ -233,11 +237,13 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -292,11 +298,13 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
