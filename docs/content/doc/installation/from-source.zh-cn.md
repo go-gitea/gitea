@@ -47,7 +47,7 @@ git checkout v1.0.0
 我们已经将所有的依赖项拷贝到本工程，我们提供了一些 [编译选项](https://github.com/go-gitea/gitea/blob/master/Makefile) 来让编译更简单。你可以按照你的需求来设置编译开关，可用编译选项如下：
 
 * `bindata`: 这个编译选项将会把运行Gitea所需的所有外部资源都打包到可执行文件中，这样部署将非常简单因为除了可执行程序将不再需要任何其他文件。
-* `sqlite`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
+* `sqlite sqlite_unlock_notify`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
 * `tidb`: 这个编译选项启用tidb嵌入式数据库的支持，他跟SQLite类似但是是用纯Go编写的。
 * `pam`: 这个编译选项将会启用 PAM (Linux Pluggable Authentication Modules) 认证，如果你使用这一认证模式的话需要开启这个选项。
 
