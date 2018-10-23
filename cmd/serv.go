@@ -249,7 +249,7 @@ func runServ(c *cli.Context) error {
 					user.Name, requestedMode, repoPath)
 			}
 
-			check, err := private.CheckUnitUser(repo.ID, user.ID, user.IsAdmin, unitType)
+			check, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
 			if err != nil {
 				fail("You do not have allowed for this action", "Failed to access internal api: [user.Name: %s, repoPath: %s]", user.Name, repoPath)
 			}
