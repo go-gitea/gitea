@@ -377,6 +377,7 @@ type CodeCommentForm struct {
 	Line     int64
 	TreePath string `form:"path" binding:"Required"`
 	IsReview bool   `form:"is_review"`
+	Reply    int64  `form:"reply"`
 }
 
 // Validate validates the fields

@@ -151,7 +151,7 @@
 																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
 																			</ui>
 																		</div>
-																	{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																	{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
 																	</div>
 																{{end}}
 															</td>
@@ -164,7 +164,7 @@
 																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
 																			</ui>
 																		</div>
-																		{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																		{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
 																	</div>
 																{{end}}
 															</td>
