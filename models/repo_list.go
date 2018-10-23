@@ -202,17 +202,23 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	}
 
 	if opts.Keyword != "" {
-		var keywordCond = builder.NewCond()
 		// separate keyword
+		var subQueryCond = builder.NewCond()
 		for _, v := range strings.Split(opts.Keyword, ",") {
-			subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
-				Join("INNER", "topic", "topic.id = repo_topic.topic_id").
-				Where(builder.Like{"topic.name", strings.ToLower(v)}).
-				GroupBy("repo_topic.repo_id")
-			keywordCond = keywordCond.Or(builder.In("id", subQuery))
-			if !opts.TopicOnly {
-				keywordCond = keywordCond.Or(builder.Like{"lower_name", strings.ToLower(v)})
+			subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+		}
+		subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
+			Join("INNER", "topic", "topic.id = repo_topic.topic_id").
+			Where(subQueryCond).
+			GroupBy("repo_topic.repo_id")
+
+		var keywordCond = builder.In("id", subQuery)
+		if !opts.TopicOnly {
+			var likes = builder.NewCond()
+			for _, v := range strings.Split(opts.Keyword, ",") {
+				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
 			}
+			keywordCond = keywordCond.Or(likes)
 		}
 		cond = cond.And(keywordCond)
 	}

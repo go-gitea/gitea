@@ -239,7 +239,7 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			count: 1},
 		{name: "AllPublic/OnlySearchMultipleKeywordPublicRepositoriesFromTopic",
 			opts:  &SearchRepoOptions{OwnerID: 21, AllPublic: true, Keyword: "graphql,golang", TopicOnly: true},
-			count: 3},
+			count: 2},
 	}
 
 	for _, testCase := range testCases {
