@@ -588,3 +588,20 @@ footer {
     border-bottom-width: 0 !important;
     margin-bottom: 2px !important;
 }
+
+#user-heatmap{
+    width: 107%; // Fixes newest contributions not showing
+    text-align: center;
+    margin: 40px 0 30px;
+
+    svg:not(:root) {
+        overflow: inherit;
+        padding: 0 !important;
+    }
+
+    @media only screen and (max-width: 1200px) {
+        & {
+            display: none;
+        }
+    }
+}
