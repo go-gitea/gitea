@@ -64,8 +64,8 @@ var (
 			cli.BoolFlag{
 				Name:  "random-password",
 				Usage: "Generate a random password for the user",
-      },
-      cli.BoolFlag{
+			},
+			cli.BoolFlag{
 				Name:  "must-change-password",
 				Usage: "Force the user to change his/her password after initial login",
 			},
@@ -322,11 +322,11 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if err := models.CreateUser(&models.User{
-		Name:     c.String("name"),
-		Email:    c.String("email"),
-		Passwd:   password,
-		IsActive: true,
-		IsAdmin:  c.Bool("admin"),
+		Name:               c.String("name"),
+		Email:              c.String("email"),
+		Passwd:             password,
+		IsActive:           true,
+		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
