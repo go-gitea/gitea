@@ -101,6 +101,9 @@
 {{if .RequireDropzone}}
 	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
+{{if .EnableHeatmap}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/calendar-heatmap/calendar-heatmap.css">
+{{end}}
 	<style class="list-search-style"></style>
 
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
