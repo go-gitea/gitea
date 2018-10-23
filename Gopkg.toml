@@ -40,6 +40,10 @@ ignored = ["google.golang.org/appengine*"]
   revision = "d523deb1b23d913de5bdada721a6071e71283618"
 
 [[override]]
+  name = "github.com/mattn/go-sqlite3"
+  revision = "f3aa5ce89995fab8c7777f7821f689d9ac81c80f"
+
+[[override]]
   name = "github.com/gorilla/mux"
   revision = "757bef944d0f21880861c2dd9c871ca543023cba"
 
