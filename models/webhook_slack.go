@@ -11,9 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // SlackMeta contains the slack metadata
@@ -340,7 +339,7 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 			return nil, err
 		}
 
-		text = fmt.Sprintf("[%s] Review on pull request %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request review %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
 	}
 
 	return &SlackPayload{
@@ -404,7 +403,7 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case HookEventPullRequestRejected, HookEventPullRequestApproved:
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
 		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)

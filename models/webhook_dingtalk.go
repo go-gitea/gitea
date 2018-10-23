@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
-
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -280,7 +279,7 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event Hook
 			return nil, err
 		}
 
-		title = fmt.Sprintf("[%s] Review on pull request %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 
 	}
@@ -396,7 +395,7 @@ func GetDingtalkPayload(p api.Payloader, event HookEventType, meta string) (*Din
 		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case HookEventPullRequest:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case HookEventPullRequestApproved, HookEventPullRequestRejected:
+	case HookEventPullRequestApproved, HookEventPullRequestRejected, HookEventPullRequestComment:
 		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))

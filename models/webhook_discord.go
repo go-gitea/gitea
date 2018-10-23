@@ -410,7 +410,7 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 			return nil, err
 		}
 
-		title = fmt.Sprintf("[%s] Review on pull request %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = warnColor
 	}
@@ -526,7 +526,7 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case HookEventPullRequestRejected, HookEventPullRequestApproved:
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
 		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
 	case HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
@@ -538,11 +538,17 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 }
 
 func parseHookPullRequestEventType(event HookEventType) (string, error) {
-	if event == HookEventPullRequestApproved {
-		return "approved", nil
-	} else if event == HookEventPullRequestRejected {
-		return "rejected", nil
-	}
 
-	return "", errors.New("unknown event type")
+	switch event {
+
+	case HookEventPullRequestApproved:
+		return "approved", nil
+	case HookEventPullRequestRejected:
+		return "rejected", nil
+	case HookEventPullRequestComment:
+		return "comment", nil
+
+	default:
+		return "", errors.New("unknown event type")
+	}
 }

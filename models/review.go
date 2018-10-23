@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
-
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 )
@@ -220,12 +219,15 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 
 	var reviewHookType HookEventType
 
-	if opts.Type == ReviewTypeApprove {
+	switch opts.Type {
+	case ReviewTypeApprove:
 		reviewHookType = HookEventPullRequestApproved
-	} else if opts.Type == ReviewTypeReject {
+	case ReviewTypeComment:
+		reviewHookType = HookEventPullRequestComment
+	case ReviewTypeReject:
 		reviewHookType = HookEventPullRequestRejected
-	} else {
-		// Webhook for a review comment does not exists
+	default:
+		// unsupported review webhook type here
 		return review, nil
 	}
 
