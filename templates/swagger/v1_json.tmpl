@@ -5494,6 +5494,35 @@
         }
       }
     },
+    "/users/{username}/heatmap": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user's heatmap",
+        "operationId": "userGetHeatmapData",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/keys": {
       "get": {
         "produces": [
@@ -7666,6 +7695,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "TimeStamp": {
+      "description": "TimeStamp defines a timestamp",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/util"
+    },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
       "type": "object",
@@ -7736,6 +7771,21 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData represents the data needed to create a heatmap",
+      "type": "object",
+      "properties": {
+        "contributions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/TimeStamp"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/models"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
@@ -8081,6 +8131,15 @@
       "description": "User",
       "schema": {
         "$ref": "#/definitions/User"
+      }
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/UserHeatmapData"
+        }
       }
     },
     "UserList": {
