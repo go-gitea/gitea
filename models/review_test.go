@@ -3,7 +3,6 @@ package models
 import (
 	"testing"
 
-	"fmt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -118,6 +117,13 @@ func TestGetReviewersByPullID(t *testing.T) {
 
 	// Create some reviews
 	expectedReviews := make(map[int64]*PullReviewersWithType)
+	// This one is from fixtures
+	expectedReviews[1] = &PullReviewersWithType{
+		User:              *user1,
+		Type:              ReviewTypeApprove,
+		ReviewUpdatedUnix: 946684810,
+	}
+
 	reviews := []CreateReviewOptions{
 		{
 			Content:  "New Review 1",
@@ -147,8 +153,8 @@ func TestGetReviewersByPullID(t *testing.T) {
 	for _, test := range reviews {
 		rev, err := CreateReview(test)
 		assert.NoError(t, err)
-		// Only look for non-pending reviews
-		if test.Type > 0 {
+		// Only look for non-pending reviews, nor comments
+		if test.Type == ReviewTypeApprove || test.Type == ReviewTypeReject {
 			expectedReviews[test.Reviewer.ID] = &PullReviewersWithType{
 				User:              *test.Reviewer,
 				Type:              test.Type,
@@ -170,8 +176,6 @@ func TestGetReviewersByPullID(t *testing.T) {
 	}
 	rev, err := CreateReview(newReview)
 	assert.NoError(t, err)
-	fmt.Println(rev.Reviewer.ID)
-	fmt.Println(newReview.Reviewer.ID)
 	expectedReviews[newReview.Reviewer.ID] = &PullReviewersWithType{
 		User:              *rev.Reviewer,
 		Type:              rev.Type,
