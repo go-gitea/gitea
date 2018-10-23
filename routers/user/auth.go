@@ -548,8 +548,14 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if u == nil {
 		if setting.OAuth2.EnableOAuth2AutoRegister {
 			// create new user with details from oauth2 provider
+			var name string
+			if setting.OAuth2.OAuth2UseNickname {
+				name = gothUser.NickName
+			} else {
+				name = gothUser.UserID
+			}
 			u = &models.User{
-				Name:        gothUser.UserID,
+				Name:        name,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				IsActive:    !setting.OAuth2.OAuth2RegisterEmailConfirm,

@@ -1274,6 +1274,7 @@ var OAuth2 struct {
 	OAuth2RegisterEmailConfirm bool
 	OAuth2OpenIDConnectScopes  []string
 	EnableOAuth2AutoRegister   bool
+	OAuth2UseNickname          bool
 }
 
 func newOAuth2() {
@@ -1289,6 +1290,7 @@ func newOAuth2() {
 	}
 
 	OAuth2.EnableOAuth2AutoRegister = sec.Key("ENABLE_OAUTH2_AUTO_REGISTRATION").MustBool()
+	OAuth2.OAuth2UseNickname = sec.Key("OAUTH2_USE_NICKNAME").MustBool()
 }
 
 var logLevels = map[string]string{

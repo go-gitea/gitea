@@ -181,6 +181,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    (`openid` is implicitly added)
 - `ENABLE_OAUTH2_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for oauth2 authentication.
+- `OAUTH2_USE_NICKNAME`: **false**: Set this to use the nickname from the oauth2 provider
+   instead of the userid for the username of the new user.
 
 ## Service (`service`)
 

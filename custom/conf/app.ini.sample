@@ -309,6 +309,8 @@ BLACKLISTED_URIS =
 OAUTH2_OPENID_CONNECT_SCOPES =
 ; Automatically create user accounts for new oauth2 users.
 ENABLE_OAUTH2_AUTO_REGISTRATION = false
+; Use the nickname attribute from the oauth2 provider instead of the userid as the new username
+OAUTH2_USE_NICKNAME = false
 
 [service]
 ; Time limit to confirm account/email registration
