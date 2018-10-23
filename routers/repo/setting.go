@@ -349,6 +349,41 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "archive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		var err error
+		if repo.IsArchived {
+			err = repo.SetArchiveRepoState(false)
+			if err != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
+			}
+			ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+		} else {
+			err = repo.SetArchiveRepoState(true)
+			if err != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
+			}
+			ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+		}
+		if err != nil {
+			log.Error(4, "Tried to archive a repo: %s", err)
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	default:
 		ctx.NotFound("", nil)
 	}

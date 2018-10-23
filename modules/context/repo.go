@@ -84,6 +84,15 @@ func (r *Repository) CanCreateBranch() bool {
 	return r.Repository.CanCreateBranch() && r.IsWriter()
 }
 
+// RepoMustNotBeArchived checks if a repo is archived
+func RepoMustNotBeArchived() macaron.Handler {
+	return func(ctx *Context) {
+		if ctx.Repo.Repository.IsArchived {
+			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+		}
+	}
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {

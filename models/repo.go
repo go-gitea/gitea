@@ -185,8 +185,9 @@ type Repository struct {
 	NumOpenMilestones   int `xorm:"-"`
 	NumReleases         int `xorm:"-"`
 
-	IsPrivate bool `xorm:"INDEX"`
-	IsBare    bool `xorm:"INDEX"`
+	IsPrivate  bool `xorm:"INDEX"`
+	IsBare     bool `xorm:"INDEX"`
+	IsArchived bool `xorm:"INDEX"`
 
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
@@ -290,6 +291,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		FullName:      repo.FullName(),
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
+		Archived:      repo.IsArchived,
 		Empty:         repo.IsBare,
 		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
@@ -2391,6 +2393,13 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+}
+
+// SetArchiveRepoState sets if a repo is archived
+func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
+	repo.IsArchived = isArchived
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+	return
 }
 
 // ___________           __
