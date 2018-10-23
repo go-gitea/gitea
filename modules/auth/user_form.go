@@ -6,6 +6,9 @@ package auth
 
 import (
 	"mime/multipart"
+	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -82,6 +85,31 @@ type RegisterForm struct {
 // Validate valideates the fields
 func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsEmailDomainWhitelisted validates that the email address
+// provided by the user matches what has been configured .
+// If the domain whitelist from the config is empty, it marks the
+// email as whitelisted
+func (f RegisterForm) IsEmailDomainWhitelisted() bool {
+	if len(setting.Service.EmailDomainWhitelist) == 0 {
+		return true
+	}
+
+	n := strings.LastIndex(f.Email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := f.Email[n+1:]
+
+	for _, v := range setting.Service.EmailDomainWhitelist {
+		if v == domain {
+			return true
+		}
+	}
+
+	return false
 }
 
 // MustChangePasswordForm form for updating your password after account creation

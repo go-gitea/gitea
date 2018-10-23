@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
@@ -924,6 +923,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
 			return
 		}
+	}
+
+	if !form.IsEmailDomainWhitelisted() {
+		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
+		return
 	}
 
 	if form.Password != form.Retype {
