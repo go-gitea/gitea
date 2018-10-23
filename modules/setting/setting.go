@@ -1218,6 +1218,7 @@ var Service struct {
 	DefaultEnableDependencies               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	EnableUserHeatmap                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1249,6 +1250,7 @@ func newService() {
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
