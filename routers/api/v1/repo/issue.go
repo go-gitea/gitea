@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -122,6 +123,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -207,6 +209,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		return
 	}
 
+	notification.NotifyNewIssue(issue)
+
 	if form.Closed {
 		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
@@ -251,6 +255,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   in: path
 	//   description: index of the issue to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -337,6 +342,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database to assign some automatic values
@@ -372,6 +379,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//   in: path
 	//   description: index of the issue to create or update a deadline on
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -382,12 +390,8 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
 	//     description: Not repo writer
-	//     schema:
-	//       "$ref": "#/responses/forbidden"
 	//   "404":
 	//     description: Issue not found
-	//     schema:
-	//       "$ref": "#/responses/empty"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

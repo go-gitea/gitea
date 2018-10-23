@@ -59,6 +59,10 @@ var (
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
 			},
+			cli.BoolFlag{
+				Name:  "must-change-password",
+				Usage: "Force the user to change his/her password after initial login",
+			},
 		},
 	}
 
@@ -285,12 +289,20 @@ func runCreateUser(c *cli.Context) error {
 		return err
 	}
 
+	// always default to true
+	var changePassword = true
+
+	if c.IsSet("must-change-password") {
+		changePassword = c.Bool("must-change-password")
+	}
+
 	if err := models.CreateUser(&models.User{
-		Name:     c.String("name"),
-		Email:    c.String("email"),
-		Passwd:   c.String("password"),
-		IsActive: true,
-		IsAdmin:  c.Bool("admin"),
+		Name:               c.String("name"),
+		Email:              c.String("email"),
+		Passwd:             c.String("password"),
+		IsActive:           true,
+		IsAdmin:            c.Bool("admin"),
+		MustChangePassword: changePassword,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
@@ -412,16 +424,12 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	if err := models.CreateLoginSource(&models.LoginSource{
+	return models.CreateLoginSource(&models.LoginSource{
 		Type:      models.LoginOAuth2,
 		Name:      c.String("name"),
 		IsActived: true,
 		Cfg:       parseOAuth2Config(c),
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func runUpdateOauth(c *cli.Context) error {
@@ -492,11 +500,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	if err := models.UpdateSource(source); err != nil {
-		return err
-	}
-
-	return nil
+	return models.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -543,8 +547,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.DeleteSource(source); err != nil {
-		return err
-	}
-	return nil
+	return models.DeleteSource(source)
 }
