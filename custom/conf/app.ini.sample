@@ -299,6 +299,17 @@ WHITELISTED_URIS =
 ; Example value: loadaverage.org/badguy stackexchange.com/.*spammer
 BLACKLISTED_URIS =
 
+[oauth2]
+; Whether a new auto registered oauth2 user needs to confirm their email.
+; Do not include to use the REGISTER_EMAIL_CONFIRM setting.
+;OAUTH2_REGISTER_EMAIL_CONFIRM =
+; Scopes for the openid connect oauth2 provider (seperated by space, the openid scope is implicitly added).
+; Typical values are profile and email.
+; For more information about the possible values see https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
+OAUTH2_OPENID_CONNECT_SCOPES =
+; Automatically create user accounts for new oauth2 users.
+ENABLE_OAUTH2_AUTO_REGISTRATION = false
+
 [service]
 ; Time limit to confirm account/email registration
 ACTIVE_CODE_LIVE_MINUTES = 180
@@ -310,11 +321,6 @@ REGISTER_EMAIL_CONFIRM = false
 DISABLE_REGISTRATION = false
 ; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
-; Automatically create user accounts for new oauth2 users.
-ENABLE_OAUTH2_AUTO_REGISTRATION = false
-; Whether a new auto registered oauth2 user needs to confirm their email.
-; Do not include to use the REGISTER_EMAIL_CONFIRM setting.
-; OAUTH2_REGISTER_EMAIL_CONFIRM =
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification

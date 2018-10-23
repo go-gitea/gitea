@@ -167,7 +167,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	case "openidConnect":
-		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.Service.OAuth2OpenIDConnectScopes...); err != nil {
+		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.OAuth2.OAuth2OpenIDConnectScopes...); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
 		}
 	case "twitter":

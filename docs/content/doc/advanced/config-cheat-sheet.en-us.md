@@ -173,6 +173,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to block.
 
+## OAuth2 (`oauth2`)
+
+- `OAUTH2_REGISTER_EMAIL_CONFIRM`: **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable
+   mail confirmation of OAuth2 auto-registration.
+- `OAUTH2_OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes.
+   (`openid` is implicitly added)
+- `ENABLE_OAUTH2_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
+   for oauth2 authentication.
+
 ## Service (`service`)
 
 - `ACTIVE_CODE_LIVE_MINUTES`: **180**: Time limit (min) to confirm account/email registration.
@@ -182,10 +191,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    Requires `Mailer` to be enabled.
 - `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create
    accounts for users.
-- `ENABLE_OAUTH2_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
-   for oauth2 authentication.
-- `OAUTH2_REGISTER_EMAIL_CONFIRM`: **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable
-   mail confirmation of OAuth2 auto-registration.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
