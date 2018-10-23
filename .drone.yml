@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.9
+    image: golang:1.11
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
