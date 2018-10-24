@@ -19,6 +19,7 @@ extern void unlock_notify_callback(void *arg, int argc);
 import "C"
 import (
 	"fmt"
+	"math"
 	"sync"
 	"unsafe"
 )
@@ -59,7 +60,7 @@ func (t *unlock_notify_table) get(h uint) chan struct{} {
 //export unlock_notify_callback
 func unlock_notify_callback(argv unsafe.Pointer, argc C.int) {
 	for i := 0; i < int(argc); i++ {
-		parg := ((*(*[1 << 30]*[1]uint)(argv))[i])
+		parg := ((*(*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.uint)(nil))]*[1]uint)(argv))[i])
 		arg := *parg
 		h := arg[0]
 		c := unt.get(h)
