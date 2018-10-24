@@ -32,9 +32,10 @@
             roughness: 0.5,});
 
         var mesh = new THREE.Mesh(geometry, mat);
+        loaderScene.addMesh(mesh);
         {{end}}
 
-        loaderScene.render(mesh, camera);
+        loaderScene.render(camera);
         });
     }
 </script>

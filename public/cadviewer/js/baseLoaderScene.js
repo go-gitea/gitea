@@ -30,10 +30,15 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
    * @param {Three.Object3D} mesh render this mesh or object
    * @param {*} camera render using the provided camera settings
    */
-  this.render = function (mesh, camera) {
+
+  this.addMesh = function (mesh) {
     self.scene.add(mesh);
+  }
+
+  this.render = function (camera) {
+    // self.scene.add(mesh);
     self.camera = camera;
-    self.mesh = mesh;
+    // self.mesh = mesh;
     self._render();
   }
 
@@ -45,11 +50,11 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
     requestAnimationFrame(self._render);
     self.trackballControls.update(self.clock.getDelta());
 
-    if (updateMesh) this.updateMesh(self.mesh)
+    // if (updateMesh) this.updateMesh(self.mesh)
 
-    if (shouldRotate) {
-      self.mesh.rotation.z += 0.01
-    }
+    //if (shouldRotate) {
+    //  self.mesh.rotation.z += 0.01
+    //}
 
     self.renderer.render(self.scene, self.camera);
   }
