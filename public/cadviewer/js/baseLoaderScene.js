@@ -9,6 +9,7 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
 
   // setup some default elements
   this.scene = new THREE.Scene();
+  this.scene.background = new THREE.Color( 0xf0f0f0 );
   this.stats = initStats();
   this.clock = new THREE.Clock();
   this.camera = providedCamera;
@@ -57,26 +58,47 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
    * Internal function, which adds a number of lights to the scene.
    */
   this._addLights = function () {
+    var ambientLight = new THREE.AmbientLight(0xffffff );
+    this.scene.add(ambientLight);
+
     var keyLight = new THREE.SpotLight(0xffffff);
     keyLight.position.set(00, 80, 80);
     keyLight.intensity = 2;
-    keyLight.lookAt(new THREE.Vector3(0, 15, 0));
+    keyLight.lookAt(new THREE.Vector3(0, 0, 0));
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.height = 4096;
     keyLight.shadow.mapSize.width = 4096;
     this.scene.add(keyLight);
 
-    var backlight1 = new THREE.SpotLight(0xaaaaaa);
-    backlight1.position.set(150, 40, -20);
-    backlight1.intensity = 0.5;
-    backlight1.lookAt(new THREE.Vector3(0, 15, 0));
+    var backlight1 = new THREE.SpotLight(0xffffff);
+    backlight1.position.set(15000, 0, 0);
+    backlight1.intensity = 2.0;
+    backlight1.lookAt(new THREE.Vector3(0, 0, 0));
     this.scene.add(backlight1);
 
-    var backlight2 = new THREE.SpotLight(0xaaaaaa);
-    backlight2.position.set(-150, 40, -20);
-    backlight2.intensity = 0.5;
-    backlight2.lookAt(new THREE.Vector3(0, 15, 0));
+    var backlight2 = new THREE.SpotLight(0xffffff);
+    backlight2.position.set(-15000, 0, 0);
+    backlight2.intensity = 2.0;
+    backlight2.lookAt(new THREE.Vector3(0, 0, 0));
     this.scene.add(backlight2);
+
+    var backlight3 = new THREE.SpotLight(0xffffff);
+    backlight3.position.set(0, 15000, 0);
+    backlight3.intensity = 2.0;
+    backlight3.lookAt(new THREE.Vector3(0, 0, 0));
+    this.scene.add(backlight3);
+
+    var backlight4 = new THREE.SpotLight(0xffffff);
+    backlight4.position.set(0, 0, 15000);
+    backlight4.intensity = 1.0;
+    backlight4.lookAt(new THREE.Vector3(0, 0, 0));
+    this.scene.add(backlight4);
+
+    var backlight5 = new THREE.SpotLight(0xffffff);
+    backlight5.position.set(0, 0, -15000);
+    backlight5.intensity = 1.0;
+    backlight5.lookAt(new THREE.Vector3(0, 0, 0));
+    this.scene.add(backlight5);
   }
 
   // add the lights

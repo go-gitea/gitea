@@ -62,9 +62,9 @@ function initCanvasRenderer() {
  * @param {THREE.Vector3} [initialPosition]
  */
 function initCamera(initialPosition) {
-    var position = (initialPosition !== undefined) ? initialPosition : new THREE.Vector3(-30, 40, 30);
+    var position = (initialPosition !== undefined) ? initialPosition : new THREE.Vector3(-1000, 0, 0);
 
-    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
     camera.position.copy(position);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -218,7 +218,7 @@ function addDefaultCubeAndSphere(scene) {
  */
 function addGroundPlane(scene) {
     // create the ground plane
-    var planeGeometry = new THREE.PlaneGeometry(60, 20, 120, 120);
+    var planeGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
     var planeMaterial = new THREE.MeshPhongMaterial({
         color: 0xffffff
     });
@@ -226,8 +226,8 @@ function addGroundPlane(scene) {
     plane.receiveShadow = true;
 
     // rotate and position the plane
-    plane.rotation.x = -0.5 * Math.PI;
-    plane.position.x = 15;
+    //plane.rotation.x = -0.5 * Math.PI;
+    plane.position.x = 0;
     plane.position.y = 0;
     plane.position.z = 0;
 
