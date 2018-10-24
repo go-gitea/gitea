@@ -23,16 +23,10 @@
         var loaderScene = new BaseLoaderScene(camera);
         camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-        {{range .ConvertedFiles}}
-        var loader = new THREE.STLLoader();
-        loader.load("{{AppSubUrl}}/converted_files/{{.}}", function (geometry) {
-        var mat = new THREE.MeshStandardMaterial({
-            color: 0xdfa400,
-            metalness: 1,
-            roughness: 0.5,});
+        {{range $i, $element := .ConvertedFiles}}
+        eval("var loader_{{$i}} = new THREE.STLLoader();")
+        eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: 0xdfa400, metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
 
-        var mesh = new THREE.Mesh(geometry, mat);
-        loaderScene.addMesh(mesh);
         {{end}}
 
         var size = 100;
@@ -42,7 +36,6 @@
 		loaderScene.scene.add( gridHelper );
 
         loaderScene.render(camera);
-        });
     }
 </script>
 

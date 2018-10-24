@@ -6,6 +6,8 @@ from os.path import splitext, basename
 from requests import get
 
 from aocxchange.step import StepImporter
+from aocxchange.iges import IgesImporter
+from aocxchange.brep import BrepImporter
 from aocxchange.stl import StlExporter
 
 GITEA_URL = "http://localhost:3000"
@@ -79,15 +81,40 @@ def main():
             f.write("\n".join(converted_filenames))
 
     elif cad_file_extension.lower() in [".iges", ".igs"]:
-        pass
+        converted_filenames = []
+        shapes = IgesImporter(cad_file_filename).shapes
+        for i, shape in enumerate(shapes):
+            converted_filename = "%s/%s_%i.stl" % (converted_files_folder, cad_file_basename, i)
+            e = StlExporter(filename=converted_filename, ascii_mode=True)
+            e.set_shape(shape)
+            e.write_file()
+            converted_filenames.append(basename(converted_filename))
+
+        with open(converted_files_descriptor_filename, 'w') as f:
+            f.write("\n".join(converted_filenames))
+
     elif cad_file_extension.lower() in [".brep", ".brp"]:
-        pass
-    elif cad_file_extension.lower in [".stl"]:
-        pass
+
+        shape = BrepImporter(cad_file_filename).shape
+        converted_filename = "%s/%s_%i.stl" % (converted_files_folder, cad_file_basename, 0)
+        converted_filenames = [basename(converted_filename)]
+        e = StlExporter(filename=converted_filename, ascii_mode=True)
+        e.set_shape(shape)
+        e.write_file()
+
+        with open(converted_files_descriptor_filename, 'w') as f:
+            f.write("\n".join(converted_filenames))
+
+    elif cad_file_extension.lower() in [".stl"]:
+        converted_filenames = [cad_file_basename]
+        with open(converted_files_descriptor_filename, 'w') as f:
+            f.write("\n".join(converted_filenames))
+
     elif cad_file_extension.lower() in [".py"]:
         pass
+
     else:
-        raise ValueError("Unknown CAD cad_file_extension")
+        raise ValueError("Unknown CAD cad_file_extension : %s" % cad_file_extension)
 
     sys.exit(0)
 

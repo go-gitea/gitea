@@ -179,6 +179,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	if isCadFile {
 		// TODO
+		// - env vars for paths to python and gitea root
 		// - Build a list from the dat file -> pass it to the template -> for loop in template
 		// - private repo -> how?
 		// - cache -> how?
@@ -188,10 +189,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		// -- conversion script parameters
 		python_path := "/opt/miniconda3/bin/python"
-		conversion_script_path := "/home/guillaume/_Repositories/github/osv-team/gitea/routers/repo/view_cad_converter.py"
+		gitea_path := "/home/guillaume/go/src/code.gitea.io/gitea"
+		conversion_script_path := gitea_path + "/routers/repo/view_cad_converter.py"
 		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
-		// converted_files_folder := "/home/guillaume/converted_cad"
-		converted_files_folder := "/home/guillaume/_Repositories/github/osv-team/gitea/public/converted_files"
+		converted_files_folder := gitea_path + "/public/converted_files"
 
 		// -- Conversion script definition
 		cmd := exec.Command(python_path, conversion_script_path, cad_file_raw_url, converted_files_folder)
