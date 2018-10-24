@@ -1766,6 +1766,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
