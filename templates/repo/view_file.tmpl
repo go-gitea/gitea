@@ -35,6 +35,12 @@
         loaderScene.addMesh(mesh);
         {{end}}
 
+        var size = 100;
+		var divisions = 10;
+
+		var gridHelper = new THREE.GridHelper( size, divisions );
+		loaderScene.scene.add( gridHelper );
+
         loaderScene.render(camera);
         });
     }
