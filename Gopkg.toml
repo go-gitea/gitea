@@ -27,7 +27,7 @@ ignored = ["google.golang.org/appengine*"]
   name = "golang.org/x/text"
 
 [[constraint]]
-  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
+  branch = "master"
   name = "golang.org/x/net"
 
 [[override]]
