@@ -287,8 +287,7 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event Hook
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
-			//Markdown:    "# " + title + "\n" + text,
+			Text:        title + "\r\n\r\n" + text,
 			Title:       title,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
