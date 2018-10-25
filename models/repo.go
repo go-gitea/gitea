@@ -321,7 +321,11 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 
 // CheckUnitUser check whether user could visit the unit of this repository
 func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitType) bool {
-	if err := repo.getUnitsByUserID(x, userID, isAdmin); err != nil {
+	return repo.checkUnitUser(x, userID, isAdmin, unitType)
+}
+
+func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
+	if err := repo.getUnitsByUserID(e, userID, isAdmin); err != nil {
 		return false
 	}
 
@@ -369,7 +373,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
 	for _, u := range repo.Units {
 		for _, team := range teams {
-			if team.UnitEnabled(u.Type) {
+			if team.unitEnabled(e, u.Type) {
 				newRepoUnits = append(newRepoUnits, u)
 				break
 			}
