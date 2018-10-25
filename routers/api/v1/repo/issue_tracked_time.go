@@ -41,6 +41,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -92,6 +93,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//   in: path
 	//   description: index of the issue to add tracked time to
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
