@@ -64,7 +64,7 @@ function initCanvasRenderer() {
 function initCamera(initialPosition) {
     var position = (initialPosition !== undefined) ? initialPosition : new THREE.Vector3(-1000, 0, 0);
 
-    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100000);
     camera.position.copy(position);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 

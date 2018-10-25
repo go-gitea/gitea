@@ -9,6 +9,7 @@ from aocxchange.step import StepImporter
 from aocxchange.iges import IgesImporter
 from aocxchange.brep import BrepImporter
 from aocxchange.stl import StlExporter
+from aocxchange.dat import DatImporter
 
 GITEA_URL = "http://localhost:3000"
 # GITEA_URL = "http://127.0.0.1:3000"
@@ -65,7 +66,32 @@ def main():
     print("cad_file_filename is : %s" % cad_file_filename)
 
     if cad_file_extension.lower() in [".fcstd"]:
-        pass
+        converted_filenames = []
+        print("Starting FreeCAD conversion")
+        import zipfile
+        # unzip and extract the breps
+        print("cad_file_filename is : %s" % cad_file_filename)
+        fcstd_as_zip = zipfile.ZipFile(cad_file_filename)
+        fcstd_contents = fcstd_as_zip.namelist()
+        print("fcstd_contents is : %s" % str(fcstd_contents))
+        for i, name in enumerate(fcstd_contents):
+            # convert the breps to stl
+            if splitext(name)[1].lower() in [".brep", ".brp"]:
+                fcstd_as_zip.extract(name, converted_files_folder)
+                print("input to BRep importer is : %s" % ("%s/%s" % (converted_files_folder, name)))
+                shape = BrepImporter("%s/%s" % (converted_files_folder, name)).shape
+                converted_filename = "%s/%s_%i.stl" % (converted_files_folder, name, i)
+                converted_filenames.append(basename(converted_filename))
+                try:
+                    e = StlExporter(filename=converted_filename, ascii_mode=True)
+                    e.set_shape(shape)
+                    e.write_file()
+
+                    # build the descriptor
+                    with open(converted_files_descriptor_filename, 'w') as f:
+                        f.write("\n".join(converted_filenames))
+                except RuntimeError:
+                    print("RuntimeError for %s" % name)
 
     elif cad_file_extension.lower() in [".step", ".stp"]:
         converted_filenames = []

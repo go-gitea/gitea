@@ -590,7 +590,11 @@ func IsCadFile(filename string, content []byte) (bool, bool){
 			return false, false
 		}
 	} else {
-		return isCadExtension(extension), false
+		if isCadExtension(extension) == true{
+			return true, false
+		} else {
+			return false, false
+		}
 	}
 }
 
@@ -605,7 +609,9 @@ func isCadExtension(extension string) bool {
         ".iges",
         ".igs",
         ".stl",
-        ".brep":
+        ".brep",
+        ".brp",
+        ".dat":
         return true
     }
     return false
