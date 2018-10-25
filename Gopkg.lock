@@ -342,14 +342,15 @@
   revision = "d8a0b8677191f4380287cfebd08e462217bac7ad"
 
 [[projects]]
-  digest = "1:b327ca585509a889130a8f51f43704a8fe03cb5cd281dbf1bc6405f5a7ea4702"
+  branch = "master"
+  digest = "1:8fea5718d84af17762195beb6fe92a0d6c1048452a1dbc464d227f12e0cff0cc"
   name = "github.com/go-macaron/session"
   packages = [
     ".",
     "redis",
   ]
   pruneopts = "NUT"
-  revision = "66031fcb37a0fff002a1f028eb0b3a815c78306b"
+  revision = "330e4e4d8beb7b00111ac34539561f46f94c4458"
 
 [[projects]]
   digest = "1:758d2371fcdee6d02565901b348729053c636055e67ef6e17aa466c7ff6cc57c"
