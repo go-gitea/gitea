@@ -113,7 +113,10 @@ func issueDepExists(e Engine, issueID int64, depID int64) (bool, error) {
 
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
+	return issueNoDependenciesLeft(x, issue)
+}
 
+func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
 	exists, err := x.
 		Table("issue_dependency").
 		Select("issue.*").
@@ -127,9 +130,13 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 
 // IsDependenciesEnabled returns if dependecies are enabled and returns the default setting if not set.
 func (repo *Repository) IsDependenciesEnabled() bool {
+	return repo.isDependenciesEnabled(x)
+}
+
+func (repo *Repository) isDependenciesEnabled(e Engine) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

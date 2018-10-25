@@ -448,6 +448,10 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 
 // GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
+	return repo.getUnit(x, tp)
+}
+
+func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 	if err := repo.getUnits(x); err != nil {
 		return nil, err
 	}

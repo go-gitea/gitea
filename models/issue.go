@@ -655,9 +655,9 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	}
 
 	// Check for open dependencies
-	if isClosed && issue.Repo.IsDependenciesEnabled() {
+	if isClosed && issue.Repo.isDependenciesEnabled(e) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
-		noDeps, err := IssueNoDependenciesLeft(issue)
+		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {
 			return err
 		}
@@ -721,6 +721,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
