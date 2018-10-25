@@ -2,14 +2,18 @@
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
-// +build vtable
+
+// +build sqlite_vtable vtable
 
 package sqlite3
 
 /*
 #cgo CFLAGS: -std=gnu99
-#cgo CFLAGS: -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE
-#cgo CFLAGS: -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS4_UNICODE61
+#cgo CFLAGS: -DSQLITE_ENABLE_RTREE
+#cgo CFLAGS: -DSQLITE_THREADSAFE
+#cgo CFLAGS: -DSQLITE_ENABLE_FTS3
+#cgo CFLAGS: -DSQLITE_ENABLE_FTS3_PARENTHESIS
+#cgo CFLAGS: -DSQLITE_ENABLE_FTS4_UNICODE61
 #cgo CFLAGS: -DSQLITE_TRACE_SIZE_LIMIT=15
 #cgo CFLAGS: -DSQLITE_ENABLE_COLUMN_METADATA=1
 #cgo CFLAGS: -Wno-deprecated-declarations

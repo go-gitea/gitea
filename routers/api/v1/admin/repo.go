@@ -27,6 +27,10 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//   description: username of the user. This user will own the created repository
 	//   type: string
 	//   required: true
+	// - name: repository
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/CreateRepoOption" }
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
