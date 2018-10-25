@@ -19,7 +19,7 @@ func TestRegisterForm_IsDomainWhiteList_Empty(t *testing.T) {
 
 	form := RegisterForm{}
 
-	assert.True(t, form.IsEmailDomainWhitelisted())
+	assert.True(t, form.IsEmaildomainwhitelisted())
 }
 
 func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
@@ -37,7 +37,7 @@ func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.False(t, form.IsEmailDomainWhitelisted())
+		assert.False(t, form.IsEmaildomainwhitelisted())
 	}
 }
 
@@ -58,6 +58,6 @@ func TestRegisterForm_IsDomainWhiteList_ValidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.Equal(t, v.valid, form.IsEmailDomainWhitelisted())
+		assert.Equal(t, v.valid, form.IsEmaildomainwhitelisted())
 	}
 }
