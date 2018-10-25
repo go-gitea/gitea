@@ -215,7 +215,11 @@ func (t *Team) RemoveRepository(repoID int64) error {
 
 // UnitEnabled returns if the team has the given unit type enabled
 func (t *Team) UnitEnabled(tp UnitType) bool {
-	if err := t.getUnits(x); err != nil {
+	return t.unitEnabled(x, tp)
+}
+
+func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
+	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", t.ID, err.Error())
 	}
 
