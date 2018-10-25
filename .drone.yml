@@ -117,18 +117,18 @@ pipeline:
     when:
       event: [ tag ]
 
-  test-sqlite:
-    image: golang:1.11
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata
-    commands:
-      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-      - apt-get install -y git-lfs
-      - make test-sqlite
-    when:
-      event: [ push, tag, pull_request ]
+      #  test-sqlite:
+      #    image: golang:1.11
+      #    pull: true
+      #    group: test
+      #    environment:
+      #      TAGS: bindata
+      #    commands:
+      #      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      #      - apt-get install -y git-lfs
+      #      - make test-sqlite
+      #    when:
+      #      event: [ push, tag, pull_request ]
 
   test-mysql:
     image: golang:1.11
