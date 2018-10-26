@@ -1,8 +1,8 @@
-// Copyright 2011 The Go Authors.  All rights reserved.
+// Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
 
 // Socket control messages
 
@@ -12,10 +12,11 @@ import "unsafe"
 
 // Round the length of a raw sockaddr up to align it properly.
 func cmsgAlignOf(salen int) int {
-	salign := sizeofPtr
-	// NOTE: It seems like 64-bit Darwin and DragonFly BSD kernels
-	// still require 32-bit aligned access to network subsystem.
-	if darwin64Bit || dragonfly64Bit {
+	salign := SizeofPtr
+	// NOTE: It seems like 64-bit Darwin, DragonFly BSD and
+	// Solaris kernels still require 32-bit aligned access to
+	// network subsystem.
+	if darwin64Bit || dragonfly64Bit || solaris64Bit {
 		salign = 4
 	}
 	return (salen + salign - 1) & ^(salign - 1)
