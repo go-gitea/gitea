@@ -685,7 +685,7 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 func (repo *Repository) updateSize(e Engine) error {
-	repoInfoSize, err := git.GetRepoSize(repo.RepoPath())
+	repoInfoSize, err := git.GetRepoSize(repo.repoPath(e))
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
