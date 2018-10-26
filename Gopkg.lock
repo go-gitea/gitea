@@ -746,7 +746,8 @@
   revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
 
 [[projects]]
-  digest = "1:47ea747d07fae720d749d06ac5dc5ded0df70c57e328b6549cf2d9c64698757e"
+  branch = "master"
+  digest = "1:6d5ed712653ea5321fe3e3475ab2188cf362a4e0d31e9fd3acbd4dfbbca0d680"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -755,7 +756,7 @@
     "html/charset",
   ]
   pruneopts = "NUT"
-  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
+  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
 
 [[projects]]
   digest = "1:8159a9cda4b8810aaaeb0d60e2fa68e2fd86d8af4ec8f5059830839e3c8d93d5"
