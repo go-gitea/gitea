@@ -112,6 +112,10 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 	}
 
 	pr, err = getPullRequestByIssueID(x, issue.ID)
+	if err != nil {
+		return nil, err
+	}
+	pr.Issue = issue
 	return
 }
 

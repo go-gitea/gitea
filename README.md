@@ -29,7 +29,7 @@ This project has been
 
 From the root of the source tree, run:
 
-    make generate all
+    TAGS="bindata" make generate all
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 

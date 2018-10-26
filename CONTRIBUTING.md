@@ -16,6 +16,7 @@
   - [Maintainers](#maintainers)
   - [Owners](#owners)
   - [Versions](#versions)
+  - [Releasing Gitea](#releasing-gitea)
   - [Copyright](#copyright)
 
 ## Introduction
@@ -68,7 +69,7 @@ whole tree to make sure the changes don't break other usage
 and keep the compatibility on upgrade. To make sure you are
 running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
-we are using the server for continous testing, following [these
+we are using the server for continuous testing, following [these
 instructions](http://docs.drone.io/cli-installation/). After that,
 you can simply call `drone exec --local --build-event "pull_request"` within
 your working directory and it will try to run the test suite locally.
@@ -92,7 +93,7 @@ You can find more information on how to get started with it on the [dep project 
 We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
 The only translation that is maintained in this git repository is
 [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
-and is synced regularily to Crowdin. Once a translation has reached
+and is synced regularly to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
 included in the next released version.
 
@@ -255,6 +256,19 @@ Since the `master` branch is a tip version, if you wish to use Gitea
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
+
+## Releasing Gitea
+
+* Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
+* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
+  * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
+  * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
+* If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
+* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`. 
+* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
+* If needed send PR for changelog on branch `master`.
+* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
 
 ## Copyright
 
