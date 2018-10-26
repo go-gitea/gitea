@@ -101,7 +101,7 @@ type repoAccess struct {
 	Repository `xorm:"extends"`
 }
 
-func (repoAccess) TableName() string {
+func (*repoAccess) TableName() string {
 	return "access"
 }
 

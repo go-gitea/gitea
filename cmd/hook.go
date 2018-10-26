@@ -243,7 +243,7 @@ func runHookPostReceive(c *cli.Context) error {
 			fmt.Fprintln(os.Stderr, "")
 			if pr == nil {
 				if repo.IsFork {
-					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+					branch = fmt.Sprintf("%s:%s", repo.GetOwnerName(), branch)
 				}
 				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
 				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), url.QueryEscape(baseRepo.DefaultBranch), url.QueryEscape(branch))

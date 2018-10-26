@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/git"
@@ -26,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
+	xsync "code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
@@ -37,7 +38,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-var repoWorkingPool = sync.NewExclusivePool()
+var repoWorkingPool = xsync.NewExclusivePool()
 
 var (
 	// ErrMirrorNotExist mirror does not exist error
@@ -161,6 +162,7 @@ func NewRepoContext() {
 
 // Repository represents a git repository.
 type Repository struct {
+	sync.RWMutex  `xorm:"-"`
 	ID            int64  `xorm:"pk autoincr"`
 	OwnerID       int64  `xorm:"UNIQUE(s)"`
 	OwnerName     string `xorm:"-"`
@@ -204,6 +206,20 @@ type Repository struct {
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+}
+
+// GetOwnerName returns the repository owner name
+func (repo *Repository) GetOwnerName() string {
+	repo.RLock()
+	defer repo.RUnlock()
+	return repo.OwnerName
+}
+
+// SetOwnerName sets the repository owner name
+func (repo *Repository) SetOwnerName(s string) {
+	repo.Lock()
+	defer repo.Unlock()
+	repo.OwnerName = s
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -484,13 +500,13 @@ func (repo *Repository) mustOwner(e Engine) *User {
 	return repo.Owner
 }
 
-func (repo *Repository) getOwnerName(e Engine) error {
-	if len(repo.OwnerName) > 0 {
+func (repo *Repository) loadOwnerName(e Engine) error {
+	if len(repo.GetOwnerName()) > 0 {
 		return nil
 	}
 
 	if repo.Owner != nil {
-		repo.OwnerName = repo.Owner.Name
+		repo.SetOwnerName(repo.Owner.Name)
 		return nil
 	}
 
@@ -501,22 +517,17 @@ func (repo *Repository) getOwnerName(e Engine) error {
 	} else if !has {
 		return ErrUserNotExist{repo.OwnerID, "", 0}
 	}
-	repo.OwnerName = u.Name
+	repo.SetOwnerName(u.Name)
 	return nil
 }
 
-// GetOwnerName returns the repository owner name
-func (repo *Repository) GetOwnerName() error {
-	return repo.getOwnerName(x)
-}
-
 func (repo *Repository) mustOwnerName(e Engine) string {
-	if err := repo.getOwnerName(e); err != nil {
+	if err := repo.loadOwnerName(e); err != nil {
 		log.Error(4, "Error loading repository owner name: %v", err)
 		return "error"
 	}
 
-	return repo.OwnerName
+	return repo.GetOwnerName()
 }
 
 // ComposeMetas composes a map of metas for rendering external issue tracker URL.
@@ -2221,7 +2232,7 @@ func SyncRepositoryHooks() error {
 }
 
 // Prevent duplicate running tasks.
-var taskStatusTable = sync.NewStatusTable()
+var taskStatusTable = xsync.NewStatusTable()
 
 const (
 	mirrorUpdate   = "mirror_update"
