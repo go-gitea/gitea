@@ -4,10 +4,55 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.5.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.5.0-rc1) - 2018-07-04
+## [1.5.2](https://github.com/go-gitea/gitea/releases/tag/v1.5.2) - 2018-10-09
 * SECURITY
+  * Enforce token on api routes (#4840) (#4905)
+* BUGFIXES
+  * Remove links from topics in edit mode (#5030)
+  * Detect charset and convert non UTF-8 files for display (#4950) (#4994)
+  * Fix layout of the topics editing form (#4971) (#4993)
+  * Fix null pointer dereference in ParseCommitWithSignature (#4964)
+  * Fix url in discord webhook (#4951)
+  * Fix font-cropping UI bug in diff (#4726) (#4929)
+  * Fix bug forget to remove Stopwatch when remove repository (#4933)
+  * Fix bug when repo remained bare if multiple branches pushed (#4927)
+  * Fix redirect with non-ascii branch names (#4764) (#4887)
+  * Fix issues api allow pulls (#4852) (#4862)
+  * Fix trimming of markup section names (#4864)
+
+## [1.5.1](https://github.com/go-gitea/gitea/releases/tag/v1.5.1) - 2018-09-03
+* SECURITY
+  * Don't disclose emails of all users when sending out emails (#4784)
+  * Improve URL validation for external wiki and external issues (#4710) (#4740)
+  * Make cookies HttpOnly and obey COOKIE_SECURE flag (#4706) (#4707)
+* BUGFIXES
+  * Fix missing release title in webhook (#4783) (#4800)
+  * Make sure to reset commit count in the cache on mirror syncing (#4770)
+  * Fixed bug where team with admin privelege type doesn't get any unit (#4759)
+  * Fix failure on creating pull request with assignees (#4583) (#4727)
+  * Hide org/create menu item in Dashboard if user has no rights (#4678) (#4686)
+* TRANSLATION
+  * Fix incorrect caption of webhook setting (#4701) (#4718)
+
+## [1.5.0](https://github.com/go-gitea/gitea/releases/tag/v1.5.0) - 2018-08-10
+* SECURITY
+  * Check that repositories can only be migrated to own user or organizations (#4366) (#4370)
   * Limit uploaded avatar image-size to 4096px x 3072px by default (#4353)
   * Do not allow to reuse TOTP passcode (#3878)
+* BUGFIXES
+  * Fix column droping for MSSQL that need new transaction for that (#4440) (#4484)
+  * Redirect to correct page after using scratch token (#4458) (#4472)
+  * Replace src with raw to fix image paths (#4377) (#4386)
+  * Fixes repo membership check in API (#4341) (#4379)
+  * Add default merge options when adding new repository (#4369) (#4373)
+  * Fix repository last updated time update when delete a user who watched the repo (#4363) (#4371)
+  * Fix html entity escaping in branch deletion message (#4471) (#4485)
+  * Fix out-of-transaction query in removeOrgUser (#4521) (#4524)
+  * Fix incorrect MergeWhitelistTeamIDs check in CanUserMerge function (#4519)
+  * Fix panic issue on update avatar email (#4580) (#4590)
+  * Fix bugs when too many IN variables (#4594) (#4597)
+  * Push whitelist now doesn't apply to branch deletion (#4601) (#4640)
+  * Site admin could create repos even MAX_CREATION_LIMIT=0 (#4645) (#4650)
 * FEATURE
   * Add cli commands to regen hooks & keys (#3979)
   * Add support for FIDO U2F (#3971)

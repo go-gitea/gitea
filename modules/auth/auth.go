@@ -63,6 +63,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error(4, "UpdateAccessToken: %v", err)
 			}
+			ctx.Data["IsApiToken"] = true
 			return t.UID
 		}
 	}
@@ -136,7 +137,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				}
 				return nil, false
 			}
-
+			ctx.Data["IsApiToken"] = true
 			return u, true
 		}
 	}

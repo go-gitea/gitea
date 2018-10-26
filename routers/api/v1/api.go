@@ -132,7 +132,7 @@ func repoAssignment() macaron.Handler {
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.IsSigned {
+		if true != ctx.Data["IsApiToken"] {
 			ctx.Error(401)
 			return
 		}
@@ -268,6 +268,14 @@ func mustEnableIssues(ctx *context.APIContext) {
 
 func mustAllowPulls(ctx *context.Context) {
 	if !ctx.Repo.Repository.AllowsPulls() {
+		ctx.Status(404)
+		return
+	}
+}
+
+func mustEnableIssuesOrPulls(ctx *context.Context) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
+		!ctx.Repo.Repository.AllowsPulls() {
 		ctx.Status(404)
 		return
 	}
@@ -447,7 +455,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
 					})
-				}, mustEnableIssues)
+				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(), bind(api.CreateLabelOption{}), repo.CreateLabel)

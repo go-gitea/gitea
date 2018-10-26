@@ -116,12 +116,13 @@ func NewMacaron() *macaron.Macaron {
 	}))
 	m.Use(session.Sessioner(setting.SessionConfig))
 	m.Use(csrf.Csrfer(csrf.Options{
-		Secret:     setting.SecretKey,
-		Cookie:     setting.CSRFCookieName,
-		SetCookie:  true,
-		Secure:     setting.SessionConfig.Secure,
-		Header:     "X-Csrf-Token",
-		CookiePath: setting.AppSubURL,
+		Secret:         setting.SecretKey,
+		Cookie:         setting.CSRFCookieName,
+		SetCookie:      true,
+		Secure:         setting.SessionConfig.Secure,
+		CookieHttpOnly: true,
+		Header:         "X-Csrf-Token",
+		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
 		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{

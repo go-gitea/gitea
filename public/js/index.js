@@ -2309,7 +2309,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', ''); // show Semantic UI Grid
     })
 
     saveBtn.click(function() {
@@ -2334,7 +2334,7 @@ function initTopicbar() {
                 }
             }
         }).done(function() {
-            editDiv.hide();
+            editDiv.css('display', 'none'); // hide Semantic UI Grid
             viewDiv.show();
         }).fail(function(xhr) {
             alert(xhr.responseJSON.message)
