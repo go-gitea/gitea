@@ -61,7 +61,7 @@ ignored = ["google.golang.org/appengine*"]
 
 [[constraint]]
   name = "github.com/markbates/goth"
-  version = "1.46.1"
+  version = "1.47.2"
 
 [[constraint]]
   branch = "master"
