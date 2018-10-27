@@ -775,7 +775,7 @@ func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.
 }
 
 func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []*index.TermFieldVector {
-	if len(in) <= 0 {
+	if len(in) == 0 {
 		return nil
 	}
 
@@ -837,6 +837,11 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			docBackIndexRowErr = err
 			return
 		}
+		defer func() {
+			if cerr := kvreader.Close(); err == nil && cerr != nil {
+				docBackIndexRowErr = cerr
+			}
+		}()
 
 		for docID, doc := range batch.IndexOps {
 			backIndexRow, err := backIndexRowForDoc(kvreader, index.IndexInternalID(docID))
@@ -846,12 +851,6 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			}
 
 			docBackIndexRowCh <- &docBackIndexRow{docID, doc, backIndexRow}
-		}
-
-		err = kvreader.Close()
-		if err != nil {
-			docBackIndexRowErr = err
-			return
 		}
 	}()
 

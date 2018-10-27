@@ -15,6 +15,11 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/blevesearch/bleve"
+#Not targetting v0.7.0 since standard where use only just after this tag
+
+[[constraint]]
   revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
   name = "golang.org/x/crypto"
 
