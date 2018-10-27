@@ -144,9 +144,12 @@ var (
 
 // FindUnitTypes give the unit key name and return unit
 func FindUnitTypes(nameKeys ...string) (res []UnitType) {
-	for t, u := range Units {
-		if strings.EqualFold(u.NameKey, u.NameKey) {
-			res = append(res, t)
+	for _, key := range nameKeys {
+		for t, u := range Units {
+			if strings.EqualFold(key, u.NameKey) {
+				res = append(res, t)
+				break
+			}
 		}
 	}
 	return
