@@ -42,7 +42,7 @@ type DocumentMapping struct {
 	Dynamic         bool                        `json:"dynamic"`
 	Properties      map[string]*DocumentMapping `json:"properties,omitempty"`
 	Fields          []*FieldMapping             `json:"fields,omitempty"`
-	DefaultAnalyzer string                      `json:"default_analyzer,omitempty"`
+	DefaultAnalyzer string                      `json:"default_analyzer"`
 
 	// StructTagKey overrides "json" when looking for field names in struct tags
 	StructTagKey string `json:"struct_tag_key,omitempty"`
@@ -324,17 +324,13 @@ func (dm *DocumentMapping) defaultAnalyzerName(path []string) string {
 }
 
 func (dm *DocumentMapping) walkDocument(data interface{}, path []string, indexes []uint64, context *walkContext) {
-	// allow default "json" tag to be overridden
+	// allow default "json" tag to be overriden
 	structTagKey := dm.StructTagKey
 	if structTagKey == "" {
 		structTagKey = "json"
 	}
 
 	val := reflect.ValueOf(data)
-	if !val.IsValid() {
-		return
-	}
-
 	typ := val.Type()
 	switch typ.Kind() {
 	case reflect.Map:

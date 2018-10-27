@@ -22,10 +22,6 @@ import (
 func NewMultiTermSearcher(indexReader index.IndexReader, terms []string,
 	field string, boost float64, options search.SearcherOptions, limit bool) (
 	search.Searcher, error) {
-	if limit && tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr()
-	}
-
 	qsearchers := make([]search.Searcher, len(terms))
 	qsearchersClose := func() {
 		for _, searcher := range qsearchers {
@@ -50,10 +46,6 @@ func NewMultiTermSearcher(indexReader index.IndexReader, terms []string,
 func NewMultiTermSearcherBytes(indexReader index.IndexReader, terms [][]byte,
 	field string, boost float64, options search.SearcherOptions, limit bool) (
 	search.Searcher, error) {
-	if limit && tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr()
-	}
-
 	qsearchers := make([]search.Searcher, len(terms))
 	qsearchersClose := func() {
 		for _, searcher := range qsearchers {

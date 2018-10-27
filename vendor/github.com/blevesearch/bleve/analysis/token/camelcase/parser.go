@@ -46,11 +46,11 @@ type Parser struct {
 	index     int
 }
 
-func NewParser(length, position, index int) *Parser {
+func NewParser(len, position, index int) *Parser {
 	return &Parser{
-		bufferLen: length,
-		buffer:    make([]rune, 0, length),
-		tokens:    make([]*analysis.Token, 0, length),
+		bufferLen: len,
+		buffer:    make([]rune, 0, len),
+		tokens:    make([]*analysis.Token, 0, len),
 		position:  position,
 		index:     index,
 	}

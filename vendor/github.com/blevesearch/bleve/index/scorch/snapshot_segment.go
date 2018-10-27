@@ -15,25 +15,42 @@
 package scorch
 
 import (
-	"bytes"
 	"sync"
-	"sync/atomic"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	"github.com/blevesearch/bleve/size"
 )
 
 var TermSeparator byte = 0xff
 
 var TermSeparatorSplitSlice = []byte{TermSeparator}
 
+type SegmentDictionarySnapshot struct {
+	s *SegmentSnapshot
+	d segment.TermDictionary
+}
+
+func (s *SegmentDictionarySnapshot) PostingsList(term string, except *roaring.Bitmap) (segment.PostingsList, error) {
+	// TODO: if except is non-nil, perhaps need to OR it with s.s.deleted?
+	return s.d.PostingsList(term, s.s.deleted)
+}
+
+func (s *SegmentDictionarySnapshot) Iterator() segment.DictionaryIterator {
+	return s.d.Iterator()
+}
+
+func (s *SegmentDictionarySnapshot) PrefixIterator(prefix string) segment.DictionaryIterator {
+	return s.d.PrefixIterator(prefix)
+}
+
+func (s *SegmentDictionarySnapshot) RangeIterator(start, end string) segment.DictionaryIterator {
+	return s.d.RangeIterator(start, end)
+}
+
 type SegmentSnapshot struct {
 	id      uint64
 	segment segment.Segment
 	deleted *roaring.Bitmap
-	creator string
 
 	cachedDocs *cachedDocs
 }
@@ -66,16 +83,24 @@ func (s *SegmentSnapshot) VisitDocument(num uint64, visitor segment.DocumentFiel
 	return s.segment.VisitDocument(num, visitor)
 }
 
-func (s *SegmentSnapshot) DocID(num uint64) ([]byte, error) {
-	return s.segment.DocID(num)
-}
-
 func (s *SegmentSnapshot) Count() uint64 {
+
 	rv := s.segment.Count()
 	if s.deleted != nil {
 		rv -= s.deleted.GetCardinality()
 	}
 	return rv
+}
+
+func (s *SegmentSnapshot) Dictionary(field string) (segment.TermDictionary, error) {
+	d, err := s.segment.Dictionary(field)
+	if err != nil {
+		return nil, err
+	}
+	return &SegmentDictionarySnapshot{
+		s: s,
+		d: d,
+	}, nil
 }
 
 func (s *SegmentSnapshot) DocNumbers(docIDs []string) (*roaring.Bitmap, error) {
@@ -103,53 +128,36 @@ func (s *SegmentSnapshot) Fields() []string {
 	return s.segment.Fields()
 }
 
-func (s *SegmentSnapshot) Size() (rv int) {
-	rv = s.segment.Size()
-	if s.deleted != nil {
-		rv += int(s.deleted.GetSizeInBytes())
-	}
-	rv += s.cachedDocs.Size()
-	return
-}
-
 type cachedFieldDocs struct {
 	readyCh chan struct{}     // closed when the cachedFieldDocs.docs is ready to be used.
 	err     error             // Non-nil if there was an error when preparing this cachedFieldDocs.
 	docs    map[uint64][]byte // Keyed by localDocNum, value is a list of terms delimited by 0xFF.
-	size    uint64
 }
 
-func (cfd *cachedFieldDocs) prepareField(field string, ss *SegmentSnapshot) {
+func (cfd *cachedFieldDocs) prepareFields(field string, ss *SegmentSnapshot) {
 	defer close(cfd.readyCh)
 
-	cfd.size += uint64(size.SizeOfUint64) /* size field */
 	dict, err := ss.segment.Dictionary(field)
 	if err != nil {
 		cfd.err = err
 		return
 	}
 
-	var postings segment.PostingsList
-	var postingsItr segment.PostingsIterator
-
 	dictItr := dict.Iterator()
 	next, err := dictItr.Next()
 	for err == nil && next != nil {
-		var err1 error
-		postings, err1 = dict.PostingsList([]byte(next.Term), nil, postings)
+		postings, err1 := dict.PostingsList(next.Term, nil)
 		if err1 != nil {
 			cfd.err = err1
 			return
 		}
 
-		cfd.size += uint64(size.SizeOfUint64) /* map key */
-		postingsItr = postings.Iterator(false, false, false, postingsItr)
+		postingsItr := postings.Iterator()
 		nextPosting, err2 := postingsItr.Next()
 		for err2 == nil && nextPosting != nil {
 			docNum := nextPosting.Number()
 			cfd.docs[docNum] = append(cfd.docs[docNum], []byte(next.Term)...)
 			cfd.docs[docNum] = append(cfd.docs[docNum], TermSeparator)
-			cfd.size += uint64(len(next.Term) + 1) // map value
 			nextPosting, err2 = postingsItr.Next()
 		}
 
@@ -170,12 +178,10 @@ func (cfd *cachedFieldDocs) prepareField(field string, ss *SegmentSnapshot) {
 type cachedDocs struct {
 	m     sync.Mutex                  // As the cache is asynchronously prepared, need a lock
 	cache map[string]*cachedFieldDocs // Keyed by field
-	size  uint64
 }
 
 func (c *cachedDocs) prepareFields(wantedFields []string, ss *SegmentSnapshot) error {
 	c.m.Lock()
-
 	if c.cache == nil {
 		c.cache = make(map[string]*cachedFieldDocs, len(ss.Fields()))
 	}
@@ -188,7 +194,7 @@ func (c *cachedDocs) prepareFields(wantedFields []string, ss *SegmentSnapshot) e
 				docs:    make(map[uint64][]byte),
 			}
 
-			go c.cache[field].prepareField(field, ss)
+			go c.cache[field].prepareFields(field, ss)
 		}
 	}
 
@@ -203,31 +209,13 @@ func (c *cachedDocs) prepareFields(wantedFields []string, ss *SegmentSnapshot) e
 		c.m.Lock()
 	}
 
-	c.updateSizeLOCKED()
-
 	c.m.Unlock()
 	return nil
 }
 
-// hasFields returns true if the cache has all the given fields
-func (c *cachedDocs) hasFields(fields []string) bool {
-	c.m.Lock()
-	for _, field := range fields {
-		if _, exists := c.cache[field]; !exists {
-			c.m.Unlock()
-			return false // found a field not in cache
-		}
-	}
-	c.m.Unlock()
-	return true
-}
-
-func (c *cachedDocs) Size() int {
-	return int(atomic.LoadUint64(&c.size))
-}
-
-func (c *cachedDocs) updateSizeLOCKED() {
+func (c *cachedDocs) sizeInBytes() uint64 {
 	sizeInBytes := 0
+	c.m.Lock()
 	for k, v := range c.cache { // cachedFieldDocs
 		sizeInBytes += len(k)
 		if v != nil {
@@ -236,31 +224,6 @@ func (c *cachedDocs) updateSizeLOCKED() {
 			}
 		}
 	}
-	atomic.StoreUint64(&c.size, uint64(sizeInBytes))
-}
-
-func (c *cachedDocs) visitDoc(localDocNum uint64,
-	fields []string, visitor index.DocumentFieldTermVisitor) {
-	c.m.Lock()
-
-	for _, field := range fields {
-		if cachedFieldDocs, exists := c.cache[field]; exists {
-			c.m.Unlock()
-			<-cachedFieldDocs.readyCh
-			c.m.Lock()
-
-			if tlist, exists := cachedFieldDocs.docs[localDocNum]; exists {
-				for {
-					i := bytes.Index(tlist, TermSeparatorSplitSlice)
-					if i < 0 {
-						break
-					}
-					visitor(field, tlist[0:i])
-					tlist = tlist[i+1:]
-				}
-			}
-		}
-	}
-
 	c.m.Unlock()
+	return uint64(sizeInBytes)
 }

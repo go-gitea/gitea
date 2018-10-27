@@ -16,20 +16,11 @@ package searcher
 
 import (
 	"math"
-	"reflect"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/scorer"
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeBooleanSearcher int
-
-func init() {
-	var bs BooleanSearcher
-	reflectStaticSizeBooleanSearcher = int(reflect.TypeOf(bs).Size())
-}
 
 type BooleanSearcher struct {
 	indexReader     index.IndexReader
@@ -59,32 +50,6 @@ func NewBooleanSearcher(indexReader index.IndexReader, mustSearcher search.Searc
 	}
 	rv.computeQueryNorm()
 	return &rv, nil
-}
-
-func (s *BooleanSearcher) Size() int {
-	sizeInBytes := reflectStaticSizeBooleanSearcher + size.SizeOfPtr
-
-	if s.mustSearcher != nil {
-		sizeInBytes += s.mustSearcher.Size()
-	}
-
-	if s.shouldSearcher != nil {
-		sizeInBytes += s.shouldSearcher.Size()
-	}
-
-	if s.mustNotSearcher != nil {
-		sizeInBytes += s.mustNotSearcher.Size()
-	}
-
-	sizeInBytes += s.scorer.Size()
-
-	for _, entry := range s.matches {
-		if entry != nil {
-			sizeInBytes += entry.Size()
-		}
-	}
-
-	return sizeInBytes
 }
 
 func (s *BooleanSearcher) computeQueryNorm() {
@@ -331,45 +296,41 @@ func (s *BooleanSearcher) Advance(ctx *search.SearchContext, ID index.IndexInter
 		}
 	}
 
-	// Advance the searcher only if the cursor is trailing the lookup ID
-	if s.currentID == nil || s.currentID.Compare(ID) < 0 {
-		var err error
-		if s.mustSearcher != nil {
-			if s.currMust != nil {
-				ctx.DocumentMatchPool.Put(s.currMust)
-			}
-			s.currMust, err = s.mustSearcher.Advance(ctx, ID)
-			if err != nil {
-				return nil, err
-			}
+	var err error
+	if s.mustSearcher != nil {
+		if s.currMust != nil {
+			ctx.DocumentMatchPool.Put(s.currMust)
 		}
-		if s.shouldSearcher != nil {
-			if s.currShould != nil {
-				ctx.DocumentMatchPool.Put(s.currShould)
-			}
-			s.currShould, err = s.shouldSearcher.Advance(ctx, ID)
-			if err != nil {
-				return nil, err
-			}
+		s.currMust, err = s.mustSearcher.Advance(ctx, ID)
+		if err != nil {
+			return nil, err
 		}
+	}
+	if s.shouldSearcher != nil {
+		if s.currShould != nil {
+			ctx.DocumentMatchPool.Put(s.currShould)
+		}
+		s.currShould, err = s.shouldSearcher.Advance(ctx, ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if s.mustNotSearcher != nil {
+		if s.currMustNot != nil {
+			ctx.DocumentMatchPool.Put(s.currMustNot)
+		}
+		s.currMustNot, err = s.mustNotSearcher.Advance(ctx, ID)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-		if s.mustNotSearcher != nil {
-			if s.currMustNot != nil {
-				ctx.DocumentMatchPool.Put(s.currMustNot)
-			}
-			s.currMustNot, err = s.mustNotSearcher.Advance(ctx, ID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if s.mustSearcher != nil && s.currMust != nil {
-			s.currentID = s.currMust.IndexInternalID
-		} else if s.mustSearcher == nil && s.currShould != nil {
-			s.currentID = s.currShould.IndexInternalID
-		} else {
-			s.currentID = nil
-		}
+	if s.mustSearcher != nil && s.currMust != nil {
+		s.currentID = s.currMust.IndexInternalID
+	} else if s.mustSearcher == nil && s.currShould != nil {
+		s.currentID = s.currShould.IndexInternalID
+	} else {
+		s.currentID = nil
 	}
 
 	return s.Next(ctx)

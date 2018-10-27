@@ -16,8 +16,6 @@ package scorch
 
 import (
 	"bytes"
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -36,22 +34,16 @@ import (
 
 var DefaultChunkFactor uint32 = 1024
 
-var DefaultPersisterNapTimeMSec int = 2000 // ms
-
-var DefaultPersisterNapUnderNumFiles int = 1000
-
-type persisterOptions struct {
-	// PersisterNapTimeMSec controls the wait/delay injected into
-	// persistence workloop to improve the chances for
-	// a healthier and heavier in-memory merging
-	PersisterNapTimeMSec int
-
-	// PersisterNapTimeMSec > 0, and the number of files is less than
-	// PersisterNapUnderNumFiles, then the persister will sleep
-	// PersisterNapTimeMSec amount of time to improve the chances for
-	// a healthier and heavier in-memory merging
-	PersisterNapUnderNumFiles int
-}
+// Arbitrary number, need to make it configurable.
+// Lower values like 10/making persister really slow
+// doesn't work well as it is creating more files to
+// persist for in next persist iteration and spikes the # FDs.
+// Ideal value should let persister also proceed at
+// an optimum pace so that the merger can skip
+// many intermediate snapshots.
+// This needs to be based on empirical data.
+// TODO - may need to revisit this approach/value.
+var epochDistance = uint64(5)
 
 type notificationChan chan struct{}
 
@@ -61,17 +53,8 @@ func (s *Scorch) persisterLoop() {
 	var persistWatchers []*epochWatcher
 	var lastPersistedEpoch, lastMergedEpoch uint64
 	var ew *epochWatcher
-	po, err := s.parsePersisterOptions()
-	if err != nil {
-		s.fireAsyncError(fmt.Errorf("persisterOptions json parsing err: %v", err))
-		s.asyncTasks.Done()
-		return
-	}
-
 OUTER:
 	for {
-		atomic.AddUint64(&s.stats.TotPersistLoopBeg, 1)
-
 		select {
 		case <-s.closeCh:
 			break OUTER
@@ -82,8 +65,8 @@ OUTER:
 		if ew != nil && ew.epoch > lastMergedEpoch {
 			lastMergedEpoch = ew.epoch
 		}
-		lastMergedEpoch, persistWatchers = s.pausePersisterForMergerCatchUp(lastPersistedEpoch,
-			lastMergedEpoch, persistWatchers, po)
+		persistWatchers = s.pausePersisterForMergerCatchUp(lastPersistedEpoch,
+			&lastMergedEpoch, persistWatchers)
 
 		var ourSnapshot *IndexSnapshot
 		var ourPersisted []chan error
@@ -95,8 +78,6 @@ OUTER:
 			ourSnapshot.AddRef()
 			ourPersisted = s.rootPersisted
 			s.rootPersisted = nil
-			atomic.StoreUint64(&s.iStats.persistSnapshotSize, uint64(ourSnapshot.Size()))
-			atomic.StoreUint64(&s.iStats.persistEpoch, ourSnapshot.epoch)
 		}
 		s.rootLock.Unlock()
 
@@ -111,19 +92,10 @@ OUTER:
 				close(ch)
 			}
 			if err != nil {
-				atomic.StoreUint64(&s.iStats.persistEpoch, 0)
-				if err == segment.ErrClosed {
-					// index has been closed
-					_ = ourSnapshot.DecRef()
-					break OUTER
-				}
 				s.fireAsyncError(fmt.Errorf("got err persisting snapshot: %v", err))
 				_ = ourSnapshot.DecRef()
-				atomic.AddUint64(&s.stats.TotPersistLoopErr, 1)
 				continue OUTER
 			}
-
-			atomic.StoreUint64(&s.stats.LastPersistedEpoch, ourSnapshot.epoch)
 
 			lastPersistedEpoch = ourSnapshot.epoch
 			for _, ew := range persistWatchers {
@@ -143,7 +115,6 @@ OUTER:
 			s.fireEvent(EventKindPersisterProgress, time.Since(startTime))
 
 			if changed {
-				atomic.AddUint64(&s.stats.TotPersistLoopProgress, 1)
 				continue OUTER
 			}
 		}
@@ -162,21 +133,17 @@ OUTER:
 
 		s.removeOldData() // might as well cleanup while waiting
 
-		atomic.AddUint64(&s.stats.TotPersistLoopWait, 1)
-
 		select {
 		case <-s.closeCh:
 			break OUTER
 		case <-w.notifyCh:
 			// woken up, next loop should pick up work
-			atomic.AddUint64(&s.stats.TotPersistLoopWaitNotified, 1)
+			continue OUTER
 		case ew = <-s.persisterNotifier:
 			// if the watchers are already caught up then let them wait,
 			// else let them continue to do the catch up
 			persistWatchers = append(persistWatchers, ew)
 		}
-
-		atomic.AddUint64(&s.stats.TotPersistLoopEnd, 1)
 	}
 }
 
@@ -193,79 +160,29 @@ func notifyMergeWatchers(lastPersistedEpoch uint64,
 	return watchersNext
 }
 
-func (s *Scorch) pausePersisterForMergerCatchUp(lastPersistedEpoch uint64, lastMergedEpoch uint64,
-	persistWatchers []*epochWatcher, po *persisterOptions) (uint64, []*epochWatcher) {
+func (s *Scorch) pausePersisterForMergerCatchUp(lastPersistedEpoch uint64, lastMergedEpoch *uint64,
+	persistWatchers []*epochWatcher) []*epochWatcher {
 
 	// first, let the watchers proceed if they lag behind
 	persistWatchers = notifyMergeWatchers(lastPersistedEpoch, persistWatchers)
 
-	// check the merger lag by counting the segment files on disk,
-	// On finding fewer files on disk, persister takes a short pause
-	// for sufficient in-memory segments to pile up for the next
-	// memory merge cum persist loop.
-	// On finding too many files on disk, persister pause until the merger
-	// catches up to reduce the segment file count under the threshold.
-	// But if there is memory pressure, then skip this sleep maneuvers.
-	numFilesOnDisk, _ := s.diskFileStats()
-	if numFilesOnDisk < uint64(po.PersisterNapUnderNumFiles) &&
-		po.PersisterNapTimeMSec > 0 && s.paused() == 0 {
-		select {
-		case <-s.closeCh:
-		case <-time.After(time.Millisecond * time.Duration(po.PersisterNapTimeMSec)):
-			atomic.AddUint64(&s.stats.TotPersisterNapPauseCompleted, 1)
-
-		case ew := <-s.persisterNotifier:
-			// unblock the merger in meantime
-			persistWatchers = append(persistWatchers, ew)
-			lastMergedEpoch = ew.epoch
-			persistWatchers = notifyMergeWatchers(lastPersistedEpoch, persistWatchers)
-			atomic.AddUint64(&s.stats.TotPersisterMergerNapBreak, 1)
-		}
-		return lastMergedEpoch, persistWatchers
-	}
-
 OUTER:
-	for po.PersisterNapUnderNumFiles > 0 &&
-		numFilesOnDisk >= uint64(po.PersisterNapUnderNumFiles) &&
-		lastMergedEpoch < lastPersistedEpoch {
-		atomic.AddUint64(&s.stats.TotPersisterSlowMergerPause, 1)
+	// check for slow merger and await until the merger catch up
+	for lastPersistedEpoch > *lastMergedEpoch+epochDistance {
 
 		select {
 		case <-s.closeCh:
 			break OUTER
 		case ew := <-s.persisterNotifier:
 			persistWatchers = append(persistWatchers, ew)
-			lastMergedEpoch = ew.epoch
+			*lastMergedEpoch = ew.epoch
 		}
-
-		atomic.AddUint64(&s.stats.TotPersisterSlowMergerResume, 1)
 
 		// let the watchers proceed if they lag behind
 		persistWatchers = notifyMergeWatchers(lastPersistedEpoch, persistWatchers)
-
-		numFilesOnDisk, _ = s.diskFileStats()
 	}
 
-	return lastMergedEpoch, persistWatchers
-}
-
-func (s *Scorch) parsePersisterOptions() (*persisterOptions, error) {
-	po := persisterOptions{
-		PersisterNapTimeMSec:      DefaultPersisterNapTimeMSec,
-		PersisterNapUnderNumFiles: DefaultPersisterNapUnderNumFiles,
-	}
-	if v, ok := s.config["scorchPersisterOptions"]; ok {
-		b, err := json.Marshal(v)
-		if err != nil {
-			return &po, err
-		}
-
-		err = json.Unmarshal(b, &po)
-		if err != nil {
-			return &po, err
-		}
-	}
-	return &po, nil
+	return persistWatchers
 }
 
 func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
@@ -307,7 +224,7 @@ func (s *Scorch) persistSnapshotMaybeMerge(snapshot *IndexSnapshot) (
 		return false, nil
 	}
 
-	newSnapshot, newSegmentID, err := s.mergeSegmentBases(
+	_, newSnapshot, newSegmentID, err := s.mergeSegmentBases(
 		snapshot, sbs, sbsDrops, sbsIndexes, DefaultChunkFactor)
 	if err != nil {
 		return false, err
@@ -332,7 +249,6 @@ func (s *Scorch) persistSnapshotMaybeMerge(snapshot *IndexSnapshot) (
 		segment:  make([]*SegmentSnapshot, 0, len(snapshot.segment)),
 		internal: snapshot.internal,
 		epoch:    snapshot.epoch,
-		creator:  "persistSnapshotMaybeMerge",
 	}
 
 	// copy to the equiv the segments that weren't replaced
@@ -381,22 +297,6 @@ func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 	}
 	newSnapshotKey := segment.EncodeUvarintAscending(nil, snapshot.epoch)
 	snapshotBucket, err := snapshotsBucket.CreateBucketIfNotExists(newSnapshotKey)
-	if err != nil {
-		return err
-	}
-
-	// persist meta values
-	metaBucket, err := snapshotBucket.CreateBucketIfNotExists(boltMetaDataKey)
-	if err != nil {
-		return err
-	}
-	err = metaBucket.Put([]byte("type"), []byte(zap.Type))
-	if err != nil {
-		return err
-	}
-	buf := make([]byte, binary.MaxVarintLen32)
-	binary.BigEndian.PutUint32(buf, zap.Version)
-	err = metaBucket.Put([]byte("version"), buf)
 	if err != nil {
 		return err
 	}
@@ -490,21 +390,44 @@ func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 			}
 		}
 
-		persist := &persistIntroduction{
-			persisted: newSegments,
-			applied:   make(notificationChan),
+		s.rootLock.Lock()
+		newIndexSnapshot := &IndexSnapshot{
+			parent:   s,
+			epoch:    s.nextSnapshotEpoch,
+			segment:  make([]*SegmentSnapshot, len(s.root.segment)),
+			offsets:  make([]uint64, len(s.root.offsets)),
+			internal: make(map[string][]byte, len(s.root.internal)),
+			refs:     1,
+		}
+		s.nextSnapshotEpoch++
+		for i, segmentSnapshot := range s.root.segment {
+			// see if this segment has been replaced
+			if replacement, ok := newSegments[segmentSnapshot.id]; ok {
+				newSegmentSnapshot := &SegmentSnapshot{
+					id:         segmentSnapshot.id,
+					segment:    replacement,
+					deleted:    segmentSnapshot.deleted,
+					cachedDocs: segmentSnapshot.cachedDocs,
+				}
+				newIndexSnapshot.segment[i] = newSegmentSnapshot
+				delete(newSegments, segmentSnapshot.id)
+				// update items persisted incase of a new segment snapshot
+				atomic.AddUint64(&s.stats.numItemsPersisted, newSegmentSnapshot.Count())
+			} else {
+				newIndexSnapshot.segment[i] = s.root.segment[i]
+				newIndexSnapshot.segment[i].segment.AddRef()
+			}
+			newIndexSnapshot.offsets[i] = s.root.offsets[i]
+		}
+		for k, v := range s.root.internal {
+			newIndexSnapshot.internal[k] = v
 		}
 
-		select {
-		case <-s.closeCh:
-			return segment.ErrClosed
-		case s.persists <- persist:
-		}
-
-		select {
-		case <-s.closeCh:
-			return segment.ErrClosed
-		case <-persist.applied:
+		rootPrev := s.root
+		s.root = newIndexSnapshot
+		s.rootLock.Unlock()
+		if rootPrev != nil {
+			_ = rootPrev.DecRef()
 		}
 	}
 
@@ -539,7 +462,6 @@ var boltSnapshotsBucket = []byte{'s'}
 var boltPathKey = []byte{'p'}
 var boltDeletedKey = []byte{'d'}
 var boltInternalKey = []byte{'i'}
-var boltMetaDataKey = []byte{'m'}
 
 func (s *Scorch) loadFromBolt() error {
 	return s.rootBolt.View(func(tx *bolt.Tx) error {
@@ -556,19 +478,19 @@ func (s *Scorch) loadFromBolt() error {
 				continue
 			}
 			if foundRoot {
-				s.AddEligibleForRemoval(snapshotEpoch)
+				s.eligibleForRemoval = append(s.eligibleForRemoval, snapshotEpoch)
 				continue
 			}
 			snapshot := snapshots.Bucket(k)
 			if snapshot == nil {
 				log.Printf("snapshot key, but bucket missing %x, continuing", k)
-				s.AddEligibleForRemoval(snapshotEpoch)
+				s.eligibleForRemoval = append(s.eligibleForRemoval, snapshotEpoch)
 				continue
 			}
 			indexSnapshot, err := s.loadSnapshot(snapshot)
 			if err != nil {
 				log.Printf("unable to load snapshot, %v, continuing", err)
-				s.AddEligibleForRemoval(snapshotEpoch)
+				s.eligibleForRemoval = append(s.eligibleForRemoval, snapshotEpoch)
 				continue
 			}
 			indexSnapshot.epoch = snapshotEpoch
@@ -578,16 +500,13 @@ func (s *Scorch) loadFromBolt() error {
 				return err
 			}
 			s.nextSegmentID++
-			s.rootLock.Lock()
 			s.nextSnapshotEpoch = snapshotEpoch + 1
-			rootPrev := s.root
+			s.rootLock.Lock()
+			if s.root != nil {
+				_ = s.root.DecRef()
+			}
 			s.root = indexSnapshot
 			s.rootLock.Unlock()
-
-			if rootPrev != nil {
-				_ = rootPrev.DecRef()
-			}
-
 			foundRoot = true
 		}
 		return nil
@@ -605,7 +524,7 @@ func (s *Scorch) LoadSnapshot(epoch uint64) (rv *IndexSnapshot, err error) {
 		snapshotKey := segment.EncodeUvarintAscending(nil, epoch)
 		snapshot := snapshots.Bucket(snapshotKey)
 		if snapshot == nil {
-			return fmt.Errorf("snapshot with epoch: %v - doesn't exist", epoch)
+			return nil
 		}
 		rv, err = s.loadSnapshot(snapshot)
 		return err
@@ -622,7 +541,6 @@ func (s *Scorch) loadSnapshot(snapshot *bolt.Bucket) (*IndexSnapshot, error) {
 		parent:   s,
 		internal: make(map[string][]byte),
 		refs:     1,
-		creator:  "loadSnapshot",
 	}
 	var running uint64
 	c := snapshot.Cursor()
@@ -638,7 +556,7 @@ func (s *Scorch) loadSnapshot(snapshot *bolt.Bucket) (*IndexSnapshot, error) {
 				_ = rv.DecRef()
 				return nil, err
 			}
-		} else if k[0] != boltMetaDataKey[0] {
+		} else {
 			segmentBucket := snapshot.Bucket(k)
 			if segmentBucket == nil {
 				_ = rv.DecRef()
@@ -686,9 +604,7 @@ func (s *Scorch) loadSegment(segmentBucket *bolt.Bucket) (*SegmentSnapshot, erro
 			_ = segment.Close()
 			return nil, fmt.Errorf("error reading deleted bytes: %v", err)
 		}
-		if !deletedBitmap.IsEmpty() {
-			rv.deleted = deletedBitmap
-		}
+		rv.deleted = deletedBitmap
 	}
 
 	return rv, nil
@@ -727,14 +643,14 @@ func (s *Scorch) removeOldBoltSnapshots() (numRemoved int, err error) {
 		return 0, err
 	}
 
-	if len(persistedEpochs) <= s.numSnapshotsToKeep {
+	if len(persistedEpochs) <= NumSnapshotsToKeep {
 		// we need to keep everything
 		return 0, nil
 	}
 
 	// make a map of epochs to protect from deletion
-	protectedEpochs := make(map[uint64]struct{}, s.numSnapshotsToKeep)
-	for _, epoch := range persistedEpochs[0:s.numSnapshotsToKeep] {
+	protectedEpochs := make(map[uint64]struct{}, NumSnapshotsToKeep)
+	for _, epoch := range persistedEpochs[0:NumSnapshotsToKeep] {
 		protectedEpochs[epoch] = struct{}{}
 	}
 
@@ -752,7 +668,7 @@ func (s *Scorch) removeOldBoltSnapshots() (numRemoved int, err error) {
 	s.eligibleForRemoval = newEligible
 	s.rootLock.Unlock()
 
-	if len(epochsToRemove) == 0 {
+	if len(epochsToRemove) <= 0 {
 		return 0, nil
 	}
 

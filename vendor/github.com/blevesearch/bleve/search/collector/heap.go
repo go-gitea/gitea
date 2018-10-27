@@ -25,9 +25,9 @@ type collectStoreHeap struct {
 	compare collectorCompare
 }
 
-func newStoreHeap(capacity int, compare collectorCompare) *collectStoreHeap {
+func newStoreHeap(cap int, compare collectorCompare) *collectStoreHeap {
 	rv := &collectStoreHeap{
-		heap:    make(search.DocumentMatchCollection, 0, capacity),
+		heap:    make(search.DocumentMatchCollection, 0, cap),
 		compare: compare,
 	}
 	heap.Init(rv)

@@ -15,31 +15,10 @@
 package search
 
 import (
-	"reflect"
 	"sort"
 
 	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeFacetsBuilder int
-var reflectStaticSizeFacetResult int
-var reflectStaticSizeTermFacet int
-var reflectStaticSizeNumericRangeFacet int
-var reflectStaticSizeDateRangeFacet int
-
-func init() {
-	var fb FacetsBuilder
-	reflectStaticSizeFacetsBuilder = int(reflect.TypeOf(fb).Size())
-	var fr FacetResult
-	reflectStaticSizeFacetResult = int(reflect.TypeOf(fr).Size())
-	var tf TermFacet
-	reflectStaticSizeTermFacet = int(reflect.TypeOf(tf).Size())
-	var nrf NumericRangeFacet
-	reflectStaticSizeNumericRangeFacet = int(reflect.TypeOf(nrf).Size())
-	var drf DateRangeFacet
-	reflectStaticSizeDateRangeFacet = int(reflect.TypeOf(drf).Size())
-}
 
 type FacetBuilder interface {
 	StartDoc()
@@ -48,40 +27,23 @@ type FacetBuilder interface {
 
 	Result() *FacetResult
 	Field() string
-
-	Size() int
 }
 
 type FacetsBuilder struct {
 	indexReader index.IndexReader
-	facetNames  []string
-	facets      []FacetBuilder
+	facets      map[string]FacetBuilder
 	fields      []string
 }
 
 func NewFacetsBuilder(indexReader index.IndexReader) *FacetsBuilder {
 	return &FacetsBuilder{
 		indexReader: indexReader,
+		facets:      make(map[string]FacetBuilder, 0),
 	}
-}
-
-func (fb *FacetsBuilder) Size() int {
-	sizeInBytes := reflectStaticSizeFacetsBuilder + size.SizeOfPtr
-
-	for k, v := range fb.facets {
-		sizeInBytes += size.SizeOfString + v.Size() + len(fb.facetNames[k])
-	}
-
-	for _, entry := range fb.fields {
-		sizeInBytes += size.SizeOfString + len(entry)
-	}
-
-	return sizeInBytes
 }
 
 func (fb *FacetsBuilder) Add(name string, facetBuilder FacetBuilder) {
-	fb.facetNames = append(fb.facetNames, name)
-	fb.facets = append(fb.facets, facetBuilder)
+	fb.facets[name] = facetBuilder
 	fb.fields = append(fb.fields, facetBuilder.Field())
 }
 
@@ -251,14 +213,6 @@ type FacetResult struct {
 	DateRanges    DateRangeFacets    `json:"date_ranges,omitempty"`
 }
 
-func (fr *FacetResult) Size() int {
-	return reflectStaticSizeFacetResult + size.SizeOfPtr +
-		len(fr.Field) +
-		len(fr.Terms)*(reflectStaticSizeTermFacet+size.SizeOfPtr) +
-		len(fr.NumericRanges)*(reflectStaticSizeNumericRangeFacet+size.SizeOfPtr) +
-		len(fr.DateRanges)*(reflectStaticSizeDateRangeFacet+size.SizeOfPtr)
-}
-
 func (fr *FacetResult) Merge(other *FacetResult) {
 	fr.Total += other.Total
 	fr.Missing += other.Missing
@@ -333,9 +287,9 @@ func (fr FacetResults) Fixup(name string, size int) {
 
 func (fb *FacetsBuilder) Results() FacetResults {
 	fr := make(FacetResults)
-	for i, facetBuilder := range fb.facets {
+	for facetName, facetBuilder := range fb.facets {
 		facetResult := facetBuilder.Result()
-		fr[fb.facetNames[i]] = facetResult
+		fr[facetName] = facetResult
 	}
 	return fr
 }

@@ -16,21 +16,12 @@ package searcher
 
 import (
 	"math"
-	"reflect"
 	"sort"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/scorer"
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeConjunctionSearcher int
-
-func init() {
-	var cs ConjunctionSearcher
-	reflectStaticSizeConjunctionSearcher = int(reflect.TypeOf(cs).Size())
-}
 
 type ConjunctionSearcher struct {
 	indexReader index.IndexReader
@@ -60,48 +51,7 @@ func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 		scorer:      scorer.NewConjunctionQueryScorer(options),
 	}
 	rv.computeQueryNorm()
-
-	// attempt push-down conjunction optimization when there's >1 searchers
-	if len(searchers) > 1 {
-		var octx index.OptimizableContext
-
-		for _, searcher := range searchers {
-			o, ok := searcher.(index.Optimizable)
-			if ok {
-				var err error
-				octx, err = o.Optimize("conjunction", octx)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		if octx != nil {
-			err := octx.Finish()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	return &rv, nil
-}
-
-func (s *ConjunctionSearcher) Size() int {
-	sizeInBytes := reflectStaticSizeConjunctionSearcher + size.SizeOfPtr +
-		s.scorer.Size()
-
-	for _, entry := range s.searchers {
-		sizeInBytes += entry.Size()
-	}
-
-	for _, entry := range s.currs {
-		if entry != nil {
-			sizeInBytes += entry.Size()
-		}
-	}
-
-	return sizeInBytes
 }
 
 func (s *ConjunctionSearcher) computeQueryNorm() {

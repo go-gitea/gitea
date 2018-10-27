@@ -36,14 +36,10 @@ func ExtractGeoPoint(thing interface{}) (lon, lat float64, success bool) {
 	var foundLon, foundLat bool
 
 	thingVal := reflect.ValueOf(thing)
-	if !thingVal.IsValid() {
-		return lon, lat, false
-	}
-
 	thingTyp := thingVal.Type()
 
 	// is it a slice
-	if thingVal.Kind() == reflect.Slice {
+	if thingVal.IsValid() && thingVal.Kind() == reflect.Slice {
 		// must be length 2
 		if thingVal.Len() == 2 {
 			first := thingVal.Index(0)
@@ -72,7 +68,7 @@ func ExtractGeoPoint(thing interface{}) (lon, lat float64, success bool) {
 	}
 
 	// now try reflection on struct fields
-	if thingVal.Kind() == reflect.Struct {
+	if thingVal.IsValid() && thingVal.Kind() == reflect.Struct {
 		for i := 0; i < thingVal.NumField(); i++ {
 			fieldName := thingTyp.Field(i).Name
 			if strings.HasPrefix(strings.ToLower(fieldName), "lon") {
@@ -117,9 +113,6 @@ func ExtractGeoPoint(thing interface{}) (lon, lat float64, success bool) {
 // extract numeric value (if possible) and returns a float64
 func extractNumericVal(v interface{}) (float64, bool) {
 	val := reflect.ValueOf(v)
-	if !val.IsValid() {
-		return 0, false
-	}
 	typ := val.Type()
 	switch typ.Kind() {
 	case reflect.Float32, reflect.Float64:

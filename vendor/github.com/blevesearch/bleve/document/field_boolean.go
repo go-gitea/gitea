@@ -16,18 +16,9 @@ package document
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeBooleanField int
-
-func init() {
-	var f BooleanField
-	reflectStaticSizeBooleanField = int(reflect.TypeOf(f).Size())
-}
 
 const DefaultBooleanIndexingOptions = StoreField | IndexField | DocValues
 
@@ -37,13 +28,6 @@ type BooleanField struct {
 	options           IndexingOptions
 	value             []byte
 	numPlainTextBytes uint64
-}
-
-func (b *BooleanField) Size() int {
-	return reflectStaticSizeBooleanField + size.SizeOfPtr +
-		len(b.name) +
-		len(b.arrayPositions)*size.SizeOfUint64 +
-		len(b.value)
 }
 
 func (b *BooleanField) Name() string {

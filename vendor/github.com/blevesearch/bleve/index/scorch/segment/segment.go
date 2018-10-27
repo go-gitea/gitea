@@ -15,14 +15,15 @@
 package segment
 
 import (
-	"fmt"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/index"
-	"github.com/couchbase/vellum"
 )
 
-var ErrClosed = fmt.Errorf("index closed")
+// Overhead from go data structures when deployed on a 64-bit system.
+const SizeOfMap uint64 = 8
+const SizeOfPointer uint64 = 8
+const SizeOfSlice uint64 = 24
+const SizeOfString uint64 = 16
 
 // DocumentFieldValueVisitor defines a callback to be visited for each
 // stored field value.  The return value determines if the visitor
@@ -33,9 +34,6 @@ type Segment interface {
 	Dictionary(field string) (TermDictionary, error)
 
 	VisitDocument(num uint64, visitor DocumentFieldValueVisitor) error
-
-	DocID(num uint64) ([]byte, error)
-
 	Count() uint64
 
 	DocNumbers([]string) (*roaring.Bitmap, error)
@@ -44,21 +42,18 @@ type Segment interface {
 
 	Close() error
 
-	Size() int
+	SizeInBytes() uint64
 
 	AddRef()
 	DecRef() error
 }
 
 type TermDictionary interface {
-	PostingsList(term []byte, except *roaring.Bitmap, prealloc PostingsList) (PostingsList, error)
+	PostingsList(term string, except *roaring.Bitmap) (PostingsList, error)
 
 	Iterator() DictionaryIterator
 	PrefixIterator(prefix string) DictionaryIterator
 	RangeIterator(start, end string) DictionaryIterator
-	AutomatonIterator(a vellum.Automaton,
-		startKeyInclusive, endKeyExclusive []byte) DictionaryIterator
-	OnlyIterator(onlyTerms [][]byte, includeCount bool) DictionaryIterator
 }
 
 type DictionaryIterator interface {
@@ -66,9 +61,7 @@ type DictionaryIterator interface {
 }
 
 type PostingsList interface {
-	Iterator(includeFreq, includeNorm, includeLocations bool, prealloc PostingsIterator) PostingsIterator
-
-	Size() int
+	Iterator() PostingsIterator
 
 	Count() uint64
 
@@ -84,14 +77,6 @@ type PostingsIterator interface {
 	// implementations may return a shared instance to reduce memory
 	// allocations.
 	Next() (Posting, error)
-
-	// Advance will return the posting with the specified doc number
-	// or if there is no such posting, the next posting.
-	// Callers MUST NOT attempt to pass a docNum that is less than or
-	// equal to the currently visited posting doc Num.
-	Advance(docNum uint64) (Posting, error)
-
-	Size() int
 }
 
 type Posting interface {
@@ -101,8 +86,6 @@ type Posting interface {
 	Norm() float64
 
 	Locations() []Location
-
-	Size() int
 }
 
 type Location interface {
@@ -111,7 +94,6 @@ type Location interface {
 	End() uint64
 	Pos() uint64
 	ArrayPositions() []uint64
-	Size() int
 }
 
 // DocumentFieldTermVisitable is implemented by various scorch segment
@@ -119,13 +101,10 @@ type Location interface {
 // postings or other indexed values.
 type DocumentFieldTermVisitable interface {
 	VisitDocumentFieldTerms(localDocNum uint64, fields []string,
-		visitor index.DocumentFieldTermVisitor, optional DocVisitState) (DocVisitState, error)
+		visitor index.DocumentFieldTermVisitor) error
 
 	// VisitableDocValueFields implementation should return
 	// the list of fields which are document value persisted and
 	// therefore visitable by the above VisitDocumentFieldTerms method.
 	VisitableDocValueFields() ([]string, error)
-}
-
-type DocVisitState interface {
 }

@@ -57,24 +57,15 @@ func LevenshteinDistance(a, b string) int {
 // in which case the first return val will be the max
 // and the second will be true, indicating max was exceeded
 func LevenshteinDistanceMax(a, b string, max int) (int, bool) {
-	v, wasMax, _ := LevenshteinDistanceMaxReuseSlice(a, b, max, nil)
-	return v, wasMax
-}
-
-func LevenshteinDistanceMaxReuseSlice(a, b string, max int, d []int) (int, bool, []int) {
 	la := len(a)
 	lb := len(b)
 
 	ld := int(math.Abs(float64(la - lb)))
 	if ld > max {
-		return max, true, d
+		return max, true
 	}
 
-	if cap(d) < la+1 {
-		d = make([]int, la+1)
-	}
-	d = d[:la+1]
-
+	d := make([]int, la+1)
 	var lastdiag, olddiag, temp int
 
 	for i := 1; i <= la; i++ {
@@ -107,8 +98,8 @@ func LevenshteinDistanceMaxReuseSlice(a, b string, max int, d []int) (int, bool,
 		}
 		// after each row if rowmin isn't less than max stop
 		if rowmin > max {
-			return max, true, d
+			return max, true
 		}
 	}
-	return d[la], false, d
+	return d[la], false
 }

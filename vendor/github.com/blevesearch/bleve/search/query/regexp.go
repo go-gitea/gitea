@@ -15,6 +15,7 @@
 package query
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve/index"
@@ -27,6 +28,7 @@ type RegexpQuery struct {
 	Regexp   string `json:"regexp"`
 	FieldVal string `json:"field,omitempty"`
 	BoostVal *Boost `json:"boost,omitempty"`
+	compiled *regexp.Regexp
 }
 
 // NewRegexpQuery creates a new Query which finds
@@ -62,20 +64,33 @@ func (q *RegexpQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, opti
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-
-	// require that pattern NOT be anchored to start and end of term.
-	// do not attempt to remove trailing $, its presence is not
-	// known to interfere with LiteralPrefix() the way ^ does
-	// and removing $ introduces possible ambiguities with escaped \$, \\$, etc
-	actualRegexp := q.Regexp
-	if strings.HasPrefix(actualRegexp, "^") {
-		actualRegexp = actualRegexp[1:] // remove leading ^
+	err := q.compile()
+	if err != nil {
+		return nil, err
 	}
 
-	return searcher.NewRegexpStringSearcher(i, actualRegexp, field,
-		q.BoostVal.Value(), options)
+	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), options)
 }
 
 func (q *RegexpQuery) Validate() error {
-	return nil // real validation delayed until searcher constructor
+	return q.compile()
+}
+
+func (q *RegexpQuery) compile() error {
+	if q.compiled == nil {
+		// require that pattern NOT be anchored to start and end of term
+		actualRegexp := q.Regexp
+		if strings.HasPrefix(actualRegexp, "^") {
+			actualRegexp = actualRegexp[1:] // remove leading ^
+		}
+		// do not attempt to remove trailing $, it's presence is not
+		// known to interfere with LiteralPrefix() the way ^ does
+		// and removing $ introduces possible ambiguities with escaped \$, \\$, etc
+		var err error
+		q.compiled, err = regexp.Compile(actualRegexp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

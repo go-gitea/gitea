@@ -34,6 +34,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:93367b6d47a8ccc7d14f9f493ccf103ccf5afb698559ff8e8f1999427ce27ace"
+  name = "github.com/Smerity/govarint"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "7265e41f48f15fd61751e16da866af3c704bb3ab"
+
+[[projects]]
+  branch = "master"
   digest = "1:d290f4b25abbf574f80f60c8a5603ddada784f13f436b91a9a927bc7ce5a0146"
   name = "github.com/Unknwon/cae"
   packages = [
@@ -82,7 +90,7 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  digest = "1:cc30625051d705a0305a3e53faced65feaf0b8603230414ffe78d35b513df738"
+  digest = "1:c10f35be6200b09e26da267ca80f837315093ecaba27e7a223071380efb9dd32"
   name = "github.com/blevesearch/bleve"
   packages = [
     ".",
@@ -105,6 +113,7 @@
     "index/scorch",
     "index/scorch/mergeplan",
     "index/scorch/segment",
+    "index/scorch/segment/mem",
     "index/scorch/segment/zap",
     "index/store",
     "index/store/boltdb",
@@ -124,10 +133,9 @@
     "search/query",
     "search/scorer",
     "search/searcher",
-    "size",
   ]
   pruneopts = "NUT"
-  revision = "73473fffa313b8e124c092cb8a72b68a3f85b094"
+  revision = "c74e08f039e56cef576e4336382b2a2d12d9e026"
 
 [[projects]]
   branch = "master"
@@ -179,11 +187,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:483ad57160b6549b5d74d9ce65db760a3caf44f6dd5848cc23624af0fd3d8738"
+  digest = "1:82e1ad11d777f7bff9a1fc678a8a534a318f85e5026a8a4d6f4a94a6b0678bb6"
   name = "github.com/couchbase/vellum"
   packages = [
     ".",
-    "levenshtein",
     "regexp",
     "utf8",
   ]

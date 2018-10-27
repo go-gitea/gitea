@@ -21,7 +21,6 @@ import (
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/size"
 )
 
 // A Batch groups together multiple Index and Delete
@@ -33,9 +32,6 @@ import (
 type Batch struct {
 	index    Index
 	internal *index.Batch
-
-	lastDocSize uint64
-	totalSize   uint64
 }
 
 // Index adds the specified index operation to the
@@ -51,20 +47,7 @@ func (b *Batch) Index(id string, data interface{}) error {
 		return err
 	}
 	b.internal.Update(doc)
-
-	b.lastDocSize = uint64(doc.Size() +
-		len(id) + size.SizeOfString) // overhead from internal
-	b.totalSize += b.lastDocSize
-
 	return nil
-}
-
-func (b *Batch) LastDocSize() uint64 {
-	return b.lastDocSize
-}
-
-func (b *Batch) TotalDocsSize() uint64 {
-	return b.totalSize
 }
 
 // IndexAdvanced adds the specified index operation to the
@@ -117,16 +100,6 @@ func (b *Batch) String() string {
 // be re-used in the future.
 func (b *Batch) Reset() {
 	b.internal.Reset()
-}
-
-func (b *Batch) Merge(o *Batch) {
-	if o != nil && o.internal != nil {
-		b.internal.Merge(o.internal)
-		if o.LastDocSize() > 0 {
-			b.lastDocSize = o.LastDocSize()
-		}
-		b.totalSize = uint64(b.internal.TotalDocSize())
-	}
 }
 
 // An Index implements all the indexing and searching

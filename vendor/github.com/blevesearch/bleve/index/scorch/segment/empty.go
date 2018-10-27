@@ -17,7 +17,6 @@ package segment
 import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/index"
-	"github.com/couchbase/vellum"
 )
 
 type EmptySegment struct{}
@@ -28,10 +27,6 @@ func (e *EmptySegment) Dictionary(field string) (TermDictionary, error) {
 
 func (e *EmptySegment) VisitDocument(num uint64, visitor DocumentFieldValueVisitor) error {
 	return nil
-}
-
-func (e *EmptySegment) DocID(num uint64) ([]byte, error) {
-	return nil, nil
 }
 
 func (e *EmptySegment) Count() uint64 {
@@ -51,10 +46,6 @@ func (e *EmptySegment) Close() error {
 	return nil
 }
 
-func (e *EmptySegment) Size() uint64 {
-	return 0
-}
-
 func (e *EmptySegment) AddRef() {
 }
 
@@ -64,8 +55,8 @@ func (e *EmptySegment) DecRef() error {
 
 type EmptyDictionary struct{}
 
-func (e *EmptyDictionary) PostingsList(term []byte,
-	except *roaring.Bitmap, prealloc PostingsList) (PostingsList, error) {
+func (e *EmptyDictionary) PostingsList(term string,
+	except *roaring.Bitmap) (PostingsList, error) {
 	return &EmptyPostingsList{}, nil
 }
 
@@ -81,35 +72,16 @@ func (e *EmptyDictionary) RangeIterator(start, end string) DictionaryIterator {
 	return &EmptyDictionaryIterator{}
 }
 
-func (e *EmptyDictionary) AutomatonIterator(a vellum.Automaton,
-	startKeyInclusive, endKeyExclusive []byte) DictionaryIterator {
-	return &EmptyDictionaryIterator{}
-}
-
-func (e *EmptyDictionary) OnlyIterator(onlyTerms [][]byte,
-	includeCount bool) DictionaryIterator {
-	return &EmptyDictionaryIterator{}
-}
-
 type EmptyDictionaryIterator struct{}
 
 func (e *EmptyDictionaryIterator) Next() (*index.DictEntry, error) {
 	return nil, nil
 }
 
-func (e *EmptyPostingsIterator) Advance(uint64) (Posting, error) {
-	return nil, nil
-}
-
 type EmptyPostingsList struct{}
 
-func (e *EmptyPostingsList) Iterator(includeFreq, includeNorm, includeLocations bool,
-	prealloc PostingsIterator) PostingsIterator {
+func (e *EmptyPostingsList) Iterator() PostingsIterator {
 	return &EmptyPostingsIterator{}
-}
-
-func (e *EmptyPostingsList) Size() int {
-	return 0
 }
 
 func (e *EmptyPostingsList) Count() uint64 {
@@ -120,8 +92,4 @@ type EmptyPostingsIterator struct{}
 
 func (e *EmptyPostingsIterator) Next() (Posting, error) {
 	return nil, nil
-}
-
-func (e *EmptyPostingsIterator) Size() int {
-	return 0
 }

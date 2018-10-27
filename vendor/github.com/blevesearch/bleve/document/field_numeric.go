@@ -16,19 +16,10 @@ package document
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/numeric"
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeNumericField int
-
-func init() {
-	var f NumericField
-	reflectStaticSizeNumericField = int(reflect.TypeOf(f).Size())
-}
 
 const DefaultNumericIndexingOptions = StoreField | IndexField | DocValues
 
@@ -40,12 +31,6 @@ type NumericField struct {
 	options           IndexingOptions
 	value             numeric.PrefixCoded
 	numPlainTextBytes uint64
-}
-
-func (n *NumericField) Size() int {
-	return reflectStaticSizeNumericField + size.SizeOfPtr +
-		len(n.name) +
-		len(n.arrayPositions)*size.SizeOfPtr
 }
 
 func (n *NumericField) Name() string {

@@ -17,17 +17,7 @@ package search
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-
-	"github.com/blevesearch/bleve/size"
 )
-
-var reflectStaticSizeExplanation int
-
-func init() {
-	var e Explanation
-	reflectStaticSizeExplanation = int(reflect.TypeOf(e).Size())
-}
 
 type Explanation struct {
 	Value    float64        `json:"value"`
@@ -41,15 +31,4 @@ func (expl *Explanation) String() string {
 		return fmt.Sprintf("error serializing explanation to json: %v", err)
 	}
 	return string(js)
-}
-
-func (expl *Explanation) Size() int {
-	sizeInBytes := reflectStaticSizeExplanation + size.SizeOfPtr +
-		len(expl.Message)
-
-	for _, entry := range expl.Children {
-		sizeInBytes += entry.Size()
-	}
-
-	return sizeInBytes
 }

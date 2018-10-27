@@ -36,6 +36,4 @@ type Field interface {
 	// that this field represents - this is a common metric for tracking
 	// the rate of indexing
 	NumPlainTextBytes() uint64
-
-	Size() int
 }

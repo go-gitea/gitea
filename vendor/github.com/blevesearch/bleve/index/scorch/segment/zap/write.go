@@ -15,6 +15,7 @@
 package zap
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 
@@ -24,29 +25,28 @@ import (
 // writes out the length of the roaring bitmap in bytes as varint
 // then writes out the roaring bitmap itself
 func writeRoaringWithLen(r *roaring.Bitmap, w io.Writer,
-	reuseBufVarint []byte) (int, error) {
-	buf, err := r.ToBytes()
+	reuseBuf *bytes.Buffer, reuseBufVarint []byte) (int, error) {
+	reuseBuf.Reset()
+
+	// write out postings list to memory so we know the len
+	postingsListLen, err := r.WriteTo(reuseBuf)
 	if err != nil {
 		return 0, err
 	}
-
 	var tw int
-
-	// write out the length
-	n := binary.PutUvarint(reuseBufVarint, uint64(len(buf)))
+	// write out the length of this postings list
+	n := binary.PutUvarint(reuseBufVarint, uint64(postingsListLen))
 	nw, err := w.Write(reuseBufVarint[:n])
 	tw += nw
 	if err != nil {
 		return tw, err
 	}
-
-	// write out the roaring bytes
-	nw, err = w.Write(buf)
+	// write out the postings list itself
+	nw, err = w.Write(reuseBuf.Bytes())
 	tw += nw
 	if err != nil {
 		return tw, err
 	}
-
 	return tw, nil
 }
 
@@ -118,7 +118,7 @@ func persistFooter(numDocs, storedIndexOffset, fieldsIndexOffset, docValueOffset
 		return err
 	}
 	// write out 32-bit version
-	err = binary.Write(w, binary.BigEndian, Version)
+	err = binary.Write(w, binary.BigEndian, version)
 	if err != nil {
 		return err
 	}

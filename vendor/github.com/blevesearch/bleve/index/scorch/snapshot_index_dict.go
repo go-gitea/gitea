@@ -23,13 +23,12 @@ import (
 
 type segmentDictCursor struct {
 	itr  segment.DictionaryIterator
-	curr index.DictEntry
+	curr *index.DictEntry
 }
 
 type IndexSnapshotFieldDict struct {
 	snapshot *IndexSnapshot
 	cursors  []*segmentDictCursor
-	entry    index.DictEntry
 }
 
 func (i *IndexSnapshotFieldDict) Len() int { return len(i.cursors) }
@@ -52,10 +51,10 @@ func (i *IndexSnapshotFieldDict) Pop() interface{} {
 }
 
 func (i *IndexSnapshotFieldDict) Next() (*index.DictEntry, error) {
-	if len(i.cursors) == 0 {
+	if len(i.cursors) <= 0 {
 		return nil, nil
 	}
-	i.entry = i.cursors[0].curr
+	rv := i.cursors[0].curr
 	next, err := i.cursors[0].itr.Next()
 	if err != nil {
 		return nil, err
@@ -65,12 +64,12 @@ func (i *IndexSnapshotFieldDict) Next() (*index.DictEntry, error) {
 		heap.Pop(i)
 	} else {
 		// modified heap, fix it
-		i.cursors[0].curr = *next
+		i.cursors[0].curr = next
 		heap.Fix(i, 0)
 	}
 	// look for any other entries with the exact same term
-	for len(i.cursors) > 0 && i.cursors[0].curr.Term == i.entry.Term {
-		i.entry.Count += i.cursors[0].curr.Count
+	for len(i.cursors) > 0 && i.cursors[0].curr.Term == rv.Term {
+		rv.Count += i.cursors[0].curr.Count
 		next, err := i.cursors[0].itr.Next()
 		if err != nil {
 			return nil, err
@@ -80,12 +79,12 @@ func (i *IndexSnapshotFieldDict) Next() (*index.DictEntry, error) {
 			heap.Pop(i)
 		} else {
 			// modified heap, fix it
-			i.cursors[0].curr = *next
+			i.cursors[0].curr = next
 			heap.Fix(i, 0)
 		}
 	}
 
-	return &i.entry, nil
+	return rv, nil
 }
 
 func (i *IndexSnapshotFieldDict) Close() error {
