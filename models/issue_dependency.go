@@ -117,7 +117,7 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 }
 
 func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
-	exists, err := x.
+	exists, err := e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
