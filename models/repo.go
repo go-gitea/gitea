@@ -452,7 +452,7 @@ func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
 }
 
 func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
-	if err := repo.getUnits(x); err != nil {
+	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
 	for _, unit := range repo.Units {
