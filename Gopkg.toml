@@ -110,7 +110,7 @@ ignored = ["google.golang.org/appengine*"]
   source = "github.com/go-gitea/bolt"
 
 [[override]]
-  revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
+  branch = "master"
   name = "golang.org/x/oauth2"
 
 [[constraint]]
