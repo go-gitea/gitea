@@ -276,7 +276,7 @@ func GetReviewersByPullID(pullID int64) (issueReviewers map[int64]*PullReviewers
 
 	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
 	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
-	// same persion because we only want to show the newest review grouped by user. Thats why we're using a map here.
+	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
 	issueReviewers = make(map[int64]*PullReviewersWithType)
 	for _, ir := range irs {
 		issueReviewers[ir.ID] = ir
