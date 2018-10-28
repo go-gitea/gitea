@@ -163,7 +163,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		branchName = form.NewBranchName
 	}
 
-	form.TreePath = strings.Trim(form.TreePath, " /")
+	form.TreePath = strings.Trim(path.Clean("/"+form.TreePath), " /")
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 
 	ctx.Data["TreePath"] = form.TreePath
@@ -477,7 +477,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		branchName = form.NewBranchName
 	}
 
-	form.TreePath = strings.Trim(form.TreePath, " /")
+	form.TreePath = strings.Trim(path.Clean("/"+form.TreePath), " /")
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 	if len(treeNames) == 0 {
 		// We must at least have one element for user to input.

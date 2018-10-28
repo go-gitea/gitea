@@ -25,10 +25,15 @@ func removeCommitsUnitType(x *xorm.Engine) (err error) {
 		Created     time.Time       `xorm:"-"`
 	}
 
+	type Team struct {
+		ID        int64
+		UnitTypes []int `xorm:"json"`
+	}
+
 	// Update team unit types
 	const batchSize = 100
 	for start := 0; ; start += batchSize {
-		teams := make([]*models.Team, 0, batchSize)
+		teams := make([]*Team, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&teams); err != nil {
 			return err
 		}
@@ -36,7 +41,7 @@ func removeCommitsUnitType(x *xorm.Engine) (err error) {
 			break
 		}
 		for _, team := range teams {
-			ut := make([]models.UnitType, 0, len(team.UnitTypes))
+			ut := make([]int, 0, len(team.UnitTypes))
 			for _, u := range team.UnitTypes {
 				if u < V16UnitTypeCommits {
 					ut = append(ut, u)

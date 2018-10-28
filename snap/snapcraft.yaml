@@ -1,0 +1,121 @@
+name: gitea
+summary:  Gitea - A painless self-hosted Git service
+description: |
+  The goal of this project is to make the easiest, fastest, and most painless
+  way of setting up a self-hosted Git service. With Go, this can be done with
+  an independent binary distribution across ALL platforms that Go supports,
+  including Linux, Mac OS X, Windows and ARM.
+
+type: app
+icon: public/img/gitea-lg.png
+confinement: strict
+grade: stable
+
+version: 'git'
+
+apps:
+  gitea:
+    command: bin/gitea
+    plugs: [network, network-bind]
+  web:
+    command: bin/gitea web
+    daemon: simple
+    plugs: [network, network-bind]
+  serv:
+    command: bin/gitea serv
+    plugs: [network, network-bind]
+  admin:
+    command: bin/gitea admin
+    plugs: [network, network-bind]
+  cert:
+    command: bin/gitea cert
+  hook:
+    command: bin/gitea hook
+    plugs: [network, network-bind]
+  dump:
+    command: bin/gitea dump
+    plugs: [home]
+  help:
+    command: bin/gitea --help
+  version:
+    command: bin/gitea --version
+  sqlite:
+    command: usr/bin/sqlite3
+
+parts:
+  go:
+    source-tag: go1.8.3
+    prime:
+      - -*
+
+  gitea:
+    plugin: nil
+    source: .
+    source-type: git
+    after: [ go ]
+    stage-packages: [ git, sqlite3, openssh-client ]
+    build-packages: [ libpam0g-dev, libsqlite3-dev]
+    prepare: |
+      export PATH=$SNAPCRAFT_PART_INSTALL/../../go/install/bin:$PATH
+      export GOPATH=$SNAPCRAFT_PART_INSTALL/../go
+      export bld=$SNAPCRAFT_PART_INSTALL/../build
+      export src=$SNAPCRAFT_PART_INSTALL/../src
+      mkdir -p $GOPATH/src/code.gitea.io/gitea
+      cp -r $src/* $GOPATH/src/code.gitea.io/gitea
+    build: |
+      export PATH=$SNAPCRAFT_PART_INSTALL/../go/bin/:$SNAPCRAFT_PART_INSTALL/../../go/install/bin:$PATH
+      export GOPATH=$SNAPCRAFT_PART_INSTALL/../go
+      go get -u github.com/jteeuwen/go-bindata/...
+      cd $GOPATH/src/code.gitea.io/gitea
+      TAGS="bindata sqlite sqlite_unlock_notify pam cert" make generate build
+    install: |
+      # Set Convenience Variables
+      src=$SNAPCRAFT_PART_INSTALL/../go/src/code.gitea.io/gitea
+      giteaBase=$SNAPCRAFT_PART_INSTALL/gitea
+      scurrent=/var/snap/$SNAPCRAFT_PROJECT_NAME/current
+      scommon=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+      # Copy build artifact and necessary files
+      mkdir -p $giteaBase/conf
+      # Workaround for gitea ignoring APP_DATA_PATH in app.ini after snap update.
+      ln -s $scurrent/custom $giteaBase/custom
+      ln -s $scommon/data $giteaBase/data
+      # Workaround for cmd/certs not knowing how to put files somewhere else
+      ln -s $scurrent/cert.pem $giteaBase/cert.pem
+      ln -s $scurrent/key.pem $giteaBase/key.pem
+      # Copy static content
+      mkdir -p $SNAPCRAFT_PART_INSTALL/static
+      cp    $src/gitea             $giteaBase/
+      cp -r $src/LICENSE \
+            $src/templates \
+            $src/public \
+            $src/scripts \
+            $SNAPCRAFT_PART_INSTALL/static/
+      cp -r $src/README.md \
+            $src/LICENSE  \
+            $src/custom \
+            $SNAPCRAFT_PART_INSTALL/
+    prime:
+      - -etc
+      - -usr/lib/systemd
+      - -usr/lib/gcc
+      - -usr/lib/sasl2
+      - -usr/lib/x86_64-linux-gnu/krb5
+      - -usr/share/apport
+      - -usr/share/bash-completion
+      - -usr/share/doc
+      - -usr/share/git-core/contrib
+      - -usr/share/man
+      - -usr/share/upstart
+      - -var
+
+  helpers:
+    plugin: dump
+    source: snap/helpers
+    organize:
+      simple_launcher.sh: bin/gitea
+      app.ini: gitea/snapApp.ini
+      configuration.sh: bin/gconfig
+    prime:
+      - bin/gitea
+      - bin/gconfig
+      - gitea/snapApp.ini

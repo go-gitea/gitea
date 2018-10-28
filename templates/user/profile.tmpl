@@ -5,7 +5,7 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image poping up" href="{{AppSubUrl}}/user/settings/avatar" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
+						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
 							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
 						</a>
 					{{else}}
@@ -31,14 +31,14 @@
 							{{if .Owner.Website}}
 								<li>
 									<i class="octicon octicon-link"></i>
-									<a target="_blank" rel="noopener" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
+									<a target="_blank" rel="noopener noreferrer" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
 										<i class="fa fa-openid"></i>
-										<a target="_blank" rel="noopener" href="{{.URI}}">{{.URI}}</a>
+										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
 									</li>
 								{{end}}
 							{{end}}
@@ -95,17 +95,22 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
+					{{if .EnableHeatmap}}
+						<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.i18n.Tr "user.heatmap.loading"}}</div>
+						<div id="user-heatmap"></div>
+						<div class="ui divider"></div>
+					{{end}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
-						{{template "explore/search" .}}
+						{{template "explore/repo_search" .}}
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
 					</div>
 				{{else}}
-					{{template "explore/search" .}}
+					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
 				{{end}}

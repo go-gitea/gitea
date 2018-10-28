@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+
 	"github.com/Unknwon/paginater"
 )
 
@@ -99,13 +100,16 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = append(buf, d...)
+				buf = templates.ToUTF8WithFallback(append(buf, d...))
+
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+					ctx.Data["FileContent"] = strings.Replace(
+						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+					)
 				}
 			}
 		}
@@ -149,6 +153,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		return
 	}
 	defer dataRc.Close()
+
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
@@ -199,7 +205,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = append(buf, d...)
+		buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
@@ -208,7 +214,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
-			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+			ctx.Data["FileContent"] = strings.Replace(
+				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
+			)
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
@@ -223,6 +231,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			//Remove blank line at the end of file
+			if len(lines) > 0 && lines[len(lines)-1] == "" {
+				lines = lines[:len(lines)-1]
+			}
 			for index, line := range lines {
 				line = gotemplate.HTMLEscapeString(line)
 				if index != len(lines)-1 {

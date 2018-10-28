@@ -13,10 +13,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
+	"net/http/httptest"
+
 	"github.com/go-macaron/session"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
-	"net/http/httptest"
 )
 
 // MockContext mock context for unit tests
@@ -46,6 +47,16 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
 	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
+}
+
+// LoadRepoCommit loads a repo's commit into a test context.
+func LoadRepoCommit(t *testing.T, ctx *context.Context) {
+	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	assert.NoError(t, err)
+	branch, err := gitRepo.GetHEADBranch()
+	assert.NoError(t, err)
+	ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
+	assert.NoError(t, err)
 }
 
 // LoadUser load a user into a test context.

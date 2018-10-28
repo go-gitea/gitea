@@ -33,6 +33,7 @@ func GetRelease(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -125,10 +126,6 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		ctx.Status(403)
 		return
 	}
-	if !ctx.Repo.GitRepo.IsTagExist(form.TagName) {
-		ctx.Status(404)
-		return
-	}
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
@@ -171,7 +168,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
 			ctx.ServerError("UpdateRelease", err)
 			return
 		}
@@ -203,6 +200,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	//   in: path
 	//   description: id of the release to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -245,7 +243,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+	if err := models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
 		ctx.Error(500, "UpdateRelease", err)
 		return
 	}
@@ -282,6 +280,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

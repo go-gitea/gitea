@@ -101,6 +101,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of key to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -129,7 +130,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := models.AddPublicKey(uid, form.Title, content)
+	key, err := models.AddPublicKey(uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
@@ -172,6 +173,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

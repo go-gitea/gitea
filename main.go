@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 

@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/user"
+	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
 const (
@@ -91,7 +91,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 // SettingsAvatar response for change avatar on settings page
 func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
 	form.Source = auth.AvatarLocal
-	if err := user.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
+	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("org.settings.update_avatar_success"))

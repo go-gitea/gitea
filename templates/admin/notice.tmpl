@@ -34,33 +34,35 @@
 						</tr>
 					{{end}}
 				</tbody>
-				<tfoot class="full-width">
-					<tr>
-						<th></th>
-						<th colspan="5">
-							<div class="ui right">
-								<a class="ui red small button" href="{{AppSubUrl}}/admin/notices/empty">{{.i18n.Tr "admin.notices.delete_all"}}</a>
-							</div>
-							<div class="ui floating upward dropdown small button">
-								<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
-								<div class="menu">
-									<div class="item select action" data-action="select-all">
-										{{.i18n.Tr "admin.notices.select_all"}}
+				{{ if .Notices }}
+					<tfoot class="full-width">
+							<tr>
+								<th></th>
+								<th colspan="5">
+									<div class="ui right">
+										<a class="ui red small button" href="{{AppSubUrl}}/admin/notices/empty">{{.i18n.Tr "admin.notices.delete_all"}}</a>
 									</div>
-									<div class="item select action" data-action="deselect-all">
-										{{.i18n.Tr "admin.notices.deselect_all"}}
+									<div class="ui floating upward dropdown small button">
+										<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
+										<div class="menu">
+											<div class="item select action" data-action="select-all">
+												{{.i18n.Tr "admin.notices.select_all"}}
+											</div>
+											<div class="item select action" data-action="deselect-all">
+												{{.i18n.Tr "admin.notices.deselect_all"}}
+											</div>
+											<div class="item select action" data-action="inverse">
+												{{.i18n.Tr "admin.notices.inverse_selection"}}
+											</div>
+										</div>
 									</div>
-									<div class="item select action" data-action="inverse">
-										{{.i18n.Tr "admin.notices.inverse_selection"}}
+									<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Current}}">
+										{{.i18n.Tr "admin.notices.delete_selected"}}
 									</div>
-								</div>
-							</div>
-							<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Current}}">
-								{{.i18n.Tr "admin.notices.delete_selected"}}
-							</div>
-						</th>
-					</tr>
-				</tfoot>
+								</th>
+							</tr>
+					</tfoot>
+				{{ end }}
 			</table>
 		</div>
 

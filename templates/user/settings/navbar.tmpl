@@ -2,36 +2,22 @@
 	<a class="{{if .PageIsSettingsProfile}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 		{{.i18n.Tr "settings.profile"}}
 	</a>
-	<a class="{{if .PageIsSettingsAvatar}}active{{end}} item" href="{{AppSubUrl}}/user/settings/avatar">
-		{{.i18n.Tr "settings.avatar"}}
+	<a class="{{if .PageIsSettingsAccount}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account">
+		{{.i18n.Tr "settings.account"}}
 	</a>
 	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 		{{.i18n.Tr "settings.security"}}
 	</a>
-	<a class="{{if .PageIsSettingsEmails}}active{{end}} item" href="{{AppSubUrl}}/user/settings/email">
-		{{.i18n.Tr "settings.emails"}}
-	</a>
-	{{if .EnableOpenIDSignIn}}
-		<a class="{{if .PageIsSettingsOpenID}}active{{end}} item" href="{{AppSubUrl}}/user/settings/openid">
-			OpenID
-		</a>
-	{{end}}
-	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
-		{{.i18n.Tr "settings.ssh_gpg_keys"}}
-	</a>
 	<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 		{{.i18n.Tr "settings.applications"}}
 	</a>
-	<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
-		{{.i18n.Tr "settings.account_link"}}
+	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
+		{{.i18n.Tr "settings.ssh_gpg_keys"}}
 	</a>
 	<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
 		{{.i18n.Tr "settings.organization"}}
 	</a>
 	<a class="{{if .PageIsSettingsRepos}}active{{end}} item" href="{{AppSubUrl}}/user/settings/repos">
 		{{.i18n.Tr "settings.repos"}}
-	</a>
-	<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{AppSubUrl}}/user/settings/delete">
-		{{.i18n.Tr "settings.delete"}}
 	</a>
 </div>

@@ -360,7 +360,7 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 
 // ParseCommitWithSignature check if signature is good against keystore.
 func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
-	if c.Signature != nil {
+	if c.Signature != nil && c.Committer != nil {
 		//Parsing signature
 		sig, err := extractSignature(c.Signature.Signature)
 		if err != nil { //Skipping failed to extract sign

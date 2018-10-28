@@ -11,6 +11,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -44,6 +45,7 @@ type FindTrackedTimesOptions struct {
 	IssueID      int64
 	UserID       int64
 	RepositoryID int64
+	MilestoneID  int64
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -58,16 +60,23 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	if opts.RepositoryID != 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepositoryID})
 	}
+	if opts.MilestoneID != 0 {
+		cond = cond.And(builder.Eq{"issue.milestone_id": opts.MilestoneID})
+	}
 	return cond
+}
+
+// ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
+func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
+	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
+		return e.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(opts.ToCond())
+	}
+	return x.Where(opts.ToCond())
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
-	if options.RepositoryID > 0 {
-		err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(options.ToCond()).Find(&trackedTimes)
-		return
-	}
-	err = x.Where(options.ToCond()).Find(&trackedTimes)
+	err = options.ToSession(x).Find(&trackedTimes)
 	return
 }
 
@@ -85,7 +94,7 @@ func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: secToTime(time),
+		Content: SecToTime(time),
 		Type:    CommentTypeAddTimeManual,
 	}); err != nil {
 		return nil, err
@@ -115,7 +124,7 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 			}
 			return nil, err
 		}
-		totalTimes[user] = secToTime(total)
+		totalTimes[user] = SecToTime(total)
 	}
 	return totalTimes, nil
 }

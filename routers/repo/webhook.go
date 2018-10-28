@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	tplHooks      base.TplName = "repo/settings/hooks"
-	tplHookNew    base.TplName = "repo/settings/hook_new"
+	tplHooks      base.TplName = "repo/settings/webhook/base"
+	tplHookNew    base.TplName = "repo/settings/webhook/new"
 	tplOrgHookNew base.TplName = "org/settings/hook_new"
 )
 
@@ -118,10 +118,15 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: models.HookEvents{
-			Create:      form.Create,
-			Push:        form.Push,
-			PullRequest: form.PullRequest,
-			Repository:  form.Repository,
+			Create:       form.Create,
+			Delete:       form.Delete,
+			Fork:         form.Fork,
+			Issues:       form.Issues,
+			IssueComment: form.IssueComment,
+			Release:      form.Release,
+			Push:         form.Push,
+			PullRequest:  form.PullRequest,
+			Repository:   form.Repository,
 		},
 	}
 }
@@ -205,7 +210,7 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GITEA,
+		HookTaskType: models.GOGS,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -327,8 +332,14 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
+	if form.HasInvalidChannel() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
+		ctx.Redirect(orCtx.Link + "/settings/hooks/slack/new")
+		return
+	}
+
 	meta, err := json.Marshal(&models.SlackMeta{
-		Channel:  form.Channel,
+		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
 		Color:    form.Color,
@@ -510,8 +521,14 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
+	if form.HasInvalidChannel() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
+		ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+		return
+	}
+
 	meta, err := json.Marshal(&models.SlackMeta{
-		Channel:  form.Channel,
+		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
 		Color:    form.Color,

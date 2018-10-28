@@ -190,15 +190,18 @@ func newUpsideDownCouchDocIDReader(indexReader *IndexReader) (*UpsideDownCouchDo
 }
 
 func newUpsideDownCouchDocIDReaderOnly(indexReader *IndexReader, ids []string) (*UpsideDownCouchDocIDReader, error) {
+	// we don't actually own the list of ids, so if before we sort we must copy
+	idsCopy := make([]string, len(ids))
+	copy(idsCopy, ids)
 	// ensure ids are sorted
-	sort.Strings(ids)
+	sort.Strings(idsCopy)
 	startBytes := []byte{0x0}
-	if len(ids) > 0 {
-		startBytes = []byte(ids[0])
+	if len(idsCopy) > 0 {
+		startBytes = []byte(idsCopy[0])
 	}
 	endBytes := []byte{0xff}
-	if len(ids) > 0 {
-		endBytes = incrementBytes([]byte(ids[len(ids)-1]))
+	if len(idsCopy) > 0 {
+		endBytes = incrementBytes([]byte(idsCopy[len(idsCopy)-1]))
 	}
 	bisr := NewBackIndexRow(startBytes, nil, nil)
 	bier := NewBackIndexRow(endBytes, nil, nil)
@@ -207,7 +210,7 @@ func newUpsideDownCouchDocIDReaderOnly(indexReader *IndexReader, ids []string) (
 	return &UpsideDownCouchDocIDReader{
 		indexReader: indexReader,
 		iterator:    it,
-		only:        ids,
+		only:        idsCopy,
 		onlyMode:    true,
 	}, nil
 }

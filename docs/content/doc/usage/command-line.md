@@ -62,8 +62,60 @@ Admin operations:
         - Options:
             - `--username value`, `-u value`: Username. Required.
             - `--password value`, `-p value`: New password. Required.
+            - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
         - Examples:
             - `gitea admin change-password --username myname --password asecurepassword`
+    - `regenerate`
+        - Options:
+            - `hooks`: Regenerate git-hooks for all repositories
+            - `keys`: Regenerate authorized_keys file
+        - Examples:
+            - `gitea admin regenerate hooks`
+            - `gitea admin regenerate keys`
+    - `auth`:
+        - `list`:
+            - Description: lists all external authentication sources that exist
+            - Options:
+                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+            - Examples:
+                - `gitea auth list`
+        - `delete`:
+            - Options:
+                - `--id`: ID of source to be deleted. Required.
+                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+            - Examples:
+                - `gitea auth delete --id 1`
+        - `add-oauth`:
+            - Options:
+                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+                - `--name`: Application Name.
+                - `--provider`: OAuth2 Provider.
+                - `--key`: Client ID (Key).
+                - `--secret`: Client Secret.
+                - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
+                - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+                - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
+                - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
+                - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
+                - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+            - Examples:
+                - `gitea auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
+        - `update-oauth`:
+            - Options:
+                - `--id`: ID of source to be updated. Required.
+                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+                - `--name`: Application Name.
+                - `--provider`: OAuth2 Provider.
+                - `--key`: Client ID (Key).
+                - `--secret`: Client Secret.
+                - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
+                - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+                - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
+                - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
+                - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
+                - `--custom-email-url`: Use a custom Email URL (option for GitHub).
+            - Examples:
+                - `gitea auth update-oauth --id 1 --name external-github-updated`
 
 #### cert
 

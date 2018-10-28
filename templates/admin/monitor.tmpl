@@ -49,8 +49,8 @@
 						<tr>
 							<td>{{.PID}}</td>
 							<td>{{.Description}}</td>
-							<td>{{.Start.FormatLong}}</td>
-							<td>{{TimeSinceUnix .Start $.Lang}}</td>
+							<td>{{DateFmtLong .Start}}</td>
+							<td>{{TimeSince .Start $.Lang}}</td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -41,6 +42,9 @@ var CmdServ = cli.Command{
 			Name:  "config, c",
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
+		},
+		cli.BoolFlag{
+			Name: "enable-pprof",
 		},
 	},
 }
@@ -143,6 +147,18 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
+	if setting.EnablePprof || c.Bool("enable-pprof") {
+		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
+			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+		}
+
+		stopCPUProfiler := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		defer func() {
+			stopCPUProfiler()
+			pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
+		}()
+	}
+
 	isWiki := false
 	unitType := models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
@@ -230,6 +246,12 @@ func runServ(c *cli.Context) error {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
+			if !user.IsActive || user.ProhibitLogin {
+				fail("Your account is not active or has been disabled by Administrator",
+					"User %s is disabled and have no access to repository %s",
+					user.Name, repoPath)
+			}
+
 			mode, err := models.AccessLevel(user.ID, repo)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
@@ -262,7 +284,7 @@ func runServ(c *cli.Context) error {
 		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
-			"exp":  now.Add(5 * time.Minute).Unix(),
+			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
 		if user != nil {
