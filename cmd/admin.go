@@ -69,6 +69,11 @@ var (
 				Name:  "must-change-password",
 				Usage: "Force the user to change his/her password after initial login",
 			},
+			cli.IntFlag{
+				Name:  "random-password-length",
+				Usage: "Length of the random password to be generated",
+				Value: 12,
+			},
 		},
 	}
 
@@ -296,7 +301,7 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		password, err := generate.GetRandomString(30)
+		password, err := generate.GetRandomString(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
