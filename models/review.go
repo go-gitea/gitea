@@ -258,6 +258,7 @@ func UpdateReview(r *Review) error {
 
 // PullReviewersWithType represents the type used to display a review overview
 type PullReviewersWithType struct {
+	ReviewID          int64 `xorm:"review_id"`
 	User              `xorm:"extends"`
 	Type              ReviewType
 	ReviewUpdatedUnix util.TimeStamp `xorm:"review_updated_unix"`
@@ -266,7 +267,7 @@ type PullReviewersWithType struct {
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses
 func GetReviewersByPullID(pullID int64) (issueReviewers map[int64]*PullReviewersWithType, err error) {
 	irs := []*PullReviewersWithType{}
-	err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
+	err = x.Select("`user`.*, review.type, review.id as review_id, max(review.updated_unix) as review_updated_unix").
 		Table("review").
 		Join("INNER", "`user`", "review.reviewer_id = `user`.id").
 		Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)", pullID, ReviewTypeApprove, ReviewTypeReject).

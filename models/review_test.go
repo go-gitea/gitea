@@ -74,7 +74,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.Equal(t, ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 7}).(*User)
 	review2, err := GetCurrentReview(user2, issue)
 	assert.Error(t, err)
 	assert.True(t, IsErrReviewNotExist(err))
@@ -109,81 +109,32 @@ func TestUpdateReview(t *testing.T) {
 func TestGetReviewersByPullID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user1 := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 
-	// Create some reviews
 	expectedReviews := make(map[int64]*PullReviewersWithType)
-	// This one is from fixtures
-	expectedReviews[1] = &PullReviewersWithType{
-		User:              *user1,
+	expectedReviews[2] = &PullReviewersWithType{
+		ReviewID:          9,
+		User:              *user2,
+		Type:              ReviewTypeReject,
+		ReviewUpdatedUnix: 946684810,
+	}
+	expectedReviews[3] = &PullReviewersWithType{
+		ReviewID:          7,
+		User:              *user3,
+		Type:              ReviewTypeReject,
+		ReviewUpdatedUnix: 946684810,
+	}
+	expectedReviews[4] = &PullReviewersWithType{
+		ReviewID:          8,
+		User:              *user4,
 		Type:              ReviewTypeApprove,
 		ReviewUpdatedUnix: 946684810,
 	}
 
-	reviews := []CreateReviewOptions{
-		{
-			Content:  "New Review 1",
-			Type:     ReviewTypeComment,
-			Issue:    issue,
-			Reviewer: user1,
-		},
-		{
-			Content:  "New Review 3",
-			Type:     ReviewTypePending,
-			Issue:    issue,
-			Reviewer: user2,
-		},
-		{
-			Content:  "New Review 4",
-			Type:     ReviewTypeReject,
-			Issue:    issue,
-			Reviewer: user3,
-		},
-		{
-			Content:  "New Review 5",
-			Type:     ReviewTypeApprove,
-			Issue:    issue,
-			Reviewer: user4,
-		},
-	}
-	for _, test := range reviews {
-		rev, err := CreateReview(test)
-		assert.NoError(t, err)
-		// Only look for non-pending reviews, nor comments
-		if test.Type == ReviewTypeApprove || test.Type == ReviewTypeReject {
-			expectedReviews[test.Reviewer.ID] = &PullReviewersWithType{
-				User:              *test.Reviewer,
-				Type:              test.Type,
-				ReviewUpdatedUnix: rev.UpdatedUnix,
-			}
-		}
-	}
-
 	allReviews, err := GetReviewersByPullID(issue.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedReviews, allReviews)
-
-	// Add another one, this time overwriting a previously "pending" one
-	newReview := CreateReviewOptions{
-		Content:  "New Review 56",
-		Type:     ReviewTypeReject,
-		Issue:    issue,
-		Reviewer: user2,
-	}
-	rev, err := CreateReview(newReview)
-	assert.NoError(t, err)
-	expectedReviews[newReview.Reviewer.ID] = &PullReviewersWithType{
-		User:              *rev.Reviewer,
-		Type:              rev.Type,
-		ReviewUpdatedUnix: rev.UpdatedUnix,
-	}
-
-	// Check it
-	allReviews, err = GetReviewersByPullID(issue.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedReviews, allReviews)
 }
