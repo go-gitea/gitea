@@ -65,7 +65,7 @@
 			var heatmap = calendarHeatmap()
 				.data(chartData)
 				.selector('#user-heatmap')
-				.colorRange(['#f4f4f4', '#459928'])
+				.colorRange({{SafeJS HeatmapColorRange}})
 				.tooltipEnabled(true);
 			heatmap();
 		});
