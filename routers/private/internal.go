@@ -44,5 +44,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
 		m.Get("/branch/:id/*", GetProtectedBranchBy)
+		m.Get("/repository/:rid", GetRepository)
+		m.Get("/active-pull-request", GetActivePullRequest)
 	}, CheckInternalToken)
 }
