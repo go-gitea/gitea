@@ -214,7 +214,7 @@ func runHookPostReceive(c *cli.Context) error {
 			log.GitLogger.Error(2, "Update: %v", err)
 		}
 
-		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
 			repo, pullRequestAllowed, err := private.GetRepository(repoID)
 			if err != nil {
