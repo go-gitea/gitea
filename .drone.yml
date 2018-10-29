@@ -22,7 +22,7 @@ pipeline:
       branch: [ master ]
 
   update-translations:
-    image: alpine:3.6
+    image: alpine:3.7
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.8
+    image: golang:1.9
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -64,10 +64,10 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite sqlite_unlock_notify
     commands:
       - make clean
       - make generate
@@ -75,7 +75,7 @@ pipeline:
       - make lint
       - make fmt-check
       - make swagger-check
-#      - make swagger-validate
+      - make swagger-validate
       - make misspell-check
       - make test-vendor
       - make build
@@ -83,11 +83,11 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite sqlite_unlock_notify
     commands:
       - make unit-test-coverage
     when:
@@ -95,11 +95,11 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite sqlite_unlock_notify
     commands:
       - make test
     when:
@@ -107,7 +107,7 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -117,20 +117,22 @@ pipeline:
     when:
       event: [ tag ]
 
-  # Commented until db locking have been resolved!
-  # test-sqlite:
-  #   image: golang:1.10
-  #   pull: true
-  #   group: test
-  #   environment:
-  #     TAGS: bindata
-  #   commands:
-  #     - make test-sqlite
-  #   when:
-  #     event: [ push, tag, pull_request ]
+  test-sqlite:
+    image: golang:1.11
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
+      - make test-sqlite
+    when:
+      event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -145,7 +147,7 @@ pipeline:
       branch: [ master ]
 
   test-mysql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -154,12 +156,13 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
       - make test-mysql
     when:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
@@ -168,12 +171,13 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
   generate-coverage:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     environment:
       TAGS: bindata
@@ -196,7 +200,7 @@ pipeline:
     image: karalabe/xgo-latest:latest
     pull: true
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite sqlite_unlock_notify
     commands:
       - export PATH=$PATH:$GOPATH/bin
       - make release

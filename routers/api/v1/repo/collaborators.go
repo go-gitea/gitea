@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
@@ -142,6 +144,11 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 		} else {
 			ctx.Error(500, "GetUserByName", err)
 		}
+		return
+	}
+
+	if !collaborator.IsActive {
+		ctx.Error(500, "InactiveCollaborator", errors.New("collaborator's account is inactive"))
 		return
 	}
 

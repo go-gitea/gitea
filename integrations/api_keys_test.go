@@ -46,8 +46,8 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-
-	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
+	token := getTokenForLoggedInUser(t, session)
+	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", repoOwner.Name, repo.Name, token)
 	rawKeyBody := api.CreateKeyOption{
 		Title:    "read-only",
 		Key:      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
@@ -72,8 +72,8 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-
-	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
+	token := getTokenForLoggedInUser(t, session)
+	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", repoOwner.Name, repo.Name, token)
 	rawKeyBody := api.CreateKeyOption{
 		Title: "read-write",
 		Key:   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDsufOCrDDlT8DLkodnnJtbq7uGflcPae7euTfM+Laq4So+v4WeSV362Rg0O/+Sje1UthrhN6lQkfRkdWIlCRQEXg+LMqr6RhvDfZquE2Xwqv/itlz7LjbdAUdYoO1iH7rMSmYvQh4WEnC/DAacKGbhdGIM/ZBz0z6tHm7bPgbI9ykEKekTmPwQFP1Qebvf5NYOFMWqQ2sCEAI9dBMVLoojsIpV+KADf+BotiIi8yNfTG2rzmzpxBpW9fYjd1Sy1yd4NSUpoPbEJJYJ1TrjiSWlYOVq9Ar8xW1O87i6gBjL/3zN7ANeoYhaAXupdOS6YL22YOK/yC0tJtXwwdh/eSrh",

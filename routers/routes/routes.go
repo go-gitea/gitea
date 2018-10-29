@@ -79,7 +79,7 @@ func NewMacaron() *macaron.Macaron {
 		},
 	))
 
-	m.Use(templates.Renderer())
+	m.Use(templates.HTMLRenderer())
 	models.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
@@ -116,12 +116,13 @@ func NewMacaron() *macaron.Macaron {
 	}))
 	m.Use(session.Sessioner(setting.SessionConfig))
 	m.Use(csrf.Csrfer(csrf.Options{
-		Secret:     setting.SecretKey,
-		Cookie:     setting.CSRFCookieName,
-		SetCookie:  true,
-		Secure:     setting.SessionConfig.Secure,
-		Header:     "X-Csrf-Token",
-		CookiePath: setting.AppSubURL,
+		Secret:         setting.SecretKey,
+		Cookie:         setting.CSRFCookieName,
+		SetCookie:      true,
+		Secure:         setting.SessionConfig.Secure,
+		CookieHttpOnly: true,
+		Header:         "X-Csrf-Token",
+		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
 		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{
@@ -130,6 +131,7 @@ func NewMacaron() *macaron.Macaron {
 				Func: models.Ping,
 			},
 		},
+		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
 	return m
@@ -229,6 +231,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Get("/change_password", user.MustChangePassword)
+		m.Post("/change_password", bindIgnErr(auth.MustChangePasswordForm{}), user.MustChangePasswordPost)
 		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
 		m.Post("/avatar/delete", userSetting.DeleteAvatar)
 		m.Group("/account", func() {
@@ -564,7 +568,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqRepoWriter, context.RepoRef(), context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests))
 
 		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
-			Get(repo.CompareAndPullRequest).
+			Get(repo.SetDiffViewStyle, repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
@@ -671,9 +675,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, bindIgnErr(auth.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
+			m.Group("/files", func() {
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
+				m.Group("/reviews", func() {
+					m.Post("/comments", bindIgnErr(auth.CodeCommentForm{}), repo.CreateCodeComment)
+					m.Post("/submit", bindIgnErr(auth.SubmitReviewForm{}), repo.SubmitReview)
+				})
+			})
 		}, repo.MustAllowPulls)
 
 		m.Group("/raw", func() {
@@ -754,6 +764,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)
+
+	if setting.API.EnableSwagger {
+		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
+	}
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)

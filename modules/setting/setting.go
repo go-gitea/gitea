@@ -111,6 +111,11 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 	EnablePprof          bool
+	PprofDataPath        string
+	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
 
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
@@ -223,6 +228,11 @@ var (
 			LocalCopyPath string
 			LocalWikiPath string
 		} `ini:"-"`
+
+		// Pull request settings
+		PullRequest struct {
+			WorkInProgressPrefixes []string
+		} `ini:"repository.pull-request"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -266,6 +276,13 @@ var (
 			LocalCopyPath: "tmp/local-repo",
 			LocalWikiPath: "tmp/local-wiki",
 		},
+
+		// Pull request settings
+		PullRequest: struct {
+			WorkInProgressPrefixes []string
+		}{
+			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+		},
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
@@ -276,11 +293,14 @@ var (
 		IssuePagingNum      int
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
+		GraphMaxCommitNum   int
+		CodeCommentLines    int
 		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
+		HeatmapColorRange   string
 
 		Admin struct {
 			UserPagingNum   int
@@ -301,10 +321,13 @@ var (
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
+		GraphMaxCommitNum:   100,
+		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
+		HeatmapColorRange:   `['#f4f4f4', '#459928']`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -525,11 +548,11 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwaggerEndpoint bool
-		MaxResponseItems      int
+		EnableSwagger    bool
+		MaxResponseItems int
 	}{
-		EnableSwaggerEndpoint: true,
-		MaxResponseItems:      50,
+		EnableSwagger:    true,
+		MaxResponseItems: 50,
 	}
 
 	U2F = struct {
@@ -720,6 +743,14 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
+	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	if !LetsEncryptTOS && EnableLetsEncrypt {
+		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
+		EnableLetsEncrypt = false
+	}
+	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
@@ -771,6 +802,10 @@ func NewContext() {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
+	if !filepath.IsAbs(PprofDataPath) {
+		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
+	}
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
@@ -1022,6 +1057,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
@@ -1120,7 +1157,7 @@ func NewContext() {
 
 	extensionReg := regexp.MustCompile(`\.\w`)
 	for _, sec := range Cfg.Section("markup").ChildSections() {
-		name := strings.TrimLeft(sec.Name(), "markup.")
+		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {
 			log.Warn("name is empty, markup " + sec.Name() + "ignored")
 			continue
@@ -1183,6 +1220,7 @@ var Service struct {
 	DefaultEnableDependencies               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	EnableUserHeatmap                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1214,6 +1252,7 @@ func newService() {
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

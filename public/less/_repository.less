@@ -172,9 +172,14 @@
     #clone-panel {
         width: 350px;
 
+        @media only screen and (max-width: 768px) {
+            width: 100%;
+        }
+
         input {
             border-radius: 0;
             padding: 5px 10px;
+            width: 50%;
         }
 
         .clone.button {
@@ -219,6 +224,12 @@
             .ui.button {
                 padding: 8px 10px;
                 font-weight: normal;
+            }
+
+            .ui.tiny.blue.buttons {
+                @media only screen and (max-width: 768px) {
+                    width: 100%;
+                }
             }
         }
 
@@ -694,6 +705,21 @@
                         margin-right: -1px;
                         font-size: 25px;
                     }
+                    &.octicon-comment {
+                        margin-top: 4px;
+                        margin-left: -35px;
+                        font-size: 24px;
+                    }
+                    &.octicon-eye {
+                        margin-top: 3px;
+                        margin-left: -35px;
+                        margin-right: 0px;
+                        font-size: 22px;
+                    }
+                    &.octicon-x {
+                        margin-left: -33px;
+                        font-size: 25px;
+                    }
                 }
                 .detail {
                     font-size: 0.9rem;
@@ -715,6 +741,14 @@
             img {
                 margin-top: 5px;
                 margin-right: 5px;
+            }
+        }
+
+        .ui.depending {
+            .item.is-closed {
+                .title {
+                    text-decoration: line-through;
+                }
             }
         }
     }
@@ -872,38 +906,44 @@
                 width: 140px;
             }
         }
-                td.sha .sha.label {
-                        margin: 0;
-                }
+        td.sha .sha.label {
+            margin: 0;
+        }
         &.ui.basic.striped.table tbody tr:nth-child(2n) {
             background-color: rgba(0, 0, 0, .02)!important;
         }
     }
 
-        #commits-table td.sha .sha.label, #repo-files-table .sha.label{
-                &.isSigned{
-                        border: 1px solid #BBB;
-                        .detail.icon{
-                                background: #FAFAFA;
-                                margin: -6px -10px -4px 0px;
-                                padding: 5px 3px 5px 6px;
-                                border-left: 1px solid #BBB;
-                                border-top-left-radius: 0;
-                                border-bottom-left-radius: 0;
-                        }
-                }
-                &.isSigned.isVerified{
-                        border: 1px solid #21BA45;
-                        background: #21BA4518;
-                        .detail.icon{
-                                border-left: 1px solid #21BA4580;
-                        }
-                }
+    #commits-table td.sha .sha.label, #repo-files-table .sha.label{
+        &.isSigned{
+            border: 1px solid #BBB;
+            .detail.icon{
+                background: #FAFAFA;
+                margin: -6px -10px -4px 0px;
+                padding: 5px 3px 5px 6px;
+                border-left: 1px solid #BBB;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
         }
+        &.isSigned.isVerified{
+            border: 1px solid #21BA45;
+            background: fade(#21BA45, 10%);
+            .detail.icon{
+                border-left: 1px solid fade(#21BA45, 50%);
+            }
+        }
+    }
 
     .diff-detail-box {
-        margin: 15px 0;
+        padding: 7px 0;
+        background: #fff;
         line-height: 30px;
+        >div:after{
+            clear: both;
+            content: "";
+            display: block;
+        }
         ol {
             clear: both;
             padding-left: 0;
@@ -936,8 +976,9 @@
                 background-color: #dad8ff;
             }
         }
-        .ui.right {
-            margin-bottom: 15px;
+        .detail-files {
+            background: #fff;
+            margin: 0px;
         }
     }
     .diff-box .header {
@@ -1228,6 +1269,20 @@
         }
         .prerelease.field {
             margin-bottom: 0;
+        }
+
+        .field {
+            button, input {
+                @media only screen and (max-width: 438px) {
+                    width: 100%;
+                }
+            }
+
+            button {
+                @media only screen and (max-width: 768px) {
+                    margin-bottom: 1em;
+                }
+            }
         }
     }
 
@@ -1589,7 +1644,7 @@
     .list {
         > .item {
             .green {
-                color: #21BA45 !important;
+                color: #21BA45;
             }
             &:not(:first-child) {
                 border-top: 1px solid #eaeaea;
@@ -1750,9 +1805,14 @@ tbody.commit-list {
 
 #topic_edit {
     margin-top:5px;
-    display: none;
 }
 
 #repo-topic {
     margin-top: 5px;
+}
+
+.new-dependency-drop-list {
+	@media only screen and (max-width: 768px) {
+		width: 100%;
+	}
 }

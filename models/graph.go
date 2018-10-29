@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // GraphItem represent one commit, or one relation in timeline
@@ -41,7 +42,7 @@ func GetCommitGraph(r *git.Repository) (GraphItems, error) {
 		"--all",
 		"-C",
 		"-M",
-		"-n 100",
+		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum),
 		"--date=iso",
 		fmt.Sprintf("--pretty=format:%s", format),
 	)
