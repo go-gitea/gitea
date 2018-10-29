@@ -5,9 +5,14 @@ r"""Conversion procedure of Gitea for CAD.
 Called from Go code. The parameters are passed as command line arguments in the Go code.
 
 TODO:
+
+- osvcad files display
+  + ******** parts (ok minus anchors)
+  + ******** stepzips (ok minus anchors)
+  + assemblies (how to deal with imports and relative filepaths?)
+  + anchors display
 - hash based filename
 - cache based on hash
-- osvcad files display
 - JSON instead of STL -> selectable shapes, faces etc ...
 
 - GITEA_URL should be an environment variable
@@ -26,6 +31,8 @@ from aocxchange.step import StepImporter
 from aocxchange.iges import IgesImporter
 from aocxchange.brep import BrepImporter
 from aocxchange.stl import StlExporter
+
+from osvcad.nodes import Part
 
 GITEA_URL = "http://localhost:3000"
 # GITEA_URL = "http://127.0.0.1:3000"
@@ -142,7 +149,51 @@ def convert_stl_file(stl_filename, target_folder):
 
 
 def convert_py_file(py_filename, target_folder):
-    pass
+    r"""Can contain the definition of a part or of an assembly"""
+    import imp
+
+    try:
+        part = Part.from_py_script(py_filename)
+        shape = part.node_shape.shape
+        converted_filename = _conversion_filename(target_folder, basename(py_filename), 0)
+        converted_basenames = [basename(converted_filename)]
+        _convert_shape(shape, converted_filename)
+
+        _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(py_filename)))
+        remove(py_filename)
+    except ValueError:  # probably no part attribute in module
+        msg = "No part attribute in module"
+        logger.warning(msg)
+        try:
+            # TODO : FIXME
+            # Does not work because of import paths
+            converted_basenames = []
+            module_ = imp.load_source(splitext(basename(py_filename))[0],
+                                      py_filename)
+            assembly = getattr(module_, "assembly")
+
+            for i, node in enumerate(assembly.nodes()):
+                shape = node.node_shape.shape
+                converted_filename = _conversion_filename(target_folder, basename(py_filename), i)
+                converted_basenames.append(basename(converted_filename))
+                _convert_shape(shape, converted_filename)
+            _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(py_filename)))
+            remove(py_filename)
+        except AttributeError:
+            msg = "No part nor assembly attribute in module"
+            logger.error(msg)
+
+
+def convert_stepzip_file(stepzip_filename, target_folder):
+    # TODO : how to display anchors?
+    part = Part.from_stepzip(stepzip_filename)
+    shape = part.node_shape.shape
+    converted_filename = _conversion_filename(target_folder, basename(stepzip_filename), 0)
+    converted_basenames = [basename(converted_filename)]
+    _convert_shape(shape, converted_filename)
+
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(stepzip_filename)))
+    remove(stepzip_filename)
 
 
 def main():
@@ -176,7 +227,8 @@ def main():
                            ".brep": convert_brep_file,
                            ".brp": convert_brep_file,
                            ".stl": convert_stl_file,
-                           ".py": convert_py_file}
+                           ".py": convert_py_file,
+                           ".stepzip": convert_stepzip_file}
 
     try:
         conversion_function[splitext(cad_file_raw_url)[1].lower()](cad_file_filename, converted_files_folder)
