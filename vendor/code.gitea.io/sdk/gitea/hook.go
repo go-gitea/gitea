@@ -199,7 +199,7 @@ type CreatePayload struct {
 	Sender  *User       `json:"sender"`
 }
 
-// SetSecret FIXME
+// SetSecret modifies the secret of the CreatePayload
 func (p *CreatePayload) SetSecret(secret string) {
 	p.Secret = secret
 }
@@ -246,6 +246,7 @@ const (
 
 // DeletePayload represents delete payload
 type DeletePayload struct {
+	Secret     string      `json:"secret"`
 	Ref        string      `json:"ref"`
 	RefType    string      `json:"ref_type"`
 	PusherType PusherType  `json:"pusher_type"`
@@ -253,8 +254,9 @@ type DeletePayload struct {
 	Sender     *User       `json:"sender"`
 }
 
-// SetSecret implements Payload
+// SetSecret modifies the secret of the DeletePayload
 func (p *DeletePayload) SetSecret(secret string) {
+	p.Secret = secret
 }
 
 // JSONPayload implements Payload
@@ -271,13 +273,15 @@ func (p *DeletePayload) JSONPayload() ([]byte, error) {
 
 // ForkPayload represents fork payload
 type ForkPayload struct {
+	Secret string      `json:"secret"`
 	Forkee *Repository `json:"forkee"`
 	Repo   *Repository `json:"repository"`
 	Sender *User       `json:"sender"`
 }
 
-// SetSecret implements Payload
+// SetSecret modifies the secret of the ForkPayload
 func (p *ForkPayload) SetSecret(secret string) {
+	p.Secret = secret
 }
 
 // JSONPayload implements Payload
@@ -297,6 +301,7 @@ const (
 
 // IssueCommentPayload represents a payload information of issue comment event.
 type IssueCommentPayload struct {
+	Secret     string                 `json:"secret"`
 	Action     HookIssueCommentAction `json:"action"`
 	Issue      *Issue                 `json:"issue"`
 	Comment    *Comment               `json:"comment"`
@@ -305,8 +310,9 @@ type IssueCommentPayload struct {
 	Sender     *User                  `json:"sender"`
 }
 
-// SetSecret implements Payload
+// SetSecret modifies the secret of the IssueCommentPayload
 func (p *IssueCommentPayload) SetSecret(secret string) {
+	p.Secret = secret
 }
 
 // JSONPayload implements Payload
@@ -333,14 +339,16 @@ const (
 
 // ReleasePayload represents a payload information of release event.
 type ReleasePayload struct {
+	Secret     string            `json:"secret"`
 	Action     HookReleaseAction `json:"action"`
 	Release    *Release          `json:"release"`
 	Repository *Repository       `json:"repository"`
 	Sender     *User             `json:"sender"`
 }
 
-// SetSecret implements Payload
+// SetSecret modifies the secret of the ReleasePayload
 func (p *ReleasePayload) SetSecret(secret string) {
+	p.Secret = secret
 }
 
 // JSONPayload implements Payload
@@ -368,7 +376,7 @@ type PushPayload struct {
 	Sender     *User            `json:"sender"`
 }
 
-// SetSecret FIXME
+// SetSecret modifies the secret of the PushPayload
 func (p *PushPayload) SetSecret(secret string) {
 	p.Secret = secret
 }
@@ -520,7 +528,7 @@ type RepositoryPayload struct {
 	Sender       *User          `json:"sender"`
 }
 
-// SetSecret set the payload's secret
+// SetSecret modifies the secret of the RepositoryPayload
 func (p *RepositoryPayload) SetSecret(secret string) {
 	p.Secret = secret
 }
