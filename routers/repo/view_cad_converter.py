@@ -1,6 +1,8 @@
 #!/opt/miniconda3/bin/python3
 
+import logging
 import sys
+import zipfile
 from os.path import splitext, basename
 
 from requests import get
@@ -9,10 +11,11 @@ from aocxchange.step import StepImporter
 from aocxchange.iges import IgesImporter
 from aocxchange.brep import BrepImporter
 from aocxchange.stl import StlExporter
-from aocxchange.dat import DatImporter
 
 GITEA_URL = "http://localhost:3000"
 # GITEA_URL = "http://127.0.0.1:3000"
+
+logger = logging.getLogger(__name__)
 
 
 def download_file(url, filename):
@@ -26,11 +29,9 @@ def download_file(url, filename):
         Full path to the local file
 
     """
-    print("url in download function is : %s" % url)
+    logger.info("Downloading file at URL : %s" % url)
     response = get(url, stream=True)
-
-    print("response is %s" % str(response))
-
+    logger.info("Response is %s" % str(response))
     response.raise_for_status()
 
     with open(filename, 'wb') as f:
@@ -44,6 +45,11 @@ def main():
     The parameters are command line arguments retrieved in this procedure
 
     """
+
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s :: %(levelname)8s :: %(module)20s '
+                               ':: %(lineno)3d :: %(message)s')
+
     cad_file_raw_url = sys.argv[1]
     cad_file_raw_url_full = "%s%s" % (GITEA_URL, cad_file_raw_url)
 
@@ -52,33 +58,31 @@ def main():
 
     converted_files_folder = sys.argv[2]
 
-    # - DEBUG
-    print("CAD Converter with params : %s & %s" % (cad_file_raw_url, converted_files_folder))
-    print("cad_file_extension is : %s" % cad_file_extension)
-    print("cad_file_basename is : %s" % cad_file_basename)
-    print("cad_file_raw_url_full is : %s" % cad_file_raw_url_full)
+    logger.info("Params for view_cad_converter.py main(): %s & %s" % (cad_file_raw_url, converted_files_folder))
+    logger.info("cad_file_extension is : %s" % cad_file_extension)
+    logger.info("cad_file_basename is : %s" % cad_file_basename)
+    logger.info("cad_file_raw_url_full is : %s" % cad_file_raw_url_full)
 
     cad_file_filename = "%s/%s" % (converted_files_folder, cad_file_basename)
     converted_files_descriptor_filename = "%s/%s.%s" % (converted_files_folder, cad_file_basename, "dat")
 
     download_file(cad_file_raw_url_full, cad_file_filename)
 
-    print("cad_file_filename is : %s" % cad_file_filename)
+    logger.info("cad_file_filename is : %s" % cad_file_filename)
 
     if cad_file_extension.lower() in [".fcstd"]:
         converted_filenames = []
-        print("Starting FreeCAD conversion")
-        import zipfile
+        logger.info("Starting FreeCAD conversion")
+
         # unzip and extract the breps
-        print("cad_file_filename is : %s" % cad_file_filename)
         fcstd_as_zip = zipfile.ZipFile(cad_file_filename)
         fcstd_contents = fcstd_as_zip.namelist()
-        print("fcstd_contents is : %s" % str(fcstd_contents))
+        logger.info("fcstd_contents is : %s" % str(fcstd_contents))
         for i, name in enumerate(fcstd_contents):
             # convert the breps to stl
             if splitext(name)[1].lower() in [".brep", ".brp"]:
                 fcstd_as_zip.extract(name, converted_files_folder)
-                print("input to BRep importer is : %s" % ("%s/%s" % (converted_files_folder, name)))
+                logger.info("input to BRep importer is : %s" % ("%s/%s" % (converted_files_folder, name)))
                 shape = BrepImporter("%s/%s" % (converted_files_folder, name)).shape
                 converted_filename = "%s/%s_%i.stl" % (converted_files_folder, name, i)
                 converted_filenames.append(basename(converted_filename))
@@ -91,7 +95,7 @@ def main():
                     with open(converted_files_descriptor_filename, 'w') as f:
                         f.write("\n".join(converted_filenames))
                 except RuntimeError:
-                    print("RuntimeError for %s" % name)
+                    logger.error("RuntimeError for %s" % name)
 
     elif cad_file_extension.lower() in [".step", ".stp"]:
         converted_filenames = []
@@ -140,7 +144,9 @@ def main():
         pass
 
     else:
-        raise ValueError("Unknown CAD cad_file_extension : %s" % cad_file_extension)
+        msg = "Unknown CAD cad_file_extension : %s" % cad_file_extension
+        logger.error(msg)
+        raise ValueError(masg)
 
     sys.exit(0)
 
