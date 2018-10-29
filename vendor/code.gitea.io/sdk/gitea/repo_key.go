@@ -13,13 +13,16 @@ import (
 
 // DeployKey a deploy key
 type DeployKey struct {
-	ID    int64  `json:"id"`
-	Key   string `json:"key"`
-	URL   string `json:"url"`
-	Title string `json:"title"`
+	ID          int64  `json:"id"`
+	KeyID       int64  `json:"key_id"`
+	Key         string `json:"key"`
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Fingerprint string `json:"fingerprint"`
 	// swagger:strfmt date-time
-	Created  time.Time `json:"created_at"`
-	ReadOnly bool      `json:"read_only"`
+	Created    time.Time   `json:"created_at"`
+	ReadOnly   bool        `json:"read_only"`
+	Repository *Repository `json:"repository,omitempty"`
 }
 
 // ListDeployKeys list all the deploy keys of one repository
