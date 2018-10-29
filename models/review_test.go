@@ -116,19 +116,16 @@ func TestGetReviewersByPullID(t *testing.T) {
 
 	expectedReviews := make(map[int64]*PullReviewersWithType)
 	expectedReviews[2] = &PullReviewersWithType{
-		ReviewID:          9,
 		User:              *user2,
 		Type:              ReviewTypeReject,
 		ReviewUpdatedUnix: 946684810,
 	}
 	expectedReviews[3] = &PullReviewersWithType{
-		ReviewID:          7,
 		User:              *user3,
 		Type:              ReviewTypeReject,
 		ReviewUpdatedUnix: 946684810,
 	}
 	expectedReviews[4] = &PullReviewersWithType{
-		ReviewID:          8,
 		User:              *user4,
 		Type:              ReviewTypeApprove,
 		ReviewUpdatedUnix: 946684810,
