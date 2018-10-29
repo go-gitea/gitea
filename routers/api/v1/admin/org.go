@@ -28,6 +28,10 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//   description: username of the user that will own the created organization
 	//   type: string
 	//   required: true
+	// - name: organization
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Organization"

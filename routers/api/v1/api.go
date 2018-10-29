@@ -324,6 +324,13 @@ func mustEnableIssuesOrPulls(ctx *context.Context) {
 	}
 }
 
+func mustEnableUserHeatmap(ctx *context.Context) {
+	if !setting.Service.EnableUserHeatmap {
+		ctx.Status(404)
+		return
+	}
+}
+
 // RegisterRoutes registers all v1 APIs routes to web application.
 // FIXME: custom form error response
 func RegisterRoutes(m *macaron.Macaron) {
@@ -348,6 +355,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
+				m.Get("/heatmap", mustEnableUserHeatmap, user.GetUserHeatmapData)
 
 				m.Get("/repos", user.ListUserRepos)
 				m.Group("/tokens", func() {

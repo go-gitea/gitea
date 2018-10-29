@@ -53,6 +53,7 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
+	//   format: int64
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -453,6 +454,7 @@ func GetByID(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the repo to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":

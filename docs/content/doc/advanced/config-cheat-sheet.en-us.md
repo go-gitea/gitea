@@ -193,6 +193,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
+- `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
 
 ## Webhook (`webhook`)
 
