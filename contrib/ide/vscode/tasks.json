@@ -35,7 +35,7 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build", "-tags=\"sqlite\""],
+      "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\""],
       "linux": {
         "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
       },

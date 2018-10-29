@@ -5494,6 +5494,35 @@
         }
       }
     },
+    "/users/{username}/heatmap": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user's heatmap",
+        "operationId": "userGetHeatmapData",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/keys": {
       "get": {
         "produces": [
@@ -6337,6 +6366,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "fingerprint": {
+          "type": "string",
+          "x-go-name": "Fingerprint"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -6346,9 +6379,17 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "KeyID"
+        },
         "read_only": {
           "type": "boolean",
           "x-go-name": "ReadOnly"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
         },
         "title": {
           "type": "string",
@@ -7231,6 +7272,14 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_type": {
+          "type": "string",
+          "x-go-name": "KeyType"
+        },
+        "read_only": {
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -7238,6 +7287,9 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7452,6 +7504,10 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "archived": {
+          "type": "boolean",
+          "x-go-name": "Archived"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
@@ -7666,6 +7722,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "TimeStamp": {
+      "description": "TimeStamp defines a timestamp",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/util"
+    },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
       "type": "object",
@@ -7736,6 +7798,21 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData represents the data needed to create a heatmap",
+      "type": "object",
+      "properties": {
+        "contributions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/TimeStamp"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/models"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
@@ -8081,6 +8158,15 @@
       "description": "User",
       "schema": {
         "$ref": "#/definitions/User"
+      }
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/UserHeatmapData"
+        }
       }
     },
     "UserList": {

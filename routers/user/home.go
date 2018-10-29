@@ -99,6 +99,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	ctx.Data["HeatmapUser"] = ctxUser.Name
 
 	var err error
 	var mirrors []*models.Repository
@@ -253,6 +255,8 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
+	opts.Labels = ctx.Query("labels")
+
 	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.ServerError("Issues", err)

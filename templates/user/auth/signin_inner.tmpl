@@ -2,7 +2,11 @@
 		{{template "base/alert" .}}
 		{{end}}
 		<h4 class="ui top attached header center">
-			{{.i18n.Tr "auth.login_userpass"}}
+			{{if .LinkAccountMode}}
+				{{.i18n.Tr "auth.oauth_signin_title"}}
+			{{else}}
+				{{.i18n.Tr "auth.login_userpass"}}
+			{{end}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.SignInLink}}" method="post">
@@ -27,7 +31,13 @@
 
 			<div class="inline field">
 				<label></label>
-				<button class="ui green button">{{.i18n.Tr "sign_in"}}</button>
+				<button class="ui green button">
+					{{if .LinkAccountMode}}
+						{{.i18n.Tr "auth.oauth_signin_submit"}}
+					{{else}}
+						{{.i18n.Tr "sign_in"}}
+					{{end}}
+				</button>
 				<a href="{{AppSubUrl}}/user/forgot_password">{{.i18n.Tr "auth.forgot_password"}}</a>
 			</div>
 
