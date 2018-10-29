@@ -131,6 +131,7 @@ func NewMacaron() *macaron.Macaron {
 				Func: models.Ping,
 			},
 		},
+		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
 	return m
@@ -230,6 +231,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Get("/change_password", user.MustChangePassword)
+		m.Post("/change_password", bindIgnErr(auth.MustChangePasswordForm{}), user.MustChangePasswordPost)
 		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
 		m.Post("/avatar/delete", userSetting.DeleteAvatar)
 		m.Group("/account", func() {

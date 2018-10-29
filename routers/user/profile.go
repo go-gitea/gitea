@@ -87,6 +87,8 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	ctx.Data["HeatmapUser"] = ctxUser.Name
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
@@ -104,6 +106,8 @@ func Profile(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+
+	topicOnly := ctx.QueryBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -174,6 +178,7 @@ func Profile(ctx *context.Context) {
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Starred:     true,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -217,6 +222,7 @@ func Profile(ctx *context.Context) {
 				IsProfile:   true,
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)

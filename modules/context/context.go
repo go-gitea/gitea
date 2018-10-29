@@ -261,9 +261,14 @@ func Contexter() macaron.Handler {
 		log.Debug("Session ID: %s", sess.ID())
 		log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+		ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
+		ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
+		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
+
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+
 		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
