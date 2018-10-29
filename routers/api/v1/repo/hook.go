@@ -69,6 +69,7 @@ func GetHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -104,6 +105,7 @@ func TestHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to test
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -193,6 +195,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//   in: path
 	//   description: index of the hook
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -227,6 +230,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
