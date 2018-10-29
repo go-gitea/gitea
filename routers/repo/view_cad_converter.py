@@ -1,9 +1,24 @@
 #!/opt/miniconda3/bin/python3
 
+r"""Conversion procedure of Gitea for CAD.
+
+Called from Go code. The parameters are passed as command line arguments in the Go code.
+
+TODO:
+- hash based filename
+- cache based on hash
+- osvcad files display
+- JSON instead of STL -> selectable shapes, faces etc ...
+
+- GITEA_URL should be an environment variable
+
+"""
+
 import logging
 import sys
 import zipfile
-from os.path import splitext, basename
+from os import remove
+from os.path import splitext, basename, join
 
 from requests import get
 
@@ -18,7 +33,7 @@ GITEA_URL = "http://localhost:3000"
 logger = logging.getLogger(__name__)
 
 
-def download_file(url, filename):
+def _download_file(url, filename):
     r"""Download an external file (at specified url) to a local file
 
     Parameters
@@ -39,116 +54,137 @@ def download_file(url, filename):
             f.write(chunk)
 
 
+def _conversion_filename(folder, name, i=0):
+    # return "%s/%s_%i.stl" % (converted_files_folder, name, i)
+    return join(folder, "%s_%i.stl" % (name, i))
+
+
+def _convert_shape(shape, filename):
+    e = StlExporter(filename=filename, ascii_mode=False)
+    e.set_shape(shape)
+    e.write_file()
+
+
+def _descriptor_filename(converted_files_folder, cad_file_basename):
+    # return "%s/%s.%s" % (converted_files_folder, cad_file_basename, "dat")
+    return join(converted_files_folder, "%s.%s" % (cad_file_basename, "dat"))
+
+
+def _write_descriptor(names, descriptor_filename_):
+    with open(descriptor_filename_, 'w') as f:
+        f.write("\n".join(names))
+
+
+def convert_freecad_file(freecad_filename, target_folder):
+    logger.info("Starting FreeCAD conversion")
+
+    fcstd_as_zip = zipfile.ZipFile(freecad_filename)
+
+    breps_basenames = list(filter(lambda x: splitext(x)[1].lower() in [".brep", ".brp"], fcstd_as_zip.namelist()))
+    breps_filenames = ["%s/%s" % (target_folder, name) for name in breps_basenames]
+    converted_filenames = [_conversion_filename(target_folder, name, i) for i, name in
+                           enumerate(breps_basenames)]
+    converted_basenames = [basename(filename) for filename in converted_filenames]
+
+    assert len(breps_basenames) == len(breps_filenames) == len(converted_filenames) == len(converted_basenames)
+
+    for i, (brep_basename, brep_filename, converted_basename, converted_filename) in enumerate(
+            zip(breps_basenames, breps_filenames, converted_basenames, converted_filenames)):
+
+        fcstd_as_zip.extract(brep_basename, target_folder)
+
+        try:
+            _convert_shape(BrepImporter(brep_filename).shape, converted_filename)
+        except RuntimeError:
+            logger.error("RuntimeError for %s" % brep_filename)
+
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(freecad_filename)))
+    remove(freecad_filename)
+
+
+def convert_step_file(step_filename, target_folder):
+    converted_basenames = []
+    shapes = StepImporter(step_filename).shapes
+    for i, shape in enumerate(shapes):
+        converted_filename = _conversion_filename(target_folder, basename(step_filename), i)
+        _convert_shape(shape, converted_filename)
+        converted_basenames.append(basename(converted_filename))
+
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(step_filename)))
+    remove(step_filename)
+
+
+def convert_iges_file(iges_filename, target_folder):
+    converted_basenames = []
+    shapes = IgesImporter(iges_filename).shapes
+    for i, shape in enumerate(shapes):
+        converted_filename = _conversion_filename(target_folder, basename(iges_filename), i)
+        _convert_shape(shape, converted_filename)
+        converted_basenames.append(basename(converted_filename))
+
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(iges_filename)))
+    remove(iges_filename)
+
+
+def convert_brep_file(brep_filename, target_folder):
+    shape = BrepImporter(brep_filename).shape
+    converted_filename = _conversion_filename(target_folder, basename(brep_filename), 0)
+    converted_basenames = [basename(converted_filename)]
+    _convert_shape(shape, converted_filename)
+
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(brep_filename)))
+    remove(brep_filename)
+
+
+def convert_stl_file(stl_filename, target_folder):
+    converted_basenames = [basename(stl_filename)]
+    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(stl_filename)))
+
+
+def convert_py_file(py_filename, target_folder):
+    pass
+
+
 def main():
     r"""Procedure that handles the conversion from a CAD file to a format usable by a 3D web viewer
 
     The parameters are command line arguments retrieved in this procedure
 
     """
-
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s :: %(levelname)8s :: %(module)20s '
                                ':: %(lineno)3d :: %(message)s')
 
-    cad_file_raw_url = sys.argv[1]
+    # Retrieve parameters from command
+    cad_file_raw_url = sys.argv[1]  # Direct download URL for the file
+    converted_files_folder = sys.argv[2]  # Root destination for converted files
+
     cad_file_raw_url_full = "%s%s" % (GITEA_URL, cad_file_raw_url)
 
+    cad_file_filename = join(converted_files_folder, basename(cad_file_raw_url))
+
+    # Download the original CAD file to the converted files folder (it will be deleted after conversion)
+    _download_file(cad_file_raw_url_full, cad_file_filename)
+
     cad_file_extension = splitext(cad_file_raw_url)[1]
-    cad_file_basename = basename(cad_file_raw_url)
 
-    converted_files_folder = sys.argv[2]
+    conversion_function = {".fcstd": convert_freecad_file,
+                           ".step": convert_step_file,
+                           ".stp": convert_step_file,
+                           ".iges": convert_iges_file,
+                           ".igs": convert_iges_file,
+                           ".brep": convert_brep_file,
+                           ".brp": convert_brep_file,
+                           ".stl": convert_stl_file,
+                           ".py": convert_py_file}
 
-    logger.info("Params for view_cad_converter.py main(): %s & %s" % (cad_file_raw_url, converted_files_folder))
-    logger.info("cad_file_extension is : %s" % cad_file_extension)
-    logger.info("cad_file_basename is : %s" % cad_file_basename)
-    logger.info("cad_file_raw_url_full is : %s" % cad_file_raw_url_full)
-
-    cad_file_filename = "%s/%s" % (converted_files_folder, cad_file_basename)
-    converted_files_descriptor_filename = "%s/%s.%s" % (converted_files_folder, cad_file_basename, "dat")
-
-    download_file(cad_file_raw_url_full, cad_file_filename)
-
-    logger.info("cad_file_filename is : %s" % cad_file_filename)
-
-    if cad_file_extension.lower() in [".fcstd"]:
-        converted_filenames = []
-        logger.info("Starting FreeCAD conversion")
-
-        # unzip and extract the breps
-        fcstd_as_zip = zipfile.ZipFile(cad_file_filename)
-        fcstd_contents = fcstd_as_zip.namelist()
-        logger.info("fcstd_contents is : %s" % str(fcstd_contents))
-        for i, name in enumerate(fcstd_contents):
-            # convert the breps to stl
-            if splitext(name)[1].lower() in [".brep", ".brp"]:
-                fcstd_as_zip.extract(name, converted_files_folder)
-                logger.info("input to BRep importer is : %s" % ("%s/%s" % (converted_files_folder, name)))
-                shape = BrepImporter("%s/%s" % (converted_files_folder, name)).shape
-                converted_filename = "%s/%s_%i.stl" % (converted_files_folder, name, i)
-                converted_filenames.append(basename(converted_filename))
-                try:
-                    e = StlExporter(filename=converted_filename, ascii_mode=True)
-                    e.set_shape(shape)
-                    e.write_file()
-
-                    # build the descriptor
-                    with open(converted_files_descriptor_filename, 'w') as f:
-                        f.write("\n".join(converted_filenames))
-                except RuntimeError:
-                    logger.error("RuntimeError for %s" % name)
-
-    elif cad_file_extension.lower() in [".step", ".stp"]:
-        converted_filenames = []
-        shapes = StepImporter(cad_file_filename).shapes
-        for i, shape in enumerate(shapes):
-            converted_filename = "%s/%s_%i.stl" % (converted_files_folder, cad_file_basename, i)
-            e = StlExporter(filename=converted_filename, ascii_mode=True)
-            e.set_shape(shape)
-            e.write_file()
-            converted_filenames.append(basename(converted_filename))
-
-        with open(converted_files_descriptor_filename, 'w') as f:
-            f.write("\n".join(converted_filenames))
-
-    elif cad_file_extension.lower() in [".iges", ".igs"]:
-        converted_filenames = []
-        shapes = IgesImporter(cad_file_filename).shapes
-        for i, shape in enumerate(shapes):
-            converted_filename = "%s/%s_%i.stl" % (converted_files_folder, cad_file_basename, i)
-            e = StlExporter(filename=converted_filename, ascii_mode=True)
-            e.set_shape(shape)
-            e.write_file()
-            converted_filenames.append(basename(converted_filename))
-
-        with open(converted_files_descriptor_filename, 'w') as f:
-            f.write("\n".join(converted_filenames))
-
-    elif cad_file_extension.lower() in [".brep", ".brp"]:
-
-        shape = BrepImporter(cad_file_filename).shape
-        converted_filename = "%s/%s_%i.stl" % (converted_files_folder, cad_file_basename, 0)
-        converted_filenames = [basename(converted_filename)]
-        e = StlExporter(filename=converted_filename, ascii_mode=True)
-        e.set_shape(shape)
-        e.write_file()
-
-        with open(converted_files_descriptor_filename, 'w') as f:
-            f.write("\n".join(converted_filenames))
-
-    elif cad_file_extension.lower() in [".stl"]:
-        converted_filenames = [cad_file_basename]
-        with open(converted_files_descriptor_filename, 'w') as f:
-            f.write("\n".join(converted_filenames))
-
-    elif cad_file_extension.lower() in [".py"]:
-        pass
-
-    else:
+    try:
+        conversion_function[splitext(cad_file_raw_url)[1].lower()](cad_file_filename, converted_files_folder)
+        sys.exit(0)
+    except KeyError:
         msg = "Unknown CAD cad_file_extension : %s" % cad_file_extension
         logger.error(msg)
-        raise ValueError(masg)
-
-    sys.exit(0)
+        raise ValueError(msg)
 
 
 main()
