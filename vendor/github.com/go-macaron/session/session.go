@@ -18,15 +18,17 @@ package session
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"gopkg.in/macaron.v1"
 )
 
-const _VERSION = "0.3.0"
+const _VERSION = "0.4.0"
 
 func Version() string {
 	return _VERSION
@@ -245,8 +247,8 @@ func NewManager(name string, opt Options) (*Manager, error) {
 	return &Manager{p, opt}, p.Init(opt.Maxlifetime, opt.ProviderConfig)
 }
 
-// sessionId generates a new session ID with rand string, unix nano time, remote addr by hash function.
-func (m *Manager) sessionId() string {
+// sessionID generates a new session ID with rand string, unix nano time, remote addr by hash function.
+func (m *Manager) sessionID() string {
 	return hex.EncodeToString(generateRandomKey(m.opt.IDLength / 2))
 }
 
@@ -255,10 +257,10 @@ func (m *Manager) sessionId() string {
 func (m *Manager) Start(ctx *macaron.Context) (RawStore, error) {
 	sid := ctx.GetCookie(m.opt.CookieName)
 	if len(sid) > 0 && m.provider.Exist(sid) {
-		return m.provider.Read(sid)
+		return m.Read(sid)
 	}
 
-	sid = m.sessionId()
+	sid = m.sessionID()
 	sess, err := m.provider.Read(sid)
 	if err != nil {
 		return nil, err
@@ -282,6 +284,12 @@ func (m *Manager) Start(ctx *macaron.Context) (RawStore, error) {
 
 // Read returns raw session store by session ID.
 func (m *Manager) Read(sid string) (RawStore, error) {
+	// No slashes or dots "./" should ever occur in the sid and to prevent session file forgery bug.
+	// See https://github.com/gogs/gogs/issues/5469
+	if strings.ContainsAny(sid, "./") {
+		return nil, errors.New("invalid 'sid': " + sid)
+	}
+
 	return m.provider.Read(sid)
 }
 
@@ -308,7 +316,7 @@ func (m *Manager) Destory(ctx *macaron.Context) error {
 
 // RegenerateId regenerates a session store from old session ID to new one.
 func (m *Manager) RegenerateId(ctx *macaron.Context) (sess RawStore, err error) {
-	sid := m.sessionId()
+	sid := m.sessionID()
 	oldsid := ctx.GetCookie(m.opt.CookieName)
 	sess, err = m.provider.Regenerate(oldsid, sid)
 	if err != nil {
