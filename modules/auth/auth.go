@@ -36,7 +36,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	// Check access token.
 	if IsAPIPath(ctx.Req.URL.Path) {
 		tokenSHA := ctx.Query("token")
-		if len(tokenSHA) <= 0 {
+		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
 		}
 		if len(tokenSHA) == 0 {
