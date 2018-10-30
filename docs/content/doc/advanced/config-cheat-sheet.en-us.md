@@ -359,6 +359,10 @@ IS_INPUT_FILE = false
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
 
+Two special environment variables are passed to the render command:
+- `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
+- `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
