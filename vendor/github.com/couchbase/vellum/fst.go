@@ -74,8 +74,8 @@ func (f *FST) get(input []byte, prealloc fstState) (uint64, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
-	for i := range input {
-		_, curr, output := state.TransitionFor(input[i])
+	for _, c := range input {
+		_, curr, output := state.TransitionFor(c)
 		if curr == noneAddr {
 			return 0, false, nil
 		}

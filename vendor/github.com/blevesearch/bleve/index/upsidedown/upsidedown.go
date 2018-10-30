@@ -775,7 +775,7 @@ func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.
 }
 
 func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []*index.TermFieldVector {
-	if len(in) <= 0 {
+	if len(in) == 0 {
 		return nil
 	}
 
@@ -799,30 +799,33 @@ func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []
 func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 	analysisStart := time.Now()
 
-	resultChan := make(chan *index.AnalysisResult, len(batch.IndexOps))
-
 	var numUpdates uint64
 	var numPlainTextBytes uint64
-	for _, doc := range batch.IndexOps {
+	var numIndexOps int
+	batch.GetIndexOps().Range(func(_ string, doc *document.Document) bool {
+		numIndexOps++
 		if doc != nil {
 			numUpdates++
 			numPlainTextBytes += doc.NumPlainTextBytes()
 		}
-	}
+		return true
+	})
 
+	resultChan := make(chan *index.AnalysisResult, numIndexOps)
 	go func() {
-		for _, doc := range batch.IndexOps {
+		batch.GetIndexOps().Range(func(_ string, doc *document.Document) bool {
 			if doc != nil {
 				aw := index.NewAnalysisWork(udc, doc, resultChan)
 				// put the work on the queue
 				udc.analysisQueue.Queue(aw)
 			}
-		}
+			return true
+		})
 	}()
 
 	// retrieve back index rows concurrent with analysis
 	docBackIndexRowErr := error(nil)
-	docBackIndexRowCh := make(chan *docBackIndexRow, len(batch.IndexOps))
+	docBackIndexRowCh := make(chan *docBackIndexRow, numIndexOps)
 
 	udc.writeMutex.Lock()
 	defer udc.writeMutex.Unlock()
@@ -837,22 +840,22 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			docBackIndexRowErr = err
 			return
 		}
+		defer func() {
+			if cerr := kvreader.Close(); err == nil && cerr != nil {
+				docBackIndexRowErr = cerr
+			}
+		}()
 
-		for docID, doc := range batch.IndexOps {
+		batch.GetIndexOps().Range(func(docID string, doc *document.Document) bool {
 			backIndexRow, err := backIndexRowForDoc(kvreader, index.IndexInternalID(docID))
 			if err != nil {
 				docBackIndexRowErr = err
-				return
+				return false
 			}
 
 			docBackIndexRowCh <- &docBackIndexRow{docID, doc, backIndexRow}
-		}
-
-		err = kvreader.Close()
-		if err != nil {
-			docBackIndexRowErr = err
-			return
-		}
+			return true
+		})
 	}()
 
 	// wait for analysis result
@@ -881,7 +884,7 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 	var updateRows []UpsideDownCouchRow
 	var deleteRows []UpsideDownCouchRow
 
-	for internalKey, internalValue := range batch.InternalOps {
+	batch.GetInternalOps().Range(func(internalKey string, internalValue []byte) bool {
 		if internalValue == nil {
 			// delete
 			deleteInternalRow := NewInternalRow([]byte(internalKey), nil)
@@ -890,7 +893,8 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			updateInternalRow := NewInternalRow([]byte(internalKey), internalValue)
 			updateRows = append(updateRows, updateInternalRow)
 		}
-	}
+		return true
+	})
 
 	if len(updateRows) > 0 {
 		updateRowsAll = append(updateRowsAll, updateRows)

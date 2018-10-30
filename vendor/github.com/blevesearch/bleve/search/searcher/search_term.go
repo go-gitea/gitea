@@ -15,10 +15,20 @@
 package searcher
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/scorer"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeTermSearcher int
+
+func init() {
+	var ts TermSearcher
+	reflectStaticSizeTermSearcher = int(reflect.TypeOf(ts).Size())
+}
 
 type TermSearcher struct {
 	indexReader index.IndexReader
@@ -28,7 +38,8 @@ type TermSearcher struct {
 }
 
 func NewTermSearcher(indexReader index.IndexReader, term string, field string, boost float64, options search.SearcherOptions) (*TermSearcher, error) {
-	reader, err := indexReader.TermFieldReader([]byte(term), field, true, true, options.IncludeTermVectors)
+	termBytes := []byte(term)
+	reader, err := indexReader.TermFieldReader(termBytes, field, true, true, options.IncludeTermVectors)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +48,7 @@ func NewTermSearcher(indexReader index.IndexReader, term string, field string, b
 		_ = reader.Close()
 		return nil, err
 	}
-	scorer := scorer.NewTermQueryScorer([]byte(term), field, boost, count, reader.Count(), options)
+	scorer := scorer.NewTermQueryScorer(termBytes, field, boost, count, reader.Count(), options)
 	return &TermSearcher{
 		indexReader: indexReader,
 		reader:      reader,
@@ -61,6 +72,13 @@ func NewTermSearcherBytes(indexReader index.IndexReader, term []byte, field stri
 		reader:      reader,
 		scorer:      scorer,
 	}, nil
+}
+
+func (s *TermSearcher) Size() int {
+	return reflectStaticSizeTermSearcher + size.SizeOfPtr +
+		s.reader.Size() +
+		s.tfd.Size() +
+		s.scorer.Size()
 }
 
 func (s *TermSearcher) Count() uint64 {
@@ -119,4 +137,14 @@ func (s *TermSearcher) Min() int {
 
 func (s *TermSearcher) DocumentMatchPoolSize() int {
 	return 1
+}
+
+func (s *TermSearcher) Optimize(kind string, octx index.OptimizableContext) (
+	index.OptimizableContext, error) {
+	o, ok := s.reader.(index.Optimizable)
+	if ok {
+		return o.Optimize(kind, octx)
+	}
+
+	return octx, nil
 }

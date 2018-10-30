@@ -107,3 +107,8 @@ ignored = ["google.golang.org/appengine*"]
 [[override]]
   revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
   name = "golang.org/x/oauth2"
+
+[[override]]
+  name = "github.com/blevesearch/bleve"
+  revision = "e70b2878dfb7d5b8610709077b3b467980f413a3"
+  source = "github.com/typeless/bleve"
