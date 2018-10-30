@@ -6198,6 +6198,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "fingerprint": {
+          "type": "string",
+          "x-go-name": "Fingerprint"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -6207,9 +6211,17 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "KeyID"
+        },
         "read_only": {
           "type": "boolean",
           "x-go-name": "ReadOnly"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
         },
         "title": {
           "type": "string",
@@ -7092,6 +7104,14 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_type": {
+          "type": "string",
+          "x-go-name": "KeyType"
+        },
+        "read_only": {
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -7099,6 +7119,9 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7313,6 +7336,10 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "archived": {
+          "type": "boolean",
+          "x-go-name": "Archived"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
