@@ -4,7 +4,11 @@
 			<form class="ui form" action="{{.SignUpLink}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
-					{{.i18n.Tr "sign_up"}}
+					{{if .LinkAccountMode}}
+						{{.i18n.Tr "auth.oauth_signup_title"}}
+					{{else}}
+						{{.i18n.Tr "sign_up"}}
+					{{end}}
 				</h3>
 				<div class="ui attached segment">
 					{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
@@ -47,7 +51,13 @@
 
 						<div class="inline field">
 							<label></label>
-							<button class="ui green button">{{.i18n.Tr "auth.create_new_account"}}</button>
+							<button class="ui green button">
+								{{if .LinkAccountMode}}
+									{{.i18n.Tr "auth.oauth_signup_submit"}}
+								{{else}}
+									{{.i18n.Tr "auth.create_new_account"}}
+								{{end}}
+							</button>
 						</div>
 
 						{{if not .LinkAccountMode}}
