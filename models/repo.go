@@ -2459,7 +2459,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	repoPath := RepoPath(u.Name, repo.Name)
 	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
 		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
-		"git", "clone", "--bare", oldRepo.RepoPath(), repoPath)
+		"git", "clone", "--bare", oldRepo.repoPath(sess), repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %v", stderr)
 	}
