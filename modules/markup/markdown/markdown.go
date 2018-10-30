@@ -100,13 +100,6 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	r.Renderer.ListItem(out, text, flags)
 }
 
-// Note: this section is for purpose of increase performance and
-// reduce memory allocation at runtime since they are constant literals.
-var (
-	svgSuffix         = []byte(".svg")
-	svgSuffixWithMark = []byte(".svg?")
-)
-
 // Image defines how images should be processed to produce corresponding HTML elements.
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
 	prefix := r.URLPrefix
