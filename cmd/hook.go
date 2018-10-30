@@ -66,7 +66,6 @@ var (
 func hookSetup(logPath string) {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-	models.LoadConfigs()
 }
 
 func runHookPreReceive(c *cli.Context) error {
