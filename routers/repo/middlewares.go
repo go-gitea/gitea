@@ -50,3 +50,14 @@ func SetDiffViewStyle(ctx *context.Context) {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }
+
+// SetWhitespaceBehavior set whitespace behavior as render variable
+func SetWhitespaceBehavior(ctx *context.Context) {
+	whitespaceBehavior := ctx.Query("whitespace")
+	switch whitespaceBehavior {
+	case "ignore-all", "ignore-eol", "ignore-change":
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	default:
+		ctx.Data["WhitespaceBehavior"] = ""
+	}
+}

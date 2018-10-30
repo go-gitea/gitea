@@ -54,6 +54,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -144,12 +145,11 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     description: team deleted
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -169,6 +169,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -205,6 +206,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -237,6 +239,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -270,6 +273,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -316,6 +320,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path
@@ -362,6 +367,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path

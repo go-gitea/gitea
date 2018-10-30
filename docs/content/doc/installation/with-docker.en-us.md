@@ -19,8 +19,8 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-This reference setup guides users through the setup based on `docker-compose`, the installation
-of `docker-compose` is out of scope of this documentation. To install `docker-compose` follow
+This reference setup guides users through the setup based on `docker-compose`, but the installation
+of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
 ## Basics
@@ -30,6 +30,8 @@ image as a service. Since there is no database available one can be initialized 
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
+Also be aware that the tag `:latest` will install the current development version.
+For a stable release you can use `:1` or specify a certain release like `:1.5.1`.
 
 ```yaml
 version: "2"
@@ -103,6 +105,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
++      - DB_TYPE=mysql
++      - DB_HOST=db:3306
++      - DB_NAME=gitea
++      - DB_USER=gitea
++      - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -146,6 +153,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
++      - DB_TYPE=postgres
++      - DB_HOST=db:5432
++      - DB_NAME=gitea
++      - DB_USER=gitea
++      - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea

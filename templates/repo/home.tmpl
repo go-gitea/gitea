@@ -24,23 +24,23 @@
 			{{end}}
 		</div>
 		<div class="ui repo-topic" id="repo-topic">
-		{{range .Topics}}<div class="ui green basic label topic" style="cursor:pointer;">{{.Name}}</div>{{end}}
+		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if .IsRepositoryAdmin}}
-		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" >
+		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
+						<div class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
 						{{end}}
 						<div class="text"></div>
 					</div>
 				</div>
 			</div>
-			<div class="one wide column">
+			<div class="two wide column">
 				<a class="ui compact button primary" href="javascript:;" id="save_topic"
 				data-link="{{.RepoLink}}/topics">{{.i18n.Tr "repo.topic.done"}}</a>
 			</div>
@@ -54,7 +54,7 @@
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Repository.Owner.Name}}:{{.BranchName}}">
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{.Repository.Owner.Name}}:{{.BranchName | EscapePound}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
@@ -64,8 +64,8 @@
 			{{ $l := Subtract $n 1}}
 			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			<div class="right fitted item" id="file-buttons">
-				{{if .Repository.CanEnableEditor}}
-					<div class="ui tiny blue buttons">
+				<div class="ui tiny blue buttons">
+					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
 								{{.i18n.Tr "repo.editor.new_file"}}
@@ -76,8 +76,13 @@
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
-					</div>
-				{{end}}
+					{{end}}
+					{{if and (ne $n 0) (not .IsViewFile)}}
+						<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui button">
+							{{.i18n.Tr "repo.file_history"}}
+						</a>
+					{{end}}
+				</div>
 
 			</div>
 			<div class="fitted item">
