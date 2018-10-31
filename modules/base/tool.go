@@ -576,6 +576,11 @@ func IsVideoFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "video/") != -1
 }
 
+// IsAudioFile detects if data is an video format
+func IsAudioFile(data []byte) bool {
+	return strings.Index(http.DetectContentType(data), "audio/") != -1
+}
+
 // EntryIcon returns the octicon class for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
 	switch {

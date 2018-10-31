@@ -39,5 +39,8 @@ if [ ! -f /data/gitea/conf/app.ini ]; then
     envsubst < /etc/templates/app.ini > /data/gitea/conf/app.ini
 fi
 
-chown -R ${USER}:git /data/gitea /app/gitea /data/git
+# only chown if current owner is not already the gitea ${USER}. No recursive check to save time
+if ! [[ $(ls -ld /data/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/gitea; fi
+if ! [[ $(ls -ld /app/gitea  | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /app/gitea;  fi
+if ! [[ $(ls -ld /data/git   | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/git;   fi
 chmod 0755 /data/gitea /app/gitea /data/git
