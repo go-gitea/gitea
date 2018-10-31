@@ -783,10 +783,11 @@ function initPullRequestReview() {
     $('button.comment-form-reply').on('click', function (e) {
         e.preventDefault();
         $(this).hide();
-        var form = $(this).parent().find('.comment-form')
+        var form = $(this).parent().parent().find('.comment-form');
         form.removeClass('hide');
         assingMenuAttributes(form.find('.menu'));
     });
+
     // The following part is only for diff views
     if ($('.repository.pull.diff').length == 0) {
         return;
