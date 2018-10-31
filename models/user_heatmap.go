@@ -23,7 +23,7 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	case setting.UseSQLite3:
 		groupBy = "strftime('%s', strftime('%Y-%m-%d', created_unix, 'unixepoch'))"
 	case setting.UseMySQL:
-		groupBy = "UNIX_TIMESTAMP(DATE_FORMAT(FROM_UNIXTIME(created_unix), '%Y%m%d'))"
+		groupBy = "UNIX_TIMESTAMP(DATE(FROM_UNIXTIME(created_unix)))"
 	case setting.UsePostgreSQL:
 		groupBy = "extract(epoch from date_trunc('day', to_timestamp(created_unix)))"
 	case setting.UseMSSQL:
