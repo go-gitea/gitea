@@ -163,3 +163,24 @@ for automatic deployments.
             - `gitea generate secret INTERNAL_TOKEN`
             - `gitea generate secret LFS_JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
+
+#### keys
+
+Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd config file:
+
+```ini
+...
+# The value of -e and the AuthorizedKeysCommandUser should match the
+# username running gitea
+AuthorizedKeysCommandUser git
+AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
+```
+
+The command will return the appropriate authorized_keys line for the
+provided key. You should also set the value
+`SSH_CREATE_AUTHORIZED_KEYS_FILE=false` in the `[server]` section of
+`app.ini`.
+
+NB: opensshd requires the gitea program to be owned by root and not
+writable by group or others. The program must be specified by an absolute
+path.

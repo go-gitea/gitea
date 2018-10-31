@@ -544,7 +544,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
 	//Don't rewrite key if internal server
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
