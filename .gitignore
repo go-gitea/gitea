@@ -51,12 +51,15 @@ coverage.all
 /log
 /public/img/avatar
 /integrations/gitea-integration-mysql
+/integrations/gitea-integration-mysql8
 /integrations/gitea-integration-pgsql
 /integrations/gitea-integration-sqlite
 /integrations/indexers-mysql
+/integrations/indexers-mysql8
 /integrations/indexers-pgsql
 /integrations/indexers-sqlite
 /integrations/mysql.ini
+/integrations/mysql8.ini
 /integrations/pgsql.ini
 /node_modules
 
