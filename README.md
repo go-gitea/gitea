@@ -38,7 +38,7 @@ More info: https://docs.gitea.io/en-us/install-from-source/
     ./gitea web
 
 NOTE: If you're interested in using our APIs, we have experimental
-support with [documentation](https://godoc.org/code.gitea.io/sdk/gitea).
+support with [documentation](https://try.gitea.io/api/swagger).
 
 ## Contributing
 
