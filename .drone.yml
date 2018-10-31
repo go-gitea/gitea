@@ -174,7 +174,7 @@ pipeline:
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
       - make test-mysql8
     when:
-      event: [ tag ]
+      event: [ push, tag, pull_request ]
 
   test-pgsql:
     image: golang:1.11
