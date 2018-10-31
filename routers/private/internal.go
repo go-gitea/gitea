@@ -23,26 +23,74 @@ func CheckInternalToken(ctx *macaron.Context) {
 	}
 }
 
-// UpdatePublicKey update publick key updates
-func UpdatePublicKey(ctx *macaron.Context) {
-	keyID := ctx.ParamsInt64(":id")
-	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
+//GetRepositoryByOwnerAndName chainload to models.GetRepositoryByOwnerAndName
+func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
+	//TODO use repo.Get(ctx *context.APIContext) ?
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),
 		})
 		return
 	}
+	ctx.JSON(200, repo)
+}
 
-	ctx.PlainText(200, []byte("success"))
+//AccessLevel chainload to models.AccessLevel
+func AccessLevel(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	userID := ctx.ParamsInt64(":userid")
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	al, err := models.AccessLevel(userID, repo)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, al)
+}
+
+//CheckUnitUser chainload to models.CheckUnitUser
+func CheckUnitUser(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	userID := ctx.ParamsInt64(":userid")
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	if repo.CheckUnitUser(userID, ctx.QueryBool("isAdmin"), models.UnitType(ctx.QueryInt("unitType"))) {
+		ctx.PlainText(200, []byte("success"))
+		return
+	}
+	ctx.PlainText(404, []byte("no access"))
 }
 
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
+		m.Get("/ssh/:id", GetPublicKeyByID)
+		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
+		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
+		m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
+		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
+		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
+		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)
 		m.Get("/branch/:id/*", GetProtectedBranchBy)
 		m.Get("/repository/:rid", GetRepository)
 		m.Get("/active-pull-request", GetActivePullRequest)
