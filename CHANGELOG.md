@@ -139,6 +139,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix punctuation in English translation (#4958)
   * Fix translation (#4355)
 
+## [1.5.3](https://github.com/go-gitea/gitea/releases/tag/v1.5.3) - 2018-10-31
+* SECURITY
+  * Fix remote command execution vulnerability in upstream library (#5177) (#5196)
+
 ## [1.5.2](https://github.com/go-gitea/gitea/releases/tag/v1.5.2) - 2018-10-09
 * SECURITY
   * Enforce token on api routes (#4840) (#4905)

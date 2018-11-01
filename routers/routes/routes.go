@@ -134,6 +134,7 @@ func NewMacaron() *macaron.Macaron {
 		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
+	m.SetAutoHead(true)
 	return m
 }
 
