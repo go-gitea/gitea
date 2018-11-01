@@ -76,6 +76,11 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	}
 
 	cmd := exec.Command(commands[0], args...)
+	cmd.Env = append(
+		os.Environ(),
+		"GITEA_PREFIX_SRC="+urlPrefix,
+		"GITEA_PREFIX_RAW="+strings.Replace(urlPrefix, "/src/", "/raw/", 1),
+	)
 	if !p.IsInputFile {
 		cmd.Stdin = rd
 	}

@@ -7,7 +7,10 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
@@ -89,4 +92,103 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 		Content: rawKeyBody.Key,
 		Mode:    models.AccessModeWrite,
 	})
+}
+
+func TestCreateUserKey(t *testing.T) {
+	prepareTestEnv(t)
+	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+
+	session := loginUser(t, "user1")
+	token := url.QueryEscape(getTokenForLoggedInUser(t, session))
+	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
+	keyType := "ssh-rsa"
+	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCyTiPTeHJl6Gs5D1FyHT0qTWpVkAy9+LIKjctQXklrePTvUNVrSpt4r2exFYXNMPeA8V0zCrc3Kzs1SZw3jWkG3i53te9onCp85DqyatxOD2pyZ30/gPn1ZUg40WowlFM8gsUFMZqaH7ax6d8nsBKW7N/cRyqesiOQEV9up3tnKjIB8XMTVvC5X4rBWgywz7AFxSv8mmaTHnUgVW4LgMPwnTWo0pxtiIWbeMLyrEE4hIM74gSwp6CRQYo6xnG3fn4yWkcK2X2mT9adQ241IDdwpENJHcry/T6AJ8dNXduEZ67egnk+rVlQ2HM4LpymAv9DAAFFeaQK0hT+3aMDoumV"
+	rawKeyBody := api.CreateKeyOption{
+		Title: "test-key",
+		Key:   keyType + " " + keyContent,
+	}
+	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+
+	var newPublicKey api.PublicKey
+	DecodeJSON(t, resp, &newPublicKey)
+	models.AssertExistsAndLoadBean(t, &models.PublicKey{
+		ID:      newPublicKey.ID,
+		OwnerID: user.ID,
+		Name:    rawKeyBody.Title,
+		Content: rawKeyBody.Key,
+		Mode:    models.AccessModeWrite,
+	})
+
+	// Search by fingerprint
+	fingerprintURL := fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%s", token, newPublicKey.Fingerprint)
+
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	var fingerprintPublicKeys []api.PublicKey
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
+	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
+	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
+
+	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", user.Name, token, newPublicKey.Fingerprint)
+
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
+	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
+	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
+
+	// Fail search by fingerprint
+	fingerprintURL = fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%sA", token, newPublicKey.Fingerprint)
+
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Len(t, fingerprintPublicKeys, 0)
+
+	// Fail searching for wrong users key
+	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", "user2", token, newPublicKey.Fingerprint)
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Len(t, fingerprintPublicKeys, 0)
+
+	// Now login as user 2
+	session2 := loginUser(t, "user2")
+	token2 := url.QueryEscape(getTokenForLoggedInUser(t, session2))
+
+	// Should find key even though not ours, but we shouldn't know whose it is
+	fingerprintURL = fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%s", token2, newPublicKey.Fingerprint)
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
+	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
+	assert.Nil(t, fingerprintPublicKeys[0].Owner)
+
+	// Should find key even though not ours, but we shouldn't know whose it is
+	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", user.Name, token2, newPublicKey.Fingerprint)
+
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
+	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
+	assert.Nil(t, fingerprintPublicKeys[0].Owner)
+
+	// Fail when searching for key if it is not ours
+	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", "user2", token2, newPublicKey.Fingerprint)
+	req = NewRequest(t, "GET", fingerprintURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	assert.Len(t, fingerprintPublicKeys, 0)
 }
