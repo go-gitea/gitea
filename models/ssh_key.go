@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
 )
@@ -465,6 +466,19 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return key, nil
 }
 
+// SearchPublicKey returns a list of public keys matching the provided arguments.
+func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	cond := builder.NewCond()
+	if uid != 0 {
+		cond = cond.And(builder.Eq{"owner_id": uid})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
+}
+
 // ListPublicKeys returns a list of public keys belongs to given user.
 func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
@@ -832,4 +846,20 @@ func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
 	return keys, x.
 		Where("repo_id = ?", repoID).
 		Find(&keys)
+}
+
+// SearchDeployKeys returns a list of deploy keys matching the provided arguments.
+func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+	keys := make([]*DeployKey, 0, 5)
+	cond := builder.NewCond()
+	if repoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": repoID})
+	}
+	if keyID != 0 {
+		cond = cond.And(builder.Eq{"key_id": keyID})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
 }
