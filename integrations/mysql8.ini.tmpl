@@ -10,21 +10,21 @@ PASSWD   = {{TEST_MYSQL8_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
+ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve
+REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
 
 [repository]
-ROOT = integrations/gitea-integration-mysql/gitea-repositories
+ROOT = integrations/gitea-integration-mysql8/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-mysql
-LOCAL_WIKI_PATH = tmp/local-wiki-mysql
+LOCAL_COPY_PATH = tmp/local-repo-mysql8
+LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
 
 [server]
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3001
-ROOT_URL         = http://localhost:3001/
+ROOT_URL         = http://localhost:3003/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
