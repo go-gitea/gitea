@@ -11,7 +11,9 @@ daysUntilClose: 14
 exemptLabels:
   - status/blocked 
   - kind/security 
-  - lgtm/done 
+  - lgtm/done
+  - reviewed/confirmed
+  - priority/critical
 
 # Set to true to ignore issues in a project (defaults to false)
 exemptProjects: false
@@ -33,8 +35,9 @@ markComment: >
 #   Your comment here.
 
 # Comment to post when closing a stale Issue or Pull Request.
-# closeComment: >
-#   Your comment here.
+closeComment: >
+  This issue has been automatically closed because of inactivity.
+  You can re-open it if needed.
 
 # Limit the number of actions per hour, from 1-30. Default is 30
 limitPerRun: 1
@@ -49,6 +52,9 @@ pulls:
     This pull request has been automatically marked as stale because it has not had
     recent activity. It will be closed if no further activity occurs during the next 2 months. Thank you
     for your contributions.
+  closeComment: >
+    This pull request has been automatically closed because of inactivity.
+    You can re-open it if needed.
 
 # issues:
 #   exemptLabels:
