@@ -10,13 +10,13 @@ package oauth2 // import "golang.org/x/oauth2"
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2/internal"
 )
 
