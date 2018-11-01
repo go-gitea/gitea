@@ -85,16 +85,16 @@ func (c *Client) GetPullRequest(owner, repo string, index int64) (*PullRequest, 
 
 // CreatePullRequestOption options when creating a pull request
 type CreatePullRequestOption struct {
-	Head      string     `json:"head" binding:"Required"`
-	Base      string     `json:"base" binding:"Required"`
-	Title     string     `json:"title" binding:"Required"`
-	Body      string     `json:"body"`
-	Assignee  string     `json:"assignee"`
-	Assignees []string   `json:"assignees"`
-	Milestone int64      `json:"milestone"`
-	Labels    []int64    `json:"labels"`
+	Head      string   `json:"head" binding:"Required"`
+	Base      string   `json:"base" binding:"Required"`
+	Title     string   `json:"title" binding:"Required"`
+	Body      string   `json:"body"`
+	Assignee  string   `json:"assignee"`
+	Assignees []string `json:"assignees"`
+	Milestone int64    `json:"milestone"`
+	Labels    []int64  `json:"labels"`
 	// swagger:strfmt date-time
-	Deadline  *time.Time `json:"due_date"`
+	Deadline *time.Time `json:"due_date"`
 }
 
 // CreatePullRequest create pull request with options
@@ -110,15 +110,15 @@ func (c *Client) CreatePullRequest(owner, repo string, opt CreatePullRequestOpti
 
 // EditPullRequestOption options when modify pull request
 type EditPullRequestOption struct {
-	Title     string     `json:"title"`
-	Body      string     `json:"body"`
-	Assignee  string     `json:"assignee"`
-	Assignees []string   `json:"assignees"`
-	Milestone int64      `json:"milestone"`
-	Labels    []int64    `json:"labels"`
-	State     *string    `json:"state"`
+	Title     string   `json:"title"`
+	Body      string   `json:"body"`
+	Assignee  string   `json:"assignee"`
+	Assignees []string `json:"assignees"`
+	Milestone int64    `json:"milestone"`
+	Labels    []int64  `json:"labels"`
+	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline  *time.Time `json:"due_date"`
+	Deadline *time.Time `json:"due_date"`
 }
 
 // EditPullRequest modify pull request with PR id and options

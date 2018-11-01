@@ -28,33 +28,35 @@ const (
 
 // Source Basic LDAP authentication service
 type Source struct {
-	Name              string // canonical name (ie. corporate.ad)
-	Host              string // LDAP host
-	Port              int    // port number
-	SecurityProtocol  SecurityProtocol
-	SkipVerify        bool
-	BindDN            string // DN to bind with
-	BindPassword      string // Bind DN password
-	UserBase          string // Base search path for users
-	UserDN            string // Template for the DN of the user for simple auth
-	AttributeUsername string // Username attribute
-	AttributeName     string // First name attribute
-	AttributeSurname  string // Surname attribute
-	AttributeMail     string // E-mail attribute
-	AttributesInBind  bool   // fetch attributes in bind context (not user)
-	SearchPageSize    uint32 // Search with paging page size
-	Filter            string // Query filter to validate entry
-	AdminFilter       string // Query filter to check if user is admin
-	Enabled           bool   // if this source is disabled
+	Name                  string // canonical name (ie. corporate.ad)
+	Host                  string // LDAP host
+	Port                  int    // port number
+	SecurityProtocol      SecurityProtocol
+	SkipVerify            bool
+	BindDN                string // DN to bind with
+	BindPassword          string // Bind DN password
+	UserBase              string // Base search path for users
+	UserDN                string // Template for the DN of the user for simple auth
+	AttributeUsername     string // Username attribute
+	AttributeName         string // First name attribute
+	AttributeSurname      string // Surname attribute
+	AttributeMail         string // E-mail attribute
+	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	SearchPageSize        uint32 // Search with paging page size
+	Filter                string // Query filter to validate entry
+	AdminFilter           string // Query filter to check if user is admin
+	Enabled               bool   // if this source is disabled
 }
 
 // SearchResult : user data
 type SearchResult struct {
-	Username string // Username
-	Name     string // Name
-	Surname  string // Surname
-	Mail     string // E-mail address
-	IsAdmin  bool   // if user is administrator
+	Username     string   // Username
+	Name         string   // Name
+	Surname      string   // Surname
+	Mail         string   // E-mail address
+	SSHPublicKey []string // SSH Public Key
+	IsAdmin      bool     // if user is administrator
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -298,10 +300,10 @@ func (ls *Source) SearchEntries() []*SearchResult {
 
 	userFilter := fmt.Sprintf(ls.Filter, "*")
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, ls.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
+		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey},
 		nil)
 
 	var sr *ldap.SearchResult
@@ -319,11 +321,12 @@ func (ls *Source) SearchEntries() []*SearchResult {
 
 	for i, v := range sr.Entries {
 		result[i] = &SearchResult{
-			Username: v.GetAttributeValue(ls.AttributeUsername),
-			Name:     v.GetAttributeValue(ls.AttributeName),
-			Surname:  v.GetAttributeValue(ls.AttributeSurname),
-			Mail:     v.GetAttributeValue(ls.AttributeMail),
-			IsAdmin:  checkAdmin(l, ls, v.DN),
+			Username:     v.GetAttributeValue(ls.AttributeUsername),
+			Name:         v.GetAttributeValue(ls.AttributeName),
+			Surname:      v.GetAttributeValue(ls.AttributeSurname),
+			Mail:         v.GetAttributeValue(ls.AttributeMail),
+			SSHPublicKey: v.GetAttributeValues(ls.AttributeSSHPublicKey),
+			IsAdmin:      checkAdmin(l, ls, v.DN),
 		}
 	}
 

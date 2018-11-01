@@ -5,21 +5,25 @@
 package swagger
 
 import (
+	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 )
 
+// User
 // swagger:response User
 type swaggerResponseUser struct {
 	// in:body
 	Body api.User `json:"body"`
 }
 
+// UserList
 // swagger:response UserList
 type swaggerResponseUserList struct {
 	// in:body
 	Body []api.User `json:"body"`
 }
 
+// EmailList
 // swagger:response EmailList
 type swaggerResponseEmailList struct {
 	// in:body
@@ -30,4 +34,11 @@ type swaggerResponseEmailList struct {
 type swaggerModelEditUserOption struct {
 	// in:body
 	Options api.EditUserOption
+}
+
+// UserHeatmapData
+// swagger:response UserHeatmapData
+type swaggerResponseUserHeatmapData struct {
+	// in:body
+	Body []models.UserHeatmapData `json:"body"`
 }

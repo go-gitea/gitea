@@ -2,11 +2,11 @@
 #
 # $OpenBSD$
 
-daemon="/home/git/gitea/gitea"
+daemon="/usr/local/bin/gitea"
 daemon_user="git"
-daemon_flags="web"
+daemon_flags="web -c /etc/gitea/app.ini"
 
-gitea_directory="/home/git/gitea"
+gitea_directory="/var/lib/gitea"
 
 rc_bg=YES
 

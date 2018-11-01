@@ -5,7 +5,7 @@
 		<div class="ui grid">
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
-				{{if .IsRepositoryAdmin}}
+				{{if .IsRepositoryWriter}}
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
 					</h4>

@@ -1,0 +1,7 @@
+{{if $.comment}}
+	{{ template "repo/diff/comment_form" dict "root" $.root "hidden" $.hidden "reply" $.reply "Line" $.comment.UnsignedLine "File" $.comment.TreePath "Side" $.comment.DiffSide "HasComments" true}}
+{{else if $.root}}
+	{{ template "repo/diff/comment_form" $}}
+{{else}}
+	{{ template "repo/diff/comment_form" dict "root" $}}
+{{end}}

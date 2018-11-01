@@ -251,7 +251,7 @@ func (repo *Repository) APIURL() string {
 
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
-	return repo.innerAPIFormat(mode, false)
+	return repo.innerAPIFormat(x, mode, false)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -265,22 +265,22 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
-func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
+func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	permission := &api.Permission{
 		Admin: mode >= AccessModeAdmin,
 		Push:  mode >= AccessModeWrite,
 		Pull:  mode >= AccessModeRead,
 	}
 	if !isParent {
-		err := repo.GetBaseRepo()
+		err := repo.getBaseRepo(e)
 		if err != nil {
 			log.Error(4, "APIFormat: %v", err)
 		}
 		if repo.BaseRepo != nil {
-			parent = repo.BaseRepo.innerAPIFormat(mode, true)
+			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
 	return &api.Repository{
@@ -321,7 +321,11 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 
 // CheckUnitUser check whether user could visit the unit of this repository
 func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitType) bool {
-	if err := repo.getUnitsByUserID(x, userID, isAdmin); err != nil {
+	return repo.checkUnitUser(x, userID, isAdmin, unitType)
+}
+
+func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
+	if err := repo.getUnitsByUserID(e, userID, isAdmin); err != nil {
 		return false
 	}
 
@@ -365,22 +369,14 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
-	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
-	for _, team := range teams {
-		// Administrators can not be limited
-		if team.Authorize >= AccessModeAdmin {
-			return nil
-		}
-		for _, unitType := range team.UnitTypes {
-			allTypes[unitType] = struct{}{}
-		}
-	}
-
 	// unique
 	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
 	for _, u := range repo.Units {
-		if _, ok := allTypes[u.Type]; ok {
-			newRepoUnits = append(newRepoUnits, u)
+		for _, team := range teams {
+			if team.unitEnabled(e, u.Type) {
+				newRepoUnits = append(newRepoUnits, u)
+				break
+			}
 		}
 	}
 
@@ -452,7 +448,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 
 // GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
-	if err := repo.getUnits(x); err != nil {
+	return repo.getUnit(x, tp)
+}
+
+func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
+	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
 	for _, unit := range repo.Units {
@@ -600,9 +600,9 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
 }
 
-// GetAssigneeByID returns the user that has write access of repository by given ID.
-func (repo *Repository) GetAssigneeByID(userID int64) (*User, error) {
-	return GetAssigneeByID(repo, userID)
+// GetUserIfHasWriteAccess returns the user that has write access of repository by given ID.
+func (repo *Repository) GetUserIfHasWriteAccess(userID int64) (*User, error) {
+	return GetUserIfHasWriteAccess(repo, userID)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
@@ -625,11 +625,15 @@ func (repo *Repository) GetMirror() (err error) {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
+	return repo.getBaseRepo(x)
+}
+
+func (repo *Repository) getBaseRepo(e Engine) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
 
-	repo.BaseRepo, err = GetRepositoryByID(repo.ForkID)
+	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
 	return err
 }
 
@@ -685,7 +689,7 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 func (repo *Repository) updateSize(e Engine) error {
-	repoInfoSize, err := git.GetRepoSize(repo.RepoPath())
+	repoInfoSize, err := git.GetRepoSize(repo.repoPath(e))
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
@@ -789,7 +793,7 @@ var (
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
+		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener noreferrer">%[1]s</a>`, s)
 	}
 	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
@@ -897,7 +901,7 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
 }
 
-func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
+func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
 	repoName := repo.Name
 	if isWiki {
 		repoName += ".wiki"
@@ -908,7 +912,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		sshUser = setting.SSH.BuiltinServerUser
 	}
 
-	repo.Owner = repo.MustOwner()
+	repo.Owner = repo.mustOwner(e)
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
@@ -923,7 +927,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink() (cl *CloneLink) {
-	return repo.cloneLink(false)
+	return repo.cloneLink(x, false)
 }
 
 // MigrateRepoOptions contains the repository migrate options
@@ -1039,7 +1043,6 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 		}
-		UpdateRepoIndexer(repo)
 	}
 
 	if err = repo.UpdateSize(); err != nil {
@@ -1057,10 +1060,16 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		}
 
 		repo.IsMirror = true
-		return repo, UpdateRepository(repo, false)
+		err = UpdateRepository(repo, false)
+	} else {
+		repo, err = CleanUpMigrateInfo(repo)
 	}
 
-	return CleanUpMigrateInfo(repo)
+	if err != nil && !repo.IsBare {
+		UpdateRepoIndexer(repo)
+	}
+
+	return repo, err
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
@@ -1200,7 +1209,7 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 	}
 }
 
-func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	// Clone to temporary path and do the init commit.
 	_, stderr, err := process.GetManager().Exec(
 		fmt.Sprintf("initRepository(git clone): %s", repoPath),
@@ -1216,7 +1225,7 @@ func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRep
 		return fmt.Errorf("getRepoInitFile[%s]: %v", opts.Readme, err)
 	}
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.cloneLink(e, false)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    repo.Description,
@@ -1289,7 +1298,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 
 		defer os.RemoveAll(tmpDir)
 
-		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(e, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
 		}
 
@@ -1353,7 +1362,17 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+				Config: &IssuesConfig{
+					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+				},
+			})
+		} else if tp == UnitTypePullRequests {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowSquash: true},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1384,7 +1403,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("addRepository: %v", err)
 		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
-			Repository:   repo.APIFormat(AccessModeOwner),
+			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),
 			Sender:       doer.APIFormat(),
 		}); err != nil {
@@ -1409,7 +1428,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 // CreateRepository creates a repository for the user/organization u.
 func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
-	if !u.CanCreateRepo() {
+	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
@@ -1703,7 +1722,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		daemonExportFile := path.Join(repo.repoPath(e), `git-daemon-export-ok`)
 		if repo.IsPrivate && com.IsExist(daemonExportFile) {
 			if err = os.Remove(daemonExportFile); err != nil {
 				log.Error(4, "Failed to remove %s: %v", daemonExportFile, err)
@@ -1824,6 +1843,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&PullRequest{BaseRepoID: repoID},
 		&RepoUnit{RepoID: repoID},
 		&RepoRedirect{RedirectRepoID: repoID},
+		&Webhook{RepoID: repoID},
+		&HookTask{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1844,6 +1865,15 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			return err
 		}
 		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueUser{}); err != nil {
+			return err
+		}
+		if _, err = sess.In("issue_id", issueIDs).Delete(&Reaction{}); err != nil {
+			return err
+		}
+		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{}); err != nil {
+			return err
+		}
+		if _, err = sess.In("issue_id", issueIDs).Delete(&Stopwatch{}); err != nil {
 			return err
 		}
 
@@ -1948,7 +1978,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := x.Select("repository.*").
-		Join("INNER", "user", "`user`.id = repository.owner_id").
+		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
@@ -2434,7 +2464,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	repoPath := RepoPath(u.Name, repo.Name)
 	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
 		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
-		"git", "clone", "--bare", oldRepo.RepoPath(), repoPath)
+		"git", "clone", "--bare", oldRepo.repoPath(sess), repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %v", stderr)
 	}
@@ -2454,6 +2484,19 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	err = sess.Commit()
 	if err != nil {
 		return nil, err
+	}
+
+	oldMode, _ := AccessLevel(doer.ID, oldRepo)
+	mode, _ := AccessLevel(doer.ID, repo)
+
+	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
+		Forkee: oldRepo.APIFormat(oldMode),
+		Repo:   repo.APIFormat(mode),
+		Sender: doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+	} else {
+		go HookQueue.Add(oldRepo.ID)
 	}
 
 	if err = repo.UpdateSize(); err != nil {

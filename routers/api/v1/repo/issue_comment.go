@@ -9,13 +9,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
 
 // ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issue/{index}/comments issue issueGetComments
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments issue issueGetComments
 	// ---
 	// summary: List all comments on an issue
 	// produces:
@@ -31,12 +32,13 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the specified time are returned.
 	//   type: string
@@ -90,7 +92,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the provided time are returned.
 	//   type: string
@@ -139,15 +141,16 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateIssueOption"
+	//     "$ref": "#/definitions/CreateIssueCommentOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Comment"
@@ -162,6 +165,8 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
+
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
@@ -190,6 +195,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -231,6 +237,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -261,8 +268,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
+	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(comment); err != nil {
+	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
@@ -289,6 +297,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -322,6 +331,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -348,7 +358,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteComment(comment); err != nil {
+	if err = models.DeleteComment(ctx.User, comment); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}

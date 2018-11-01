@@ -198,6 +198,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Labels:    apiIssue.Labels,
 		Milestone: apiIssue.Milestone,
 		Assignee:  apiIssue.Assignee,
+		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
@@ -213,7 +214,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 	}
 
 	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict
+		mergeable := pr.Status != PullRequestStatusConflict && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {
@@ -456,15 +457,18 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "LoadAttributes: %v", err)
 		return nil
 	}
+
+	mode, _ := AccessLevel(doer.ID, pr.Issue.Repo)
 	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
+		Repository:  pr.Issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
-		return nil
+	} else {
+		go HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
@@ -491,12 +495,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		After:      mergeCommit.ID.String(),
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
 		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(AccessModeNone),
+		Repo:       pr.BaseRepo.APIFormat(mode),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
 	}
 	if err = PrepareWebhooks(pr.BaseRepo, HookEventPush, p); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
+		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(pr.BaseRepo.ID)
 	}
 	return nil
 }
@@ -719,7 +725,7 @@ func (pr *PullRequest) testPatch() (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -732,7 +738,11 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
+		AssigneeIDs: assigneeIDs,
 	}); err != nil {
+		if IsErrUserDoesNotHaveAccessToRepo(err) {
+			return err
+		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
@@ -777,16 +787,18 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	pr.Issue = pull
 	pull.PullRequest = pr
+	mode, _ := AccessLevel(pull.Poster.ID, repo)
 	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(AccessModeNone),
+		Repository:  repo.APIFormat(mode),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(repo.ID)
 	}
-	go HookQueue.Add(repo.ID)
 
 	return nil
 }
@@ -1063,10 +1075,7 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	}
 
 	// Load issues.
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
-	}
+	issueIDs := prs.getIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := e.
 		Where("id > 0").
@@ -1085,9 +1094,42 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	return nil
 }
 
+func (prs PullRequestList) getIssueIDs() []int64 {
+	issueIDs := make([]int64, 0, len(prs))
+	for i := range prs {
+		issueIDs = append(issueIDs, prs[i].IssueID)
+	}
+	return issueIDs
+}
+
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(x)
+}
+
+func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
+	if len(prs) == 0 {
+		return nil
+	}
+	issueIDs := prs.getIssueIDs()
+	var codeComments []*Comment
+	if err := e.
+		Where("type = ? and invalidated = ?", CommentTypeCode, false).
+		In("issue_id", issueIDs).
+		Find(&codeComments); err != nil {
+		return fmt.Errorf("find code comments: %v", err)
+	}
+	for _, comment := range codeComments {
+		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
+func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
+	return prs.invalidateCodeComments(x, doer, repo, branch)
 }
 
 func addHeadRepoTasks(prs []*PullRequest) {
@@ -1116,10 +1158,13 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	}
 
 	if isSync {
-		if err = PullRequestList(prs).LoadAttributes(); err != nil {
+		requests := PullRequestList(prs)
+		if err = requests.LoadAttributes(); err != nil {
 			log.Error(4, "PullRequestList.LoadAttributes: %v", err)
 		}
-
+		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
+			log.Error(4, "checkForInvalidation: %v", invalidationErr)
+		}
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
@@ -1140,6 +1185,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 				go HookQueue.Add(pr.Issue.Repo.ID)
 			}
 		}
+
 	}
 
 	addHeadRepoTasks(prs)
@@ -1153,6 +1199,24 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	for _, pr := range prs {
 		pr.AddToTaskQueue()
 	}
+}
+
+func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, branch string) error {
+	repo, err := GetRepositoryByID(repoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("git.OpenRepository: %v", err)
+	}
+	go func() {
+		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
+		if err != nil {
+			log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
+		}
+	}()
+	return nil
 }
 
 // ChangeUsernameInPullRequests changes the name of head_user_name
@@ -1181,6 +1245,37 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
 	}
+}
+
+// IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
+func (pr *PullRequest) IsWorkInProgress() bool {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error(4, "LoadIssue: %v", err)
+		return false
+	}
+
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
+		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
+// It returns an empty string when none were found
+func (pr *PullRequest) GetWorkInProgressPrefix() string {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error(4, "LoadIssue: %v", err)
+		return ""
+	}
+
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
+		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+			return pr.Issue.Title[0:len(prefix)]
+		}
+	}
+	return ""
 }
 
 // TestPullRequests checks and tests untested patches of pull requests.

@@ -179,81 +179,115 @@ function initCommentForm() {
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
 
-    // Labels
-    var $list = $('.ui.labels.list');
-    var $noSelect = $list.find('.no-select');
-    var $labelMenu = $('.select-label .menu');
-    var hasLabelUpdateAction = $labelMenu.data('action') == 'update';
+    // Listsubmit
+    function initListSubmits(selector, outerSelector) {
+        var $list = $('.ui.' + outerSelector + '.list');
+        var $noSelect = $list.find('.no-select');
+        var $listMenu = $('.' + selector + ' .menu');
+        var hasLabelUpdateAction = $listMenu.data('action') == 'update';
 
-    $('.select-label').dropdown('setting', 'onHide', function(){
-        if (hasLabelUpdateAction) {
-            location.reload();
-        }
-    });
-
-    $labelMenu.find('.item:not(.no-select)').click(function () {
-        if ($(this).hasClass('checked')) {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
+        $('.' + selector).dropdown('setting', 'onHide', function(){
+            hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                location.reload();
+            }
+        });
+
+        $listMenu.find('.item:not(.no-select)').click(function () {
+
+            // we don't need the action attribute when updating assignees
+            if (selector == 'select-assignees-modify') {
+
+                // UI magic. We need to do this here, otherwise it would destroy the functionality of
+                // adding/removing labels
+                if ($(this).hasClass('checked')) {
+                    $(this).removeClass('checked');
+                    $(this).find('.octicon').removeClass('octicon-check');
+                } else {
+                    $(this).addClass('checked');
+                    $(this).find('.octicon').addClass('octicon-check');
+                }
+
                 updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "detach",
-                    $labelMenu.data('issue-id'),
+                    $listMenu.data('update-url'),
+                    "",
+                    $listMenu.data('issue-id'),
                     $(this).data('id')
                 );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                return false;
             }
-        } else {
-            $(this).addClass('checked');
-            $(this).find('.octicon').addClass('octicon-check');
-            if (hasLabelUpdateAction) {
-                updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "attach",
-                    $labelMenu.data('issue-id'),
-                    $(this).data('id')
-                );
-            }
-        }
 
-        var labelIds = [];
-        $(this).parent().find('.item').each(function () {
             if ($(this).hasClass('checked')) {
-                labelIds.push($(this).data('id'));
-                $($(this).data('id-selector')).removeClass('hide');
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "detach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             } else {
-                $($(this).data('id-selector')).addClass('hide');
+                $(this).addClass('checked');
+                $(this).find('.octicon').addClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "attach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             }
+
+            var listIds = [];
+            $(this).parent().find('.item').each(function () {
+                if ($(this).hasClass('checked')) {
+                    listIds.push($(this).data('id'));
+                    $($(this).data('id-selector')).removeClass('hide');
+                } else {
+                    $($(this).data('id-selector')).addClass('hide');
+                }
+            });
+            if (listIds.length == 0) {
+                $noSelect.removeClass('hide');
+            } else {
+                $noSelect.addClass('hide');
+            }
+            $($(this).parent().data('id')).val(listIds.join(","));
+            return false;
         });
-        if (labelIds.length == 0) {
+        $listMenu.find('.no-select.item').click(function () {
+            if (hasLabelUpdateAction || selector == 'select-assignees-modify') {
+                updateIssuesMeta(
+                    $listMenu.data('update-url'),
+                    "clear",
+                    $listMenu.data('issue-id'),
+                    ""
+                );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+            }
+
+            $(this).parent().find('.item').each(function () {
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+            });
+
+            $list.find('.item').each(function () {
+                $(this).addClass('hide');
+            });
             $noSelect.removeClass('hide');
-        } else {
-            $noSelect.addClass('hide');
-        }
-        $($(this).parent().data('id')).val(labelIds.join(","));
-        return false;
-    });
-    $labelMenu.find('.no-select.item').click(function () {
-        if (hasLabelUpdateAction) {
-            updateIssuesMeta(
-                $labelMenu.data('update-url'),
-                "clear",
-                $labelMenu.data('issue-id'),
-                ""
-            );
-        }
+            $($(this).parent().data('id')).val('');
 
-        $(this).parent().find('.item').each(function () {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
         });
+    }
 
-        $list.find('.item').each(function () {
-            $(this).addClass('hide');
-        });
-        $noSelect.removeClass('hide');
-        $($(this).parent().data('id')).val('');
-    });
+    // Init labels and assignees
+    initListSubmits('select-label', 'labels');
+    initListSubmits('select-assignees', 'assignees');
+    initListSubmits('select-assignees-modify', 'assignees');
 
     function selectItem(select_id, input_id) {
         var $menu = $(select_id + ' .menu');
@@ -570,7 +604,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $('#content');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -727,9 +761,103 @@ function initRepository() {
     }
 }
 
-function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
+function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
 
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
+
+    $('button.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var path = $(this).data('path');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+            assingMenuAttributes(commentCloud.find('.menu'));
+
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
+        }
+        commentCloud.find('textarea').focus();
+    });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
+}
+
+function initRepositoryCollaboration() {
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -756,7 +884,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -791,6 +919,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
@@ -820,7 +949,6 @@ String.prototype.endsWith = function (pattern) {
         return pos;
     }
 })(jQuery);
-
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1055,8 +1183,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -1398,6 +1524,148 @@ function initCodeView() {
     }
 }
 
+function initU2FAuth() {
+    if($('#wait-for-key').length === 0) {
+        return
+    }
+    u2fApi.ensureSupport()
+        .then(function () {
+            $.getJSON('/user/u2f/challenge').success(function(req) {
+                u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
+                    .then(u2fSigned)
+                    .catch(function (err) {
+                        if(err === undefined) {
+                            u2fError(1);
+                            return
+                        }
+                        u2fError(err.metaData.code);
+                    });
+            });
+        }).catch(function () {
+            // Fallback in case browser do not support U2F
+            window.location.href = "/user/two_factor"
+        })
+}
+function u2fSigned(resp) {
+    $.ajax({
+        url:'/user/u2f/sign',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+    }).done(function(res){
+        window.location.replace(res);
+    }).fail(function (xhr, textStatus) {
+        u2fError(1);
+    });
+}
+
+function u2fRegistered(resp) {
+    if (checkError(resp)) {
+        return;
+    }
+    $.ajax({
+        url:'/user/settings/security/u2f/register',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+        success: function(){
+            window.location.reload();
+        },
+        fail: function (xhr, textStatus) {
+            u2fError(1);
+        }
+    });
+}
+
+function checkError(resp) {
+    if (!('errorCode' in resp)) {
+        return false;
+    }
+    if (resp.errorCode === 0) {
+        return false;
+    }
+    u2fError(resp.errorCode);
+    return true;
+}
+
+
+function u2fError(errorType) {
+    var u2fErrors = {
+        'browser': $('#unsupported-browser'),
+        1: $('#u2f-error-1'),
+        2: $('#u2f-error-2'),
+        3: $('#u2f-error-3'),
+        4: $('#u2f-error-4'),
+        5: $('.u2f-error-5')
+    };
+    u2fErrors[errorType].removeClass('hide');
+    for(var type in u2fErrors){
+        if(type != errorType){
+            u2fErrors[type].addClass('hide');
+        }
+    }
+    $('#u2f-error').modal('show');
+}
+
+function initU2FRegister() {
+    $('#register-device').modal({allowMultiple: false});
+    $('#u2f-error').modal({allowMultiple: false});
+    $('#register-security-key').on('click', function(e) {
+        e.preventDefault();
+        u2fApi.ensureSupport()
+            .then(u2fRegisterRequest)
+            .catch(function() {
+                u2fError('browser');
+            })
+    })
+}
+
+function u2fRegisterRequest() {
+    $.post("/user/settings/security/u2f/request_register", {
+        "_csrf": csrf,
+        "name": $('#nickname').val()
+    }).success(function(req) {
+        $("#nickname").closest("div.field").removeClass("error");
+        $('#register-device').modal('show');
+        if(req.registeredKeys === null) {
+            req.registeredKeys = []
+        }
+        u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
+            .then(u2fRegistered)
+            .catch(function (reason) {
+                if(reason === undefined) {
+                    u2fError(1);
+                    return
+                }
+                u2fError(reason.metaData.code);
+            });
+    }).fail(function(xhr, status, error) {
+        if(xhr.status === 409) {
+            $("#nickname").closest("div.field").addClass("error");
+        }
+    });
+}
+
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
+    });
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -1498,6 +1766,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1609,6 +1882,11 @@ $(document).ready(function () {
     initCtrlEnterSubmit();
     initNavbarContentToggle();
     initTopicbar();
+    initU2FAuth();
+    initU2FRegister();
+    initIssueList();
+    initWipTitle();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2142,40 +2420,75 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic")
-    var editDiv = $("#topic_edit")
-    var viewDiv = $("#repo-topic")
-    var saveBtn = $("#save_topic")
+    var mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topic"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
-    })
+        editDiv.css('display', ''); // show Semantic UI Grid
+    });
+
+    function getPrompts() {
+        var hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
 
     saveBtn.click(function() {
         var topics = $("input[name=topics]").val();
 
-        $.post($(this).data('link'), {
+        $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }).success(function(res){
-            if (res["status"] != "ok") {
-                alert(res.message);
-            } else {
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
+                if (topics.length === 0) {
+                    return
+                }
                 var topicArray = topics.split(",");
+
                 var last = viewDiv.children("a").last();
-                for (var i=0;i < topicArray.length; i++) {
+                for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                viewDiv.show();
             }
-        }).done(function() {
-            editDiv.hide();
-            viewDiv.show();
-        })
-    })
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-    $('#topic_edit .dropdown').dropdown({
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
+    });
+
+    topicDropdown.dropdown({
         allowAdditions: true,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
@@ -2196,7 +2509,7 @@ function initTopicbar() {
             onResponse: function(res) {
                 var formattedResponse = {
                     success: false,
-                    results: new Array(),
+                    results: [],
                 };
 
                 if (res.topics) {
@@ -2209,16 +2522,134 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
     });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        var topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
 }
-function toggleDuedateForm() {
-    $('#add_deadline_form').fadeToggle(150);
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
 }
 
-function deleteDueDate(url) {
-    $.post(url, {
-        '_csrf': csrf,
-    },function( data ) {
-        window.location.reload();
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
+        realDeadline = new Date(newDate);
+    }
+
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+        }
     });
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function initIssueList() {
+    var repolink = $('#repolink').val();
+    $('.new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+            },
+
+            fullTextSearch: true
+        })
+    ;
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('button.comment-form-reply').show();
+    } else {
+        form.closest('.comment-code-cloud').remove()
+    }
 }

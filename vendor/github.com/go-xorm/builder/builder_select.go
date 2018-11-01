@@ -34,24 +34,65 @@ func (b *Builder) selectWriteTo(w Writer) error {
 		}
 	}
 
-	if _, err := fmt.Fprintf(w, " FROM %s", b.tableName); err != nil {
+	if _, err := fmt.Fprint(w, " FROM ", b.tableName); err != nil {
 		return err
 	}
 
 	for _, v := range b.joins {
-		fmt.Fprintf(w, " %s JOIN %s ON ", v.joinType, v.joinTable)
+		if _, err := fmt.Fprintf(w, " %s JOIN %s ON ", v.joinType, v.joinTable); err != nil {
+			return err
+		}
+
 		if err := v.joinCond.WriteTo(w); err != nil {
 			return err
 		}
 	}
 
-	if !b.cond.IsValid() {
-		return nil
+	if b.cond.IsValid() {
+		if _, err := fmt.Fprint(w, " WHERE "); err != nil {
+			return err
+		}
+
+		if err := b.cond.WriteTo(w); err != nil {
+			return err
+		}
 	}
 
-	if _, err := fmt.Fprint(w, " WHERE "); err != nil {
-		return err
+	if len(b.groupBy) > 0 {
+		if _, err := fmt.Fprint(w, " GROUP BY ", b.groupBy); err != nil {
+			return err
+		}
 	}
 
-	return b.cond.WriteTo(w)
+	if len(b.having) > 0 {
+		if _, err := fmt.Fprint(w, " HAVING ", b.having); err != nil {
+			return err
+		}
+	}
+
+	if len(b.orderBy) > 0 {
+		if _, err := fmt.Fprint(w, " ORDER BY ", b.orderBy); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// OrderBy orderBy SQL
+func (b *Builder) OrderBy(orderBy string) *Builder {
+	b.orderBy = orderBy
+	return b
+}
+
+// GroupBy groupby SQL
+func (b *Builder) GroupBy(groupby string) *Builder {
+	b.groupBy = groupby
+	return b
+}
+
+// Having having SQL
+func (b *Builder) Having(having string) *Builder {
+	b.having = having
+	return b
 }
