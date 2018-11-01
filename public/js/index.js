@@ -2590,6 +2590,10 @@ function updateDeadline(deadlineString) {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
         contentType: 'application/json',
         type: 'POST',
         success: function () {
