@@ -49,7 +49,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdGenerate,
 		cmd.CmdMigrate,
 	}
-	app.Flags = append(app.Flags, []cli.Flag{}...)
+	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
 	app.Action = cmd.CmdWeb.Action
 	err := app.Run(os.Args)
 	if err != nil {
