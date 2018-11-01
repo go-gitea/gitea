@@ -25,7 +25,7 @@ staleLabel: stale
 # Comment to post when marking as stale. Set to `false` to disable
 markComment: >
   This issue has been automatically marked as stale because it has not had
-  recent activity. It will be closed if no further activity occurs. Thank you
+  recent activity. It will be closed if no further activity occurs during the next 2 weeks. Thank you
   for your contributions.
 
 # Comment to post when removing the stale label.
@@ -47,7 +47,7 @@ pulls:
   daysUntilStale: 60
   markComment: >
     This pull request has been automatically marked as stale because it has not had
-    recent activity. It will be closed if no further activity occurs. Thank you
+    recent activity. It will be closed if no further activity occurs during the next 2 months. Thank you
     for your contributions.
 
 # issues:
