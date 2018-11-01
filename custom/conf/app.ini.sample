@@ -85,13 +85,15 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
+; Set the color range to use for heatmap (default to `['#f4f4f4', '#459928']` but can use `['#2d303b', '#80bb46']` with the theme `arc-green`)
+HEATMAP_COLOR_RANGE = `['#f4f4f4', '#459928']`
 
 [ui.admin]
 ; Number of users that are displayed on one page
 USER_PAGING_NUM = 50
 ; Number of repos that are displayed on one page
 REPO_PAGING_NUM = 50
-; Number of notices that are displayed on in one page
+; Number of notices that are displayed on one page
 NOTICE_PAGING_NUM = 25
 ; Number of organizations that are displayed on one page
 ORG_PAGING_NUM = 50
@@ -152,6 +154,9 @@ SSH_PORT = 22
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
+; Gitea will create a authorized_keys file by default when it is not using the internal ssh server
+; If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
 ; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128

@@ -1084,7 +1084,7 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	}
 	conds := opts.toConds()
 	if review.ID == 0 {
-		conds.And(builder.Eq{"invalidated": false})
+		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
 	var comments []*Comment

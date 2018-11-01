@@ -193,6 +193,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
+- `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
 
 ## Webhook (`webhook`)
 
@@ -357,6 +358,10 @@ IS_INPUT_FILE = false
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
+
+Two special environment variables are passed to the render command:
+- `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
+- `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
 ## Other (`other`)
 
