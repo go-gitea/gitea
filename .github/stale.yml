@@ -43,12 +43,12 @@ limitPerRun: 1
 # only: issues
 
 # Optionally, specify configuration settings that are specific to just 'issues' or 'pulls':
-# pulls:
-#   daysUntilStale: 30
-#   markComment: >
-#     This pull request has been automatically marked as stale because it has not had
-#     recent activity. It will be closed if no further activity occurs. Thank you
-#     for your contributions.
+pulls:
+  daysUntilStale: 60
+  markComment: >
+    This pull request has been automatically marked as stale because it has not had
+    recent activity. It will be closed if no further activity occurs. Thank you
+    for your contributions.
 
 # issues:
 #   exemptLabels:
