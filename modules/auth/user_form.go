@@ -72,14 +72,27 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName string `binding:"Required;AlphaDashDot;MaxSize(35)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	Password           string `binding:"Required;MaxSize(255)"`
+	Retype             string
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
+}
+
+// Validate valideates the fields
+func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// MustChangePasswordForm form for updating your password after account creation
+// by an admin
+type MustChangePasswordForm struct {
 	Password string `binding:"Required;MaxSize(255)"`
 	Retype   string
 }
 
 // Validate valideates the fields
-func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

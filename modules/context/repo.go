@@ -85,9 +85,9 @@ func (r *Repository) CanCreateBranch() bool {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected
+//   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName, doer)
+	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
 	if err != nil {
 		return false, err
 	}
@@ -102,6 +102,11 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.IsWriter() || issue.IsPoster(user.ID) || isAssigned)
+}
+
+// CanCreateIssueDependencies returns whether or not a user can create dependencies.
+func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
+	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -620,7 +625,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				// redirect from old URL scheme to new URL scheme
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
-					strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")),
+					strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")),
 					ctx.Repo.BranchNameSubURL(),
 					ctx.Repo.TreePath))
 				return

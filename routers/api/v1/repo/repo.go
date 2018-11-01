@@ -20,6 +20,23 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
+	"asc": {
+		"alpha":   models.SearchOrderByAlphabetically,
+		"created": models.SearchOrderByOldest,
+		"updated": models.SearchOrderByLeastUpdated,
+		"size":    models.SearchOrderBySize,
+		"id":      models.SearchOrderByID,
+	},
+	"desc": {
+		"alpha":   models.SearchOrderByAlphabeticallyReverse,
+		"created": models.SearchOrderByNewest,
+		"updated": models.SearchOrderByRecentUpdated,
+		"size":    models.SearchOrderBySizeReverse,
+		"id":      models.SearchOrderByIDReverse,
+	},
+}
+
 // Search repositories via options
 func Search(ctx *context.APIContext) {
 	// swagger:operation GET /repos/search repository repoSearch
@@ -36,6 +53,7 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
+	//   format: int64
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -53,6 +71,17 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: if `uid` is given, search only for repos that the user owns
 	//   type: boolean
+	// - name: sort
+	//   in: query
+	//   description: sort repos by attribute. Supported values are
+	//                "alpha", "created", "updated", "size", and "id".
+	//                Default is "alpha"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending).
+	//                Default is "asc", ignored if "sort" is not specified.
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
@@ -63,6 +92,7 @@ func Search(ctx *context.APIContext) {
 		OwnerID:     ctx.QueryInt64("uid"),
 		Page:        ctx.QueryInt("page"),
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:   ctx.QueryBool("topic"),
 		Collaborate: util.OptionalBoolNone,
 	}
 
@@ -86,6 +116,25 @@ func Search(ctx *context.APIContext) {
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
+	}
+
+	var sortMode = ctx.Query("sort")
+	if len(sortMode) > 0 {
+		var sortOrder = ctx.Query("order")
+		if len(sortOrder) == 0 {
+			sortOrder = "asc"
+		}
+		if searchModeMap, ok := searchOrderByMap[sortOrder]; ok {
+			if orderBy, ok := searchModeMap[sortMode]; ok {
+				opts.OrderBy = orderBy
+			} else {
+				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
+				return
+			}
+		} else {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
+			return
+		}
 	}
 
 	var err error
@@ -257,13 +306,15 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
-	isOwner, err := org.IsOwnedBy(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("IsOwnedBy", err)
-		return
-	} else if !isOwner {
-		ctx.Error(403, "", "Given user is not owner of organization.")
-		return
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403, "", "Given user is not owner of organization.")
+			return
+		}
 	}
 	CreateUserRepo(ctx, org, opt)
 }
@@ -306,15 +357,22 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	if ctxUser.IsOrganization() && !ctx.User.IsAdmin {
-		// Check ownership of organization.
-		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOwnedBy", err)
+	if !ctx.User.IsAdmin {
+		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
+			ctx.Error(403, "", "Given user is not an organization.")
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
-			return
+		}
+
+		if ctxUser.IsOrganization() {
+			// Check ownership of organization.
+			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOwnedBy", err)
+				return
+			} else if !isOwner {
+				ctx.Error(403, "", "Given user is not owner of organization.")
+				return
+			}
 		}
 	}
 
@@ -396,6 +454,7 @@ func GetByID(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the repo to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":

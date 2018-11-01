@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// TopicPost response for creating repository
-func TopicPost(ctx *context.Context) {
+// TopicsPost response for creating repository
+func TopicsPost(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]interface{}{
 			"message": "Only owners could change the topics.",
@@ -25,6 +25,37 @@ func TopicPost(ctx *context.Context) {
 	var topicsStr = strings.TrimSpace(ctx.Query("topics"))
 	if len(topicsStr) > 0 {
 		topics = strings.Split(topicsStr, ",")
+	}
+
+	invalidTopics := make([]string, 0)
+	i := 0
+	for _, topic := range topics {
+		topic = strings.TrimSpace(strings.ToLower(topic))
+		// ignore empty string
+		if len(topic) > 0 {
+			topics[i] = topic
+			i++
+		}
+		if !models.ValidateTopic(topic) {
+			invalidTopics = append(invalidTopics, topic)
+		}
+	}
+	topics = topics[:i]
+
+	if len(topics) > 25 {
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": topics[:0],
+			"message":       ctx.Tr("repo.topic.count_prompt"),
+		})
+		return
+	}
+
+	if len(invalidTopics) > 0 {
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": invalidTopics,
+			"message":       ctx.Tr("repo.topic.format_prompt"),
+		})
+		return
 	}
 
 	err := models.SaveTopics(ctx.Repo.Repository.ID, topics...)

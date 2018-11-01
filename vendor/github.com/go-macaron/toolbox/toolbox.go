@@ -26,7 +26,7 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-const _VERSION = "0.1.2"
+const _VERSION = "0.1.4"
 
 func Version() string {
 	return _VERSION
@@ -58,6 +58,8 @@ type Options struct {
 	HealthCheckFuncs []*HealthCheckFuncDesc
 	// URL for URL map json. Default is "/urlmap.json".
 	URLMapPrefix string
+	// DisableDebug turns off all debug functionality.
+	DisableDebug bool
 	// URL prefix of pprof. Default is "/debug/pprof/".
 	PprofURLPrefix string
 	// URL prefix of profile. Default is "/debug/profile/".
@@ -98,7 +100,7 @@ func prepareOptions(options []Options) {
 	}
 }
 
-func dashboard(ctx *macaron.Context) string {
+func dashboard() string {
 	return fmt.Sprintf(`<p>Toolbox Index:</p>
 	<ol>
 	    <li><a href="%s">Pprof Information</a></li>
@@ -125,23 +127,25 @@ func Toolboxer(m *macaron.Macaron, options ...Options) macaron.Handler {
 	for _, fd := range opt.HealthCheckFuncs {
 		t.AddHealthCheckFunc(fd.Desc, fd.Func)
 	}
-	m.Get(opt.HealthCheckURL, t.handleHealthCheck)
+	m.Route(opt.HealthCheckURL, "HEAD,GET", t.handleHealthCheck)
 
 	// URL map.
 	m.Get(opt.URLMapPrefix, func(rw http.ResponseWriter) {
 		t.JSON(rw)
 	})
 
-	// Pprof.
-	m.Any(path.Join(opt.PprofURLPrefix, "cmdline"), pprof.Cmdline)
-	m.Any(path.Join(opt.PprofURLPrefix, "profile"), pprof.Profile)
-	m.Any(path.Join(opt.PprofURLPrefix, "symbol"), pprof.Symbol)
-	m.Any(opt.PprofURLPrefix, pprof.Index)
-	m.Any(path.Join(opt.PprofURLPrefix, "*"), pprof.Index)
+	if !opt.DisableDebug {
+		// Pprof
+		m.Any(path.Join(opt.PprofURLPrefix, "cmdline"), pprof.Cmdline)
+		m.Any(path.Join(opt.PprofURLPrefix, "profile"), pprof.Profile)
+		m.Any(path.Join(opt.PprofURLPrefix, "symbol"), pprof.Symbol)
+		m.Any(opt.PprofURLPrefix, pprof.Index)
+		m.Any(path.Join(opt.PprofURLPrefix, "*"), pprof.Index)
 
-	// Profile.
-	profilePath = opt.ProfilePath
-	m.Get(opt.ProfileURLPrefix, handleProfile)
+		// Profile
+		profilePath = opt.ProfilePath
+		m.Get(opt.ProfileURLPrefix, handleProfile)
+	}
 
 	// Routes statistic.
 	t.UrlMap = &UrlMap{

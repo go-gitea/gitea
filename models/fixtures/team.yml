@@ -4,9 +4,8 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 2
+  num_repos: 3
   num_members: 1
-  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 2
@@ -16,7 +15,6 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 2
-  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 3
@@ -26,7 +24,6 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
-  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 4
@@ -36,7 +33,6 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
-  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 5
@@ -46,7 +42,6 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 2
-  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 6
@@ -56,4 +51,3 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 1
-  unit_types: '[1,2,3,4,5,6,7]'
