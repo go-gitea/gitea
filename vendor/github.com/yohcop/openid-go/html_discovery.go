@@ -52,8 +52,6 @@ func findProviderFromHeadLink(input io.Reader) (opEndpoint, opLocalID string, er
 							provider = true
 						} else if attr.Val == "openid2.local_id" {
 							localID = true
-						} else if attr.Val == "openid.server" {
-							provider = true
 						}
 					} else if attr.Key == "href" {
 						href = attr.Val

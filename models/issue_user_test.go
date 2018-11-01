@@ -32,23 +32,6 @@ func Test_newIssueUsers(t *testing.T) {
 	AssertExistsAndLoadBean(t, &IssueUser{IssueID: newIssue.ID, UID: repo.OwnerID})
 }
 
-func TestUpdateIssueUserByAssignee(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-
-	// artificially change assignee in issue_user table
-	AssertSuccessfulInsert(t, &IssueUser{IssueID: issue.ID, UID: 5, IsAssigned: true})
-	_, err := x.Cols("is_assigned").
-		Update(&IssueUser{IsAssigned: false}, &IssueUser{IssueID: issue.ID, UID: issue.AssigneeID})
-	assert.NoError(t, err)
-
-	assert.NoError(t, UpdateIssueUserByAssignee(issue))
-
-	// issue_user table should now be correct again
-	AssertExistsAndLoadBean(t, &IssueUser{IssueID: issue.ID, UID: issue.AssigneeID}, "is_assigned=1")
-	AssertExistsAndLoadBean(t, &IssueUser{IssueID: issue.ID, UID: 5}, "is_assigned=0")
-}
-
 func TestUpdateIssueUserByRead(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)

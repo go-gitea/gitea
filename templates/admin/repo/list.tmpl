@@ -7,7 +7,7 @@
 			{{.i18n.Tr "admin.repos.repo_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			{{template "admin/base/search" .}}
+			{{template "admin/repo/search" .}}
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table">
@@ -19,6 +19,7 @@
 						<th>{{.i18n.Tr "admin.repos.private"}}</th>
 						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
 						<th>{{.i18n.Tr "admin.repos.stars"}}</th>
+						<th>{{.i18n.Tr "admin.repos.forks"}}</th>
 						<th>{{.i18n.Tr "admin.repos.issues"}}</th>
 						<th>{{.i18n.Tr "admin.repos.size"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
@@ -34,6 +35,7 @@
 							<td><i class="fa fa{{if .IsPrivate}}-check{{end}}-square-o"></i></td>
 							<td>{{.NumWatches}}</td>
 							<td>{{.NumStars}}</td>
+							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
 							<td>{{SizeFmt .Size}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>

@@ -176,6 +176,30 @@ var migrations = []Migration{
 	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
 	// v61 -> v62
 	NewMigration("add size column for attachments", addSizeToAttachment),
+	// v62 -> v63
+	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
+	// v63 -> v64
+	NewMigration("add language column for user setting", addLanguageSetting),
+	// v64 -> v65
+	NewMigration("add multiple assignees", addMultipleAssignees),
+	// v65 -> v66
+	NewMigration("add u2f", addU2FReg),
+	// v66 -> v67
+	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
+	// v67 -> v68
+	NewMigration("remove stale watches", removeStaleWatches),
+	// v68 -> V69
+	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
+	// v69 -> v70
+	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// v70 -> v71
+	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v71 -> v72
+	NewMigration("protect each scratch token", addScratchHash),
+	// v72 -> v73
+	NewMigration("add review", addReview),
+	// v73 -> v74
+	NewMigration("add must_change_password column for users table", addMustChangePassword),
 }
 
 // Migrate database to current version
@@ -225,7 +249,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	return nil
 }
 
-func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (err error) {
+func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
 	}
@@ -241,17 +265,10 @@ func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (
 			}
 			cols += "DROP COLUMN `" + col + "`"
 		}
-		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
 	case setting.UseMSSQL:
-		sess := x.NewSession()
-		defer sess.Close()
-
-		if err = sess.Begin(); err != nil {
-			return err
-		}
-
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {

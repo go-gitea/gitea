@@ -91,25 +91,31 @@ func NewAuthSource(ctx *context.Context) {
 }
 
 func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
+	var pageSize uint32
+	if form.UsePagedSearch {
+		pageSize = uint32(form.SearchPageSize)
+	}
 	return &models.LDAPConfig{
 		Source: &ldap.Source{
-			Name:              form.Name,
-			Host:              form.Host,
-			Port:              form.Port,
-			SecurityProtocol:  ldap.SecurityProtocol(form.SecurityProtocol),
-			SkipVerify:        form.SkipVerify,
-			BindDN:            form.BindDN,
-			UserDN:            form.UserDN,
-			BindPassword:      form.BindPassword,
-			UserBase:          form.UserBase,
-			AttributeUsername: form.AttributeUsername,
-			AttributeName:     form.AttributeName,
-			AttributeSurname:  form.AttributeSurname,
-			AttributeMail:     form.AttributeMail,
-			AttributesInBind:  form.AttributesInBind,
-			Filter:            form.Filter,
-			AdminFilter:       form.AdminFilter,
-			Enabled:           true,
+			Name:                  form.Name,
+			Host:                  form.Host,
+			Port:                  form.Port,
+			SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
+			SkipVerify:            form.SkipVerify,
+			BindDN:                form.BindDN,
+			UserDN:                form.UserDN,
+			BindPassword:          form.BindPassword,
+			UserBase:              form.UserBase,
+			AttributeUsername:     form.AttributeUsername,
+			AttributeName:         form.AttributeName,
+			AttributeSurname:      form.AttributeSurname,
+			AttributeMail:         form.AttributeMail,
+			AttributesInBind:      form.AttributesInBind,
+			AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+			SearchPageSize:        pageSize,
+			Filter:                form.Filter,
+			AdminFilter:           form.AdminFilter,
+			Enabled:               true,
 		},
 	}
 }

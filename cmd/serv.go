@@ -16,9 +16,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
@@ -42,23 +42,15 @@ var CmdServ = cli.Command{
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.BoolFlag{
+			Name: "enable-pprof",
+		},
 	},
 }
 
-func setup(logPath string) error {
+func setup(logPath string) {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-	models.LoadConfigs()
-
-	if setting.UseSQLite3 || setting.UseTiDB {
-		workPath := setting.AppWorkPath
-		if err := os.Chdir(workPath); err != nil {
-			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workPath, err)
-		}
-	}
-
-	setting.NewXORMLogService(true)
-	return models.SetEngine()
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -97,10 +89,7 @@ func runServ(c *cli.Context) error {
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
 	}
-
-	if err := setup("serv.log"); err != nil {
-		fail("System init failed", fmt.Sprintf("setup: %v", err))
-	}
+	setup("serv.log")
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
@@ -143,6 +132,18 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
+	if setting.EnablePprof || c.Bool("enable-pprof") {
+		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
+			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+		}
+
+		stopCPUProfiler := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		defer func() {
+			stopCPUProfiler()
+			pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
+		}()
+	}
+
 	isWiki := false
 	unitType := models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
@@ -164,9 +165,9 @@ func runServ(c *cli.Context) error {
 	}
 	addEnv(models.EnvRepoName, reponame)
 
-	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	repo, err := private.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if strings.Contains(err.Error(), "Failed to get repository: repository does not exist") {
 			fail(accessDenied, "Repository does not exist: %s/%s", username, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
@@ -203,7 +204,7 @@ func runServ(c *cli.Context) error {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
 		}
 
-		key, err := models.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
+		key, err := private.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
 		if err != nil {
 			fail("Invalid key ID", "Invalid key ID[%s]: %v", c.Args()[0], err)
 		}
@@ -214,33 +215,38 @@ func runServ(c *cli.Context) error {
 			if key.Mode < requestedMode {
 				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
 			}
+
 			// Check if this deploy key belongs to current repository.
-			if !models.HasDeployKey(key.ID, repo.ID) {
+			has, err := private.HasDeployKey(key.ID, repo.ID)
+			if err != nil {
+				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
+			}
+			if !has {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 
 			// Update deploy key activity.
-			deployKey, err := models.GetDeployKeyByRepo(key.ID, repo.ID)
-			if err != nil {
-				fail("Internal error", "GetDeployKey: %v", err)
-			}
-
-			deployKey.UpdatedUnix = util.TimeStampNow()
-			if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
 		} else {
-			user, err = models.GetUserByKeyID(key.ID)
+			user, err = private.GetUserByKeyID(key.ID)
 			if err != nil {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
-			mode, err := models.AccessLevel(user.ID, repo)
+			if !user.IsActive || user.ProhibitLogin {
+				fail("Your account is not active or has been disabled by Administrator",
+					"User %s is disabled and have no access to repository %s",
+					user.Name, repoPath)
+			}
+
+			mode, err := private.AccessLevel(user.ID, repo.ID)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
-			} else if mode < requestedMode {
+			} else if *mode < requestedMode {
 				clientMessage := accessDenied
-				if mode >= models.AccessModeRead {
+				if *mode >= models.AccessModeRead {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
@@ -248,7 +254,11 @@ func runServ(c *cli.Context) error {
 					user.Name, requestedMode, repoPath)
 			}
 
-			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
+			check, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
+			if err != nil {
+				fail("You do not have allowed for this action", "Failed to access internal api: [user.Name: %s, repoPath: %s]", user.Name, repoPath)
+			}
+			if !check {
 				fail("You do not have allowed for this action",
 					"User %s does not have allowed access to repository %s 's code",
 					user.Name, repoPath)
@@ -267,7 +277,7 @@ func runServ(c *cli.Context) error {
 		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
-			"exp":  now.Add(5 * time.Minute).Unix(),
+			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
 		if user != nil {
@@ -308,7 +318,6 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
-
 	if isWiki {
 		if err = repo.InitWiki(); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)

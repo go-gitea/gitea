@@ -156,7 +156,7 @@
 						</div>
 					</div>
 
-					<!-- Assignee -->
+					<!-- Assignees -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.action_assignee"}}
@@ -198,6 +198,10 @@
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
+					{{if .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+					{{end}}
+
 					<p class="desc">
 						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{$tasks := .GetTasks}}
@@ -212,9 +216,13 @@
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 							</a>
 						{{end}}
-						{{if .Assignee}}
-							<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
-								<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+						{{if ne .DeadlineUnix 0}}
+							<span class="octicon octicon-calendar"></span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+						{{end}}
+						{{range .Assignees}}
+							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
 						{{end}}
 					</p>

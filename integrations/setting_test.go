@@ -68,3 +68,25 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 
 	setting.UI.ShowUserEmail = showUserEmail
 }
+
+func TestSettingLandingPage(t *testing.T) {
+	prepareTestEnv(t)
+
+	landingPage := setting.LandingPageURL
+
+	setting.LandingPageURL = setting.LandingPageHome
+	req := NewRequest(t, "GET", "/")
+	MakeRequest(t, req, http.StatusOK)
+
+	setting.LandingPageURL = setting.LandingPageExplore
+	req = NewRequest(t, "GET", "/")
+	resp := MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/explore", resp.Header().Get("Location"))
+
+	setting.LandingPageURL = setting.LandingPageOrganizations
+	req = NewRequest(t, "GET", "/")
+	resp = MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/explore/organizations", resp.Header().Get("Location"))
+
+	setting.LandingPageURL = landingPage
+}

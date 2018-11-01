@@ -154,6 +154,12 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if form.MaxRepoCreation != nil {
 		u.MaxRepoCreation = *form.MaxRepoCreation
 	}
+	if form.AllowCreateOrganization != nil {
+		u.AllowCreateOrganization = *form.AllowCreateOrganization
+	}
+	if form.ProhibitLogin != nil {
+		u.ProhibitLogin = *form.ProhibitLogin
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
@@ -222,6 +228,10 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   description: username of the user
 	//   type: string
 	//   required: true
+	// - name: key
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PublicKey"
@@ -253,6 +263,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

@@ -69,7 +69,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			Doer:    user,
 			Issue:   issue,
 			Repo:    issue.Repo,
-			Content: secToTime(timediff),
+			Content: SecToTime(timediff),
 			Type:    CommentTypeStopTracking,
 		}); err != nil {
 			return err
@@ -124,7 +124,8 @@ func CancelStopwatch(user *User, issue *Issue) error {
 	return nil
 }
 
-func secToTime(duration int64) string {
+// SecToTime converts an amount of seconds to a human-readable string (example: 66s -> 1min 6s)
+func SecToTime(duration int64) string {
 	seconds := duration % 60
 	minutes := (duration / (60)) % 60
 	hours := duration / (60 * 60)

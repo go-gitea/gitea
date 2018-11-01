@@ -43,6 +43,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   type: string
 	//   in: path
 	//   description: username of the user
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"

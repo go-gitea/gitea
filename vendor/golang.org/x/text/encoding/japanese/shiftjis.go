@@ -5,7 +5,6 @@
 package japanese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -23,8 +22,6 @@ var shiftJIS = internal.Encoding{
 	"Shift JIS",
 	identifier.ShiftJIS,
 }
-
-var errInvalidShiftJIS = errors.New("japanese: invalid Shift JIS encoding")
 
 type shiftJISDecoder struct{ transform.NopResetter }
 
@@ -48,28 +45,32 @@ loop:
 			c0 = 2*c0 - 0x21
 
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = '\ufffd', 1
+				goto write
 			}
 			c1 := src[nSrc+1]
 			switch {
 			case c1 < 0x40:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 1 // c1 is ASCII so output on next round
+				goto write
 			case c1 < 0x7f:
 				c0--
 				c1 -= 0x40
 			case c1 == 0x7f:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 1 // c1 is ASCII so output on next round
+				goto write
 			case c1 < 0x9f:
 				c0--
 				c1 -= 0x41
 			case c1 < 0xfd:
 				c1 -= 0x9f
 			default:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 2
+				goto write
 			}
 			r, size = '\ufffd', 2
 			if i := int(c0)*94 + int(c1); i < len(jis0208Decode) {
@@ -79,19 +80,18 @@ loop:
 				}
 			}
 
-		default:
-			err = errInvalidShiftJIS
-			break loop
-		}
+		case c0 == 0x80:
+			r, size = 0x80, 1
 
+		default:
+			r, size = '\ufffd', 1
+		}
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
 			break loop
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidShiftJIS
 	}
 	return nDst, nSrc, err
 }

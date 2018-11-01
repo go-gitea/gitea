@@ -42,6 +42,10 @@ func Home(ctx *context.Context) {
 			user.Dashboard(ctx)
 		}
 		return
+		// Check non-logged users landing page.
+	} else if setting.LandingPageURL != setting.LandingPageHome {
+		ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
+		return
 	}
 
 	// Check auto-login.
@@ -104,12 +108,21 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderBySizeReverse
 	case "size":
 		orderBy = models.SearchOrderBySize
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
+	topicOnly := ctx.QueryBool("topic")
 
 	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 		Page:      page,
@@ -119,6 +132,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Keyword:   keyword,
 		OwnerID:   opts.OwnerID,
 		AllPublic: true,
+		TopicOnly: topicOnly,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByName", err)
@@ -164,26 +178,26 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		users   []*models.User
 		count   int64
 		err     error
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
-		orderBy = "id DESC"
+		orderBy = models.SearchOrderByIDReverse
 	case "oldest":
-		orderBy = "id ASC"
+		orderBy = models.SearchOrderByID
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	default:
 		ctx.Data["SortType"] = "alphabetically"
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	}
 
 	opts.Keyword = strings.Trim(ctx.Query("q"), " ")

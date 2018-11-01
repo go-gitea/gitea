@@ -293,7 +293,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 }
 
 func (udc *UpsideDownCouch) Open() (err error) {
-	//acquire the write mutex for the duratin of Open()
+	// acquire the write mutex for the duration of Open()
 	udc.writeMutex.Lock()
 	defer udc.writeMutex.Unlock()
 

@@ -9,6 +9,9 @@ body {
 img {
     border-radius: 3px;
 }
+table {
+    border-collapse: collapse;
+}
 .rounded {
     border-radius: .28571429rem !important;
 }
@@ -54,7 +57,7 @@ pre, code {
 }
 .full.height {
     padding: 0;
-    margin: 0 0 -@footer-margin*2 0;
+    margin: 0 0 -@footer-margin 0;
     min-height: 100%;
 }
 .following.bar {
@@ -152,6 +155,14 @@ pre, code {
         }
     }
 
+    &.floating.label {
+        z-index: 10;
+    }
+
+    &.transparent.label {
+        background-color: transparent;
+    }
+
     &.menu,
     &.vertical.menu,
     &.segment {
@@ -165,6 +176,14 @@ pre, code {
     }
     .menu:not(.vertical) .item > .button.small {
         font-size: .92857143rem;
+    }
+
+    &.dropdown .menu>.item>.floating.label {
+        z-index: 11;
+    }
+
+    &.dropdown .menu .menu>.item>.floating.label {
+        z-index: 21;
     }
 
     .text {
@@ -359,7 +378,11 @@ pre, code {
     }
 }
 
+.file-comment {
+    font: 12px Consolas,"Liberation Mono",Menlo,Courier,monospace;
+    color: rgba(0,0,0,.87);
 
+}
 
 .overflow.menu {
     .items {
@@ -392,6 +415,11 @@ pre, code {
     }
 }
 
+.user-menu > .item {
+    width: 100%;
+    border-radius: 0 !important;
+}
+
 .scrolling.menu {
     .item.selected {
         font-weight: 700 !important;
@@ -399,7 +427,6 @@ pre, code {
 }
 
 footer {
-    margin-top: @footer-margin+14px !important;
     height: @footer-margin;
     background-color: white;
     border-top: 1px solid #d6d6d6;
@@ -432,6 +459,12 @@ footer {
 
 .hide {
     display: none;
+    &.show-outdated {
+        display: none !important;
+    }
+    &.hide-outdated {
+        display: none !important;
+    }
 }
 .center {
     text-align: center;
@@ -554,4 +587,21 @@ footer {
     margin-top: 0 !important;
     border-bottom-width: 0 !important;
     margin-bottom: 2px !important;
+}
+
+#user-heatmap{
+    width: 107%; // Fixes newest contributions not showing
+    text-align: center;
+    margin: 40px 0 30px;
+
+    svg:not(:root) {
+        overflow: inherit;
+        padding: 0 !important;
+    }
+
+    @media only screen and (max-width: 1200px) {
+        & {
+            display: none;
+        }
+    }
 }

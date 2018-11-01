@@ -1,0 +1,7 @@
+{{template "base/head" .}}
+<div class="user signin{{if .LinkAccountMode}} icon{{end}}">
+	<div class="ui container">
+		{{template "user/auth/change_passwd_inner" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

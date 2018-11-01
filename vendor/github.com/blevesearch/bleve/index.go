@@ -76,7 +76,7 @@ func (b *Batch) SetInternal(key, val []byte) {
 	b.internal.SetInternal(key, val)
 }
 
-// SetInternal adds the specified delete internal
+// DeleteInternal adds the specified delete internal
 // operation to the batch. NOTE: the bleve Index is
 // not updated until the batch is executed.
 func (b *Batch) DeleteInternal(key []byte) {

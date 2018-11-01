@@ -13,8 +13,18 @@ import "code.gitea.io/gitea/modules/setting"
 // |____|   |__|__|_|  /\___  >____|   |__|  (____  /\___  >__|_ \\___  >__|
 // \/     \/                    \/     \/     \/    \/
 
+// CanEnableTimetracker returns true when the server admin enabled time tracking
+// This overrules IsTimetrackerEnabled
+func (repo *Repository) CanEnableTimetracker() bool {
+	return setting.Service.EnableTimetracking
+}
+
 // IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabled() bool {
+	if !setting.Service.EnableTimetracking {
+		return false
+	}
+
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {

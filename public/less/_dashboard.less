@@ -26,6 +26,13 @@
                     top: 7px;
                     left: 90%;
                     width: 15%;
+
+                    @media only screen and (max-width: 768px) {
+                        top: 10px;
+                        left: auto;
+                        width: auto;
+                        right: 13px;
+                    }
                 }
             }
 
@@ -40,12 +47,16 @@
 				right: 0!important;
 				left: auto!important;
 			}
+
+			@media only screen and (max-width: 768px) {
+				width: 100%;
+			}
 		}
 		.right.stackable.menu > .item.active {
 			color: #d9453d;
 		}
     }
-    
+
     /* Accomodate for Semantic's 1px hacks on .attached elements */
     .dashboard-repos {
         margin: 0 1px;

@@ -2,6 +2,7 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Documentation"
 slug: "documentation"
+url: "/fr-fr/"
 weight: 10
 toc: true
 draft: false
@@ -48,7 +49,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
     - Migré
 - Notifications (courriel et web)
     - Lu
-    - Non lu 
+    - Non lu
     - Épinglé
 - Page d'exploration
     - Utilisateurs

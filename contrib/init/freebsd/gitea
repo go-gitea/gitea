@@ -19,9 +19,9 @@ load_rc_config $name
 
 : ${gitea_user:="git"}
 : ${gitea_enable:="NO"}
-: ${gitea_directory:="/home/git"}
+: ${gitea_directory:="/var/lib/gitea"}
 
-command="${gitea_directory}/gitea web"
+command="/usr/local/bin/gitea web -c /etc/gitea/app.ini"
 procname="$(echo $command |cut -d' ' -f1)"
 
 pidfile="${gitea_directory}/${name}.pid"
@@ -33,6 +33,7 @@ gitea_start() {
 	cd ${gitea_directory}
 	export USER=${gitea_user}
 	export HOME=/usr/home/${gitea_user}
+	export GITEA_WORK_DIR=${gitea_directory}
 	/usr/sbin/daemon -f -u ${gitea_user} -p ${pidfile} $command
 }
 

@@ -18,14 +18,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -47,13 +48,14 @@ const (
 
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
-	ID          int64      `xorm:"pk autoincr"`
-	OwnerID     int64      `xorm:"INDEX NOT NULL"`
-	Name        string     `xorm:"NOT NULL"`
-	Fingerprint string     `xorm:"NOT NULL"`
-	Content     string     `xorm:"TEXT NOT NULL"`
-	Mode        AccessMode `xorm:"NOT NULL DEFAULT 2"`
-	Type        KeyType    `xorm:"NOT NULL DEFAULT 1"`
+	ID            int64      `xorm:"pk autoincr"`
+	OwnerID       int64      `xorm:"INDEX NOT NULL"`
+	Name          string     `xorm:"NOT NULL"`
+	Fingerprint   string     `xorm:"NOT NULL"`
+	Content       string     `xorm:"TEXT NOT NULL"`
+	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
+	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
+	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
@@ -375,7 +377,7 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
-	if len(key.Fingerprint) <= 0 {
+	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = calcFingerprint(key.Content)
 		if err != nil {
 			return err
@@ -391,7 +393,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -420,12 +422,13 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	}
 
 	key := &PublicKey{
-		OwnerID:     ownerID,
-		Name:        name,
-		Fingerprint: fingerprint,
-		Content:     content,
-		Mode:        AccessModeWrite,
-		Type:        KeyTypeUser,
+		OwnerID:       ownerID,
+		Name:          name,
+		Fingerprint:   fingerprint,
+		Content:       content,
+		Mode:          AccessModeWrite,
+		Type:          KeyTypeUser,
+		LoginSourceID: LoginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -463,11 +466,32 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return key, nil
 }
 
+// SearchPublicKey returns a list of public keys matching the provided arguments.
+func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	cond := builder.NewCond()
+	if uid != 0 {
+		cond = cond.And(builder.Eq{"owner_id": uid})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
+}
+
 // ListPublicKeys returns a list of public keys belongs to given user.
 func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
 		Where("owner_id = ?", uid).
+		Find(&keys)
+}
+
+// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
+func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	return keys, x.
+		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
 		Find(&keys)
 }
 
@@ -534,7 +558,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
 	//Don't rewrite key if internal server
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -722,7 +746,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
-		return nil, fmt.Errorf("addDeployKey: %v", err)
+		return nil, err
 	}
 
 	return key, sess.Commit()
@@ -822,4 +846,20 @@ func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
 	return keys, x.
 		Where("repo_id = ?", repoID).
 		Find(&keys)
+}
+
+// SearchDeployKeys returns a list of deploy keys matching the provided arguments.
+func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+	keys := make([]*DeployKey, 0, 5)
+	cond := builder.NewCond()
+	if repoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": repoID})
+	}
+	if keyID != 0 {
+		cond = cond.And(builder.Eq{"key_id": keyID})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
 }

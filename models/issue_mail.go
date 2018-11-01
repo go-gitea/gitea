@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -46,9 +47,16 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		participants = append(participants, issue.Poster)
 	}
 
-	// Assignee must receive any communications
-	if issue.Assignee != nil && issue.AssigneeID > 0 && issue.AssigneeID != doer.ID {
-		participants = append(participants, issue.Assignee)
+	// Assignees must receive any communications
+	assignees, err := GetAssigneesByIssue(issue)
+	if err != nil {
+		return err
+	}
+
+	for _, assignee := range assignees {
+		if assignee.ID != doer.ID {
+			participants = append(participants, assignee)
+		}
 	}
 
 	tos := make([]string, 0, len(watchers)) // List of email addresses.
@@ -80,7 +88,9 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, participants[i].Name)
 	}
 
-	SendIssueCommentMail(issue, doer, content, comment, tos)
+	for _, to := range tos {
+		SendIssueCommentMail(issue, doer, content, comment, []string{to})
+	}
 
 	// Mail mentioned people and exclude watchers.
 	names = append(names, doer.Name)
@@ -92,7 +102,12 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 		tos = append(tos, mentions[i])
 	}
-	SendIssueMentionMail(issue, doer, content, comment, getUserEmailsByNames(e, tos))
+
+	emails := getUserEmailsByNames(e, tos)
+
+	for _, to := range emails {
+		SendIssueMentionMail(issue, doer, content, comment, []string{to})
+	}
 
 	return nil
 }

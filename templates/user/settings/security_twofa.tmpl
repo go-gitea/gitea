@@ -1,0 +1,35 @@
+<h4 class="ui top attached header">
+	{{.i18n.Tr "settings.twofa"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{.i18n.Tr "settings.twofa_desc"}}</p>
+	{{if .TwofaEnrolled}}
+	<p>{{$.i18n.Tr "settings.twofa_is_enrolled" | Str2html }}</p>
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+		<p>{{.i18n.Tr "settings.regenerate_scratch_token_desc"}}</p>
+		<button class="ui blue button">{{$.i18n.Tr "settings.twofa_scratch_token_regenerate"}}</button>
+	</form>
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/disable" method="post" enctype="multipart/form-data" id="disable-form">
+		{{.CsrfTokenHtml}}
+		<p>{{.i18n.Tr "settings.twofa_disable_note"}}</p>
+		<div class="ui red button delete-button" id="disable-twofa" data-type="form" data-form="#disable-form">{{$.i18n.Tr "settings.twofa_disable"}}</div>
+	</form>
+	{{else}}
+	<p>{{.i18n.Tr "settings.twofa_not_enrolled"}}</p>
+	<div class="inline field">
+		<a class="ui green button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{$.i18n.Tr "settings.twofa_enroll"}}</a>
+	</div>
+	{{end}}
+</div>
+
+<div class="ui small basic delete modal" id="disable-twofa">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		{{.i18n.Tr "settings.twofa_disable"}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "settings.twofa_disable_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>
