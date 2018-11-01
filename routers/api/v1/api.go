@@ -174,11 +174,15 @@ func repoAssignment() macaron.Handler {
 
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
-	return func(ctx *context.Context) {
-		if true != ctx.Data["IsApiToken"] {
-			ctx.Error(401)
+	return func(ctx *context.APIContext) {
+		if true == ctx.Data["IsApiToken"] {
 			return
 		}
+		if ctx.IsSigned {
+			ctx.RequireCSRF()
+			return
+		}
+		ctx.Context.Error(401)
 	}
 }
 
