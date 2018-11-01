@@ -48,7 +48,7 @@
 						<div class="default text">{{.i18n.Tr "repo.settings.choose_branch"}}</div>
 						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 							{{range .LeftBranches}}
-								<a class="item" href="{{$.Repository.Link}}/settings/branches/{{.}}">{{.}}</a>
+								<a class="item" href="{{$.Repository.Link}}/settings/branches/{{. | EscapePound}}">{{.}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -62,7 +62,7 @@
 							{{range .ProtectedBranches}}
 								<tr>
 									<td><div class="ui basic label blue">{{.BranchName}}</div></td>
-									<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName}}">{{$.i18n.Tr "repo.settings.edit_protected_branch"}}</a></td>
+									<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName | EscapePound}}">{{$.i18n.Tr "repo.settings.edit_protected_branch"}}</a></td>
 								</tr>
 							{{else}}
 								<tr class="center aligned"><td>{{.i18n.Tr "repo.settings.no_protected_branch"}}</td></tr>

@@ -191,10 +191,10 @@ func PostProcess(
 ) ([]byte, error) {
 	// create the context from the parameters
 	ctx := &postProcessCtx{
-		metas:          metas,
-		urlPrefix:      urlPrefix,
-		isWikiMarkdown: isWikiMarkdown,
-		procs:          defaultProcessors,
+		metas:                   metas,
+		urlPrefix:               urlPrefix,
+		isWikiMarkdown:          isWikiMarkdown,
+		procs:                   defaultProcessors,
 		visitLinksForShortLinks: true,
 	}
 	return ctx.postProcess(rawHTML)

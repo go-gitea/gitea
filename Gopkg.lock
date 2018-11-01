@@ -3,19 +3,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:42f77a668e3bd06812ef254f334d0d0a62346969fbcd3fa3a613e75067343751"
+  digest = "1:835585f8450b4ec12252d032b0f13e6571ecf846e49076f69067f2503a7c1e07"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "31f4b8e8c805438ac6d8914b38accb1d8aaf695e"
+  revision = "6ef79e80b3b06ca13a1f3a7b940903ebc73b44cb"
 
 [[projects]]
   branch = "master"
-  digest = "1:f546da1b2d9e0ac41cec9fc996867108d56b646eb40a0ff04d23719c3cab16c3"
+  digest = "1:bf4f822f636b99ac7d4f8fa5210a7439bacaf8d1f15d5783956bdd5dd2069bdc"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "ec80752c9512cf07fc62ddc42565118183743942"
+  revision = "11c860c8e49a23be26e6d6c6a039a46ad2ae1d27"
 
 [[projects]]
   digest = "1:3fcef06a1a6561955c94af6c7757a6fa37605eb653f0d06ab960e5bb80092195"
@@ -342,21 +342,22 @@
   revision = "d8a0b8677191f4380287cfebd08e462217bac7ad"
 
 [[projects]]
-  digest = "1:b327ca585509a889130a8f51f43704a8fe03cb5cd281dbf1bc6405f5a7ea4702"
+  branch = "master"
+  digest = "1:8fea5718d84af17762195beb6fe92a0d6c1048452a1dbc464d227f12e0cff0cc"
   name = "github.com/go-macaron/session"
   packages = [
     ".",
     "redis",
   ]
   pruneopts = "NUT"
-  revision = "66031fcb37a0fff002a1f028eb0b3a815c78306b"
+  revision = "330e4e4d8beb7b00111ac34539561f46f94c4458"
 
 [[projects]]
-  digest = "1:6fb9cae2a3b4518e048a899b273e23b671802b611ccfcca0b576ecc08bb7b8f5"
+  digest = "1:758d2371fcdee6d02565901b348729053c636055e67ef6e17aa466c7ff6cc57c"
   name = "github.com/go-macaron/toolbox"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "99a42f20e9e88daec5c0d7beb4e7eac134680ab0"
+  revision = "a77f45a7ce909c0ff14b28279fa1a2b674acb70f"
 
 [[projects]]
   digest = "1:747c1fcb10f8f6734551465ab73c6ed9c551aa6e66250fb6683d1624f554546a"
@@ -547,7 +548,7 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:3589c0f8982bccaf763d913ada6ee179f9dfd1b647abfa21d51e38809d9b868b"
+  digest = "1:23f75ae90fcc38dac6fad6881006ea7d0f2c78db5f9f81f3df558dc91460e61f"
   name = "github.com/markbates/goth"
   packages = [
     ".",
@@ -563,15 +564,15 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "5fad70a91bce59cc5ff8a84c01e1da5f49f31e6b"
-  version = "v1.45.9"
+  revision = "f9c6649ab984d6ea71ef1e13b7b1cdffcf4592d3"
+  version = "v1.46.1"
 
 [[projects]]
-  digest = "1:3ef954101983406a71171c4dc816a73e01bb3de608b3dd063627aa67a459f3e3"
+  digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "acfa60124032040b9f5a9406f5a772ee16fe845e"
+  revision = "c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75"
 
 [[projects]]
   branch = "master"
@@ -728,21 +729,26 @@
   revision = "2c050d2dae5345c417db301f11fda6fbf5ad0f0a"
 
 [[projects]]
-  digest = "1:3d28799e447a7cddae2583cc3c2225ea6a6aa28973dbe7a42feca37e08b268de"
+  digest = "1:e4ea859df4986eb46feebbb84a2d163a4a314e87668177ca13b3b0adecaf50e8"
   name = "golang.org/x/crypto"
   packages = [
+    "acme",
+    "acme/autocert",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
     "md4",
     "pbkdf2",
+    "poly1305",
     "ssh",
   ]
   pruneopts = "NUT"
-  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
 
 [[projects]]
-  digest = "1:47ea747d07fae720d749d06ac5dc5ded0df70c57e328b6549cf2d9c64698757e"
+  branch = "master"
+  digest = "1:6d5ed712653ea5321fe3e3475ab2188cf362a4e0d31e9fd3acbd4dfbbca0d680"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -751,7 +757,7 @@
     "html/charset",
   ]
   pruneopts = "NUT"
-  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
+  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
 
 [[projects]]
   digest = "1:8159a9cda4b8810aaaeb0d60e2fa68e2fd86d8af4ec8f5059830839e3c8d93d5"
@@ -771,7 +777,8 @@
   revision = "5a06fca2c336a4b2b2fcb45702e8c47621b2aa2c"
 
 [[projects]]
-  digest = "1:47495898c42062ace16d8046915b088e7c3846e77b997ec5a8a00ec552e179d5"
+  branch = "master"
+  digest = "1:030ca7763285f6cdec5684d7417faa2810d10a508b0220b1487cc876b5c00c35"
   name = "golang.org/x/sys"
   packages = [
     "unix",
@@ -779,7 +786,7 @@
     "windows/svc",
   ]
   pruneopts = "NUT"
-  revision = "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+  revision = "2772b66316d2c587efeb188dcd5ebc6987656e84"
 
 [[projects]]
   digest = "1:d2463fd72ee2636c3d9bbdb98fa4996a118f210ae3e5eaf62d281855bc0b4a83"
@@ -882,12 +889,12 @@
   version = "v2.3.2"
 
 [[projects]]
-  digest = "1:e2144032dcf8e856fb733151391669dc2d32d79ebb69e3c4151efa605f5e8a01"
+  digest = "1:9c541fc507676a69ea8aaed1af53278a5241d26ce0f192c993fec2ac5b78f795"
   name = "gopkg.in/testfixtures.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "b9ef14dc461bf934d8df2dfc6f1f456be5664cca"
-  version = "v2.0.0"
+  revision = "fa3fb89109b0b31957a5430cef3e93e535de362b"
+  version = "v2.5.0"
 
 [[projects]]
   digest = "1:ad6f94355d292690137613735965bd3688844880fdab90eccf66321910344942"
@@ -983,6 +990,7 @@
     "github.com/tstranex/u2f",
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
+    "golang.org/x/crypto/acme/autocert",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/html",

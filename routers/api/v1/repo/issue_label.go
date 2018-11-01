@@ -33,6 +33,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -80,6 +81,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -149,11 +151,13 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the label to remove
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -215,6 +219,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -284,6 +289,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

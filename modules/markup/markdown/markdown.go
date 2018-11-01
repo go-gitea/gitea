@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -38,7 +39,16 @@ func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []
 		link = []byte(mLink)
 	}
 
-	r.Renderer.Link(out, link, title, content)
+	if len(content) > 10 && string(content[0:9]) == "<a href=\"" && bytes.Contains(content[9:], []byte("<img")) {
+		// Image with link case: markdown `[![]()]()`
+		// If the content is an image, then we change the original href around it
+		// which points to itself to a new address "link"
+		rightQuote := bytes.Index(content[9:], []byte("\""))
+		content = bytes.Replace(content, content[9:9+rightQuote], link, 1)
+		out.Write(content)
+	} else {
+		r.Renderer.Link(out, link, title, content)
+	}
 }
 
 // List renders markdown bullet or digit lists to HTML
@@ -90,13 +100,6 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	r.Renderer.ListItem(out, text, flags)
 }
 
-// Note: this section is for purpose of increase performance and
-// reduce memory allocation at runtime since they are constant literals.
-var (
-	svgSuffix         = []byte(".svg")
-	svgSuffixWithMark = []byte(".svg?")
-)
-
 // Image defines how images should be processed to produce corresponding HTML elements.
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
 	prefix := r.URLPrefix
@@ -104,22 +107,14 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 		prefix = util.URLJoin(prefix, "wiki", "raw")
 	}
 	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
-	if len(link) > 0 {
-		if markup.IsLink(link) {
-			// External link with .svg suffix usually means CI status.
-			// TODO: define a keyword to allow non-svg images render as external link.
-			if bytes.HasSuffix(link, svgSuffix) || bytes.Contains(link, svgSuffixWithMark) {
-				r.Renderer.Image(out, link, title, alt)
-				return
-			}
-		} else {
-			lnk := string(link)
-			lnk = util.URLJoin(prefix, lnk)
-			lnk = strings.Replace(lnk, " ", "+", -1)
-			link = []byte(lnk)
-		}
+	if len(link) > 0 && !markup.IsLink(link) {
+		lnk := string(link)
+		lnk = util.URLJoin(prefix, lnk)
+		lnk = strings.Replace(lnk, " ", "+", -1)
+		link = []byte(lnk)
 	}
 
+	// Put a link around it pointing to itself by default
 	out.WriteString(`<a href="`)
 	out.Write(link)
 	out.WriteString(`">`)

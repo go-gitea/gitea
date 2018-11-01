@@ -42,6 +42,13 @@
 					<input id="password" name="password" type="password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>
 				</div>
 
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "auth.allow_password_change" }}</strong></label>
+						<input name="must_change_password" type="checkbox" checked>
+					</div>
+				</div>
+
 				<!-- Send register notify e-mail -->
 				{{if .CanSendEmail}}
 					<div class="inline field">

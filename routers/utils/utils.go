@@ -15,3 +15,22 @@ func RemoveUsernameParameterSuffix(name string) string {
 	}
 	return name
 }
+
+// IsValidSlackChannel validates a channel name conforms to what slack expects.
+// It makes sure a channel name cannot be empty and invalid ( only an # )
+func IsValidSlackChannel(channelName string) bool {
+	switch len(strings.TrimSpace(channelName)) {
+	case 0:
+		return false
+	case 1:
+		// Keep default behaviour where a channel name is still
+		// valid without an #
+		// But if it contains only an #, it should be regarded as
+		// invalid
+		if channelName[0] == '#' {
+			return false
+		}
+	}
+
+	return true
+}

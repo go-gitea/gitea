@@ -63,6 +63,9 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 			}
 		}
 	}
+	if review.ID == 0 {
+		review.ID = form.Reply
+	}
 	//FIXME check if line, commit and treepath exist
 	comment, err := models.CreateCodeComment(
 		ctx.User,
@@ -78,8 +81,8 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		return
 	}
 	// Send no notification if comment is pending
-	if !form.IsReview {
-		notification.Service.NotifyIssue(issue, ctx.User.ID)
+	if !form.IsReview || form.Reply != 0 {
+		notification.NotifyCreateIssueComment(ctx.User, issue.Repo, issue, comment)
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
@@ -103,18 +106,48 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	var err error
 
 	reviewType := form.ReviewType()
-	if reviewType == models.ReviewTypeUnknown {
+
+	switch reviewType {
+	case models.ReviewTypeUnknown:
 		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
-	}
 
-	if form.HasEmptyContent() {
-		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-		return
+	// can not approve/reject your own PR
+	case models.ReviewTypeApprove, models.ReviewTypeReject:
+
+		if issue.Poster.ID == ctx.User.ID {
+
+			var translated string
+
+			if reviewType == models.ReviewTypeApprove {
+				translated = ctx.Tr("repo.issues.review.self.approval")
+			} else {
+				translated = ctx.Tr("repo.issues.review.self.rejection")
+			}
+
+			ctx.Flash.Error(translated)
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			return
+		}
 	}
 
 	review, err = models.GetCurrentReview(ctx.User, issue)
+	if err == nil {
+		review.Issue = issue
+		if errl := review.LoadCodeComments(); errl != nil {
+			ctx.ServerError("LoadCodeComments", err)
+			return
+		}
+	}
+
+	if ((err == nil && len(review.CodeComments) == 0) ||
+		(err != nil && models.IsErrReviewNotExist(err))) &&
+		form.HasEmptyContent() {
+		ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+
 	if err != nil {
 		if !models.IsErrReviewNotExist(err) {
 			ctx.ServerError("GetCurrentReview", err)
@@ -154,5 +187,13 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		ctx.ServerError("Publish", err)
 		return
 	}
+
+	pr, err := issue.GetPullRequest()
+	if err != nil {
+		ctx.ServerError("GetPullRequest", err)
+		return
+	}
+	notification.NotifyPullRequestReview(pr, review, comm)
+
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
