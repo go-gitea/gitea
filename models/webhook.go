@@ -142,6 +142,16 @@ func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	return s
 }
 
+// GetWorkwechatHook returns work wechat metadata
+func (w *Webhook) GetWorkwechatHook() *WorkwechatMeta {
+	s := &WorkwechatMeta{}
+
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error(4, "webhook.GetWorkwechatMetaHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
 // History returns history of webhook by given conditions.
 func (w *Webhook) History(page int) ([]*HookTask, error) {
 	return HookTasks(w.ID, page)
@@ -382,14 +392,16 @@ const (
 	GITEA
 	DISCORD
 	DINGTALK
+	WORKWECHAT
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea":    GITEA,
-	"gogs":     GOGS,
-	"slack":    SLACK,
-	"discord":  DISCORD,
-	"dingtalk": DINGTALK,
+	"gitea":      GITEA,
+	"gogs":       GOGS,
+	"slack":      SLACK,
+	"discord":    DISCORD,
+	"dingtalk":   DINGTALK,
+	"workwechat": WORKWECHAT,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -410,6 +422,8 @@ func (t HookTaskType) Name() string {
 		return "discord"
 	case DINGTALK:
 		return "dingtalk"
+	case WORKWECHAT:
+		return "workwechat"
 	}
 	return ""
 }
@@ -578,6 +592,11 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
+		}
+	case WORKWECHAT:
+		payloader, err = GetWorkwechatPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetWorkwechatPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)

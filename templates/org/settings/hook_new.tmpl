@@ -18,7 +18,9 @@
 						{{else if eq .HookType "discord"}}
 							<img class="img-13" src="{{AppSubUrl}}/img/discord.png">
 						{{else if eq .HookType "dingtalk"}}
-							<img class="img-13" src="{{AppSubUrl}}/img/dingtalk.png">
+							<img class="img-13" src="{{AppSubUrl}}/img/dingtalk.ico">
+						{{else if eq .HookType "workwechat"}}
+							<img class="img-13" src="{{AppSubUrl}}/img/workwechat.ico">					
 						{{end}}
 					</div>
 				</h4>
@@ -28,6 +30,7 @@
 					{{template "repo/settings/webhook/slack" .}}
 					{{template "repo/settings/webhook/discord" .}}
 					{{template "repo/settings/webhook/dingtalk" .}}
+					{{template "repo/settings/webhook/workwechat" .}}
 				</div>
 
 				{{template "repo/settings/webhook/history" .}}
