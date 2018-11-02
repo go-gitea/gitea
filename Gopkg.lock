@@ -413,11 +413,12 @@
   revision = "7f3990acf1833faa5ebd0e86f0a4c72a4b5eba3c"
 
 [[projects]]
-  digest = "1:b64f9be717fdab5f75122dc3868e8ca9d003779b6bc55f64f39a0cddc698bf88"
+  digest = "1:97df918963298c287643883209a2c3f642e6593379f97ab400c2a2e219ab647d"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   pruneopts = "NUT"
-  revision = "99511271042a09d1e01baea8781caa5210fec66e"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:60e25fc5f5cfd7783f985ca99b4383e848981dddf0be584db7d809be20848e25"

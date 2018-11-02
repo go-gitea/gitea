@@ -44,6 +44,9 @@ import (
 	"unicode/utf8"
 )
 
+// Error string emitted when deserializing Any and fields are already set
+const anyRepeatedlyUnpacked = "Any message unpacked multiple times, or %q already set"
+
 type ParseError struct {
 	Message string
 	Line    int // 1-based line number
@@ -203,7 +206,6 @@ func (p *textParser) advance() {
 
 var (
 	errBadUTF8 = errors.New("proto: bad UTF-8")
-	errBadHex  = errors.New("proto: bad hexadecimal")
 )
 
 func unquoteC(s string, quote rune) (string, error) {
@@ -274,58 +276,45 @@ func unescape(s string) (ch string, tail string, err error) {
 		return "?", s, nil // trigraph workaround
 	case '\'', '"', '\\':
 		return string(r), s, nil
-	case '0', '1', '2', '3', '4', '5', '6', '7', 'x', 'X':
+	case '0', '1', '2', '3', '4', '5', '6', '7':
 		if len(s) < 2 {
 			return "", "", fmt.Errorf(`\%c requires 2 following digits`, r)
 		}
-		base := 8
-		ss := s[:2]
+		ss := string(r) + s[:2]
 		s = s[2:]
-		if r == 'x' || r == 'X' {
-			base = 16
-		} else {
-			ss = string(r) + ss
-		}
-		i, err := strconv.ParseUint(ss, base, 8)
+		i, err := strconv.ParseUint(ss, 8, 8)
 		if err != nil {
-			return "", "", err
+			return "", "", fmt.Errorf(`\%s contains non-octal digits`, ss)
 		}
 		return string([]byte{byte(i)}), s, nil
-	case 'u', 'U':
-		n := 4
-		if r == 'U' {
+	case 'x', 'X', 'u', 'U':
+		var n int
+		switch r {
+		case 'x', 'X':
+			n = 2
+		case 'u':
+			n = 4
+		case 'U':
 			n = 8
 		}
 		if len(s) < n {
-			return "", "", fmt.Errorf(`\%c requires %d digits`, r, n)
+			return "", "", fmt.Errorf(`\%c requires %d following digits`, r, n)
 		}
-
-		bs := make([]byte, n/2)
-		for i := 0; i < n; i += 2 {
-			a, ok1 := unhex(s[i])
-			b, ok2 := unhex(s[i+1])
-			if !ok1 || !ok2 {
-				return "", "", errBadHex
-			}
-			bs[i/2] = a<<4 | b
-		}
+		ss := s[:n]
 		s = s[n:]
-		return string(bs), s, nil
+		i, err := strconv.ParseUint(ss, 16, 64)
+		if err != nil {
+			return "", "", fmt.Errorf(`\%c%s contains non-hexadecimal digits`, r, ss)
+		}
+		if r == 'x' || r == 'X' {
+			return string([]byte{byte(i)}), s, nil
+		}
+		if i > utf8.MaxRune {
+			return "", "", fmt.Errorf(`\%c%s is not a valid Unicode code point`, r, ss)
+		}
+		return string(i), s, nil
 	}
 	return "", "", fmt.Errorf(`unknown escape \%c`, r)
-}
-
-// Adapted from src/pkg/strconv/quote.go.
-func unhex(b byte) (v byte, ok bool) {
-	switch {
-	case '0' <= b && b <= '9':
-		return b - '0', true
-	case 'a' <= b && b <= 'f':
-		return b - 'a' + 10, true
-	case 'A' <= b && b <= 'F':
-		return b - 'A' + 10, true
-	}
-	return 0, false
 }
 
 // Back off the parser by one token. Can only be done between calls to next().
@@ -508,8 +497,16 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 				if err != nil {
 					return p.errorf("failed to marshal message of type %q: %v", messageName, err)
 				}
+				if fieldSet["type_url"] {
+					return p.errorf(anyRepeatedlyUnpacked, "type_url")
+				}
+				if fieldSet["value"] {
+					return p.errorf(anyRepeatedlyUnpacked, "value")
+				}
 				sv.FieldByName("TypeUrl").SetString(extName)
 				sv.FieldByName("Value").SetBytes(b)
+				fieldSet["type_url"] = true
+				fieldSet["value"] = true
 				continue
 			}
 
@@ -550,7 +547,7 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 				}
 				reqFieldErr = err
 			}
-			ep := sv.Addr().Interface().(extendableProto)
+			ep := sv.Addr().Interface().(Message)
 			if !rep {
 				SetExtension(ep, desc, ext.Interface())
 			} else {
@@ -581,7 +578,11 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 			props = oop.Prop
 			nv := reflect.New(oop.Type.Elem())
 			dst = nv.Elem().Field(0)
-			sv.Field(oop.Field).Set(nv)
+			field := sv.Field(oop.Field)
+			if !field.IsNil() {
+				return p.errorf("field '%s' would overwrite already parsed oneof '%s'", name, sv.Type().Field(oop.Field).Name)
+			}
+			field.Set(nv)
 		}
 		if !dst.IsValid() {
 			return p.errorf("unknown field name %q in %v", name, st)
@@ -602,8 +603,9 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 
 			// The map entry should be this sequence of tokens:
 			//	< key : KEY value : VALUE >
-			// Technically the "key" and "value" could come in any order,
-			// but in practice they won't.
+			// However, implementations may omit key or value, and technically
+			// we should support them in any order.  See b/28924776 for a time
+			// this went wrong.
 
 			tok := p.next()
 			var terminator string
@@ -615,32 +617,39 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 			default:
 				return p.errorf("expected '{' or '<', found %q", tok.value)
 			}
-			if err := p.consumeToken("key"); err != nil {
-				return err
-			}
-			if err := p.consumeToken(":"); err != nil {
-				return err
-			}
-			if err := p.readAny(key, props.mkeyprop); err != nil {
-				return err
-			}
-			if err := p.consumeOptionalSeparator(); err != nil {
-				return err
-			}
-			if err := p.consumeToken("value"); err != nil {
-				return err
-			}
-			if err := p.checkForColon(props.mvalprop, dst.Type().Elem()); err != nil {
-				return err
-			}
-			if err := p.readAny(val, props.mvalprop); err != nil {
-				return err
-			}
-			if err := p.consumeOptionalSeparator(); err != nil {
-				return err
-			}
-			if err := p.consumeToken(terminator); err != nil {
-				return err
+			for {
+				tok := p.next()
+				if tok.err != nil {
+					return tok.err
+				}
+				if tok.value == terminator {
+					break
+				}
+				switch tok.value {
+				case "key":
+					if err := p.consumeToken(":"); err != nil {
+						return err
+					}
+					if err := p.readAny(key, props.MapKeyProp); err != nil {
+						return err
+					}
+					if err := p.consumeOptionalSeparator(); err != nil {
+						return err
+					}
+				case "value":
+					if err := p.checkForColon(props.MapValProp, dst.Type().Elem()); err != nil {
+						return err
+					}
+					if err := p.readAny(val, props.MapValProp); err != nil {
+						return err
+					}
+					if err := p.consumeOptionalSeparator(); err != nil {
+						return err
+					}
+				default:
+					p.back()
+					return p.errorf(`expected "key", "value", or %q, found %q`, terminator, tok.value)
+				}
 			}
 
 			dst.SetMapIndex(key, val)
@@ -663,7 +672,8 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 				return err
 			}
 			reqFieldErr = err
-		} else if props.Required {
+		}
+		if props.Required {
 			reqCount--
 		}
 
@@ -703,6 +713,9 @@ func (p *textParser) consumeExtName() (string, error) {
 		tok = p.next()
 		if tok.err != nil {
 			return "", p.errorf("unrecognized type_url or extension name: %s", tok.err)
+		}
+		if p.done && tok.value != "]" {
+			return "", p.errorf("unclosed type_url or extension name")
 		}
 	}
 	return strings.Join(parts, ""), nil
@@ -772,12 +785,12 @@ func (p *textParser) readAny(v reflect.Value, props *Properties) error {
 		fv.Set(reflect.Append(fv, reflect.New(at.Elem()).Elem()))
 		return p.readAny(fv.Index(fv.Len()-1), props)
 	case reflect.Bool:
-		// Either "true", "false", 1 or 0.
+		// true/1/t/True or false/f/0/False.
 		switch tok.value {
-		case "true", "1":
+		case "true", "1", "t", "True":
 			fv.SetBool(true)
 			return nil
-		case "false", "0":
+		case "false", "0", "f", "False":
 			fv.SetBool(false)
 			return nil
 		}
@@ -859,13 +872,9 @@ func (p *textParser) readAny(v reflect.Value, props *Properties) error {
 // UnmarshalText returns *RequiredNotSetError.
 func UnmarshalText(s string, pb Message) error {
 	if um, ok := pb.(encoding.TextUnmarshaler); ok {
-		err := um.UnmarshalText([]byte(s))
-		return err
+		return um.UnmarshalText([]byte(s))
 	}
 	pb.Reset()
 	v := reflect.ValueOf(pb)
-	if pe := newTextParser(s).readStruct(v.Elem(), ""); pe != nil {
-		return pe
-	}
-	return nil
+	return newTextParser(s).readStruct(v.Elem(), "")
 }
