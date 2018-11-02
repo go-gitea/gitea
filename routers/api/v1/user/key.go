@@ -14,6 +14,29 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 )
 
+// appendPrivateInformation appends the owner and key type information to api.PublicKey
+func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defaultUser *models.User) (*api.PublicKey, error) {
+	if key.Type == models.KeyTypeDeploy {
+		apiKey.KeyType = "deploy"
+	} else if key.Type == models.KeyTypeUser {
+		apiKey.KeyType = "user"
+
+		if defaultUser.ID == key.OwnerID {
+			apiKey.Owner = defaultUser.APIFormat()
+		} else {
+			user, err := models.GetUserByID(key.OwnerID)
+			if err != nil {
+				return apiKey, err
+			}
+			apiKey.Owner = user.APIFormat()
+		}
+	} else {
+		apiKey.KeyType = "unknown"
+	}
+	apiKey.ReadOnly = key.Mode == models.AccessModeRead
+	return apiKey, nil
+}
+
 // GetUserByParamsName get user by name
 func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 	user, err := models.GetUserByName(ctx.Params(name))
@@ -37,8 +60,27 @@ func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }
 
-func listPublicKeys(ctx *context.APIContext, uid int64) {
-	keys, err := models.ListPublicKeys(uid)
+func listPublicKeys(ctx *context.APIContext, user *models.User) {
+	var keys []*models.PublicKey
+	var err error
+
+	fingerprint := ctx.Query("fingerprint")
+	username := ctx.Params("username")
+
+	if fingerprint != "" {
+		// Querying not just listing
+		if username != "" {
+			// Restrict to provided uid
+			keys, err = models.SearchPublicKey(user.ID, fingerprint)
+		} else {
+			// Unrestricted
+			keys, err = models.SearchPublicKey(0, fingerprint)
+		}
+	} else {
+		// Use ListPublicKeys
+		keys, err = models.ListPublicKeys(user.ID)
+	}
+
 	if err != nil {
 		ctx.Error(500, "ListPublicKeys", err)
 		return
@@ -48,6 +90,9 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
+		if ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID {
+			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
+		}
 	}
 
 	ctx.JSON(200, &apiKeys)
@@ -58,12 +103,17 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	// swagger:operation GET /user/keys user userCurrentListKeys
 	// ---
 	// summary: List the authenticated user's public keys
+	// parameters:
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
-	listPublicKeys(ctx, ctx.User.ID)
+	listPublicKeys(ctx, ctx.User)
 }
 
 // ListPublicKeys list the given user's public keys
@@ -79,6 +129,10 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
@@ -86,7 +140,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listPublicKeys(ctx, user.ID)
+	listPublicKeys(ctx, user)
 }
 
 // GetPublicKey get a public key
@@ -119,7 +173,11 @@ func GetPublicKey(ctx *context.APIContext) {
 	}
 
 	apiLink := composePublicKeysAPILink()
-	ctx.JSON(200, convert.ToPublicKey(apiLink, key))
+	apiKey := convert.ToPublicKey(apiLink, key)
+	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	}
+	ctx.JSON(200, apiKey)
 }
 
 // CreateUserPublicKey creates new public key to given user by ID.
@@ -136,7 +194,11 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 	apiLink := composePublicKeysAPILink()
-	ctx.JSON(201, convert.ToPublicKey(apiLink, key))
+	apiKey := convert.ToPublicKey(apiLink, key)
+	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	}
+	ctx.JSON(201, apiKey)
 }
 
 // CreatePublicKey create one public key for me

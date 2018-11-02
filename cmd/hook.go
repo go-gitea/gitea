@@ -66,7 +66,6 @@ var (
 func hookSetup(logPath string) {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-	models.LoadConfigs()
 }
 
 func runHookPreReceive(c *cli.Context) error {
@@ -214,7 +213,7 @@ func runHookPostReceive(c *cli.Context) error {
 			log.GitLogger.Error(2, "Update: %v", err)
 		}
 
-		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
 			repo, pullRequestAllowed, err := private.GetRepository(repoID)
 			if err != nil {
