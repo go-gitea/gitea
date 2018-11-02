@@ -131,6 +131,8 @@ type SearchRepoOptions struct {
 	// True -> include just mirrors
 	// False -> include just non-mirrors
 	Mirror util.OptionalBool
+	// only search topic name
+	TopicOnly bool
 }
 
 //SearchOrderBy is used to sort the result
@@ -171,11 +173,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	var starred bool
 	if opts.OwnerID > 0 {
 		if opts.Starred {
-			starred = true
-			cond = builder.Eq{"star.uid": opts.OwnerID}
+			cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.OwnerID})))
 		} else {
 			var accessCond = builder.NewCond()
 			if opts.Collaborate != util.OptionalBoolTrue {
@@ -184,7 +184,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 			if opts.Collaborate != util.OptionalBoolFalse {
 				collaborateCond := builder.And(
-					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
 					builder.Neq{"owner_id": opts.OwnerID})
 				if !opts.Private {
 					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
@@ -202,7 +202,25 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	}
 
 	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+		// separate keyword
+		var subQueryCond = builder.NewCond()
+		for _, v := range strings.Split(opts.Keyword, ",") {
+			subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+		}
+		subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
+			Join("INNER", "topic", "topic.id = repo_topic.topic_id").
+			Where(subQueryCond).
+			GroupBy("repo_topic.repo_id")
+
+		var keywordCond = builder.In("id", subQuery)
+		if !opts.TopicOnly {
+			var likes = builder.NewCond()
+			for _, v := range strings.Split(opts.Keyword, ",") {
+				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+			}
+			keywordCond = keywordCond.Or(likes)
+		}
+		cond = cond.And(keywordCond)
 	}
 
 	if opts.Fork != util.OptionalBoolNone {
@@ -220,27 +238,19 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if starred {
-		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	}
-
 	count, err := sess.
 		Where(cond).
 		Count(new(Repository))
+
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
-	}
-
-	// Set again after reset by Count()
-	if starred {
-		sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
 	repos := make(RepositoryList, 0, opts.PageSize)
 	if err = sess.
 		Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		OrderBy(opts.OrderBy.String()).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}

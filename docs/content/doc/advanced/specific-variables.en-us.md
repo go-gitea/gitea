@@ -66,4 +66,3 @@ For documentation about each of the variables available, refer to the
 ## Miscellaneous
 
   * `SKIP_MINWINSVC`: If set to 1, do not run as a service on Windows.
-  * `ZOOKEEPER_PATH`: [Zookeeper](http://zookeeper.apache.org/) jar file path

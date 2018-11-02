@@ -84,6 +84,18 @@ func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) bindi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// MustChangePasswordForm form for updating your password after account creation
+// by an admin
+type MustChangePasswordForm struct {
+	Password string `binding:"Required;MaxSize(255)"`
+	Retype   string
+}
+
+// Validate valideates the fields
+func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // SignInForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`

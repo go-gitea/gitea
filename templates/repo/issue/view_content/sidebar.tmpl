@@ -254,40 +254,14 @@
 			<div class="ui divider"></div>
 
 			<div class="ui depending">
-				<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
-				<br>
-				{{if .BlockedByDependencies}}
-					<span class="text" data-tooltip="{{if .Issue.IsPull}}
-						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
-					{{else}}
-						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
-					{{end}}" data-inverted="">
-					{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
-					</span>
-					<div class="ui relaxed divided list">
-						{{range .BlockedByDependencies}}
-							<div class="item">
-								<div class="right floated content">
-									{{if $.CanCreateIssueDependencies}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
-											<i class="delete icon text red"></i>
-										</a>
-									{{end}}
-									{{if .IsClosed}}
-										<div class="ui red mini label">
-											<i class="octicon octicon-issue-closed"></i>
-										</div>
-									{{else}}
-										<div class="ui green mini label">
-											<i class="octicon octicon-issue-opened"></i>
-										</div>
-									{{end}}
-								</div>
-								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
-							</div>
-						{{end}}
-					</div>
+				{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
+					<br>
+					<p>{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_no_dependencies"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_no_dependencies"}}
+						{{end}}</p>
 				{{end}}
 
 				{{if .BlockingDependencies}}
@@ -296,40 +270,50 @@
 						{{else}}
 							{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
 						{{end}}" data-inverted="">
-					{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
+					<strong>{{.i18n.Tr "repo.issues.dependency.blocks_short"}}</strong>
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item">
-								<div class="right floated content">
+							<div class="item{{if .IsClosed}} is-closed{{end}}">
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								<div class="ui transparent label right floated">
 									{{if $.CanCreateIssueDependencies}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');"
+										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red"></i>
 										</a>
 									{{end}}
-									{{if .IsClosed}}
-										<div class="ui red tiny label">
-											<i class="octicon octicon-issue-closed"></i>
-										</div>
-									{{else}}
-										<div class="ui green mini label">
-											<i class="octicon octicon-issue-opened"></i>
-										</div>
-									{{end}}
 								</div>
-								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 							</div>
 						{{end}}
 					</div>
 				{{end}}
 
-				{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
-					<p>{{if .Issue.IsPull}}
-							{{.i18n.Tr "repo.issues.dependency.pr_no_dependencies"}}
-						{{else}}
-							{{.i18n.Tr "repo.issues.dependency.issue_no_dependencies"}}
-						{{end}}</p>
+				{{if .BlockedByDependencies}}
+					<span class="text" data-tooltip="{{if .Issue.IsPull}}
+						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
+					{{else}}
+						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+					{{end}}" data-inverted="">
+					<strong>{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
+					</span>
+					<div class="ui relaxed divided list">
+						{{range .BlockedByDependencies}}
+							<div class="item{{if .IsClosed}} is-closed{{end}}">
+								<div class="ui black label">#{{.Index}}</div>
+								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								<div class="ui transparent label right floated">
+									{{if $.CanCreateIssueDependencies}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');"
+										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											<i class="delete icon text red"></i>
+										</a>
+									{{end}}
+								</div>
+							</div>
+						{{end}}
+					</div>
 				{{end}}
 
 				{{if .CanCreateIssueDependencies}}
