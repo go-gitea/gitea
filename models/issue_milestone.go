@@ -181,7 +181,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
 	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, false).
-		Asc("deadline_unix").Find(&miles)
+		Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
