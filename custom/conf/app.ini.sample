@@ -154,6 +154,9 @@ SSH_PORT = 22
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
+; Gitea will create a authorized_keys file by default when it is not using the internal ssh server
+; If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
 ; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128
