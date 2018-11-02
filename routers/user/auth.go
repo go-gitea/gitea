@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
