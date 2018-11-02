@@ -81,7 +81,7 @@ Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
-## Using Caddy with a Sub-path as a reverse proxy
+## Using Caddy as a reverse proxy
 
 If you want Caddy to serve your Gitea instance you can add the following server block to your Caddyfile:
 
