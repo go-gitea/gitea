@@ -19,7 +19,7 @@ func TestRegisterForm_IsDomainWhiteList_Empty(t *testing.T) {
 
 	form := RegisterForm{}
 
-	assert.True(t, form.IsEmaildomainwhitelisted())
+	assert.True(t, form.IsEmailDomainWhitelisted())
 }
 
 func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
@@ -37,7 +37,7 @@ func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.False(t, form.IsEmaildomainwhitelisted())
+		assert.False(t, form.IsEmailDomainWhitelisted())
 	}
 }
 
@@ -51,6 +51,7 @@ func TestRegisterForm_IsDomainWhiteList_ValidEmail(t *testing.T) {
 		valid bool
 	}{
 		{"security@gitea.io", true},
+		{"security@gITea.io", true},
 		{"hdudhdd", false},
 		{"seee@example.com", false},
 	}
@@ -58,6 +59,6 @@ func TestRegisterForm_IsDomainWhiteList_ValidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.Equal(t, v.valid, form.IsEmaildomainwhitelisted())
+		assert.Equal(t, v.valid, form.IsEmailDomainWhitelisted())
 	}
 }

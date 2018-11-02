@@ -948,7 +948,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		}
 	}
 
-	if !form.IsEmaildomainwhitelisted() {
+	if !form.IsEmailDomainWhitelisted() {
 		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
 		return
 	}

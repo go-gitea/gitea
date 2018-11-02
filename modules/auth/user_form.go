@@ -87,11 +87,11 @@ func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) bindi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// IsEmaildomainwhitelisted validates that the email address
+// IsEmailDomainWhitelisted validates that the email address
 // provided by the user matches what has been configured .
 // If the domain whitelist from the config is empty, it marks the
 // email as whitelisted
-func (f RegisterForm) IsEmaildomainwhitelisted() bool {
+func (f RegisterForm) IsEmailDomainWhitelisted() bool {
 	if len(setting.Service.EmailDomainWhitelist) == 0 {
 		return true
 	}
@@ -101,10 +101,10 @@ func (f RegisterForm) IsEmaildomainwhitelisted() bool {
 		return false
 	}
 
-	domain := f.Email[n+1:]
+	domain := strings.ToLower(f.Email[n+1:])
 
 	for _, v := range setting.Service.EmailDomainWhitelist {
-		if v == domain {
+		if strings.ToLower(v) == domain {
 			return true
 		}
 	}
