@@ -561,6 +561,15 @@ var (
 		TrustedFacets []string
 	}{}
 
+	// Metrics settings
+	Metrics = struct {
+		Enable bool
+		Token  string
+	}{
+		Enable: false,
+		Token:  "",
+	}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
