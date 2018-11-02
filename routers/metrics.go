@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Metrics validate auth token and render prometheus metrics
 func Metrics(ctx *context.Context) {
 	if setting.Metrics.Token == "" {
 		promhttp.Handler().ServeHTTP(ctx.Resp, ctx.Req.Request)
