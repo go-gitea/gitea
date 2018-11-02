@@ -105,8 +105,7 @@ func WebhooksNew(ctx *context.Context) {
 			"Username": "Gitea",
 			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
-	}
-	if hookType == "workwechat" {
+	} else if hookType == "workwechat" {
 		ctx.Data["WorkwechatHook"] = map[string]interface{}{
 			"ChatID": "gitea",
 		}
