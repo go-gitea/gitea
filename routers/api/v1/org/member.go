@@ -117,12 +117,8 @@ func IsMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: user is not a member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -172,12 +168,8 @@ func IsPublicMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a public member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: user is not a public member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -210,8 +202,6 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -286,8 +276,6 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

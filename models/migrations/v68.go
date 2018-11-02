@@ -205,9 +205,6 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			return err
 		}
 	}
-	if err := sess.Commit(); err != nil {
-		return err
-	}
 
-	return nil
+	return sess.Commit()
 }

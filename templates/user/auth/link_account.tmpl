@@ -1,15 +1,33 @@
 {{template "base/head" .}}
+
 <div class="user link-account">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<p class="large center">
-				{{.i18n.Tr "link_account_signin_or_signup"}}
-			</p>
+
+			<div class="ui tabular menu">
+				<!-- TODO handle .ShowRegistrationButton once other login bugs are fixed -->
+				<div class="item {{if not .user_exists}}active{{end}}"
+					data-tab="auth-link-signup-tab">
+					{{.i18n.Tr "auth.oauth_signup_tab"}}
+				</div>
+				<div class="item {{if .user_exists}}active{{end}}"
+					data-tab="auth-link-signin-tab">
+					{{.i18n.Tr "auth.oauth_signin_tab"}}
+				</div>
+			</div>
+			
+			<div class="ui tab {{if not .user_exists}}active{{end}}"
+				data-tab="auth-link-signup-tab">
+				{{template "user/auth/signup_inner" .}}
+			</div>
+			<div class="ui tab {{if .user_exists}}active{{end}}"
+				data-tab="auth-link-signin-tab">
+				<div class="ui user signin container icon">
+					{{template "user/auth/signin_inner" .}}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
-<div class="ui user signin container icon">
-{{template "user/auth/signin_inner" .}}
-</div>
-{{template "user/auth/signup_inner" .}}
+
 {{template "base/footer" .}}

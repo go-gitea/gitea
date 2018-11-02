@@ -27,10 +27,14 @@ func argsSet(c *cli.Context, args ...string) error {
 }
 
 func initDB() error {
+	return initDBDisableConsole(false)
+}
+
+func initDBDisableConsole(disableConsole bool) error {
 	setting.NewContext()
 	models.LoadConfigs()
 
-	setting.NewXORMLogService(false)
+	setting.NewXORMLogService(disableConsole)
 	if err := models.SetEngine(); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}

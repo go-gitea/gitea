@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
@@ -28,6 +29,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
@@ -377,12 +379,8 @@ func (u *User) GetFollowers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
-		Where("follow.follow_id=?", u.ID)
-	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
-	} else {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.user_id")
-	}
+		Where("follow.follow_id=?", u.ID).
+		Join("LEFT", "follow", "`user`.id=follow.user_id")
 	return users, sess.Find(&users)
 }
 
@@ -396,12 +394,8 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
 		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
-		Where("follow.user_id=?", u.ID)
-	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
-	} else {
-		sess = sess.Join("LEFT", "follow", "`user`.id=follow.follow_id")
-	}
+		Where("follow.user_id=?", u.ID).
+		Join("LEFT", "follow", "`user`.id=follow.follow_id")
 	return users, sess.Find(&users)
 }
 
@@ -1337,6 +1331,7 @@ func GetUser(user *User) (bool, error) {
 type SearchUserOptions struct {
 	Keyword       string
 	Type          UserType
+	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
 	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
@@ -1355,7 +1350,12 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		if opts.SearchByEmail {
 			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
 		}
+
 		cond = cond.And(keywordCond)
+	}
+
+	if opts.UID > 0 {
+		cond = cond.And(builder.Eq{"id": opts.UID})
 	}
 
 	if !opts.IsActive.IsNone() {
@@ -1381,7 +1381,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.Page = 1
 	}
 	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
+		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
 	users = make([]*User, 0, opts.PageSize)
@@ -1455,7 +1455,8 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range SSHPublicKeys {
-		if strings.HasPrefix(strings.ToLower(sshKey), "ssh") {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
+		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
 				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)

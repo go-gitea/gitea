@@ -546,6 +546,11 @@
 }
  .ui.menu.new-menu {
      background-color: #2a2e3a!important;
+     @media only screen and (max-width: 1200px) {
+         &:after {
+             background-image: linear-gradient(to right, rgba(42, 46, 42, 0), rgba(42, 46, 42, 1) 100%);
+         }
+     }
 }
  input {
      background: #2e323e;
