@@ -118,23 +118,24 @@ var (
 	LetsEncryptEmail     string
 
 	SSH = struct {
-		Disabled             bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain               string         `ini:"SSH_DOMAIN"`
-		Port                 int            `ini:"SSH_PORT"`
-		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
-		RootPath             string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
-		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		MinimumKeySizeCheck  bool           `ini:"-"`
-		MinimumKeySizes      map[string]int `ini:"-"`
-		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
+		Disabled                 bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer       bool           `ini:"START_SSH_SERVER"`
+		BuiltinServerUser        string         `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                   string         `ini:"SSH_DOMAIN"`
+		Port                     int            `ini:"SSH_PORT"`
+		ListenHost               string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort               int            `ini:"SSH_LISTEN_PORT"`
+		RootPath                 string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers            []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges       []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs               []string       `ini:"SSH_SERVER_MACS"`
+		KeyTestPath              string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath               string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup     bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck      bool           `ini:"-"`
+		MinimumKeySizes          map[string]int `ini:"-"`
+		CreateAuthorizedKeysFile bool           `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		ExposeAnonymous          bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -863,6 +864,7 @@ func NewContext() {
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	sec = Cfg.Section("server")
