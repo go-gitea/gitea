@@ -41,7 +41,6 @@ import (
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
 )
@@ -791,16 +790,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}
 	})
 
-	c := metrics.NewCollector()
-	prometheus.MustRegister(c)
+	// prometheus metrics endpoint
+	if setting.Metrics.Enable {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
 
-	m.Get("/metrics", func(ctx *context.Context) {
-		if ctx.Query("type") == "json" {
-			ctx.JSON(200, models.GetStatistic())
-			return
-		}
-		promhttp.Handler().ServeHTTP(ctx.Resp, ctx.Req.Request)
-	})
+		m.Get("/metrics", routers.Metrics)
+	}
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)
