@@ -2682,6 +2682,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "the key_id to search for",
+            "name": "key_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4976,6 +4988,14 @@
         ],
         "summary": "List the authenticated user's public keys",
         "operationId": "userCurrentListKeys",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
@@ -5540,6 +5560,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
