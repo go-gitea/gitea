@@ -378,12 +378,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if repo.IsMirror {
-			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error_ismirror"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
-			return
-		}
-
 		if err := repo.SetArchiveRepoState(false); err != nil {
 			log.Error(4, "Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
