@@ -302,6 +302,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
+## Metrics (`metrics`)
+
+- `ENABLED`: **false**: Enables /metrics endpoint for prometheus. 
+- `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
+
 ## API (`api`)
  
 - `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
