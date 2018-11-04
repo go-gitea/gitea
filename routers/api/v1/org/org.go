@@ -62,6 +62,65 @@ func ListUserOrgs(ctx *context.APIContext) {
 	listUserOrgs(ctx, u, false)
 }
 
+// Create api for create organization
+func Create(ctx *context.APIContext, form api.CreateOrgOption) {
+	// swagger:operation POST /orgs organization orgCreate
+	// ---
+	// summary: Create an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user that will own the created organization
+	//   type: string
+	//   required: true
+	// - name: organization
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Organization"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	u := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !u.AllowCreateOrganization {
+		ctx.Error(403, "Create organization not allowed", nil)
+		return
+	}
+
+	org := &models.User{
+		Name:        form.UserName,
+		FullName:    form.FullName,
+		Description: form.Description,
+		Website:     form.Website,
+		Location:    form.Location,
+		IsActive:    true,
+		Type:        models.UserTypeOrganization,
+	}
+	if err := models.CreateOrganization(org, u); err != nil {
+		if models.IsErrUserAlreadyExist(err) ||
+			models.IsErrNameReserved(err) ||
+			models.IsErrNamePatternNotAllowed(err) {
+			ctx.Error(422, "", err)
+		} else {
+			ctx.Error(500, "CreateOrganization", err)
+		}
+		return
+	}
+
+	ctx.JSON(201, convert.ToOrganization(org))
+}
+
 // Get get an organization
 func Get(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org} organization orgGet
