@@ -15,6 +15,21 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// appendPrivateInformation appends the owner and key type information to api.PublicKey
+func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
+	apiKey.ReadOnly = key.Mode == models.AccessModeRead
+	if repository.ID == key.RepoID {
+		apiKey.Repository = repository.APIFormat(key.Mode)
+	} else {
+		repo, err := models.GetRepositoryByID(key.RepoID)
+		if err != nil {
+			return apiKey, err
+		}
+		apiKey.Repository = repo.APIFormat(key.Mode)
+	}
+	return apiKey, nil
+}
+
 func composeDeployKeysAPILink(repoPath string) string {
 	return setting.AppURL + "api/v1/repos/" + repoPath + "/keys/"
 }
@@ -37,10 +52,28 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: key_id
+	//   in: query
+	//   description: the key_id to search for
+	//   type: integer
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	var keys []*models.DeployKey
+	var err error
+
+	fingerprint := ctx.Query("fingerprint")
+	keyID := ctx.QueryInt64("key_id")
+	if fingerprint != "" || keyID != 0 {
+		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
+	} else {
+		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID)
+	}
+
 	if err != nil {
 		ctx.Error(500, "ListDeployKeys", err)
 		return
@@ -54,6 +87,9 @@ func ListDeployKeys(ctx *context.APIContext) {
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
+		if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], ctx.Repo.Repository)
+		}
 	}
 
 	ctx.JSON(200, &apiKeys)
@@ -102,7 +138,11 @@ func GetDeployKey(ctx *context.APIContext) {
 	}
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
-	ctx.JSON(200, convert.ToDeployKey(apiLink, key))
+	apiKey := convert.ToDeployKey(apiLink, key)
+	if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Repo.Repository)
+	}
+	ctx.JSON(200, apiKey)
 }
 
 // HandleCheckKeyStringError handle check key error

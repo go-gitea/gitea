@@ -167,12 +167,14 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 // ToDeployKey convert models.DeployKey to api.DeployKey
 func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
-		ID:       key.ID,
-		Key:      key.Content,
-		URL:      apiLink + com.ToStr(key.ID),
-		Title:    key.Name,
-		Created:  key.CreatedUnix.AsTime(),
-		ReadOnly: true, // All deploy keys are read-only.
+		ID:          key.ID,
+		KeyID:       key.KeyID,
+		Key:         key.Content,
+		Fingerprint: key.Fingerprint,
+		URL:         apiLink + com.ToStr(key.ID),
+		Title:       key.Name,
+		Created:     key.CreatedUnix.AsTime(),
+		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
 	}
 }
 
