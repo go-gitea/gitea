@@ -31,10 +31,6 @@ markComment: >
   recent activity. It will be closed if no further activity occurs during the next 2 weeks. Thank you
   for your contributions.
 
-# Comment to post when removing the stale label.
-# unmarkComment: >
-#   Your comment here.
-
 # Comment to post when closing a stale Issue or Pull Request.
 closeComment: >
   This issue has been automatically closed because of inactivity.
@@ -42,9 +38,6 @@ closeComment: >
 
 # Limit the number of actions per hour, from 1-30. Default is 30
 limitPerRun: 1
-
-# Limit to only `issues` or `pulls`
-# only: issues
 
 # Optionally, specify configuration settings that are specific to just 'issues' or 'pulls':
 pulls:
@@ -57,6 +50,3 @@ pulls:
     This pull request has been automatically closed because of inactivity.
     You can re-open it if needed.
 
-# issues:
-#   exemptLabels:
-#     - confirmed
