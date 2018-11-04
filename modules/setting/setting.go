@@ -563,11 +563,11 @@ var (
 
 	// Metrics settings
 	Metrics = struct {
-		Enable bool
-		Token  string
+		Enabled bool
+		Token   string
 	}{
-		Enable: false,
-		Token:  "",
+		Enabled: false,
+		Token:   "",
 	}
 
 	// I18n settings

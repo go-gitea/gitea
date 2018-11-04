@@ -791,7 +791,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	})
 
 	// prometheus metrics endpoint
-	if setting.Metrics.Enable {
+	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
