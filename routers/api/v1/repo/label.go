@@ -69,6 +69,7 @@ func GetLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the label to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -163,6 +164,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	//   in: path
 	//   description: id of the label to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -219,6 +221,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the label to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

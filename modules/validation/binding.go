@@ -6,7 +6,6 @@ package validation
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 
@@ -70,13 +69,9 @@ func addValidURLBindingRule() {
 		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
-			if len(str) != 0 {
-				if u, err := url.ParseRequestURI(str); err != nil ||
-					(u.Scheme != "http" && u.Scheme != "https") ||
-					!validPort(portOnly(u.Host)) {
-					errs.Add([]string{name}, binding.ERR_URL, "Url")
-					return false, errs
-				}
+			if len(str) != 0 && !IsValidURL(str) {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
 			}
 
 			return true, errs

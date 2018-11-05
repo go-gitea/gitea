@@ -273,7 +273,7 @@ func (diff *Diff) NumFiles() int {
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
-var hunkRegex = regexp.MustCompile(`^@@ -([0-9]+),([0-9]+) \+([0-9]+),([0-9]+) @@`)
+var hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+))? \+(?P<beginNew>[0-9]+)(,(?P<endNew>[0-9]+))? @@`)
 
 func isHeader(lof string) bool {
 	return strings.HasPrefix(lof, cmdDiffHead) || strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")
@@ -311,17 +311,28 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			if len(hunk) > headerLines {
 				break
 			}
-			groups := hunkRegex.FindStringSubmatch(lof)
+			// A map with named groups of our regex to recognize them later more easily
+			submatches := hunkRegex.FindStringSubmatch(lof)
+			groups := make(map[string]string)
+			for i, name := range hunkRegex.SubexpNames() {
+				if i != 0 && name != "" {
+					groups[name] = submatches[i]
+				}
+			}
 			if old {
-				begin = com.StrTo(groups[1]).MustInt64()
-				end = com.StrTo(groups[2]).MustInt64()
+				begin = com.StrTo(groups["beginOld"]).MustInt64()
+				end = com.StrTo(groups["endOld"]).MustInt64()
 				// init otherLine with begin of opposite side
-				otherLine = com.StrTo(groups[3]).MustInt64()
+				otherLine = com.StrTo(groups["beginNew"]).MustInt64()
 			} else {
-				begin = com.StrTo(groups[3]).MustInt64()
-				end = com.StrTo(groups[4]).MustInt64()
+				begin = com.StrTo(groups["beginNew"]).MustInt64()
+				if groups["endNew"] != "" {
+					end = com.StrTo(groups["endNew"]).MustInt64()
+				} else {
+					end = 0
+				}
 				// init otherLine with begin of opposite side
-				otherLine = com.StrTo(groups[1]).MustInt64()
+				otherLine = com.StrTo(groups["beginOld"]).MustInt64()
 			}
 			end += begin // end is for real only the number of lines in hunk
 			// lof is between begin and end
@@ -633,6 +644,13 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 // passing the empty string as beforeCommitID returns a diff from the
 // parent commit.
 func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID, maxLines, maxLineCharacters, maxFiles, "")
+}
+
+// GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
+// Passing the empty string as beforeCommitID returns a diff from the parent commit.
+// The whitespaceBehavior is either an empty string or a git flag
+func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
@@ -644,17 +662,21 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 	}
 
 	var cmd *exec.Cmd
-	// if "after" commit given
-	if len(beforeCommitID) == 0 {
-		// First commit of repository.
-		if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", "show", afterCommitID)
-		} else {
-			c, _ := commit.Parent(0)
-			cmd = exec.Command("git", "diff", "-M", c.ID.String(), afterCommitID)
-		}
+	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
+		cmd = exec.Command("git", "show", afterCommitID)
 	} else {
-		cmd = exec.Command("git", "diff", "-M", beforeCommitID, afterCommitID)
+		actualBeforeCommitID := beforeCommitID
+		if len(actualBeforeCommitID) == 0 {
+			parentCommit, _ := commit.Parent(0)
+			actualBeforeCommitID = parentCommit.ID.String()
+		}
+		diffArgs := []string{"diff", "-M"}
+		if len(whitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, whitespaceBehavior)
+		}
+		diffArgs = append(diffArgs, actualBeforeCommitID)
+		diffArgs = append(diffArgs, afterCommitID)
+		cmd = exec.Command("git", diffArgs...)
 	}
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr

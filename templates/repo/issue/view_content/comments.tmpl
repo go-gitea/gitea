@@ -342,7 +342,7 @@
 										</div>
 									{{end}}
 								</div>
-								{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" true "root" $ "comment" (index $comms 0)}}
+								{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
 							</div>
 						</div>
 				{{end}}

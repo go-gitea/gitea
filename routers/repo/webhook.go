@@ -332,8 +332,14 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
+	if form.HasInvalidChannel() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
+		ctx.Redirect(orCtx.Link + "/settings/hooks/slack/new")
+		return
+	}
+
 	meta, err := json.Marshal(&models.SlackMeta{
-		Channel:  form.Channel,
+		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
 		Color:    form.Color,
@@ -515,8 +521,14 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
+	if form.HasInvalidChannel() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
+		ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+		return
+	}
+
 	meta, err := json.Marshal(&models.SlackMeta{
-		Channel:  form.Channel,
+		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
 		Color:    form.Color,

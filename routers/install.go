@@ -8,7 +8,6 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -45,9 +44,6 @@ func InstallInit(ctx *context.Context) {
 	if models.EnableSQLite3 {
 		dbOpts = append(dbOpts, "SQLite3")
 	}
-	if models.EnableTiDB {
-		dbOpts = append(dbOpts, "TiDB")
-	}
 	ctx.Data["DbOptions"] = dbOpts
 }
 
@@ -71,10 +67,6 @@ func Install(ctx *context.Context) {
 	case "sqlite3":
 		if models.EnableSQLite3 {
 			ctx.Data["CurDbOption"] = "SQLite3"
-		}
-	case "tidb":
-		if models.EnableTiDB {
-			ctx.Data["CurDbOption"] = "TiDB"
 		}
 	}
 
@@ -151,7 +143,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3", "TiDB": "tidb"}
+	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
 	models.DbCfg.Type = dbTypes[form.DbType]
 	models.DbCfg.Host = form.DbHost
 	models.DbCfg.User = form.DbUser
@@ -160,15 +152,10 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	models.DbCfg.SSLMode = form.SSLMode
 	models.DbCfg.Path = form.DbPath
 
-	if (models.DbCfg.Type == "sqlite3" || models.DbCfg.Type == "tidb") &&
+	if (models.DbCfg.Type == "sqlite3") &&
 		len(models.DbCfg.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
-		return
-	} else if models.DbCfg.Type == "tidb" &&
-		strings.ContainsAny(path.Base(models.DbCfg.Path), ".-") {
-		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), tplInstall, &form)
 		return
 	}
 
@@ -177,7 +164,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if err = models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/installation/install_from_binary.html"), tplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)

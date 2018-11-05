@@ -112,25 +112,30 @@ var (
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
+	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
 
 	SSH = struct {
-		Disabled             bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain               string         `ini:"SSH_DOMAIN"`
-		Port                 int            `ini:"SSH_PORT"`
-		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
-		RootPath             string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
-		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		MinimumKeySizeCheck  bool           `ini:"-"`
-		MinimumKeySizes      map[string]int `ini:"-"`
-		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
+		Disabled                 bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer       bool           `ini:"START_SSH_SERVER"`
+		BuiltinServerUser        string         `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                   string         `ini:"SSH_DOMAIN"`
+		Port                     int            `ini:"SSH_PORT"`
+		ListenHost               string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort               int            `ini:"SSH_LISTEN_PORT"`
+		RootPath                 string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers            []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges       []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs               []string       `ini:"SSH_SERVER_MACS"`
+		KeyTestPath              string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath               string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup     bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck      bool           `ini:"-"`
+		MinimumKeySizes          map[string]int `ini:"-"`
+		CreateAuthorizedKeysFile bool           `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		ExposeAnonymous          bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -224,6 +229,11 @@ var (
 			LocalCopyPath string
 			LocalWikiPath string
 		} `ini:"-"`
+
+		// Pull request settings
+		PullRequest struct {
+			WorkInProgressPrefixes []string
+		} `ini:"repository.pull-request"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -267,6 +277,13 @@ var (
 			LocalCopyPath: "tmp/local-repo",
 			LocalWikiPath: "tmp/local-wiki",
 		},
+
+		// Pull request settings
+		PullRequest: struct {
+			WorkInProgressPrefixes []string
+		}{
+			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+		},
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
@@ -284,6 +301,7 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
+		HeatmapColorRange   string
 
 		Admin struct {
 			UserPagingNum   int
@@ -310,6 +328,7 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
+		HeatmapColorRange:   `['#f4f4f4', '#459928']`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -542,6 +561,15 @@ var (
 		TrustedFacets []string
 	}{}
 
+	// Metrics settings
+	Metrics = struct {
+		Enabled bool
+		Token   string
+	}{
+		Enabled: false,
+		Token:   "",
+	}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
@@ -725,6 +753,14 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
+	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	if !LetsEncryptTOS && EnableLetsEncrypt {
+		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
+		EnableLetsEncrypt = false
+	}
+	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
@@ -837,6 +873,7 @@ func NewContext() {
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	sec = Cfg.Section("server")
@@ -1031,6 +1068,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
@@ -1095,6 +1134,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
+	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
+		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
 
 	sec = Cfg.Section("mirror")
@@ -1129,7 +1170,7 @@ func NewContext() {
 
 	extensionReg := regexp.MustCompile(`\.\w`)
 	for _, sec := range Cfg.Section("markup").ChildSections() {
-		name := strings.TrimLeft(sec.Name(), "markup.")
+		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {
 			log.Warn("name is empty, markup " + sec.Name() + "ignored")
 			continue
@@ -1192,6 +1233,7 @@ var Service struct {
 	DefaultEnableDependencies               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	EnableUserHeatmap                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1223,6 +1265,7 @@ func newService() {
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

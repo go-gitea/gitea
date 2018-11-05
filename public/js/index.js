@@ -780,7 +780,7 @@ function initPullRequestReview() {
         $("#show-outdated-" + id).removeClass('hide');
     });
 
-    $('.comment-form-reply').on('click', function (e) {
+    $('button.comment-form-reply').on('click', function (e) {
         e.preventDefault();
         $(this).hide();
         var form = $(this).parent().find('.comment-form')
@@ -834,10 +834,8 @@ function initPullRequestReview() {
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
-            var id = assingMenuAttributes(commentCloud.find('.menu'));
-            commentCloud.find('.tab.segment').each(function(i, item) {
-                $(item).attr('data-tab', $(item).attr('data-tab') + id);
-            });
+            assingMenuAttributes(commentCloud.find('.menu'));
+
             td.find("input[name='line']").val(idx);
             td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
             td.find("input[name='path']").val(path);
@@ -860,8 +858,6 @@ function assingMenuAttributes(menu) {
 }
 
 function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
-
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -953,7 +949,6 @@ String.prototype.endsWith = function (pattern) {
         return pos;
     }
 })(jQuery);
-
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1188,8 +1183,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -1655,6 +1648,24 @@ function u2fRegisterRequest() {
     });
 }
 
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
+    });
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -1755,6 +1766,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1869,6 +1885,7 @@ $(document).ready(function () {
     initU2FAuth();
     initU2FRegister();
     initIssueList();
+    initWipTitle();
     initPullRequestReview();
 
     // Repo clone url.
@@ -2413,7 +2430,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', ''); // show Semantic UI Grid
     });
 
     function getPrompts() {
@@ -2444,7 +2461,7 @@ function initTopicbar() {
                 for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
-                editDiv.hide();
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2578,6 +2595,10 @@ function updateDeadline(deadlineString) {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
         contentType: 'application/json',
         type: 'POST',
         success: function () {
@@ -2609,7 +2630,7 @@ function initIssueList() {
     $('.new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
                     // Parse the response from the api to work with our dropdown
@@ -2631,9 +2652,8 @@ function cancelCodeComment(btn) {
     var form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
-        form.parent().find('.comment-form-reply').show();
-    }else {
-        console.log("Hey");
+        form.parent().find('button.comment-form-reply').show();
+    } else {
         form.closest('.comment-code-cloud').remove()
     }
 }
