@@ -4,6 +4,23 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.6.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.6.0-rc2) - 2018-11-04
+* SECURITY
+  * Add CSRF checking to reqToken and add reqToken to admin API routes (#5272) (#5250)
+* FEATURE
+  * Add comment replies (#5147) (#5104)
+* BUGFIXES
+  * Fix wrong api request url for instances running in subfolders (#5261) (#5247)
+  * Accept web-command cli flags if web-command is commited (#5245) (#5200)
+  * Reduce join star, repo_topic, topic tables on repo search, to resolve extra columns problem on MSSQL (#5136) (#5229)
+  * Fix data race on migrate repository (#5224) (#5230)
+  * Add secret to all webhook's payload where it has been missing (#5208) (#5199)
+  * Fix sqlite and MSSQL lock (#5210) (#5223) (#5214) (#5218) (#5176) (#5179)
+  * Fix race on updatesize (#5190) (#5215)
+  * Fix filtering issues by tags on main screen issues (#5219) (#3824)
+  * Fix SQL quoting (#5137) (#5117)
+  * Fix regex to support optional end line of old section in diff hunk (#5097) (#5096)
+
 ## [1.6.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.6.0-rc1) - 2018-10-17
 * BREAKING
   * Respect email privacy option in user search via API (#4512)
