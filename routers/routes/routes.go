@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,6 +40,7 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
 )
@@ -787,6 +789,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			ctx.NotFound("", nil)
 		}
 	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		m.Get("/metrics", routers.Metrics)
+	}
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)

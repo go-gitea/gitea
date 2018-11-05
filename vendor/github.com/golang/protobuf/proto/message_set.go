@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
 )
 
 // errNoMessageTypeID occurs when a protocol buffer does not have a message type ID.
@@ -94,10 +95,7 @@ func (ms *messageSet) find(pb Message) *_MessageSet_Item {
 }
 
 func (ms *messageSet) Has(pb Message) bool {
-	if ms.find(pb) != nil {
-		return true
-	}
-	return false
+	return ms.find(pb) != nil
 }
 
 func (ms *messageSet) Unmarshal(pb Message) error {
@@ -149,36 +147,54 @@ func skipVarint(buf []byte) []byte {
 
 // MarshalMessageSet encodes the extension map represented by m in the message set wire format.
 // It is called by generated Marshal methods on protocol buffer messages with the message_set_wire_format option.
-func MarshalMessageSet(m map[int32]Extension) ([]byte, error) {
-	if err := encodeExtensionMap(m); err != nil {
-		return nil, err
-	}
+func MarshalMessageSet(exts interface{}) ([]byte, error) {
+	return marshalMessageSet(exts, false)
+}
 
-	// Sort extension IDs to provide a deterministic encoding.
-	// See also enc_map in encode.go.
-	ids := make([]int, 0, len(m))
-	for id := range m {
-		ids = append(ids, int(id))
-	}
-	sort.Ints(ids)
+// marshaMessageSet implements above function, with the opt to turn on / off deterministic during Marshal.
+func marshalMessageSet(exts interface{}, deterministic bool) ([]byte, error) {
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		var u marshalInfo
+		siz := u.sizeMessageSet(exts)
+		b := make([]byte, 0, siz)
+		return u.appendMessageSet(b, exts, deterministic)
 
-	ms := &messageSet{Item: make([]*_MessageSet_Item, 0, len(m))}
-	for _, id := range ids {
-		e := m[int32(id)]
-		// Remove the wire type and field number varint, as well as the length varint.
-		msg := skipVarint(skipVarint(e.enc))
+	case map[int32]Extension:
+		// This is an old-style extension map.
+		// Wrap it in a new-style XXX_InternalExtensions.
+		ie := XXX_InternalExtensions{
+			p: &struct {
+				mu           sync.Mutex
+				extensionMap map[int32]Extension
+			}{
+				extensionMap: exts,
+			},
+		}
 
-		ms.Item = append(ms.Item, &_MessageSet_Item{
-			TypeId:  Int32(int32(id)),
-			Message: msg,
-		})
+		var u marshalInfo
+		siz := u.sizeMessageSet(&ie)
+		b := make([]byte, 0, siz)
+		return u.appendMessageSet(b, &ie, deterministic)
+
+	default:
+		return nil, errors.New("proto: not an extension map")
 	}
-	return Marshal(ms)
 }
 
 // UnmarshalMessageSet decodes the extension map encoded in buf in the message set wire format.
-// It is called by generated Unmarshal methods on protocol buffer messages with the message_set_wire_format option.
-func UnmarshalMessageSet(buf []byte, m map[int32]Extension) error {
+// It is called by Unmarshal methods on protocol buffer messages with the message_set_wire_format option.
+func UnmarshalMessageSet(buf []byte, exts interface{}) error {
+	var m map[int32]Extension
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		m = exts.extensionsWrite()
+	case map[int32]Extension:
+		m = exts
+	default:
+		return errors.New("proto: not an extension map")
+	}
+
 	ms := new(messageSet)
 	if err := Unmarshal(buf, ms); err != nil {
 		return err
@@ -209,7 +225,24 @@ func UnmarshalMessageSet(buf []byte, m map[int32]Extension) error {
 
 // MarshalMessageSetJSON encodes the extension map represented by m in JSON format.
 // It is called by generated MarshalJSON methods on protocol buffer messages with the message_set_wire_format option.
-func MarshalMessageSetJSON(m map[int32]Extension) ([]byte, error) {
+func MarshalMessageSetJSON(exts interface{}) ([]byte, error) {
+	var m map[int32]Extension
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		var mu sync.Locker
+		m, mu = exts.extensionsRead()
+		if m != nil {
+			// Keep the extensions map locked until we're done marshaling to prevent
+			// races between marshaling and unmarshaling the lazily-{en,de}coded
+			// values.
+			mu.Lock()
+			defer mu.Unlock()
+		}
+	case map[int32]Extension:
+		m = exts
+	default:
+		return nil, errors.New("proto: not an extension map")
+	}
 	var b bytes.Buffer
 	b.WriteByte('{')
 
@@ -222,15 +255,16 @@ func MarshalMessageSetJSON(m map[int32]Extension) ([]byte, error) {
 
 	for i, id := range ids {
 		ext := m[id]
-		if i > 0 {
-			b.WriteByte(',')
-		}
-
 		msd, ok := messageSetMap[id]
 		if !ok {
 			// Unknown type; we can't render it, so skip it.
 			continue
 		}
+
+		if i > 0 && b.Len() > 1 {
+			b.WriteByte(',')
+		}
+
 		fmt.Fprintf(&b, `"[%s]":`, msd.name)
 
 		x := ext.value
@@ -252,7 +286,7 @@ func MarshalMessageSetJSON(m map[int32]Extension) ([]byte, error) {
 
 // UnmarshalMessageSetJSON decodes the extension map encoded in buf in JSON format.
 // It is called by generated UnmarshalJSON methods on protocol buffer messages with the message_set_wire_format option.
-func UnmarshalMessageSetJSON(buf []byte, m map[int32]Extension) error {
+func UnmarshalMessageSetJSON(buf []byte, exts interface{}) error {
 	// Common-case fast path.
 	if len(buf) == 0 || bytes.Equal(buf, []byte("{}")) {
 		return nil
