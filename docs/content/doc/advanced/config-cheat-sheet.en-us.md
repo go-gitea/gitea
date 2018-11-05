@@ -160,9 +160,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
    authentication.
-- `DISABLE_GIT_HOOKS`: **false**: Prevent all users (including admin) from creating custom
+- `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
-- `IMPORT_LOCAL_PATHS`: **false**: Prevent all users (including admin) from importing local path on server.
+- `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 
 ## OpenID (`openid`)
 
