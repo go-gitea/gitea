@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.10-alpine3.7 AS build-env
+FROM golang:1.11-alpine3.7 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
