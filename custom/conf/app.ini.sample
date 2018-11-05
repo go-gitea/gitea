@@ -659,3 +659,9 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =

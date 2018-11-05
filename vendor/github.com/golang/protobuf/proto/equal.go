@@ -54,13 +54,17 @@ Equality is defined in this way:
     in a proto3 .proto file, fields are not "set"; specifically,
     zero length proto3 "bytes" fields are equal (nil == {}).
   - Two repeated fields are equal iff their lengths are the same,
-    and their corresponding elements are equal (a "bytes" field,
-    although represented by []byte, is not a repeated field)
+    and their corresponding elements are equal. Note a "bytes" field,
+    although represented by []byte, is not a repeated field and the
+    rule for the scalar fields described above applies.
   - Two unset fields are equal.
   - Two unknown field sets are equal if their current
     encoded state is equal.
   - Two extension sets are equal iff they have corresponding
     elements that are pairwise equal.
+  - Two map fields are equal iff their lengths are the same,
+    and they contain the same set of elements. Zero-length map
+    fields are equal.
   - Every other combination of things are not equal.
 
 The return value is undefined if a and b are not protocol buffers.
@@ -105,15 +109,6 @@ func equalStruct(v1, v2 reflect.Value) bool {
 				// set/unset mismatch
 				return false
 			}
-			b1, ok := f1.Interface().(raw)
-			if ok {
-				b2 := f2.Interface().(raw)
-				// RawMessage
-				if !bytes.Equal(b1.Bytes(), b2.Bytes()) {
-					return false
-				}
-				continue
-			}
 			f1, f2 = f1.Elem(), f2.Elem()
 		}
 		if !equalAny(f1, f2, sprop.Prop[i]) {
@@ -121,9 +116,16 @@ func equalStruct(v1, v2 reflect.Value) bool {
 		}
 	}
 
+	if em1 := v1.FieldByName("XXX_InternalExtensions"); em1.IsValid() {
+		em2 := v2.FieldByName("XXX_InternalExtensions")
+		if !equalExtensions(v1.Type(), em1.Interface().(XXX_InternalExtensions), em2.Interface().(XXX_InternalExtensions)) {
+			return false
+		}
+	}
+
 	if em1 := v1.FieldByName("XXX_extensions"); em1.IsValid() {
 		em2 := v2.FieldByName("XXX_extensions")
-		if !equalExtensions(v1.Type(), em1.Interface().(map[int32]Extension), em2.Interface().(map[int32]Extension)) {
+		if !equalExtMap(v1.Type(), em1.Interface().(map[int32]Extension), em2.Interface().(map[int32]Extension)) {
 			return false
 		}
 	}
@@ -135,11 +137,7 @@ func equalStruct(v1, v2 reflect.Value) bool {
 
 	u1 := uf.Bytes()
 	u2 := v2.FieldByName("XXX_unrecognized").Bytes()
-	if !bytes.Equal(u1, u2) {
-		return false
-	}
-
-	return true
+	return bytes.Equal(u1, u2)
 }
 
 // v1 and v2 are known to have the same type.
@@ -184,6 +182,13 @@ func equalAny(v1, v2 reflect.Value, prop *Properties) bool {
 		}
 		return true
 	case reflect.Ptr:
+		// Maps may have nil values in them, so check for nil.
+		if v1.IsNil() && v2.IsNil() {
+			return true
+		}
+		if v1.IsNil() != v2.IsNil() {
+			return false
+		}
 		return equalAny(v1.Elem(), v2.Elem(), prop)
 	case reflect.Slice:
 		if v1.Type().Elem().Kind() == reflect.Uint8 {
@@ -223,8 +228,14 @@ func equalAny(v1, v2 reflect.Value, prop *Properties) bool {
 }
 
 // base is the struct type that the extensions are based on.
-// em1 and em2 are extension maps.
-func equalExtensions(base reflect.Type, em1, em2 map[int32]Extension) bool {
+// x1 and x2 are InternalExtensions.
+func equalExtensions(base reflect.Type, x1, x2 XXX_InternalExtensions) bool {
+	em1, _ := x1.extensionsRead()
+	em2, _ := x2.extensionsRead()
+	return equalExtMap(base, em1, em2)
+}
+
+func equalExtMap(base reflect.Type, em1, em2 map[int32]Extension) bool {
 	if len(em1) != len(em2) {
 		return false
 	}
@@ -236,6 +247,15 @@ func equalExtensions(base reflect.Type, em1, em2 map[int32]Extension) bool {
 		}
 
 		m1, m2 := e1.value, e2.value
+
+		if m1 == nil && m2 == nil {
+			// Both have only encoded form.
+			if bytes.Equal(e1.enc, e2.enc) {
+				continue
+			}
+			// The bytes are different, but the extensions might still be
+			// equal. We need to decode them to compare.
+		}
 
 		if m1 != nil && m2 != nil {
 			// Both are unencoded.
@@ -252,8 +272,12 @@ func equalExtensions(base reflect.Type, em1, em2 map[int32]Extension) bool {
 			desc = m[extNum]
 		}
 		if desc == nil {
+			// If both have only encoded form and the bytes are the same,
+			// it is handled above. We get here when the bytes are different.
+			// We don't know how to decode it, so just compare them as byte
+			// slices.
 			log.Printf("proto: don't know how to compare extension %d of %v", extNum, base)
-			continue
+			return false
 		}
 		var err error
 		if m1 == nil {
