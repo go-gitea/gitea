@@ -72,11 +72,6 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of the user that will own the created organization
-	//   type: string
-	//   required: true
 	// - name: organization
 	//   in: body
 	//   required: true
@@ -88,12 +83,8 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 
-	if !u.AllowCreateOrganization {
+	if !ctx.User.AllowCreateOrganization {
 		ctx.Error(403, "Create organization not allowed", nil)
 		return
 	}
@@ -107,7 +98,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 		IsActive:    true,
 		Type:        models.UserTypeOrganization,
 	}
-	if err := models.CreateOrganization(org, u); err != nil {
+	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
