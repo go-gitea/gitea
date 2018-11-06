@@ -188,7 +188,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		fmt.Println("Calling Python")
 
 		// -- conversion script parameters
-		python_path := "/opt/miniconda3/bin/python"
+		python_path := "python"
 		gitea_path := "/home/guillaume/go/src/code.gitea.io/gitea"
 		conversion_script_path := gitea_path + "/routers/repo/view_cad_converter.py"
 		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
