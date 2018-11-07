@@ -165,7 +165,7 @@ func Issues(ctx *context.Context) {
 			AssigneeID:  assigneeID,
 			MentionedID: mentionedID,
 			PosterID:    posterID,
-			IsPull:      isPullList,
+			IsPull:      util.OptionalBoolOf(isPullList),
 			IssueIDs:    issueIDs,
 		})
 		if err != nil {

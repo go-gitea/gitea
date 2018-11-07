@@ -1401,7 +1401,7 @@ type IssueStatsOptions struct {
 	AssigneeID  int64
 	MentionedID int64
 	PosterID    int64
-	IsPull      bool
+	IsPull      util.OptionalBool
 	IssueIDs    []int64
 }
 
@@ -1411,8 +1411,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
-			Where("issue.repo_id = ?", opts.RepoID).
-			And("issue.is_pull = ?", opts.IsPull)
+			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
 			sess.In("issue.id", opts.IssueIDs)
@@ -1445,6 +1444,13 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 				And("issue_user.uid = ?", opts.MentionedID).
 				And("issue_user.is_mentioned = ?", true)
+		}
+
+		switch opts.IsPull {
+		case util.OptionalBoolTrue:
+			sess.And("issue.is_pull=?", true)
+		case util.OptionalBoolFalse:
+			sess.And("issue.is_pull=?", false)
 		}
 
 		return sess
