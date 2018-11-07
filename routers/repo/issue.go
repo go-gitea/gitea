@@ -358,6 +358,16 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+
+	milestoneID := ctx.QueryInt64("milestone")
+	milestone, err := models.GetMilestoneByID(milestoneID)
+	if err != nil {
+		log.Error(4, "GetMilestoneByID: %d: %v", milestoneID, err)
+	} else {
+		ctx.Data["milestone_id"] = milestoneID
+		ctx.Data["Milestone"] = milestone
+	}
+
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
