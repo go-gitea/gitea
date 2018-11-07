@@ -22,6 +22,13 @@ for FOLDER in /data/gitea/conf /data/gitea/log /data/git /data/ssh; do
     mkdir -p ${FOLDER}
 done
 
+if [ -f /data/gitea/conf/app.ini ]; then
+    echo "Found app.ini config file, migrating database"
+    chmod 644 /data/gitea/conf/app.ini
+    chown -R 1000:1000 /data/git /data/gitea
+    su - git -c gitea migrate -c /data/gitea/conf/app.ini
+fi
+
 if [ $# -gt 0 ]; then
     exec "$@"
 else
