@@ -1342,10 +1342,9 @@ func newLogService() {
 			}
 
 			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
@@ -1408,10 +1407,9 @@ func NewXORMLogService(disableConsole bool) {
 			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
