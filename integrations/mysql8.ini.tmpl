@@ -23,17 +23,17 @@ LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
 
 [server]
 SSH_DOMAIN       = localhost
-HTTP_PORT        = 3001
-ROOT_URL         = http://localhost:3003/
+HTTP_PORT        = 3004
+ROOT_URL         = http://localhost:3004/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
-SSH_PORT         = 2201
+SSH_PORT         = 2204
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-mysql
+LFS_CONTENT_PATH = data/lfs-mysql8
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
-APP_DATA_PATH    = integrations/gitea-integration-mysql/data
+APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
 
 [mailer]
 ENABLED = false
@@ -54,11 +54,11 @@ ENABLE_FEDERATED_AVATAR = false
 
 [session]
 PROVIDER = file
-PROVIDER_CONFIG = data/sessions-mysql
+PROVIDER_CONFIG = data/sessions-mysql8
 
 [log]
 MODE      = console,file
-ROOT_PATH = mysql-log
+ROOT_PATH = mysql8-log
 
 [log.console]
 LEVEL = Warn
