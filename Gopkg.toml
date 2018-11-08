@@ -107,3 +107,7 @@ ignored = ["google.golang.org/appengine*"]
 [[override]]
   revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
   name = "golang.org/x/oauth2"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.9.0"

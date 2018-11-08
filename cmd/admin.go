@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -60,8 +62,17 @@ var (
 				Usage: "Custom configuration file path",
 			},
 			cli.BoolFlag{
+				Name:  "random-password",
+				Usage: "Generate a random password for the user",
+			},
+			cli.BoolFlag{
 				Name:  "must-change-password",
 				Usage: "Force the user to change his/her password after initial login",
+			},
+			cli.IntFlag{
+				Name:  "random-password-length",
+				Usage: "Length of the random password to be generated",
+				Value: 12,
 			},
 		},
 	}
@@ -277,8 +288,27 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "name", "password", "email"); err != nil {
+	if err := argsSet(c, "name", "email"); err != nil {
 		return err
+	}
+
+	if c.IsSet("password") && c.IsSet("random-password") {
+		return errors.New("cannot set both -random-password and -password flags")
+	}
+
+	var password string
+
+	if c.IsSet("password") {
+		password = c.String("password")
+	} else if c.IsSet("random-password") {
+		password, err := generate.GetRandomString(c.Int("random-password-length"))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("generated random password is '%s'\n", password)
+	} else {
+		return errors.New("must set either password or random-password flag")
 	}
 
 	if c.IsSet("config") {
@@ -299,7 +329,7 @@ func runCreateUser(c *cli.Context) error {
 	if err := models.CreateUser(&models.User{
 		Name:               c.String("name"),
 		Email:              c.String("email"),
-		Passwd:             c.String("password"),
+		Passwd:             password,
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,

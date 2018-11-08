@@ -143,7 +143,8 @@ func TestGit(t *testing.T) {
 
 			session := loginUser(t, "user1")
 			keyOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
-			urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys", keyOwner.Name)
+			token := getTokenForLoggedInUser(t, session)
+			urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", keyOwner.Name, token)
 
 			dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
 			assert.NoError(t, err)
