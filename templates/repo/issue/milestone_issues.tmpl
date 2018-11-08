@@ -193,11 +193,6 @@
 								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
-						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}">
-								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
-							</a>
-						{{end}}
 						{{if ne .DeadlineUnix 0}}
 							<span class="octicon octicon-calendar"></span>
 							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
