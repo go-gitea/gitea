@@ -146,7 +146,7 @@ START_SSH_SERVER = false
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; THe network interface the builtin SSH server should listen on
+; The network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
@@ -265,9 +265,9 @@ COOKIE_REMEMBER_NAME = gitea_incredible
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
-; True when users are allowed to import local server paths
+; Set to true to allow users to import local server paths
 IMPORT_LOCAL_PATHS = false
-; Prevent all users (including admin) from creating custom git hooks
+; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
 
 [openid]
@@ -659,3 +659,9 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =
