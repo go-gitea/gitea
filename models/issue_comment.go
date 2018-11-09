@@ -182,26 +182,6 @@ func (c *Comment) loadAttachements(e Engine) (err error) {
 	return err
 }
 
-/*
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
-	var err error
-	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
-	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
-	}
-
-	c.Poster, err = getUserByID(session, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
-		}
-	}
-}*/
-
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
