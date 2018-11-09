@@ -132,6 +132,10 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		ctx.Error(500, "LoadIssues", err)
 		return
 	}
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
 	if _, err := models.CommentList(comments).Issues().LoadRepositories(); err != nil {
 		ctx.Error(500, "LoadRepositories", err)
 		return
