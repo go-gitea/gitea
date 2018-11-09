@@ -316,6 +316,63 @@ func (comments CommentList) loadIssues(e Engine) error {
 	return nil
 }
 
+func (comments CommentList) getDependentIssueIDs() []int64 {
+	var ids = make(map[int64]struct{}, len(comments))
+	for _, comment := range comments {
+		if comment.DependentIssue != nil {
+			continue
+		}
+		if _, ok := ids[comment.DependentIssueID]; !ok {
+			ids[comment.DependentIssueID] = struct{}{}
+		}
+	}
+	return keysInt64(ids)
+}
+
+func (comments CommentList) loadDependentIssues(e Engine) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	var issueIDs = comments.getDependentIssueIDs()
+	var issues = make(map[int64]*Issue, len(issueIDs))
+	var left = len(issueIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := e.
+			In("id", issueIDs[:limit]).
+			Rows(new(Issue))
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var issue Issue
+			err = rows.Scan(&issue)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+
+			issues[issue.ID] = &issue
+		}
+		rows.Close()
+
+		left = left - limit
+		issueIDs = issueIDs[limit:]
+	}
+
+	for _, comment := range comments {
+		if comment.DependentIssue == nil {
+			comment.DependentIssue = issues[comment.DependentIssueID]
+		}
+	}
+	return nil
+}
+
 func (comments CommentList) loadAttachments(e Engine) (err error) {
 	if len(comments) == 0 {
 		return nil
@@ -424,6 +481,10 @@ func (comments CommentList) loadAttributes(e Engine) (err error) {
 		return
 	}
 
+	if err = comments.loadOldMilestones(e); err != nil {
+		return
+	}
+
 	if err = comments.loadAssignees(e); err != nil {
 		return
 	}
@@ -437,6 +498,10 @@ func (comments CommentList) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = comments.loadIssues(e); err != nil {
+		return
+	}
+
+	if err = comments.loadDependentIssues(e); err != nil {
 		return
 	}
 
