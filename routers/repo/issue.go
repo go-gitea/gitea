@@ -175,6 +175,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			Page:        pager.Current(),
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
+			IsPull:      isPullOption,
 			Labels:      selectLabels,
 			SortType:    sortType,
 			IssueIDs:    issueIDs,
