@@ -364,7 +364,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return nil
 	}
 
-	teams, err := getUserTeams(e, repo.OwnerID, userID)
+	teams, err := getUserRepoTeams(e, repo.OwnerID, userID, repo.ID)
 	if err != nil {
 		return err
 	}
