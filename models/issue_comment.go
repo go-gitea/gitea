@@ -154,6 +154,54 @@ func (c *Comment) LoadIssue() (err error) {
 	return
 }
 
+func (c *Comment) loadPoster(e Engine) (err error) {
+	if c.Poster != nil {
+		return nil
+	}
+
+	c.Poster, err = getUserByID(e, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+		}
+	}
+	return err
+}
+
+func (c *Comment) loadAttachements(e Engine) (err error) {
+	if len(c.Attachments) > 0 {
+		return
+	}
+	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+	return err
+}
+
+/*
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	var err error
+	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+
+	c.Poster, err = getUserByID(session, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+		}
+	}
+}*/
+
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
@@ -997,32 +1045,6 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 	return findComments(x, opts)
 }
 
-// GetCommentsByIssueID returns all comments of an issue.
-func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-	})
-}
-
-// GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
-func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-		Since:   since,
-	})
-}
-
-// GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
-func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		RepoID: repoID,
-		Type:   CommentTypeUnknown,
-		Since:  since,
-	})
-}
-
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
@@ -1154,6 +1176,11 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
+
+	if err := CommentList(comments).loadPosters(e); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	var ids = make([]int64, 0, len(comments))
