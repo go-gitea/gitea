@@ -117,12 +117,16 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil || interval < setting.Mirror.MinInterval {
+		if err != nil && (interval != 0 || interval < setting.Mirror.MinInterval) {
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
-			ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			if interval != 0 {
+				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			} else {
+				ctx.Repo.Mirror.NextUpdateUnix = 0
+			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
