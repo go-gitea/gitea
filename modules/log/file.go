@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -24,9 +23,6 @@ type FileLogWriter struct {
 	mw *MuxWriter
 	// The opened file
 	Filename string `json:"filename"`
-
-	Maxlines         int `json:"maxlines"`
-	maxlinesCurlines int
 
 	// Rotate at size
 	Maxsize        int `json:"maxsize"`
@@ -69,7 +65,6 @@ func (l *MuxWriter) SetFd(fd *os.File) {
 func NewFileWriter() LoggerInterface {
 	w := &FileLogWriter{
 		Filename: "",
-		Maxlines: 1000000,
 		Maxsize:  1 << 28, //256 MB
 		Daily:    true,
 		Maxdays:  7,
@@ -87,7 +82,6 @@ func NewFileWriter() LoggerInterface {
 // config like:
 //	{
 //	"filename":"log/gogs.log",
-//	"maxlines":10000,
 //	"maxsize":1<<30,
 //	"daily":true,
 //	"maxdays":15,
@@ -116,15 +110,13 @@ func (w *FileLogWriter) StartLogger() error {
 func (w *FileLogWriter) docheck(size int) {
 	w.startLock.Lock()
 	defer w.startLock.Unlock()
-	if w.Rotate && ((w.Maxlines > 0 && w.maxlinesCurlines >= w.Maxlines) ||
-		(w.Maxsize > 0 && w.maxsizeCursize >= w.Maxsize) ||
+	if w.Rotate && ((w.Maxsize > 0 && w.maxsizeCursize >= w.Maxsize) ||
 		(w.Daily && time.Now().Day() != w.dailyOpenDate)) {
 		if err := w.DoRotate(); err != nil {
 			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
 			return
 		}
 	}
-	w.maxlinesCurlines++
 	w.maxsizeCursize += size
 }
 
@@ -152,15 +144,6 @@ func (w *FileLogWriter) initFd() error {
 	}
 	w.maxsizeCursize = int(finfo.Size())
 	w.dailyOpenDate = time.Now().Day()
-	if finfo.Size() > 0 {
-		content, err := ioutil.ReadFile(w.Filename)
-		if err != nil {
-			return err
-		}
-		w.maxlinesCurlines = len(strings.Split(string(content), "\n"))
-	} else {
-		w.maxlinesCurlines = 0
-	}
 	return nil
 }
 
