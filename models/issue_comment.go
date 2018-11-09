@@ -1041,6 +1041,9 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := c.Issue.LoadAttributes(); err != nil {
 		return err
 	}
+	if err := c.loadPoster(x); err != nil {
+		return err
+	}
 
 	mode, _ := AccessLevel(doer, c.Issue.Repo)
 	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
@@ -1089,6 +1092,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	if err := comment.LoadPoster(); err != nil {
 		return err
@@ -1098,6 +1102,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 	}
 
 	if err := comment.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := comment.loadPoster(x); err != nil {
 		return err
 	}
 
