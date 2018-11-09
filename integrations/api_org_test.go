@@ -6,8 +6,10 @@ package integrations
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -26,8 +28,8 @@ func TestAPIOrg(t *testing.T) {
 		Website:     "https://try.gitea.io",
 		Location:    "Shanghai",
 	}
-	req := NewRequestf(t, "POST", "/api/v1/orgs?token="+token, &org)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 
 	var apiOrg api.Organization
 	DecodeJSON(t, resp, &apiOrg)
@@ -37,4 +39,10 @@ func TestAPIOrg(t *testing.T) {
 	assert.Equal(t, org.Description, apiOrg.Description)
 	assert.Equal(t, org.Website, apiOrg.Website)
 	assert.Equal(t, org.Location, apiOrg.Location)
+
+	models.AssertExistsAndLoadBean(t, &models.User{
+		Name:      org.UserName,
+		LowerName: strings.ToLower(org.UserName),
+		FullName:  org.FullName,
+	})
 }
