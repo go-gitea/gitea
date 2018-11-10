@@ -34,7 +34,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -78,7 +78,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -133,7 +133,7 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -193,7 +193,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}

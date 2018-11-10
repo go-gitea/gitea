@@ -351,7 +351,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	pr.LoadIssue()
 	issue := pr.Issue
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -382,7 +382,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 
 		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
@@ -395,7 +395,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone

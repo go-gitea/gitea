@@ -32,7 +32,7 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	AccessMode   models.AccessMode
+	Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
@@ -54,34 +54,14 @@ type Repository struct {
 	PullRequest *PullRequest
 }
 
-// IsOwner returns true if current user is the owner of repository.
-func (r *Repository) IsOwner() bool {
-	return r.AccessMode >= models.AccessModeOwner
-}
-
-// IsAdmin returns true if current user has admin or higher access of repository.
-func (r *Repository) IsAdmin() bool {
-	return r.AccessMode >= models.AccessModeAdmin
-}
-
-// IsWriter returns true if current user has write or higher access of repository.
-func (r *Repository) IsWriter() bool {
-	return r.AccessMode >= models.AccessModeWrite
-}
-
-// HasAccess returns true if the current user has at least read access for this repository
-func (r *Repository) HasAccess() bool {
-	return r.AccessMode >= models.AccessModeRead
-}
-
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Repository.CanEnableEditor() && r.IsViewBranch && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Repository.CanCreateBranch() && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanCreateBranch()
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
@@ -101,12 +81,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.IsWriter() || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
 func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -223,7 +203,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 func repoAssignment(ctx *Context, repo *models.Repository) {
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
-		ctx.Repo.AccessMode = models.AccessModeOwner
+		ctx.Repo.Permission.AccessMode = models.AccessModeOwner
 	} else {
 		var userID int64
 		if ctx.User != nil {
@@ -234,11 +214,11 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 			ctx.ServerError("AccessLevel", err)
 			return
 		}
-		ctx.Repo.AccessMode = mode
+		ctx.Repo.Permission.AccessMode = mode
 	}
 
 	// Check access.
-	if ctx.Repo.AccessMode == models.AccessModeNone {
+	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
 		if ctx.Query("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -379,9 +359,10 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
-		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
-		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
+		ctx.Data["IsRepositoryOwner"] = ctx.Repo.Permission.IsOwner()
+		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.Permission.IsAdmin()
+		// FIXME: IsRepositoryWriter will only be used on codes related operations.
+		ctx.Data["IsRepositoryWriter"] = ctx.Repo.Permission.CanWrite(models.UnitTypeCode)
 
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 			ctx.ServerError("CanUserFork", err)
@@ -435,7 +416,7 @@ func RepoAssignment() macaron.Handler {
 		}
 
 		// People who have push access or have forked repository can propose a new pull request.
-		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
+		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
 			// Pull request is allowed if this is a fork repository
 			// and base repository accepts pull requests.
 			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
@@ -671,10 +652,10 @@ func RequireRepoAdmin() macaron.Handler {
 	}
 }
 
-// RequireRepoWriter returns a macaron middleware for requiring repository write permission
-func RequireRepoWriter() macaron.Handler {
+// RequireRepoWriter returns a macaron middleware for requiring repository write to code permission
+func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {
+		if !ctx.IsSigned || (!ctx.Repo.CanWrite(unitType) && !ctx.User.IsAdmin) {
 			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
@@ -698,6 +679,8 @@ func LoadRepoUnits() macaron.Handler {
 			ctx.ServerError("LoadUnitsByUserID", err)
 			return
 		}
+		ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
+		ctx.Repo.Permission.UnitsMode = ctx.Repo.Repository.UnitsMode
 	}
 }
 

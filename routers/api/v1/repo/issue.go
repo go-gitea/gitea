@@ -169,7 +169,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/Issue"
 
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -184,7 +184,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
@@ -274,7 +274,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}
@@ -288,7 +288,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Update the deadline
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -305,8 +305,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
-
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -319,7 +318,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != nil &&
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -403,7 +402,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}

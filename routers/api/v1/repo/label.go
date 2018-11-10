@@ -123,7 +123,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -173,7 +173,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -226,7 +226,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}

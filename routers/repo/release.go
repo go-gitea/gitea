@@ -65,8 +65,11 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess
+
 	opts := models.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.IsWriter(),
+		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
 	}
 

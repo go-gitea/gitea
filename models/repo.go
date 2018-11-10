@@ -191,8 +191,9 @@ type Repository struct {
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
 
-	ExternalMetas map[string]string `xorm:"-"`
-	Units         []*RepoUnit       `xorm:"-"`
+	ExternalMetas map[string]string       `xorm:"-"`
+	Units         []*RepoUnit             `xorm:"-"`
+	UnitsMode     map[UnitType]AccessMode `xorm:"-"`
 
 	IsFork        bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID        int64              `xorm:"INDEX"`
@@ -369,11 +370,16 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
+	repo.UnitsMode = make(map[UnitType]AccessMode)
 	// unique
 	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
 	for _, u := range repo.Units {
 		for _, team := range teams {
 			if team.unitEnabled(e, u.Type) {
+				m := repo.UnitsMode[u.Type]
+				if m < team.Authorize {
+					repo.UnitsMode[u.Type] = m
+				}
 				newRepoUnits = append(newRepoUnits, u)
 				break
 			}

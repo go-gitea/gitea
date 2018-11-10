@@ -152,6 +152,7 @@ func repoAssignment() macaron.Handler {
 			return
 		}
 		repo.Owner = owner
+		ctx.Repo.Repository = repo
 
 		if ctx.IsSigned && ctx.User.IsAdmin {
 			ctx.Repo.AccessMode = models.AccessModeOwner
@@ -168,8 +169,6 @@ func repoAssignment() macaron.Handler {
 			ctx.Status(404)
 			return
 		}
-
-		ctx.Repo.Repository = repo
 	}
 }
 
@@ -205,12 +204,15 @@ func reqAdmin() macaron.Handler {
 	}
 }
 
-func reqRepoWriter() macaron.Handler {
+func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.IsWriter() {
-			ctx.Error(403)
-			return
+		for _, unitType := range unitTypes {
+			if ctx.Repo.CanWrite(unitType) {
+				return
+			}
 		}
+
+		ctx.Error(403)
 	}
 }
 
@@ -453,7 +455,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
-				}, reqToken(), reqRepoWriter())
+				}, reqToken(), reqRepoWriter(models.UnitTypeCode))
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(repo.IsCollaborator).
@@ -473,7 +475,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Combo("/:id").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
-				}, reqToken(), reqRepoWriter())
+				}, reqToken(), reqRepoWriter(models.UnitTypeCode))
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
@@ -524,10 +526,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
-						Post(reqToken(), reqRepoWriter(), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
+						Post(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/:id").Get(repo.GetMilestone).
-						Patch(reqToken(), reqRepoWriter(), bind(api.EditMilestoneOption{}), repo.EditMilestone).
-						Delete(reqToken(), reqRepoWriter(), repo.DeleteMilestone)
+						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
+						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteMilestone)
 				})
 				m.Get("/stargazers", repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)

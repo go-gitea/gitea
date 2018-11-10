@@ -90,11 +90,6 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -102,6 +97,11 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -162,11 +162,6 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -174,6 +169,11 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -228,11 +228,6 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -240,6 +235,11 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -294,11 +294,6 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -306,6 +301,11 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 

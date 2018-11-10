@@ -553,7 +553,7 @@ func MirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	repo := ctx.Repo.Repository
 
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 

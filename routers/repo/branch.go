@@ -33,7 +33,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
-	ctx.Data["IsWriter"] = ctx.Repo.IsWriter()
+	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
@@ -161,7 +161,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 		}
 	}
 
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWrite(models.UnitTypeCode) {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
 			ctx.ServerError("getDeletedBranches", err)
