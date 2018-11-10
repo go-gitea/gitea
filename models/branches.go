@@ -23,18 +23,21 @@ const (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                    int64  `xorm:"pk autoincr"`
-	RepoID                int64  `xorm:"UNIQUE(s)"`
-	BranchName            string `xorm:"UNIQUE(s)"`
-	CanPush               bool   `xorm:"NOT NULL DEFAULT false"`
-	EnableWhitelist       bool
-	WhitelistUserIDs      []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs      []int64        `xorm:"JSON TEXT"`
-	EnableMergeWhitelist  bool           `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
-	CreatedUnix           util.TimeStamp `xorm:"created"`
-	UpdatedUnix           util.TimeStamp `xorm:"updated"`
+	ID                        int64  `xorm:"pk autoincr"`
+	RepoID                    int64  `xorm:"UNIQUE(s)"`
+	BranchName                string `xorm:"UNIQUE(s)"`
+	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
+	EnableWhitelist           bool
+	WhitelistUserIDs          []int64        `xorm:"JSON TEXT"`
+	WhitelistTeamIDs          []int64        `xorm:"JSON TEXT"`
+	EnableMergeWhitelist      bool           `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs     []int64        `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs     []int64        `xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
+	RequiredApprovals         int64          `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix               util.TimeStamp `xorm:"created"`
+	UpdatedUnix               util.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -86,6 +89,35 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 	return in
 }
 
+func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
+	if protectBranch.RequiredApprovals == 0 {
+		return true
+	}
+	reviews, err := GetReviewsByPullRequestID(pr.ID)
+	if err != nil {
+		log.Error(1, "GetReviewsByPullRequestID:", err)
+		return false
+	}
+	approvals := int64(0)
+	userIDs := make([]int64, 0)
+	for _, review := range reviews {
+		if review.Type != ReviewTypeApprove {
+			continue
+		}
+		if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, review.ReviewerID) {
+			approvals++
+			continue
+		}
+		userIDs = append(userIDs, review.ReviewerID)
+	}
+	approvalTeamCount, err := UsersInTeamsCount(userIDs, protectBranch.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		log.Error(1, "UsersInTeamsCount:", err)
+		return false
+	}
+	return (approvals + approvalTeamCount) >= protectBranch.RequiredApprovals
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
@@ -118,39 +150,62 @@ func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
 	return rel, nil
 }
 
+type WhitelistOptions struct {
+	UserIDs []int64
+	TeamIDs []int64
+
+	MergeUserIDs []int64
+	MergeTeamIDs []int64
+
+	ApprovalsUserIDs []int64
+	ApprovalsTeamIDs []int64
+}
+
 // UpdateProtectBranch saves branch protection options of repository.
 // If ID is 0, it creates a new record. Otherwise, updates existing record.
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
-func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, whitelistUserIDs, whitelistTeamIDs, mergeWhitelistUserIDs, mergeWhitelistTeamIDs []int64) (err error) {
+func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
 	if err = repo.GetOwner(); err != nil {
 		return fmt.Errorf("GetOwner: %v", err)
 	}
 
-	whitelist, err := updateUserWhitelist(repo, protectBranch.WhitelistUserIDs, whitelistUserIDs)
+	whitelist, err := updateUserWhitelist(repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(repo, protectBranch.MergeWhitelistUserIDs, mergeWhitelistUserIDs)
+	whitelist, err = updateUserWhitelist(repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
+	whitelist, err = updateUserWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
+
 	// if the repo is in an organization
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, whitelistTeamIDs)
+	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.MergeWhitelistTeamIDs, mergeWhitelistTeamIDs)
+	whitelist, err = updateTeamWhitelist(repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.MergeWhitelistTeamIDs = whitelist
+
+	whitelist, err = updateTeamWhitelist(repo, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
 
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
@@ -213,7 +268,7 @@ func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) 
 }
 
 // IsProtectedBranchForMerging checks if branch is protected for merging
-func (repo *Repository) IsProtectedBranchForMerging(branchName string, doer *User) (bool, error) {
+func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName string, doer *User) (bool, error) {
 	if doer == nil {
 		return true, nil
 	}
@@ -227,7 +282,7 @@ func (repo *Repository) IsProtectedBranchForMerging(branchName string, doer *Use
 	if err != nil {
 		return true, err
 	} else if has {
-		return !protectedBranch.CanUserMerge(doer.ID), nil
+		return !protectedBranch.CanUserMerge(doer.ID) || !protectedBranch.HasEnoughApprovals(pr), nil
 	}
 
 	return false, nil

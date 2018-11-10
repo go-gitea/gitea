@@ -346,3 +346,17 @@ func TestHasTeamRepo(t *testing.T) {
 	test(2, 3, true)
 	test(2, 5, false)
 }
+
+func TestUsersInTeamsCount(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	test := func(teamIDs []int64, userIDs []int64, expected int64) {
+		count, err := UsersInTeamsCount(teamIDs, userIDs)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, count)
+	}
+
+	test([]int64{2}, []int64{1, 2, 3, 4}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
+}

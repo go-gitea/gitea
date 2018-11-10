@@ -664,6 +664,13 @@ func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
 	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
 }
 
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
+	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+		return 0, err
+	}
+	return
+}
+
 // ___________                  __________
 // \__    ___/___ _____    _____\______   \ ____ ______   ____
 //   |    |_/ __ \\__  \  /     \|       _// __ \\____ \ /  _ \

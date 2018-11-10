@@ -124,6 +124,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
+	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
 
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeWrite)
@@ -134,6 +135,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		c.Data["Teams"] = teams
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistTeamIDs), ",")
 		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistTeamIDs), ",")
+		c.Data["approvals_whitelist_teams"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistTeamIDs), ",")
 	}
 
 	c.Data["Branch"] = protectBranch
@@ -171,7 +173,17 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
 		mergeWhitelistUsers, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
 		mergeWhitelistTeams, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
-		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams)
+		protectBranch.RequiredApprovals = f.RequiredApprovals
+		approvalsWhitelistUsers, _ := base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
+		approvalsWhitelistTeams, _ := base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
+		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+			UserIDs:          whitelistUsers,
+			TeamIDs:          whitelistTeams,
+			MergeUserIDs:     mergeWhitelistUsers,
+			MergeTeamIDs:     mergeWhitelistTeams,
+			ApprovalsUserIDs: approvalsWhitelistUsers,
+			ApprovalsTeamIDs: approvalsWhitelistTeams,
+		})
 		if err != nil {
 			ctx.ServerError("UpdateProtectBranch", err)
 			return

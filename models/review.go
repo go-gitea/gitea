@@ -160,6 +160,18 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
+func getReviewsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
+	reviews = make([]*Review, 0)
+	if err := e.Where("issue_id = ?", prID).Find(&reviews); err != nil {
+		return nil, err
+	}
+	return
+}
+
+func GetReviewsByPullRequestID(prID int64) ([]*Review, error) {
+	return getReviewsByPullRequestID(x, prID)
+}
+
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	Type       ReviewType
