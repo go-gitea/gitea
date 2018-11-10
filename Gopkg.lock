@@ -90,7 +90,7 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  digest = "1:67351095005f164e748a5a21899d1403b03878cb2d40a7b0f742376e6eeda974"
+  digest = "1:c10f35be6200b09e26da267ca80f837315093ecaba27e7a223071380efb9dd32"
   name = "github.com/blevesearch/bleve"
   packages = [
     ".",
@@ -135,7 +135,7 @@
     "search/searcher",
   ]
   pruneopts = "NUT"
-  revision = "ff210fbc6d348ad67aa5754eaea11a463fcddafd"
+  revision = "c74e08f039e56cef576e4336382b2a2d12d9e026"
 
 [[projects]]
   branch = "master"
@@ -557,7 +557,7 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:23f75ae90fcc38dac6fad6881006ea7d0f2c78db5f9f81f3df558dc91460e61f"
+  digest = "1:4b992ec853d0ea9bac3dcf09a64af61de1a392e6cb0eef2204c0c92f4ae6b911"
   name = "github.com/markbates/goth"
   packages = [
     ".",
@@ -572,8 +572,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "f9c6649ab984d6ea71ef1e13b7b1cdffcf4592d3"
-  version = "v1.46.1"
+  revision = "bc6d8ddf751a745f37ca5567dbbfc4157bbf5da9"
+  version = "v1.47.2"
 
 [[projects]]
   digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
@@ -809,10 +809,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6d5ed712653ea5321fe3e3475ab2188cf362a4e0d31e9fd3acbd4dfbbca0d680"
+  digest = "1:d0a0bdd2b64d981aa4e6a1ade90431d042cd7fa31b584e33d45e62cbfec43380"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "context/ctxhttp",
     "html",
     "html/atom",
     "html/charset",
@@ -821,14 +822,15 @@
   revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
 
 [[projects]]
-  digest = "1:8159a9cda4b8810aaaeb0d60e2fa68e2fd86d8af4ec8f5059830839e3c8d93d5"
+  branch = "master"
+  digest = "1:274a6321a5a9f185eeb3fab5d7d8397e0e9f57737490d749f562c7e205ffbc2e"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = "NUT"
-  revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
+  revision = "c453e0c757598fd055e170a3a359263c91e13153"
 
 [[projects]]
   digest = "1:9f303486d623f840492bfeb48eb906a94e9d3fe638a761639b72ce64bf7bfcc3"
