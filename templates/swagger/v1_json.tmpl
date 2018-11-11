@@ -1560,6 +1560,45 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/refs/{ref}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get specified ref or filtered repository's refs",
+        "operationId": "repoListGitRefs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "part or full name of the ref",
+            "name": "ref",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RefList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks": {
       "get": {
         "produces": [
