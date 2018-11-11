@@ -640,10 +640,10 @@ func RequireRepoAdmin() macaron.Handler {
 	}
 }
 
-// RequireRepoWriter returns a macaron middleware for requiring repository write to code permission
+// RequireRepoWriter returns a macaron middleware for requiring repository write to the specify unitType
 func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.CanWrite(unitType) && !ctx.User.IsAdmin) {
+		if !ctx.Repo.CanWrite(unitType) {
 			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
@@ -655,6 +655,28 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
 			if ctx.Repo.CanWrite(unitType) {
+				return
+			}
+		}
+		ctx.NotFound(ctx.Req.RequestURI, nil)
+	}
+}
+
+// RequireRepoReader returns a macaron middleware for requiring repository read to the specify unitType
+func RequireRepoReader(unitType models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		if !ctx.Repo.CanAccess(unitType) {
+			ctx.NotFound(ctx.Req.RequestURI, nil)
+			return
+		}
+	}
+}
+
+// RequireRepoReaderOr returns a macaron middleware for requiring repository write to one of the unit permission
+func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		for _, unitType := range unitTypes {
+			if ctx.Repo.CanAccess(unitType) {
 				return
 			}
 		}

@@ -394,10 +394,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(models.UnitTypeCode)
+	reqRepoCodeReader := context.RequireRepoReader(models.UnitTypeCode)
 	reqRepoReleaseWriter := context.RequireRepoWriter(models.UnitTypeReleases)
+	reqRepoReleaseReader := context.RequireRepoReader(models.UnitTypeReleases)
 	reqRepoWikiWriter := context.RequireRepoWriter(models.UnitTypeWiki)
+	reqRepoIssueWriter := context.RequireRepoWriter(models.UnitTypeIssues)
 	reqRepoPullsWriter := context.RequireRepoWriter(models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
+	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -467,7 +471,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/fork", func() {
 			m.Combo("/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoIDAssignment(), context.UnitTypes(), context.CheckUnit(models.UnitTypeCode))
+		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
 
 	m.Group("/:username/:reponame", func() {
@@ -526,7 +530,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/issues", func() {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
-		}, context.CheckUnit(models.UnitTypeIssues))
+		}, reqRepoIssueWriter)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
@@ -558,7 +562,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
-		}, context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests))
+		}, reqRepoIssuesOrPullsReader)
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
@@ -636,7 +640,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-	}, context.RepoAssignment(), context.UnitTypes(), context.CheckUnit(models.UnitTypeReleases))
+	}, context.RepoAssignment(), context.UnitTypes(), reqRepoReleaseReader)
 
 	m.Group("/:username/:reponame", func() {
 		m.Post("/topics", repo.TopicsPost)
@@ -646,8 +650,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("", func() {
 			m.Get("/^:type(issues|pulls)$", repo.RetrieveLabels, repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
-			m.Get("/labels/", context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests), repo.RetrieveLabels, repo.Labels)
-			m.Get("/milestones", context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests), repo.Milestones)
+			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
+			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
 		m.Group("/wiki", func() {
@@ -670,13 +674,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/:period", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotBare, context.CheckAnyUnit(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+		}, context.RepoRef(), repo.MustBeNotBare, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
-		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
+		m.Get("/archive/*", repo.MustBeNotBare, reqRepoCodeReader, repo.Download)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
-		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
+		}, repo.MustBeNotBare, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/pulls/:index", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -700,7 +704,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/blob/:sha", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
-		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+		}, repo.MustBeNotBare, reqRepoCodeReader)
 
 		m.Group("/commits", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
@@ -708,12 +712,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
-		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+		}, repo.MustBeNotBare, reqRepoCodeReader)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
-		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
+		}, repo.MustBeNotBare, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
@@ -725,17 +729,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
-		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
+		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
-			repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.RawDiff)
+			repo.MustBeNotBare, reqRepoCodeReader, repo.RawDiff)
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
-			repo.SetDiffViewStyle, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.CompareDiff)
+			repo.SetDiffViewStyle, repo.MustBeNotBare, reqRepoCodeReader, repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
-		m.Get("/search", context.CheckUnit(models.UnitTypeCode), repo.Search)
+		m.Get("/search", reqRepoCodeReader, repo.Search)
 	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
