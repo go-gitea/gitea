@@ -32,7 +32,12 @@ func (p *Permission) HasAccess() bool {
 // UnitAccessMode returns current user accessmode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 	if p.UnitsMode == nil {
-		return p.AccessMode
+		for _, u := range p.Units {
+			if u.Type == unitType {
+				return p.AccessMode
+			}
+		}
+		return AccessModeNone
 	}
 	return p.UnitsMode[unitType]
 }
@@ -62,7 +67,8 @@ func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 }
 
 func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
-	// anonymous user visit private repo. TODO: anonymous user visit public unit of private repo???
+	// anonymous user visit private repo.
+	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
 		perm.AccessMode = AccessModeNone
 		return
@@ -97,6 +103,13 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	}
 	if !repo.Owner.IsOrganization() {
 		return
+	}
+
+	// Collaborators on organization repos will not be limited by teams units
+	if isCollaborator, err := repo.isCollaborator(e, user.ID); err != nil {
+		return perm, err
+	} else if isCollaborator {
+		return perm, nil
 	}
 
 	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)

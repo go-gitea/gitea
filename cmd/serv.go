@@ -236,7 +236,7 @@ func runServ(c *cli.Context) error {
 					user.Name, repoPath)
 			}
 
-			mode, err := private.AccessLevel(user.ID, repo.ID)
+			mode, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
 			} else if *mode < requestedMode {
@@ -247,16 +247,6 @@ func runServ(c *cli.Context) error {
 				fail(clientMessage,
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
-			}
-
-			check, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
-			if err != nil {
-				fail("You do not have allowed for this action", "Failed to access internal api: [user.Name: %s, repoPath: %s]", user.Name, repoPath)
-			}
-			if !check {
-				fail("You do not have allowed for this action",
-					"User %s does not have allowed access to repository %s 's code",
-					user.Name, repoPath)
 			}
 
 			os.Setenv(models.EnvPusherName, user.Name)

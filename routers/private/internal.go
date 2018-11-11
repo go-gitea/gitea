@@ -70,11 +70,24 @@ func CheckUnitUser(ctx *macaron.Context) {
 		})
 		return
 	}
-	if repo.CheckUnitUser(userID, ctx.QueryBool("isAdmin"), models.UnitType(ctx.QueryInt("unitType"))) {
-		ctx.PlainText(200, []byte("success"))
+
+	user, err := models.GetUserByID(userID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
 		return
 	}
-	ctx.PlainText(404, []byte("no access"))
+
+	perm, err := models.GetUserRepoPermission(repo, user)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(200, perm.UnitAccessMode(models.UnitType(ctx.QueryInt("unitType"))))
 }
 
 // RegisterRoutes registers all internal APIs routes to web application.

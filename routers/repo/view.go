@@ -282,9 +282,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if len(ctx.Repo.Repository.Units) > 0 {
+	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
-		for _, repoUnit := range ctx.Repo.Repository.Units {
+		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
 				renderCode(ctx)
 				return

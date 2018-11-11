@@ -337,11 +337,6 @@ func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unit
 	return false
 }
 
-// LoadUnitsByUserID loads units according userID's permissions
-func (repo *Repository) LoadUnitsByUserID(userID int64, isAdmin bool) error {
-	return repo.getUnitsByUserID(x, userID, isAdmin)
-}
-
 func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (err error) {
 	if repo.Units != nil {
 		return nil

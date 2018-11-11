@@ -51,20 +51,26 @@ func newInternalRequest(url, method string) *httplib.Request {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (bool, error) {
+func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (*models.AccessMode, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/checkunituser?isAdmin=%t&unitType=%d", repoID, userID, isAdmin, unitType)
 	log.GitLogger.Trace("AccessLevel: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 200 {
-		return true, nil
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to CheckUnitUser: %s", decodeJSONError(resp).Err)
 	}
-	return false, nil
+
+	var a models.AccessMode
+	if err := json.NewDecoder(resp.Body).Decode(&a); err != nil {
+		return nil, err
+	}
+
+	return &a, nil
 }
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
