@@ -201,11 +201,11 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 }
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
+	var userID int64
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
 		ctx.Repo.Permission.AccessMode = models.AccessModeOwner
 	} else {
-		var userID int64
 		if ctx.User != nil {
 			userID = ctx.User.ID
 		}
@@ -216,6 +216,14 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		}
 		ctx.Repo.Permission.AccessMode = mode
 	}
+
+	err := repo.LoadUnitsByUserID(userID, ctx.Repo.IsAdmin())
+	if err != nil {
+		ctx.ServerError("LoadUnitsByUserID", err)
+		return
+	}
+	ctx.Repo.Permission.Units = repo.Units
+	ctx.Repo.Permission.UnitsMode = repo.UnitsMode
 
 	// Check access.
 	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
@@ -359,10 +367,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-		ctx.Data["IsRepositoryOwner"] = ctx.Repo.Permission.IsOwner()
-		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.Permission.IsAdmin()
-		// FIXME: IsRepositoryWriter will only be used on codes related operations.
-		ctx.Data["IsRepositoryWriter"] = ctx.Repo.Permission.CanWrite(models.UnitTypeCode)
+		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
+		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
+		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
+		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
+		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 			ctx.ServerError("CanUserFork", err)
@@ -662,25 +671,15 @@ func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
 	}
 }
 
-// LoadRepoUnits loads repsitory's units, it should be called after repository and user loaded
-func LoadRepoUnits() macaron.Handler {
+// RequireRepoWriterOr returns a macaron middleware for requiring repository write to one of the unit permission
+func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		var isAdmin bool
-		if ctx.User != nil && ctx.User.IsAdmin {
-			isAdmin = true
+		for _, unitType := range unitTypes {
+			if ctx.Repo.CanWrite(unitType) {
+				return
+			}
 		}
-
-		var userID int64
-		if ctx.User != nil {
-			userID = ctx.User.ID
-		}
-		err := ctx.Repo.Repository.LoadUnitsByUserID(userID, isAdmin)
-		if err != nil {
-			ctx.ServerError("LoadUnitsByUserID", err)
-			return
-		}
-		ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-		ctx.Repo.Permission.UnitsMode = ctx.Repo.Repository.UnitsMode
+		ctx.NotFound(ctx.Req.RequestURI, nil)
 	}
 }
 

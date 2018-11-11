@@ -779,7 +779,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
-		ctx.Data["AllowMerge"] = ctx.Data["IsRepositoryWriter"]
+		ctx.Data["AllowMerge"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		if err := pull.CheckUserAllowedToMerge(ctx.User); err != nil {
 			if !models.IsErrNotAllowedToMerge(err) {
 				ctx.ServerError("CheckUserAllowedToMerge", err)

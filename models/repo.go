@@ -378,7 +378,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 			if team.unitEnabled(e, u.Type) {
 				m := repo.UnitsMode[u.Type]
 				if m < team.Authorize {
-					repo.UnitsMode[u.Type] = m
+					repo.UnitsMode[u.Type] = team.Authorize
 				}
 				newRepoUnits = append(newRepoUnits, u)
 				break

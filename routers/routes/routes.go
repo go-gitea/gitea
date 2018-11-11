@@ -397,16 +397,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoReleaseWriter := context.RequireRepoWriter(models.UnitTypeReleases)
 	reqRepoWikiWriter := context.RequireRepoWriter(models.UnitTypeWiki)
 	reqRepoPullsWriter := context.RequireRepoWriter(models.UnitTypePullRequests)
-	reqRepoIssuesOrPullsWriter := func() macaron.Handler {
-		return func(ctx *context.Context) {
-			if !ctx.IsSigned || (!ctx.Repo.CanWrite(models.UnitTypeIssues) &&
-				!ctx.Repo.CanWrite(models.UnitTypePullRequests) &&
-				!ctx.User.IsAdmin) {
-				ctx.NotFound(ctx.Req.RequestURI, nil)
-				return
-			}
-		}
-	}
+	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -476,7 +467,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/fork", func() {
 			m.Combo("/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoIDAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeCode))
+		}, context.RepoIDAssignment(), context.UnitTypes(), context.CheckUnit(models.UnitTypeCode))
 	}, reqSignIn)
 
 	m.Group("/:username/:reponame", func() {
@@ -527,7 +518,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 		})
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.LoadRepoUnits(), context.RepoRef())
+	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
 
@@ -616,7 +607,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, reqRepoCodeWriter, repo.MustBeNotBare)
 
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes())
 
 	// Releases
 	m.Group("/:username/:reponame", func() {
@@ -645,7 +636,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-	}, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
+	}, context.RepoAssignment(), context.UnitTypes(), context.CheckUnit(models.UnitTypeReleases))
 
 	m.Group("/:username/:reponame", func() {
 		m.Post("/topics", repo.TopicsPost)
@@ -740,18 +731,18 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
 			repo.SetDiffViewStyle, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.CompareDiff)
-	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
+	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", context.CheckUnit(models.UnitTypeCode), repo.Search)
-	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
+	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
+		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/:reponame", func() {
 			m.Group("\\.git/info/lfs", func() {

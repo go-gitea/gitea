@@ -4,7 +4,11 @@
 
 package context
 
-import "code.gitea.io/gitea/models"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/models"
+)
 
 // Permission contains all the permissions related variables to a repository
 type Permission struct {
@@ -46,6 +50,7 @@ func (p *Permission) CanAccess(unitType models.UnitType) bool {
 
 // CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType models.UnitType) bool {
+	fmt.Println("p:", unitType, p.UnitsMode)
 	return p.UnitAccessMode(unitType) >= models.AccessModeWrite
 }
 
