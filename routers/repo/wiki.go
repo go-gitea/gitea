@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -239,7 +240,6 @@ func WikiPages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki)
-
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return

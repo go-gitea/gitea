@@ -32,7 +32,7 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	Permission
+	models.Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
@@ -201,29 +201,12 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 }
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
-	var userID int64
-	// Admin has super access.
-	if ctx.IsSigned && ctx.User.IsAdmin {
-		ctx.Repo.Permission.AccessMode = models.AccessModeOwner
-	} else {
-		if ctx.User != nil {
-			userID = ctx.User.ID
-		}
-		mode, err := models.AccessLevel(userID, repo)
-		if err != nil {
-			ctx.ServerError("AccessLevel", err)
-			return
-		}
-		ctx.Repo.Permission.AccessMode = mode
-	}
-
-	err := repo.LoadUnitsByUserID(userID, ctx.Repo.IsAdmin())
+	var err error
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
-		ctx.ServerError("LoadUnitsByUserID", err)
+		ctx.ServerError("AccessLevel", err)
 		return
 	}
-	ctx.Repo.Permission.Units = repo.Units
-	ctx.Repo.Permission.UnitsMode = repo.UnitsMode
 
 	// Check access.
 	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
@@ -269,10 +252,6 @@ func RepoIDAssignment() macaron.Handler {
 			return
 		}
 
-		if err = repo.GetOwner(); err != nil {
-			ctx.ServerError("GetOwner", err)
-			return
-		}
 		repoAssignment(ctx, repo)
 	}
 }
