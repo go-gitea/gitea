@@ -171,7 +171,7 @@ func (c *Comment) loadPoster(e Engine) (err error) {
 	return err
 }
 
-func (c *Comment) loadAttachements(e Engine) (err error) {
+func (c *Comment) loadAttachments(e Engine) (err error) {
 	if len(c.Attachments) > 0 {
 		return
 	}
