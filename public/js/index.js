@@ -198,12 +198,11 @@ function replaceAndKeepCursor(field, oldval, newval) {
 }
 
 function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
-	if (!pasteEvent.clipboardData) {
+    if (!pasteEvent.clipboardData) {
         return;
     }
 
     var items = pasteEvent.clipboardData.items;
-
     if (typeof(items) === "undefined") {
         return;
     }
