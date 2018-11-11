@@ -172,7 +172,7 @@ function initReactionSelector(parent) {
 }
 
 function insertAtCursor(field, value) {
-    if (field.selectionStart || field.selectionStart == '0') {
+    if (field.selectionStart || field.selectionStart === 0) {
         var startPos = field.selectionStart;
         var endPos = field.selectionEnd;
         field.value = field.value.substring(0, startPos)
@@ -186,7 +186,7 @@ function insertAtCursor(field, value) {
 }
 
 function replaceAndKeepCursor(field, oldval, newval) {
-    if (field.selectionStart || field.selectionStart == '0') {
+    if (field.selectionStart || field.selectionStart === 0) {
         var startPos = field.selectionStart;
         var endPos = field.selectionEnd;
         field.value = field.value.replace(oldval, newval);
