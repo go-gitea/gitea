@@ -467,7 +467,7 @@ func (comments CommentList) loadReviews(e Engine) error {
 	return nil
 }
 
-// loadAttributes loads all attributes, expect for attachments and comments
+// loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(e Engine) (err error) {
 	if err = comments.loadPosters(e); err != nil {
 		return
