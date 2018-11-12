@@ -96,7 +96,7 @@ func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Err
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// SignInForm form for signing in with user/password
+// AuthorizationForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
 	Password string `binding:"Required;MaxSize(255)"`
@@ -105,6 +105,35 @@ type SignInForm struct {
 
 // Validate valideates the fields
 func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AuthorizationForm form for authorizing oauth2 clients
+type AuthorizationForm struct {
+	ResponseType string `binding:"Required;In(code)"`
+	ClientID     string `binding:"Required"`
+	RedirectURI  string
+	State        string
+}
+
+// Validate valideates the fields
+func (f *AuthorizationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
+type AccessTokenForm struct {
+	GrantType    string `binding:"Required;In(authorization_code,refresh_token)"`
+	ClientID     string `binding:"Required"`
+	ClientSecret string `binding:"Required"`
+	RedirectURI  string
+	// TODO Specify authentication code length to prevent against birthday attacks
+	Code         string
+	RefreshToken string
+}
+
+// Validate valideates the fields
+func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
