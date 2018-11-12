@@ -204,6 +204,24 @@ func reqAdmin() macaron.Handler {
 	}
 }
 
+func reqOwner() macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.Repo.IsAdmin() {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+func reqRepoReader(unitType models.UnitType) macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.Repo.CanAccess(unitType) {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
 func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
 		for _, unitType := range unitTypes {
@@ -317,15 +335,15 @@ func mustEnableIssues(ctx *context.APIContext) {
 }
 
 func mustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.AllowsPulls() {
+	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanAccess(models.UnitTypePullRequests)) {
 		ctx.Status(404)
 		return
 	}
 }
 
 func mustEnableIssuesOrPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
-		!ctx.Repo.Repository.AllowsPulls() {
+	if !ctx.Repo.CanAccess(models.UnitTypeIssues) &&
+		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanAccess(models.UnitTypePullRequests)) {
 		ctx.Status(404)
 		return
 	}
@@ -519,10 +537,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
-						Post(reqToken(), bind(api.CreateLabelOption{}), repo.CreateLabel)
+						Post(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/:id").Get(repo.GetLabel).
-						Patch(reqToken(), bind(api.EditLabelOption{}), repo.EditLabel).
-						Delete(reqToken(), repo.DeleteLabel)
+						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
+						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteLabel)
 				})
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
@@ -540,36 +558,36 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Group("/:id", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
-								Post(reqToken(), reqRepoWriter(), repo.CreateReleaseAttachment)
+								Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.CreateReleaseAttachment)
 							m.Combo("/:asset").Get(repo.GetReleaseAttachment).
-								Patch(reqToken(), reqRepoWriter(), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
-								Delete(reqToken(), reqRepoWriter(), repo.DeleteReleaseAttachment)
+								Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseAttachment)
 						})
 					})
-				})
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(), repo.MirrorSync)
+				}, reqRepoReader(models.UnitTypeReleases))
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).
-						Post(reqToken(), reqRepoWriter(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+						Post(reqToken(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetPullRequest).
-							Patch(reqToken(), reqRepoWriter(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(), reqRepoWriter(), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+							Post(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
 
 				}, mustAllowPulls, context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoWriter(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				})
 				m.Group("/commits/:ref", func() {
 					m.Get("/status", repo.GetCombinedCommitStatusByRef)
