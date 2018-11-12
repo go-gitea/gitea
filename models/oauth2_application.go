@@ -56,7 +56,10 @@ func GetOAuth2ApplicationByClientID(clientID string) (app *OAuth2Application, er
 
 func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
-	_, err = e.Where("client_id = ?", clientID).Get(app)
+	has, err := e.Where("client_id = ?", clientID).Get(app)
+	if !has {
+		return app, ErrOauthClientIDInvalid{ClientID:clientID}
+	}
 	return
 }
 
@@ -69,7 +72,7 @@ const (
 	ErrorCodeUnsupportedResponseType AuthorizeErrorCode = "unsupported_response_type"
 	ErrorCodeInvalidScope            AuthorizeErrorCode = "invalid_scope"
 	ErrorCodeServerError             AuthorizeErrorCode = "server_error"
-	ErrorCodeTemporaryUnavailable                       = "temporarily_unavailable"
+	ErrorCodeTemporaryUnavailable    AuthorizeErrorCode = "temporarily_unavailable"
 )
 
 type AuthorizeError struct {
@@ -80,4 +83,16 @@ type AuthorizeError struct {
 
 func (err AuthorizeError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
+}
+
+type OAuth2Codes struct {
+	ID   int64 `xorm:"pk autoincr"`
+	Code string
+	Lifetime util.TimeStamp
+}
+
+type OAuth2ApplicationGrants struct {
+	ID   int64 `xorm:"pk autoincr"`
+	UserID int64
+	ApplicationID int64
 }

@@ -1366,3 +1366,34 @@ func IsErrReviewNotExist(err error) bool {
 func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
+
+//  ________      _____          __  .__
+//  \_____  \    /  _  \  __ ___/  |_|  |__
+//   /   |   \  /  /_\  \|  |  \   __\  |  \
+//  /    |    \/    |    \  |  /|  | |   Y  \
+//  \_______  /\____|__  /____/ |__| |___|  /
+//          \/         \/                 \/
+
+type ErrOauthClientIDInvalid struct {
+	ClientID string
+}
+
+// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+func IsErrOauthClientIDInvalid(err error) bool {
+	_, ok := err.(ErrOauthClientIDInvalid)
+	return ok
+}
+
+func (err ErrOauthClientIDInvalid) Error() string {
+	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
+}
+
+
+
+
+
+
+
+
+
+
