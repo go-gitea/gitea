@@ -148,7 +148,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
-	// org memeber team owner
+	// org member team owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
@@ -157,7 +157,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	// org memeber team tester
+	// org member team tester
 	member := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, member)
 	assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
-	// org memeber team owner
+	// org member team owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
@@ -219,7 +219,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	// org memeber team tester
+	// org member team tester
 	tester := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, tester)
 	assert.NoError(t, err)
@@ -227,7 +227,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.False(t, perm.CanWrite(UnitTypeCode))
 	assert.False(t, perm.CanAccess(UnitTypeCode))
 
-	// org memeber team reviewer
+	// org member team reviewer
 	reviewer := AssertExistsAndLoadBean(t, &User{ID: 20}).(*User)
 	perm, err = GetUserRepoPermission(repo, reviewer)
 	assert.NoError(t, err)
