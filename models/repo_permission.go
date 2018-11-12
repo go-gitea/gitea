@@ -47,6 +47,16 @@ func (p *Permission) CanAccess(unitType UnitType) bool {
 	return p.UnitAccessMode(unitType) >= AccessModeRead
 }
 
+// CanAccessAny returns true if user has read access to any of the units of the repository
+func (p *Permission) CanAccessAny(unitTypes ...UnitType) bool {
+	for _, u := range unitTypes {
+		if p.CanAccess(u) {
+			return true
+		}
+	}
+	return false
+}
+
 // CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType UnitType) bool {
 	return p.UnitAccessMode(unitType) >= AccessModeWrite
@@ -105,19 +115,23 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
-	// Collaborators on organization repos will not be limited by teams units
+	perm.UnitsMode = make(map[UnitType]AccessMode)
+
+	// Collaborators on organization
 	if isCollaborator, err := repo.isCollaborator(e, user.ID); err != nil {
 		return perm, err
 	} else if isCollaborator {
-		return perm, nil
+		for _, u := range repo.Units {
+			perm.UnitsMode[u.Type] = perm.AccessMode
+		}
 	}
 
+	// get units mode from teams
 	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return
 	}
 
-	perm.UnitsMode = make(map[UnitType]AccessMode)
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
@@ -130,13 +144,17 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 			}
 		}
 
+		// for a public repo on an organization, user have read permission on non-team defined units.
 		if !found && !repo.IsPrivate {
-			perm.UnitsMode[u.Type] = AccessModeRead
+			if _, ok := perm.UnitsMode[u.Type]; !ok {
+				perm.UnitsMode[u.Type] = AccessModeRead
+			}
 		}
 	}
 
+	// remove no permission units
 	perm.Units = make([]*RepoUnit, 0, len(repo.Units))
-	for t, _ := range perm.UnitsMode {
+	for t := range perm.UnitsMode {
 		for _, u := range repo.Units {
 			if u.Type == t {
 				perm.Units = append(perm.Units, u)

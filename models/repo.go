@@ -325,58 +325,16 @@ func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitT
 }
 
 func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
-	if err := repo.getUnitsByUserID(e, userID, isAdmin); err != nil {
+	user, err := getUserByID(e, userID)
+	if err != nil {
+		return false
+	}
+	perm, err := getUserRepoPermission(e, repo, user)
+	if err != nil {
 		return false
 	}
 
-	for _, unit := range repo.Units {
-		if unit.Type == unitType {
-			return true
-		}
-	}
-	return false
-}
-
-func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (err error) {
-	if repo.Units != nil {
-		return nil
-	}
-
-	if err = repo.getUnits(e); err != nil {
-		return err
-	} else if err = repo.getOwner(e); err != nil {
-		return err
-	}
-
-	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin || !repo.IsPrivate {
-		return nil
-	}
-
-	// Collaborators will not be limited
-	if isCollaborator, err := repo.isCollaborator(e, userID); err != nil {
-		return err
-	} else if isCollaborator {
-		return nil
-	}
-
-	teams, err := getUserRepoTeams(e, repo.OwnerID, userID, repo.ID)
-	if err != nil {
-		return err
-	}
-
-	// unique
-	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
-	for _, u := range repo.Units {
-		for _, team := range teams {
-			if team.unitEnabled(e, u.Type) {
-				newRepoUnits = append(newRepoUnits, u)
-				break
-			}
-		}
-	}
-
-	repo.Units = newRepoUnits
-	return nil
+	return perm.CanAccess(unitType)
 }
 
 // UnitEnabled if this repository has the given unit enabled

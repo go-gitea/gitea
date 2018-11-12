@@ -681,24 +681,6 @@ func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
 	}
 }
 
-// CheckUnit will check whether unit type is enabled
-func CheckUnit(unitType models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.Repository.UnitEnabled(unitType) {
-			ctx.NotFound("CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
-		}
-	}
-}
-
-// CheckAnyUnit will check whether any of the unit types are enabled
-func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.Repository.AnyUnitEnabled(unitTypes...) {
-			ctx.NotFound("CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
-		}
-	}
-}
-
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() macaron.Handler {
 	return func(ctx *Context) {
