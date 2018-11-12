@@ -211,7 +211,9 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
         if (items[i].type.indexOf("image") === -1) continue;
         var blob = items[i].getAsFile();
 
-        if (typeof(callback) === "function"){
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
             callback(blob);
         }
     }
