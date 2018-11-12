@@ -71,7 +71,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-macaron/binding"
@@ -154,15 +153,10 @@ func repoAssignment() macaron.Handler {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if ctx.IsSigned && ctx.User.IsAdmin {
-			ctx.Repo.AccessMode = models.AccessModeOwner
-		} else {
-			mode, err := models.AccessLevel(utils.UserID(ctx), repo)
-			if err != nil {
-				ctx.Error(500, "AccessLevel", err)
-				return
-			}
-			ctx.Repo.AccessMode = mode
+		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+		if err != nil {
+			ctx.Error(500, "GetUserRepoPermission", err)
+			return
 		}
 
 		if !ctx.Repo.HasAccess() {
