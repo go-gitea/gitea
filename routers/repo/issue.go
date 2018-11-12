@@ -844,8 +844,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanAccess(models.UnitTypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.CanAccess(models.UnitTypeIssues) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -870,8 +870,8 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues)
-	prUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
+	issueUnitEnabled := ctx.Repo.CanAccess(models.UnitTypeIssues)
+	prUnitEnabled := ctx.Repo.CanAccess(models.UnitTypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)

@@ -39,11 +39,6 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
-	if !ctx.Repo.CanAccess(models.UnitTypeCode) {
-		ctx.Status(404)
-		return
-	}
-
 	if ctx.Repo.Repository.IsBare {
 		ctx.Status(404)
 		return

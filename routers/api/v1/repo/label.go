@@ -124,11 +124,6 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
-		ctx.Status(403)
-		return
-	}
-
 	label := &models.Label{
 		Name:   form.Name,
 		Color:  form.Color,
@@ -174,11 +169,6 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
-		ctx.Status(403)
-		return
-	}
-
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
@@ -227,11 +217,6 @@ func DeleteLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
-		ctx.Status(403)
-		return
-	}
-
 	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(500, "DeleteLabel", err)
 		return

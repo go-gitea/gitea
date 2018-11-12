@@ -470,15 +470,15 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := models.AccessLevel(ctx.User.ID, repo)
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeRead {
+	} else if !perm.HasAccess() {
 		ctx.Status(404)
 		return
 	}
-	ctx.JSON(200, repo.APIFormat(access))
+	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
 }
 
 // Delete one repository
@@ -504,10 +504,6 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	if !ctx.Repo.IsAdmin() {
-		ctx.Error(403, "", "Must have admin rights")
-		return
-	}
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 

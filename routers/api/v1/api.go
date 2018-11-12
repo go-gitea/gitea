@@ -189,7 +189,8 @@ func reqBasicAuth() macaron.Handler {
 	}
 }
 
-func reqAdmin() macaron.Handler {
+// reqSiteAdmin user should be the site admin
+func reqSiteAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsSigned || !ctx.User.IsAdmin {
 			ctx.Error(403)
@@ -198,7 +199,18 @@ func reqAdmin() macaron.Handler {
 	}
 }
 
+// reqOwner user should be the owner of the repo.
 func reqOwner() macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+// reqAdmin user should be an owner or a collaborator with admin write of a repository
+func reqAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.Repo.IsAdmin() {
 			ctx.Error(403)
@@ -210,6 +222,15 @@ func reqOwner() macaron.Handler {
 func reqRepoReader(unitType models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.Repo.CanAccess(unitType) {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+func reqAnyRepoReader() macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.Repo.HasAccess() {
 			ctx.Error(403)
 			return
 		}
@@ -457,7 +478,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
 
 			m.Group("/:username/:reponame", func() {
-				m.Combo("").Get(repo.Get).Delete(reqToken(), repo.Delete)
+				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
+					Delete(reqToken(), reqOwner(), repo.Delete)
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -467,21 +489,21 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
-				}, reqToken(), reqRepoWriter(models.UnitTypeCode))
+				}, reqToken(), reqAdmin())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(repo.IsCollaborator).
 						Put(bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(repo.DeleteCollaborator)
-				}, reqToken())
-				m.Get("/raw/*", context.RepoRefByType(context.RepoRefAny), repo.GetRawFile)
-				m.Get("/archive/*", repo.GetArchive)
+				}, reqToken(), reqAdmin())
+				m.Get("/raw/*", context.RepoRefByType(context.RepoRefAny), reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
+				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
-					Post(reqToken(), bind(api.CreateForkOption{}), repo.CreateFork)
+					Post(reqToken(), reqRepoReader(models.UnitTypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
-				})
+				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -491,7 +513,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
-
 				}, mustEnableIssues)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
@@ -567,7 +588,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
-				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
+				m.Get("/editorconfig/:filename", context.RepoRef(), reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).
 						Post(reqToken(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
@@ -582,15 +603,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/statuses", func() {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				})
+				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/commits/:ref", func() {
 					m.Get("/status", repo.GetCombinedCommitStatusByRef)
 					m.Get("/statuses", repo.GetCommitStatusesByRef)
-				})
+				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
-				})
+				}, reqRepoReader(models.UnitTypeCode))
 			}, repoAssignment())
 		})
 
@@ -659,7 +680,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})
 			})
-		}, reqToken(), reqAdmin())
+		}, reqToken(), reqSiteAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)

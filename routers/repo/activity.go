@@ -45,9 +45,9 @@ func Activity(ctx *context.Context) {
 
 	var err error
 	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository.ID, timeFrom,
-		ctx.Repo.Repository.UnitEnabled(models.UnitTypeReleases),
-		ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues),
-		ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)); err != nil {
+		ctx.Repo.CanAccess(models.UnitTypeReleases),
+		ctx.Repo.CanAccess(models.UnitTypeIssues),
+		ctx.Repo.CanAccess(models.UnitTypePullRequests)); err != nil {
 		ctx.ServerError("GetActivityStats", err)
 		return
 	}

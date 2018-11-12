@@ -35,10 +35,6 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "", "User does not have push access")
-		return
-	}
 	collaborators, err := ctx.Repo.Repository.GetCollaborators()
 	if err != nil {
 		ctx.Error(500, "ListCollaborators", err)
@@ -79,10 +75,6 @@ func IsCollaborator(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "", "User does not have push access")
-		return
-	}
 	user, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -134,10 +126,6 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "", "User does not have push access")
-		return
-	}
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -194,11 +182,6 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "", "User does not have push access")
-		return
-	}
-
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
