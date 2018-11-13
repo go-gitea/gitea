@@ -57,7 +57,13 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if !forkRepo.CanBeForked() || !forkRepo.HasAccess(ctx.User) {
+	perm, err := models.GetUserRepoPermission(forkRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil
+	}
+
+	if forkRepo.IsBare || !perm.CanAccess(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}

@@ -657,11 +657,6 @@ func (repo *Repository) UpdateSize() error {
 	return repo.updateSize(x)
 }
 
-// CanBeForked returns true if repository meets the requirements of being forked.
-func (repo *Repository) CanBeForked() bool {
-	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
-}
-
 // CanUserFork returns true if specified user can fork repository.
 func (repo *Repository) CanUserFork(user *User) (bool, error) {
 	if user == nil {

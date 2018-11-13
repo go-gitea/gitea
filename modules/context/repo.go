@@ -218,6 +218,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 	ctx.Data["HasAccess"] = true
+	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
 		var err error
@@ -624,60 +625,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-	}
-}
-
-// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
-func RequireRepoAdmin() macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// RequireRepoWriter returns a macaron middleware for requiring repository write to the specify unitType
-func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.CanWrite(unitType) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// RequireRepoWriterOr returns a macaron middleware for requiring repository write to one of the unit permission
-func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanWrite(unitType) {
-				return
-			}
-		}
-		ctx.NotFound(ctx.Req.RequestURI, nil)
-	}
-}
-
-// RequireRepoReader returns a macaron middleware for requiring repository read to the specify unitType
-func RequireRepoReader(unitType models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.CanAccess(unitType) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// RequireRepoReaderOr returns a macaron middleware for requiring repository write to one of the unit permission
-func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanAccess(unitType) {
-				return
-			}
-		}
-		ctx.NotFound(ctx.Req.RequestURI, nil)
 	}
 }
 

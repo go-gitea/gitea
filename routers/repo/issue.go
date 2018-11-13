@@ -77,9 +77,9 @@ func MustEnableIssues(ctx *context.Context) {
 	}
 }
 
-// MustAllowPulls check if repository enable pull requests
+// MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.AllowsPulls() {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanAccess(models.UnitTypePullRequests) {
 		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
