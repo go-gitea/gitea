@@ -71,6 +71,15 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(UnitTypeIssues)
 }
 
+// CanReadIssuesOrPulls returns true if isPull is true and user could read pull requests and
+// returns true if isPull is false and user could read to issues
+func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
+	if isPull {
+		return p.CanAccess(UnitTypePullRequests)
+	}
+	return p.CanAccess(UnitTypeIssues)
+}
+
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 	return getUserRepoPermission(x, repo, user)
@@ -96,7 +105,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
-	// Admin has super access or user is the owner of the repository
+	// Admin or the owner has super access to the repository
 	if user.IsAdmin || user.ID == repo.OwnerID {
 		perm.AccessMode = AccessModeOwner
 		return

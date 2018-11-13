@@ -562,7 +562,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
-		}, reqRepoIssuesOrPullsReader)
+		})
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
@@ -578,7 +578,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
+		m.Combo("/compare/*", reqRepoCodeReader, repo.MustAllowPulls, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 

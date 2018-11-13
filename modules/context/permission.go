@@ -12,7 +12,7 @@ import (
 // RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
 func RequireRepoAdmin() macaron.Handler {
 	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
+		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
 			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}

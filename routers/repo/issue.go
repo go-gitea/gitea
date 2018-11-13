@@ -1039,6 +1039,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
 	var attachments []string
 	if setting.AttachmentEnabled {
 		attachments = form.Files
@@ -1142,7 +1147,12 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
@@ -1176,7 +1186,12 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
@@ -1419,6 +1434,11 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
 	if ctx.HasError() {
 		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
 		return
@@ -1488,20 +1508,22 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	issue, err := models.GetIssueByID(comment.IssueID)
-	checkIssueRights(ctx, issue)
-	if ctx.Written() {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
 		return
 	}
 
-	if ctx.HasError() {
-		ctx.ServerError("ChangeCommentReaction", errors.New(ctx.GetErrMsg()))
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+		ctx.Error(403)
+		return
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+		ctx.Error(204)
 		return
 	}
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateCommentReaction(ctx.User, issue, comment, form.Content)
+		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
 			log.Info("CreateCommentReaction: %s", err)
 			break
@@ -1513,9 +1535,9 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 			break
 		}
 
-		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID, reaction.ID)
+		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteCommentReaction(ctx.User, issue, comment, form.Content); err != nil {
+		if err := models.DeleteCommentReaction(ctx.User, comment.Issue, comment, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
@@ -1527,7 +1549,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 			break
 		}
 
-		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
 		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
 		return
