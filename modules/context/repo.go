@@ -484,7 +484,7 @@ const (
 	RepoRefTag
 	// RepoRefCommit commit
 	RepoRefCommit
-	// RepoRefObject object
+	// RepoRefBlob blob
 	RepoRefBlob
 )
 
@@ -537,7 +537,11 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 			return parts[0]
 		}
 	case RepoRefBlob:
-		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBlobExist)
+		_, err := ctx.Repo.GitRepo.GetBlob(path)
+		if err != nil {
+			return ""
+		}
+		return path
 	default:
 		log.Error(4, "Unrecognized path type: %v", path)
 	}

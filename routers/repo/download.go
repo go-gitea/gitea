@@ -70,9 +70,9 @@ func SingleDownload(ctx *context.Context) {
 	}
 }
 
-// DownloadById download a file by sha1 ID
+// DownloadByID download a file by sha1 ID
 func DownloadByID(ctx *context.Context) {
-	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params["sha"])
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlob", nil)
