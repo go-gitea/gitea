@@ -553,11 +553,6 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
 }
 
-// GetUserIfHasWriteAccess returns the user that has write access of repository by given ID.
-func (repo *Repository) GetUserIfHasWriteAccess(userID int64) (*User, error) {
-	return GetUserIfHasWriteAccess(repo, userID)
-}
-
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
 func (repo *Repository) GetMilestoneByID(milestoneID int64) (*Milestone, error) {
 	return GetMilestoneByRepoID(repo.ID, milestoneID)
@@ -625,10 +620,10 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 }
 
 // HasAccess returns true when user has access to this repository
-func (repo *Repository) HasAccess(u *User) bool {
+/*func (repo *Repository) HasAccess(u *User) bool {
 	has, _ := HasAccess(u.ID, repo, AccessModeRead)
 	return has
-}
+}*/
 
 // UpdateDefaultBranch updates the default branch
 func (repo *Repository) UpdateDefaultBranch() error {

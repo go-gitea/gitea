@@ -370,7 +370,7 @@ func NewIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, []int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -428,9 +428,19 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 
 		// Check if the passed assignees actually exists and has write access to the repo
 		for _, aID := range assigneeIDs {
-			_, err = repo.GetUserIfHasWriteAccess(aID)
+			user, err := models.GetUserByID(aID)
 			if err != nil {
-				ctx.ServerError("GetUserIfHasWriteAccess", err)
+				ctx.ServerError("GetUserByID", err)
+				return nil, nil, 0
+			}
+
+			perm, err := models.GetUserRepoPermission(repo, user)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil, nil, 0
+			}
+			if !perm.CanWriteIssuesOrPulls(isPull) {
+				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
 				return nil, nil, 0
 			}
 		}
@@ -459,7 +469,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, false)
 	if ctx.Written() {
 		return
 	}
@@ -499,31 +509,23 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
 func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
-	if repo.IsOwnedBy(poster.ID) {
-		return models.CommentTagOwner, nil
-	} else if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(poster.ID)
-		if err != nil {
-			return models.CommentTagNone, err
-		} else if isOwner {
-			return models.CommentTagOwner, nil
-		}
+	perm, err := models.GetUserRepoPermission(repo, poster)
+	if err != nil {
+		return models.CommentTagNone, err
 	}
-	if poster.IsWriterOfRepo(repo) {
-		return models.CommentTagWriter, nil
+	if perm.IsOwner() {
+		return models.CommentTagOwner, nil
 	} else if poster.ID == issue.PosterID {
 		return models.CommentTagPoster, nil
+	} else if perm.CanWrite(models.UnitTypeCode) {
+		return models.CommentTagWriter, nil
 	}
+
 	return models.CommentTagNone, nil
 }
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireDropzone"] = true
-	ctx.Data["RequireTribute"] = true
-	renderAttachmentSettings(ctx)
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -533,25 +535,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
-
-	var iw *models.IssueWatch
-	var exists bool
-	if ctx.User != nil {
-		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
-		if err != nil {
-			ctx.ServerError("GetIssueWatch", err)
-			return
-		}
-		if !exists {
-			iw = &models.IssueWatch{
-				UserID:     ctx.User.ID,
-				IssueID:    issue.ID,
-				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
-			}
-		}
-	}
-	ctx.Data["IssueWatch"] = iw
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
@@ -576,6 +559,31 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["PageIsIssueList"] = true
 	}
+
+	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
+	renderAttachmentSettings(ctx)
+
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
+
+	var iw *models.IssueWatch
+	var exists bool
+	if ctx.User != nil {
+		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetIssueWatch", err)
+			return
+		}
+		if !exists {
+			iw = &models.IssueWatch{
+				UserID:     ctx.User.ID,
+				IssueID:    issue.ID,
+				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
+			}
+		}
+	}
+	ctx.Data["IssueWatch"] = iw
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
@@ -762,13 +770,20 @@ func ViewIssue(ctx *context.Context) {
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
-			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
-				// Check if branch is not protected
-				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
-					log.Error(4, "IsProtectedBranch: %v", err)
-				} else if !protected {
-					canDelete = true
-					ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
+				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.User)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+				if perm.CanWrite(models.UnitTypeCode) {
+					// Check if branch is not protected
+					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
+						log.Error(4, "IsProtectedBranch: %v", err)
+					} else if !protected {
+						canDelete = true
+						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+					}
 				}
 			}
 		}

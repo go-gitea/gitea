@@ -173,3 +173,23 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 
 	return
 }
+
+// IsUserRepoAdmin return ture if user has admin right of a repo
+func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
+	return isUserRepoAdmin(x, repo, user)
+}
+
+func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
+	if user == nil || repo == nil {
+		return false, nil
+	}
+	if user.IsAdmin {
+		return true, nil
+	}
+
+	mode, err := accessLevel(e, user.ID, repo)
+	if err != nil {
+		return false, err
+	}
+	return mode >= AccessModeAdmin, nil
+}

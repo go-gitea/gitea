@@ -468,9 +468,11 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return err
 	}
 
-	if has, err := HasAccess(doer.ID, issue.Repo, AccessModeWrite); err != nil {
+	perm, err := GetUserRepoPermission(issue.Repo, doer)
+	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		return ErrLabelNotExist{}
 	}
 
@@ -511,9 +513,11 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
-	if has, err := hasAccess(sess, doer.ID, issue.Repo, AccessModeWrite); err != nil {
+	perm, err := getUserRepoPermission(sess, issue.Repo, doer)
+	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		return ErrLabelNotExist{}
 	}
 
