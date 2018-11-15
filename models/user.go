@@ -698,6 +698,7 @@ var (
 		"issues",
 		"js",
 		"less",
+		"metrics",
 		"new",
 		"org",
 		"plugins",
