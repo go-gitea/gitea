@@ -12,31 +12,31 @@
 <script type="text/javascript" src="{{AppSubUrl}}/cadviewer/js/baseLoaderScene.js"></script>
 
 <script>
-    function init() {
-        // setup the scene for rendering
+	function init() {
+		// setup the scene for rendering
 
-        // initCamera is defined in utils.js
-        //   The unique parameter is the camera position
-        var camera = initCamera(new THREE.Vector3(1000, 0, 0));
+		// initCamera is defined in utils.js
+		//   The unique parameter is the camera position
+		var camera = initCamera(new THREE.Vector3(1000, 0, 0));
 
-        // BaseLoaderScene is defined in baseLoaderScene.js
-        var loaderScene = new BaseLoaderScene(camera);
-        camera.lookAt(new THREE.Vector3(0, 0, 0));
+		// BaseLoaderScene is defined in baseLoaderScene.js
+		var loaderScene = new BaseLoaderScene(camera);
+		camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-        {{range $i, $element := .ConvertedFiles}}
-        eval("var loader_{{$i}} = new THREE.STLLoader();")
-        eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: 0xdfa400, metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
+		{{range $i, $element := .ConvertedFiles}}
+		eval("var loader_{{$i}} = new THREE.STLLoader();")
+		eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: 0xdfa400, metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
 
-        {{end}}
+		{{end}}
 
-        var size = 100;
+		var size = 100;
 		var divisions = 10;
 
 		var gridHelper = new THREE.GridHelper( size, divisions );
 		loaderScene.scene.add( gridHelper );
 
-        loaderScene.render(camera);
-    }
+		loaderScene.render(camera);
+	}
 </script>
 
 
