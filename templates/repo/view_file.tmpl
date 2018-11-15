@@ -15,6 +15,9 @@
 	function init() {
 		// setup the scene for rendering
 
+		var colors = [0x222d5a, 0xff8840, 0x3d4f99, 0xcc3f14, 0x00b8ff];
+		var colors_length = colors.length;
+
 		// initCamera is defined in utils.js
 		//   The unique parameter is the camera position
 		var camera = initCamera(new THREE.Vector3(1000, 0, 0));
@@ -25,7 +28,7 @@
 
 		{{range $i, $element := .ConvertedFiles}}
 		eval("var loader_{{$i}} = new THREE.STLLoader();")
-		eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: 0xdfa400, metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
+		eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: colors[{{$i}}%colors_length], metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
 
 		{{end}}
 
