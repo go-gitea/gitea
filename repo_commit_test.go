@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRepository_GetBranches(t *testing.T) {
+func TestRepository_GetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
