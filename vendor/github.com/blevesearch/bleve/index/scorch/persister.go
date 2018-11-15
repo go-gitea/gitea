@@ -34,22 +34,39 @@ import (
 
 var DefaultChunkFactor uint32 = 1024
 
+// Arbitrary number, need to make it configurable.
+// Lower values like 10/making persister really slow
+// doesn't work well as it is creating more files to
+// persist for in next persist iteration and spikes the # FDs.
+// Ideal value should let persister also proceed at
+// an optimum pace so that the merger can skip
+// many intermediate snapshots.
+// This needs to be based on empirical data.
+// TODO - may need to revisit this approach/value.
+var epochDistance = uint64(5)
+
 type notificationChan chan struct{}
 
 func (s *Scorch) persisterLoop() {
 	defer s.asyncTasks.Done()
 
-	var notifyChs []notificationChan
-	var lastPersistedEpoch uint64
+	var persistWatchers []*epochWatcher
+	var lastPersistedEpoch, lastMergedEpoch uint64
+	var ew *epochWatcher
 OUTER:
 	for {
 		select {
 		case <-s.closeCh:
 			break OUTER
-		case notifyCh := <-s.persisterNotifier:
-			notifyChs = append(notifyChs, notifyCh)
+		case ew = <-s.persisterNotifier:
+			persistWatchers = append(persistWatchers, ew)
 		default:
 		}
+		if ew != nil && ew.epoch > lastMergedEpoch {
+			lastMergedEpoch = ew.epoch
+		}
+		persistWatchers = s.pausePersisterForMergerCatchUp(lastPersistedEpoch,
+			&lastMergedEpoch, persistWatchers)
 
 		var ourSnapshot *IndexSnapshot
 		var ourPersisted []chan error
@@ -81,10 +98,11 @@ OUTER:
 			}
 
 			lastPersistedEpoch = ourSnapshot.epoch
-			for _, notifyCh := range notifyChs {
-				close(notifyCh)
+			for _, ew := range persistWatchers {
+				close(ew.notifyCh)
 			}
-			notifyChs = nil
+
+			persistWatchers = nil
 			_ = ourSnapshot.DecRef()
 
 			changed := false
@@ -120,27 +138,155 @@ OUTER:
 			break OUTER
 		case <-w.notifyCh:
 			// woken up, next loop should pick up work
+			continue OUTER
+		case ew = <-s.persisterNotifier:
+			// if the watchers are already caught up then let them wait,
+			// else let them continue to do the catch up
+			persistWatchers = append(persistWatchers, ew)
 		}
 	}
 }
 
+func notifyMergeWatchers(lastPersistedEpoch uint64,
+	persistWatchers []*epochWatcher) []*epochWatcher {
+	var watchersNext []*epochWatcher
+	for _, w := range persistWatchers {
+		if w.epoch < lastPersistedEpoch {
+			close(w.notifyCh)
+		} else {
+			watchersNext = append(watchersNext, w)
+		}
+	}
+	return watchersNext
+}
+
+func (s *Scorch) pausePersisterForMergerCatchUp(lastPersistedEpoch uint64, lastMergedEpoch *uint64,
+	persistWatchers []*epochWatcher) []*epochWatcher {
+
+	// first, let the watchers proceed if they lag behind
+	persistWatchers = notifyMergeWatchers(lastPersistedEpoch, persistWatchers)
+
+OUTER:
+	// check for slow merger and await until the merger catch up
+	for lastPersistedEpoch > *lastMergedEpoch+epochDistance {
+
+		select {
+		case <-s.closeCh:
+			break OUTER
+		case ew := <-s.persisterNotifier:
+			persistWatchers = append(persistWatchers, ew)
+			*lastMergedEpoch = ew.epoch
+		}
+
+		// let the watchers proceed if they lag behind
+		persistWatchers = notifyMergeWatchers(lastPersistedEpoch, persistWatchers)
+	}
+
+	return persistWatchers
+}
+
 func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
+	persisted, err := s.persistSnapshotMaybeMerge(snapshot)
+	if err != nil {
+		return err
+	}
+	if persisted {
+		return nil
+	}
+
+	return s.persistSnapshotDirect(snapshot)
+}
+
+// DefaultMinSegmentsForInMemoryMerge represents the default number of
+// in-memory zap segments that persistSnapshotMaybeMerge() needs to
+// see in an IndexSnapshot before it decides to merge and persist
+// those segments
+var DefaultMinSegmentsForInMemoryMerge = 2
+
+// persistSnapshotMaybeMerge examines the snapshot and might merge and
+// persist the in-memory zap segments if there are enough of them
+func (s *Scorch) persistSnapshotMaybeMerge(snapshot *IndexSnapshot) (
+	bool, error) {
+	// collect the in-memory zap segments (SegmentBase instances)
+	var sbs []*zap.SegmentBase
+	var sbsDrops []*roaring.Bitmap
+	var sbsIndexes []int
+
+	for i, segmentSnapshot := range snapshot.segment {
+		if sb, ok := segmentSnapshot.segment.(*zap.SegmentBase); ok {
+			sbs = append(sbs, sb)
+			sbsDrops = append(sbsDrops, segmentSnapshot.deleted)
+			sbsIndexes = append(sbsIndexes, i)
+		}
+	}
+
+	if len(sbs) < DefaultMinSegmentsForInMemoryMerge {
+		return false, nil
+	}
+
+	_, newSnapshot, newSegmentID, err := s.mergeSegmentBases(
+		snapshot, sbs, sbsDrops, sbsIndexes, DefaultChunkFactor)
+	if err != nil {
+		return false, err
+	}
+	if newSnapshot == nil {
+		return false, nil
+	}
+
+	defer func() {
+		_ = newSnapshot.DecRef()
+	}()
+
+	mergedSegmentIDs := map[uint64]struct{}{}
+	for _, idx := range sbsIndexes {
+		mergedSegmentIDs[snapshot.segment[idx].id] = struct{}{}
+	}
+
+	// construct a snapshot that's logically equivalent to the input
+	// snapshot, but with merged segments replaced by the new segment
+	equiv := &IndexSnapshot{
+		parent:   snapshot.parent,
+		segment:  make([]*SegmentSnapshot, 0, len(snapshot.segment)),
+		internal: snapshot.internal,
+		epoch:    snapshot.epoch,
+	}
+
+	// copy to the equiv the segments that weren't replaced
+	for _, segment := range snapshot.segment {
+		if _, wasMerged := mergedSegmentIDs[segment.id]; !wasMerged {
+			equiv.segment = append(equiv.segment, segment)
+		}
+	}
+
+	// append to the equiv the new segment
+	for _, segment := range newSnapshot.segment {
+		if segment.id == newSegmentID {
+			equiv.segment = append(equiv.segment, &SegmentSnapshot{
+				id:      newSegmentID,
+				segment: segment.segment,
+				deleted: nil, // nil since merging handled deletions
+			})
+			break
+		}
+	}
+
+	err = s.persistSnapshotDirect(equiv)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 	// start a write transaction
 	tx, err := s.rootBolt.Begin(true)
 	if err != nil {
 		return err
 	}
-	// defer fsync of the rootbolt
+	// defer rollback on error
 	defer func() {
-		if err == nil {
-			err = s.rootBolt.Sync()
-		}
-	}()
-	// defer commit/rollback transaction
-	defer func() {
-		if err == nil {
-			err = tx.Commit()
-		} else {
+		if err != nil {
 			_ = tx.Rollback()
 		}
 	}()
@@ -172,20 +318,20 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
 	newSegmentPaths := make(map[uint64]string)
 
 	// first ensure that each segment in this snapshot has been persisted
-	for i, segmentSnapshot := range snapshot.segment {
-		snapshotSegmentKey := segment.EncodeUvarintAscending(nil, uint64(i))
-		snapshotSegmentBucket, err2 := snapshotBucket.CreateBucketIfNotExists(snapshotSegmentKey)
-		if err2 != nil {
-			return err2
+	for _, segmentSnapshot := range snapshot.segment {
+		snapshotSegmentKey := segment.EncodeUvarintAscending(nil, segmentSnapshot.id)
+		snapshotSegmentBucket, err := snapshotBucket.CreateBucketIfNotExists(snapshotSegmentKey)
+		if err != nil {
+			return err
 		}
 		switch seg := segmentSnapshot.segment.(type) {
 		case *zap.SegmentBase:
 			// need to persist this to disk
 			filename := zapFileName(segmentSnapshot.id)
 			path := s.path + string(os.PathSeparator) + filename
-			err2 := zap.PersistSegmentBase(seg, path)
-			if err2 != nil {
-				return fmt.Errorf("error persisting segment: %v", err2)
+			err = zap.PersistSegmentBase(seg, path)
+			if err != nil {
+				return fmt.Errorf("error persisting segment: %v", err)
 			}
 			newSegmentPaths[segmentSnapshot.id] = path
 			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
@@ -218,19 +364,28 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
 		}
 	}
 
-	// only alter the root if we actually persisted a segment
-	// (sometimes its just a new snapshot, possibly with new internal values)
+	// we need to swap in a new root only when we've persisted 1 or
+	// more segments -- whereby the new root would have 1-for-1
+	// replacements of in-memory segments with file-based segments
+	//
+	// other cases like updates to internal values only, and/or when
+	// there are only deletions, are already covered and persisted by
+	// the newly populated boltdb snapshotBucket above
 	if len(newSegmentPaths) > 0 {
 		// now try to open all the new snapshots
 		newSegments := make(map[uint64]segment.Segment)
+		defer func() {
+			for _, s := range newSegments {
+				if s != nil {
+					// cleanup segments that were opened but not
+					// swapped into the new root
+					_ = s.Close()
+				}
+			}
+		}()
 		for segmentID, path := range newSegmentPaths {
 			newSegments[segmentID], err = zap.Open(path)
 			if err != nil {
-				for _, s := range newSegments {
-					if s != nil {
-						_ = s.Close() // cleanup segments that were successfully opened
-					}
-				}
 				return fmt.Errorf("error opening new segment at %s, %v", path, err)
 			}
 		}
@@ -255,6 +410,7 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
 					cachedDocs: segmentSnapshot.cachedDocs,
 				}
 				newIndexSnapshot.segment[i] = newSegmentSnapshot
+				delete(newSegments, segmentSnapshot.id)
 				// update items persisted incase of a new segment snapshot
 				atomic.AddUint64(&s.stats.numItemsPersisted, newSegmentSnapshot.Count())
 			} else {
@@ -266,9 +422,7 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
 		for k, v := range s.root.internal {
 			newIndexSnapshot.internal[k] = v
 		}
-		for _, filename := range filenames {
-			delete(s.ineligibleForRemoval, filename)
-		}
+
 		rootPrev := s.root
 		s.root = newIndexSnapshot
 		s.rootLock.Unlock()
@@ -276,6 +430,24 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot) error {
 			_ = rootPrev.DecRef()
 		}
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = s.rootBolt.Sync()
+	if err != nil {
+		return err
+	}
+
+	// allow files to become eligible for removal after commit, such
+	// as file segments from snapshots that came from the merger
+	s.rootLock.Lock()
+	for _, filename := range filenames {
+		delete(s.ineligibleForRemoval, filename)
+	}
+	s.rootLock.Unlock()
 
 	return nil
 }
