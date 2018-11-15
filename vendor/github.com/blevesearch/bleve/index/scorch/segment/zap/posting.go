@@ -28,21 +28,27 @@ import (
 // PostingsList is an in-memory represenation of a postings list
 type PostingsList struct {
 	sb             *SegmentBase
-	term           []byte
 	postingsOffset uint64
 	freqOffset     uint64
 	locOffset      uint64
 	locBitmap      *roaring.Bitmap
 	postings       *roaring.Bitmap
 	except         *roaring.Bitmap
-	postingKey     []byte
 }
 
 // Iterator returns an iterator for this postings list
 func (p *PostingsList) Iterator() segment.PostingsIterator {
-	rv := &PostingsIterator{
-		postings: p,
+	return p.iterator(nil)
+}
+
+func (p *PostingsList) iterator(rv *PostingsIterator) *PostingsIterator {
+	if rv == nil {
+		rv = &PostingsIterator{}
+	} else {
+		*rv = PostingsIterator{} // clear the struct
 	}
+	rv.postings = p
+
 	if p.postings != nil {
 		// prepare the freq chunk details
 		var n uint64
