@@ -446,6 +446,56 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
+
+	if ctx.Repo.BranchName != ctx.Repo.Repository.DefaultBranch {
+
+		defaultBranch := ctx.Repo.Repository.DefaultBranch
+
+		master, err := ctx.Repo.Repository.GetBranch(defaultBranch)
+		if err != nil {
+			ctx.ServerError("GetBranch", err)
+			return
+		}
+
+		commit, err := master.GetCommit()
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
+
+		commitCountInMaster, err := commit.CommitsCount()
+		if err != nil {
+			ctx.ServerError("CommitsCount", err)
+			return
+		}
+
+		n := commitCountInMaster - ctx.Repo.CommitsCount
+
+		var msg string
+
+		if n == 0 {
+			msg = ctx.Tr("repo.commits.count.even", defaultBranch)
+		}
+
+		if n == -1 {
+			msg = ctx.Tr("repo.commits.count.singular.ahead_of_master", defaultBranch)
+		}
+
+		if n == 1 {
+			msg = ctx.Tr("repo.commits.count.singular.behind_of_master", defaultBranch)
+		}
+
+		if n < -1 {
+			msg = ctx.Tr("repo.commits.count.plural.ahead_of_master", n, defaultBranch)
+		}
+
+		if n > 1 {
+			msg = ctx.Tr("repo.commits.count.plural.behind_of_master", n, defaultBranch)
+		}
+
+		ctx.Flash.Info(msg)
+	}
+
 	ctx.HTML(200, tplRepoHome)
 }
 
