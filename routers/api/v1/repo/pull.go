@@ -405,7 +405,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && (form.Labels != nil && len(form.Labels) > 0) {
+	if ctx.Repo.IsWriter() && form.Labels != nil {
 		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.Error(500, "GetLabelsInRepoByIDsError", err)
