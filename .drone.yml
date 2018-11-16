@@ -262,6 +262,7 @@ pipeline:
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
     bucket: releases
+    acl: public-read
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
@@ -275,6 +276,7 @@ pipeline:
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
     bucket: releases
+    acl: public-read
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
@@ -289,6 +291,7 @@ pipeline:
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
     bucket: releases
+    acl: public-read
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
