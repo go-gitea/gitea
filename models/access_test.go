@@ -29,19 +29,19 @@ func TestAccessLevel(t *testing.T) {
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.True(t, repo2.IsPrivate)
 
-	level, err := AccessLevel(user1.ID, repo1)
+	level, err := AccessLevel(user1, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeOwner, level)
 
-	level, err = AccessLevel(user1.ID, repo2)
+	level, err = AccessLevel(user1, repo2)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeWrite, level)
 
-	level, err = AccessLevel(user2.ID, repo1)
+	level, err = AccessLevel(user2, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeRead, level)
 
-	level, err = AccessLevel(user2.ID, repo2)
+	level, err = AccessLevel(user2, repo2)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeNone, level)
 }
