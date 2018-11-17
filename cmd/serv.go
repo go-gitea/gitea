@@ -193,7 +193,7 @@ func runServ(c *cli.Context) error {
 		keyID int64
 		user  *models.User
 	)
-	if requestedMode == models.AccessModeWrite || repo.IsPrivate {
+	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
 		keys := strings.Split(c.Args()[0], "-")
 		if len(keys) != 2 {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
