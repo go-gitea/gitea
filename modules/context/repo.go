@@ -204,7 +204,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 	var err error
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
-		ctx.ServerError("AccessLevel", err)
+		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
 

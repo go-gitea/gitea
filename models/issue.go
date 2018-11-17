@@ -385,7 +385,7 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 		return
 	}
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.loadPullRequest(x); err != nil {
 			log.Error(4, "loadPullRequest: %v", err)
@@ -533,7 +533,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return fmt.Errorf("loadPoster: %v", err)
 	}
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {
@@ -727,7 +727,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 	}
 	sess.Close()
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		issue.PullRequest.Issue = issue
@@ -789,7 +789,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return err
 	}
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -855,7 +855,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -1075,7 +1075,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		log.Error(4, "MailParticipants: %v", err)
 	}
 
-	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,

@@ -39,7 +39,7 @@ func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
 }
 
 //AccessLevel chainload to models.AccessLevel
-func AccessLevel(ctx *macaron.Context) {
+/*func AccessLevel(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")
 	userID := ctx.ParamsInt64(":userid")
 	repo, err := models.GetRepositoryByID(repoID)
@@ -57,7 +57,7 @@ func AccessLevel(ctx *macaron.Context) {
 		return
 	}
 	ctx.JSON(200, al)
-}
+}*/
 
 //CheckUnitUser chainload to models.CheckUnitUser
 func CheckUnitUser(ctx *macaron.Context) {
@@ -98,7 +98,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
-		m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
+		//m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
 		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)

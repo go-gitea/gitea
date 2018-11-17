@@ -200,7 +200,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		if err := rel.LoadAttributes(); err != nil {
 			log.Error(2, "LoadAttributes: %v", err)
 		} else {
-			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
+			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 				Action:     api.HookReleasePublished,
 				Release:    rel.APIFormat(),
@@ -392,7 +392,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
-	mode, _ := accessLevel(x, doer.ID, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
@@ -454,7 +454,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := accessLevel(x, u.ID, rel.Repo)
+	mode, _ := AccessLevel(u, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),

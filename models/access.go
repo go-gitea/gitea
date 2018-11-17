@@ -82,8 +82,16 @@ func accessLevel(e Engine, userID int64, repo *Repository) (AccessMode, error) {
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
-func AccessLevel(userID int64, repo *Repository) (AccessMode, error) {
-	return accessLevel(x, userID, repo)
+func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
+	return accessLevelUnit(user, repo, UnitTypeCode)
+}
+
+func accessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+	perm, err := GetUserRepoPermission(repo, user)
+	if err != nil {
+		return AccessModeNone, err
+	}
+	return perm.UnitAccessMode(UnitTypeCode), nil
 }
 
 func hasAccess(e Engine, userID int64, repo *Repository, testMode AccessMode) (bool, error) {
