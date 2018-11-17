@@ -20,28 +20,28 @@ var accessModes = []AccessMode{
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user1 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user5 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	// A public repository owned by User 2
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
-	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	assert.True(t, repo2.IsPrivate)
+	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	assert.True(t, repo3.IsPrivate)
 
-	level, err := AccessLevel(user1, repo1)
+	level, err := AccessLevel(user2, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeOwner, level)
 
-	level, err = AccessLevel(user1, repo2)
+	level, err = AccessLevel(user2, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeWrite, level)
+	assert.Equal(t, AccessModeOwner, level)
 
-	level, err = AccessLevel(user2, repo1)
+	level, err = AccessLevel(user5, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeRead, level)
 
-	level, err = AccessLevel(user2, repo2)
+	level, err = AccessLevel(user5, repo3)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeNone, level)
 }
