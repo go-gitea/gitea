@@ -244,9 +244,13 @@ func canBeAssigned(e Engine, user *User, repo *Repository) (bool, error) {
 }
 
 func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
-	user, err := getUserByID(e, userID)
-	if err != nil {
-		return false, err
+	var user *User
+	var err error
+	if userID > 0 {
+		user, err = getUserByID(e, userID)
+		if err != nil {
+			return false, err
+		}
 	}
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
