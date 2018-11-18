@@ -127,7 +127,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeWrite)
+		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return

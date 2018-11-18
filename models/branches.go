@@ -93,10 +93,14 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 	if protectBranch.RequiredApprovals == 0 {
 		return true
 	}
+	return protectBranch.GetGrantedApprovalsCount(pr) >= protectBranch.RequiredApprovals
+}
+
+func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	reviews, err := GetReviewsByPullRequestID(pr.ID)
 	if err != nil {
 		log.Error(1, "GetReviewsByPullRequestID:", err)
-		return false
+		return 0
 	}
 	approvals := int64(0)
 	userIDs := make([]int64, 0)
@@ -113,9 +117,9 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 	approvalTeamCount, err := UsersInTeamsCount(userIDs, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		log.Error(1, "UsersInTeamsCount:", err)
-		return false
+		return 0
 	}
-	return (approvals + approvalTeamCount) >= protectBranch.RequiredApprovals
+	return approvalTeamCount + approvals
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
@@ -186,7 +190,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 	if err != nil {
 		return err
 	}
-	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
+	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
 	// if the repo is in an organization
 	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
@@ -319,14 +323,14 @@ func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 		return currentWhitelist, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeWrite)
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if teams[i].HasWriteAccess() && com.IsSliceContainsInt64(newWhitelist, teams[i].ID) {
+		if com.IsSliceContainsInt64(newWhitelist, teams[i].ID) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}
