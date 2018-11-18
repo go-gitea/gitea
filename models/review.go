@@ -168,6 +168,7 @@ func getReviewsByPullRequestID(e Engine, prID int64) (reviews []*Review, err err
 	return
 }
 
+// GetReviewsByPullRequestID returns all reviews submitted for a specific pull request
 func GetReviewsByPullRequestID(prID int64) ([]*Review, error) {
 	return getReviewsByPullRequestID(x, prID)
 }

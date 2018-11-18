@@ -89,6 +89,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 	return in
 }
 
+// HasEnoughApprovals returns true if pr has enough granted approvals.
 func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 	if protectBranch.RequiredApprovals == 0 {
 		return true
@@ -96,6 +97,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 	return protectBranch.GetGrantedApprovalsCount(pr) >= protectBranch.RequiredApprovals
 }
 
+// GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	reviews, err := GetReviewsByPullRequestID(pr.ID)
 	if err != nil {
@@ -154,6 +156,7 @@ func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
 	return rel, nil
 }
 
+// WhitelistOptions represent all sorts of whitelists used for protected branches
 type WhitelistOptions struct {
 	UserIDs []int64
 	TeamIDs []int64
