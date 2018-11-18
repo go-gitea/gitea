@@ -950,7 +950,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	// Check for and validate assignees
 	if len(opts.AssigneeIDs) > 0 {
 		for _, assigneeID := range opts.AssigneeIDs {
-			valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
+			user, err := getUserByID(e, assigneeID)
+			if err != nil {
+				return fmt.Errorf("getUserByID [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
+			}
+			valid, err := canBeAssigned(e, user, opts.Repo)
 			if err != nil {
 				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
 			}

@@ -58,23 +58,18 @@ func TestHasAccess(t *testing.T) {
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.True(t, repo2.IsPrivate)
 
-	for _, accessMode := range accessModes {
-		has, err := HasAccess(user1.ID, repo1, accessMode)
-		assert.NoError(t, err)
-		assert.True(t, has)
+	has, err := HasAccess(user1.ID, repo1)
+	assert.NoError(t, err)
+	assert.True(t, has)
 
-		has, err = HasAccess(user1.ID, repo2, accessMode)
-		assert.NoError(t, err)
-		assert.Equal(t, accessMode <= AccessModeWrite, has)
+	has, err = HasAccess(user1.ID, repo2)
+	assert.NoError(t, err)
 
-		has, err = HasAccess(user2.ID, repo1, accessMode)
-		assert.NoError(t, err)
-		assert.Equal(t, accessMode <= AccessModeRead, has)
+	has, err = HasAccess(user2.ID, repo1)
+	assert.NoError(t, err)
 
-		has, err = HasAccess(user2.ID, repo2, accessMode)
-		assert.NoError(t, err)
-		assert.Equal(t, accessMode <= AccessModeNone, has)
-	}
+	has, err = HasAccess(user2.ID, repo2)
+	assert.NoError(t, err)
 }
 
 func TestUser_GetRepositoryAccesses(t *testing.T) {

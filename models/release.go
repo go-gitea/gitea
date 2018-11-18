@@ -419,13 +419,6 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
 
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
-	if err != nil {
-		return fmt.Errorf("HasAccess: %v", err)
-	} else if !has {
-		return fmt.Errorf("DeleteReleaseByID: permission denied")
-	}
-
 	if delTag {
 		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),

@@ -191,5 +191,66 @@ func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return mode >= AccessModeAdmin, nil
+	if mode >= AccessModeAdmin {
+		return true, nil
+	}
+
+	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, team := range teams {
+		if team.Authorize >= AccessModeAdmin {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
+// user does not have access.
+func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
+	return accessLevelUnit(x, user, repo, UnitTypeCode)
+}
+
+func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+	perm, err := getUserRepoPermission(e, repo, user)
+	if err != nil {
+		return AccessModeNone, err
+	}
+	return perm.UnitAccessMode(UnitTypeCode), nil
+}
+
+func hasAccessUnit(e Engine, user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
+	mode, err := accessLevelUnit(e, user, repo, unitType)
+	return testMode <= mode, err
+}
+
+// HasAccessUnit returns ture if user has testMode to the unit of the repository
+func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
+	return hasAccessUnit(x, user, repo, unitType, testMode)
+}
+
+// canBeAssigned return true if user could be assigned to a repo
+// FIXME: user could send PullRequest also could be assigned???
+func canBeAssigned(e Engine, user *User, repo *Repository) (bool, error) {
+	return hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+}
+
+func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
+	user, err := getUserByID(e, userID)
+	if err != nil {
+		return false, err
+	}
+	perm, err := getUserRepoPermission(e, repo, user)
+	if err != nil {
+		return false, err
+	}
+	return perm.HasAccess(), nil
+}
+
+// HasAccess returns true if user has access to repo
+func HasAccess(userID int64, repo *Repository) (bool, error) {
+	return hasAccess(x, userID, repo)
 }
