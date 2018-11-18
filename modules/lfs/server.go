@@ -502,7 +502,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 	if ctx.IsSigned {
-		return perm.UnitAccessMode(models.UnitTypeCode) >= accessMode
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
@@ -515,7 +515,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		if err != nil {
 			return false
 		}
-		return perm.UnitAccessMode(models.UnitTypeCode) >= accessMode
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 	if repository.ID == repo.ID {
 		if requireWrite && opStr != "upload" {

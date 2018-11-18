@@ -188,7 +188,7 @@ func HTTP(ctx *context.Context) {
 			return
 		}
 
-		if perm.UnitAccessMode(unitType) < accessMode {
+		if !perm.CanAccess(accessMode, unitType) {
 			ctx.HandleText(http.StatusForbidden, "User permission denied")
 			return
 		}

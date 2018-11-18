@@ -73,30 +73,6 @@ func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType)
 	return &a, nil
 }
 
-// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
-// user does not have access.
-/*func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/accesslevel", repoID, userID)
-	log.GitLogger.Trace("AccessLevel: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get user access level: %s", decodeJSONError(resp).Err)
-	}
-
-	var a models.AccessMode
-	if err := json.NewDecoder(resp.Body).Decode(&a); err != nil {
-		return nil, err
-	}
-
-	return &a, nil
-}*/
-
 // GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repo/%s/%s", ownerName, repoName)

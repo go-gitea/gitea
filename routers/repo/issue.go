@@ -381,10 +381,6 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		return nil, nil, 0
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		return nil, nil, 0
-	}
-
 	var labelIDs []int64
 	hasSelected := false
 	// Check labels.
