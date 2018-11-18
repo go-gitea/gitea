@@ -42,12 +42,12 @@ func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 	return p.UnitsMode[unitType]
 }
 
-// CanAccess returns true if user has read access to the unit of the repository
+// CanAccess returns true if user has mode access to the unit of the repository
 func (p *Permission) CanAccess(mode AccessMode, unitType UnitType) bool {
 	return p.UnitAccessMode(unitType) >= mode
 }
 
-// CanAccessAny returns true if user has read access to any of the units of the repository
+// CanAccessAny returns true if user has mode access to any of the units of the repository
 func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...UnitType) bool {
 	for _, u := range unitTypes {
 		if p.CanAccess(mode, u) {
@@ -62,6 +62,20 @@ func (p *Permission) CanRead(unitType UnitType) bool {
 	return p.CanAccess(AccessModeRead, unitType)
 }
 
+// CanReadAny returns true if user has read access to any of the units of the repository
+func (p *Permission) CanReadAny(unitTypes ...UnitType) bool {
+	return p.CanAccessAny(AccessModeRead, unitTypes...)
+}
+
+// CanReadIssuesOrPulls returns true if isPull is true and user could read pull requests and
+// returns true if isPull is false and user could read to issues
+func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
+	if isPull {
+		return p.CanRead(UnitTypePullRequests)
+	}
+	return p.CanRead(UnitTypeIssues)
+}
+
 // CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType UnitType) bool {
 	return p.CanAccess(AccessModeWrite, unitType)
@@ -74,15 +88,6 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 		return p.CanWrite(UnitTypePullRequests)
 	}
 	return p.CanWrite(UnitTypeIssues)
-}
-
-// CanReadIssuesOrPulls returns true if isPull is true and user could read pull requests and
-// returns true if isPull is false and user could read to issues
-func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
-	if isPull {
-		return p.CanRead(UnitTypePullRequests)
-	}
-	return p.CanRead(UnitTypeIssues)
 }
 
 // GetUserRepoPermission returns the user permissions to the repository
