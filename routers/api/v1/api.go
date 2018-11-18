@@ -574,6 +574,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				})
 				m.Group("/git", func() {
+					m.Get("/refs", repo.GetGitRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
 				})
 			}, repoAssignment())
