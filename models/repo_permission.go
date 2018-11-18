@@ -57,7 +57,7 @@ func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...UnitType) bool {
 	return false
 }
 
-// CanWrite returns true if user could write to this unit
+// CanRead returns true if user could read to this unit
 func (p *Permission) CanRead(unitType UnitType) bool {
 	return p.CanAccess(AccessModeRead, unitType)
 }
