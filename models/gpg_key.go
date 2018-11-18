@@ -239,6 +239,16 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	}, nil
 }
 
+// deleteGPGKeys does the actual key deletion but does not update authorized_keys file.
+func deleteGPGKeys(e *xorm.Session, keyIDs ...int64) error {
+	if len(keyIDs) == 0 {
+		return nil
+	}
+
+	_, err := e.In("id", keyIDs).Delete(new(GPGKey))
+	return err
+}
+
 // deleteGPGKey does the actual key deletion
 func deleteGPGKey(e *xorm.Session, keyID string) (int64, error) {
 	if keyID == "" {

@@ -1052,6 +1052,21 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 	// ***** END: PublicKey *****
 
+	// ***** START: GPGPublicKey *****
+	GPGkeys := make([]*GPGKey, 0, 10)
+	if err = e.Find(&GPGkeys, &GPGKey{OwnerID: u.ID}); err != nil {
+		return fmt.Errorf("get all gpg keys: %v", err)
+	}
+
+	GPGkeyIDs := make([]int64, len(GPGkeys))
+	for i := range GPGkeys {
+		GPGkeyIDs[i] = GPGkeys[i].ID
+	}
+	if err = deleteGPGKeys(e, GPGkeyIDs...); err != nil {
+		return fmt.Errorf("deleteGPGKeys: %v", err)
+	}
+	// ***** END: GPGPublicKey *****
+
 	// Clear assignee.
 	if err = clearAssigneeByUserID(e, u.ID); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
