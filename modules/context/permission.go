@@ -44,7 +44,7 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 // RequireRepoReader returns a macaron middleware for requiring repository read to the specify unitType
 func RequireRepoReader(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		if !ctx.Repo.CanAccess(unitType) {
+		if !ctx.Repo.CanRead(unitType) {
 			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
@@ -55,7 +55,7 @@ func RequireRepoReader(unitType models.UnitType) macaron.Handler {
 func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
-			if ctx.Repo.CanAccess(unitType) {
+			if ctx.Repo.CanRead(unitType) {
 				return
 			}
 		}

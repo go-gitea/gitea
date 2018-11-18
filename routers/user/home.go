@@ -291,7 +291,7 @@ func Issues(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
 			return
 		}
-		if !perm.CanAccess(models.UnitTypeIssues) {
+		if !perm.CanRead(models.UnitTypeIssues) {
 			ctx.Status(404)
 			return
 		}

@@ -143,7 +143,7 @@ func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
 	if err != nil {
 		return err
 	}
-	if !perm.CanWrite(UnitTypeCode) {
+	if !perm.CanAccess(mode, UnitTypeCode) {
 		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
 	}
 	return nil

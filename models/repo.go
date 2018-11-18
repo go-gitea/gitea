@@ -325,6 +325,9 @@ func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitT
 }
 
 func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
+	if isAdmin {
+		return true
+	}
 	user, err := getUserByID(e, userID)
 	if err != nil {
 		return false
@@ -334,7 +337,7 @@ func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unit
 		return false
 	}
 
-	return perm.CanAccess(unitType)
+	return perm.CanRead(unitType)
 }
 
 // UnitEnabled if this repository has the given unit enabled
@@ -345,21 +348,6 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
 			return true
-		}
-	}
-	return false
-}
-
-// AnyUnitEnabled if this repository has the any of the given units enabled
-func (repo *Repository) AnyUnitEnabled(tps ...UnitType) bool {
-	if err := repo.getUnits(x); err != nil {
-		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
-	}
-	for _, unit := range repo.Units {
-		for _, tp := range tps {
-			if unit.Type == tp {
-				return true
-			}
 		}
 	}
 	return false

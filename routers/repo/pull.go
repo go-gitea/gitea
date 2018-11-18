@@ -63,7 +63,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if forkRepo.IsBare || !perm.CanAccess(models.UnitTypeCode) {
+	if forkRepo.IsBare || !perm.CanRead(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}

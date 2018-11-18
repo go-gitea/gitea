@@ -31,8 +31,8 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !ctx.Repo.CanAccess(models.UnitTypeWiki) &&
-		!ctx.Repo.CanAccess(models.UnitTypeExternalWiki) {
+	if !ctx.Repo.CanRead(models.UnitTypeWiki) &&
+		!ctx.Repo.CanRead(models.UnitTypeExternalWiki) {
 		ctx.NotFound("MustEnableWiki", nil)
 		return
 	}

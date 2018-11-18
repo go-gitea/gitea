@@ -43,14 +43,14 @@ func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 }
 
 // CanAccess returns true if user has read access to the unit of the repository
-func (p *Permission) CanAccess(unitType UnitType) bool {
-	return p.UnitAccessMode(unitType) >= AccessModeRead
+func (p *Permission) CanAccess(mode AccessMode, unitType UnitType) bool {
+	return p.UnitAccessMode(unitType) >= mode
 }
 
 // CanAccessAny returns true if user has read access to any of the units of the repository
-func (p *Permission) CanAccessAny(unitTypes ...UnitType) bool {
+func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...UnitType) bool {
 	for _, u := range unitTypes {
-		if p.CanAccess(u) {
+		if p.CanAccess(mode, u) {
 			return true
 		}
 	}
@@ -58,8 +58,13 @@ func (p *Permission) CanAccessAny(unitTypes ...UnitType) bool {
 }
 
 // CanWrite returns true if user could write to this unit
+func (p *Permission) CanRead(unitType UnitType) bool {
+	return p.CanAccess(AccessModeRead, unitType)
+}
+
+// CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType UnitType) bool {
-	return p.UnitAccessMode(unitType) >= AccessModeWrite
+	return p.CanAccess(AccessModeWrite, unitType)
 }
 
 // CanWriteIssuesOrPulls returns true if isPull is true and user could write to pull requests and
@@ -75,9 +80,9 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 // returns true if isPull is false and user could read to issues
 func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 	if isPull {
-		return p.CanAccess(UnitTypePullRequests)
+		return p.CanRead(UnitTypePullRequests)
 	}
-	return p.CanAccess(UnitTypeIssues)
+	return p.CanRead(UnitTypeIssues)
 }
 
 // GetUserRepoPermission returns the user permissions to the repository

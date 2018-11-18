@@ -221,7 +221,7 @@ func reqAdmin() macaron.Handler {
 
 func reqRepoReader(unitType models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.CanAccess(unitType) {
+		if !ctx.Repo.CanRead(unitType) {
 			ctx.Error(403)
 			return
 		}
@@ -343,22 +343,22 @@ func orgAssignment(args ...bool) macaron.Handler {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.CanAccess(models.UnitTypeIssues) {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Status(404)
 		return
 	}
 }
 
 func mustAllowPulls(ctx *context.Context) {
-	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanAccess(models.UnitTypePullRequests)) {
+	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
 		ctx.Status(404)
 		return
 	}
 }
 
 func mustEnableIssuesOrPulls(ctx *context.Context) {
-	if !ctx.Repo.CanAccess(models.UnitTypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanAccess(models.UnitTypePullRequests)) {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
+		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
 		ctx.Status(404)
 		return
 	}

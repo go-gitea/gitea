@@ -64,8 +64,8 @@ var (
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.CanAccess(models.UnitTypeIssues) &&
-		!ctx.Repo.CanAccess(models.UnitTypeExternalTracker) {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
+		!ctx.Repo.CanRead(models.UnitTypeExternalTracker) {
 		ctx.NotFound("MustEnableIssues", nil)
 		return
 	}
@@ -79,7 +79,7 @@ func MustEnableIssues(ctx *context.Context) {
 
 // MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanAccess(models.UnitTypePullRequests) {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(models.UnitTypePullRequests) {
 		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
@@ -859,8 +859,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.CanAccess(models.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanAccess(models.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -885,8 +885,8 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.CanAccess(models.UnitTypeIssues)
-	prUnitEnabled := ctx.Repo.CanAccess(models.UnitTypePullRequests)
+	issueUnitEnabled := ctx.Repo.CanRead(models.UnitTypeIssues)
+	prUnitEnabled := ctx.Repo.CanRead(models.UnitTypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)

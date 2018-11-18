@@ -956,7 +956,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			}
 			valid, err := canBeAssigned(e, user, opts.Repo)
 			if err != nil {
-				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
+				return fmt.Errorf("canBeAssigned [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
 			}
 			if !valid {
 				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
