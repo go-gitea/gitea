@@ -171,6 +171,87 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function initImagePaste(target) {
+    target.each(function(i, field) {
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,6 +259,7 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
@@ -1530,7 +1612,7 @@ function initU2FAuth() {
     }
     u2fApi.ensureSupport()
         .then(function () {
-            $.getJSON('/user/u2f/challenge').success(function(req) {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1543,16 +1625,16 @@ function initU2FAuth() {
             });
         }).catch(function () {
             // Fallback in case browser do not support U2F
-            window.location.href = "/user/two_factor"
+            window.location.href = suburl + "/user/two_factor"
         })
 }
 function u2fSigned(resp) {
     $.ajax({
-        url:'/user/u2f/sign',
-        type:"POST",
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
     }).fail(function (xhr, textStatus) {
@@ -1565,11 +1647,11 @@ function u2fRegistered(resp) {
         return;
     }
     $.ajax({
-        url:'/user/settings/security/u2f/register',
-        type:"POST",
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
         success: function(){
             window.location.reload();
         },
@@ -1623,7 +1705,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-    $.post("/user/settings/security/u2f/request_register", {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
         "_csrf": csrf,
         "name": $('#nickname').val()
     }).success(function(req) {
@@ -2595,6 +2677,10 @@ function updateDeadline(deadlineString) {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
         contentType: 'application/json',
         type: 'POST',
         success: function () {
@@ -2626,7 +2712,7 @@ function initIssueList() {
     $('.new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
                     // Parse the response from the api to work with our dropdown
