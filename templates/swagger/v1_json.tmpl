@@ -1594,7 +1594,10 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RefList"
+            "$ref": "#/responses/ReferenceList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6976,6 +6979,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "GitObject": {
+      "type": "object",
+      "title": "GitObject represents a Git object.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Issue": {
       "description": "Issue represents an issue in a repository",
       "type": "object",
@@ -7561,6 +7583,24 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Merged"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "Reference": {
+      "type": "object",
+      "title": "Reference represents a Git reference.",
+      "properties": {
+        "object": {
+          "$ref": "#/definitions/GitObject"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -8213,6 +8253,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/PullRequest"
+        }
+      }
+    },
+    "Reference": {
+      "description": "Reference",
+      "schema": {
+        "$ref": "#/definitions/Reference"
+      }
+    },
+    "ReferenceList": {
+      "description": "ReferenceList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Reference"
         }
       }
     },
