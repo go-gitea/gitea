@@ -179,8 +179,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	if isCadFile {
 		// TODO
-		// - env vars for paths to python and gitea root
-		// - Build a list from the dat file -> pass it to the template -> for loop in template
 		// - private repo -> how?
 		// - cache -> how?
 
@@ -188,9 +186,19 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		fmt.Println("Calling Python")
 
 		// -- conversion script parameters
+		// python_path := "/opt/miniconda3/bin/python"
 		python_path := "python"
 		// gitea_path := "/home/guillaume/go/src/code.gitea.io/gitea"
-		gitea_path := os.Getenv("GOPATH") + "/src/code.gitea.io/gitea"
+		fmt.Println("GOPATH defined as : " + os.Getenv("GOPATH"))
+
+		gitea_path := ""
+
+		if os.Getenv("GOPATH") == "" {
+			gitea_path = "/home/guillaume/go/src/code.gitea.io/gitea"
+		} else {
+			gitea_path = os.Getenv("GOPATH") + "/src/code.gitea.io/gitea"
+		}
+		fmt.Println("gitea_path defined as : " + gitea_path)
 		conversion_script_path := gitea_path + "/routers/repo/view_cad_converter.py"
 		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
 		converted_files_folder := gitea_path + "/public/converted_files"
@@ -209,18 +217,29 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		file, err := os.Open(descriptor_filename)
 		if err != nil {
 			ctx.ServerError("DatFile", err)
-    			return
-  		}
+			return
+		}
 		defer file.Close()
 
 		var lines []string
-  		scanner := bufio.NewScanner(file)
+		line_nb := 0
+		max_dim := 1000.0
+		scanner := bufio.NewScanner(file)
 
-  		for scanner.Scan() {
-    			lines = append(lines, scanner.Text())
-  		}
+		for scanner.Scan() {
+			if line_nb == 0 {
+				max_dim, err = strconv.ParseFloat(scanner.Text(), 32)
+				if err != nil {
+					max_dim = 1000.0
+				}
+			} else {
+				lines = append(lines, scanner.Text())
+			}
+			line_nb = line_nb + 1
+		}
 
-  		ctx.Data["ConvertedFiles"] = lines
+		ctx.Data["MaxDim"] = 2.0 * max_dim
+		ctx.Data["ConvertedFiles"] = lines
 
 		// -- DEBUG
 		fmt.Println("descriptor_filename : ")

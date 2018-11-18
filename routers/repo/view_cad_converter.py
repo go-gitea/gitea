@@ -30,10 +30,13 @@ from requests import get
 from aocxchange.step import StepImporter
 from aocxchange.iges import IgesImporter
 from aocxchange.brep import BrepImporter
-from aocxchange.stl import StlExporter
+from aocxchange.stl import StlExporter, StlImporter
+
+from aocutils.analyze.bounds import BoundingBox
 
 from osvcad.nodes import Part
 
+# Works in any case : local dev and server
 GITEA_URL = "http://localhost:3000"
 # GITEA_URL = "http://127.0.0.1:3000"
 
@@ -62,23 +65,60 @@ def _download_file(url, filename):
 
 
 def _conversion_filename(folder, name, i=0):
+    r"""Build the name of the converted file using the name of the file to be converted
+
+    Parameters
+    ----------
+    folder : str
+        Path to the folder where the converted file is to be written
+    name : str
+        Base name of the file being converted
+    i : int
+        Index, as a file may lead to the creation of many converted files if it contains multiple shapes
+
+    Returns
+    -------
+    str : Path to the converted file
+
+    """
     # return "%s/%s_%i.stl" % (converted_files_folder, name, i)
     return join(folder, "%s_%i.stl" % (name, i))
 
 
 def _convert_shape(shape, filename):
+    r"""Write a shape to the converted file
+
+    Parameters
+    ----------
+    shape : OCC Shape
+        The input shape
+    filename : str
+        Path to the destination file
+
+    """
     e = StlExporter(filename=filename, ascii_mode=False)
     e.set_shape(shape)
     e.write_file()
 
 
 def _descriptor_filename(converted_files_folder, cad_file_basename):
+    r"""Build the name of the file that contains the results of the conversion process
+
+    Parameters
+    ----------
+    converted_files_folder : str
+        Path to the folder where the converted files end up
+    cad_file_basename : str
+        Base name of the CAD file that is being converted
+
+    """
     # return "%s/%s.%s" % (converted_files_folder, cad_file_basename, "dat")
     return join(converted_files_folder, "%s.%s" % (cad_file_basename, "dat"))
 
 
-def _write_descriptor(names, descriptor_filename_):
+def _write_descriptor(max_dim, names, descriptor_filename_):
     with open(descriptor_filename_, 'w') as f:
+        f.write("%f\n" % max_dim)
         f.write("\n".join(names))
 
 
@@ -95,41 +135,58 @@ def convert_freecad_file(freecad_filename, target_folder):
 
     assert len(breps_basenames) == len(breps_filenames) == len(converted_filenames) == len(converted_basenames)
 
+    extremas = []
+
     for i, (brep_basename, brep_filename, converted_basename, converted_filename) in enumerate(
             zip(breps_basenames, breps_filenames, converted_basenames, converted_filenames)):
 
         fcstd_as_zip.extract(brep_basename, target_folder)
 
         try:
-            _convert_shape(BrepImporter(brep_filename).shape, converted_filename)
+            importer = BrepImporter(brep_filename)
+            extremas.append(BoundingBox(importer.shape).as_tuple)
+            _convert_shape(importer.shape, converted_filename)
         except RuntimeError:
             logger.error("RuntimeError for %s" % brep_filename)
 
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(freecad_filename)))
+    x_min = min([extrema[0] for extrema in extremas])
+    y_min = min([extrema[1] for extrema in extremas])
+    z_min = min([extrema[2] for extrema in extremas])
+    x_max = max([extrema[3] for extrema in extremas])
+    y_max = max([extrema[4] for extrema in extremas])
+    z_max = max([extrema[5] for extrema in extremas])
+
+    max_dim = max([x_max - x_min, y_max - y_min, z_max - z_min])
+
+    _write_descriptor(max_dim, converted_basenames, _descriptor_filename(target_folder, basename(freecad_filename)))
     remove(freecad_filename)
 
 
 def convert_step_file(step_filename, target_folder):
     converted_basenames = []
-    shapes = StepImporter(step_filename).shapes
+    importer = StepImporter(step_filename)
+    shapes = importer.shapes
+    max_dim = BoundingBox(importer.compound).max_dimension
     for i, shape in enumerate(shapes):
         converted_filename = _conversion_filename(target_folder, basename(step_filename), i)
         _convert_shape(shape, converted_filename)
         converted_basenames.append(basename(converted_filename))
 
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(step_filename)))
+    _write_descriptor(max_dim, converted_basenames, _descriptor_filename(target_folder, basename(step_filename)))
     remove(step_filename)
 
 
 def convert_iges_file(iges_filename, target_folder):
     converted_basenames = []
-    shapes = IgesImporter(iges_filename).shapes
+    importer = IgesImporter(iges_filename)
+    shapes = importer.shapes
+    max_dim = BoundingBox(importer.compound).max_dimension
     for i, shape in enumerate(shapes):
         converted_filename = _conversion_filename(target_folder, basename(iges_filename), i)
         _convert_shape(shape, converted_filename)
         converted_basenames.append(basename(converted_filename))
 
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(iges_filename)))
+    _write_descriptor(max_dim, converted_basenames, _descriptor_filename(target_folder, basename(iges_filename)))
     remove(iges_filename)
 
 
@@ -139,13 +196,14 @@ def convert_brep_file(brep_filename, target_folder):
     converted_basenames = [basename(converted_filename)]
     _convert_shape(shape, converted_filename)
 
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(brep_filename)))
+    _write_descriptor(BoundingBox(shape).max_dimension, converted_basenames, _descriptor_filename(target_folder, basename(brep_filename)))
     remove(brep_filename)
 
 
 def convert_stl_file(stl_filename, target_folder):
     converted_basenames = [basename(stl_filename)]
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(stl_filename)))
+    max_dim = BoundingBox(StlImporter(stl_filename).shape).max_dimension
+    _write_descriptor(max_dim, converted_basenames, _descriptor_filename(target_folder, basename(stl_filename)))
 
 
 def convert_py_file(py_filename, target_folder):
@@ -159,7 +217,7 @@ def convert_py_file(py_filename, target_folder):
         converted_basenames = [basename(converted_filename)]
         _convert_shape(shape, converted_filename)
 
-        _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(py_filename)))
+        _write_descriptor(BoundingBox(shape).max_dimension, converted_basenames, _descriptor_filename(target_folder, basename(py_filename)))
         remove(py_filename)
     except ValueError:  # probably no part attribute in module
         msg = "No part attribute in module"
@@ -177,6 +235,7 @@ def convert_py_file(py_filename, target_folder):
                 converted_filename = _conversion_filename(target_folder, basename(py_filename), i)
                 converted_basenames.append(basename(converted_filename))
                 _convert_shape(shape, converted_filename)
+            # TODO : max_dim
             _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(py_filename)))
             remove(py_filename)
         except AttributeError:
@@ -192,7 +251,7 @@ def convert_stepzip_file(stepzip_filename, target_folder):
     converted_basenames = [basename(converted_filename)]
     _convert_shape(shape, converted_filename)
 
-    _write_descriptor(converted_basenames, _descriptor_filename(target_folder, basename(stepzip_filename)))
+    _write_descriptor(BoundingBox(shape).max_dimension, converted_basenames, _descriptor_filename(target_folder, basename(stepzip_filename)))
     remove(stepzip_filename)
 
 

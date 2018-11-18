@@ -20,7 +20,7 @@
 
 		// initCamera is defined in utils.js
 		//   The unique parameter is the camera position
-		var camera = initCamera(new THREE.Vector3(1000, 0, 0));
+		var camera = initCamera(new THREE.Vector3({{.MaxDim}}, 0, 0));
 
 		// BaseLoaderScene is defined in baseLoaderScene.js
 		var loaderScene = new BaseLoaderScene(camera);
@@ -149,6 +149,11 @@
 						<tr>
 							<td colspan="2">
 								This is a CAD file. Is its source displayable? {{.IsCadFileSourceDisplayable}}
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								MaxDim : {{.MaxDim}}
 							</td>
 						</tr>
 						<tr>
