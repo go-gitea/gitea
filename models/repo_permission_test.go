@@ -22,7 +22,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -31,7 +31,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -40,7 +40,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, collaborator)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -49,7 +49,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -58,7 +58,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 }
@@ -75,7 +75,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.False(t, perm.CanAccess(unit.Type))
+		assert.False(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -84,7 +84,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -92,7 +92,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -101,7 +101,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -110,7 +110,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 }
@@ -127,7 +127,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -136,7 +136,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -144,7 +144,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -153,7 +153,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -162,7 +162,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, member)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 	}
 	assert.True(t, perm.CanWrite(UnitTypeIssues))
 	assert.False(t, perm.CanWrite(UnitTypeCode))
@@ -172,7 +172,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 }
@@ -189,7 +189,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.False(t, perm.CanAccess(unit.Type))
+		assert.False(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -198,7 +198,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -206,7 +206,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
 	}
 
@@ -215,7 +215,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
@@ -225,22 +225,22 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, perm.CanWrite(UnitTypeIssues))
 	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.False(t, perm.CanAccess(UnitTypeCode))
+	assert.False(t, perm.CanRead(UnitTypeCode))
 
 	// org member team reviewer
 	reviewer := AssertExistsAndLoadBean(t, &User{ID: 20}).(*User)
 	perm, err = GetUserRepoPermission(repo, reviewer)
 	assert.NoError(t, err)
-	assert.False(t, perm.CanAccess(UnitTypeIssues))
+	assert.False(t, perm.CanRead(UnitTypeIssues))
 	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.True(t, perm.CanAccess(UnitTypeCode))
+	assert.True(t, perm.CanRead(UnitTypeCode))
 
 	// admin
 	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
-		assert.True(t, perm.CanAccess(unit.Type))
+		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 }
