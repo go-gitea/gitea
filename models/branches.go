@@ -99,17 +99,14 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	reviews, err := GetReviewsByPullRequestID(pr.ID)
+	reviews, err := GetUniqueApprovalsByPullRequestID(pr.ID)
 	if err != nil {
-		log.Error(1, "GetReviewsByPullRequestID:", err)
+		log.Error(1, "GetUniqueApprovalsByPullRequestID:", err)
 		return 0
 	}
 	approvals := int64(0)
 	userIDs := make([]int64, 0)
 	for _, review := range reviews {
-		if review.Type != ReviewTypeApprove {
-			continue
-		}
 		if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, review.ReviewerID) {
 			approvals++
 			continue

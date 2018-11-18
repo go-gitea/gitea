@@ -105,3 +105,13 @@ func TestUpdateReview(t *testing.T) {
 	assert.NoError(t, UpdateReview(review))
 	AssertExistsAndLoadBean(t, &Review{ID: 1, Content: "Updated Review"})
 }
+
+func TestGetUniqueApprovalsByPullRequestID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	approvals, err := GetUniqueApprovalsByPullRequestID(2)
+	assert.NoError(t, err)
+	assert.Len(t, approvals, 1)
+	approvals, err = GetUniqueApprovalsByPullRequestID(354295349965036)
+	assert.NoError(t, err)
+	assert.Len(t, approvals, 0)
+}
