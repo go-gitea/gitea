@@ -598,8 +598,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
-
-				}, mustAllowPulls, context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
