@@ -561,6 +561,15 @@ var (
 		TrustedFacets []string
 	}{}
 
+	// Metrics settings
+	Metrics = struct {
+		Enabled bool
+		Token   string
+	}{
+		Enabled: false,
+		Token:   "",
+	}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
@@ -1125,6 +1134,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
+	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
+		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
 
 	sec = Cfg.Section("mirror")
@@ -1204,6 +1215,7 @@ var Service struct {
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
+	EmailDomainWhitelist                    []string
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
@@ -1237,6 +1249,7 @@ func newService() {
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
@@ -1331,10 +1344,9 @@ func newLogService() {
 			}
 
 			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
@@ -1397,10 +1409,9 @@ func NewXORMLogService(disableConsole bool) {
 			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
