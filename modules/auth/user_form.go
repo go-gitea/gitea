@@ -150,6 +150,18 @@ func (f *AuthorizationForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// GrantApplicationForm form for authorizing oauth2 clients
+type GrantApplicationForm struct {
+	ClientID    string `binding:"Required"`
+	RedirectURI string
+	State       string
+}
+
+// Validate valideates the fields
+func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
 type AccessTokenForm struct {
 	GrantType    string `binding:"Required;In(authorization_code,refresh_token)"`

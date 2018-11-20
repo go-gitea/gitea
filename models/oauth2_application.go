@@ -2,9 +2,9 @@ package models
 
 import (
 	gouuid "github.com/satori/go.uuid"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/util"
-	"fmt"
 	"github.com/Unknwon/com"
 
 	"golang.org/x/crypto/bcrypt"
@@ -24,6 +24,10 @@ type OAuth2Application struct {
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+}
+
+func (app *OAuth2Application) TableName() string {
+	return "oauth2_application"
 }
 
 func (app *OAuth2Application) LoadUser() (err error) {
@@ -50,6 +54,38 @@ func (app *OAuth2Application) ValidateClientSecret(secret []byte) bool {
 	return bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), secret) == nil
 }
 
+// GetGrantByUserID returns a OAuth2Grant by its user and application ID
+func (app *OAuth2Application) GetGrantByUserID(userID int64) (*OAuth2Grant, error) {
+	return app.getGrantByUserID(x, userID)
+}
+
+func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *OAuth2Grant, err error) {
+	grant = new(OAuth2Grant)
+	if has, err := e.Where("user_id = ? AND application_id", userID, app.ID).Get(grant); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, nil
+	}
+	return grant, nil
+}
+
+// CreateGrant generates a grant for an user
+func (app *OAuth2Application) CreateGrant(userID int64) (*OAuth2Grant, error) {
+	return app.createGrant(x, userID)
+}
+
+func (app *OAuth2Application) createGrant(e Engine, userID int64) (*OAuth2Grant, error) {
+	grant := &OAuth2Grant{
+		ApplicationID: app.ID,
+		UserID:        userID,
+	}
+	_, err := e.Insert(grant)
+	if err != nil {
+		return nil, err
+	}
+	return grant, nil
+}
+
 func GetOAuth2ApplicationByClientID(clientID string) (app *OAuth2Application, err error) {
 	return getOAuth2ApplicationByClientID(x, clientID)
 }
@@ -58,41 +94,86 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 	app = new(OAuth2Application)
 	has, err := e.Where("client_id = ?", clientID).Get(app)
 	if !has {
-		return app, ErrOauthClientIDInvalid{ClientID:clientID}
+		return app, ErrOauthClientIDInvalid{ClientID: clientID}
 	}
 	return
 }
 
-type AuthorizeErrorCode string
-
-const (
-	ErrorCodeInvalidRequest          AuthorizeErrorCode = "invalid_request"
-	ErrorCodeUnauthorizedClient      AuthorizeErrorCode = "unauthorized_client"
-	ErrorCodeAccessDenied            AuthorizeErrorCode = "access_denied"
-	ErrorCodeUnsupportedResponseType AuthorizeErrorCode = "unsupported_response_type"
-	ErrorCodeInvalidScope            AuthorizeErrorCode = "invalid_scope"
-	ErrorCodeServerError             AuthorizeErrorCode = "server_error"
-	ErrorCodeTemporaryUnavailable    AuthorizeErrorCode = "temporarily_unavailable"
-)
-
-type AuthorizeError struct {
-	ErrorCode        AuthorizeErrorCode `json:"error" form:"error"`
-	ErrorDescription string
-	State            string
+// CreateOAuth2Application inserts a new oauth2 application
+func CreateOAuth2Application(name string, userID int64) (*OAuth2Application, error) {
+	return createOAuth2Application(x, name, userID)
 }
 
-func (err AuthorizeError) Error() string {
-	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
+func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Application, error) {
+	secret := gouuid.NewV4().String()
+	app := &OAuth2Application{
+		UID:          userID,
+		Name:         name,
+		ClientID:     secret,
+		RedirectURIs: []string{"http://localhost:3000"},
+	}
+	if _, err := e.Insert(app); err != nil {
+		return nil, err
+	}
+	return app, nil
 }
 
-type OAuth2Codes struct {
-	ID   int64 `xorm:"pk autoincr"`
-	Code string
-	Lifetime util.TimeStamp
+//////////////////////////////////////////////////////
+
+type OAuth2AuthorizationCode struct {
+	ID          int64        `xorm:"pk autoincr"`
+	Grant       *OAuth2Grant `xorm:"-"`
+	GrantID     int64
+	Code        string `xorm:"INDEX unique"`
+	RedirectURI string
+	Lifetime    util.TimeStamp
 }
 
-type OAuth2ApplicationGrants struct {
-	ID   int64 `xorm:"pk autoincr"`
-	UserID int64
-	ApplicationID int64
+func (code *OAuth2AuthorizationCode) TableName() string {
+	return "oauth2_authorization_code"
+}
+
+func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect *url.URL, err error) {
+	if redirect, err = url.Parse(code.RedirectURI); err != nil {
+		return
+	}
+	q := redirect.Query()
+	if state != "" {
+		q.Set("state", state)
+	}
+	q.Set("code", code.Code)
+	redirect.RawQuery = q.Encode()
+	return
+}
+
+//////////////////////////////////////////////////////
+
+type OAuth2Grant struct {
+	ID            int64          `xorm:"pk autoincr"`
+	UserID        int64          `xorm:"INDEX unique(user_application)"`
+	ApplicationID int64          `xorm:"INDEX unique(user_application)"`
+	CreatedUnix   util.TimeStamp `xorm:"created"`
+	UpdatedUnix   util.TimeStamp `xorm:"updated"`
+}
+
+func (grant *OAuth2Grant) TableName() string {
+	return "oauth2_grant"
+}
+
+func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI string) (*OAuth2AuthorizationCode, error) {
+	return grant.generateNewAuthorizationCode(x, redirectURI)
+}
+
+func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI string) (*OAuth2AuthorizationCode, error) {
+	secret := gouuid.NewV4().String()
+	code := &OAuth2AuthorizationCode{
+		Grant:       grant,
+		GrantID:     grant.ID,
+		RedirectURI: redirectURI,
+		Code:        secret,
+	}
+	if _, err := e.Insert(code); err != nil {
+		return nil, err
+	}
+	return code, nil
 }

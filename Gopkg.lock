@@ -790,11 +790,13 @@
   revision = "2c050d2dae5345c417db301f11fda6fbf5ad0f0a"
 
 [[projects]]
-  digest = "1:e4ea859df4986eb46feebbb84a2d163a4a314e87668177ca13b3b0adecaf50e8"
+  digest = "1:c11bf5ba94a27f73f4863ca397b7026438b50d181d981a173d04b5f01bd70185"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
+    "bcrypt",
+    "blowfish",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
@@ -1055,6 +1057,7 @@
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
     "golang.org/x/crypto/acme/autocert",
+    "golang.org/x/crypto/bcrypt",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/html",

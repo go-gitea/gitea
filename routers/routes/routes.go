@@ -232,7 +232,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignOut)
 
 	m.Group("/user/oauth2", func() {
-		//m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
+		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
+		m.Post("/grant", bindIgnErr(auth.GrantApplicationForm{}), user.GrantApplicationOAuth)
 		m.Post("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
 		m.Post("/access_token", bindIgnErr(auth.AccessTokenForm{}), reqSignIn, user.AccessTokenOAuth)
 	}, reqSignIn)
