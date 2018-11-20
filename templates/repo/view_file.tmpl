@@ -27,7 +27,8 @@
 		camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 		{{range $i, $element := .ConvertedFiles}}
-		eval("var loader_{{$i}} = new THREE.STLLoader();")
+		//eval("var loader_{{$i}} = new THREE.STLLoader();")
+		eval("var loader_{{$i}} = new THREE.BufferGeometryLoader();")
 		eval("loader_{{$i}}.load('{{AppSubUrl}}/converted_files/{{.}}', function (geometry_{{$i}}) {var mat_{{$i}} = new THREE.MeshStandardMaterial({color: colors[{{$i}}%colors_length], metalness: 1, roughness: 0.5,});var mesh_{{$i}} = new THREE.Mesh(geometry_{{$i}}, mat_{{$i}});loaderScene.addMesh(mesh_{{$i}});})")
 
 		{{end}}
