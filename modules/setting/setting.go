@@ -551,9 +551,11 @@ var (
 	API = struct {
 		EnableSwagger    bool
 		MaxResponseItems int
+		AccessTokenExpirationTime int64
 	}{
 		EnableSwagger:    true,
 		MaxResponseItems: 50,
+		AccessTokenExpirationTime: 3600,
 	}
 
 	U2F = struct {

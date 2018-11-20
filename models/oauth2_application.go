@@ -40,13 +40,16 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	return com.IsSliceContainsStr(app.RedirectURIs, redirectURI)
 }
 
-func (app *OAuth2Application) GenerateClientSecret() ([]byte, error) {
-	secret := gouuid.NewV4().Bytes()
-	hashedSecret, err := bcrypt.GenerateFromPassword(secret, bcrypt.DefaultCost)
+func (app *OAuth2Application) GenerateClientSecret() (string, error) {
+	secret := gouuid.NewV4().String()
+	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	app.ClientSecret = string(hashedSecret)
+	if _, err := x.ID(app.ID).Cols("client_secret").Update(app); err != nil {
+		return "", err
+	}
 	return secret, nil
 }
 

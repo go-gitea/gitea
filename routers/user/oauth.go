@@ -6,6 +6,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"fmt"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/go-macaron/binding"
 	"net/url"
 )
@@ -13,6 +15,8 @@ import (
 const (
 	tplGrantAccess base.TplName = "user/auth/grant"
 )
+
+// TODO move error and responses to SDK or models
 
 type AuthorizeErrorCode string
 
@@ -36,6 +40,42 @@ func (err AuthorizeError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+type AccessTokenErrorCode string
+
+const (
+	AccessTokenErrorCodeInvalidRequest AccessTokenErrorCode  = "invalid_request"
+	AccessTokenErrorCodeInvalidClient = "invalid_client"
+	AccessTokenErrorCodeInvalidGrant = "invalid_grant"
+	AccessTokenErrorCodeUnauthorizedClient = "unauthorized_client"
+	AccessTokenErrorCodeUnsupportedGrantType = "unsupported_grant_type"
+	AccessTokenErrorCodeInvalidScope = "invalid_scope"
+
+)
+
+type AccessTokenError struct {
+	ErrorCode        AccessTokenErrorCode `json:"error" form:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+func (err AccessTokenError) Error() string {
+	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
+}
+
+type TokenType string
+
+const (
+	TokenTypeBearer TokenType = "bearer"
+	TokenTypeMAC = "mac"
+)
+
+type AccessTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType TokenType `json:"token_type"`
+	ExpiresIn int64 `json:"expires_in"`
+	// TODO implement RefreshToken
+	RefreshToken string `json:"refresh_token"`
+}
+
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Context, errs)
@@ -43,11 +83,15 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		if models.IsErrOauthClientIDInvalid(err) {
-			handleAuthorizeError(ctx, AuthorizeError{
-				ErrorCode:        ErrorCodeUnauthorizedClient,
-				ErrorDescription: "Client ID not registered",
-				State:            form.State,
-			}, "")
+			app, _ := models.CreateOAuth2Application("Example OAuth App", ctx.User.ID)
+			secret, _ := app.GenerateClientSecret()
+			ctx.PlainText(200, []byte(fmt.Sprintf("Client ID: %s Client Secret: %s", app.ClientID, secret)))
+			//TODO remove debug code
+			//handleAuthorizeError(ctx, AuthorizeError{
+			//	ErrorCode:        ErrorCodeUnauthorizedClient,
+			//	ErrorDescription: "Client ID not registered",
+			//	State:            form.State,
+			//}, "")
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
@@ -102,6 +146,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
+	// TODO document SESSION <=> FORM
 	ctx.Session.Set("client_id", app.ClientID)
 	ctx.Session.Set("redirect_uri", form.RedirectURI)
 	ctx.Session.Set("state", form.State)
@@ -117,6 +162,7 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
+		return
 	}
 	grant, err := app.CreateGrant(ctx.User.ID)
 	if err != nil {
@@ -139,8 +185,57 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 	ctx.Redirect(redirect.String(), 302)
 }
 
-func AccessTokenOAuth(ctx *context.Context) {
+func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
+	if err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: "cannot load client",
+		})
+		return
+	}
+	// TODO enable validation
+	//if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	//	handleAccessTokenError(ctx, AccessTokenError{
+	//		ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+	//		ErrorDescription: "client is not authorized",
+	//	})
+	//	return
+	//}
+	grant, err := app.GetGrantByUserID(ctx.User.ID)
+	if err != nil || grant == nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
+	expirationDate := util.TimeStampNow().Add(setting.API.AccessTokenExpirationTime)
+	accessToken := &models.AccessToken{
+		UID: ctx.User.ID,
+		Grant: grant,
+		GrantID: grant.ID,
+		ValidUntil: &expirationDate,
+	}
+	// TODO hide access tokens
+	// TODO delete expired access token
+	if err := models.NewAccessToken(accessToken); err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: "cannot create access token",
+		})
+		return
+	}
+	ctx.JSON(200, &AccessTokenResponse{
+		AccessToken: accessToken.Sha1,
+		TokenType: TokenTypeBearer,
+		ExpiresIn: setting.API.AccessTokenExpirationTime,
+		RefreshToken: "TODO", // TODO integrate refresh tokens
+	})
+}
 
+func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
+	ctx.JSON(400, acErr)
 }
 
 func handleServerError(ctx *context.Context, state string, redirectURI string) {

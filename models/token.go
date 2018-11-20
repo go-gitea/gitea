@@ -19,6 +19,11 @@ type AccessToken struct {
 	UID  int64 `xorm:"INDEX"`
 	Name string
 	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
+	// TODO add migration
+	// GrantID is set if created from OAuth Application
+	GrantID int64 `xorm:"INDEX DEFAULT 0"`
+	Grant *OAuth2Grant `xorm:"-"`
+	ValidUntil *util.TimeStamp `xorm:"INDEX null DEFAULT null"`
 
 	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
