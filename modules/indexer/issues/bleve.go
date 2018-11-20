@@ -9,8 +9,6 @@ import (
 	"os"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
@@ -23,9 +21,8 @@ import (
 )
 
 const (
-	issueIndexerAnalyzer = "issueIndexer"
-	issueIndexerDocType  = "issueIndexerDocType"
-
+	issueIndexerAnalyzer      = "issueIndexer"
+	issueIndexerDocType       = "issueIndexerDocType"
 	issueIndexerLatestVersion = 1
 )
 
@@ -74,7 +71,7 @@ const maxBatchSize = 16
 // updates and bleve version updates.  If index needs to be created (or
 // re-created), returns (nil, nil)
 func openIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(setting.Indexer.IssuePath)
+	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {
@@ -111,7 +108,7 @@ func (i *BleveIndexerData) Type() string {
 }
 
 // createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer() (bleve.Index, error) {
+func createIssueIndexer(path string) (bleve.Index, error) {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
@@ -141,7 +138,7 @@ func createIssueIndexer() (bleve.Index, error) {
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	return bleve.New(setting.Indexer.IssuePath, mapping)
+	return bleve.New(path, mapping)
 }
 
 var (
@@ -150,12 +147,15 @@ var (
 
 // BleveIndexer implements Indexer interface
 type BleveIndexer struct {
-	indexer bleve.Index
+	indexDir string
+	indexer  bleve.Index
 }
 
 // NewBleveIndexer creates a new bleve local indexer
-func NewBleveIndexer() *BleveIndexer {
-	return &BleveIndexer{}
+func NewBleveIndexer(indexDir string) *BleveIndexer {
+	return &BleveIndexer{
+		indexDir: indexDir,
+	}
 }
 
 // IssueIndexerBatch batch to add updates to
@@ -165,7 +165,7 @@ func (b *BleveIndexer) IssueIndexerBatch() rupture.FlushingBatch {
 
 func (b *BleveIndexer) Init() (bool, error) {
 	var err error
-	b.indexer, err = openIndexer(setting.Indexer.IssuePath, issueIndexerLatestVersion)
+	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)
 	if err != nil {
 		return false, err
 	}
@@ -173,14 +173,24 @@ func (b *BleveIndexer) Init() (bool, error) {
 		return true, nil
 	}
 
-	b.indexer, err = createIssueIndexer()
+	b.indexer, err = createIssueIndexer(b.indexDir)
 	return false, err
 }
 
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
 	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(indexerID(issue.ID), issue); err != nil {
+		if err := batch.Index(indexerID(issue.ID), struct {
+			RepoID   int64
+			Title    string
+			Content  string
+			Comments []string
+		}{
+			RepoID:   issue.RepoID,
+			Title:    issue.Title,
+			Content:  issue.Content,
+			Comments: issue.Comments,
+		}); err != nil {
 			return err
 		}
 	}
@@ -195,8 +205,9 @@ func (b *BleveIndexer) Search(keyword string, repoID int64, limit, start int) (*
 		bleve.NewDisjunctionQuery(
 			newMatchPhraseQuery(keyword, "Title", issueIndexerAnalyzer),
 			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
+			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),
 		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
+	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 
 	result, err := b.indexer.Search(search)
 	if err != nil {

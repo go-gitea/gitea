@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,7 +19,7 @@ var (
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer() error {
-	issueIndexer = issues.NewBleveIndexer()
+	issueIndexer = issues.NewBleveIndexer(setting.Indexer.IssuePath)
 	exist, err := issueIndexer.Init()
 	if err != nil {
 		return err
@@ -69,10 +70,6 @@ func populateIssueIndexer() {
 			}
 			for _, issue := range is {
 				UpdateIssueIndexer(issue)
-
-				for _, comment := range issue.Comments {
-					UpdateIssueCommentIndexer(comment, issue.RepoID)
-				}
 			}
 		}
 	}
@@ -80,11 +77,16 @@ func populateIssueIndexer() {
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
 func UpdateIssueIndexer(issue *Issue) {
+	var comments []string
+	for _, comment := range issue.Comments {
+		comments = append(comments, comment.Content)
+	}
 	issueIndexerUpdateQueue.Push(&issues.IndexerData{
-		ID:      issue.ID,
-		RepoID:  issue.RepoID,
-		Title:   issue.Title,
-		Content: issue.Content,
+		ID:       issue.ID,
+		RepoID:   issue.RepoID,
+		Title:    issue.Title,
+		Content:  issue.Content,
+		Comments: comments,
 	})
 }
 
@@ -93,26 +95,6 @@ func DeleteRepoIssueIndexer(repo *Repository) {
 	issueIndexerUpdateQueue.Push(&issues.IndexerData{
 		RepoID:   repo.ID,
 		IsDelete: true,
-	})
-}
-
-// UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueCommentIndexer(comment *Comment, repoID int64) {
-	issueIndexerUpdateQueue.Push(&issues.IndexerData{
-		ID:        comment.IssueID,
-		RepoID:    repoID,
-		Content:   comment.Content,
-		CommentID: comment.ID,
-	})
-}
-
-// DeleteIssueCommentIndexer deletes a comment index
-func DeleteIssueCommentIndexer(comment *Comment, repoID int64) {
-	issueIndexerUpdateQueue.Push(&issues.IndexerData{
-		ID:        comment.IssueID,
-		RepoID:    repoID,
-		CommentID: comment.ID,
-		IsDelete:  true,
 	})
 }
 

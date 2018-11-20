@@ -1033,7 +1033,10 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	}
 
 	if c.Type == CommentTypeComment {
-		UpdateIssueCommentIndexer(c, c.Issue.RepoID)
+		if err := c.Issue.loadComments(x); err != nil {
+			return err
+		}
+		UpdateIssueIndexer(c.Issue)
 	}
 
 	if err := c.Issue.LoadAttributes(); err != nil {
@@ -1096,7 +1099,10 @@ func DeleteComment(doer *User, comment *Comment) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		UpdateIssueCommentIndexer(comment, comment.Issue.RepoID)
+		if err := comment.Issue.loadComments(x); err != nil {
+			return err
+		}
+		UpdateIssueIndexer(comment.Issue)
 	}
 
 	if err := comment.Issue.LoadAttributes(); err != nil {

@@ -6,12 +6,12 @@ package issues
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	ID        int64
-	RepoID    int64
-	Title     string
-	Content   string
-	CommentID int64
-	IsDelete  bool `json:"-"`
+	ID       int64
+	RepoID   int64
+	Title    string
+	Content  string
+	Comments []string
+	IsDelete bool `json:"-"`
 }
 
 // Match

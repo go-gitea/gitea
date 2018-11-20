@@ -25,7 +25,7 @@ func NewNotifier() base.Notifier {
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
-		models.UpdateIssueCommentIndexer(comment, issue.RepoID)
+		models.UpdateIssueIndexer(issue)
 	}
 }
 
@@ -39,13 +39,13 @@ func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 
 func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, repoID int64, oldContent string) {
 	if c.Type == models.CommentTypeComment {
-		models.UpdateIssueCommentIndexer(c, repoID)
+		models.UpdateIssueIndexer(c.Issue)
 	}
 }
 
 func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment, repoID int64) {
 	if comment.Type == models.CommentTypeComment {
-		models.DeleteIssueCommentIndexer(comment, repoID)
+		models.UpdateIssueIndexer(comment.Issue)
 	}
 }
 
