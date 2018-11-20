@@ -40,6 +40,14 @@ func (t *Team) getUnits(e Engine) (err error) {
 	return err
 }
 
+// GetUnitNames returns the team units names
+func (t *Team) GetUnitNames() (res []string) {
+	for _, u := range t.Units {
+		res = append(res, Units[u.Type].NameKey)
+	}
+	return
+}
+
 // HasWriteAccess returns true if team has at least write level access mode.
 func (t *Team) HasWriteAccess() bool {
 	return t.Authorize >= AccessModeWrite
@@ -367,6 +375,24 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		return fmt.Errorf("update: %v", err)
 	}
 
+	// update units for team
+	if len(t.Units) > 0 {
+		for _, unit := range t.Units {
+			unit.TeamID = t.ID
+		}
+		// Delete team-unit.
+		if _, err := sess.
+			Where("team_id=?", t.ID).
+			Delete(new(TeamUnit)); err != nil {
+			return err
+		}
+
+		if _, err = sess.Insert(&t.Units); err != nil {
+			sess.Rollback()
+			return err
+		}
+	}
+
 	// Update access for team members if needed.
 	if authChanged {
 		if err = t.getRepositories(sess); err != nil {
@@ -522,6 +548,16 @@ func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
 		And("team_user.uid=?", userID).
+		Find(&teams)
+}
+
+func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Where("team.org_id = ?", orgID).
+		And("team_user.uid=?", userID).
+		And("team_repo.repo_id=?", repoID).
 		Find(&teams)
 }
 
