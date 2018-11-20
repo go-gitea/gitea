@@ -73,16 +73,16 @@ func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comm
 }
 
 // NotifyUpdateComment notifies update comment to notifiers
-func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+func NotifyUpdateComment(doer *models.User, c *models.Comment, repoID int64, oldContent string) {
 	for _, notifier := range notifiers {
-		notifier.NotifyUpdateComment(doer, c, oldContent)
+		notifier.NotifyUpdateComment(doer, c, repoID, oldContent)
 	}
 }
 
 // NotifyDeleteComment notifies delete comment to notifiers
-func NotifyDeleteComment(doer *models.User, c *models.Comment) {
+func NotifyDeleteComment(doer *models.User, c *models.Comment, repoID int64) {
 	for _, notifier := range notifiers {
-		notifier.NotifyDeleteComment(doer, c)
+		notifier.NotifyDeleteComment(doer, c, repoID)
 	}
 }
 

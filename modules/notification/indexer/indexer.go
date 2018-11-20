@@ -25,38 +25,38 @@ func NewNotifier() base.Notifier {
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
-		models.UpdateIssueIndexer(issue.ID)
+		models.UpdateIssueCommentIndexer(comment, issue.RepoID)
 	}
 }
 
 func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue) {
-	models.UpdateIssueIndexer(issue.ID)
+	models.UpdateIssueIndexer(issue)
 }
 
 func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
-	models.UpdateIssueIndexer(pr.Issue.ID)
+	models.UpdateIssueIndexer(pr.Issue)
 }
 
-func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, repoID int64, oldContent string) {
 	if c.Type == models.CommentTypeComment {
-		models.UpdateIssueIndexer(c.IssueID)
+		models.UpdateIssueCommentIndexer(c, repoID)
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment, repoID int64) {
 	if comment.Type == models.CommentTypeComment {
-		models.UpdateIssueIndexer(comment.IssueID)
+		models.DeleteIssueCommentIndexer(comment, repoID)
 	}
 }
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
-	models.DeleteRepoFromIndexer(repo)
+	models.DeleteRepoIssueIndexer(repo)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
-	models.UpdateIssueIndexer(issue.ID)
+	models.UpdateIssueIndexer(issue)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
-	models.UpdateIssueIndexer(issue.ID)
+	models.UpdateIssueIndexer(issue)
 }

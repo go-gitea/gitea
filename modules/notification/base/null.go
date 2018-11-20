@@ -47,11 +47,11 @@ func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models
 }
 
 // NotifyUpdateComment places a place holder function
-func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, repoID int64, oldContent string) {
 }
 
 // NotifyDeleteComment places a place holder function
-func (*NullNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
+func (*NullNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment, repoID int64) {
 }
 
 // NotifyDeleteRepository places a place holder function

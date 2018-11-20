@@ -34,8 +34,8 @@ type Notifier interface {
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
 		*models.Issue, *models.Comment)
-	NotifyUpdateComment(*models.User, *models.Comment, string)
-	NotifyDeleteComment(*models.User, *models.Comment)
+	NotifyUpdateComment(*models.User, *models.Comment, int64, string)
+	NotifyDeleteComment(*models.User, *models.Comment, int64)
 
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
