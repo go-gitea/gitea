@@ -264,22 +264,26 @@ type PullReviewersWithType struct {
 }
 
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses
-func GetReviewersByPullID(pullID int64) (issueReviewers map[int64]*PullReviewersWithType, err error) {
+func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
 	irs := []*PullReviewersWithType{}
 	err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
 		Table("review").
 		Join("INNER", "`user`", "review.reviewer_id = `user`.id").
 		Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)", pullID, ReviewTypeApprove, ReviewTypeReject).
 		GroupBy("`user`.id, review.type").
-		OrderBy("review_updated_unix").
+		OrderBy("review_updated_unix DESC").
 		Find(&irs)
 
 	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
 	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
 	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
-	issueReviewers = make(map[int64]*PullReviewersWithType)
+	issueReviewers = []*PullReviewersWithType{}
+	usersInArray := make(map[int64]bool)
 	for _, ir := range irs {
-		issueReviewers[ir.ID] = ir
+		if !usersInArray[ir.ID] {
+			issueReviewers = append(issueReviewers, ir)
+			usersInArray[ir.ID] = true
+		}
 	}
 
 	return
