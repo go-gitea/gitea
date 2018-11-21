@@ -221,6 +221,35 @@ func GetTeamMembers(ctx *context.APIContext) {
 	ctx.JSON(200, members)
 }
 
+// GetTeamMember api for get a particular member of team
+func GetTeamMember(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/members/{username} organization orgListTeamMember
+	// ---
+	// summary: List a particular member of team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the member to list
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/User"
+	u := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.JSON(200, u.APIFormat())
+}
+
 // AddTeamMember api for add a member to a team
 func AddTeamMember(ctx *context.APIContext) {
 	// swagger:operation PUT /teams/{id}/members/{username} organization orgAddTeamMember
