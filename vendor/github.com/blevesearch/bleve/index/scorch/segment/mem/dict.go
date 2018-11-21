@@ -76,6 +76,8 @@ type DictionaryIterator struct {
 	prefix string
 	end    string
 	offset int
+
+	dictEntry index.DictEntry // reused across Next()'s
 }
 
 // Next returns the next entry in the dictionary
@@ -95,8 +97,7 @@ func (d *DictionaryIterator) Next() (*index.DictEntry, error) {
 
 	d.offset++
 	postingID := d.d.segment.Dicts[d.d.fieldID][next]
-	return &index.DictEntry{
-		Term:  next,
-		Count: d.d.segment.Postings[postingID-1].GetCardinality(),
-	}, nil
+	d.dictEntry.Term = next
+	d.dictEntry.Count = d.d.segment.Postings[postingID-1].GetCardinality()
+	return &d.dictEntry, nil
 }
