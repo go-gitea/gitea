@@ -283,10 +283,10 @@ func TestGetTeamMembers(t *testing.T) {
 	test(3)
 }
 
-func TestGetUserTeams(t *testing.T) {
+func TestGetUserOrgTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(orgID, userID int64) {
-		teams, err := GetUserTeams(orgID, userID)
+		teams, err := GetUserOrgTeams(orgID, userID)
 		assert.NoError(t, err)
 		for _, team := range teams {
 			assert.EqualValues(t, orgID, team.OrgID)
