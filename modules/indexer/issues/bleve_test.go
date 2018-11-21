@@ -5,14 +5,17 @@
 package issues
 
 import (
+	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIndexAndSearch(t *testing.T) {
-	indexer := NewBleveIndexer(setting.Indexer.IssuePath)
+	dir := "./bleve.index"
+	indexer := NewBleveIndexer(dir)
+	defer os.RemoveAll(dir)
+
 	_, err := indexer.Init()
 	assert.NoError(t, err)
 
@@ -22,14 +25,64 @@ func TestIndexAndSearch(t *testing.T) {
 			RepoID:  2,
 			Title:   "Issue search should support Chinese",
 			Content: "As title",
+			Comments: []string{
+				"test1",
+				"test2",
+			},
+		},
+		{
+			ID:      2,
+			RepoID:  2,
+			Title:   "CJK support could be optional",
+			Content: "Chinese Korean and Japanese should be supported but I would like it's not enabled by default",
+			Comments: []string{
+				"LGTM",
+				"Good idea",
+			},
 		},
 	})
 	assert.NoError(t, err)
 
-	res, err := indexer.Search("search", 2, 10, 0)
-	assert.NoError(t, err)
+	var (
+		keywords = []struct {
+			Keyword string
+			IDs     []int64
+		}{
+			{
+				Keyword: "search",
+				IDs:     []int64{1},
+			},
+			{
+				Keyword: "test1",
+				IDs:     []int64{1},
+			},
+			{
+				Keyword: "test2",
+				IDs:     []int64{1},
+			},
+			{
+				Keyword: "support",
+				IDs:     []int64{1, 2},
+			},
+			{
+				Keyword: "chinese",
+				IDs:     []int64{1, 2},
+			},
+			{
+				Keyword: "help",
+				IDs:     []int64{},
+			},
+		}
+	)
 
-	for _, hit := range res.Hits {
-		assert.EqualValues(t, 1, hit.ID)
+	for _, kw := range keywords {
+		res, err := indexer.Search(kw.Keyword, 2, 10, 0)
+		assert.NoError(t, err)
+
+		var ids = make([]int64, 0, len(res.Hits))
+		for _, hit := range res.Hits {
+			ids = append(ids, hit.ID)
+		}
+		assert.EqualValues(t, kw.IDs, ids)
 	}
 }

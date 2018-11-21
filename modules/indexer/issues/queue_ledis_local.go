@@ -60,6 +60,11 @@ func (l *LedisLocalQueue) Run() error {
 			continue
 		}
 
+		if len(bs) <= 0 {
+			time.Sleep(time.Millisecond * 100)
+			continue
+		}
+
 		var data IndexerData
 		err = json.Unmarshal(bs, &data)
 		if err != nil {
@@ -67,6 +72,8 @@ func (l *LedisLocalQueue) Run() error {
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}
+
+		log.Trace("LedisLocalQueue: task found: %#v", data)
 
 		datas = append(datas, &data)
 		i++

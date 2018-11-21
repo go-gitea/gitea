@@ -158,11 +158,6 @@ func NewBleveIndexer(indexDir string) *BleveIndexer {
 	}
 }
 
-// IssueIndexerBatch batch to add updates to
-func (b *BleveIndexer) IssueIndexerBatch() rupture.FlushingBatch {
-	return rupture.NewFlushingBatch(b.indexer, maxBatchSize)
-}
-
 func (b *BleveIndexer) Init() (bool, error) {
 	var err error
 	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)

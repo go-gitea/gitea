@@ -83,6 +83,12 @@ const (
 	ReCaptcha    = "recaptcha"
 )
 
+// enumerates all the indexer queue types
+const (
+	LedisLocalQueueType = "ledis_local"
+	ChannelQueueType    = "channel"
+)
+
 // settings
 var (
 	// AppVer settings
@@ -181,11 +187,15 @@ var (
 
 	// Indexer settings
 	Indexer struct {
-		IssuePath          string
-		RepoIndexerEnabled bool
-		RepoPath           string
-		UpdateQueueLength  int
-		MaxIndexerFileSize int64
+		IssuePath                    string
+		RepoIndexerEnabled           bool
+		RepoPath                     string
+		UpdateQueueLength            int
+		MaxIndexerFileSize           int64
+		IssueIndexerQueueType        string
+		IssueIndexerQueueDir         string
+		IssueIndexerQueueDBIndex     int
+		IssueIndexerQueueBatchNumber int
 	}
 
 	// Repository settings
@@ -1202,6 +1212,7 @@ func NewContext() {
 			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
 		})
 	}
+
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
@@ -1215,6 +1226,24 @@ func NewContext() {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
 	}
+
+	sec = Cfg.Section("indexer")
+	Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/issues.bleve"))
+	if !filepath.IsAbs(Indexer.IssuePath) {
+		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
+	}
+	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/repos.bleve"))
+	if !filepath.IsAbs(Indexer.RepoPath) {
+		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
+	}
+	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
+	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
+	Indexer.IssueIndexerQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LedisLocalQueueType)
+	Indexer.IssueIndexerQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
+	Indexer.IssueIndexerQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
+	Indexer.IssueIndexerQueueDBIndex = sec.Key("ISSUE_INDEXER_QUEUE_DB_INDEX").MustInt(0)
+
 }
 
 // NewServices initializes the services

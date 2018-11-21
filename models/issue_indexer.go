@@ -5,6 +5,8 @@
 package models
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,8 +31,22 @@ func InitIssueIndexer() error {
 		go populateIssueIndexer()
 	}
 
-	// TODO: init quque via settings
-	issueIndexerUpdateQueue = issues.NewChannelQueue(issueIndexer, 20)
+	switch setting.Indexer.IssueIndexerQueueType {
+	case setting.LedisLocalQueueType:
+		issueIndexerUpdateQueue, err = issues.NewLedisLocalQueue(
+			issueIndexer,
+			setting.Indexer.IssueIndexerQueueDir,
+			setting.Indexer.IssueIndexerQueueDBIndex,
+			setting.Indexer.IssueIndexerQueueBatchNumber)
+		if err != nil {
+			return err
+		}
+	case setting.ChannelQueueType:
+		issueIndexerUpdateQueue = issues.NewChannelQueue(issueIndexer, setting.Indexer.IssueIndexerQueueBatchNumber)
+	default:
+		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueIndexerQueueType)
+	}
+
 	go issueIndexerUpdateQueue.Run()
 
 	return nil
@@ -54,6 +70,7 @@ func populateIssueIndexer() {
 		if len(repos) == 0 {
 			return
 		}
+		page++
 		for _, repo := range repos {
 			is, err := Issues(&IssuesOptions{
 				RepoIDs:  []int64{repo.ID},
@@ -64,7 +81,7 @@ func populateIssueIndexer() {
 				log.Error(4, "Issues: %v", err)
 				continue
 			}
-			if err = IssueList(is).LoadComments(); err != nil {
+			if err = IssueList(is).LoadDiscussComments(); err != nil {
 				log.Error(4, "LoadComments: %v", err)
 				continue
 			}
@@ -79,7 +96,9 @@ func populateIssueIndexer() {
 func UpdateIssueIndexer(issue *Issue) {
 	var comments []string
 	for _, comment := range issue.Comments {
-		comments = append(comments, comment.Content)
+		if comment.Type == CommentTypeComment {
+			comments = append(comments, comment.Content)
+		}
 	}
 	issueIndexerUpdateQueue.Push(&issues.IndexerData{
 		ID:       issue.ID,
