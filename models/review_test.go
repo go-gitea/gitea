@@ -114,22 +114,22 @@ func TestGetReviewersByPullID(t *testing.T) {
 	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 
-	expectedReviews := make(map[int64]*PullReviewersWithType)
-	expectedReviews[2] = &PullReviewersWithType{
+	expectedReviews := []*PullReviewersWithType{}
+	expectedReviews = append(expectedReviews, &PullReviewersWithType{
 		User:              *user2,
 		Type:              ReviewTypeReject,
 		ReviewUpdatedUnix: 946684810,
-	}
-	expectedReviews[3] = &PullReviewersWithType{
-		User:              *user3,
-		Type:              ReviewTypeReject,
-		ReviewUpdatedUnix: 946684810,
-	}
-	expectedReviews[4] = &PullReviewersWithType{
-		User:              *user4,
-		Type:              ReviewTypeApprove,
-		ReviewUpdatedUnix: 946684810,
-	}
+	},
+		&PullReviewersWithType{
+			User:              *user3,
+			Type:              ReviewTypeReject,
+			ReviewUpdatedUnix: 946684810,
+		},
+		&PullReviewersWithType{
+			User:              *user4,
+			Type:              ReviewTypeApprove,
+			ReviewUpdatedUnix: 946684810,
+		})
 
 	allReviews, err := GetReviewersByPullID(issue.ID)
 	assert.NoError(t, err)
