@@ -342,6 +342,8 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableDependencies
 ; Repositories will use depencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
