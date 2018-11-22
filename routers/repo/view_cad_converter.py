@@ -25,8 +25,9 @@ import logging
 import sys
 import zipfile
 from os import remove
-from os.path import splitext, basename, join
+from os.path import splitext, basename, join, isfile
 import json
+import hashlib
 
 import uuid
 
@@ -93,12 +94,24 @@ def _conversion_filename(folder, name, i=0):
     """
     # return "%s/%s_%i.stl" % (converted_files_folder, name, i)
     # return join(folder, "%s_%i.stl" % (name, i))
-    return join(folder, "%s_%i.json" % (name, i))
+
+    sha1sum = hashlib.sha1()
+    with open(join(folder, name), 'rb') as source:
+        block = source.read(2 ** 16)
+        while len(block) != 0:
+            sha1sum.update(block)
+            block = source.read(2 ** 16)
+    hash_name = sha1sum.hexdigest()
+    # return join(folder, "%s_%i.json" % (name, i))
+    return join(folder, "%s_%i.json" % (hash_name, i))
 
 
 def _convert_shape(shape, filename):
     # _convert_shape_stl(shape, filename)
-    _shape_to_json(shape, filename)
+    if isfile(filename):
+        pass  # The cached version will be used
+    else:
+        _shape_to_json(shape, filename)
 
 
 def color_to_hex(rgb_color):
@@ -262,8 +275,11 @@ def convert_freecad_file(freecad_filename, target_folder):
     logger.info("Starting FreeCAD conversion")
 
     fcstd_as_zip = zipfile.ZipFile(freecad_filename)
-
     breps_basenames = list(filter(lambda x: splitext(x)[1].lower() in [".brep", ".brp"], fcstd_as_zip.namelist()))
+
+    for brep_basename in breps_basenames:
+        fcstd_as_zip.extract(brep_basename, target_folder)
+
     breps_filenames = ["%s/%s" % (target_folder, name) for name in breps_basenames]
     converted_filenames = [_conversion_filename(target_folder, name, i) for i, name in
                            enumerate(breps_basenames)]
@@ -276,7 +292,7 @@ def convert_freecad_file(freecad_filename, target_folder):
     for i, (brep_basename, brep_filename, converted_basename, converted_filename) in enumerate(
             zip(breps_basenames, breps_filenames, converted_basenames, converted_filenames)):
 
-        fcstd_as_zip.extract(brep_basename, target_folder)
+        # fcstd_as_zip.extract(brep_basename, target_folder)
 
         try:
             importer = BrepImporter(brep_filename)
