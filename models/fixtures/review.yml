@@ -30,3 +30,43 @@
   content: "Pending Review"
   updated_unix: 946684810
   created_unix: 946684810
+-
+  id: 5
+  type: 2
+  reviewer_id: 1
+  issue_id: 3
+  content: "New review 1"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 6
+  type: 0
+  reviewer_id: 2
+  issue_id: 3
+  content: "New review 3"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 7
+  type: 3
+  reviewer_id: 3
+  issue_id: 3
+  content: "New review 4"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 8
+  type: 1
+  reviewer_id: 4
+  issue_id: 3
+  content: "New review 5"
+  updated_unix: 946684810
+  created_unix: 946684810
+-
+  id: 9
+  type: 3
+  reviewer_id: 2
+  issue_id: 3
+  content: "New review 3 rejected"
+  updated_unix: 946684810
+  created_unix: 946684810
