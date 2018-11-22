@@ -1374,26 +1374,18 @@ func (err ErrReviewNotExist) Error() string {
 //  \_______  /\____|__  /____/ |__| |___|  /
 //          \/         \/                 \/
 
-type ErrOauthClientIDInvalid struct {
+// ErrOAuthClientIDInvalid will be thrown if client id cannot be found
+type ErrOAuthClientIDInvalid struct {
 	ClientID string
 }
 
 // IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
 func IsErrOauthClientIDInvalid(err error) bool {
-	_, ok := err.(ErrOauthClientIDInvalid)
+	_, ok := err.(ErrOAuthClientIDInvalid)
 	return ok
 }
 
-func (err ErrOauthClientIDInvalid) Error() string {
+// Error returns the error message
+func (err ErrOAuthClientIDInvalid) Error() string {
 	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
 }
-
-
-
-
-
-
-
-
-
-
