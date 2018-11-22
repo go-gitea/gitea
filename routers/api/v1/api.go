@@ -463,6 +463,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/times", repo.ListMyTrackedTimes)
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
+
+			m.Get("/teams", org.ListUserTeams)
 		}, reqToken())
 
 		// Repositories

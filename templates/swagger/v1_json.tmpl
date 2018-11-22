@@ -5450,6 +5450,23 @@
         }
       }
     },
+    "/user/teams": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List all the teams a user belongs to",
+        "operationId": "userListTeams",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TeamList"
+          }
+        }
+      }
+    },
     "/user/times": {
       "get": {
         "produces": [
@@ -7973,6 +7990,9 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "organization": {
+          "$ref": "#/definitions/Organization"
         },
         "permission": {
           "type": "string",
