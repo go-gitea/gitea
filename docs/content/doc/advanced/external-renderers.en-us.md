@@ -18,12 +18,13 @@ menu:
 Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries, 
 it is just matter of:
 * installing external binaries
-* add configuration to your `app.ini` file
+* add some configuration to your `app.ini` file
 * restart your gitea instance
 
 ## Installing external binaries
+
 In order to get file rendering through external binaries, their associated packages must be installed. 
-If you're using a Docker image, your Dockerfile should contain something along this lines:
+If you're using a Docker image, your `Dockerfile` should contain something along this lines:
 
 ```
 FROM gitea/gitea:1.6.0
@@ -65,5 +66,5 @@ FILE_EXTENSIONS = .rst
 RENDER_COMMAND = rst2html.py
 IS_INPUT_FILE = false
 ```
-## restart your gitea instance
-profit!
+
+Once your configuration changes have been made, restart Gitea to have changes take effect.
