@@ -21,7 +21,7 @@ it is just matter of:
 * add configuration to your `app.ini` file
 * restart your gitea instance
 
-**1.- Installing external binaries**
+## Installing external binaries
 In order to get file rendering through external binaries, their associated packages must be installed. 
 If you're using a Docker image, your Dockerfile should contain something along this lines:
 
@@ -41,7 +41,7 @@ RUN pip3 install jupyter matplotlib docutils
 # add above any other python package you may need to install
 ```
 
-**2.- `app.ini` file configuration**
+## `app.ini` file configuration
 
 add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 
@@ -65,6 +65,5 @@ FILE_EXTENSIONS = .rst
 RENDER_COMMAND = rst2html.py
 IS_INPUT_FILE = false
 ```
-
-**3.- restart your gitea instance**
+## restart your gitea instance
 profit!
