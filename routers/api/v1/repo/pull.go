@@ -405,6 +405,18 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
+	if ctx.Repo.IsWriter() && (form.Labels != nil && len(form.Labels) > 0) {
+		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+		if err != nil {
+			ctx.Error(500, "GetLabelsInRepoByIDsError", err)
+			return
+		}
+		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
+			ctx.Error(500, "ReplaceLabelsError", err)
+			return
+		}
+	}
+
 	if err = models.UpdateIssue(issue); err != nil {
 		ctx.Error(500, "UpdateIssue", err)
 		return
