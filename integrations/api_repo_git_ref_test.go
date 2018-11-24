@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 )
 
-func TestAPIReposRaw(t *testing.T) {
+func TestAPIReposGitRefs(t *testing.T) {
 	prepareTestEnv(t)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
@@ -28,4 +28,7 @@ func TestAPIReposRaw(t *testing.T) {
 	// Test getting all refs
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs?token="+token, user.Name)
 	session.MakeRequest(t, req, http.StatusOK)
+	// Test getting non-existent refs
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs/heads/unknown?token="+token, user.Name)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
