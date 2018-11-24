@@ -11,7 +11,35 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
-// GetGitRefs get ref or an list all the refs of a repository
+// GetGitAllRefs get ref or an list all the refs of a repository
+func GetGitAllRefs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/refs repository repoListAllGitRefs
+	// ---
+	// summary: Get specified ref or filtered repository's refs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Reference"
+	//     "$ref": "#/responses/ReferenceList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	getGitRefsInternal(ctx, "")
+}
+
+// GetGitRefs get ref or an filteresd list of refs of a repository
 func GetGitRefs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/refs/{ref} repository repoListGitRefs
 	// ---
@@ -33,7 +61,7 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   in: path
 	//   description: part or full name of the ref
 	//   type: string
-	//   required: false
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Reference"
@@ -41,12 +69,15 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	getGitRefsInternal(ctx, ctx.Params("*"))
+}
+
+func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.Error(500, "OpenRepository", err)
 		return
 	}
-	filter := ctx.Params("*")
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
