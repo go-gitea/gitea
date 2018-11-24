@@ -142,7 +142,7 @@ type OAuth2AuthorizationCode struct {
 	GrantID     int64
 	Code        string `xorm:"INDEX unique"`
 	RedirectURI string
-	Lifetime    util.TimeStamp
+	ValidUntil  util.TimeStamp `xorm:"index"`
 }
 
 // TableName sets the table name to `oauth2_authorization_code`

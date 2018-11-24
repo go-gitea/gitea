@@ -438,6 +438,11 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		} `ini:"cron.deleted_branches_cleanup"`
+		DeleteExpiredTokens struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -503,6 +508,15 @@ var (
 			Schedule:   "@every 24h",
 			OlderThan:  24 * time.Hour,
 		},
+		DeleteExpiredTokens: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+		},
 	}
 
 	// Git settings
@@ -549,12 +563,12 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwagger    bool
-		MaxResponseItems int
+		EnableSwagger             bool
+		MaxResponseItems          int
 		AccessTokenExpirationTime int64
 	}{
-		EnableSwagger:    true,
-		MaxResponseItems: 50,
+		EnableSwagger:             true,
+		MaxResponseItems:          50,
 		AccessTokenExpirationTime: 3600,
 	}
 

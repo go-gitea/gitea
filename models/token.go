@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"time"
 
 	gouuid "github.com/satori/go.uuid"
@@ -21,8 +22,8 @@ type AccessToken struct {
 	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
 	// TODO add migration
 	// GrantID is set if created from OAuth Application
-	GrantID int64 `xorm:"INDEX DEFAULT 0"`
-	Grant *OAuth2Grant `xorm:"-"`
+	GrantID    int64           `xorm:"INDEX DEFAULT 0"`
+	Grant      *OAuth2Grant    `xorm:"-"`
 	ValidUntil *util.TimeStamp `xorm:"INDEX null DEFAULT null"`
 
 	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
@@ -85,4 +86,20 @@ func DeleteAccessTokenByID(id, userID int64) error {
 		return ErrAccessTokenNotExist{}
 	}
 	return nil
+}
+
+// RemoveExpiredTokens deletes all expired access tokens and authorization codes
+func RemoveExpiredTokens() {
+	if !taskStatusTable.StartIfNotRunning(`delete_expired_tokens`) {
+		return
+	}
+	defer taskStatusTable.Stop(`delete_expired_tokens`)
+	log.Trace("Doing: DeletedExpiredTokens")
+	if _, err := x.Where("valid_until < ?", util.TimeStampNow()).Delete(&AccessToken{}); err != nil {
+		log.Fatal(4, "Cron[Remove expired tokens]: %v", err)
+	}
+	if _, err := x.Where("valid_until < ?", util.TimeStampNow()).Delete(&OAuth2AuthorizationCode{}); err != nil {
+		log.Fatal(4, "Cron[Remove expired tokens]: %v", err)
+	}
+	return
 }
