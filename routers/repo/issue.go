@@ -810,6 +810,12 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["GrantedApprovals"] = pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+
+		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
+		if err != nil {
+			ctx.ServerError("GetReviewersByPullID", err)
+			return
+		}
 	}
 
 	// Get Dependencies

@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -174,11 +175,15 @@ func repoAssignment() macaron.Handler {
 
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
-	return func(ctx *context.Context) {
-		if true != ctx.Data["IsApiToken"] {
-			ctx.Error(401)
+	return func(ctx *context.APIContext) {
+		if true == ctx.Data["IsApiToken"] {
 			return
 		}
+		if ctx.IsSigned {
+			ctx.RequireCSRF()
+			return
+		}
+		ctx.Context.Error(401)
 	}
 }
 
@@ -574,6 +579,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
+		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
 			m.Get("/repos", user.ListOrgRepos)
 			m.Combo("").Get(org.Get).
@@ -635,7 +641,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})
 			})
-		}, reqAdmin())
+		}, reqToken(), reqAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)

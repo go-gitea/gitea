@@ -146,7 +146,7 @@ START_SSH_SERVER = false
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; THe network interface the builtin SSH server should listen on
+; The network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
@@ -265,9 +265,9 @@ COOKIE_REMEMBER_NAME = gitea_incredible
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
-; True when users are allowed to import local server paths
+; Set to true to allow users to import local server paths
 IMPORT_LOCAL_PATHS = false
-; Prevent all users (including admin) from creating custom git hooks
+; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
 
 [openid]
@@ -311,6 +311,9 @@ ACTIVE_CODE_LIVE_MINUTES = 180
 RESET_PASSWD_CODE_LIVE_MINUTES = 180
 ; Whether a new user needs to confirm their email when registering.
 REGISTER_EMAIL_CONFIRM = false
+; List of domain names that are allowed to be used to register on a Gitea instance
+; gitea.io,example.com
+EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
 ; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
@@ -339,6 +342,8 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableDependencies
 ; Repositories will use depencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -659,3 +664,9 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =
