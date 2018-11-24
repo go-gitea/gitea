@@ -1,8 +1,9 @@
 package models
 
 import (
-	gouuid "github.com/satori/go.uuid"
 	"net/url"
+
+	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/util"
 	"github.com/Unknwon/com"
@@ -10,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
 	ID   int64 `xorm:"pk autoincr"`
 	UID  int64 `xorm:"INDEX"`
@@ -20,26 +22,30 @@ type OAuth2Application struct {
 	ClientID     string `xorm:"INDEX unique"`
 	ClientSecret string
 
-	RedirectURIs []string `xorm:"JSON TEXT"`
+	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
+// TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"
 }
 
+// LoadUser will load User by UID
 func (app *OAuth2Application) LoadUser() (err error) {
 	app.User = new(User)
 	app.User, err = GetUserByID(app.UID)
 	return
 }
 
+// ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	return com.IsSliceContainsStr(app.RedirectURIs, redirectURI)
 }
 
+// GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 	secret := gouuid.NewV4().String()
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
@@ -53,6 +59,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 	return secret, nil
 }
 
+// ValidateClientSecret validates the given secret by the hash saved in database
 func (app *OAuth2Application) ValidateClientSecret(secret []byte) bool {
 	return bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), secret) == nil
 }
@@ -89,6 +96,7 @@ func (app *OAuth2Application) createGrant(e Engine, userID int64) (*OAuth2Grant,
 	return grant, nil
 }
 
+// GetOAuth2ApplicationByClientID returns the oauth2 application with the given client_id. Returns an error if not found.
 func GetOAuth2ApplicationByClientID(clientID string) (app *OAuth2Application, err error) {
 	return getOAuth2ApplicationByClientID(x, clientID)
 }
@@ -97,7 +105,7 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 	app = new(OAuth2Application)
 	has, err := e.Where("client_id = ?", clientID).Get(app)
 	if !has {
-		return app, ErrOauthClientIDInvalid{ClientID: clientID}
+		return app, ErrOAuthClientIDInvalid{ClientID: clientID}
 	}
 	return
 }
@@ -123,6 +131,7 @@ func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Applic
 
 //////////////////////////////////////////////////////
 
+// OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.
 type OAuth2AuthorizationCode struct {
 	ID          int64        `xorm:"pk autoincr"`
 	Grant       *OAuth2Grant `xorm:"-"`
@@ -132,10 +141,12 @@ type OAuth2AuthorizationCode struct {
 	Lifetime    util.TimeStamp
 }
 
+// TableName sets the table name to `oauth2_authorization_code`
 func (code *OAuth2AuthorizationCode) TableName() string {
 	return "oauth2_authorization_code"
 }
 
+// GenerateRedirectURI generates a redirect URI for a sucessfull authorization request. State will be used if not empty.
 func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect *url.URL, err error) {
 	if redirect, err = url.Parse(code.RedirectURI); err != nil {
 		return
@@ -151,6 +162,7 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 
 //////////////////////////////////////////////////////
 
+// OAuth2Grant represents the permission of an user for a specifc application to access resources
 type OAuth2Grant struct {
 	ID            int64          `xorm:"pk autoincr"`
 	UserID        int64          `xorm:"INDEX unique(user_application)"`
@@ -159,10 +171,12 @@ type OAuth2Grant struct {
 	UpdatedUnix   util.TimeStamp `xorm:"updated"`
 }
 
+// TableName sets the table name to `oauth2_grant`
 func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
+// GenerateNewAuthorizationCode generates a new authroization code for a grant and saves it to the databse
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI)
 }

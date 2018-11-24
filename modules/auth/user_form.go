@@ -125,7 +125,7 @@ func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Err
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// AuthorizationForm form for signing in with user/password
+// SignInForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
 	Password string `binding:"Required;MaxSize(255)"`
