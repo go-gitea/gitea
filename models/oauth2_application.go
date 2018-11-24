@@ -1,13 +1,16 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
 	"net/url"
 
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/util"
-	"github.com/Unknwon/com"
 
+	"github.com/Unknwon/com"
+	gouuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -35,8 +38,9 @@ func (app *OAuth2Application) TableName() string {
 
 // LoadUser will load User by UID
 func (app *OAuth2Application) LoadUser() (err error) {
-	app.User = new(User)
-	app.User, err = GetUserByID(app.UID)
+	if app.User == nil {
+		app.User, err = GetUserByID(app.UID)
+	}
 	return
 }
 
@@ -71,7 +75,7 @@ func (app *OAuth2Application) GetGrantByUserID(userID int64) (*OAuth2Grant, erro
 
 func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)
-	if has, err := e.Where("user_id = ? AND application_id", userID, app.ID).Get(grant); err != nil {
+	if has, err := e.Where("user_id = ? AND application_id = ?", userID, app.ID).Get(grant); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -116,12 +120,12 @@ func CreateOAuth2Application(name string, userID int64) (*OAuth2Application, err
 }
 
 func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Application, error) {
-	secret := gouuid.NewV4().String()
+	clientID := gouuid.NewV4().String()
 	app := &OAuth2Application{
 		UID:          userID,
 		Name:         name,
-		ClientID:     secret,
-		RedirectURIs: []string{"http://localhost:3000"},
+		ClientID:     clientID,
+		RedirectURIs: []string{},
 	}
 	if _, err := e.Insert(app); err != nil {
 		return nil, err

@@ -1,15 +1,21 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package user
 
 import (
+	"fmt"
+	"net/url"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"fmt"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-macaron/binding"
-	"net/url"
 )
 
 const (
@@ -18,6 +24,7 @@ const (
 
 // TODO move error and responses to SDK or models
 
+// AuthorizeErrorCode represents an error code specified in RFC 6749
 type AuthorizeErrorCode string
 
 const (
@@ -30,52 +37,59 @@ const (
 	ErrorCodeTemporaryUnavailable    AuthorizeErrorCode = "temporarily_unavailable"
 )
 
+// AuthorizeError represents an error type specified in RFC 6749
 type AuthorizeError struct {
 	ErrorCode        AuthorizeErrorCode `json:"error" form:"error"`
 	ErrorDescription string
 	State            string
 }
 
+// Error returns the error message
 func (err AuthorizeError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+// AccessTokenErrorCode represents an error code specified in RFC 6749
 type AccessTokenErrorCode string
 
 const (
-	AccessTokenErrorCodeInvalidRequest AccessTokenErrorCode  = "invalid_request"
-	AccessTokenErrorCodeInvalidClient = "invalid_client"
-	AccessTokenErrorCodeInvalidGrant = "invalid_grant"
-	AccessTokenErrorCodeUnauthorizedClient = "unauthorized_client"
-	AccessTokenErrorCodeUnsupportedGrantType = "unsupported_grant_type"
-	AccessTokenErrorCodeInvalidScope = "invalid_scope"
-
+	AccessTokenErrorCodeInvalidRequest       AccessTokenErrorCode = "invalid_request"
+	AccessTokenErrorCodeInvalidClient                             = "invalid_client"
+	AccessTokenErrorCodeInvalidGrant                              = "invalid_grant"
+	AccessTokenErrorCodeUnauthorizedClient                        = "unauthorized_client"
+	AccessTokenErrorCodeUnsupportedGrantType                      = "unsupported_grant_type"
+	AccessTokenErrorCodeInvalidScope                              = "invalid_scope"
 )
 
+// AccessTokenError represents an error response specified in RFC 6749
 type AccessTokenError struct {
 	ErrorCode        AccessTokenErrorCode `json:"error" form:"error"`
-	ErrorDescription string `json:"error_description"`
+	ErrorDescription string               `json:"error_description"`
 }
 
+// Error returns the error message
 func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+// TokenType specifies the kind of token
 type TokenType string
 
 const (
 	TokenTypeBearer TokenType = "bearer"
-	TokenTypeMAC = "mac"
+	TokenTypeMAC              = "mac"
 )
 
+// AccessTokenResponse represents a successful access token response
 type AccessTokenResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType TokenType `json:"token_type"`
-	ExpiresIn int64 `json:"expires_in"`
+	AccessToken string    `json:"access_token"`
+	TokenType   TokenType `json:"token_type"`
+	ExpiresIn   int64     `json:"expires_in"`
 	// TODO implement RefreshToken
 	RefreshToken string `json:"refresh_token"`
 }
 
+// AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Context, errs)
@@ -83,15 +97,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		if models.IsErrOauthClientIDInvalid(err) {
-			app, _ := models.CreateOAuth2Application("Example OAuth App", ctx.User.ID)
-			secret, _ := app.GenerateClientSecret()
-			ctx.PlainText(200, []byte(fmt.Sprintf("Client ID: %s Client Secret: %s", app.ClientID, secret)))
-			//TODO remove debug code
-			//handleAuthorizeError(ctx, AuthorizeError{
-			//	ErrorCode:        ErrorCodeUnauthorizedClient,
-			//	ErrorDescription: "Client ID not registered",
-			//	State:            form.State,
-			//}, "")
+			handleAuthorizeError(ctx, AuthorizeError{
+				ErrorCode:        ErrorCodeUnauthorizedClient,
+				ErrorDescription: "Client ID not registered",
+				State:            form.State,
+			}, "")
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
@@ -153,6 +163,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.HTML(200, tplGrantAccess)
 }
 
+// GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm) {
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
@@ -185,51 +196,51 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 	ctx.Redirect(redirect.String(), 302)
 }
 
+// AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidClient,
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
 			ErrorDescription: "cannot load client",
 		})
 		return
 	}
-	// TODO enable validation
-	//if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
-	//	handleAccessTokenError(ctx, AccessTokenError{
-	//		ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
-	//		ErrorDescription: "client is not authorized",
-	//	})
-	//	return
-	//}
+	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
 	grant, err := app.GetGrantByUserID(ctx.User.ID)
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
 	}
 	expirationDate := util.TimeStampNow().Add(setting.API.AccessTokenExpirationTime)
 	accessToken := &models.AccessToken{
-		UID: ctx.User.ID,
-		Grant: grant,
-		GrantID: grant.ID,
+		UID:        ctx.User.ID,
+		Grant:      grant,
+		GrantID:    grant.ID,
 		ValidUntil: &expirationDate,
 	}
 	// TODO hide access tokens
 	// TODO delete expired access token
 	if err := models.NewAccessToken(accessToken); err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidClient,
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
 			ErrorDescription: "cannot create access token",
 		})
 		return
 	}
 	ctx.JSON(200, &AccessTokenResponse{
-		AccessToken: accessToken.Sha1,
-		TokenType: TokenTypeBearer,
-		ExpiresIn: setting.API.AccessTokenExpirationTime,
+		AccessToken:  accessToken.Sha1,
+		TokenType:    TokenTypeBearer,
+		ExpiresIn:    setting.API.AccessTokenExpirationTime,
 		RefreshToken: "TODO", // TODO integrate refresh tokens
 	})
 }
