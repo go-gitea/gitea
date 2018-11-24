@@ -274,11 +274,9 @@ files; for named volumes this is done through another container or by direct acc
 
 To upgrade your installation to the latest release:
 ```
-# Pull the new version
-docker pull gitea/gitea # or docker pull gitea/gitea:VERSION
-# Stop and remove old container
-docker-compose rm -s
-# Edit `docker-compose.yml` if you have specified a version
-# Start a new container
+# Edit `docker-compose.yml` to update the version, if you have one specified
+# Pull new images
+docker-compose pull
+# Start a new container, automatically removes old one
 docker-compose up -d
 ```
