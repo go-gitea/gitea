@@ -160,17 +160,21 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
-func getReviewsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
+func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
 	reviews = make([]*Review, 0)
-	if err := e.Where("issue_id = ?", prID).Find(&reviews); err != nil {
+	if err := e.
+		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
+		OrderBy("updated_unix").
+		GroupBy("reviewer_id").
+		Find(&reviews); err != nil {
 		return nil, err
 	}
 	return
 }
 
-// GetReviewsByPullRequestID returns all reviews submitted for a specific pull request
-func GetReviewsByPullRequestID(prID int64) ([]*Review, error) {
-	return getReviewsByPullRequestID(x, prID)
+// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
+func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
+	return getUniqueApprovalsByPullRequestID(x, prID)
 }
 
 // FindReviewOptions represent possible filters to find reviews

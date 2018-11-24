@@ -166,6 +166,10 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 				BranchName: branch,
 			}
 		}
+		if f.RequiredApprovals < 0 {
+			ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
+			ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
+		}
 
 		protectBranch.EnableWhitelist = f.EnableWhitelist
 		whitelistUsers, _ := base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
