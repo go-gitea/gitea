@@ -267,3 +267,18 @@ be placed in `/data/gitea` directory. If using host volumes it's quite easy to a
 files; for named volumes this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
+
+# Upgrading
+
+:exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:**
+
+To upgrade your installation to the latest release:
+```
+# Pull the new version
+docker pull gitea/gitea # or docker pull gitea/gitea:VERSION
+# Stop and remove old container
+docker-compose rm -s
+# Edit `docker-compose.yml` if you have specified a version
+# Start a new container
+docker-compose up -d
+```
