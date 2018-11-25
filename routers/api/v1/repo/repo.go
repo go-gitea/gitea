@@ -608,9 +608,6 @@ func TopicSearch(ctx *context.Context) {
 	})
 }
 
-// TODO: Since this is where the repo details are, it would seem to be the right place to add
-// listing of files -- see https://developer.github.com/v3/git/trees/ for what the GitHub API
-// looks like
 // List contents of one repository
 func ListContentsAtSHA(ctx *context.APIContext) {
 	// swagger:route GET /repos/{username}/{reponame}/git/trees/{sha} repository repoListAtSHA
