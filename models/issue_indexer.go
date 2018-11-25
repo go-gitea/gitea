@@ -26,7 +26,6 @@ func InitIssueIndexer() error {
 	if err != nil {
 		return err
 	}
-
 	if !exist {
 		go populateIssueIndexer()
 	}

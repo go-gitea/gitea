@@ -60,6 +60,13 @@ func (l *LedisLocalQueue) Run() error {
 			continue
 		}
 
+		i++
+		if len(datas) > l.batchNumber || (len(datas) > 0 && i > 3) {
+			l.indexer.Index(datas)
+			datas = make([]*IndexerData, 0, l.batchNumber)
+			i = 0
+		}
+
 		if len(bs) <= 0 {
 			time.Sleep(time.Millisecond * 100)
 			continue
@@ -76,14 +83,7 @@ func (l *LedisLocalQueue) Run() error {
 		log.Trace("LedisLocalQueue: task found: %#v", data)
 
 		datas = append(datas, &data)
-		i++
-
-		if len(datas) > l.batchNumber || i > 3 {
-			l.indexer.Index(datas)
-			datas = make([]*IndexerData, 0, l.batchNumber)
-			i = 0
-		}
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 10)
 	}
 }
 

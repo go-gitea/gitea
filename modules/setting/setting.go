@@ -186,7 +186,7 @@ var (
 	DBConnectBackoff time.Duration
 
 	// Indexer settings
-	Indexer struct {
+	Indexer = struct {
 		IssuePath                    string
 		RepoIndexerEnabled           bool
 		RepoPath                     string
@@ -196,6 +196,12 @@ var (
 		IssueIndexerQueueDir         string
 		IssueIndexerQueueDBIndex     int
 		IssueIndexerQueueBatchNumber int
+	}{
+		IssuePath:                    "indexers/issues.bleve",
+		IssueIndexerQueueType:        LedisLocalQueueType,
+		IssueIndexerQueueDir:         "indexers/issues.queue",
+		IssueIndexerQueueBatchNumber: 20,
+		IssueIndexerQueueDBIndex:     0,
 	}
 
 	// Repository settings
