@@ -322,6 +322,12 @@ func runCreateUser(c *cli.Context) error {
 	// always default to true
 	var changePassword = true
 
+	// If this is the first user being created.
+	// Take it as the admin and don't force a password update.
+	if n := models.CountUsers(); n == 0 {
+		changePassword = false
+	}
+
 	if c.IsSet("must-change-password") {
 		changePassword = c.Bool("must-change-password")
 	}
