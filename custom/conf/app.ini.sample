@@ -316,7 +316,7 @@ REGISTER_EMAIL_CONFIRM = false
 EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
+; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -331,8 +331,8 @@ ENABLE_CAPTCHA = false
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-RECAPTCHA_SECRET  = 
-RECAPTCHA_SITEKEY = 
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -340,7 +340,7 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableDependencies
-; Repositories will use depencies by default depending on this setting
+; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
 ; Enable heatmap on users profiles.
 ENABLE_USER_HEATMAP = true
