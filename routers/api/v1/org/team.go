@@ -54,6 +54,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -89,6 +90,20 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
+
+	unitTypes := models.FindUnitTypes(form.Units...)
+
+	if team.Authorize < models.AccessModeOwner {
+		var units = make([]*models.TeamUnit, 0, len(form.Units))
+		for _, tp := range unitTypes {
+			units = append(units, &models.TeamUnit{
+				OrgID: ctx.Org.Organization.ID,
+				Type:  tp,
+			})
+		}
+		team.Units = units
+	}
+
 	if err := models.NewTeam(team); err != nil {
 		if models.IsErrTeamAlreadyExist(err) {
 			ctx.Error(422, "", err)
@@ -127,6 +142,19 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	team.Name = form.Name
 	team.Description = form.Description
 	team.Authorize = models.ParseAccessMode(form.Permission)
+	unitTypes := models.FindUnitTypes(form.Units...)
+
+	if team.Authorize < models.AccessModeOwner {
+		var units = make([]*models.TeamUnit, 0, len(form.Units))
+		for _, tp := range unitTypes {
+			units = append(units, &models.TeamUnit{
+				OrgID: ctx.Org.Organization.ID,
+				Type:  tp,
+			})
+		}
+		team.Units = units
+	}
+
 	if err := models.UpdateTeam(team, true); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
@@ -144,12 +172,11 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     description: team deleted
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -169,6 +196,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -205,6 +233,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -227,7 +256,7 @@ func AddTeamMember(ctx *context.APIContext) {
 
 // RemoveTeamMember api for remove one member from a team
 func RemoveTeamMember(ctx *context.APIContext) {
-	// swagger:operation DELETE /teams/{id}/members/{username} organization orgAddTeamMember
+	// swagger:operation DELETE /teams/{id}/members/{username} organization orgRemoveTeamMember
 	// ---
 	// summary: Remove a team member
 	// produces:
@@ -237,6 +266,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -270,6 +300,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -306,7 +337,7 @@ func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
 
 // AddTeamRepository api for adding a repository to a team
 func AddTeamRepository(ctx *context.APIContext) {
-	// swagger:operation PUT /teams/{id}/repos/{org}/{repo} organization orgAddTeamMember
+	// swagger:operation PUT /teams/{id}/repos/{org}/{repo} organization orgAddTeamRepository
 	// ---
 	// summary: Add a repository to a team
 	// produces:
@@ -316,6 +347,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path
@@ -350,7 +382,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 
 // RemoveTeamRepository api for removing a repository from a team
 func RemoveTeamRepository(ctx *context.APIContext) {
-	// swagger:operation DELETE /teams/{id}/repos/{org}/{repo} organization orgAddTeamMember
+	// swagger:operation DELETE /teams/{id}/repos/{org}/{repo} organization orgRemoveTeamRepository
 	// ---
 	// summary: Remove a repository from a team
 	// description: This does not delete the repository, it only removes the
@@ -362,6 +394,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path

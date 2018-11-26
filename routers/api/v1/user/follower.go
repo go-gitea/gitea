@@ -119,11 +119,11 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 
 // CheckMyFollowing whether the given user is followed by the authenticated user
 func CheckMyFollowing(ctx *context.APIContext) {
-	// swagger:operation GET /user/following/{followee} user userCurrentCheckFollowing
+	// swagger:operation GET /user/following/{username} user userCurrentCheckFollowing
 	// ---
 	// summary: Check whether a user is followed by the authenticated user
 	// parameters:
-	// - name: followee
+	// - name: username
 	//   in: path
 	//   description: username of followed user
 	//   type: string

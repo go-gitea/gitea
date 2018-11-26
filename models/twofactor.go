@@ -9,12 +9,15 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/pquerna/otp/totp"
+	"golang.org/x/crypto/pbkdf2"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,20 +29,27 @@ type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
 	UID              int64 `xorm:"UNIQUE"`
 	Secret           string
-	ScratchToken     string
+	ScratchSalt      string
+	ScratchHash      string
 	LastUsedPasscode string         `xorm:"VARCHAR(10)"`
 	CreatedUnix      util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix      util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
-func (t *TwoFactor) GenerateScratchToken() error {
+func (t *TwoFactor) GenerateScratchToken() (string, error) {
 	token, err := generate.GetRandomString(8)
 	if err != nil {
-		return err
+		return "", err
 	}
-	t.ScratchToken = token
-	return nil
+	t.ScratchSalt, _ = generate.GetRandomString(10)
+	t.ScratchHash = hashToken(token, t.ScratchSalt)
+	return token, nil
+}
+
+func hashToken(token, salt string) string {
+	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
+	return fmt.Sprintf("%x", tempHash)
 }
 
 // VerifyScratchToken verifies if the specified scratch token is valid.
@@ -47,7 +57,8 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	return subtle.ConstantTimeCompare([]byte(token), []byte(t.ScratchToken)) == 1
+	tempHash := hashToken(token, t.ScratchSalt)
+	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
 func (t *TwoFactor) getEncryptionKey() []byte {
@@ -118,7 +129,7 @@ func aesDecrypt(key, text []byte) ([]byte, error) {
 
 // NewTwoFactor creates a new two-factor authentication token.
 func NewTwoFactor(t *TwoFactor) error {
-	err := t.GenerateScratchToken()
+	_, err := t.GenerateScratchToken()
 	if err != nil {
 		return err
 	}

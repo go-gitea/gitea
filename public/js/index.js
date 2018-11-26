@@ -171,6 +171,87 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function initImagePaste(target) {
+    target.each(function(i, field) {
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,6 +259,7 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
@@ -604,7 +686,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $('#content');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -761,9 +843,103 @@ function initRepository() {
     }
 }
 
-function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
+function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
 
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
+
+    $('button.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var path = $(this).data('path');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+            assingMenuAttributes(commentCloud.find('.menu'));
+
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
+        }
+        commentCloud.find('textarea').focus();
+    });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
+}
+
+function initRepositoryCollaboration() {
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -790,7 +966,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -825,6 +1001,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
@@ -854,7 +1031,6 @@ String.prototype.endsWith = function (pattern) {
         return pos;
     }
 })(jQuery);
-
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1089,8 +1265,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -1438,7 +1612,7 @@ function initU2FAuth() {
     }
     u2fApi.ensureSupport()
         .then(function () {
-            $.getJSON('/user/u2f/challenge').success(function(req) {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1451,16 +1625,16 @@ function initU2FAuth() {
             });
         }).catch(function () {
             // Fallback in case browser do not support U2F
-            window.location.href = "/user/two_factor"
+            window.location.href = suburl + "/user/two_factor"
         })
 }
 function u2fSigned(resp) {
     $.ajax({
-        url:'/user/u2f/sign',
-        type:"POST",
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
     }).fail(function (xhr, textStatus) {
@@ -1473,11 +1647,11 @@ function u2fRegistered(resp) {
         return;
     }
     $.ajax({
-        url:'/user/settings/security/u2f/register',
-        type:"POST",
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
         success: function(){
             window.location.reload();
         },
@@ -1531,7 +1705,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-    $.post("/user/settings/security/u2f/request_register", {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
         "_csrf": csrf,
         "name": $('#nickname').val()
     }).success(function(req) {
@@ -1553,6 +1727,24 @@ function u2fRegisterRequest() {
         if(xhr.status === 409) {
             $("#nickname").closest("div.field").addClass("error");
         }
+    });
+}
+
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
     });
 }
 
@@ -1656,6 +1848,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1769,6 +1966,9 @@ $(document).ready(function () {
     initTopicbar();
     initU2FAuth();
     initU2FRegister();
+    initIssueList();
+    initWipTitle();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2302,44 +2502,75 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic")
-    var editDiv = $("#topic_edit")
-    var viewDiv = $("#repo-topic")
-    var saveBtn = $("#save_topic")
+    var mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topic"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
-    })
+        editDiv.css('display', ''); // show Semantic UI Grid
+    });
+
+    function getPrompts() {
+        var hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
 
     saveBtn.click(function() {
         var topics = $("input[name=topics]").val();
 
-        $.post($(this).data('link'), {
+        $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }).success(function(res){
-            if (res["status"] != "ok") {
-                alert(res.message);
-            } else {
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length == 0) {
+                if (topics.length === 0) {
                     return
                 }
                 var topicArray = topics.split(",");
 
                 var last = viewDiv.children("a").last();
-                for (var i=0;i < topicArray.length; i++) {
+                for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                viewDiv.show();
             }
-        }).done(function() {
-            editDiv.hide();
-            viewDiv.show();
-        })
-    })
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-    $('#topic_edit .dropdown').dropdown({
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
+    });
+
+    topicDropdown.dropdown({
         allowAdditions: true,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
@@ -2360,7 +2591,7 @@ function initTopicbar() {
             onResponse: function(res) {
                 var formattedResponse = {
                     success: false,
-                    results: new Array(),
+                    results: [],
                 };
 
                 if (res.topics) {
@@ -2373,16 +2604,138 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
     });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        var topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
 }
-function toggleDuedateForm() {
-    $('#add_deadline_form').fadeToggle(150);
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
 }
 
-function deleteDueDate(url) {
-    $.post(url, {
-        '_csrf': csrf,
-    },function( data ) {
-        window.location.reload();
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
+        realDeadline = new Date(newDate);
+    }
+
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+        }
     });
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function initIssueList() {
+    var repolink = $('#repolink').val();
+    $('.new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+            },
+
+            fullTextSearch: true
+        })
+    ;
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('button.comment-form-reply').show();
+    } else {
+        form.closest('.comment-code-cloud').remove()
+    }
 }

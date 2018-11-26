@@ -69,6 +69,7 @@ func GetHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -104,6 +105,7 @@ func TestHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to test
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -189,6 +191,12 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
@@ -202,7 +210,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{user}/{repo}/hooks/{id} repository repoDeleteHook
+	// swagger:operation DELETE /repos/{owner}/{repo}/hooks/{id} repository repoDeleteHook
 	// ---
 	// summary: Delete a hook in a repository
 	// produces:
@@ -222,6 +230,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

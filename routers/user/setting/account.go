@@ -24,12 +24,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
 
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
-		return
-	}
-	ctx.Data["Emails"] = emails
+	loadAccountData(ctx)
 
 	ctx.HTML(200, tplSettingsAccount)
 }
@@ -40,6 +35,8 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
+		loadAccountData(ctx)
+
 		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
@@ -85,15 +82,9 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		return
 	}
 
-	// Add Email address.
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
-		return
-	}
-	ctx.Data["Emails"] = emails
-
 	if ctx.HasError() {
+		loadAccountData(ctx)
+
 		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
@@ -105,6 +96,8 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	if err := models.AddEmailAddress(email); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
+			loadAccountData(ctx)
+
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
 		}
@@ -149,6 +142,8 @@ func DeleteAccount(ctx *context.Context) {
 
 	if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
 		if models.IsErrUserNotExist(err) {
+			loadAccountData(ctx)
+
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
 		} else {
 			ctx.ServerError("UserSignIn", err)
@@ -171,4 +166,13 @@ func DeleteAccount(ctx *context.Context) {
 		log.Trace("Account deleted: %s", ctx.User.Name)
 		ctx.Redirect(setting.AppSubURL + "/")
 	}
+}
+
+func loadAccountData(ctx *context.Context) {
+	emails, err := models.GetEmailAddresses(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	ctx.Data["Emails"] = emails
 }

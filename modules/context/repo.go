@@ -85,9 +85,9 @@ func (r *Repository) CanCreateBranch() bool {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected
+//   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName, doer)
+	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
 	if err != nil {
 		return false, err
 	}
@@ -102,6 +102,11 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.IsWriter() || issue.IsPoster(user.ID) || isAssigned)
+}
+
+// CanCreateIssueDependencies returns whether or not a user can create dependencies.
+func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
+	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -479,6 +484,8 @@ const (
 	RepoRefTag
 	// RepoRefCommit commit
 	RepoRefCommit
+	// RepoRefBlob blob
+	RepoRefBlob
 )
 
 // RepoRef handles repository reference names when the ref name is not
@@ -514,6 +521,9 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
 			return refName
 		}
+		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
+			return refName
+		}
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
@@ -526,6 +536,12 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
+	case RepoRefBlob:
+		_, err := ctx.Repo.GitRepo.GetBlob(path)
+		if err != nil {
+			return ""
+		}
+		return path
 	default:
 		log.Error(4, "Unrecognized path type: %v", path)
 	}
@@ -620,7 +636,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				// redirect from old URL scheme to new URL scheme
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
-					strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")),
+					strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")),
 					ctx.Repo.BranchNameSubURL(),
 					ctx.Repo.TreePath))
 				return

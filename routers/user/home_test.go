@@ -26,8 +26,8 @@ func TestIssues(t *testing.T) {
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.EqualValues(t, map[int64]int64{1: 1, 2: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
-	assert.Len(t, ctx.Data["Repos"], 2)
+	assert.Len(t, ctx.Data["Repos"], 1)
 }

@@ -19,12 +19,8 @@ func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.HasError() {
-		openid, err := models.GetUserOpenIDs(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("GetUserOpenIDs", err)
-			return
-		}
-		ctx.Data["OpenIDs"] = openid
+		loadSecurityData(ctx)
+
 		ctx.HTML(200, tplSettingsSecurity)
 		return
 	}
@@ -37,6 +33,8 @@ func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
+		loadSecurityData(ctx)
+
 		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
@@ -53,6 +51,8 @@ func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	// Check that the OpenID is not already used
 	for _, obj := range oids {
 		if obj.URI == id {
+			loadSecurityData(ctx)
+
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
 			return
 		}
@@ -61,6 +61,8 @@ func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	redirectTo := setting.AppURL + "user/settings/security"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
+		loadSecurityData(ctx)
+
 		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
@@ -72,13 +74,6 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
 	log.Trace("Full URL: " + fullURL)
-
-	oids, err := models.GetUserOpenIDs(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetUserOpenIDs", err)
-		return
-	}
-	ctx.Data["OpenIDs"] = oids
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {

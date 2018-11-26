@@ -26,7 +26,6 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		IsClosed    bool  `xorm:"INDEX"`
 		IsPull      bool  `xorm:"INDEX"` // Indicates whether is a pull request or not.
 		NumComments int
-		Ref         string
 
 		DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 		CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
@@ -118,6 +117,14 @@ func addMultipleAssignees(x *xorm.Engine) error {
 				return err
 			}
 		}
+	}
+
+	// Commit and begin new transaction for dropping columns
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
 	if err := dropTableColumns(sess, "issue", "assignee_id"); err != nil {

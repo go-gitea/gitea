@@ -1,10 +1,10 @@
 
 ###################################
 #Build stage
-FROM golang:1.10-alpine3.7 AS build-env
+FROM golang:1.11-alpine3.7 AS build-env
 
 ARG GITEA_VERSION
-ARG TAGS="sqlite"
+ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
 
 #Build deps
@@ -58,3 +58,4 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+RUN ln -s /app/gitea/gitea /usr/local/bin/gitea

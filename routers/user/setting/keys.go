@@ -23,19 +23,7 @@ func Keys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListPublicKeys(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
-		return
-	}
-	ctx.Data["Keys"] = keys
-
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListGPGKeys", err)
-		return
-	}
-	ctx.Data["GPGKeys"] = gpgkeys
+	loadKeysData(ctx)
 
 	ctx.HTML(200, tplSettingsKeys)
 }
@@ -45,21 +33,9 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListPublicKeys(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
-		return
-	}
-	ctx.Data["Keys"] = keys
-
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListGPGKeys", err)
-		return
-	}
-	ctx.Data["GPGKeys"] = gpgkeys
-
 	if ctx.HasError() {
+		loadKeysData(ctx)
+
 		ctx.HTML(200, tplSettingsKeys)
 		return
 	}
@@ -73,9 +49,13 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 				ctx.Flash.Error(ctx.Tr("form.invalid_gpg_key", err.Error()))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			case models.IsErrGPGKeyIDAlreadyUsed(err):
+				loadKeysData(ctx)
+
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
 			case models.IsErrGPGNoEmailFound(err):
+				loadKeysData(ctx)
+
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
@@ -103,9 +83,13 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case models.IsErrKeyAlreadyExist(err):
+				loadKeysData(ctx)
+
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplSettingsKeys, &form)
 			case models.IsErrKeyNameAlreadyUsed(err):
+				loadKeysData(ctx)
+
 				ctx.Data["Err_Title"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
 			default:
@@ -146,4 +130,20 @@ func DeleteKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
+}
+
+func loadKeysData(ctx *context.Context) {
+	keys, err := models.ListPublicKeys(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListPublicKeys", err)
+		return
+	}
+	ctx.Data["Keys"] = keys
+
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+	ctx.Data["GPGKeys"] = gpgkeys
 }
