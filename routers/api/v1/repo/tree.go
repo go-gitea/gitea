@@ -36,7 +36,7 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	tree := new(gitea.GitTreeResponse)
 	RepoID := strings.TrimRight(setting.AppURL, "/") + "/api/v1/repos/" + ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	tree.SHA = GitTree.ID.String()
-	tree.URL = RepoID + "/trees/" + tree.SHA
+	tree.URL = RepoID + "/git/trees/" + tree.SHA
 	var Entries git.Entries
 	if ctx.QueryBool("recursive") {
 		Entries, err = GitTree.ListEntriesRecursive()
@@ -47,18 +47,24 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 		return tree
 	}
 	RepoIDLen := len(RepoID)
-	BlobURL := make([]byte, RepoIDLen + 47)
+
+	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
+	BlobURL := make([]byte, RepoIDLen + 51)
 	copy(BlobURL[:], RepoID)
-	copy(BlobURL[RepoIDLen:], "/blobs/")
-	TreeURL := make([]byte, RepoIDLen + 47)
+	copy(BlobURL[RepoIDLen:], "/git/blobs/")
+
+	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
+	TreeURL := make([]byte, RepoIDLen + 51)
 	copy(TreeURL[:], RepoID)
-	copy(TreeURL[RepoIDLen:], "/trees/")
+	copy(TreeURL[RepoIDLen:], "/git/trees/")
+
+	// 40 is the size of the sha1 hash in hexadecimal format.
 	CopyPos := len(TreeURL) - 40
 
 	if len(Entries) > 1000 {
-		tree.Entries = make([]gitea.GitTreeEntry, 1000)
+		tree.Entries = make([]gitea.GitEntry, 1000)
 	} else {
-		tree.Entries = make([]gitea.GitTreeEntry, len(Entries))
+		tree.Entries = make([]gitea.GitEntry, len(Entries))
 	}
 	for e := range Entries {
 		if e > 1000 {

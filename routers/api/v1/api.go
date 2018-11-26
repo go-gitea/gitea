@@ -440,7 +440,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(repo.Get).Delete(reqToken(), repo.Delete)
-				m.Group("/trees", func() {
+				m.Group("/git/trees", func() {
 					m.Combo("/:sha", context.RepoRef()).Get(repo.GetTree)
 				})
 				m.Group("/hooks", func() {
