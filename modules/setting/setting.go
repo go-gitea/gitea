@@ -1523,6 +1523,7 @@ type Mailer struct {
 	SkipVerify        bool
 	UseCertificate    bool
 	CertFile, KeyFile string
+	IsTLSEnabled      bool
 
 	// Sendmail sender
 	UseSendmail  bool
@@ -1556,6 +1557,7 @@ func newMailService() {
 		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
 		CertFile:       sec.Key("CERT_FILE").String(),
 		KeyFile:        sec.Key("KEY_FILE").String(),
+		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
 		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
