@@ -301,7 +301,8 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		password, err := generate.GetRandomString(c.Int("random-password-length"))
+		var err error
+		password, err = generate.GetRandomString(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
