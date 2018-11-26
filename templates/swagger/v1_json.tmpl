@@ -406,6 +406,42 @@
         }
       }
     },
+    "/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create an organization",
+        "operationId": "orgCreate",
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}": {
       "get": {
         "produces": [
@@ -3029,7 +3065,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get all of a repository's milestones",
+        "summary": "Get all of a repository's opened milestones",
         "operationId": "issueGetMilestonesList",
         "parameters": [
           {
@@ -6322,6 +6358,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6697,6 +6749,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7744,6 +7812,22 @@
             "owner"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"

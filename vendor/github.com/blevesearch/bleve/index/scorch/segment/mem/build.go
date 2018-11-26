@@ -95,6 +95,21 @@ func (s *Segment) initializeDict(results []*index.AnalysisResult) {
 	var numTokenFrequencies int
 	var totLocs int
 
+	// initial scan for all fieldID's to sort them
+	for _, result := range results {
+		for _, field := range result.Document.CompositeFields {
+			s.getOrDefineField(field.Name())
+		}
+		for _, field := range result.Document.Fields {
+			s.getOrDefineField(field.Name())
+		}
+	}
+	sort.Strings(s.FieldsInv[1:]) // keep _id as first field
+	s.FieldsMap = make(map[string]uint16, len(s.FieldsInv))
+	for fieldID, fieldName := range s.FieldsInv {
+		s.FieldsMap[fieldName] = uint16(fieldID + 1)
+	}
+
 	processField := func(fieldID uint16, tfs analysis.TokenFrequencies) {
 		for term, tf := range tfs {
 			pidPlus1, exists := s.Dicts[fieldID][term]
