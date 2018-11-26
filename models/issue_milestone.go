@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
-
 	"github.com/go-xorm/xorm"
 )
 
@@ -178,10 +177,11 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesByRepoID returns all milestones of a repository.
+// GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ?", repoID).Asc("deadline_unix").Find(&miles)
+	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, false).
+		Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
