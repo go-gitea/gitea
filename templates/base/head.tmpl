@@ -5,6 +5,23 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
+	<link rel="manifest" href="{{AppSubUrl}}/manifest.json">
+	
+	<script>
+		if ('serviceWorker' in navigator) {
+  			window.addEventListener('load', function() {
+    			navigator.serviceWorker.register('{{AppSubUrl}}/serviceworker.js').then(function(registration) {
+      				// Registration was successful
+      				console.log('ServiceWorker registration successful with scope: ', registration.scope);
+				}, function(err) {
+					// registration failed :(
+      				console.log('ServiceWorker registration failed: ', err);
+    			});
+  			});
+		}
+
+	</script>
+
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
