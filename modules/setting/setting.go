@@ -301,7 +301,6 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
-		HeatmapColorRange   string
 
 		Admin struct {
 			UserPagingNum   int
@@ -328,7 +327,6 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
-		HeatmapColorRange:   `['#f4f4f4', '#459928']`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int

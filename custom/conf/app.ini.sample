@@ -85,8 +85,6 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
-; Set the color range to use for heatmap (default to `['#f4f4f4', '#459928']` but can use `['#2d303b', '#80bb46']` with the theme `arc-green`)
-HEATMAP_COLOR_RANGE = `['#f4f4f4', '#459928']`
 
 [ui.admin]
 ; Number of users that are displayed on one page
