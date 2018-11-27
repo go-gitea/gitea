@@ -301,7 +301,6 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
-		HeatmapColorRange   string
 
 		Admin struct {
 			UserPagingNum   int
@@ -328,7 +327,6 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
-		HeatmapColorRange:   `['#f4f4f4', '#459928']`,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -1523,6 +1521,7 @@ type Mailer struct {
 	SkipVerify        bool
 	UseCertificate    bool
 	CertFile, KeyFile string
+	IsTLSEnabled      bool
 
 	// Sendmail sender
 	UseSendmail  bool
@@ -1556,6 +1555,7 @@ func newMailService() {
 		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
 		CertFile:       sec.Key("CERT_FILE").String(),
 		KeyFile:        sec.Key("KEY_FILE").String(),
+		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
 		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
