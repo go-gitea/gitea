@@ -14,11 +14,11 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
-// ListMilestones list all the milestones for a repository
+// ListMilestones list all the opened milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
-	// summary: Get all of a repository's milestones
+	// summary: Get all of a repository's opened milestones
 	// produces:
 	// - application/json
 	// parameters:
