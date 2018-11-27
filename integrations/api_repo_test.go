@@ -212,21 +212,46 @@ func TestAPIViewRepo(t *testing.T) {
 func TestAPIOrgRepos(t *testing.T) {
 	prepareTestEnv(t)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
 	// User3 is an Org. Check their repos.
 	sourceOrg := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
-	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var apiRepos []*api.Repository
-	DecodeJSON(t, resp, &apiRepos)
-	expectedLen := models.GetCount(t, models.Repository{OwnerID: sourceOrg.ID},
-		models.Cond("is_private = ?", false))
-	assert.Len(t, apiRepos, expectedLen)
-	for _, repo := range apiRepos {
-		assert.False(t, repo.Private)
+	expectedResults := map[*models.User]struct {
+		count           int
+		includesPrivate bool
+	}{
+		nil:   {count: 1},
+		user:  {count: 2, includesPrivate: true},
+		user2: {count: 3, includesPrivate: true},
+		user3: {count: 1},
+	}
+
+	for userToLogin, expected := range expectedResults {
+		var session *TestSession
+		var testName string
+		var token string
+		if userToLogin != nil && userToLogin.ID > 0 {
+			testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+			session = loginUser(t, userToLogin.Name)
+			token = getTokenForLoggedInUser(t, session)
+		} else {
+			testName = "AnonymousUser"
+			session = emptyTestSession(t)
+		}
+		t.Run(testName, func(t *testing.T) {
+			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+
+			var apiRepos []*api.Repository
+			DecodeJSON(t, resp, &apiRepos)
+			assert.Len(t, apiRepos, expected.count)
+			for _, repo := range apiRepos {
+				if !expected.includesPrivate {
+					assert.False(t, repo.Private)
+				}
+			}
+		})
 	}
 }
 

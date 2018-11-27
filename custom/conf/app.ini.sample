@@ -85,8 +85,6 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
-; Set the color range to use for heatmap (default to `['#f4f4f4', '#459928']` but can use `['#2d303b', '#80bb46']` with the theme `arc-green`)
-HEATMAP_COLOR_RANGE = `['#f4f4f4', '#459928']`
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -316,7 +314,7 @@ REGISTER_EMAIL_CONFIRM = false
 EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
+; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -331,8 +329,8 @@ ENABLE_CAPTCHA = false
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-RECAPTCHA_SECRET  = 
-RECAPTCHA_SITEKEY = 
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -340,8 +338,10 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableDependencies
-; Repositories will use depencies by default depending on this setting
+; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -386,6 +386,8 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
+; Should SMTP connection use TLS
+IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
