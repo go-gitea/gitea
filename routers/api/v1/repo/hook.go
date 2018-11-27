@@ -129,9 +129,10 @@ func TestHook(ctx *context.APIContext) {
 		Commits: []*api.PayloadCommit{
 			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
-		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
-		Pusher: ctx.User.APIFormat(),
-		Sender: ctx.User.APIFormat(),
+		HeadCommit: convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
+		Repo:       ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Pusher:     ctx.User.APIFormat(),
+		Sender:     ctx.User.APIFormat(),
 	}); err != nil {
 		ctx.Error(500, "PrepareWebhook: ", err)
 		return

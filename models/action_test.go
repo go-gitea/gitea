@@ -249,11 +249,11 @@ func TestCommitRepoAction(t *testing.T) {
 	}{
 		{
 			userID:       2,
-			repositoryID: 2,
+			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
 				RefFullName: "refName",
 				OldCommitID: "oldCommitID",
-				NewCommitID: "newCommitID",
+				NewCommitID: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				Commits: &PushCommits{
 					avatars: make(map[string]string),
 					Commits: []*PushCommit{
@@ -288,7 +288,7 @@ func TestCommitRepoAction(t *testing.T) {
 			commitRepoActionOptions: CommitRepoActionOptions{
 				RefFullName: git.TagPrefix + "v1.1",
 				OldCommitID: git.EmptySHA,
-				NewCommitID: "newCommitID",
+				NewCommitID: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				Commits:     &PushCommits{},
 			},
 			action: Action{

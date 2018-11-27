@@ -523,6 +523,67 @@ type CommitRepoActionOptions struct {
 	Commits     *PushCommits
 }
 
+func getHeadCommit(repo *Repository, headCommitID string) *api.PayloadCommit {
+	if headCommitID == git.EmptySHA {
+		return nil
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+	}
+
+	headCommit, err := gitRepo.GetCommit(headCommitID)
+	if err != nil {
+		log.Error(4, "GetCommit[%s]: %v", headCommitID, err)
+	}
+
+	authorUsername := ""
+	if author, err := GetUserByEmail(headCommit.Author.Email); err == nil {
+		authorUsername = author.Name
+	} else if !IsErrUserNotExist(err) {
+		log.Error(4, "GetUserByEmail: %v", err)
+	}
+
+	committerUsername := ""
+	if committer, err := GetUserByEmail(headCommit.Committer.Email); err == nil {
+		committerUsername = committer.Name
+	} else if !IsErrUserNotExist(err) {
+		log.Error(4, "GetUserByEmail: %v", err)
+	}
+
+	verif := ParseCommitWithSignature(headCommit)
+	var signature, payload string
+	if headCommit.Signature != nil {
+		signature = headCommit.Signature.Signature
+		payload = headCommit.Signature.Payload
+	}
+
+	headPayloadCommit := &api.PayloadCommit{
+		ID:      headCommitID,
+		Message: headCommit.CommitMessage,
+		URL:     fmt.Sprintf("%s/commit/%s", repo.HTMLURL(), headCommit.ID),
+		Author: &api.PayloadUser{
+			Name:     headCommit.Author.Name,
+			Email:    headCommit.Author.Email,
+			UserName: authorUsername,
+		},
+		Committer: &api.PayloadUser{
+			Name:     headCommit.Committer.Name,
+			Email:    headCommit.Committer.Email,
+			UserName: committerUsername,
+		},
+		Timestamp: headCommit.Author.When,
+		Verification: &api.PayloadCommitVerification{
+			Verified:  verif.Verified,
+			Reason:    verif.Reason,
+			Signature: signature,
+			Payload:   payload,
+		},
+	}
+	return headPayloadCommit
+}
+
 // CommitRepoAction adds new commit action to the repository, and prepare
 // corresponding webhooks.
 func CommitRepoAction(opts CommitRepoActionOptions) error {
@@ -684,6 +745,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			After:      opts.NewCommitID,
 			CompareURL: setting.AppURL + opts.Commits.CompareURL,
 			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
+			HeadCommit: getHeadCommit(repo, opts.NewCommitID),
 			Repo:       apiRepo,
 			Pusher:     apiPusher,
 			Sender:     apiPusher,
@@ -781,6 +843,7 @@ func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) er
 		After:      opts.NewCommitID,
 		CompareURL: setting.AppURL + opts.Commits.CompareURL,
 		Commits:    apiCommits,
+		HeadCommit: getHeadCommit(repo, opts.NewCommitID),
 		Repo:       repo.APIFormat(AccessModeOwner),
 		Pusher:     apiPusher,
 		Sender:     apiPusher,
