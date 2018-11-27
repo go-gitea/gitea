@@ -406,6 +406,42 @@
         }
       }
     },
+    "/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create an organization",
+        "operationId": "orgCreate",
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}": {
       "get": {
         "produces": [
@@ -2682,6 +2718,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "the key_id to search for",
+            "name": "key_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3017,7 +3065,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get all of a repository's milestones",
+        "summary": "Get all of a repository's opened milestones",
         "operationId": "issueGetMilestonesList",
         "parameters": [
           {
@@ -4976,6 +5024,14 @@
         ],
         "summary": "List the authenticated user's public keys",
         "operationId": "userCurrentListKeys",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
@@ -5540,6 +5596,12 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6296,6 +6358,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6671,6 +6749,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7718,6 +7812,22 @@
             "owner"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"

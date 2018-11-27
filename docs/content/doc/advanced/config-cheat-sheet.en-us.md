@@ -62,7 +62,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
-   
+
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
@@ -160,9 +160,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
    authentication.
-- `DISABLE_GIT_HOOKS`: **false**: Prevent all users (including admin) from creating custom
+- `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
-- `IMPORT_LOCAL_PATHS`: **false**: Prevent all users (including admin) from importing local path on server.
+- `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 
 ## OpenID (`openid`)
 
@@ -194,6 +194,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
 - `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
+- `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
+  on this instance.
 
 ## Webhook (`webhook`)
 
@@ -220,6 +222,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
      `FROM` and `SENDMAIL_PATH`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
+- ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
 
@@ -302,9 +305,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
+## Metrics (`metrics`)
+
+- `ENABLED`: **false**: Enables /metrics endpoint for prometheus. 
+- `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
+
 ## API (`api`)
- 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
+
+- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 
 ## i18n (`i18n`)
@@ -358,6 +366,10 @@ IS_INPUT_FILE = false
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
+
+Two special environment variables are passed to the render command:
+- `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
+- `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
 ## Other (`other`)
 

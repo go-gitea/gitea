@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,6 +40,7 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
 )
@@ -134,6 +136,7 @@ func NewMacaron() *macaron.Macaron {
 		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
+	m.SetAutoHead(true)
 	return m
 }
 
@@ -690,6 +693,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
+			m.Get("/blob/:sha", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
 		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
@@ -786,6 +790,23 @@ func RegisterRoutes(m *macaron.Macaron) {
 			ctx.NotFound("", nil)
 		}
 	})
+
+	// Progressive Web App
+	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
+		ctx.HTML(200, "pwa/manifest_json")
+	})
+
+	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
+		ctx.HTML(200, "pwa/serviceworker_js")
+	})
+
+	// prometheus metrics endpoint
+	if setting.Metrics.Enabled {
+		c := metrics.NewCollector()
+		prometheus.MustRegister(c)
+
+		m.Get("/metrics", routers.Metrics)
+	}
 
 	// Not found handler.
 	m.NotFound(routers.NotFound)
