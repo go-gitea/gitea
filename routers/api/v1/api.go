@@ -480,7 +480,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete)
-        m.Group("/git/trees", func() {
+				m.Group("/git/trees", func() {
 					m.Combo("/:sha", context.RepoRef()).Get(repo.GetTree)
 				})
 				m.Group("/hooks", func() {
