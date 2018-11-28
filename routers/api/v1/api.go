@@ -610,6 +610,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/git", func() {
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
+					m.Combo("/trees/:sha", context.RepoRef()).Get(repo.GetTree)
 				}, reqRepoReader(models.UnitTypeCode))
 			}, repoAssignment())
 		})
