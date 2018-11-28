@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
 )
 
+// GetTree get the tree of a repository.
 func GetTree(ctx *context.APIContext) {
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
@@ -28,9 +29,10 @@ func GetTree(ctx *context.APIContext) {
 	}
 }
 
+// GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	gitTree, err := ctx.Repo.GitRepo.GetTree(sha)
-	if err != nil || gitTree == nil{
+	if err != nil || gitTree == nil {
 		return nil
 	}
 	tree := new(gitea.GitTreeResponse)
@@ -49,12 +51,12 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	repoIDLen := len(repoID)
 
 	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, repoIDLen+ 51)
+	blobURL := make([]byte, repoIDLen+51)
 	copy(blobURL[:], repoID)
 	copy(blobURL[repoIDLen:], "/git/blobs/")
 
 	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, repoIDLen+ 51)
+	treeURL := make([]byte, repoIDLen+51)
 	copy(treeURL[:], repoID)
 	copy(treeURL[repoIDLen:], "/git/trees/")
 
