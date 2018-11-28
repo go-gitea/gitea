@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if .IsRepositoryWriter}}
+			{{if or .CanWriteIssues .CanWritePulls}}
 				<div class="ui right">
 					<a class="ui green button" href="{{$.Link}}/new">{{.i18n.Tr "repo.milestones.new"}}</a>
 				</div>
@@ -67,7 +67,7 @@
 							{{if .TotalTrackedTime}}<i class="octicon octicon-clock"></i> {{.TotalTrackedTime|Sec2Time}}{{end}}
 						</span>
 					</div>
-					{{if $.IsRepositoryWriter}}
+					{{if or $.CanWriteIssues $.CanWritePulls}}
 						<div class="ui right operate">
 							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
@@ -111,7 +111,7 @@
 	</div>
 </div>
 
-{{if .IsRepositoryWriter}}
+{{if or .CanWriteIssues .CanWritePulls}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
 			<i class="trash icon"></i>

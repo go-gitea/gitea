@@ -351,7 +351,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	pr.LoadIssue()
 	issue := pr.Issue
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -382,7 +382,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 
 		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
@@ -395,7 +395,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -405,7 +405,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && (form.Labels != nil && len(form.Labels) > 0) {
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Labels != nil && len(form.Labels) > 0) {
 		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.Error(500, "GetLabelsInRepoByIDsError", err)
@@ -663,7 +663,12 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
+	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
 		ctx.Status(404)
 		return nil, nil, nil, nil, "", ""
