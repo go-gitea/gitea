@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -63,8 +64,8 @@ var (
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
-		!ctx.Repo.Repository.UnitEnabled(models.UnitTypeExternalTracker) {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
+		!ctx.Repo.CanRead(models.UnitTypeExternalTracker) {
 		ctx.NotFound("MustEnableIssues", nil)
 		return
 	}
@@ -76,9 +77,9 @@ func MustEnableIssues(ctx *context.Context) {
 	}
 }
 
-// MustAllowPulls check if repository enable pull requests
+// MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.AllowsPulls() {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(models.UnitTypePullRequests) {
 		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
@@ -280,7 +281,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 
 // RetrieveRepoMetas find all the meta information of a repository
 func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.Label {
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		return nil
 	}
 
@@ -369,7 +370,7 @@ func NewIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, []int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -377,10 +378,6 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
-		return nil, nil, 0
-	}
-
-	if !ctx.Repo.IsWriter() {
 		return nil, nil, 0
 	}
 
@@ -427,9 +424,19 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 
 		// Check if the passed assignees actually exists and has write access to the repo
 		for _, aID := range assigneeIDs {
-			_, err = repo.GetUserIfHasWriteAccess(aID)
+			user, err := models.GetUserByID(aID)
 			if err != nil {
-				ctx.ServerError("GetUserIfHasWriteAccess", err)
+				ctx.ServerError("GetUserByID", err)
+				return nil, nil, 0
+			}
+
+			perm, err := models.GetUserRepoPermission(repo, user)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil, nil, 0
+			}
+			if !perm.CanWriteIssuesOrPulls(isPull) {
+				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
 				return nil, nil, 0
 			}
 		}
@@ -458,7 +465,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, false)
 	if ctx.Written() {
 		return
 	}
@@ -498,31 +505,23 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
 func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
-	if repo.IsOwnedBy(poster.ID) {
-		return models.CommentTagOwner, nil
-	} else if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(poster.ID)
-		if err != nil {
-			return models.CommentTagNone, err
-		} else if isOwner {
-			return models.CommentTagOwner, nil
-		}
+	perm, err := models.GetUserRepoPermission(repo, poster)
+	if err != nil {
+		return models.CommentTagNone, err
 	}
-	if poster.IsWriterOfRepo(repo) {
-		return models.CommentTagWriter, nil
+	if perm.IsOwner() {
+		return models.CommentTagOwner, nil
 	} else if poster.ID == issue.PosterID {
 		return models.CommentTagPoster, nil
+	} else if perm.CanWrite(models.UnitTypeCode) {
+		return models.CommentTagWriter, nil
 	}
+
 	return models.CommentTagNone, nil
 }
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireDropzone"] = true
-	ctx.Data["RequireTribute"] = true
-	renderAttachmentSettings(ctx)
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -532,25 +531,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
-
-	var iw *models.IssueWatch
-	var exists bool
-	if ctx.User != nil {
-		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
-		if err != nil {
-			ctx.ServerError("GetIssueWatch", err)
-			return
-		}
-		if !exists {
-			iw = &models.IssueWatch{
-				UserID:     ctx.User.ID,
-				IssueID:    issue.ID,
-				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
-			}
-		}
-	}
-	ctx.Data["IssueWatch"] = iw
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
@@ -575,6 +555,31 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["PageIsIssueList"] = true
 	}
+
+	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
+	renderAttachmentSettings(ctx)
+
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
+
+	var iw *models.IssueWatch
+	var exists bool
+	if ctx.User != nil {
+		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
+		if err != nil {
+			ctx.ServerError("GetIssueWatch", err)
+			return
+		}
+		if !exists {
+			iw = &models.IssueWatch{
+				UserID:     ctx.User.ID,
+				IssueID:    issue.ID,
+				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
+			}
+		}
+	}
+	ctx.Data["IssueWatch"] = iw
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
@@ -616,7 +621,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	// Check milestone and assignee.
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
 		if ctx.Written() {
 			return
@@ -761,13 +766,20 @@ func ViewIssue(ctx *context.Context) {
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
-			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
-				// Check if branch is not protected
-				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
-					log.Error(4, "IsProtectedBranch: %v", err)
-				} else if !protected {
-					canDelete = true
-					ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
+				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.User)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+				if perm.CanWrite(models.UnitTypeCode) {
+					// Check if branch is not protected
+					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
+						log.Error(4, "IsProtectedBranch: %v", err)
+					} else if !protected {
+						canDelete = true
+						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+					}
 				}
 			}
 		}
@@ -779,7 +791,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
-		ctx.Data["AllowMerge"] = ctx.Data["IsRepositoryWriter"]
+		ctx.Data["AllowMerge"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		if err := pull.CheckUserAllowedToMerge(ctx.User); err != nil {
 			if !models.IsErrNotAllowedToMerge(err) {
 				ctx.ServerError("CheckUserAllowedToMerge", err)
@@ -818,8 +830,9 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
 	ctx.Data["ReadOnly"] = true
-	ctx.Data["IsIssueOwner"] = ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
+	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(200, tplIssueView)
 }
 
@@ -842,8 +855,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -868,8 +881,8 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues)
-	prUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
+	issueUnitEnabled := ctx.Repo.CanRead(models.UnitTypeIssues)
+	prUnitEnabled := ctx.Repo.CanRead(models.UnitTypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
@@ -890,7 +903,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter()) {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
 		return
 	}
@@ -918,7 +931,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.IsWriter()) {
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
 		return
 	}
@@ -1037,6 +1050,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
 	var attachments []string
 	if setting.AttachmentEnabled {
 		attachments = form.Files
@@ -1051,7 +1069,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 	var comment *models.Comment
 	defer func() {
 		// Check if issue admin/poster changes the status of issue.
-		if (ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) &&
+		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
 
@@ -1140,7 +1158,12 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
@@ -1174,7 +1197,12 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
@@ -1417,6 +1445,11 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
 	if ctx.HasError() {
 		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
 		return
@@ -1486,20 +1519,22 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	issue, err := models.GetIssueByID(comment.IssueID)
-	checkIssueRights(ctx, issue)
-	if ctx.Written() {
+	if err := comment.LoadIssue(); err != nil {
+		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
 		return
 	}
 
-	if ctx.HasError() {
-		ctx.ServerError("ChangeCommentReaction", errors.New(ctx.GetErrMsg()))
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+		ctx.Error(403)
+		return
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+		ctx.Error(204)
 		return
 	}
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateCommentReaction(ctx.User, issue, comment, form.Content)
+		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
 			log.Info("CreateCommentReaction: %s", err)
 			break
@@ -1511,9 +1546,9 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 			break
 		}
 
-		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID, reaction.ID)
+		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteCommentReaction(ctx.User, issue, comment, form.Content); err != nil {
+		if err := models.DeleteCommentReaction(ctx.User, comment.Issue, comment, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
@@ -1525,7 +1560,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 			break
 		}
 
-		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
 		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
 		return

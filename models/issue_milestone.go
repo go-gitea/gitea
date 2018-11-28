@@ -377,7 +377,7 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 		return err
 	}
 
-	mode, _ := AccessLevel(doer.ID, issue.Repo)
+	mode, _ := AccessLevel(doer, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {

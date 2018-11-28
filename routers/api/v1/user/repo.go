@@ -17,13 +17,10 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
 	}
+
 	apiRepos := make([]*api.Repository, 0, len(repos))
-	var ctxUserID int64
-	if ctx.User != nil {
-		ctxUserID = ctx.User.ID
-	}
 	for i := range repos {
-		access, err := models.AccessLevel(ctxUserID, repos[i])
+		access, err := models.AccessLevel(ctx.User, repos[i])
 		if err != nil {
 			ctx.Error(500, "AccessLevel", err)
 			return
