@@ -6,7 +6,7 @@
 				<input value="{{.Issue.Title}}">
 			</div>
 		</h1>
-		{{if .IsIssueOwner}}
+		{{if or .IsIssueWriter .IsIssuePoster}}
 			<div class="four wide column">
 				<div class="edit-zone text right">
 					<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>

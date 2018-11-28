@@ -2,7 +2,7 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-label dropdown">
+		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -27,7 +27,7 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-milestone dropdown">
+		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -68,7 +68,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
+		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -223,7 +223,7 @@
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 					{{end}}
-					{{if and .IsSigned .IsRepositoryWriter}}
+					{{if .IsIssueWriter}}
 						<br/>
 						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
 						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
@@ -233,7 +233,7 @@
 				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
 			{{end}}
 
-			{{if and .IsSigned .IsRepositoryWriter}}
+			{{if .IsIssueWriter}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
 					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="setDeadline();return false;">
 						{{$.CsrfTokenHtml}}
