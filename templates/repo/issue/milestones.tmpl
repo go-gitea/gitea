@@ -43,7 +43,7 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					<i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/issues?state={{$.State}}&milestone={{.ID}}">{{.Name}}</a>
+					<i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 					<div class="ui right green progress" data-percent="{{.Completeness}}">
 						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
 							<div class="progress"></div>
