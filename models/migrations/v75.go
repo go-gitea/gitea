@@ -10,20 +10,23 @@ import (
 )
 
 func clearNonusedData(x *xorm.Engine) error {
-	condDelete := builder.NotIn("user_id", builder.Select("id").From("user"))
-	if _, err := x.Exec(builder.Delete(condDelete).From("team_user")); err != nil {
+	condDelete := func(colName string) builder.Cond {
+		return builder.NotIn(colName, builder.Select("id").From("user"))
+	}
+
+	if _, err := x.Exec(builder.Delete(condDelete("uid")).From("team_user")); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec(builder.Delete(condDelete).From("collaboration")); err != nil {
+	if _, err := x.Exec(builder.Delete(condDelete("user_id")).From("collaboration")); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec(builder.Delete(condDelete).From("stop_watch")); err != nil {
+	if _, err := x.Exec(builder.Delete(condDelete("user_id")).From("stop_watch")); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec(builder.Delete(condDelete).From("gpg_key")); err != nil {
+	if _, err := x.Exec(builder.Delete(condDelete("owner_id")).From("gpg_key")); err != nil {
 		return err
 	}
 	return nil
