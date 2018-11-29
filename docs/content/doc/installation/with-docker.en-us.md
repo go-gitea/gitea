@@ -268,6 +268,19 @@ files; for named volumes this is done through another container or by direct acc
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
 
+# Upgrading
+
+:exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:**
+
+To upgrade your installation to the latest release:
+```
+# Edit `docker-compose.yml` to update the version, if you have one specified
+# Pull new images
+docker-compose pull
+# Start a new container, automatically removes old one
+docker-compose up -d
+```
+
 # SSH Container Passthrough
 
 Since SSH is running inside the container, you'll have to pass SSH from the host to the
