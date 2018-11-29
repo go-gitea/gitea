@@ -70,3 +70,17 @@ func (t *Tree) ListEntries() (Entries, error) {
 	t.entries, err = parseTreeEntries(stdout, t)
 	return t.entries, err
 }
+
+// ListEntriesRecursive returns all entries of current tree recursively including all subtrees
+func (t *Tree) ListEntriesRecursive() (Entries, error) {
+	if t.entriesParsed {
+		return t.entries, nil
+	}
+	stdout, err := NewCommand("ls-tree", "-t", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
+
+	if err != nil {
+		return nil, err
+	}
+	t.entries, err = parseTreeEntries(stdout, t)
+	return t.entries, err
+}

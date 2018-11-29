@@ -20,7 +20,7 @@
 						<span class="text grey"><a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.Name}}</a> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}</span>
 						<div class="ui right actions">
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) }}
-							{{if .IsIssueOwner}}
+							{{if or .IsIssueWriter .IsIssuePoster}}
 								<div class="item action">
 									<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
 								</div>
@@ -79,7 +79,7 @@
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
 							<div class="text right">
-								{{if and .IsIssueOwner (not .DisableStatusChange)}}
+								{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
 									{{if .Issue.IsClosed}}
 										<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 											{{.i18n.Tr "repo.issues.reopen_issue"}}

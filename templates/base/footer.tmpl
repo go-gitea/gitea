@@ -49,28 +49,6 @@
 		<script src="https://www.google.com/recaptcha/api.js" async></script>
 	{{end}}
 {{end}}
-{{if .EnableHeatmap}}
-	<script src="{{AppSubUrl}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
-	<script src="{{AppSubUrl}}/vendor/plugins/d3/d3.v4.min.js" charset="utf-8"></script>
-	<script src="{{AppSubUrl}}/vendor/plugins/calendar-heatmap/calendar-heatmap.js" charset="utf-8"></script>
-	<script type="text/javascript">
-		$.get( '{{AppSubUrl}}/api/v1/users/{{.HeatmapUser}}/heatmap', function( chartRawData ) {
-			var chartData = [];
-			for (var i = 0; i < chartRawData.length; i++) {
-				chartData[i] = {date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions};
-			}
-
-			$('#loading-heatmap').removeClass('active');
-
-			var heatmap = calendarHeatmap()
-				.data(chartData)
-				.selector('#user-heatmap')
-				.colorRange({{SafeJS HeatmapColorRange}})
-				.tooltipEnabled(true);
-			heatmap();
-		});
-	</script>
-{{end}}
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
 
@@ -136,6 +114,13 @@
 	<!-- JavaScript -->
 	<script src="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.js"></script>
 	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
+{{if .EnableHeatmap}}
+	<script src="{{AppSubUrl}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
+	<script type="text/javascript">
+		initHeatmap('user-heatmap', '{{.HeatmapUser}}');
+	</script>
+{{end}}
 {{template "custom/footer" .}}
 </body>
 </html>

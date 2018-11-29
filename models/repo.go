@@ -325,63 +325,19 @@ func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitT
 }
 
 func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unitType UnitType) bool {
-	if err := repo.getUnitsByUserID(e, userID, isAdmin); err != nil {
+	if isAdmin {
+		return true
+	}
+	user, err := getUserByID(e, userID)
+	if err != nil {
+		return false
+	}
+	perm, err := getUserRepoPermission(e, repo, user)
+	if err != nil {
 		return false
 	}
 
-	for _, unit := range repo.Units {
-		if unit.Type == unitType {
-			return true
-		}
-	}
-	return false
-}
-
-// LoadUnitsByUserID loads units according userID's permissions
-func (repo *Repository) LoadUnitsByUserID(userID int64, isAdmin bool) error {
-	return repo.getUnitsByUserID(x, userID, isAdmin)
-}
-
-func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (err error) {
-	if repo.Units != nil {
-		return nil
-	}
-
-	if err = repo.getUnits(e); err != nil {
-		return err
-	} else if err = repo.getOwner(e); err != nil {
-		return err
-	}
-
-	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin || !repo.IsPrivate {
-		return nil
-	}
-
-	// Collaborators will not be limited
-	if isCollaborator, err := repo.isCollaborator(e, userID); err != nil {
-		return err
-	} else if isCollaborator {
-		return nil
-	}
-
-	teams, err := getUserRepoTeams(e, repo.OwnerID, userID, repo.ID)
-	if err != nil {
-		return err
-	}
-
-	// unique
-	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
-	for _, u := range repo.Units {
-		for _, team := range teams {
-			if team.unitEnabled(e, u.Type) {
-				newRepoUnits = append(newRepoUnits, u)
-				break
-			}
-		}
-	}
-
-	repo.Units = newRepoUnits
-	return nil
+	return perm.CanRead(unitType)
 }
 
 // UnitEnabled if this repository has the given unit enabled
@@ -392,21 +348,6 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
 			return true
-		}
-	}
-	return false
-}
-
-// AnyUnitEnabled if this repository has the any of the given units enabled
-func (repo *Repository) AnyUnitEnabled(tps ...UnitType) bool {
-	if err := repo.getUnits(x); err != nil {
-		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
-	}
-	for _, unit := range repo.Units {
-		for _, tp := range tps {
-			if unit.Type == tp {
-				return true
-			}
 		}
 	}
 	return false
@@ -600,11 +541,6 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
 }
 
-// GetUserIfHasWriteAccess returns the user that has write access of repository by given ID.
-func (repo *Repository) GetUserIfHasWriteAccess(userID int64) (*User, error) {
-	return GetUserIfHasWriteAccess(repo, userID)
-}
-
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
 func (repo *Repository) GetMilestoneByID(milestoneID int64) (*Milestone, error) {
 	return GetMilestoneByRepoID(repo.ID, milestoneID)
@@ -671,12 +607,6 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", repo.MustOwner().Name, repo.Name, oldCommitID, newCommitID)
 }
 
-// HasAccess returns true when user has access to this repository
-func (repo *Repository) HasAccess(u *User) bool {
-	has, _ := HasAccess(u.ID, repo, AccessModeRead)
-	return has
-}
-
 // UpdateDefaultBranch updates the default branch
 func (repo *Repository) UpdateDefaultBranch() error {
 	_, err := x.ID(repo.ID).Cols("default_branch").Update(repo)
@@ -702,11 +632,6 @@ func (repo *Repository) updateSize(e Engine) error {
 // UpdateSize updates the repository size, calculating it using git.GetRepoSize
 func (repo *Repository) UpdateSize() error {
 	return repo.updateSize(x)
-}
-
-// CanBeForked returns true if repository meets the requirements of being forked.
-func (repo *Repository) CanBeForked() bool {
-	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
 }
 
 // CanUserFork returns true if specified user can fork repository.
@@ -2486,8 +2411,8 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	oldMode, _ := AccessLevel(doer.ID, oldRepo)
-	mode, _ := AccessLevel(doer.ID, repo)
+	oldMode, _ := AccessLevel(doer, oldRepo)
+	mode, _ := AccessLevel(doer, repo)
 
 	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
 		Forkee: oldRepo.APIFormat(oldMode),

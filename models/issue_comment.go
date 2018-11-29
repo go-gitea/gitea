@@ -795,7 +795,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		return nil, fmt.Errorf("CreateComment: %v", err)
 	}
 
-	mode, _ := AccessLevel(doer.ID, repo)
+	mode, _ := AccessLevel(doer, repo)
 	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentCreated,
 		Issue:      issue.APIFormat(),
@@ -990,7 +990,7 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		return err
 	}
 
-	mode, _ := AccessLevel(doer.ID, c.Issue.Repo)
+	mode, _ := AccessLevel(doer, c.Issue.Repo)
 	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,
 		Issue:   c.Issue.APIFormat(),
@@ -1047,7 +1047,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
-	mode, _ := AccessLevel(doer.ID, comment.Issue.Repo)
+	mode, _ := AccessLevel(doer, comment.Issue.Repo)
 
 	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentDeleted,

@@ -391,7 +391,7 @@
   is_mirror: false
 
 -
-  id: 32
+  id: 32 # org public repo
   owner_id: 3
   lower_name: repo21
   name: repo21
