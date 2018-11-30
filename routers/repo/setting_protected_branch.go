@@ -171,15 +171,28 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 			ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
 		}
 
+		var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
 		protectBranch.EnableWhitelist = f.EnableWhitelist
-		whitelistUsers, _ := base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
-		whitelistTeams, _ := base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
+		if strings.TrimSpace(f.WhitelistUsers) != "" {
+			whitelistUsers, _ = base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
+		}
+		if strings.TrimSpace(f.WhitelistTeams) != "" {
+			whitelistTeams, _ = base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
+		}
 		protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
-		mergeWhitelistUsers, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
-		mergeWhitelistTeams, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+		if strings.TrimSpace(f.MergeWhitelistUsers) != "" {
+			mergeWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
+		}
+		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
+			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+		}
 		protectBranch.RequiredApprovals = f.RequiredApprovals
-		approvalsWhitelistUsers, _ := base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
-		approvalsWhitelistTeams, _ := base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
+		if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {
+			approvalsWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
+		}
+		if strings.TrimSpace(f.ApprovalsWhitelistTeams) != "" {
+			approvalsWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
+		}
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,
 			TeamIDs:          whitelistTeams,
