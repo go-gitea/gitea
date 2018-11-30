@@ -68,6 +68,10 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
 	for i := range comments {
 		apiComments[i] = comments[i].APIFormat()
 	}
@@ -111,6 +115,11 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	})
 	if err != nil {
 		ctx.Error(500, "GetCommentsByRepoIDSince", err)
+		return
+	}
+
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
 		return
 	}
 

@@ -17,6 +17,11 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return keysInt64(commentIDs)
 }
 
+// LoadPosters loads posters from database
+func (comments CommentList) LoadPosters() error {
+	return comments.loadPosters(x)
+}
+
 func (comments CommentList) loadPosters(e Engine) error {
 	if len(comments) == 0 {
 		return nil

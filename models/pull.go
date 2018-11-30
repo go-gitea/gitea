@@ -152,6 +152,10 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		headCommit *git.Commit
 		err        error
 	)
+	if err = pr.Issue.loadRepo(e); err != nil {
+		log.Error(log.ERROR, "loadRepo[%d]: %v", pr.ID, err)
+		return nil
+	}
 	apiIssue := pr.Issue.apiFormat(e)
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)

@@ -1021,6 +1021,9 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		UpdateIssueIndexer(c.IssueID)
 	}
 
+	if err := c.LoadPoster(); err != nil {
+		return err
+	}
 	if err := c.LoadIssue(); err != nil {
 		return err
 	}
@@ -1078,6 +1081,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		UpdateIssueIndexer(comment.IssueID)
 	}
 
+	if err := comment.LoadPoster(); err != nil {
+		return err
+	}
 	if err := comment.LoadIssue(); err != nil {
 		return err
 	}
