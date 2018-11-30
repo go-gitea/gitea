@@ -32,6 +32,7 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"github.com/mcuadros/go-version"
 	"gopkg.in/ini.v1"
@@ -1774,51 +1775,51 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	// Delete comments and attachments.
-	issueIDs := make([]int64, 0, 25)
-	attachmentPaths := make([]string, 0, len(issueIDs))
-	if err = sess.
-		Table("issue").
-		Cols("id").
-		Where("repo_id=?", repoID).
-		Find(&issueIDs); err != nil {
+	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
+	// Delete comments and attachments
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Comment{}); err != nil {
 		return err
 	}
 
-	if len(issueIDs) > 0 {
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Comment{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueUser{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Reaction{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Stopwatch{}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueUser{}); err != nil {
+		return err
+	}
 
-		attachments := make([]*Attachment, 0, 5)
-		if err = sess.
-			In("issue_id", issueIDs).
-			Find(&attachments); err != nil {
-			return err
-		}
-		for j := range attachments {
-			attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Reaction{}); err != nil {
+		return err
+	}
 
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Attachment{}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueWatch{}); err != nil {
+		return err
+	}
 
-		if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Stopwatch{}); err != nil {
+		return err
+	}
+
+	attachmentPaths := make([]string, 0, 20)
+	attachments := make([]*Attachment, 0, len(attachmentPaths))
+	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
+		Where("issue.repo_id = ?", repoID).
+		Find(&attachments); err != nil {
+		return err
+	}
+	for j := range attachments {
+		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Attachment{}); err != nil {
+		return err
+	}
+
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return err
 	}
 
 	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
