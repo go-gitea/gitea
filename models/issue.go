@@ -86,6 +86,11 @@ func (issue *Issue) IsOverdue() bool {
 	return util.TimeStampNow() >= issue.DeadlineUnix
 }
 
+// LoadRepo loads issue's repository
+func (issue *Issue) LoadRepo() error {
+	return issue.loadRepo(x)
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)

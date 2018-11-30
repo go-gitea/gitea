@@ -683,6 +683,10 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
+					if err = otherIssue.LoadRepo(); err != nil {
+						ctx.ServerError("LoadRepo", err)
+						return
+					}
 					// Add link to the issue of the already running stopwatch
 					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
 				}

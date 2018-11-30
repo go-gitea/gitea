@@ -194,6 +194,10 @@ func (a *Action) GetRepoLink() string {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(x)
+}
+
+func (a *Action) getCommentLink(e Engine) string {
 	if a == nil {
 		return "#"
 	}
@@ -213,8 +217,12 @@ func (a *Action) GetCommentLink() string {
 		return "#"
 	}
 
-	issue, err := GetIssueByID(issueID)
+	issue, err := getIssueByID(e, issueID)
 	if err != nil {
+		return "#"
+	}
+
+	if err = issue.loadRepo(e); err != nil {
 		return "#"
 	}
 

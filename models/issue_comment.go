@@ -170,6 +170,11 @@ func (c *Comment) HTMLURL() string {
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
 			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
@@ -198,6 +203,12 @@ func (c *Comment) IssueURL() string {
 	if c.Issue.IsPull {
 		return ""
 	}
+
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
 	return c.Issue.HTMLURL()
 }
 
@@ -206,6 +217,12 @@ func (c *Comment) PRURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -468,6 +485,11 @@ func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
