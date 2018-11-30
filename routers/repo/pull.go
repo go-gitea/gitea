@@ -1069,8 +1069,12 @@ func DownloadPullDiff(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetBaseRepo(); err != nil {
 		ctx.ServerError("GetBaseRepo", err)
 		return
@@ -1103,8 +1107,12 @@ func DownloadPullPatch(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetHeadRepo(); err != nil {
 		ctx.ServerError("GetHeadRepo", err)
 		return
