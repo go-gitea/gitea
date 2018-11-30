@@ -23,10 +23,10 @@
 		</h2>
 		<div class="ui divider"></div>
 
-		{{if (or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypePullRequests))}}
+		{{if (or (.Permission.CanRead $.UnitTypeIssues) (.Permission.CanRead $.UnitTypePullRequests))}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.activity.overview"}}</h4>
 		<div class="ui attached segment two column grid">
-			{{if .Repository.UnitEnabled $.UnitTypePullRequests}}
+			{{if .Permission.CanRead $.UnitTypePullRequests}}
 				<div class="column">
 					{{if gt .Activity.ActivePRCount 0}}
 					<div class="stats-table">
@@ -41,7 +41,7 @@
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n") .Activity.ActivePRCount | Safe }}
 				</div>
 			{{end}}
-			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
+			{{if .Permission.CanRead $.UnitTypeIssues}}
 				<div class="column">
 					{{if gt .Activity.ActiveIssueCount 0}}
 					<div class="stats-table">
@@ -58,7 +58,7 @@
 			{{end}}
 		</div>
 		<div class="ui attached segment horizontal segments">
-			{{if .Repository.UnitEnabled $.UnitTypePullRequests}}
+			{{if .Permission.CanRead $.UnitTypePullRequests}}
 				<a href="#merged-pull-requests" class="ui attached segment text center">
 					<i class="text purple octicon octicon-git-pull-request"></i> <strong>{{.Activity.MergedPRCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n") }}
@@ -68,7 +68,7 @@
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n") }}
 				</a>
 			{{end}}
-			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
+			{{if .Permission.CanRead $.UnitTypeIssues}}
 				<a href="#closed-issues" class="ui attached segment text center">
 					<i class="text red octicon octicon-issue-closed"></i> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n") }}

@@ -109,3 +109,115 @@
   type: 5
   config: "{}"
   created_unix: 1535593231
+
+-
+  id: 17
+  repo_id: 4
+  type: 4
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 18
+  repo_id: 4
+  type: 5
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 19
+  repo_id: 4
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 20
+  repo_id: 4
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 21
+  repo_id: 4
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 22
+  repo_id: 2
+  type: 4
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 23
+  repo_id: 2
+  type: 5
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 24
+  repo_id: 2
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 25
+  repo_id: 32
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 26
+  repo_id: 32
+  type: 2
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 27
+  repo_id: 24
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 28
+  repo_id: 24
+  type: 2
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 29
+  repo_id: 16
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 30
+  repo_id: 23
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 31
+  repo_id: 27
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
+
+-
+  id: 32
+  repo_id: 28
+  type: 1
+  config: "{}"
+  created_unix: 1524304355
