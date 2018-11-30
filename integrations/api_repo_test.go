@@ -164,7 +164,7 @@ func TestAPISearchRepo(t *testing.T) {
 					assert.Len(t, body.Data, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
-						hasAccess, err := models.HasAccess(userID, r, models.AccessModeRead)
+						hasAccess, err := models.HasAccess(userID, r)
 						assert.NoError(t, err)
 						assert.True(t, hasAccess)
 

@@ -2363,8 +2363,13 @@ function initHeatmap(appElementId, heatmapUser, locale) {
             getColor: function(idx) {
                 var el = document.createElement('div');
                 el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
 
-                return getComputedStyle(el).backgroundColor;
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
             }
         },
 

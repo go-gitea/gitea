@@ -23,7 +23,7 @@
 							</div>
 						{{end}}
 						{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) }}
-						{{if or $.IsRepositoryAdmin (eq .Poster.ID $.SignedUserID)}}
+						{{if or $.Permission.IsAdmin (eq .Poster.ID $.SignedUserID)}}
 							<div class="item action">
 								<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
 								<a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
