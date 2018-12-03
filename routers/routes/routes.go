@@ -525,7 +525,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
 
-	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
+	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.RepoMustNotBeArchived(), repo.Action)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
@@ -552,7 +552,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
-			})
+			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
