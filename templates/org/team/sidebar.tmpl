@@ -18,8 +18,7 @@
 			{{end}}
 		</div>
 		<div class="item">
-			<a href="{{.OrgLink}}/teams/{{.Team.LowerName}}"><span class="octicon octicon-person"></span> <strong>{{.Team.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
-			<a href="{{.OrgLink}}/teams/{{.Team.LowerName}}/repositories"><span class="octicon octicon-repo"></span> <strong>{{.Team.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
+			
 		</div>
 		<div class="item">
 			{{if eq .Team.LowerName "owners"}}
