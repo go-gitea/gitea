@@ -587,6 +587,10 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return nil, ErrLoginSourceNotActived
 	}
 
+	if user.ProhibitLogin || !user.IsActive {
+		return nil, ErrUserLoginProhibited{Name: user.Email}
+	}
+
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
 		return LoginViaLDAP(user, login, password, source, autoRegister)
@@ -632,6 +636,9 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.ValidatePassword(password) {
+				if user.ProhibitLogin || !user.IsActive {
+					return nil, ErrUserLoginProhibited{Name: user.Email}
+				}
 				return user, nil
 			}
 

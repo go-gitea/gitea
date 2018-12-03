@@ -90,6 +90,22 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrUserLoginProhibited represents an error during the login if the user is blocked
+type ErrUserLoginProhibited struct {
+	Name string
+}
+
+// IsErrUserLoginProhibited checks if the error is a ErrUserLoginProhibited
+func IsErrUserLoginProhibited(err error) bool {
+	_, ok := err.(ErrUserLoginProhibited)
+	return ok
+}
+
+// formats the error message
+func (err ErrUserLoginProhibited) Error() string {
+	return fmt.Sprintf("user is prohibited from login [name %s]", err.Name)
+}
+
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
 type ErrEmailAlreadyUsed struct {
 	Email string
