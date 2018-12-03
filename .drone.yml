@@ -72,7 +72,7 @@ pipeline:
       - make clean
       - make generate
       - make vet
-      - make revive
+      - make lint
       - make fmt-check
       - make swagger-check
       - make swagger-validate

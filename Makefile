@@ -126,12 +126,12 @@ errcheck:
 	fi
 	errcheck $(PACKAGES)
 
-.PHONY: revive
-revive:
+.PHONY: lint
+lint:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/mgechev/revive; \
 	fi
-	revive -config config.toml -exclude=./vendor/... ./... || exit 1
+	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
 
 .PHONY: misspell-check
 misspell-check:
