@@ -38,27 +38,6 @@ func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
 	ctx.JSON(200, repo)
 }
 
-//AccessLevel chainload to models.AccessLevel
-func AccessLevel(ctx *macaron.Context) {
-	repoID := ctx.ParamsInt64(":repoid")
-	userID := ctx.ParamsInt64(":userid")
-	repo, err := models.GetRepositoryByID(repoID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	al, err := models.AccessLevel(userID, repo)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-	ctx.JSON(200, al)
-}
-
 //CheckUnitUser chainload to models.CheckUnitUser
 func CheckUnitUser(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")
@@ -70,11 +49,27 @@ func CheckUnitUser(ctx *macaron.Context) {
 		})
 		return
 	}
-	if repo.CheckUnitUser(userID, ctx.QueryBool("isAdmin"), models.UnitType(ctx.QueryInt("unitType"))) {
-		ctx.PlainText(200, []byte("success"))
+
+	var user *models.User
+	if userID > 0 {
+		user, err = models.GetUserByID(userID)
+		if err != nil {
+			ctx.JSON(500, map[string]interface{}{
+				"err": err.Error(),
+			})
+			return
+		}
+	}
+
+	perm, err := models.GetUserRepoPermission(repo, user)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
 		return
 	}
-	ctx.PlainText(404, []byte("no access"))
+
+	ctx.JSON(200, perm.UnitAccessMode(models.UnitType(ctx.QueryInt("unitType"))))
 }
 
 // RegisterRoutes registers all internal APIs routes to web application.
@@ -85,7 +80,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
-		m.Get("/repositories/:repoid/user/:userid/accesslevel", AccessLevel)
 		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
 		m.Post("/push/update", PushUpdate)

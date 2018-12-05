@@ -458,7 +458,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return nil
 	}
 
-	mode, _ := AccessLevel(doer.ID, pr.Issue.Repo)
+	mode, _ := AccessLevel(doer, pr.Issue.Repo)
 	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
@@ -787,7 +787,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	pr.Issue = pull
 	pull.PullRequest = pr
-	mode, _ := AccessLevel(pull.Poster.ID, repo)
+	mode, _ := AccessLevel(pull.Poster, repo)
 	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,

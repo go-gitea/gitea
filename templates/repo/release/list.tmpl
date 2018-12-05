@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		<h2 class="ui header">
 			{{.i18n.Tr "repo.release.releases"}}
-			{{if .IsRepositoryWriter}}
+			{{if .CanCreateRelease}}
 				<div class="ui right">
 					<a class="ui small green button" href="{{$.RepoLink}}/releases/new">
 						{{.i18n.Tr "repo.release.new_release"}}
@@ -41,7 +41,7 @@
 								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</h4>
 							<div class="download">
-							{{if $.Repository.UnitEnabled $.UnitTypeCode}}
+							{{if $.Permission.CanRead $.UnitTypeCode}}
 								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
@@ -50,7 +50,7 @@
 						{{else}}
 							<h3>
 								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
-								{{if $.IsRepositoryWriter}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
+								{{if $.CanCreateRelease}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
 							</h3>
 							<p class="text grey">
 								<span class="author">
@@ -66,7 +66,7 @@
 							<div class="download">
 								<h2>{{$.i18n.Tr "repo.release.downloads"}}</h2>
 								<ul class="list">
-									{{if $.Repository.UnitEnabled $.UnitTypeCode}}
+									{{if $.Permission.CanRead $.UnitTypeCode}}
 									<li>
 										<a href="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 									</li>

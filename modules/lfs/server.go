@@ -497,12 +497,12 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
-	if !repository.IsPrivate && !requireWrite {
-		return true
+	perm, err := models.GetUserRepoPermission(repository, ctx.User)
+	if err != nil {
+		return false
 	}
 	if ctx.IsSigned {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
@@ -511,8 +511,11 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 	ctx.User = user
 	if opStr == "basic" {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+		perm, err = models.GetUserRepoPermission(repository, ctx.User)
+		if err != nil {
+			return false
+		}
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 	if repository.ID == repo.ID {
 		if requireWrite && opStr != "upload" {
