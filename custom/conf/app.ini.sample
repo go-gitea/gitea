@@ -547,7 +547,7 @@ SCHEDULE = @every 10m
 SCHEDULE = @every 24h
 TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
-; see more on http://git-scm.com/docs/git-fsck/1.7.5
+; see more on http://git-scm.com/docs/git-fsck
 ARGS =
 
 ; Check repository statistics
@@ -586,7 +586,7 @@ MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
-; see more on http://git-scm.com/docs/git-gc/1.7.5
+; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 
 ; Operation timeout in seconds
