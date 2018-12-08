@@ -19,6 +19,10 @@
 								<strong>{{$.Org.Name}}/{{.Name}}</strong>
 							</a>
 						</div>
+					{{else}}
+						<div class="item">
+							<span class="text grey italic">{{$.i18n.Tr "org.teams.repos.none"}}</span>
+						</div>
 					{{end}}
 				</div>
 				{{if $canAddRemove}}
