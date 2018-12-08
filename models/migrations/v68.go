@@ -25,7 +25,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 
 	type Topic struct {
 		ID          int64
-		Name        string `xorm:"UNIQUE"`
+		Name        string `xorm:"UNIQUE VARCHAR(25)"`
 		RepoCount   int
 		CreatedUnix int64 `xorm:"INDEX created"`
 		UpdatedUnix int64 `xorm:"INDEX updated"`
