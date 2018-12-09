@@ -37,8 +37,23 @@ func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 		if unit.Config == nil {
 			unit.Config = make(map[string]interface{})
 		}
+		// Allow the new merge style if all other merge styles are allowed
+		allowMergeRebase := true
+
+		if allowMerge, ok := unit.Config["AllowMerge"]; ok {
+			allowMergeRebase = allowMergeRebase && allowMerge.(bool)
+		}
+
+		if allowRebase, ok := unit.Config["AllowRebase"]; ok {
+			allowMergeRebase = allowMergeRebase && allowRebase.(bool)
+		}
+
+		if allowSquash, ok := unit.Config["AllowSquash"]; ok {
+			allowMergeRebase = allowMergeRebase && allowSquash.(bool)
+		}
+
 		if _, ok := unit.Config["AllowRebaseMerge"]; !ok {
-			unit.Config["AllowRebaseMerge"] = true
+			unit.Config["AllowRebaseMerge"] = allowMergeRebase
 		}
 		if _, err := sess.ID(unit.ID).Cols("config").Update(unit); err != nil {
 			return err
