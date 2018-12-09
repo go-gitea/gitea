@@ -15,11 +15,11 @@
 package collector
 
 import (
+	"context"
 	"time"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
-	"golang.org/x/net/context"
 )
 
 type collectorStore interface {

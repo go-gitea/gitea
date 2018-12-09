@@ -57,7 +57,13 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if !forkRepo.CanBeForked() || !forkRepo.HasAccess(ctx.User) {
+	perm, err := models.GetUserRepoPermission(forkRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil
+	}
+
+	if forkRepo.IsBare || !perm.CanRead(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -264,7 +270,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
-			ctx.Data["IsPullReuqestBroken"] = true
+			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = "deleted"
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
@@ -302,7 +308,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 	}
 
 	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
-		ctx.Data["IsPullReuqestBroken"] = true
+		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["HeadTarget"] = "deleted"
 		ctx.Data["NumCommits"] = 0
 		ctx.Data["NumFiles"] = 0
@@ -313,7 +319,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
-			ctx.Data["IsPullReuqestBroken"] = true
+			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = "deleted"
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
@@ -323,6 +329,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.ServerError("GetPullRequestInfo", err)
 		return nil
 	}
+
+	if pull.IsWorkInProgress() {
+		ctx.Data["IsPullWorkInProgress"] = true
+		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -383,6 +395,12 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 	pull := issue.PullRequest
+
+	whitespaceFlags := map[string]string{
+		"ignore-all":    "-w",
+		"ignore-change": "-b",
+		"ignore-eol":    "--ignore-space-at-eol",
+		"":              ""}
 
 	var (
 		diffRepoPath  string
@@ -449,13 +467,20 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
-	diff, err := models.GetDiffRange(diffRepoPath,
+	diff, err := models.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
 	if err != nil {
-		ctx.ServerError("GetDiffRange", err)
+		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return
 	}
+
+	if err = diff.LoadComments(issue, ctx.User); err != nil {
+		ctx.ServerError("LoadComments", err)
+		return
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
@@ -470,7 +495,16 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
-
+	ctx.Data["RequireTribute"] = true
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
+	if err != nil && !models.IsErrReviewNotExist(err) {
+		ctx.ServerError("GetCurrentReview", err)
+		return
+	}
 	ctx.HTML(200, tplPullFiles)
 }
 
@@ -498,6 +532,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if pr.IsWorkInProgress() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
 
@@ -549,7 +589,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
+	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
@@ -638,7 +678,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
+	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
@@ -735,6 +780,7 @@ func CompareAndPullRequest(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -778,6 +824,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	renderAttachmentSettings(ctx)
 
 	var (
@@ -790,7 +837,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
 		return
 	}
@@ -855,7 +902,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	notification.Service.NotifyIssue(pullIssue, ctx.User.ID)
+	notification.NotifyNewPullRequest(pullRequest)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
@@ -936,7 +983,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.User.IsWriterOfRepo(pr.HeadRepo) {
+	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}

@@ -88,6 +88,7 @@ func (r *Release) APIFormat() *api.Release {
 		ID:           r.ID,
 		TagName:      r.TagName,
 		Target:       r.Target,
+		Title:        r.Title,
 		Note:         r.Note,
 		URL:          r.APIURL(),
 		TarURL:       r.TarURL(),
@@ -114,9 +115,9 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 	// Only actual create when publish.
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
-			commit, err := gitRepo.GetBranchCommit(rel.Target)
+			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+				return fmt.Errorf("GetCommit: %v", err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
@@ -199,7 +200,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		if err := rel.LoadAttributes(); err != nil {
 			log.Error(2, "LoadAttributes: %v", err)
 		} else {
-			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
+			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 				Action:     api.HookReleasePublished,
 				Release:    rel.APIFormat(),
@@ -391,7 +392,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
-	mode, _ := accessLevel(x, doer.ID, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
@@ -416,13 +417,6 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	repo, err := GetRepositoryByID(rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
-	}
-
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
-	if err != nil {
-		return fmt.Errorf("HasAccess: %v", err)
-	} else if !has {
-		return fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
 	if delTag {
@@ -453,7 +447,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := accessLevel(x, u.ID, rel.Repo)
+	mode, _ := AccessLevel(u, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),

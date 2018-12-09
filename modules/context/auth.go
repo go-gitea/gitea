@@ -31,10 +31,31 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		}
 
 		// Check prohibit login users.
-		if ctx.IsSigned && ctx.User.ProhibitLogin {
-			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(200, "user/auth/prohibit_login")
-			return
+		if ctx.IsSigned {
+
+			if ctx.User.ProhibitLogin {
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(200, "user/auth/prohibit_login")
+				return
+			}
+
+			// prevent infinite redirection
+			// also make sure that the form cannot be accessed by
+			// users who don't need this
+			if ctx.Req.URL.Path == setting.AppSubURL+"/user/settings/change_password" {
+				if !ctx.User.MustChangePassword {
+					ctx.Redirect(setting.AppSubURL + "/")
+				}
+				return
+			}
+
+			if ctx.User.MustChangePassword {
+				ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+				ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+				ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+				ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
+				return
+			}
 		}
 
 		// Redirect to dashboard if user tries to visit any non-login page.

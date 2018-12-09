@@ -195,6 +195,12 @@ var migrations = []Migration{
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
+	NewMigration("protect each scratch token", addScratchHash),
+	// v72 -> v73
+	NewMigration("add review", addReview),
+	// v73 -> v74
+	NewMigration("add must_change_password column for users table", addMustChangePassword),
+	// v74 -> 75
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 }
 

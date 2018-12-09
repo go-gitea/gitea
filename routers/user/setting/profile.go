@@ -103,7 +103,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	// Update the language to the one we just set
-	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL)
+	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
@@ -119,7 +119,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		ctxUser.AvatarEmail = form.Gravatar
 	}
 
-	if form.Avatar.Filename != "" {
+	if form.Avatar != nil && form.Avatar.Filename != "" {
 		fr, err := form.Avatar.Open()
 		if err != nil {
 			return fmt.Errorf("Avatar.Open: %v", err)

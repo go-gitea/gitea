@@ -42,6 +42,10 @@ TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+SWAGGER_SPEC := templates/swagger/v1_json.tmpl
+SWAGGER_SPEC_S_TMPL := s|"basePath":\s*"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath":\s*"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
+
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
@@ -94,11 +98,12 @@ generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger generate spec -o ./public/swagger.v1.json
+	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff public/swagger.v1.json); \
+	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
@@ -110,7 +115,9 @@ swagger-validate:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger validate ./public/swagger.v1.json
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	swagger validate './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:
@@ -121,10 +128,10 @@ errcheck:
 
 .PHONY: lint
 lint:
-	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/golang/lint/golint; \
+	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/mgechev/revive; \
 	fi
-	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
+	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
 
 .PHONY: misspell-check
 misspell-check:
@@ -152,7 +159,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test -tags=sqlite $(PACKAGES)
+	$(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -163,7 +170,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	for PKG in $(PACKAGES); do $(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: vendor
 vendor:
@@ -227,7 +234,7 @@ integrations.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
@@ -340,6 +347,8 @@ update-translations:
 generate-images:
 	mkdir -p $(TMPDIR)/images
 	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
+	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png
+	inkscape -f $(PWD)/assets/logo.svg -w 192 -h 192 -e $(PWD)/public/img/gitea-192.png
 	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
 	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
 	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png

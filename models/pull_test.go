@@ -237,3 +237,34 @@ func TestChangeUsernameInPullRequests(t *testing.T) {
 	}
 	CheckConsistencyFor(t, &PullRequest{})
 }
+
+func TestPullRequest_IsWorkInProgress(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.LoadIssue()
+
+	assert.False(t, pr.IsWorkInProgress())
+
+	pr.Issue.Title = "WIP: " + pr.Issue.Title
+	assert.True(t, pr.IsWorkInProgress())
+
+	pr.Issue.Title = "[wip]: " + pr.Issue.Title
+	assert.True(t, pr.IsWorkInProgress())
+}
+
+func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.LoadIssue()
+
+	assert.Empty(t, pr.GetWorkInProgressPrefix())
+
+	original := pr.Issue.Title
+	pr.Issue.Title = "WIP: " + original
+	assert.Equal(t, "WIP:", pr.GetWorkInProgressPrefix())
+
+	pr.Issue.Title = "[wip] " + original
+	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
+}

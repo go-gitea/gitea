@@ -6,7 +6,7 @@ File(s): /vendor/plugins/jquery.areyousure/jquery.are-you-sure.js
 Version: 1.9.0
 
 File(s): /vendor/plugins/jquery/jquery.min.js
-Version: 1.11.3
+Version: 1.12.4
 
 File(s): /vendor/plugins/semantic/semantic.min.js
 Version: 2.3.1
@@ -58,3 +58,12 @@ Version: 4.3.0
 
 File(s): /vendor/assets/swagger-ui/
 Version: 3.0.4
+
+File(s): /vendor/plugins/d3/
+Version: 4.13.0
+
+File(s): /vendor/plugins/calendar-heatmap/
+Version: 337b431
+
+File(s): /vendor/plugins/moment/
+Version: 2.22.2

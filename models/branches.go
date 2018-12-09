@@ -74,7 +74,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 		return true
 	}
 
-	if len(protectBranch.WhitelistTeamIDs) == 0 {
+	if len(protectBranch.MergeWhitelistTeamIDs) == 0 {
 		return false
 	}
 
@@ -184,6 +184,24 @@ func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, 
 		BranchName: branchName,
 	}
 
+	has, err := x.Exist(protectedBranch)
+	if err != nil {
+		return true, err
+	}
+	return has, nil
+}
+
+// IsProtectedBranchForPush checks if branch is protected for push
+func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
+	protectedBranch := &ProtectedBranch{
+		RepoID:     repo.ID,
+		BranchName: branchName,
+	}
+
 	has, err := x.Get(protectedBranch)
 	if err != nil {
 		return true, err
@@ -225,10 +243,16 @@ func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		has, err := hasAccess(x, userID, repo, AccessModeWrite)
+		user, err := GetUserByID(userID)
 		if err != nil {
-			return nil, fmt.Errorf("HasAccess [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
-		} else if !has {
+			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+		}
+		perm, err := GetUserRepoPermission(repo, user)
+		if err != nil {
+			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+		}
+
+		if !perm.CanWrite(UnitTypeCode) {
 			continue // Drop invalid user ID
 		}
 
