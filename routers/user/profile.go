@@ -235,17 +235,7 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
-	var showEmail bool
-
-	if len(ctxUser.Email) > 0 && ctx.IsSigned && !ctxUser.KeepEmailPrivate {
-		showEmail = true
-	} else if ctx.IsSigned {
-		// Show email if the authenticated user owns the profile
-		// being viewed
-		showEmail = ctxUser.ID == ctx.User.ID
-	}
-
-	ctx.Data["ShowUserEmail"] = showEmail
+	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(200, tplProfile)
 }
