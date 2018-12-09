@@ -1026,7 +1026,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
-	RewriteAllPublicKeys()
+	rewriteAllPublicKeys(e)
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
@@ -1088,6 +1088,7 @@ func DeleteUser(u *User) (err error) {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	return RewriteAllPublicKeys()
 }
