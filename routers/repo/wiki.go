@@ -74,7 +74,6 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
 		return wikiRepo, nil, err
 	}
 	return wikiRepo, commit, nil
@@ -112,6 +111,9 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
+		if !git.IsErrNotExist(err) {
+			ctx.ServerError("GetBranchCommit", err)
+		}
 		return nil, nil
 	}
 
