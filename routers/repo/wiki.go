@@ -74,7 +74,6 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
 		return wikiRepo, nil, err
 	}
 	return wikiRepo, commit, nil
