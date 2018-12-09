@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -63,11 +62,6 @@ var (
 	}
 )
 
-func hookSetup(logPath string) {
-	setting.NewContext()
-	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-}
-
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
@@ -79,7 +73,7 @@ func runHookPreReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	hookSetup("hooks/pre-receive.log")
+	setup("hooks/pre-receive.log")
 
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
@@ -155,7 +149,7 @@ func runHookUpdate(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	hookSetup("hooks/update.log")
+	setup("hooks/update.log")
 
 	return nil
 }
@@ -171,7 +165,7 @@ func runHookPostReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	hookSetup("hooks/post-receive.log")
+	setup("hooks/post-receive.log")
 
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
