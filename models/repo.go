@@ -1771,6 +1771,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&RepoRedirect{RedirectRepoID: repoID},
 		&Webhook{RepoID: repoID},
 		&HookTask{RepoID: repoID},
+		&Notification{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
