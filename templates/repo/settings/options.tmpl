@@ -266,7 +266,7 @@
 		</div>
 		{{end}}
 
-		{{if .IsRepositoryOwner}}
+		{{if .Permission.IsOwner}}
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
 		</h4>
@@ -294,7 +294,7 @@
 				</div>
 			</div>
 
-			{{if .Repository.UnitEnabled $.UnitTypeWiki}}
+			{{if .Permission.CanRead $.UnitTypeWiki}}
 				<div class="ui divider"></div>
 
 				<div class="item">
@@ -324,7 +324,7 @@
 	</div>
 </div>
 
-{{if .IsRepositoryOwner}}
+{{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
 	<div class="ui small modal" id="convert-repo-modal">
 		<div class="header">

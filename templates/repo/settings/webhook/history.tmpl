@@ -1,7 +1,7 @@
 {{if .PageIsSettingsHooksEdit}}
 	<h4 class="ui top attached header">
 		{{.i18n.Tr "repo.settings.recent_deliveries"}}
-		{{if .IsRepositoryAdmin}}
+		{{if .Permission.IsAdmin}}
 			<div class="ui right">
 				<button class="ui teal tiny button poping up" id="test-delivery" data-content=
 				"{{.i18n.Tr "repo.settings.webhook.test_delivery_desc"}}" data-variation="inverted tiny" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.i18n.Tr "repo.settings.webhook.test_delivery"}}</button>

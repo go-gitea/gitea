@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.11-alpine3.7 AS build-env
+FROM golang:1.11-alpine3.8 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
@@ -18,7 +18,7 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean generate build
 
-FROM alpine:3.7
+FROM alpine:3.8
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
