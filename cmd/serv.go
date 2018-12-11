@@ -144,11 +144,15 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	isWiki := false
-	unitType := models.UnitTypeCode
+	var (
+		isWiki   bool
+		unitType = models.UnitTypeCode
+		unitName = "code"
+	)
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = models.UnitTypeWiki
+		unitName = "wiki"
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -245,7 +249,7 @@ func runServ(c *cli.Context) error {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
-					"User %s does not have level %v access to repository %s",
+					"User %s does not have level %v access to repository %s's "+unitName,
 					user.Name, requestedMode, repoPath)
 			}
 
@@ -304,7 +308,7 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verb, repoPath)
 	}
 	if isWiki {
-		if err = repo.InitWiki(); err != nil {
+		if err = private.InitWiki(repo.ID); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)
 		}
 	}
