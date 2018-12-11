@@ -535,6 +535,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	return RewriteAllPublicKeys()
 }
@@ -543,6 +544,10 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
+	return rewriteAllPublicKeys(x)
+}
+
+func rewriteAllPublicKeys(e Engine) error {
 	//Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer {
 		return nil
@@ -569,7 +574,7 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	err = e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
