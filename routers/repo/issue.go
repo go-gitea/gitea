@@ -828,6 +828,14 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = ""
 			}
 		}
+		if err = pull.LoadProtectedBranch(); err != nil {
+			ctx.ServerError("LoadProtectedBranch", err)
+			return
+		}
+		if pull.ProtectedBranch != nil {
+			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
+			ctx.Data["GrantedApprovals"] = pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
 		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
