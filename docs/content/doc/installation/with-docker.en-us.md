@@ -19,8 +19,8 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-This reference setup guides users through the setup based on `docker-compose`, the installation
-of `docker-compose` is out of scope of this documentation. To install `docker-compose` follow
+This reference setup guides users through the setup based on `docker-compose`, but the installation
+of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
 ## Basics
@@ -267,3 +267,16 @@ be placed in `/data/gitea` directory. If using host volumes it's quite easy to a
 files; for named volumes this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
+
+# Upgrading
+
+:exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:**
+
+To upgrade your installation to the latest release:
+```
+# Edit `docker-compose.yml` to update the version, if you have one specified
+# Pull new images
+docker-compose pull
+# Start a new container, automatically removes old one
+docker-compose up -d
+```

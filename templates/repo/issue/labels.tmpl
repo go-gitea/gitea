@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if .IsRepositoryWriter}}
+			{{if or .CanWriteIssues .CanWritePulls}}
 				<div class="ui right">
 					<div class="ui green new-label button">{{.i18n.Tr "repo.issues.new_label"}}</div>
 				</div>
@@ -57,7 +57,7 @@
 		{{template "base/alert" .}}
 		<div class="ui black label">{{.i18n.Tr "repo.issues.label_count" .NumLabels}}</div>
 		<div class="label list">
-			{{if and $.IsRepositoryWriter (eq .NumLabels 0)}}
+			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0)}}
 				<div class="ui centered grid">
 					<div class="twelve wide column eight wide computer column">
 						<div class="ui attached left aligned segment">
@@ -105,7 +105,7 @@
 							<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 						</div>
 						<div class="three wide column">
-						{{if $.IsRepositoryWriter}}
+						{{if or $.CanWriteIssues $.CanWritePulls}}
 							<a class="ui right delete-button" href="#" data-url="{{$.RepoLink}}/labels/delete" data-id="{{.ID}}"><i class="octicon octicon-trashcan"></i> {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 							<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 						{{end}}
@@ -117,7 +117,7 @@
 	</div>
 </div>
 
-{{if .IsRepositoryWriter}}
+{{if or $.CanWriteIssues $.CanWritePulls}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
 			<i class="trash icon"></i>
