@@ -80,7 +80,13 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Cache:      autocert.DirCache(directory),
 		Email:      email,
 	}
-	go http.ListenAndServe(listenAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler))) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validatio happens here)
+	go func() {
+		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
+		var err = http.ListenAndServe(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler))) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+		if err != nil {
+			log.Fatal(4, "Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
+		}
+	}()
 	server := &http.Server{
 		Addr:    listenAddr,
 		Handler: m,
