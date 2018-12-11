@@ -6,7 +6,6 @@
 package models
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/url"
@@ -36,7 +35,6 @@ type Engine interface {
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
-	Exec(string, ...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
