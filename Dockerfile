@@ -48,8 +48,6 @@ RUN addgroup \
     git && \
   echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
-RUN echo "AcceptEnv GIT_PROTOCOL" >> /etc/ssh/sshd_config
-
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
 
