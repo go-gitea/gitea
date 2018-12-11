@@ -161,6 +161,23 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
+func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
+	reviews = make([]*Review, 0)
+	if err := e.
+		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
+		OrderBy("updated_unix").
+		GroupBy("reviewer_id").
+		Find(&reviews); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
+func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
+	return getUniqueApprovalsByPullRequestID(x, prID)
+}
+
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	Type       ReviewType
