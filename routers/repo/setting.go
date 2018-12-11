@@ -405,19 +405,6 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() {
-		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
-		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
-			return
-		} else if isMember {
-			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-			return
-		}
-	}
-
 	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")

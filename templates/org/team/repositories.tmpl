@@ -6,9 +6,7 @@
 		<div class="ui grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
-				<div class="ui top attached header">
-					{{.i18n.Tr "org.teams.repositories"}}
-				</div>
+				{{template "org/team/navbar" .}}
 				<div class="ui attached table segment repositories">
 					{{$canAddRemove := and $.IsOrganizationOwner (not (eq $.Team.LowerName "owners"))}}
 					{{range .Team.Repos}}
@@ -20,6 +18,10 @@
 								<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
 								<strong>{{$.Org.Name}}/{{.Name}}</strong>
 							</a>
+						</div>
+					{{else}}
+						<div class="item">
+							<span class="text grey italic">{{$.i18n.Tr "org.teams.repos.none"}}</span>
 						</div>
 					{{end}}
 				</div>

@@ -284,7 +284,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `SCHEDULE`: **every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
-- `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`.
+- `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
@@ -296,7 +296,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINES`: **100**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
-- `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+- `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 
 ## Git - Timeout settings (`git.timeout`)
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.

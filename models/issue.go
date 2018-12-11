@@ -329,6 +329,10 @@ func (issue *Issue) APIFormat() *api.Issue {
 		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
+	if issue.ClosedUnix != 0 {
+		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
+	}
+
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}

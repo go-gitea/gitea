@@ -502,7 +502,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	if owner.IsOrganization() {
+	if owner.IsOrganization() && !ctx.User.IsAdmin {
 		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
 		if err != nil {
 			ctx.Error(500, "IsOwnedBy", err)
