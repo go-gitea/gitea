@@ -28,7 +28,7 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	case setting.UsePostgreSQL:
 		groupBy = "extract(epoch from date_trunc('day', to_timestamp(created_unix)))"
 	case setting.UseMSSQL:
-		groupBy = "dateadd(DAY,0, datediff(day,0, dateadd(s, created_unix, '19700101')))"
+		groupBy = "datediff(SECOND, '19700101', dateadd(DAY, 0, datediff(day, 0, dateadd(s, created_unix, '19700101'))))"
 		groupByName = groupBy
 	}
 
