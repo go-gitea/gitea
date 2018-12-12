@@ -33,6 +33,7 @@ func (p *TelegramPayload) SetSecret(_ string) {}
 // JSONPayload Marshals the TelegramPayload to json
 func (p *TelegramPayload) JSONPayload() ([]byte, error) {
 	p.ParseMode = "HTML"
+	p.Message = strings.Replace(p.Message, "<!--", "\\<!--", -1)
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return []byte{}, err
