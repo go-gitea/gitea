@@ -180,7 +180,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isCadFile {
 		// TODO
 		// - private repo -> how?
-		// - cache -> how?
 
 		// - DEBUG
 		fmt.Println("Calling Python")

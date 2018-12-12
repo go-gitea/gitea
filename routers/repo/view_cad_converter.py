@@ -14,8 +14,8 @@ import hashlib
 import imp
 import json
 import logging
-from os import remove
-from os.path import splitext, basename, join, isfile
+from os import remove, getcwd, chdir, system
+from os.path import splitext, basename, join, isfile, dirname
 import sys
 import time
 import uuid
@@ -573,7 +573,121 @@ def convert_stl_file(stl_filename, target_folder):
                                            basename(stl_filename)))
 
 
-def convert_py_file(py_filename, target_folder):
+def convert_py_file_part(py_filename, target_folder):
+    r"""Convert an OsvCad Python file that contains a part for web display
+
+    The Python file contains the definition of a part.
+
+    Parameters
+    ----------
+    py_filename : str
+        Full path to the Python file
+    target_folder : str
+        Full path to the target folder for the conversion
+
+    Returns
+    -------
+    Nothing, it is a procedure
+
+    Raises
+    ------
+    ValueError if not a part definition
+
+    """
+    part = Part.from_py_script(py_filename)
+    shape = part.node_shape.shape
+    converted_filename = _conversion_filename(target_folder,
+                                              basename(py_filename),
+                                              0)
+    converted_basenames = [basename(converted_filename)]
+    _convert_shape(shape, converted_filename)
+
+    _write_descriptor(BoundingBox(shape).max_dimension,
+                      converted_basenames,
+                      _descriptor_filename(target_folder,
+                                           basename(py_filename)))
+    remove(py_filename)
+
+
+def convert_py_file_assembly(py_filename, target_folder, clone_url, branch):
+    r"""
+
+    **** WORK IN PROGRESS ****
+
+    Parameters
+    ----------
+    py_filename
+    target_folder
+    clone_url
+    branch
+
+    Returns
+    -------
+
+    """
+    logger.info("Dealing with a Python file that is supposed to "
+                "define an assembly")
+    # -1- change working dir to converted_files
+    working_dir_initial = getcwd()
+    chdir(target_folder)
+    # 0 - Git clone
+    logger.info("Git cloning %s into %s" % (clone_url, target_folder))
+
+    # from subprocess import call
+    # call(["cd", target_folder, "&&", "git", "clone", clone_url])
+    system("cd %s && git clone %s" % (target_folder, clone_url))
+
+    project = clone_url.split("/")[-1]
+
+    # 1 - Git checkout the right branch/commit
+    logger.info("Git checkout %s of %s" % (branch, project))
+    system("cd %s/%s && git checkout %s" % (target_folder,
+                                               project,
+                                               branch))
+
+    # 2 - Alter sys.path
+    logger.info("Git checkout %s of %s" % (branch, project))
+    sys_path_initial = sys.path
+    path_extra = "%s/%s" % (target_folder, project)
+    logger.info("Appending sys.path with %s" % path_extra)
+    sys.path.append(path_extra)
+
+    # Useless : adding converted_files to sys.path
+    # logger.info("Appending sys.path with %s" % dirname(py_filename))
+    # sys.path.append(dirname(py_filename))
+
+    # 3 - Run osvcad functions
+    converted_basenames = []
+    # TODO : THE PROBLEM IS THAT WE ARE IMPORTING THE FILE OUTSIDE OF THE
+    # CONTEXT OF ITS PROJECT
+    module_ = imp.load_source(splitext(basename(py_filename))[0],
+                              py_filename)
+    assembly = getattr(module_, "assembly")
+
+    for i, node in enumerate(assembly.nodes()):
+        shape = node.node_shape.shape
+        converted_filename = _conversion_filename(target_folder,
+                                                  basename(py_filename),
+                                                  i)
+        converted_basenames.append(basename(converted_filename))
+        _convert_shape(shape, converted_filename)
+    # TODO : max_dim
+    _write_descriptor(1000,
+                      converted_basenames,
+                      _descriptor_filename(target_folder,
+                                           basename(py_filename)))
+    remove(py_filename)
+
+    # 4 - Put sys.path back to where it was
+    sys.path = sys_path_initial
+    # 5 - Set back the working dir
+    chdir(working_dir_initial)
+    # 6 - Cleanup
+
+    # TODO : remove folder created by git clone or the next clone will fail
+
+
+def convert_py_file(py_filename, target_folder, clone_url, branch):
     r"""Convert an OsvCad Python file for web display
 
     The Python file can contain the definition of a part or of an assembly
@@ -591,42 +705,17 @@ def convert_py_file(py_filename, target_folder):
 
     """
     try:
-        part = Part.from_py_script(py_filename)
-        shape = part.node_shape.shape
-        converted_filename = _conversion_filename(target_folder,
-                                                  basename(py_filename),
-                                                  0)
-        converted_basenames = [basename(converted_filename)]
-        _convert_shape(shape, converted_filename)
-
-        _write_descriptor(BoundingBox(shape).max_dimension,
-                          converted_basenames,
-                          _descriptor_filename(target_folder,
-                                               basename(py_filename)))
-        remove(py_filename)
-    except ValueError:  # probably no part attribute in module
+        convert_py_file_part(py_filename, target_folder)
+    except (ValueError, FileNotFoundError, ImportError):
+        # probably no part attribute in module
         msg = "No part attribute in module"
         logger.warning(msg)
         try:
-            # TODO : FIXME
-            # Does not work because of import paths
-            converted_basenames = []
-            module_ = imp.load_source(splitext(basename(py_filename))[0],
-                                      py_filename)
-            assembly = getattr(module_, "assembly")
+            convert_py_file_assembly(py_filename,
+                                     target_folder,
+                                     clone_url,
+                                     branch)
 
-            for i, node in enumerate(assembly.nodes()):
-                shape = node.node_shape.shape
-                converted_filename = _conversion_filename(target_folder,
-                                                          basename(py_filename),
-                                                          i)
-                converted_basenames.append(basename(converted_filename))
-                _convert_shape(shape, converted_filename)
-            # TODO : max_dim
-            _write_descriptor(converted_basenames,
-                              _descriptor_filename(target_folder,
-                                                   basename(py_filename)))
-            remove(py_filename)
         except AttributeError:
             msg = "No part nor assembly attribute in module"
             logger.error(msg)
@@ -680,8 +769,21 @@ def main():
                                ':: %(lineno)3d :: %(message)s')
 
     # Retrieve parameters from command
-    cad_file_raw_url = sys.argv[1]  # Direct download URL for the file
-    converted_files_folder = sys.argv[2]  # Root destination for converted files
+    # cad_file_raw_url = sys.argv[1]  # Direct download URL for the file
+    raw_link = sys.argv[1]
+    tree_path = sys.argv[2]
+    cad_file_raw_url = "%s/%s" % (raw_link, tree_path)
+    converted_files_folder = sys.argv[3]  # Root destination for converted files
+
+    branch = raw_link.split("/")[-1]
+    user = raw_link.split("/")[1]
+    project = raw_link.split("/")[2]
+    clone_url = "%s/%s/%s" % (GITEA_URL, user, project)
+
+    logger.info("raw_link is %s" % raw_link)
+    logger.info("Branch is %s" % branch)
+    logger.info("User is %s" % user)
+    logger.info("Project is %s" % project)
 
     cad_file_raw_url_full = "%s%s" % (GITEA_URL, cad_file_raw_url)
 
@@ -705,8 +807,19 @@ def main():
                            ".stepzip": convert_stepzip_file}
 
     try:
-        conversion_function[splitext(cad_file_raw_url)[1].lower()](cad_file_filename,
-                                                                   converted_files_folder)
+        if splitext(cad_file_raw_url)[1].lower() != ".py":
+            conversion_function[splitext(cad_file_raw_url)[1].lower()](
+                cad_file_filename, converted_files_folder)
+        else:
+            logger.info("Dealing with a Python file")
+            logger.debug("cad_file_filename : %s" % cad_file_filename)
+            logger.debug("converted_files_folder : %s" % converted_files_folder)
+            logger.debug("clone_url : %s" % clone_url)
+            logger.debug("branch : %s" % branch)
+            convert_py_file(cad_file_filename,
+                            converted_files_folder,
+                            clone_url,
+                            branch)
         t1 = time.time()
         logger.info("The whole Python call took %f" % (t1 - t0))
         sys.exit(0)
