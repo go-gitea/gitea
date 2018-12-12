@@ -51,8 +51,6 @@
 {{end}}
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
-
-	{{if .Assignees}}
 	<script>
 		var issuesTribute = new Tribute({
 			values: [
@@ -73,7 +71,6 @@
 		})
 		issuesTribute.attach(document.getElementById('content'))
 	</script>
-	{{end}}
 	<script>
 		var emojiTribute = new Tribute({
 			collection: [{
