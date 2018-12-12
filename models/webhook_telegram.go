@@ -19,6 +19,12 @@ type (
 		Message   string `json:"text"`
 		ParseMode string `json:"parse_mode"`
 	}
+
+	// TelegramMeta contains the telegram metadata
+	TelegramMeta struct {
+		BotToken string `json:"bot_token"`
+		ChatID   string `json:"chat_id"`
+	}
 )
 
 // SetSecret sets the telegram secret

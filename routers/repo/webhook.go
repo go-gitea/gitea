@@ -332,14 +332,23 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 		return
 	}
 
+	meta, err := json.Marshal(&models.TelegramMeta{
+		BotToken: form.BotToken,
+		ChatID:   form.ChatID,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
+		URL:          fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
 		ContentType:  models.ContentTypeJSON,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
 		HookTaskType: models.TELEGRAM,
-		Meta:         "",
+		Meta:         string(meta),
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -442,6 +451,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		ctx.Data["SlackHook"] = w.GetSlackHook()
 	case models.DISCORD:
 		ctx.Data["DiscordHook"] = w.GetDiscordHook()
+	case models.TELEGRAM:
+		ctx.Data["TelegramHook"] = w.GetTelegramHook()
 	}
 
 	ctx.Data["History"], err = w.History(1)

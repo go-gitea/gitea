@@ -259,9 +259,10 @@ func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// NewTelegramHookForm form for creating dingtalk hook
+// NewTelegramHookForm form for creating telegram hook
 type NewTelegramHookForm struct {
-	PayloadURL string `binding:"Required;ValidUrl"`
+	BotToken string `binding:"Required"`
+	ChatID   string `binding:"Required"`
 	WebhookForm
 }
 

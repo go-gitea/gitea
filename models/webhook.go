@@ -142,6 +142,14 @@ func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	return s
 }
 
+func (w *Webhook) GetTelegramHook() *TelegramMeta {
+	s := &TelegramMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error(4, "webhook.GetTelegramHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
 // History returns history of webhook by given conditions.
 func (w *Webhook) History(page int) ([]*HookTask, error) {
 	return HookTasks(w.ID, page)
