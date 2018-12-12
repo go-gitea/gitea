@@ -597,6 +597,8 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		if err != nil {
 			return fmt.Errorf("GetTelegramPayload: %v", err)
 		}
+		// The following escapes HTML comments as otherwise telegram fails receiving webhook
+		payloader.Message = strings.Replace(payloader.Message, "<!--", "\\<!--", -1)
 	default:
 		p.SetSecret(w.Secret)
 		payloader = p

@@ -291,7 +291,7 @@ func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) 
 	return nil, nil
 }
 
-// GetTelegramPayload converts a ding talk webhook into a TelegramPayload
+// GetTelegramPayload converts a telegram webhook into a TelegramPayload
 func GetTelegramPayload(p api.Payloader, event HookEventType, meta string) (*TelegramPayload, error) {
 	s := new(TelegramPayload)
 
