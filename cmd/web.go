@@ -102,7 +102,10 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Use HTTPS", http.StatusBadRequest)
 		return
 	}
-	target := setting.AppURL + r.URL.RequestURI()
+	// Remove the trailing slash at the end of setting.AppURL, the request
+	// URI always contains a leading slash, which would result in a double
+	// slash
+	target := strings.TrimRight(setting.AppURL, "/") + r.URL.RequestURI()
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
