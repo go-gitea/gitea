@@ -142,6 +142,7 @@ func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	return s
 }
 
+// GetTelegramHook returns telegram metadata
 func (w *Webhook) GetTelegramHook() *TelegramMeta {
 	s := &TelegramMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
