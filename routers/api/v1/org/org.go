@@ -85,7 +85,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if !ctx.User.AllowCreateOrganization {
+	if !ctx.User.CanCreateOrganization() {
 		ctx.Error(403, "Create organization not allowed", nil)
 		return
 	}

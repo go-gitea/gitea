@@ -7,6 +7,7 @@ package xorm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -57,7 +58,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	table := session.statement.RefTable
 
 	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
-		if cacher := session.engine.getCacher(table.Name); cacher != nil &&
+		if cacher := session.engine.getCacher(session.statement.TableName()); cacher != nil &&
 			!session.statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {
@@ -66,7 +67,28 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
-	return session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
+	context := session.statement.context
+	if context != nil {
+		res := context.Get(fmt.Sprintf("%v-%v", sqlStr, args))
+		if res != nil {
+			structValue := reflect.Indirect(reflect.ValueOf(bean))
+			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
+			session.lastSQL = ""
+			session.lastSQLArgs = nil
+			return true, nil
+		}
+	}
+
+	has, err := session.nocacheGet(beanValue.Elem().Kind(), table, bean, sqlStr, args...)
+	if err != nil || !has {
+		return has, err
+	}
+
+	if context != nil {
+		context.Put(fmt.Sprintf("%v-%v", sqlStr, args), bean)
+	}
+
+	return true, nil
 }
 
 func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
@@ -77,6 +99,9 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 	defer rows.Close()
 
 	if !rows.Next() {
+		if rows.Err() != nil {
+			return false, rows.Err()
+		}
 		return false, nil
 	}
 
