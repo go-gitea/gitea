@@ -776,6 +776,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		pull := issue.PullRequest
+		pull.Issue = issue
 		canDelete := false
 
 		if ctx.IsSigned {
@@ -833,8 +834,9 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		if pull.ProtectedBranch != nil {
-			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
-			ctx.Data["GrantedApprovals"] = pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+			ctx.Data["IsBlockedByApprovals"] = pull.ProtectedBranch.RequiredApprovals > 0 && cnt < pull.ProtectedBranch.RequiredApprovals
+			ctx.Data["GrantedApprovals"] = cnt
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
