@@ -664,8 +664,30 @@ func LinkAccount(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["user_name"] = gothUser.(goth.User).NickName
-	ctx.Data["email"] = gothUser.(goth.User).Email
+	uname := gothUser.(goth.User).NickName
+	email := gothUser.(goth.User).Email
+	ctx.Data["user_name"] = uname
+	ctx.Data["email"] = email
+
+	if len(email) != 0 {
+		u, err := models.GetUserByEmail(email)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+		if u != nil {
+			ctx.Data["user_exists"] = true
+		}
+	} else if len(uname) != 0 {
+		u, err := models.GetUserByName(uname)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+		if u != nil {
+			ctx.Data["user_exists"] = true
+		}
+	}
 
 	ctx.HTML(200, tplLinkAccount)
 }
@@ -924,6 +946,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
 			return
 		}
+	}
+
+	if !form.IsEmailDomainWhitelisted() {
+		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
+		return
 	}
 
 	if form.Password != form.Retype {

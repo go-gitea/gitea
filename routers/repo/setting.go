@@ -117,12 +117,16 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil || interval < setting.Mirror.MinInterval {
+		if err != nil && (interval != 0 || interval < setting.Mirror.MinInterval) {
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
-			ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			if interval != 0 {
+				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			} else {
+				ctx.Repo.Mirror.NextUpdateUnix = 0
+			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -399,19 +403,6 @@ func CollaborationPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
-	}
-
-	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() {
-		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
-		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
-			return
-		} else if isMember {
-			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-			return
-		}
 	}
 
 	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {

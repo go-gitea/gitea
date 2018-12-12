@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -58,6 +60,19 @@ var (
 				Name:  "config, c",
 				Value: "custom/conf/app.ini",
 				Usage: "Custom configuration file path",
+			},
+			cli.BoolFlag{
+				Name:  "random-password",
+				Usage: "Generate a random password for the user",
+			},
+			cli.BoolFlag{
+				Name:  "must-change-password",
+				Usage: "Force the user to change his/her password after initial login",
+			},
+			cli.IntFlag{
+				Name:  "random-password-length",
+				Usage: "Length of the random password to be generated",
+				Value: 12,
 			},
 		},
 	}
@@ -273,8 +288,28 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "name", "password", "email"); err != nil {
+	if err := argsSet(c, "name", "email"); err != nil {
 		return err
+	}
+
+	if c.IsSet("password") && c.IsSet("random-password") {
+		return errors.New("cannot set both -random-password and -password flags")
+	}
+
+	var password string
+
+	if c.IsSet("password") {
+		password = c.String("password")
+	} else if c.IsSet("random-password") {
+		var err error
+		password, err = generate.GetRandomString(c.Int("random-password-length"))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("generated random password is '%s'\n", password)
+	} else {
+		return errors.New("must set either password or random-password flag")
 	}
 
 	if c.IsSet("config") {
@@ -285,12 +320,26 @@ func runCreateUser(c *cli.Context) error {
 		return err
 	}
 
+	// always default to true
+	var changePassword = true
+
+	// If this is the first user being created.
+	// Take it as the admin and don't force a password update.
+	if n := models.CountUsers(); n == 0 {
+		changePassword = false
+	}
+
+	if c.IsSet("must-change-password") {
+		changePassword = c.Bool("must-change-password")
+	}
+
 	if err := models.CreateUser(&models.User{
-		Name:     c.String("name"),
-		Email:    c.String("email"),
-		Passwd:   c.String("password"),
-		IsActive: true,
-		IsAdmin:  c.Bool("admin"),
+		Name:               c.String("name"),
+		Email:              c.String("email"),
+		Passwd:             password,
+		IsActive:           true,
+		IsAdmin:            c.Bool("admin"),
+		MustChangePassword: changePassword,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
@@ -412,16 +461,12 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	if err := models.CreateLoginSource(&models.LoginSource{
+	return models.CreateLoginSource(&models.LoginSource{
 		Type:      models.LoginOAuth2,
 		Name:      c.String("name"),
 		IsActived: true,
 		Cfg:       parseOAuth2Config(c),
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func runUpdateOauth(c *cli.Context) error {
@@ -492,11 +537,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	if err := models.UpdateSource(source); err != nil {
-		return err
-	}
-
-	return nil
+	return models.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -543,8 +584,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.DeleteSource(source); err != nil {
-		return err
-	}
-	return nil
+	return models.DeleteSource(source)
 }

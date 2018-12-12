@@ -14,11 +14,11 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
-// ListMilestones list all the milestones for a repository
+// ListMilestones list all the opened milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
-	// summary: Get all of a repository's milestones
+	// summary: Get all of a repository's opened milestones
 	// produces:
 	// - application/json
 	// parameters:
@@ -70,6 +70,7 @@ func GetMilestone(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the milestone
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -156,6 +157,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	//   in: path
 	//   description: id of the milestone
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -211,6 +213,7 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the milestone to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

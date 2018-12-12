@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -122,6 +123,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -167,7 +169,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/Issue"
 
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -182,7 +184,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
@@ -206,6 +208,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
+
+	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
 		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
@@ -251,6 +255,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   in: path
 	//   description: index of the issue to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -269,7 +274,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}
@@ -283,7 +288,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Update the deadline
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -300,8 +305,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
-
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -314,7 +318,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != nil &&
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -337,6 +341,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database to assign some automatic values
@@ -372,6 +378,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//   in: path
 	//   description: index of the issue to create or update a deadline on
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -382,12 +389,8 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
 	//     description: Not repo writer
-	//     schema:
-	//       "$ref": "#/responses/forbidden"
 	//   "404":
 	//     description: Issue not found
-	//     schema:
-	//       "$ref": "#/responses/empty"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -399,7 +402,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}
