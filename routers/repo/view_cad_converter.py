@@ -59,6 +59,12 @@ def _download_file(url, filename):
     filename : str
         Full path to the local file that is to be created by the download
 
+    Raises
+    ------
+    requests.exceptions.HTTPError if the URL points to a file
+    that does not exist
+    FileNotFoundError if the filename cannot be opened
+
     """
     logger.info("Downloading file at URL : %s" % url)
     response = get(url, stream=True)
@@ -85,6 +91,10 @@ def sha1(filename):
     Returns
     -------
     str : The SHA-1 has of the file
+
+    Raises
+    ------
+    FileNotFoundError if filename points to a file that does not exist
 
     """
     logger.debug("Computing SHA-1 hash of : %s" % filename)
@@ -142,7 +152,6 @@ def _convert_shape(shape, filename):
 
     """
     logger.debug("Call to _convert_shape()")
-    # _convert_shape_stl(shape, filename)
     if isfile(filename):
         logger.info("Using existing file")
         pass  # The cached version will be used
@@ -831,4 +840,5 @@ def main():
         raise ValueError(msg)
 
 
-main()
+if __name__ == "__main__":
+    main()

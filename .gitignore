@@ -1,4 +1,5 @@
 .project
+.pytest_cache
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
