@@ -176,6 +176,20 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  test-mssql:
+    image: golang:1.10
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      TEST_LDAP: "1"
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - make test-mssql
+    when:
+      event: [ push, tag, pull_request ]
+
   generate-coverage:
     image: golang:1.11
     pull: true
@@ -344,6 +358,15 @@ services:
     image: postgres:9.5
     environment:
       - POSTGRES_DB=test
+    when:
+      event: [ push, tag, pull_request ]
+
+  mssql:
+    image: microsoft/mssql-server-linux:latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MwantsaSecurePassword1
+      - MSSQL_PID=Standard
     when:
       event: [ push, tag, pull_request ]
 
