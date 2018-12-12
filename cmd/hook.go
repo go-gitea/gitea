@@ -112,10 +112,15 @@ func runHookPreReceive(c *cli.Context) error {
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 		protectBranch, err := private.GetProtectedBranchBy(repoID, branchName)
 		if err != nil {
-			log.GitLogger.Fatal(2, "retrieve protected branches information failed")
+			fail("Internal error", fmt.Sprintf("retrieve protected branches information failed: %v", err))
 		}
 
 		if protectBranch != nil && protectBranch.IsProtected() {
+			// check and deletion
+			if newCommitID == git.EmptySHA {
+				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
+			}
+
 			// detect force push
 			if git.EmptySHA != oldCommitID {
 				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
@@ -126,17 +131,12 @@ func runHookPreReceive(c *cli.Context) error {
 				}
 			}
 
-			// check and deletion
-			if newCommitID == git.EmptySHA {
-				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
-			} else {
-				userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-				canPush, err := private.CanUserPush(protectBranch.ID, userID)
-				if err != nil {
-					fail("Internal error", "Fail to detect user can push: %v", err)
-				} else if !canPush {
-					fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
-				}
+			userID, _ := strconv.ParseInt(userIDStr, 10, 64)
+			canPush, err := private.CanUserPush(protectBranch.ID, userID)
+			if err != nil {
+				fail("Internal error", "Fail to detect user can push: %v", err)
+			} else if !canPush {
+				fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
 			}
 		}
 	}
