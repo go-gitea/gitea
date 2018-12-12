@@ -776,6 +776,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		pull := issue.PullRequest
+		pull.Issue = issue
 		canDelete := false
 
 		if ctx.IsSigned {
@@ -827,6 +828,15 @@ func ViewIssue(ctx *context.Context) {
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
+		}
+		if err = pull.LoadProtectedBranch(); err != nil {
+			ctx.ServerError("LoadProtectedBranch", err)
+			return
+		}
+		if pull.ProtectedBranch != nil {
+			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+			ctx.Data["IsBlockedByApprovals"] = pull.ProtectedBranch.RequiredApprovals > 0 && cnt < pull.ProtectedBranch.RequiredApprovals
+			ctx.Data["GrantedApprovals"] = cnt
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
@@ -1240,7 +1250,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
 		return
 	}
@@ -1319,7 +1329,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {

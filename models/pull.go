@@ -60,14 +60,15 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID   int64       `xorm:"INDEX"`
-	HeadRepo     *Repository `xorm:"-"`
-	BaseRepoID   int64       `xorm:"INDEX"`
-	BaseRepo     *Repository `xorm:"-"`
-	HeadUserName string
-	HeadBranch   string
-	BaseBranch   string
-	MergeBase    string `xorm:"VARCHAR(40)"`
+	HeadRepoID      int64       `xorm:"INDEX"`
+	HeadRepo        *Repository `xorm:"-"`
+	BaseRepoID      int64       `xorm:"INDEX"`
+	BaseRepo        *Repository `xorm:"-"`
+	HeadUserName    string
+	HeadBranch      string
+	BaseBranch      string
+	ProtectedBranch *ProtectedBranch `xorm:"-"`
+	MergeBase       string           `xorm:"VARCHAR(40)"`
 
 	HasMerged      bool           `xorm:"INDEX"`
 	MergedCommitID string         `xorm:"VARCHAR(40)"`
@@ -108,6 +109,12 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 	pr.Issue, err = getIssueByID(e, pr.IssueID)
 	return err
+}
+
+// LoadProtectedBranch loads the protected branch of the base branch
+func (pr *PullRequest) LoadProtectedBranch() (err error) {
+	pr.ProtectedBranch, err = GetProtectedBranchBy(pr.BaseRepo.ID, pr.BaseBranch)
+	return
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -288,7 +295,7 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 		}
 	}
 
-	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr.BaseBranch, doer); err != nil {
+	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr, pr.BaseBranch, doer); err != nil {
 		return fmt.Errorf("IsProtectedBranch: %v", err)
 	} else if protected {
 		return ErrNotAllowedToMerge{
