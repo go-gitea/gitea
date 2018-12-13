@@ -175,6 +175,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 	issue := &models.Issue{
 		RepoID:       ctx.Repo.Repository.ID,
+		Repo:         ctx.Repo.Repository,
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
@@ -212,7 +213,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
-		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
+		if err := issue.ChangeStatus(ctx.User, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -273,6 +274,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 		return
 	}
+	issue.Repo = ctx.Repo.Repository
 
 	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
@@ -333,7 +335,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
