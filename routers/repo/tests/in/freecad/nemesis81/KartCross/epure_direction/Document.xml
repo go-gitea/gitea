@@ -1,0 +1,666 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+ FreeCAD Document, see http://www.freecadweb.org for more information...
+-->
+<Document SchemaVersion="4" ProgramVersion="0.18R14778 (Git)" FileVersion="1" StringHasher="1">
+    <StringHasher count="0" saveall="0" threshold="0">
+    </StringHasher>
+    <Properties Count="16" TransientCount="3">
+        <_Property name="FileName" type="App::PropertyString" status="1"/>
+        <_Property name="Tip" type="App::PropertyLink" status="1"/>
+        <_Property name="TransientDir" type="App::PropertyString" status="1"/>
+        <Property name="Comment" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Company" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="CreatedBy" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="CreationDate" type="App::PropertyString" status="1">
+            <String value="2018-08-29T14:15:27+02:00"/>
+        </Property>
+        <Property name="Id" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Label" type="App::PropertyString" status="1">
+            <String value="epure_direction"/>
+        </Property>
+        <Property name="LastModifiedBy" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="LastModifiedDate" type="App::PropertyString" status="1">
+            <String value="2018-09-02T15:24:51+02:00"/>
+        </Property>
+        <Property name="License" type="App::PropertyString" status="1">
+            <String value="All rights reserved"/>
+        </Property>
+        <Property name="LicenseURL" type="App::PropertyString" status="1">
+            <String value="http://en.wikipedia.org/wiki/All_rights_reserved"/>
+        </Property>
+        <Property name="Material" type="App::PropertyMap" status="1">
+            <Map count="0">
+            </Map>
+        </Property>
+        <Property name="Meta" type="App::PropertyMap" status="1">
+            <Map count="0">
+            </Map>
+        </Property>
+        <Property name="ShowHidden" type="App::PropertyBool" status="1">
+            <Bool value="false"/>
+        </Property>
+        <Property name="TipName" type="App::PropertyString">
+            <String value=""/>
+        </Property>
+        <Property name="Uid" type="App::PropertyUUID" status="1">
+            <Uuid value="ed623169-79fb-4f07-b5f2-fd41c955ca1f"/>
+        </Property>
+        <Property name="UseHasher" type="App::PropertyBool" status="1">
+            <Bool value="true"/>
+        </Property>
+    </Properties>
+    <Objects Count="12" Dependencies="1">
+        <ObjectDeps Name="Sketch041" Count="1">
+            <Dep Name="XZ_Plane001"/>
+        </ObjectDeps>
+        <ObjectDeps Name="XZ_Plane" Count="0"/>
+        <ObjectDeps Name="Sketch042" Count="1">
+            <Dep Name="XY_Plane001"/>
+        </ObjectDeps>
+        <ObjectDeps Name="XY_Plane" Count="0"/>
+        <ObjectDeps Name="Body" Count="3">
+            <Dep Name="Origin"/>
+            <Dep Name="Sketch041"/>
+            <Dep Name="Sketch042"/>
+        </ObjectDeps>
+        <ObjectDeps Name="Origin" Count="6">
+            <Dep Name="X_Axis"/>
+            <Dep Name="Y_Axis"/>
+            <Dep Name="Z_Axis"/>
+            <Dep Name="XY_Plane001"/>
+            <Dep Name="XZ_Plane001"/>
+            <Dep Name="YZ_Plane"/>
+        </ObjectDeps>
+        <ObjectDeps Name="X_Axis" Count="0"/>
+        <ObjectDeps Name="Y_Axis" Count="0"/>
+        <ObjectDeps Name="Z_Axis" Count="0"/>
+        <ObjectDeps Name="XY_Plane001" Count="0"/>
+        <ObjectDeps Name="XZ_Plane001" Count="0"/>
+        <ObjectDeps Name="YZ_Plane" Count="0"/>
+        <Object type="Sketcher::SketchObject" name="Sketch041" id="4793" ViewType="SketcherGui::ViewProviderSketch" />
+        <Object type="App::Plane" name="XZ_Plane" id="4794" ViewType="Gui::ViewProviderPlane" />
+        <Object type="Sketcher::SketchObject" name="Sketch042" id="4795" ViewType="SketcherGui::ViewProviderSketch" />
+        <Object type="App::Plane" name="XY_Plane" id="4796" ViewType="Gui::ViewProviderPlane" />
+        <Object type="PartDesign::Body" name="Body" id="4797" ViewType="PartDesignGui::ViewProviderBody" />
+        <Object type="App::Origin" name="Origin" id="4798" ViewType="Gui::ViewProviderOrigin" />
+        <Object type="App::Line" name="X_Axis" id="4799" ViewType="Gui::ViewProviderLine" />
+        <Object type="App::Line" name="Y_Axis" id="4800" ViewType="Gui::ViewProviderLine" />
+        <Object type="App::Line" name="Z_Axis" id="4801" ViewType="Gui::ViewProviderLine" />
+        <Object type="App::Plane" name="XY_Plane001" id="4802" ViewType="Gui::ViewProviderPlane" />
+        <Object type="App::Plane" name="XZ_Plane001" id="4803" ViewType="Gui::ViewProviderPlane" />
+        <Object type="App::Plane" name="YZ_Plane" id="4804" ViewType="Gui::ViewProviderPlane" />
+    </Objects>
+    <ObjectData Count="12">
+        <Object name="Sketch041" Extensions="True">
+            <Extensions Count="1">
+                <Extension type="Part::AttachExtension" name="AttachExtension">
+                </Extension>
+            </Extensions>
+            <Properties Count="17" TransientCount="0">
+                <Property name="AttacherType" type="App::PropertyString" status="8">
+                    <String value="Attacher::AttachEnginePlane"/>
+                </Property>
+                <Property name="AttachmentOffset" type="App::PropertyPlacement">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="ColoredElements" type="App::PropertyLinkSubHidden">
+                    <LinkSub value="" count="0">
+                    </LinkSub>
+                </Property>
+                <Property name="Constraints" type="Sketcher::PropertyConstraintList">
+                    <ConstraintList count="37">
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="0" FirstPos="2" Second="1" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="1" FirstPos="2" Second="2" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="3" FirstPos="2" Second="4" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="3" FirstPos="1" Second="5" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="5" FirstPos="2" Second="0" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="6" FirstPos="2" Second="2" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="0" FirstPos="1" Second="2" SecondPos="2" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="3" FirstPos="1" Second="6" SecondPos="1" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="20.000000000000" First="-1" FirstPos="1" Second="1" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="115.807991027832" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="0" FirstPos="2" Second="1" SecondPos="2" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="600.000000000000" First="1" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-43.744419097900" LabelPosition="-28.510635375977" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="8" Value="280.000000000000" First="-1" FirstPos="1" Second="3" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="-148.575500488281" LabelPosition="-364.710571289062" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="4" FirstPos="2" Second="3" SecondPos="2" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="7" FirstPos="2" Second="7" SecondPos="1" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="360.000000000000" First="-1" FirstPos="1" Second="7" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-13.993023872375" LabelPosition="58.362312316895" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="1600.000000000000" First="7" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-126.468597412109" LabelPosition="-2.936504125595" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="620.000000000000" First="4" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="110.720649719238" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="9" Value="0.052359877560" First="8" FirstPos="1" Second="-2" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="6245.598632812500" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="280.000000000000" First="0" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-63.599029541016" LabelPosition="-36.050701141357" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="7" Value="142.500000000000" First="7" FirstPos="1" Second="8" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="110.720893859863" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="700.000000000000" First="8" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-277.508300781250" LabelPosition="-11.586889266968" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="9" FirstPos="1" Second="4" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="9" FirstPos="2" Second="6" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="10" FirstPos="1" Second="5" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="8" FirstPos="2" Second="7" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="10" Value="0.000000000000" First="8" FirstPos="0" Second="10" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="270.000000000000" First="3" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="110.720985412598" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="150.000000000000" First="10" FirstPos="1" Second="3" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="-14.421640396118" LabelPosition="-260.104339599609" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="270.000000000000" First="5" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="110.720985412598" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="8" FirstPos="1" Second="8" SecondPos="2" Third="10" ThirdPos="2" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="10" FirstPos="2" Second="12" SecondPos="1" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="12" FirstPos="2" Second="10" SecondPos="1" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="12" Value="0.000000000000" First="11" FirstPos="0" Second="8" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="11" FirstPos="2" Second="8" SecondPos="2" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="12" FirstPos="1" Second="11" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="IncliFixTri" Type="9" Value="2.718239438314" First="1" FirstPos="2" Second="2" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="37.588073730469" LabelPosition="0.000000000000" IsDriving="0" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="8" Value="280.000000000000" First="4" FirstPos="2" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="50.056972503662" LabelPosition="0.000000000000" IsDriving="0" IsInVirtualSpace="0" />
+                    </ConstraintList>
+                </Property>
+                <Property name="Exports" type="App::PropertyLinkList">
+                    <LinkList count="0">
+                    </LinkList>
+                </Property>
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="ExternalGeometry" type="App::PropertyLinkSubList">
+                    <LinkSubList count="0">
+                    </LinkSubList>
+                </Property>
+                <Property name="Geometry" type="Part::PropertyGeometryList">
+                    <GeometryList count="13">
+                        <Geometry  type="Part::GeomLineSegment" id="2710">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-555.280620248959" StartY="-135.029582826796" StartZ="0.000000000000" EndX="-300.000000000000" EndY="-20.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2711">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-300.000000000000" StartY="-20.000000000000" StartZ="0.000000000000" EndX="300.000000000000" EndY="-20.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2712">
+                            <Construction value="0"/>
+                            <LineSegment StartX="300.000000000000" StartY="-20.000000000000" StartZ="0.000000000000" EndX="555.280620248959" EndY="-135.029582826796" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2713">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-537.361841586024" StartY="134.375163551639" StartZ="0.000000000000" EndX="-310.000000000000" EndY="280.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2714">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-310.000000000000" StartY="280.000000000000" StartZ="0.000000000000" EndX="310.000000000000" EndY="280.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2715">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-537.361841586024" StartY="134.375163551639" StartZ="0.000000000000" EndX="-555.280620248959" EndY="-135.029582826796" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2716">
+                            <Construction value="0"/>
+                            <LineSegment StartX="537.361841586024" StartY="134.375163551639" StartZ="0.000000000000" EndX="555.280620248959" EndY="-135.029582826796" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2717">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-800.000000000000" StartY="-360.000000000000" StartZ="0.000000000000" EndX="800.000000000000" EndY="-360.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2718">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-620.864830629820" StartY="339.040674328195" StartZ="0.000000000000" EndX="-657.500000000000" EndY="-360.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2719">
+                            <Construction value="0"/>
+                            <LineSegment StartX="310.000000000000" StartY="280.000000000000" StartZ="0.000000000000" EndX="537.361841586024" EndY="134.375163551639" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2720">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-547.316718620988" StartY="-15.294139991936" StartZ="0.000000000000" EndX="-639.182415314910" EndY="-10.479662835902" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2721">
+                            <Construction value="0"/>
+                            <LineSegment StartX="620.864830629820" StartY="339.040674328195" StartZ="0.000000000000" EndX="657.500000000000" EndY="-360.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2722">
+                            <Construction value="0"/>
+                            <LineSegment StartX="639.182415314910" StartY="-10.479662835902" StartZ="0.000000000000" EndX="547.316718620988" EndY="-15.294139991936" EndZ="0.000000000000"/>
+                        </Geometry>
+                    </GeometryList>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="Epureface"/>
+                </Property>
+                <Property name="LastGeoID" type="App::PropertyInteger">
+                    <Integer value="2722"/>
+                </Property>
+                <Property name="MapMode" type="App::PropertyEnumeration">
+                    <Integer value="5"/>
+                </Property>
+                <Property name="MapPathParameter" type="App::PropertyFloat" status="8">
+                    <Float value="0.000000000000"/>
+                </Property>
+                <Property name="MapReversed" type="App::PropertyBool">
+                    <Bool value="true"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="4">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.707106781187" Q2="0.707106781187" Q3="0.000000000000" A="3.141592653590" Ox="0.000000000000" Oy="0.707106781187" Oz="0.707106781187"/>
+                </Property>
+                <Property name="Shape" type="Part::PropertyPartShape">
+                    <Part file="PartShape.brp" ElementMap="0.8.70200.3"/>
+                    <ElementMap count="39">
+<Element key="g2710;SKT" value="Edge1"/>
+<Element key="g2710v1;SKT" value="Vertex1"/>
+<Element key="g2710v2;SKT" value="Vertex2"/>
+<Element key="g2711;SKT" value="Edge2"/>
+<Element key="g2711v1;SKT" value="Vertex2"/>
+<Element key="g2711v2;SKT" value="Vertex3"/>
+<Element key="g2712;SKT" value="Edge3"/>
+<Element key="g2712v1;SKT" value="Vertex3"/>
+<Element key="g2712v2;SKT" value="Vertex4"/>
+<Element key="g2713;SKT" value="Edge5"/>
+<Element key="g2713v1;SKT" value="Vertex5"/>
+<Element key="g2713v2;SKT" value="Vertex6"/>
+<Element key="g2714;SKT" value="Edge6"/>
+<Element key="g2714v1;SKT" value="Vertex6"/>
+<Element key="g2714v2;SKT" value="Vertex7"/>
+<Element key="g2715;SKT" value="Edge4"/>
+<Element key="g2715v1;SKT" value="Vertex5"/>
+<Element key="g2715v2;SKT" value="Vertex1"/>
+<Element key="g2716;SKT" value="Edge7"/>
+<Element key="g2716v1;SKT" value="Vertex8"/>
+<Element key="g2716v2;SKT" value="Vertex4"/>
+<Element key="g2717;SKT" value="Edge9"/>
+<Element key="g2717v1;SKT" value="Vertex9"/>
+<Element key="g2717v2;SKT" value="Vertex10"/>
+<Element key="g2718;SKT" value="Edge10"/>
+<Element key="g2718v1;SKT" value="Vertex11"/>
+<Element key="g2718v2;SKT" value="Vertex12"/>
+<Element key="g2719;SKT" value="Edge8"/>
+<Element key="g2719v1;SKT" value="Vertex7"/>
+<Element key="g2719v2;SKT" value="Vertex8"/>
+<Element key="g2720;SKT" value="Edge11"/>
+<Element key="g2720v1;SKT" value="Vertex13"/>
+<Element key="g2720v2;SKT" value="Vertex14"/>
+<Element key="g2721;SKT" value="Edge12"/>
+<Element key="g2721v1;SKT" value="Vertex15"/>
+<Element key="g2721v2;SKT" value="Vertex16"/>
+<Element key="g2722;SKT" value="Edge13"/>
+<Element key="g2722v1;SKT" value="Vertex17"/>
+<Element key="g2722v2;SKT" value="Vertex18"/>
+                    </ElementMap>
+                </Property>
+                <Property name="Support" type="App::PropertyLinkSubList">
+                    <LinkSubList count="1">
+                        <Link obj="XZ_Plane001" sub=""/>
+                    </LinkSubList>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="XZ_Plane">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="XZ_Plane"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.707106781187" Q1="0.000000000000" Q2="0.000000000000" Q3="0.707106781187" A="1.570796326795" Ox="1.000000000000" Oy="0.000000000000" Oz="0.000000000000"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="XZ_Plane"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="Sketch042" Extensions="True">
+            <Extensions Count="1">
+                <Extension type="Part::AttachExtension" name="AttachExtension">
+                </Extension>
+            </Extensions>
+            <Properties Count="17" TransientCount="0">
+                <Property name="AttacherType" type="App::PropertyString" status="8">
+                    <String value="Attacher::AttachEnginePlane"/>
+                </Property>
+                <Property name="AttachmentOffset" type="App::PropertyPlacement">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="ColoredElements" type="App::PropertyLinkSubHidden">
+                    <LinkSub value="" count="0">
+                    </LinkSub>
+                </Property>
+                <Property name="Constraints" type="Sketcher::PropertyConstraintList">
+                    <ConstraintList count="20">
+                        <Constrain Name="" Type="6" Value="1850.000000000000" First="-1" FirstPos="1" Second="0" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="297.120056152344" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="0" FirstPos="2" Second="0" SecondPos="1" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="1600.000000000000" First="0" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="297.120056152344" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="1" FirstPos="2" Second="2" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="2" FirstPos="2" Second="3" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="3" FirstPos="2" Second="4" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="1" Value="0.000000000000" First="4" FirstPos="2" Second="5" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="14" Value="0.000000000000" First="4" FirstPos="2" Second="1" SecondPos="2" Third="-2" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="2" Value="0.000000000000" First="3" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="12" Value="0.000000000000" First="1" FirstPos="0" Second="5" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="6" FirstPos="1" Second="-2" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="6" FirstPos="1" Second="0" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="6" FirstPos="1" Second="4" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="6" FirstPos="1" Second="2" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="13" Value="0.000000000000" First="1" FirstPos="2" Second="-1" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="10.000000000000" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="900.000000000000" First="3" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="-133.875595092773" LabelPosition="26.848060607910" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="120.000000000000" First="4" FirstPos="0" Second="-2000" SecondPos="0" Third="-2000" ThirdPos="0" LabelDistance="18.300809860229" LabelPosition="-176.456588745117" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="9" Value="1.919862177194" First="4" FirstPos="2" Second="5" SecondPos="1" Third="-2000" ThirdPos="0" LabelDistance="78.197074890137" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="6" Value="1600.000000000000" First="1" FirstPos="1" Second="5" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="125.177345275879" LabelPosition="28.292871475220" IsDriving="1" IsInVirtualSpace="0" />
+                        <Constrain Name="" Type="9" Value="3.089232776030" First="-1" FirstPos="1" Second="1" SecondPos="2" Third="-2000" ThirdPos="0" LabelDistance="85.457183837891" LabelPosition="0.000000000000" IsDriving="1" IsInVirtualSpace="0" />
+                    </ConstraintList>
+                </Property>
+                <Property name="Exports" type="App::PropertyLinkList">
+                    <LinkList count="0">
+                    </LinkList>
+                </Property>
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="ExternalGeometry" type="App::PropertyLinkSubList">
+                    <LinkSubList count="0">
+                    </LinkSubList>
+                </Property>
+                <Property name="Geometry" type="Part::PropertyGeometryList">
+                    <GeometryList count="7">
+                        <Geometry  type="Part::GeomLineSegment" id="2736">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-800.000000000000" StartY="-1850.000000000000" StartZ="0.000000000000" EndX="800.000000000000" EndY="-1850.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2737">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-800.476128551362" StartY="16.787799789598" StartZ="0.000000000000" EndX="-480.145826079818" EndY="0.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2738">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-480.145826079818" StartY="0.000000000000" StartZ="0.000000000000" EndX="-450.000000000000" EndY="-116.151750610851" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2739">
+                            <Construction value="0"/>
+                            <LineSegment StartX="-450.000000000000" StartY="-116.151750610851" StartZ="0.000000000000" EndX="450.000000000000" EndY="-116.151750610851" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2740">
+                            <Construction value="0"/>
+                            <LineSegment StartX="450.000000000000" StartY="-116.151750610851" StartZ="0.000000000000" EndX="480.145826079818" EndY="0.000000000000" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomLineSegment" id="2741">
+                            <Construction value="0"/>
+                            <LineSegment StartX="480.145826079818" StartY="0.000000000000" StartZ="0.000000000000" EndX="799.465378636783" EndY="30.468939234998" EndZ="0.000000000000"/>
+                        </Geometry>
+                        <Geometry  type="Part::GeomPoint" id="2742">
+                            <Construction value="0"/>
+                            <GeomPoint X="0.000000000000" Y="-1850.000000000000" Z="0.000000000000"/>
+                        </Geometry>
+                    </GeometryList>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="EpureDessus"/>
+                </Property>
+                <Property name="LastGeoID" type="App::PropertyInteger">
+                    <Integer value="2742"/>
+                </Property>
+                <Property name="MapMode" type="App::PropertyEnumeration">
+                    <Integer value="5"/>
+                </Property>
+                <Property name="MapPathParameter" type="App::PropertyFloat" status="8">
+                    <Float value="0.000000000000"/>
+                </Property>
+                <Property name="MapReversed" type="App::PropertyBool">
+                    <Bool value="false"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="4">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="Shape" type="Part::PropertyPartShape">
+                    <Part file="PartShape1.brp" ElementMap="0.8.70200.3"/>
+                    <ElementMap count="18">
+<Element key="g2736;SKT" value="Edge1"/>
+<Element key="g2736v1;SKT" value="Vertex1"/>
+<Element key="g2736v2;SKT" value="Vertex2"/>
+<Element key="g2737;SKT" value="Edge2"/>
+<Element key="g2737v1;SKT" value="Vertex3"/>
+<Element key="g2737v2;SKT" value="Vertex4"/>
+<Element key="g2738;SKT" value="Edge3"/>
+<Element key="g2738v1;SKT" value="Vertex4"/>
+<Element key="g2738v2;SKT" value="Vertex5"/>
+<Element key="g2739;SKT" value="Edge4"/>
+<Element key="g2739v1;SKT" value="Vertex5"/>
+<Element key="g2739v2;SKT" value="Vertex6"/>
+<Element key="g2740;SKT" value="Edge5"/>
+<Element key="g2740v1;SKT" value="Vertex6"/>
+<Element key="g2740v2;SKT" value="Vertex7"/>
+<Element key="g2741;SKT" value="Edge6"/>
+<Element key="g2741v1;SKT" value="Vertex7"/>
+<Element key="g2741v2;SKT" value="Vertex8"/>
+                    </ElementMap>
+                </Property>
+                <Property name="Support" type="App::PropertyLinkSubList">
+                    <LinkSubList count="1">
+                        <Link obj="XY_Plane001" sub=""/>
+                    </LinkSubList>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="XY_Plane">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="XY_Plane"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="XY_Plane"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="Body" Extensions="True">
+            <Extensions Count="1">
+                <Extension type="App::OriginGroupExtension" name="OriginGroupExtension">
+                </Extension>
+            </Extensions>
+            <Properties Count="10" TransientCount="0">
+                <Property name="BaseFeature" type="App::PropertyLink">
+                    <Link value=""/>
+                </Property>
+                <Property name="ColoredElements" type="App::PropertyLinkSubHidden">
+                    <LinkSub value="" count="0">
+                    </LinkSub>
+                </Property>
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Group" type="App::PropertyLinkList">
+                    <LinkList count="2">
+                        <Link value="Sketch041"/>
+                        <Link value="Sketch042"/>
+                    </LinkList>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="epure"/>
+                </Property>
+                <Property name="Origin" type="App::PropertyLink">
+                    <Link value="Origin"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="Shape" type="Part::PropertyPartShape">
+                    <Part file="PartShape2.brp" ElementMap="0.8.70200.3"/>
+                    <ElementMap/>
+                </Property>
+                <Property name="Tip" type="App::PropertyLink">
+                    <Link value=""/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="Origin">
+            <Properties Count="4" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="Origin"/>
+                </Property>
+                <Property name="OriginFeatures" type="App::PropertyLinkList">
+                    <LinkList count="6">
+                        <Link value="X_Axis"/>
+                        <Link value="Y_Axis"/>
+                        <Link value="Z_Axis"/>
+                        <Link value="XY_Plane001"/>
+                        <Link value="XZ_Plane001"/>
+                        <Link value="YZ_Plane"/>
+                    </LinkList>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="false"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="X_Axis">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="X_Axis"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="X_Axis"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="Y_Axis">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="Y_Axis"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.500000000000" Q1="0.500000000000" Q2="0.500000000000" Q3="0.500000000000" A="2.094395102393" Ox="0.577350269190" Oy="0.577350269190" Oz="0.577350269190"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="Y_Axis"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="Z_Axis">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="Z_Axis"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.500000000000" Q1="0.500000000000" Q2="0.500000000000" Q3="-0.500000000000" A="4.188790204786" Ox="0.577350269190" Oy="0.577350269190" Oz="0.577350269190"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="Z_Axis"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="XY_Plane001">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="XY_Plane001"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.000000000000" Q1="0.000000000000" Q2="0.000000000000" Q3="1.000000000000" A="0.000000000000" Ox="0.000000000000" Oy="0.000000000000" Oz="1.000000000000"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="XY_Plane"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="XZ_Plane001">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="XZ_Plane001"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.707106781187" Q1="0.000000000000" Q2="0.000000000000" Q3="0.707106781187" A="1.570796326795" Ox="1.000000000000" Oy="0.000000000000" Oz="0.000000000000"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="XZ_Plane"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+        <Object name="YZ_Plane">
+            <Properties Count="5" TransientCount="0">
+                <Property name="ExpressionEngine" type="App::PropertyExpressionEngine">
+                    <ExpressionEngine count="0">
+                    </ExpressionEngine>
+                </Property>
+                <Property name="Label" type="App::PropertyString">
+                    <String value="YZ_Plane"/>
+                </Property>
+                <Property name="Placement" type="App::PropertyPlacement" status="8">
+                    <PropertyPlacement Px="0.000000000000" Py="0.000000000000" Pz="0.000000000000" Q0="0.500000000000" Q1="0.500000000000" Q2="0.500000000000" Q3="0.500000000000" A="2.094395102393" Ox="0.577350269190" Oy="0.577350269190" Oz="0.577350269190"/>
+                </Property>
+                <Property name="Role" type="App::PropertyString">
+                    <String value="YZ_Plane"/>
+                </Property>
+                <Property name="Visibility" type="App::PropertyBool" status="136">
+                    <Bool value="true"/>
+                </Property>
+            </Properties>
+        </Object>
+    </ObjectData>
+</Document>
