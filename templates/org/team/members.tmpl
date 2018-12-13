@@ -6,9 +6,7 @@
 		<div class="ui grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
-				<div class="ui top attached header">
-					{{.i18n.Tr "org.teams.members"}}
-				</div>
+				{{template "org/team/navbar" .}}
 				<div class="ui attached table segment members">
 					{{range .Team.Members}}
 						<div class="item">
@@ -19,6 +17,10 @@
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 								{{.DisplayName}}
 							</a>
+						</div>
+					{{else}}
+						<div class="item">
+							<span class="text grey italic">{{$.i18n.Tr "org.teams.members.none"}}</span>
 						</div>
 					{{end}}
 				</div>
