@@ -14,8 +14,8 @@ import hashlib
 import imp
 import json
 import logging
-from os import remove, getcwd, chdir, system
-from os.path import splitext, basename, join, isfile, dirname
+from os import remove, getcwd, chdir, system, rmdir
+from os.path import splitext, basename, join, isfile, dirname, isdir
 import sys
 import time
 import uuid
@@ -40,6 +40,8 @@ from osvcad.nodes import Part
 #     discretize_wire
 from TopologyUtils import is_edge, is_wire, discretize_edge, discretize_wire, \
     TopologyExplorer
+
+from view_freecad_parse import xml_root, name_file, name_file_visibility
 
 
 # Works in any case : local dev and server
@@ -407,41 +409,64 @@ def convert_freecad_file(freecad_filename, target_folder):
     logger.info("Starting FreeCAD conversion")
 
     fcstd_as_zip = zipfile.ZipFile(freecad_filename)
-    breps_basenames = list(filter(lambda x: splitext(x)[1].lower() in [".brep",
-                                                                       ".brp"],
-                                  fcstd_as_zip.namelist()))
+    # breps_basenames = list(filter(lambda x: splitext(x)[1].lower() in [".brep",
+    #                                                                    ".brp"],
+    #                               fcstd_as_zip.namelist()))
 
-    for brep_basename in breps_basenames:
-        fcstd_as_zip.extract(brep_basename, target_folder)
+    # for brep_basename in breps_basenames:
+    #     fcstd_as_zip.extract(brep_basename, target_folder)
 
-    breps_filenames = ["%s/%s" % (target_folder, name)
-                       for name in breps_basenames]
-    converted_filenames = [_conversion_filename(target_folder, name, i)
-                           for i, name in enumerate(breps_basenames)]
+    for filename in fcstd_as_zip.namelist():
+        fcstd_as_zip.extract(filename, target_folder)
 
-    converted_basenames = [basename(filename)
-                           for filename in converted_filenames]
+    docroot = xml_root(join(target_folder, "Document.xml"))
+    guidocroot = xml_root(join(target_folder, "GuiDocument.xml"))
 
-    assert len(breps_basenames) == len(breps_filenames) == \
-        len(converted_filenames) == len(converted_basenames)
+    name_files_tuples = name_file(docroot)
+    name_file_visibility_tuples = \
+        name_file_visibility(name_files_tuples, guidocroot)
 
     extremas = []
+    converted_basenames = []
 
-    for i, (brep_basename,
-            brep_filename,
-            converted_basename,
-            converted_filename) \
-            in enumerate(zip(breps_basenames,
-                             breps_filenames,
-                             converted_basenames,
-                             converted_filenames)):
+    for i, (n, f, v) in enumerate(name_file_visibility_tuples):
+        if v is True:
+            brep_filename = "%s/%s" % (target_folder, f)
+            converted_filename = _conversion_filename(target_folder, f, i)
+            converted_basenames.append(basename(converted_filename))
+            try:
+                importer = BrepImporter(brep_filename)
+                extremas.append(BoundingBox(importer.shape).as_tuple)
+                _convert_shape(importer.shape, converted_filename)
+            except RuntimeError:
+                logger.error("RuntimeError for %s" % brep_filename)
 
-        try:
-            importer = BrepImporter(brep_filename)
-            extremas.append(BoundingBox(importer.shape).as_tuple)
-            _convert_shape(importer.shape, converted_filename)
-        except RuntimeError:
-            logger.error("RuntimeError for %s" % brep_filename)
+    # breps_filenames = ["%s/%s" % (target_folder, name)
+    #                    for name in breps_basenames]
+    # converted_filenames = [_conversion_filename(target_folder, name, i)
+    #                        for i, name in enumerate(breps_basenames)]
+    #
+    # converted_basenames = [basename(filename)
+    #                        for filename in converted_filenames]
+    #
+    # assert len(breps_basenames) == len(breps_filenames) == \
+    #     len(converted_filenames) == len(converted_basenames)
+
+    # for i, (brep_basename,
+    #         brep_filename,
+    #         converted_basename,
+    #         converted_filename) \
+    #         in enumerate(zip(breps_basenames,
+    #                          breps_filenames,
+    #                          converted_basenames,
+    #                          converted_filenames)):
+    #
+    #     try:
+    #         importer = BrepImporter(brep_filename)
+    #         extremas.append(BoundingBox(importer.shape).as_tuple)
+    #         _convert_shape(importer.shape, converted_filename)
+    #     except RuntimeError:
+    #         logger.error("RuntimeError for %s" % brep_filename)
 
     x_min = min([extrema[0] for extrema in extremas])
     y_min = min([extrema[1] for extrema in extremas])
@@ -457,6 +482,12 @@ def convert_freecad_file(freecad_filename, target_folder):
                       _descriptor_filename(target_folder,
                                            basename(freecad_filename)))
     remove(freecad_filename)
+
+    for filename in fcstd_as_zip.namelist():
+        remove(join(target_folder, filename))
+
+    if isdir(join(target_folder, "thumbnails")):
+        rmdir(join(target_folder, "thumbnails"))
 
 
 def convert_step_file(step_filename, target_folder):

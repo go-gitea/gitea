@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from os.path import join, dirname
-
 import xml.etree.ElementTree
 
 
@@ -129,27 +127,3 @@ def name_file_visibility(name_file_tuples, guidoc_root):
         visibility = name_visibility(guidoc_root, name)
         name_file_visibility_tuples.append((name, file, visibility))
     return name_file_visibility_tuples
-
-
-def main():
-    cyl_on_cube_doc_path = "../tests/in/freecad/cyl_on_cube/Document.xml"
-    cyl_on_cube_guidoc_path = "../tests/in/freecad/cyl_on_cube/GuiDocument.xml"
-    root = xml_root(join(dirname(__file__), cyl_on_cube_doc_path))
-    root_gui = xml_root(join(dirname(__file__), cyl_on_cube_guidoc_path))
-    name_file_tuples = name_file(root)
-    # print(name_file_tuples)
-    print(name_file_visibility(name_file_tuples, root_gui))
-
-    triangleinfav_doc_path = \
-        "../tests/in/freecad/nemesis81/KartCross/TriangleInfAv/Document.xml"
-    triangleinfav_guidoc_path = \
-        "../tests/in/freecad/nemesis81/KartCross/TriangleInfAv/GuiDocument.xml"
-    root = xml_root(join(dirname(__file__), triangleinfav_doc_path))
-    root_gui = xml_root(join(dirname(__file__), triangleinfav_guidoc_path))
-    name_file_tuples = name_file(root)
-    # print(name_file_tuples)
-    print(name_file_visibility(name_file_tuples, root_gui))
-
-
-if __name__ == "__main__":
-    main()
