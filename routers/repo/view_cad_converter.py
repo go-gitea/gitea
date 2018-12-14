@@ -810,20 +810,22 @@ def main():
 
     # Retrieve parameters from command
     # cad_file_raw_url = sys.argv[1]  # Direct download URL for the file
-    raw_link = sys.argv[1]
-    tree_path = sys.argv[2]
-    cad_file_raw_url = "%s/%s" % (raw_link, tree_path)
-    converted_files_folder = sys.argv[3]  # Root destination for converted files
+    # raw_link = sys.argv[1]
+    # tree_path = sys.argv[2]
+    # cad_file_raw_url = "%s/%s" % (raw_link, tree_path)
+    cad_file_raw_url = sys.argv[1]
+    converted_files_folder = sys.argv[2]  # Root destination for converted files
 
-    branch = raw_link.split("/")[-1]
-    user = raw_link.split("/")[1]
-    project = raw_link.split("/")[2]
-    clone_url = "%s/%s/%s" % (GITEA_URL, user, project)
+    # branch = raw_link.split("/")[-1]
+    # user = raw_link.split("/")[1]
+    # project = raw_link.split("/")[2]
 
-    logger.info("raw_link is %s" % raw_link)
-    logger.info("Branch is %s" % branch)
-    logger.info("User is %s" % user)
-    logger.info("Project is %s" % project)
+    # clone_url = "%s/%s/%s" % (GITEA_URL, user, project)
+
+    # logger.info("raw_link is %s" % raw_link)
+    # logger.info("Branch is %s" % branch)
+    # logger.info("User is %s" % user)
+    # logger.info("Project is %s" % project)
 
     cad_file_raw_url_full = "%s%s" % (GITEA_URL, cad_file_raw_url)
 
@@ -851,15 +853,16 @@ def main():
             conversion_function[splitext(cad_file_raw_url)[1].lower()](
                 cad_file_filename, converted_files_folder)
         else:
-            logger.info("Dealing with a Python file")
-            logger.debug("cad_file_filename : %s" % cad_file_filename)
-            logger.debug("converted_files_folder : %s" % converted_files_folder)
-            logger.debug("clone_url : %s" % clone_url)
-            logger.debug("branch : %s" % branch)
-            convert_py_file(cad_file_filename,
-                            converted_files_folder,
-                            clone_url,
-                            branch)
+            pass
+            # logger.info("Dealing with a Python file")
+            # logger.debug("cad_file_filename : %s" % cad_file_filename)
+            # logger.debug("converted_files_folder : %s" % converted_files_folder)
+            # logger.debug("clone_url : %s" % clone_url)
+            # logger.debug("branch : %s" % branch)
+            # convert_py_file(cad_file_filename,
+            #                 converted_files_folder,
+            #                 clone_url,
+            #                 branch)
         t1 = time.time()
         logger.info("The whole Python call took %f" % (t1 - t0))
         sys.exit(0)
