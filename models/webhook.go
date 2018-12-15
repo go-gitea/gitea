@@ -382,6 +382,7 @@ const (
 	GITEA
 	DISCORD
 	DINGTALK
+	TYPETALK
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -390,6 +391,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"slack":    SLACK,
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
+	"typetalk": TYPETALK,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -410,6 +412,8 @@ func (t HookTaskType) Name() string {
 		return "discord"
 	case DINGTALK:
 		return "dingtalk"
+	case TYPETALK:
+		return "typetalk"
 	}
 	return ""
 }
@@ -578,6 +582,11 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
+		}
+	case TYPETALK:
+		payloader, err = GetTypetalkPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetTypetalkPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)
