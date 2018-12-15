@@ -60,14 +60,15 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID   int64       `xorm:"INDEX"`
-	HeadRepo     *Repository `xorm:"-"`
-	BaseRepoID   int64       `xorm:"INDEX"`
-	BaseRepo     *Repository `xorm:"-"`
-	HeadUserName string
-	HeadBranch   string
-	BaseBranch   string
-	MergeBase    string `xorm:"VARCHAR(40)"`
+	HeadRepoID      int64       `xorm:"INDEX"`
+	HeadRepo        *Repository `xorm:"-"`
+	BaseRepoID      int64       `xorm:"INDEX"`
+	BaseRepo        *Repository `xorm:"-"`
+	HeadUserName    string
+	HeadBranch      string
+	BaseBranch      string
+	ProtectedBranch *ProtectedBranch `xorm:"-"`
+	MergeBase       string           `xorm:"VARCHAR(40)"`
 
 	HasMerged      bool           `xorm:"INDEX"`
 	MergedCommitID string         `xorm:"VARCHAR(40)"`
@@ -110,6 +111,12 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 	return err
 }
 
+// LoadProtectedBranch loads the protected branch of the base branch
+func (pr *PullRequest) LoadProtectedBranch() (err error) {
+	pr.ProtectedBranch, err = GetProtectedBranchBy(pr.BaseRepo.ID, pr.BaseBranch)
+	return
+}
+
 // GetDefaultMergeMessage returns default message used when merging pull request
 func (pr *PullRequest) GetDefaultMergeMessage() string {
 	if pr.HeadRepo == nil {
@@ -141,6 +148,10 @@ func (pr *PullRequest) GetGitRefName() string {
 // Required - Issue
 // Optional - Merger
 func (pr *PullRequest) APIFormat() *api.PullRequest {
+	return pr.apiFormat(x)
+}
+
+func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 	var (
 		baseBranch *Branch
 		headBranch *Branch
@@ -148,16 +159,20 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		headCommit *git.Commit
 		err        error
 	)
-	apiIssue := pr.Issue.APIFormat()
+	if err = pr.Issue.loadRepo(e); err != nil {
+		log.Error(log.ERROR, "loadRepo[%d]: %v", pr.ID, err)
+		return nil
+	}
+	apiIssue := pr.Issue.apiFormat(e)
 	if pr.BaseRepo == nil {
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
 		if err != nil {
 			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
 		}
 	}
 	if pr.HeadRepo == nil {
-		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
 		if err != nil {
 			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
@@ -180,15 +195,18 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Ref:        pr.BaseBranch,
 		Sha:        baseCommit.ID.String(),
 		RepoID:     pr.BaseRepoID,
-		Repository: pr.BaseRepo.APIFormat(AccessModeNone),
+		Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
 	}
 	apiHeadBranchInfo := &api.PRBranchInfo{
 		Name:       pr.HeadBranch,
 		Ref:        pr.HeadBranch,
 		Sha:        headCommit.ID.String(),
 		RepoID:     pr.HeadRepoID,
-		Repository: pr.HeadRepo.APIFormat(AccessModeNone),
+		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
 	}
+
+	pr.Issue.loadRepo(e)
+
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
 		Index:     pr.Index,
@@ -290,7 +308,7 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 		}
 	}
 
-	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr.BaseBranch, doer); err != nil {
+	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr, pr.BaseBranch, doer); err != nil {
 		return fmt.Errorf("IsProtectedBranch: %v", err)
 	} else if protected {
 		return ErrNotAllowedToMerge{
@@ -563,7 +581,7 @@ func (pr *PullRequest) setMerged() (err error) {
 		return err
 	}
 
-	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
+	if err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {

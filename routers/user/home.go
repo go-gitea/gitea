@@ -138,6 +138,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 	})
+
 	if ctx.Written() {
 		return
 	}

@@ -150,25 +150,6 @@ func (c *Comment) LoadIssue() (err error) {
 	return
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
-	var err error
-	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
-	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
-	}
-
-	c.Poster, err = getUserByID(session, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
-		}
-	}
-}
-
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
@@ -187,6 +168,11 @@ func (c *Comment) HTMLURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	if c.Type == CommentTypeCode {
@@ -217,6 +203,12 @@ func (c *Comment) IssueURL() string {
 	if c.Issue.IsPull {
 		return ""
 	}
+
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
 	return c.Issue.HTMLURL()
 }
 
@@ -225,6 +217,12 @@ func (c *Comment) PRURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -303,6 +301,39 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
+// LoadPoster loads comment poster
+func (c *Comment) LoadPoster() error {
+	if c.PosterID <= 0 || c.Poster != nil {
+		return nil
+	}
+
+	var err error
+	c.Poster, err = getUserByID(x, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+		}
+	}
+	return nil
+}
+
+// LoadAttachments loads attachments
+func (c *Comment) LoadAttachments() error {
+	if len(c.Attachments) > 0 {
+		return nil
+	}
+
+	var err error
+	c.Attachments, err = getAttachmentsByCommentID(x, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+	return nil
+}
+
 // LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssigneeUser() error {
 	var err error
@@ -375,8 +406,10 @@ func (c *Comment) LoadReactions() error {
 }
 
 func (c *Comment) loadReview(e Engine) (err error) {
-	if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
-		return err
+	if c.Review == nil {
+		if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -452,6 +485,11 @@ func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
@@ -601,7 +639,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	return nil
 }
 
-func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue) (*Comment, error) {
+func createStatusComment(e *xorm.Session, doer *User, issue *Issue) (*Comment, error) {
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
@@ -609,7 +647,7 @@ func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *I
 	return createComment(e, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
-		Repo:  repo,
+		Repo:  issue.Repo,
 		Issue: issue,
 	})
 }
@@ -983,6 +1021,9 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		UpdateIssueIndexer(c.IssueID)
 	}
 
+	if err := c.LoadPoster(); err != nil {
+		return err
+	}
 	if err := c.LoadIssue(); err != nil {
 		return err
 	}
@@ -1040,6 +1081,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		UpdateIssueIndexer(comment.IssueID)
 	}
 
+	if err := comment.LoadPoster(); err != nil {
+		return err
+	}
 	if err := comment.LoadIssue(); err != nil {
 		return err
 	}
@@ -1092,6 +1136,10 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
+		return nil, err
+	}
+
+	if err := CommentList(comments).loadPosters(e); err != nil {
 		return nil, err
 	}
 

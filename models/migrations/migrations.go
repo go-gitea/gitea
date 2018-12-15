@@ -200,7 +200,9 @@ var migrations = []Migration{
 	NewMigration("add review", addReview),
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
-	// v74 -> 75
+	// v74 -> v75
+	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	// v75 -> v76
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 }
 
