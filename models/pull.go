@@ -446,11 +446,20 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 			"git", "checkout", pr.BaseBranch); err != nil {
 			return fmt.Errorf("git checkout: %s", stderr)
 		}
-		// Merge with commit
+		// Prepare merge with commit
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
+			"git", "merge", "--no-ff", "--no-commit", "-q", "head_repo_"+pr.HeadBranch); err != nil {
 			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		}
+
+		// Set custom message and author and create merge commit
+		sig := doer.NewGitSig()
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git commit): %s", tmpBasePath),
+			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+			"-m", message); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
 		}
 
 	case MergeStyleSquash:
