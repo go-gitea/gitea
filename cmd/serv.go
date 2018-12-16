@@ -144,11 +144,15 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	isWiki := false
-	unitType := models.UnitTypeCode
+	var (
+		isWiki   bool
+		unitType = models.UnitTypeCode
+		unitName = "code"
+	)
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = models.UnitTypeWiki
+		unitName = "wiki"
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -193,7 +197,7 @@ func runServ(c *cli.Context) error {
 		keyID int64
 		user  *models.User
 	)
-	if requestedMode == models.AccessModeWrite || repo.IsPrivate {
+	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
 		keys := strings.Split(c.Args()[0], "-")
 		if len(keys) != 2 {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
@@ -236,7 +240,7 @@ func runServ(c *cli.Context) error {
 					user.Name, repoPath)
 			}
 
-			mode, err := private.AccessLevel(user.ID, repo.ID)
+			mode, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
 			} else if *mode < requestedMode {
@@ -245,18 +249,8 @@ func runServ(c *cli.Context) error {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
-					"User %s does not have level %v access to repository %s",
+					"User %s does not have level %v access to repository %s's "+unitName,
 					user.Name, requestedMode, repoPath)
-			}
-
-			check, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
-			if err != nil {
-				fail("You do not have allowed for this action", "Failed to access internal api: [user.Name: %s, repoPath: %s]", user.Name, repoPath)
-			}
-			if !check {
-				fail("You do not have allowed for this action",
-					"User %s does not have allowed access to repository %s 's code",
-					user.Name, repoPath)
 			}
 
 			os.Setenv(models.EnvPusherName, user.Name)
@@ -314,7 +308,7 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verb, repoPath)
 	}
 	if isWiki {
-		if err = repo.InitWiki(); err != nil {
+		if err = private.InitWiki(repo.ID); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)
 		}
 	}

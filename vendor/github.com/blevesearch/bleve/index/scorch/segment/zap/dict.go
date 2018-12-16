@@ -34,30 +34,45 @@ type Dictionary struct {
 
 // PostingsList returns the postings list for the specified term
 func (d *Dictionary) PostingsList(term string, except *roaring.Bitmap) (segment.PostingsList, error) {
-	return d.postingsList([]byte(term), except)
+	return d.postingsList([]byte(term), except, nil)
 }
 
-func (d *Dictionary) postingsList(term []byte, except *roaring.Bitmap) (*PostingsList, error) {
-	rv := &PostingsList{
-		sb:     d.sb,
-		term:   term,
-		except: except,
+func (d *Dictionary) postingsList(term []byte, except *roaring.Bitmap, rv *PostingsList) (*PostingsList, error) {
+	if d.fst == nil {
+		return d.postingsListInit(rv, except), nil
 	}
 
-	if d.fst != nil {
-		postingsOffset, exists, err := d.fst.Get(term)
-		if err != nil {
-			return nil, fmt.Errorf("vellum err: %v", err)
-		}
-		if exists {
-			err = rv.read(postingsOffset, d)
-			if err != nil {
-				return nil, err
-			}
-		}
+	postingsOffset, exists, err := d.fst.Get(term)
+	if err != nil {
+		return nil, fmt.Errorf("vellum err: %v", err)
+	}
+	if !exists {
+		return d.postingsListInit(rv, except), nil
+	}
+
+	return d.postingsListFromOffset(postingsOffset, except, rv)
+}
+
+func (d *Dictionary) postingsListFromOffset(postingsOffset uint64, except *roaring.Bitmap, rv *PostingsList) (*PostingsList, error) {
+	rv = d.postingsListInit(rv, except)
+
+	err := rv.read(postingsOffset, d)
+	if err != nil {
+		return nil, err
 	}
 
 	return rv, nil
+}
+
+func (d *Dictionary) postingsListInit(rv *PostingsList, except *roaring.Bitmap) *PostingsList {
+	if rv == nil {
+		rv = &PostingsList{}
+	} else {
+		*rv = PostingsList{} // clear the struct
+	}
+	rv.sb = d.sb
+	rv.except = except
+	return rv
 }
 
 // Iterator returns an iterator for this dictionary

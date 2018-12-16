@@ -30,6 +30,8 @@ type chunkedIntCoder struct {
 	encoder   *govarint.Base128Encoder
 	chunkLens []uint64
 	currChunk uint64
+
+	buf []byte
 }
 
 // newChunkedIntCoder returns a new chunk int coder which packs data into
@@ -67,12 +69,8 @@ func (c *chunkedIntCoder) Add(docNum uint64, vals ...uint64) error {
 		// starting a new chunk
 		if c.encoder != nil {
 			// close out last
-			c.encoder.Close()
-			encodingBytes := c.chunkBuf.Bytes()
-			c.chunkLens[c.currChunk] = uint64(len(encodingBytes))
-			c.final = append(c.final, encodingBytes...)
+			c.Close()
 			c.chunkBuf.Reset()
-			c.encoder = govarint.NewU64Base128Encoder(&c.chunkBuf)
 		}
 		c.currChunk = chunk
 	}
@@ -98,26 +96,25 @@ func (c *chunkedIntCoder) Close() {
 
 // Write commits all the encoded chunked integers to the provided writer.
 func (c *chunkedIntCoder) Write(w io.Writer) (int, error) {
-	var tw int
-	buf := make([]byte, binary.MaxVarintLen64)
-	// write out the number of chunks
+	bufNeeded := binary.MaxVarintLen64 * (1 + len(c.chunkLens))
+	if len(c.buf) < bufNeeded {
+		c.buf = make([]byte, bufNeeded)
+	}
+	buf := c.buf
+
+	// write out the number of chunks & each chunkLen
 	n := binary.PutUvarint(buf, uint64(len(c.chunkLens)))
-	nw, err := w.Write(buf[:n])
-	tw += nw
+	for _, chunkLen := range c.chunkLens {
+		n += binary.PutUvarint(buf[n:], uint64(chunkLen))
+	}
+
+	tw, err := w.Write(buf[:n])
 	if err != nil {
 		return tw, err
 	}
-	// write out the chunk lens
-	for _, chunkLen := range c.chunkLens {
-		n := binary.PutUvarint(buf, uint64(chunkLen))
-		nw, err = w.Write(buf[:n])
-		tw += nw
-		if err != nil {
-			return tw, err
-		}
-	}
+
 	// write out the data
-	nw, err = w.Write(c.final)
+	nw, err := w.Write(c.final)
 	tw += nw
 	if err != nil {
 		return tw, err

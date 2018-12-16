@@ -807,10 +807,10 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		yes, err := HasAccess(doer.ID, repo, AccessModeAdmin)
+		has, err := IsUserRepoAdmin(repo, doer)
 		if err != nil {
-			return fmt.Errorf("HasAccess: %v", err)
-		} else if !yes {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
 			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
 		}
 	}

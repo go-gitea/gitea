@@ -53,11 +53,14 @@ coverage.all
 /integrations/gitea-integration-mysql
 /integrations/gitea-integration-pgsql
 /integrations/gitea-integration-sqlite
+/integrations/gitea-integration-mssql
 /integrations/indexers-mysql
 /integrations/indexers-pgsql
 /integrations/indexers-sqlite
+/integrations/indexers-mssql
 /integrations/mysql.ini
 /integrations/pgsql.ini
+/integrations/mssql.ini
 /node_modules
 
 
