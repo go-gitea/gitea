@@ -21,7 +21,8 @@ from __future__ import print_function
 
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepTools import BRepTools_WireExplorer
-from OCC.Core.TopAbs import (TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_WIRE,
+from OCC.Core.TopAbs import (TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE,
+                             TopAbs_WIRE,
                              TopAbs_SHELL, TopAbs_SOLID, TopAbs_COMPOUND,
                              TopAbs_COMPSOLID)
 from OCC.Core.TopExp import TopExp_Explorer, topexp_MapShapesAndAncestors
@@ -35,10 +36,12 @@ from OCC.Core.TopoDS import (topods, TopoDS_Wire, TopoDS_Vertex, TopoDS_Edge,
 from OCC.Core.GCPnts import GCPnts_UniformAbscissa
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 
+
 class WireExplorer(object):
     '''
     Wire traversal
     '''
+
     def __init__(self, wire):
         assert isinstance(wire, TopoDS_Wire), 'not a TopoDS_Wire'
         self.wire = wire
@@ -135,7 +138,8 @@ class TopologyExplorer(object):
         }
         self.topExp = TopExp_Explorer()
 
-    def _loop_topo(self, topologyType, topologicalEntity=None, topologyTypeToAvoid=None):
+    def _loop_topo(self, topologyType, topologicalEntity=None,
+                   topologyTypeToAvoid=None):
         '''
         this could be a faces generator for a python TopoShape class
         that way you can just do:
@@ -151,7 +155,8 @@ class TopologyExplorer(object):
                      TopAbs_COMPOUND: TopoDS_Compound,
                      TopAbs_COMPSOLID: TopoDS_CompSolid}
 
-        assert topologyType in topoTypes.keys(), '%s not one of %s' % (topologyType, topoTypes.keys())
+        assert topologyType in topoTypes.keys(), '%s not one of %s' % (
+        topologyType, topoTypes.keys())
         # use self.myShape if nothing is specified
         if topologicalEntity is None and topologyTypeToAvoid is None:
             self.topExp.Init(self.myShape, topologyType)
@@ -296,7 +301,8 @@ class TopologyExplorer(object):
     def number_of_ordered_edges_from_wire(self, wire):
         return self._number_of_topo(self.ordered_edges_from_wire(wire))
 
-    def _map_shapes_and_ancestors(self, topoTypeA, topoTypeB, topologicalEntity):
+    def _map_shapes_and_ancestors(self, topoTypeA, topoTypeB,
+                                  topologicalEntity):
         '''
         using the same method
         @param topoTypeA:
@@ -399,7 +405,8 @@ class TopologyExplorer(object):
         return cnt
 
     def edges_from_vertex(self, vertex):
-        return self._map_shapes_and_ancestors(TopAbs_VERTEX, TopAbs_EDGE, vertex)
+        return self._map_shapes_and_ancestors(TopAbs_VERTEX, TopAbs_EDGE,
+                                              vertex)
 
     def number_of_edges_from_vertex(self, vertex):
         return self._number_shapes_ancestors(TopAbs_VERTEX, TopAbs_EDGE, vertex)
@@ -447,7 +454,8 @@ class TopologyExplorer(object):
     # VERTEX <-> FACE
     # ======================================================================
     def faces_from_vertex(self, vertex):
-        return self._map_shapes_and_ancestors(TopAbs_VERTEX, TopAbs_FACE, vertex)
+        return self._map_shapes_and_ancestors(TopAbs_VERTEX, TopAbs_FACE,
+                                              vertex)
 
     def number_of_faces_from_vertex(self, vertex):
         return self._number_shapes_ancestors(TopAbs_VERTEX, TopAbs_FACE, vertex)
@@ -488,7 +496,8 @@ def dump_topology_to_string(shape, level=0, buffer=""):
     s = shape.ShapeType()
     if s == TopAbs_VERTEX:
         pnt = brt.Pnt(topods_Vertex(shape))
-        print(".." * level  + "<Vertex %i: %s %s %s>\n" % (hash(shape), pnt.X(), pnt.Y(), pnt.Z()))
+        print(".." * level + "<Vertex %i: %s %s %s>\n" % (
+        hash(shape), pnt.X(), pnt.Y(), pnt.Z()))
     else:
         print(".." * level, end="")
         print(shape_type_string(shape))
@@ -498,6 +507,7 @@ def dump_topology_to_string(shape, level=0, buffer=""):
         it.Next()
         print(dump_topology_to_string(shp, level + 1, buffer))
 
+
 #
 # Edge and wire discretizers
 #
@@ -506,7 +516,8 @@ def discretize_wire(a_topods_wire):
     """ Returns a set of points
     """
     if not is_wire(a_topods_wire):
-        raise AssertionError("You must provide a TopoDS_Wire to the discretize_wire function.")
+        raise AssertionError(
+            "You must provide a TopoDS_Wire to the discretize_wire function.")
     wire_explorer = WireExplorer(a_topods_wire)
     wire_pnts = []
     # loop over ordered edges
@@ -522,26 +533,29 @@ def discretize_edge(a_topods_edge, deflection=0.5):
     i.e. the more points you get in the returned points
     """
     if not is_edge(a_topods_edge):
-        raise AssertionError("You must provide a TopoDS_Edge to the discretize_edge function.")
+        raise AssertionError(
+            "You must provide a TopoDS_Edge to the discretize_edge function.")
     edg = topods_Edge(a_topods_edge)
     if edg.IsNull():
-        print("Warning : TopoDS_Edge is null. discretize_edge will return an empty list of points.")
+        print(
+            "Warning : TopoDS_Edge is null. discretize_edge will return an empty list of points.")
         return []
     curve_adaptator = BRepAdaptor_Curve(edg)
     first = curve_adaptator.FirstParameter()
     last = curve_adaptator.LastParameter()
-    
+
     discretizer = GCPnts_UniformAbscissa()
     discretizer.Initialize(curve_adaptator, deflection, first, last)
 
-    assert discretizer.IsDone ()
-    assert discretizer.NbPoints () > 0
-    
+    assert discretizer.IsDone()
+    assert discretizer.NbPoints() > 0
+
     points = []
     for i in range(1, discretizer.NbPoints() + 1):
-        p = curve_adaptator.Value (discretizer.Parameter (i))
+        p = curve_adaptator.Value(discretizer.Parameter(i))
         points.append(p.Coord())
     return points
+
 
 #
 # TopoDS_Shape type utils

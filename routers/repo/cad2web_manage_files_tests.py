@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-r"""Tests for view_cad_converter.py
+r"""Tests for cad2web_manage_files.py
 
 Requires an internet connection to test the _download_file() function
 
@@ -14,7 +14,7 @@ import pytest
 
 import requests
 
-from view_cad_converter import _download_file, sha1
+from cad2web_manage_files import _download_file, sha1
 
 
 def test_download_file():
@@ -59,12 +59,3 @@ def test_sha1_non_existent_file():
     r"""Test sha1 for a file that does not exist"""
     with pytest.raises(FileNotFoundError):
         sha1(join(dirname(__file__), "unknown_file.go"))
-
-
-# no tests for _conversion_filename()
-
-
-# no tests for _convert_shape() (only a way to implement caching)
-
-
-# no tests for color_to_hex() (trivial function)

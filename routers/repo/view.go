@@ -198,7 +198,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			gitea_path = os.Getenv("GOPATH") + "/src/code.gitea.io/gitea"
 		}
 		fmt.Println("gitea_path defined as : " + gitea_path)
-		conversion_script_path := gitea_path + "/routers/repo/view_cad_converter.py"
+		conversion_script_path := gitea_path + "/routers/repo/cad2web_main.py"
 		cad_file_raw_url := rawLink + "/" + ctx.Repo.TreePath
 		converted_files_folder := gitea_path + "/public/converted_files"
 
