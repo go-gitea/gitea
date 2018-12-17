@@ -33,8 +33,19 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	commitsInfo := make([][]interface{}, len(tes))
 	for i, entry := range tes {
 		if rev, ok := revs[entry.Name()]; ok {
-			commit := convertCommit(rev)
-			commitsInfo[i] = []interface{}{entry, commit}
+			entryCommit := convertCommit(rev)
+			if entry.IsSubModule() {
+				subModuleURL := ""
+				if subModule, err := commit.GetSubModule(entry.Name()); err != nil {
+					return nil, nil, err
+				} else if subModule != nil {
+					subModuleURL = subModule.URL
+				}
+				subModuleFile := NewSubModuleFile(entryCommit, subModuleURL, entry.ID.String())
+				commitsInfo[i] = []interface{}{entry, subModuleFile}
+			} else {
+				commitsInfo[i] = []interface{}{entry, entryCommit}
+			}
 		} else {
 			commitsInfo[i] = []interface{}{entry, nil}
 		}
