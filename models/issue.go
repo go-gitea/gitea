@@ -86,6 +86,11 @@ func (issue *Issue) IsOverdue() bool {
 	return util.TimeStampNow() >= issue.DeadlineUnix
 }
 
+// LoadRepo loads issue's repository
+func (issue *Issue) LoadRepo() error {
+	return issue.loadRepo(x)
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -129,6 +134,11 @@ func (issue *Issue) loadLabels(e Engine) (err error) {
 	return nil
 }
 
+// LoadPoster loads poster
+func (issue *Issue) LoadPoster() error {
+	return issue.loadPoster(x)
+}
+
 func (issue *Issue) loadPoster(e Engine) (err error) {
 	if issue.Poster == nil {
 		issue.Poster, err = getUserByID(e, issue.PosterID)
@@ -154,8 +164,14 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 			}
 			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
 		}
+		issue.PullRequest.Issue = issue
 	}
 	return nil
+}
+
+// LoadPullRequest loads pull request info
+func (issue *Issue) LoadPullRequest() error {
+	return issue.loadPullRequest(x)
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
@@ -310,11 +326,18 @@ func (issue *Issue) State() api.StateType {
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func (issue *Issue) APIFormat() *api.Issue {
+	return issue.apiFormat(x)
+}
+
+func (issue *Issue) apiFormat(e Engine) *api.Issue {
+	issue.loadLabels(e)
 	apiLabels := make([]*api.Label, len(issue.Labels))
 	for i := range issue.Labels {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
 
+	issue.loadPoster(e)
+	issue.loadRepo(e)
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
@@ -336,6 +359,8 @@ func (issue *Issue) APIFormat() *api.Issue {
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
+	issue.loadAssignees(e)
+
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
@@ -343,6 +368,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
+		issue.loadPullRequest(e)
 		apiIssue.PullRequest = &api.PullRequestMeta{
 			HasMerged: issue.PullRequest.HasMerged,
 		}
@@ -656,7 +682,7 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 	return updateIssueCols(x, issue, cols...)
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Nothing should be performed if current status is same as target status
 	if issue.IsClosed == isClosed {
 		return nil
@@ -707,7 +733,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, repo, issue); err != nil {
+	if _, err = createStatusComment(e, doer, issue); err != nil {
 		return err
 	}
 
@@ -715,14 +741,21 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.changeStatus(sess, doer, repo, isClosed); err != nil {
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+	if err = issue.loadPoster(sess); err != nil {
+		return err
+	}
+
+	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
 		return err
 	}
 
@@ -733,12 +766,14 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
+		if err = issue.loadPullRequest(sess); err != nil {
+			return err
+		}
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
-		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(mode),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -746,12 +781,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
+		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
-			Repository: repo.APIFormat(mode),
+			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		}
 		if isClosed {
@@ -759,12 +794,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiIssue.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventIssues, apiIssue)
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
-		go HookQueue.Add(repo.ID)
+		go HookQueue.Add(issue.Repo.ID)
 	}
 
 	return nil
@@ -785,6 +820,10 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
 	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
@@ -795,6 +834,9 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
+		if err = issue.loadPullRequest(sess); err != nil {
+			return fmt.Errorf("loadPullRequest: %v", err)
+		}
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
@@ -1099,8 +1141,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	return nil
 }
 
-// GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.
-func GetRawIssueByIndex(repoID, index int64) (*Issue, error) {
+// GetIssueByIndex returns raw issue without loading attributes by index in a repository.
+func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	issue := &Issue{
 		RepoID: repoID,
 		Index:  index,
@@ -1114,9 +1156,9 @@ func GetRawIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueByIndex returns issue by index in a repository.
-func GetIssueByIndex(repoID, index int64) (*Issue, error) {
-	issue, err := GetRawIssueByIndex(repoID, index)
+// GetIssueWithAttrsByIndex returns issue by index in a repository.
+func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(repoID, index)
 	if err != nil {
 		return nil, err
 	}
@@ -1131,7 +1173,16 @@ func getIssueByID(e Engine, id int64) (*Issue, error) {
 	} else if !has {
 		return nil, ErrIssueNotExist{id, 0, 0}
 	}
-	return issue, issue.loadAttributes(e)
+	return issue, nil
+}
+
+// GetIssueWithAttrsByID returns an issue with attributes by given ID.
+func GetIssueWithAttrsByID(id int64) (*Issue, error) {
+	issue, err := getIssueByID(x, id)
+	if err != nil {
+		return nil, err
+	}
+	return issue, issue.loadAttributes(x)
 }
 
 // GetIssueByID returns an issue by given ID.

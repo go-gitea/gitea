@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 
 	"github.com/go-xorm/builder"
@@ -160,6 +161,23 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
+func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
+	reviews = make([]*Review, 0)
+	if err := e.
+		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
+		OrderBy("updated_unix").
+		GroupBy("reviewer_id").
+		Find(&reviews); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
+func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
+	return getUniqueApprovalsByPullRequestID(x, prID)
+}
+
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	Type       ReviewType
@@ -266,13 +284,24 @@ type PullReviewersWithType struct {
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses
 func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
 	irs := []*PullReviewersWithType{}
-	err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
-		Table("review").
-		Join("INNER", "`user`", "review.reviewer_id = `user`.id").
-		Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)", pullID, ReviewTypeApprove, ReviewTypeReject).
-		GroupBy("`user`.id, review.type").
-		OrderBy("review_updated_unix DESC").
-		Find(&irs)
+	if x.Dialect().DBType() == core.MSSQL {
+		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM 
+(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix 
+FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?) 
+GROUP BY review.id, review.type, review.reviewer_id) as review 
+INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
+			pullID, ReviewTypeApprove, ReviewTypeReject).
+			Find(&irs)
+	} else {
+		err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
+			Table("review").
+			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
+			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
+				pullID, ReviewTypeApprove, ReviewTypeReject).
+			GroupBy("`user`.id, review.type").
+			OrderBy("review_updated_unix DESC").
+			Find(&irs)
+	}
 
 	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
 	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
