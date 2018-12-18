@@ -1085,12 +1085,7 @@ func DeleteUser(u *User) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	return RewriteAllPublicKeys()
+	return sess.Commit()
 }
 
 // DeleteInactivateUsers deletes all inactivate users and email addresses.
