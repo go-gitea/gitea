@@ -1402,7 +1402,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
 	for _, KeyToDelete := range keys {
-		key, err := SearchPublicKeyByContent(KeyToDelete)
+		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
 		if err != nil {
 			log.Error(4, "SearchPublicKeyByContent: %v", err)
 			continue
