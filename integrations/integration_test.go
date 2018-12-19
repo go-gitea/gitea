@@ -99,6 +99,7 @@ func initIntegrationTest() {
 	}
 
 	setting.NewContext()
+	setting.CheckLFSVersion()
 	models.LoadConfigs()
 
 	switch {
