@@ -14,13 +14,14 @@ type IndexerData struct {
 	IsDelete bool `json:"-"`
 }
 
-// Match
+// Match represents on search result
 type Match struct {
 	ID     int64   `json:"id"`
 	RepoID int64   `json:"repo_id"`
 	Score  float64 `json:"score"`
 }
 
+// SearchResult represents search results
 type SearchResult struct {
 	Hits []Match
 }

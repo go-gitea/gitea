@@ -100,7 +100,7 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	return index, nil
 }
 
-// IssueIndexerUpdate an update to the issue indexer
+// BleveIndexerData an update to the issue indexer
 type BleveIndexerData IndexerData
 
 // Type returns the document type, for bleve's mapping.Classifier interface.
@@ -169,6 +169,7 @@ func NewBleveIndexer(indexDir string) *BleveIndexer {
 	}
 }
 
+// Init will initial the indexer
 func (b *BleveIndexer) Init() (bool, error) {
 	var err error
 	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)
@@ -183,6 +184,7 @@ func (b *BleveIndexer) Init() (bool, error) {
 	return false, err
 }
 
+// Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
 	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, issue := range issues {

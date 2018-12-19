@@ -26,6 +26,7 @@ func NewChannelQueue(indexer Indexer, batchNumber int) *ChannelQueue {
 	}
 }
 
+// Run starts to run the queue
 func (c *ChannelQueue) Run() error {
 	var i int
 	var datas = make([]*IndexerData, 0, c.batchNumber)
@@ -49,6 +50,7 @@ func (c *ChannelQueue) Run() error {
 	}
 }
 
+// Push will push the indexer data to queue
 func (c *ChannelQueue) Push(data *IndexerData) {
 	c.queue <- data
 }

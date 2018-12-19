@@ -16,7 +16,7 @@ import (
 var (
 	_ Queue = &LedisLocalQueue{}
 
-	ledis_local_key = []byte("ledis_local_key")
+	ledisLocalKey = []byte("ledis_local_key")
 )
 
 // LedisLocalQueue implements a ledis as a disk library queue
@@ -49,11 +49,12 @@ func NewLedisLocalQueue(indexer Indexer, dataDir string, dbIdx, batchNumber int)
 	}, nil
 }
 
+// Run starts to run the queue
 func (l *LedisLocalQueue) Run() error {
 	var i int
 	var datas = make([]*IndexerData, 0, l.batchNumber)
 	for {
-		bs, err := l.db.RPop(ledis_local_key)
+		bs, err := l.db.RPop(ledisLocalKey)
 		if err != nil {
 			log.Error(4, "RPop: %v", err)
 			time.Sleep(time.Millisecond * 100)
@@ -87,13 +88,14 @@ func (l *LedisLocalQueue) Run() error {
 	}
 }
 
+// Push will push the indexer data to queue
 func (l *LedisLocalQueue) Push(data *IndexerData) {
 	bs, err := json.Marshal(data)
 	if err != nil {
 		log.Error(4, "Marshal: %v", err)
 		return
 	}
-	_, err = l.db.LPush(ledis_local_key, bs)
+	_, err = l.db.LPush(ledisLocalKey, bs)
 	if err != nil {
 		log.Error(4, "LPush: %v", err)
 	}
