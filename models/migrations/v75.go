@@ -11,7 +11,7 @@ import (
 
 func clearNonusedData(x *xorm.Engine) error {
 	condDelete := func(colName string) builder.Cond {
-		return builder.NotIn(colName, builder.Select("id").From("user"))
+		return builder.NotIn(colName, builder.Select("id").From("`user`"))
 	}
 
 	if _, err := x.Exec(builder.Delete(condDelete("uid")).From("team_user")); err != nil {
