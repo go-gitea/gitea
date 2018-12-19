@@ -96,6 +96,7 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	} else if err != nil {
 		return nil, err
 	}
+
 	return index, nil
 }
 
@@ -108,7 +109,7 @@ func (i *BleveIndexerData) Type() string {
 }
 
 // createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer(path string) (bleve.Index, error) {
+func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
@@ -138,7 +139,17 @@ func createIssueIndexer(path string) (bleve.Index, error) {
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	return bleve.New(path, mapping)
+	index, err := bleve.New(path, mapping)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
+		Version: latestVersion,
+	}); err != nil {
+		return nil, err
+	}
+	return index, nil
 }
 
 var (
@@ -168,7 +179,7 @@ func (b *BleveIndexer) Init() (bool, error) {
 		return true, nil
 	}
 
-	b.indexer, err = createIssueIndexer(b.indexDir)
+	b.indexer, err = createIssueIndexer(b.indexDir, issueIndexerLatestVersion)
 	return false, err
 }
 
