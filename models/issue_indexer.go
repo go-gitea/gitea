@@ -21,15 +21,21 @@ var (
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer() error {
-	issueIndexer = issues.NewBleveIndexer(setting.Indexer.IssuePath)
-	exist, err := issueIndexer.Init()
-	if err != nil {
-		return err
-	}
-	if !exist {
-		go populateIssueIndexer()
+	switch setting.Indexer.IssueType {
+	case "bleve":
+		issueIndexer = issues.NewBleveIndexer(setting.Indexer.IssuePath)
+		exist, err := issueIndexer.Init()
+		if err != nil {
+			return err
+		}
+		if !exist {
+			go populateIssueIndexer()
+		}
+	default:
+		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
 	}
 
+	var err error
 	switch setting.Indexer.IssueIndexerQueueType {
 	case setting.LedisLocalQueueType:
 		issueIndexerUpdateQueue, err = issues.NewLedisLocalQueue(

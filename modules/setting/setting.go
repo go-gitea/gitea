@@ -187,6 +187,7 @@ var (
 
 	// Indexer settings
 	Indexer = struct {
+		IssueType                    string
 		IssuePath                    string
 		RepoIndexerEnabled           bool
 		RepoPath                     string
@@ -197,6 +198,7 @@ var (
 		IssueIndexerQueueDBIndex     int
 		IssueIndexerQueueBatchNumber int
 	}{
+		IssueType:                    "bleve",
 		IssuePath:                    "indexers/issues.bleve",
 		IssueIndexerQueueType:        LedisLocalQueueType,
 		IssueIndexerQueueDir:         "indexers/issues.queue",
