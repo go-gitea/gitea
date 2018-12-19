@@ -22,7 +22,7 @@ func clearNonusedData(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := x.Exec(builder.Delete(condDelete("user_id")).From("stop_watch")); err != nil {
+	if _, err := x.Exec(builder.Delete(condDelete("user_id")).From("stopwatch")); err != nil {
 		return err
 	}
 
