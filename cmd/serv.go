@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
 )
 
@@ -48,8 +50,28 @@ var CmdServ = cli.Command{
 	},
 }
 
+func checkLFSVersion() {
+	if setting.LFS.StartServer {
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			fail(fmt.Sprintf("Error retrieving git version: %v", err), fmt.Sprintf("Error retrieving git version: %v", err))
+		}
+
+		if !version.Compare(binVersion, "2.1.2", ">=") {
+			setting.LFS.StartServer = false
+			println("LFS server support needs at least Git v2.1.2, disabled")
+		} else {
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+		}
+	}
+}
+
 func setup(logPath string) {
 	setting.NewContext()
+	checkLFSVersion()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 }
 
@@ -144,11 +166,15 @@ func runServ(c *cli.Context) error {
 		}()
 	}
 
-	isWiki := false
-	unitType := models.UnitTypeCode
+	var (
+		isWiki   bool
+		unitType = models.UnitTypeCode
+		unitName = "code"
+	)
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = models.UnitTypeWiki
+		unitName = "wiki"
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -245,7 +271,7 @@ func runServ(c *cli.Context) error {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
-					"User %s does not have level %v access to repository %s",
+					"User %s does not have level %v access to repository %s's "+unitName,
 					user.Name, requestedMode, repoPath)
 			}
 
@@ -304,7 +330,7 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verb, repoPath)
 	}
 	if isWiki {
-		if err = repo.InitWiki(); err != nil {
+		if err = private.InitWiki(repo.ID); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)
 		}
 	}

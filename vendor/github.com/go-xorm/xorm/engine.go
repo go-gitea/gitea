@@ -177,6 +177,14 @@ func (engine *Engine) QuoteStr() string {
 	return engine.dialect.QuoteStr()
 }
 
+func (engine *Engine) quoteColumns(columnStr string) string {
+	columns := strings.Split(columnStr, ",")
+	for i := 0; i < len(columns); i++ {
+		columns[i] = engine.Quote(strings.TrimSpace(columns[i]))
+	}
+	return strings.Join(columns, ",")
+}
+
 // Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(value string) string {
 	value = strings.TrimSpace(value)
@@ -235,6 +243,11 @@ func (engine *Engine) SQLType(c *core.Column) string {
 // AutoIncrStr Database's autoincrement statement
 func (engine *Engine) AutoIncrStr() string {
 	return engine.dialect.AutoIncrStr()
+}
+
+// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+func (engine *Engine) SetConnMaxLifetime(d time.Duration) {
+	engine.db.SetConnMaxLifetime(d)
 }
 
 // SetMaxOpenConns is only available for go 1.2+
@@ -1333,10 +1346,10 @@ func (engine *Engine) DropIndexes(bean interface{}) error {
 }
 
 // Exec raw sql
-func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
+func (engine *Engine) Exec(sqlorArgs ...interface{}) (sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Exec(sql, args...)
+	return session.Exec(sqlorArgs...)
 }
 
 // Query a raw sql and return records as []map[string][]byte

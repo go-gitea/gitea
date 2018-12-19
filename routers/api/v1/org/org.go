@@ -60,7 +60,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, false)
+	listUserOrgs(ctx, u, ctx.User.IsAdmin)
 }
 
 // Create api for create organization
@@ -85,7 +85,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if !ctx.User.AllowCreateOrganization {
+	if !ctx.User.CanCreateOrganization() {
 		ctx.Error(403, "Create organization not allowed", nil)
 		return
 	}

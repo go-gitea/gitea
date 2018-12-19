@@ -51,7 +51,7 @@ func ListToPushCommits(l *list.List) *PushCommits {
 		}
 		commits = append(commits, CommitToPushCommit(commit))
 	}
-	return &PushCommits{l.Len(), commits, "", nil}
+	return &PushCommits{l.Len(), commits, "", make(map[string]string), make(map[string]*User)}
 }
 
 // PushUpdateOptions defines the push update options

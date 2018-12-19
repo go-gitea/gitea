@@ -261,6 +261,7 @@ COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
+REVERSE_PROXY_AUTHENTICATION_EMAIL = X-WEBAUTH-EMAIL
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
 ; Set to true to allow users to import local server paths
@@ -323,6 +324,7 @@ ENABLE_NOTIFY_MAIL = false
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
+ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
 ; Type of captcha you want to use. Options: image, recaptcha
