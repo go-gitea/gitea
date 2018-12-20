@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -394,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -1538,7 +1542,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -2692,7 +2696,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2813,7 +2817,7 @@ function initIssueList() {
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
