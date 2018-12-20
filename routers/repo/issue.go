@@ -576,6 +576,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
+	err = issue.LoadAttributes()
+	if err != nil {
+		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
+
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
 	var iw *models.IssueWatch
@@ -677,6 +683,10 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
+					if err = otherIssue.LoadRepo(); err != nil {
+						ctx.ServerError("LoadRepo", err)
+						return
+					}
 					// Add link to the issue of the already running stopwatch
 					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
 				}
@@ -697,7 +707,17 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		if err := comment.LoadPoster(); err != nil {
+			ctx.ServerError("LoadPoster", err)
+			return
+		}
+
 		if comment.Type == models.CommentTypeComment {
+			if err := comment.LoadAttachments(); err != nil {
+				ctx.ServerError("LoadAttachments", err)
+				return
+			}
+
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 
@@ -868,6 +888,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return nil
 	}
+	issue.Repo = ctx.Repo.Repository
 	checkIssueRights(ctx, issue)
 	if ctx.Written() {
 		return nil
@@ -1049,7 +1070,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 				if models.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -1126,7 +1147,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, isClosed); err != nil {
+				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {

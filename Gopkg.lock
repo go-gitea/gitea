@@ -390,12 +390,12 @@
   revision = "d523deb1b23d913de5bdada721a6071e71283618"
 
 [[projects]]
-  digest = "1:1397763fd29d5667bcfbacde8a37542ee145416b3acb7e1b149c98fef2567930"
+  digest = "1:06d21295033f211588d0ad7ff391cc1b27e72b60cb6d4b7db0d70cffae4cf228"
   name = "github.com/go-xorm/builder"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "dc8bf48f58fab2b4da338ffd25191905fd741b8f"
-  version = "v0.3.0"
+  revision = "03eb88feccce3e477c318ce7f6f1b386544ab20b"
+  version = "v0.3.3"
 
 [[projects]]
   digest = "1:c910feae32bcc3cbf068c7263424d9f198da931c0cad909179621835e6f87cb8"

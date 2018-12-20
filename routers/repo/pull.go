@@ -223,11 +223,20 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		}
 		return nil
 	}
+	if err = issue.LoadPoster(); err != nil {
+		ctx.ServerError("LoadPoster", err)
+		return nil
+	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 	ctx.Data["Issue"] = issue
 
 	if !issue.IsPull {
 		ctx.NotFound("ViewPullCommits", nil)
+		return nil
+	}
+
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
 		return nil
 	}
 
@@ -519,16 +528,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
-		}
-		return
-	}
-	pr.Issue = issue
+	pr := issue.PullRequest
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
@@ -949,15 +949,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
-		}
-		return
-	}
+	pr := issue.PullRequest
 
 	// Allow cleanup only for merged PR
 	if !pr.HasMerged {
@@ -965,7 +957,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err = pr.GetHeadRepo(); err != nil {
+	if err := pr.GetHeadRepo(); err != nil {
 		ctx.ServerError("GetHeadRepo", err)
 		return
 	} else if pr.HeadRepo == nil {
@@ -1077,8 +1069,12 @@ func DownloadPullDiff(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetBaseRepo(); err != nil {
 		ctx.ServerError("GetBaseRepo", err)
 		return
@@ -1111,8 +1107,12 @@ func DownloadPullPatch(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetHeadRepo(); err != nil {
 		ctx.ServerError("GetHeadRepo", err)
 		return
