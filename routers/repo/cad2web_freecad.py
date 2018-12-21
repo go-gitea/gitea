@@ -173,7 +173,9 @@ def name_file_visibility_from_unzipping_folder(folder_unzipping):
     return name_file_visibility(name_files_tuples, guidocroot)
 
 
-def convert_freecad_file(freecad_filename, target_folder, remove_original=False):
+def convert_freecad_file(freecad_filename,
+                         target_folder,
+                         remove_original=True):
     r"""Convert a FreeCAD file (.fcstd) for web display
 
     Parameters
@@ -182,6 +184,10 @@ def convert_freecad_file(freecad_filename, target_folder, remove_original=False)
         Full path to FreeCAD file
     target_folder : str
         Full path to the target folder for the conversion
+    remove_original : bool
+        Should the input file be deleted after conversion?
+        It should be deleted on a web platform to save disk space, but, for
+        testing, it might be useful not to delete it.
 
     Returns
     -------
@@ -211,7 +217,9 @@ def convert_freecad_file(freecad_filename, target_folder, remove_original=False)
                 importer = BrepImporter(brep_filename)
                 extremas.append(BoundingBox(importer.shape).as_tuple)
                 _convert_shape(importer.shape, converted_filename)
-            except RuntimeError:
+            except (RuntimeError, AssertionError):
+                # An AssertionError is raised if one of the BREPs contained
+                # in the FCSTD file contains a NULL shape
                 logger.error("RuntimeError for %s" % brep_filename)
 
     x_min = min([extrema[0] for extrema in extremas])
