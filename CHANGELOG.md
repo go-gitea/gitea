@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
 * SECURITY
-  * Fix bug on upload file name (#5571) (#5573)
+  * Sanitize uploaded file names (#5571) (#5573)
   * HTMLEncode user added text (#5570) (#5575)
 * BUGFIXES
   * Fix indexer reindex bug when gitea restart (#5563) (#5564)
