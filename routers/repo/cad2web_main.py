@@ -51,16 +51,18 @@ def main():
     cad_file_raw_url = sys.argv[1]
     converted_files_folder = sys.argv[2]  # Root destination for converted files
 
-    # branch = raw_link.split("/")[-1]
-    # user = raw_link.split("/")[1]
-    # project = raw_link.split("/")[2]
+    logger.debug("sys.argv[1]       (CAD file raw url) = %s" % cad_file_raw_url)
+    logger.debug("sys.argv[2] (Converted files folder) = %s" % converted_files_folder)
 
-    # clone_url = "%s/%s/%s" % (GITEA_URL, user, project)
+    branch = cad_file_raw_url.split("/")[5]
+    user = cad_file_raw_url.split("/")[1]
+    project = cad_file_raw_url.split("/")[2]
 
-    # logger.info("raw_link is %s" % raw_link)
-    # logger.info("Branch is %s" % branch)
-    # logger.info("User is %s" % user)
-    # logger.info("Project is %s" % project)
+    clone_url = "%s/%s/%s" % (GITEA_URL, user, project)
+
+    logger.info("Branch is %s" % branch)
+    logger.info("User is %s" % user)
+    logger.info("Project is %s" % project)
 
     cad_file_raw_url_full = "%s%s" % (GITEA_URL, cad_file_raw_url)
 
@@ -85,19 +87,15 @@ def main():
 
     try:
         if splitext(cad_file_raw_url)[1].lower() != ".py":
+            logger.info("Dealing with a static CAD file")
             conversion_function[splitext(cad_file_raw_url)[1].lower()](
                 cad_file_filename, converted_files_folder)
         else:
-            pass
-            # logger.info("Dealing with a Python file")
-            # logger.debug("cad_file_filename : %s" % cad_file_filename)
-            # logger.debug("converted_files_folder : %s" % converted_files_folder)
-            # logger.debug("clone_url : %s" % clone_url)
-            # logger.debug("branch : %s" % branch)
-            # convert_py_file(cad_file_filename,
-            #                 converted_files_folder,
-            #                 clone_url,
-            #                 branch)
+            logger.info("Dealing with a scripted CAD file")
+            convert_py_file(cad_file_filename,
+                            converted_files_folder,
+                            clone_url,
+                            branch)
         t1 = time.time()
         logger.info("The whole Python call took %f" % (t1 - t0))
         sys.exit(0)
