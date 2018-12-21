@@ -166,10 +166,7 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
+
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, e.Where("repo_id = ?", repoID).Find(&units)
-}
-
-func getUnitsByRepoIDAndIDs(e Engine, repoID int64, types []UnitType) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).In("`type`", types).Find(&units)
 }

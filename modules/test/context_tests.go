@@ -47,6 +47,9 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
 	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
+	var err error
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	assert.NoError(t, err)
 }
 
 // LoadRepoCommit loads a repo's commit into a test context.

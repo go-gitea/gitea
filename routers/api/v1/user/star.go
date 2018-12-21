@@ -13,15 +13,15 @@ import (
 
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
-func getStarredRepos(userID int64, private bool) ([]*api.Repository, error) {
-	starredRepos, err := models.GetStarredRepos(userID, private)
+func getStarredRepos(user *models.User, private bool) ([]*api.Repository, error) {
+	starredRepos, err := models.GetStarredRepos(user.ID, private)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := models.AccessLevel(userID, starred)
+		access, err := models.AccessLevel(user, starred)
 		if err != nil {
 			return nil, err
 		}
@@ -48,7 +48,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getStarredRepos(user.ID, private)
+	repos, err := getStarredRepos(user, private)
 	if err != nil {
 		ctx.Error(500, "getStarredRepos", err)
 	}
@@ -65,7 +65,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	repos, err := getStarredRepos(ctx.User.ID, true)
+	repos, err := getStarredRepos(ctx.User, true)
 	if err != nil {
 		ctx.Error(500, "getStarredRepos", err)
 	}

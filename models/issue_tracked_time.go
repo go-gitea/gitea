@@ -90,6 +90,9 @@ func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 	if _, err := x.Insert(tt); err != nil {
 		return nil, err
 	}
+	if err := issue.loadRepo(x); err != nil {
+		return nil, err
+	}
 	if _, err := CreateComment(&CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,

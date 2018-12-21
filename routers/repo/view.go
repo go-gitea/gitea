@@ -137,7 +137,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = true
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
 	}
@@ -256,7 +256,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 		} else if !ctx.Repo.IsViewBranch {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.IsWriter() {
+		} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		}
 
@@ -275,16 +275,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.IsWriter() {
+	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if len(ctx.Repo.Repository.Units) > 0 {
+	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
-		for _, repoUnit := range ctx.Repo.Repository.Units {
+		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
 				renderCode(ctx)
 				return

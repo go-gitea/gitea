@@ -14,23 +14,28 @@ import (
 )
 
 // IssueWatch sets issue watching
-func IssueWatch(c *context.Context) {
-	watch, err := strconv.ParseBool(c.Req.PostForm.Get("watch"))
+func IssueWatch(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
+	watch, err := strconv.ParseBool(ctx.Req.PostForm.Get("watch"))
 	if err != nil {
-		c.ServerError("watch is not bool", err)
+		ctx.ServerError("watch is not bool", err)
 		return
 	}
 
-	issue := GetActionIssue(c)
-	if c.Written() {
+	if err := models.CreateOrUpdateIssueWatch(ctx.User.ID, issue.ID, watch); err != nil {
+		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(c.User.ID, issue.ID, watch); err != nil {
-		c.ServerError("CreateOrUpdateIssueWatch", err)
-		return
-	}
-
-	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issue.Index)
-	c.Redirect(url, http.StatusSeeOther)
+	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index)
+	ctx.Redirect(url, http.StatusSeeOther)
 }

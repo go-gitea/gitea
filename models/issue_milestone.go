@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
-
 	"github.com/go-xorm/xorm"
 )
 
@@ -123,6 +122,18 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+// GetMilestoneByID returns the milestone via id .
+func GetMilestoneByID(id int64) (*Milestone, error) {
+	var m Milestone
+	has, err := x.ID(id).Get(&m)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrMilestoneNotExist{id, 0}
+	}
+	return &m, nil
+}
+
 // MilestoneList is a list of milestones offering additional functionality
 type MilestoneList []*Milestone
 
@@ -178,10 +189,11 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesByRepoID returns all milestones of a repository.
+// GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ?", repoID).Asc("deadline_unix").Find(&miles)
+	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, false).
+		Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
@@ -377,7 +389,7 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 		return err
 	}
 
-	mode, _ := AccessLevel(doer.ID, issue.Repo)
+	mode, _ := AccessLevel(doer, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {

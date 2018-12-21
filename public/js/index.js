@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -394,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -1538,7 +1542,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -2293,6 +2297,101 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function initHeatmap(appElementId, heatmapUser, locale) {
+    var el = document.getElementById(appElementId);
+    if (!el) {
+        return;
+    }
+
+    locale = locale || {};
+
+    locale.contributions = locale.contributions || 'contributions';
+    locale.no_contributions = locale.no_contributions || 'No contributions';
+
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('activity-heatmap', {
+        delimiters: vueDelimeters,
+
+        props: {
+            user: {
+                type: String,
+                required: true
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            locale: {
+                type: Object,
+                required: true
+            }
+        },
+
+        data: function () {
+            return {
+                isLoading: true,
+                colorRange: [],
+                endDate: null,
+                values: []
+            };
+        },
+
+        mounted: function() {
+            this.colorRange = [
+                this.getColor(0),
+                this.getColor(1),
+                this.getColor(2),
+                this.getColor(3),
+                this.getColor(4),
+                this.getColor(5)
+            ];
+            console.log(this.colorRange);
+            this.endDate = new Date();
+            this.loadHeatmap(this.user);
+        },
+
+        methods: {
+            loadHeatmap: function(userName) {
+                var self = this;
+                $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
+                    var chartData = [];
+                    for (var i = 0; i < chartRawData.length; i++) {
+                        chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+                    }
+                    self.values = chartData;
+                    self.isLoading = false;
+                });
+            },
+
+            getColor: function(idx) {
+                var el = document.createElement('div');
+                el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
+
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
+            }
+        },
+
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+    });
+
+    new Vue({
+        delimiters: vueDelimeters,
+        el: el,
+
+        data: {
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            heatmapUser: heatmapUser,
+            locale: locale
+        },
+    });
+}
+
 function initFilterBranchTagDropdown(selector) {
     $(selector).each(function() {
         var $dropdown = $(this);
@@ -2597,7 +2696,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2712,13 +2811,13 @@ function initIssueList() {
     $('.new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
