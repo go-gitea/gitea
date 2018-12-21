@@ -262,14 +262,22 @@ func (comments CommentList) getIssueIDs() []int64 {
 }
 
 // Issues returns all the issues of comments
-func (comments CommentList) Issues() (issues IssueList) {
-	issues = make([]*Issue, 0, len(comments))
+func (comments CommentList) Issues() IssueList {
+	var issues = make(map[int64]*Issue, len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
-			issues = append(issues, comment.Issue)
+			issue, ok := issues[comment.Issue.ID]
+			if !ok {
+				issues[comment.Issue.ID] = issue
+			}
 		}
 	}
-	return
+
+	var issueList = make([]*Issue, 0, len(issues))
+	for _, issue := range issues {
+		issueList = append(issueList, issue)
+	}
+	return issueList
 }
 
 func (comments CommentList) loadIssues(e Engine) error {
