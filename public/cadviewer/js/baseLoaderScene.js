@@ -10,7 +10,7 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
   // setup some default elements
   this.scene = new THREE.Scene();
   this.scene.background = new THREE.Color( 0xf0f0f0 );
-  this.stats = initStats();
+  // this.stats = initStats();
   this.clock = new THREE.Clock();
   this.camera = providedCamera;
   this.withLights = (shouldAddLights !== undefined) ? shouldAddLights : true;
@@ -46,7 +46,7 @@ function BaseLoaderScene(providedCamera, shouldAddLights, shouldRotate, updateMe
    * Interal function, called continously to render the scene
    */
   this._render = function () {
-    self.stats.update();
+    // self.stats.update();
     requestAnimationFrame(self._render);
     self.trackballControls.update(self.clock.getDelta());
 
