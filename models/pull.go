@@ -339,7 +339,7 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 		// Compute the diff-tree for sparse-checkout
 		stdout, stderr, err := process.GetManager().ExecDir(-1, repoPath,
 			fmt.Sprintf("PullRequest.Merge (git diff-tree): %s", repoPath),
-			"git", "diff-tree", "--no-commit-id", "--name-only", "-r", branch)
+			"git", "diff-tree", "--no-commit-id", "--name-only", "-r", "--root", branch)
 		if err != nil {
 			return "", fmt.Errorf("git diff-tree [%s/%s]: %s", repoPath, branch, stderr)
 		}
