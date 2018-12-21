@@ -375,7 +375,7 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 	sort.Strings(sorted)
 
-	var result strings.Builder
+	var result bytes.Buffer
 	for _, v := range sorted {
 		if _, err := result.WriteString(v); err != nil {
 			return "", err
