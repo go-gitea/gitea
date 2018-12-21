@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
+* SECURITY
+  * Sanitize uploaded file names (#5571) (#5573)
+  * HTMLEncode user added text (#5570) (#5575)
+* BUGFIXES
+  * Fix indexer reindex bug when gitea restart (#5563) (#5564)
+  * Remove a double slash in the HTTPS redirect with Let's Encrypt (#5537) (#5539)
+  * Fix bug when a read perm user to edit his issue (#5516) (#5534)
+  * Detect force push failure on deletion of protected branches (#5522) (#5531)
+  * Let's Encrypt handler listens on correct port for certificate validation (#5525) (#5527)
+  * Fix forgot deletion of notification when delete repository (#5506) (#5514)
+  * Fix undeleted content when deleting user (#5429) (#5509)
+  * Fix empty wiki (#5504) (#5508)
+
 ## [1.6.1](https://github.com/go-gitea/gitea/releases/tag/v1.6.1) - 2018-12-08
 * BUGFIXES
   * Fix dependent issue searching when gitea is run in subpath (#5392) (#5400)
