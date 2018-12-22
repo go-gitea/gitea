@@ -549,22 +549,22 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwagger             bool
-		MaxResponseItems          int
+		EnableSwagger    bool
+		MaxResponseItems int
 	}{
-		EnableSwagger:             true,
-		MaxResponseItems:          50,
+		EnableSwagger:    true,
+		MaxResponseItems: 50,
 	}
 
 	OAuth2 = struct {
-		Enable bool
-		AccessTokenExpirationTime int64
+		Enable                     bool
+		AccessTokenExpirationTime  int64
 		RefreshTokenExpirationTime int64
-		JWTSecretBytes []byte `ini:"-"`
-		JWTSecretBase64 string `ini:"JWT_SECRET"`
+		JWTSecretBytes             []byte `ini:"-"`
+		JWTSecretBase64            string `ini:"JWT_SECRET"`
 	}{
-		Enable: true,
-		AccessTokenExpirationTime: 3600,
+		Enable:                     true,
+		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 	}
 

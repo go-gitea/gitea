@@ -29,13 +29,20 @@ const (
 type AuthorizeErrorCode string
 
 const (
-	ErrorCodeInvalidRequest          AuthorizeErrorCode = "invalid_request"
-	ErrorCodeUnauthorizedClient      AuthorizeErrorCode = "unauthorized_client"
-	ErrorCodeAccessDenied            AuthorizeErrorCode = "access_denied"
+	// ErrorCodeInvalidRequest represents the according error in RFC 6749
+	ErrorCodeInvalidRequest AuthorizeErrorCode = "invalid_request"
+	// ErrorCodeUnauthorizedClient represents the according error in RFC 6749
+	ErrorCodeUnauthorizedClient AuthorizeErrorCode = "unauthorized_client"
+	// ErrorCodeAccessDenied represents the according error in RFC 6749
+	ErrorCodeAccessDenied AuthorizeErrorCode = "access_denied"
+	// ErrorCodeUnsupportedResponseType represents the according error in RFC 6749
 	ErrorCodeUnsupportedResponseType AuthorizeErrorCode = "unsupported_response_type"
-	ErrorCodeInvalidScope            AuthorizeErrorCode = "invalid_scope"
-	ErrorCodeServerError             AuthorizeErrorCode = "server_error"
-	ErrorCodeTemporaryUnavailable    AuthorizeErrorCode = "temporarily_unavailable"
+	// ErrorCodeInvalidScope represents the according error in RFC 6749
+	ErrorCodeInvalidScope AuthorizeErrorCode = "invalid_scope"
+	// ErrorCodeServerError represents the according error in RFC 6749
+	ErrorCodeServerError AuthorizeErrorCode = "server_error"
+	// ErrorCodeTemporaryUnavailable represents the according error in RFC 6749
+	ErrorCodeTemporaryUnavailable AuthorizeErrorCode = "temporarily_unavailable"
 )
 
 // AuthorizeError represents an error type specified in RFC 6749
@@ -54,12 +61,18 @@ func (err AuthorizeError) Error() string {
 type AccessTokenErrorCode string
 
 const (
-	AccessTokenErrorCodeInvalidRequest       AccessTokenErrorCode = "invalid_request"
-	AccessTokenErrorCodeInvalidClient                             = "invalid_client"
-	AccessTokenErrorCodeInvalidGrant                              = "invalid_grant"
-	AccessTokenErrorCodeUnauthorizedClient                        = "unauthorized_client"
-	AccessTokenErrorCodeUnsupportedGrantType                      = "unsupported_grant_type"
-	AccessTokenErrorCodeInvalidScope                              = "invalid_scope"
+	// AccessTokenErrorCodeInvalidRequest represents an error code specified in RFC 6749
+	AccessTokenErrorCodeInvalidRequest AccessTokenErrorCode = "invalid_request"
+	// AccessTokenErrorCodeInvalidClient represents an error code specified in RFC 6749
+	AccessTokenErrorCodeInvalidClient = "invalid_client"
+	// AccessTokenErrorCodeInvalidGrant represents an error code specified in RFC 6749
+	AccessTokenErrorCodeInvalidGrant = "invalid_grant"
+	// AccessTokenErrorCodeUnauthorizedClient represents an error code specified in RFC 6749
+	AccessTokenErrorCodeUnauthorizedClient = "unauthorized_client"
+	// AccessTokenErrorCodeUnsupportedGrantType represents an error code specified in RFC 6749
+	AccessTokenErrorCodeUnsupportedGrantType = "unsupported_grant_type"
+	// AccessTokenErrorCodeInvalidScope represents an error code specified in RFC 6749
+	AccessTokenErrorCodeInvalidScope = "invalid_scope"
 )
 
 // AccessTokenError represents an error response specified in RFC 6749
@@ -77,8 +90,10 @@ func (err AccessTokenError) Error() string {
 type TokenType string
 
 const (
+	// TokenTypeBearer represents a token type specified in RFC 6749
 	TokenTypeBearer TokenType = "bearer"
-	TokenTypeMAC              = "mac"
+	// TokenTypeMAC represents a token type specified in RFC 6749
+	TokenTypeMAC = "mac"
 )
 
 // AccessTokenResponse represents a successful access token response
@@ -207,13 +222,13 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
-/*	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
-	}*/
+	}
 	authorizationCode, err := models.GetOAuth2AuthorizationByCode(form.Code)
 	if err != nil || authorizationCode == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -240,7 +255,7 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 	signedAccessToken, err := accessToken.SignToken()
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot sign token",
 		})
 		return
@@ -257,7 +272,7 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 	signedRefreshToken, err := refreshToken.SignToken()
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot sign token",
 		})
 		return

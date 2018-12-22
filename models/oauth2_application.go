@@ -186,7 +186,7 @@ func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2Authorizat
 	} else if !has {
 		return nil, nil
 	}
-	return  auth, nil
+	return auth, nil
 }
 
 //////////////////////////////////////////////////////
@@ -224,19 +224,22 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI str
 	return code, nil
 }
 
-
 //////////////////////////////////////////////////////////////
 
+// OAuth2TokenType represents the type of token for an oauth application
 type OAuth2TokenType int
 
 const (
+	// TypeAccessToken is a token with short lifetime to access the api
 	TypeAccessToken OAuth2TokenType = 0
+	// TypeRefreshToken is token wiht long lifetime to refresh access tokens obtained by the client
 	TypeRefreshToken = iota
 )
 
+// OAuth2Token represents a JWT token used to authenticate a client
 type OAuth2Token struct {
-	GrantID int64 `json:"sub"`
-	Type OAuth2TokenType `json:"tt"`
+	GrantID int64           `json:"sub"`
+	Type    OAuth2TokenType `json:"tt"`
 	jwt.StandardClaims
 }
 
@@ -266,6 +269,7 @@ func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 	return token, nil
 }
 
+// SignToken signs the token with the JWT secret
 func (token *OAuth2Token) SignToken() (string, error) {
 	token.IssuedAt = time.Now().Unix()
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
