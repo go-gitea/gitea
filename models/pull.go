@@ -420,7 +420,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err != nil {
 		return fmt.Errorf("getDiffTree: %v", err)
 	}
-	log.Debug("sparseCheckoutList: %s\n", sparseCheckoutList)
 
 	sparseCheckoutListPath := filepath.Join(tmpBasePath, ".git", "info", "sparse-checkout")
 	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
