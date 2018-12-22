@@ -154,7 +154,7 @@ func (code *OAuth2AuthorizationCode) TableName() string {
 	return "oauth2_authorization_code"
 }
 
-// GenerateRedirectURI generates a redirect URI for a sucessfull authorization request. State will be used if not empty.
+// GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
 func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect *url.URL, err error) {
 	if redirect, err = url.Parse(code.RedirectURI); err != nil {
 		return
@@ -205,7 +205,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-// GenerateNewAuthorizationCode generates a new authroization code for a grant and saves it to the databse
+// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI)
 }
@@ -232,7 +232,7 @@ type OAuth2TokenType int
 const (
 	// TypeAccessToken is a token with short lifetime to access the api
 	TypeAccessToken OAuth2TokenType = 0
-	// TypeRefreshToken is token wiht long lifetime to refresh access tokens obtained by the client
+	// TypeRefreshToken is token with long lifetime to refresh access tokens obtained by the client
 	TypeRefreshToken = iota
 )
 
