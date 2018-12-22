@@ -548,7 +548,11 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
-	repoIDs, err := env.RepoIDs(1, org.NumRepos)
+	count, err := org.GetRepositoryCount()
+	if err != nil {
+		return fmt.Errorf("GetRepositoriesCount [%d]: %v", userID, err)
+	}
+	repoIDs, err := env.RepoIDs(1, int(count))
 	if err != nil {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}

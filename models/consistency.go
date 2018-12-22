@@ -69,7 +69,6 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 }
 
 func (user *User) checkForConsistency(t *testing.T) {
-	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
 	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)

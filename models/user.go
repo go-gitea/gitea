@@ -144,7 +144,6 @@ type User struct {
 	NumFollowers int
 	NumFollowing int `xorm:"NOT NULL DEFAULT 0"`
 	NumStars     int
-	NumRepos     int
 
 	// For organization
 	NumTeams        int
@@ -266,13 +265,19 @@ func (u *User) CanCreateRepo() bool {
 	if u.IsAdmin {
 		return true
 	}
+
+	count, err := u.GetRepositoryCount()
+	if err != nil {
+		log.Error(3, "GetRepositoryCount: %v", err)
+		return false
+	}
 	if u.MaxRepoCreation <= -1 {
 		if setting.Repository.MaxCreationLimit <= -1 {
 			return true
 		}
-		return u.NumRepos < setting.Repository.MaxCreationLimit
+		return int(count) < setting.Repository.MaxCreationLimit
 	}
-	return u.NumRepos < u.MaxRepoCreation
+	return int(count) < u.MaxRepoCreation
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -600,6 +605,11 @@ func (u *User) GetOrganizationCount() (int64, error) {
 func (u *User) GetRepositories(page, pageSize int) (err error) {
 	u.Repos, err = GetUserRepositories(u.ID, true, page, pageSize, "")
 	return err
+}
+
+// GetRepositoryCount returns the count of repositories of the user.
+func (u *User) GetRepositoryCount() (int64, error) {
+	return x.Table("repository").Count(&Repository{OwnerID: u.ID})
 }
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes

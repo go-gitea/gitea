@@ -204,7 +204,13 @@ func Issues(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
-		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
+		count, err := ctxUser.GetRepositoryCount()
+		if err != nil {
+			ctx.ServerError("GetRepositoryCount", err)
+			return
+		}
+
+		userRepoIDs, err = env.RepoIDs(1, int(count))
 		if err != nil {
 			ctx.ServerError("env.RepoIDs", err)
 			return
