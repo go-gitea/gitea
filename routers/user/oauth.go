@@ -237,13 +237,22 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
-	if app.ID != authorizationCode.Grant.ApplicationID {
+	// check if granted for this application
+	if authorizationCode.Grant.ApplicationID != app.ID {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "invalid grant",
 		})
 		return
 	}
+	// remove token from database to deny duplicate usage
+	if err := authorizationCode.Invalidate(); err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "cannot proceed your request",
+		})
+	}
+	// generate access token to access the API
 	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &models.OAuth2Token{
 		GrantID: authorizationCode.ID,
@@ -261,6 +270,7 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		return
 	}
 
+	// generate refresh token to request an access token after it expired later
 	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
 	refreshToken := &models.OAuth2Token{
 		GrantID: authorizationCode.ID,
@@ -277,8 +287,10 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
+
+	// send successful response
 	ctx.JSON(200, &AccessTokenResponse{
-		AccessToken:  signedAccessToken,
+		AccessToken:  signedAccessToken, // TODO add middleware
 		TokenType:    TokenTypeBearer,
 		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
 		RefreshToken: signedRefreshToken, // TODO integrate refresh tokens

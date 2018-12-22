@@ -168,6 +168,16 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 	return
 }
 
+// Invalidate deletes the auth code from the database to invalidate this code
+func (code *OAuth2AuthorizationCode) Invalidate() error {
+	return code.invalidate(x)
+}
+
+func (code *OAuth2AuthorizationCode) invalidate(e Engine) error {
+	_, err := e.Delete(code)
+	return err
+}
+
 // GetOAuth2AuthorizationByCode returns an authorization by its code
 func GetOAuth2AuthorizationByCode(code string) (*OAuth2AuthorizationCode, error) {
 	return getOAuth2AuthorizationByCode(x, code)
