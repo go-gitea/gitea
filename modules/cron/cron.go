@@ -88,17 +88,6 @@ func NewContext() {
 			go models.RemoveOldDeletedBranches()
 		}
 	}
-	if setting.Cron.DeleteExpiredTokens.Enabled {
-		entry, err = c.AddFunc("Remove expired tokens", setting.Cron.DeleteExpiredTokens.Schedule, models.RemoveExpiredTokens)
-		if err != nil {
-			log.Fatal(4, "Cron[Remove expired tokens]: %v", err)
-		}
-		if setting.Cron.DeleteExpiredTokens.RunAtStart {
-			entry.Prev = time.Now()
-			entry.ExecTimes++
-			go models.RemoveExpiredTokens()
-		}
-	}
 	c.Start()
 }
 

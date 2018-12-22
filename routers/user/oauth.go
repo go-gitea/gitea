@@ -6,6 +6,7 @@ package user
 
 import (
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -206,42 +207,66 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+/*	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}*/
+	authorizationCode, err := models.GetOAuth2AuthorizationByCode(form.Code)
+	if err != nil || authorizationCode == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
 	}
-	grant, err := app.GetGrantByUserID(ctx.User.ID)
-	if err != nil || grant == nil {
+	if app.ID != authorizationCode.Grant.ApplicationID {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
 	}
-	expirationDate := util.TimeStampNow().Add(setting.API.AccessTokenExpirationTime)
-	accessToken := &models.AccessToken{
-		UID:        ctx.User.ID,
-		Grant:      grant,
-		GrantID:    grant.ID,
-		ValidUntil: &expirationDate,
+	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
+	accessToken := &models.OAuth2Token{
+		GrantID: authorizationCode.ID,
+		Type:    models.TypeAccessToken,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationDate.AsTime().Unix(),
+		},
 	}
-	// TODO hide access tokens
-	// TODO delete expired access token
-	if err := models.NewAccessToken(accessToken); err != nil {
+	signedAccessToken, err := accessToken.SignToken()
+	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidClient,
-			ErrorDescription: "cannot create access token",
+			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "cannot sign token",
+		})
+		return
+	}
+
+	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshToken := &models.OAuth2Token{
+		GrantID: authorizationCode.ID,
+		Type:    models.TypeRefreshToken,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: refreshExpirationDate,
+		},
+	}
+	signedRefreshToken, err := refreshToken.SignToken()
+	if err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "cannot sign token",
 		})
 		return
 	}
 	ctx.JSON(200, &AccessTokenResponse{
-		AccessToken:  accessToken.Sha1,
+		AccessToken:  signedAccessToken,
 		TokenType:    TokenTypeBearer,
-		ExpiresIn:    setting.API.AccessTokenExpirationTime,
-		RefreshToken: "TODO", // TODO integrate refresh tokens
+		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
+		RefreshToken: signedRefreshToken, // TODO integrate refresh tokens
 	})
 }
 

@@ -5,7 +5,11 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/modules/util"
 
@@ -164,6 +168,27 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 	return
 }
 
+// GetOAuth2AuthorizationByCode returns an authorization by its code
+func GetOAuth2AuthorizationByCode(code string) (*OAuth2AuthorizationCode, error) {
+	return getOAuth2AuthorizationByCode(x, code)
+}
+
+func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2AuthorizationCode, err error) {
+	auth = new(OAuth2AuthorizationCode)
+	if has, err := e.Where("code = ?", code).Get(auth); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, nil
+	}
+	auth.Grant = new(OAuth2Grant)
+	if has, err := e.ID(auth.GrantID).Get(auth.Grant); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, nil
+	}
+	return  auth, nil
+}
+
 //////////////////////////////////////////////////////
 
 // OAuth2Grant represents the permission of an user for a specifc application to access resources
@@ -197,4 +222,52 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI str
 		return nil, err
 	}
 	return code, nil
+}
+
+
+//////////////////////////////////////////////////////////////
+
+type OAuth2TokenType int
+
+const (
+	TypeAccessToken OAuth2TokenType = 0
+	TypeRefreshToken = iota
+)
+
+type OAuth2Token struct {
+	GrantID int64 `json:"sub"`
+	Type OAuth2TokenType `json:"tt"`
+	jwt.StandardClaims
+}
+
+// ParseOAuth2Token parses a singed jwt string
+func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
+	parsedToken, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
+		}
+		return setting.OAuth2.JWTSecretBytes, nil
+	})
+	token := new(OAuth2Token)
+	if err != nil {
+		return nil, err
+	}
+	var ok bool
+	if token.GrantID, ok = parsedToken.Header["sub"].(int64); !ok {
+		return nil, fmt.Errorf("missing jwt header: sub")
+	}
+	if token.Type, ok = parsedToken.Header["tt"].(OAuth2TokenType); !ok {
+		return nil, fmt.Errorf("missing jwt header: tt")
+	}
+	if err := parsedToken.Claims.Valid(); err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (token *OAuth2Token) SignToken() (string, error) {
+	token.IssuedAt = time.Now().Unix()
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
+	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
 }

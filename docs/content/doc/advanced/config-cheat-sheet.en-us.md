@@ -280,12 +280,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 - `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
-### Cron - Remove expired tokens (`cron.delete_expired_tokens`)
-
-- `ENABLED`: **true**: Enable service.
-- `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
-
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
 - `SCHEDULE`: **@every 10m**: Cron syntax for scheduling update mirrors, e.g. `@every 3h`.
@@ -324,7 +318,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
-- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600** Lifetime of an OAuth2 access token
+
+## OAuth2 (`oauth2`)
+
+- `ENABLED`: **true**: Enables OAuth2 provider.
+- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `JWT_PRIVATE`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
 ## i18n (`i18n`)
 
