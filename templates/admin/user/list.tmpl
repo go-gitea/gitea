@@ -35,7 +35,7 @@
 							<td><span class="text truncate email">{{.Email}}</span></td>
 							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
 							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
-							<td>{{.NumRepos}}</td>
+							<td>{{.GetRepositoryCount}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}
 								<td><span title="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</span></td>
