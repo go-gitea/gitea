@@ -16,6 +16,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io/ioutil"
+	"math"
 	"net/url"
 	"os"
 	"path"
@@ -2004,9 +2005,12 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy
 	if page <= 0 {
 		page = 1
 	}
+	if pageSize <= 0 {
+		pageSize = math.MaxInt32
+	}
 	sess.Limit(pageSize, (page-1)*pageSize)
 
-	repos := make([]*Repository, 0, pageSize)
+	repos := make([]*Repository, 0)
 	return repos, sess.Find(&repos)
 }
 

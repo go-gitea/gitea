@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -729,8 +730,11 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	if page <= 0 {
 		page = 1
 	}
+	if pageSize <= 0 {
+		pageSize = math.MaxInt32
+	}
 
-	repoIDs := make([]int64, 0, pageSize)
+	repoIDs := make([]int64, 0)
 	return repoIDs, env.e.
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
