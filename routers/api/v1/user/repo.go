@@ -12,13 +12,7 @@ import (
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
-	count, err := u.GetRepositoryCount()
-	if err != nil {
-		ctx.Error(500, "GetRepositoryCount", err)
-		return
-	}
-
-	repos, err := models.GetUserRepositories(u.ID, private, 1, int(count), "")
+	repos, err := models.GetUserRepositories(u.ID, private, 1, -1, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
@@ -72,13 +66,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	count, err := ctx.User.GetRepositoryCount()
-	if err != nil {
-		ctx.Error(500, "GetRepositoryCount", err)
-		return
-	}
-
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, int(count), "")
+	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, -1, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return

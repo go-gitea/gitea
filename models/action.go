@@ -805,11 +805,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
-		count, err := opts.RequestedUser.GetRepositoryCount()
-		if err != nil {
-			return nil, fmt.Errorf("GetRepositoryCount: %v", err)
-		}
-		if repoIDs, err = env.RepoIDs(1, int(count)); err != nil {
+		if repoIDs, err = env.RepoIDs(1, -1); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
 
