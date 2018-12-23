@@ -36,7 +36,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	// Check access token.
 	if IsAPIPath(ctx.Req.URL.Path) {
 		tokenSHA := ctx.Query("token")
-		if len(tokenSHA) <= 0 {
+		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
 		}
 		if len(tokenSHA) == 0 {
@@ -105,9 +105,16 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 
 				// Check if enabled auto-registration.
 				if setting.Service.EnableReverseProxyAutoRegister {
+					email := gouuid.NewV4().String() + "@localhost"
+					if setting.Service.EnableReverseProxyEmail {
+						webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
+						if len(webAuthEmail) > 0 {
+							email = webAuthEmail
+						}
+					}
 					u := &models.User{
 						Name:     webAuthUser,
-						Email:    gouuid.NewV4().String() + "@localhost",
+						Email:    email,
 						Passwd:   webAuthUser,
 						IsActive: true,
 					}

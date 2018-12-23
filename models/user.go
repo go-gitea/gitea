@@ -29,6 +29,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
@@ -495,24 +496,6 @@ func (u *User) DeleteAvatar() error {
 	return nil
 }
 
-// IsAdminOfRepo returns true if user has admin or higher access of repository.
-func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u.ID, repo, AccessModeAdmin)
-	if err != nil {
-		log.Error(3, "HasAccess: %v", err)
-	}
-	return has
-}
-
-// IsWriterOfRepo returns true if user has write access to given repository.
-func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
-	if err != nil {
-		log.Error(3, "HasAccess: %v", err)
-	}
-	return has
-}
-
 // IsOrganization returns true if user is actually a organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
@@ -697,6 +680,7 @@ var (
 		"issues",
 		"js",
 		"less",
+		"metrics",
 		"new",
 		"org",
 		"plugins",
@@ -1031,24 +1015,25 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&EmailAddress{UID: u.ID},
 		&UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
+		&TeamUser{UID: u.ID},
+		&Collaboration{UserID: u.ID},
+		&Stopwatch{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
 	// ***** START: PublicKey *****
-	keys := make([]*PublicKey, 0, 10)
-	if err = e.Find(&keys, &PublicKey{OwnerID: u.ID}); err != nil {
-		return fmt.Errorf("get all public keys: %v", err)
-	}
-
-	keyIDs := make([]int64, len(keys))
-	for i := range keys {
-		keyIDs[i] = keys[i].ID
-	}
-	if err = deletePublicKeys(e, keyIDs...); err != nil {
+	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
+	rewriteAllPublicKeys(e)
 	// ***** END: PublicKey *****
+
+	// ***** START: GPGPublicKey *****
+	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
+		return fmt.Errorf("deleteGPGKeys: %v", err)
+	}
+	// ***** END: GPGPublicKey *****
 
 	// Clear assignee.
 	if err = clearAssigneeByUserID(e, u.ID); err != nil {
@@ -1100,11 +1085,7 @@ func DeleteUser(u *User) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return RewriteAllPublicKeys()
+	return sess.Commit()
 }
 
 // DeleteInactivateUsers deletes all inactivate users and email addresses.
@@ -1166,17 +1147,6 @@ func getUserByID(e Engine, id int64) (*User, error) {
 // GetUserByID returns the user object by given ID if exists.
 func GetUserByID(id int64) (*User, error) {
 	return getUserByID(x, id)
-}
-
-// GetUserIfHasWriteAccess returns the user with write access of repository by given ID.
-func GetUserIfHasWriteAccess(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(userID, repo, AccessModeWrite)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{userID, "", 0}
-	}
-	return GetUserByID(userID)
 }
 
 // GetUserByName returns user by given name.
@@ -1454,7 +1424,8 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range SSHPublicKeys {
-		if strings.HasPrefix(strings.ToLower(sshKey), "ssh") {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
+		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
 				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)

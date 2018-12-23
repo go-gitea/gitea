@@ -11,25 +11,23 @@ import (
 )
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *models.User) {
-	showPrivateRepos := ctx.IsSigned && (ctx.User.ID == u.ID || ctx.User.IsAdmin)
-	repos, err := models.GetUserRepositories(u.ID, showPrivateRepos, 1, u.NumRepos, "")
+func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
+	repos, err := models.GetUserRepositories(u.ID, private, 1, u.NumRepos, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
 	}
-	apiRepos := make([]*api.Repository, len(repos))
-	var ctxUserID int64
-	if ctx.User != nil {
-		ctxUserID = ctx.User.ID
-	}
+
+	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := models.AccessLevel(ctxUserID, repos[i])
+		access, err := models.AccessLevel(ctx.User, repos[i])
 		if err != nil {
 			ctx.Error(500, "AccessLevel", err)
 			return
 		}
-		apiRepos[i] = repos[i].APIFormat(access)
+		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
+			apiRepos = append(apiRepos, repos[i].APIFormat(access))
+		}
 	}
 	ctx.JSON(200, &apiRepos)
 }
@@ -54,7 +52,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserRepos(ctx, user)
+	private := ctx.IsSigned && (ctx.User.ID == user.ID || ctx.User.IsAdmin)
+	listUserRepos(ctx, user, private)
 }
 
 // ListMyRepos - list the repositories you own or have access to.
@@ -106,5 +105,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	listUserRepos(ctx, ctx.Org.Organization)
+	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
 }

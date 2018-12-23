@@ -1,11 +1,11 @@
 <div class="ui segment sub-menu">
 	<div class="ui two horizontal center link list">
-		{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo)}}
+		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsBareRepo)}}
 			<div class="item{{if .PageIsCommits}} active{{end}}">
 				<a href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}"><i class="octicon octicon-history"></i> <b>{{.CommitsCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .CommitsCount "repo.commit" "repo.commits") }}</a>
 			</div>
 		{{end}}
-		{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo) }}
+		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsBareRepo) }}
 			<div class="item{{if .PageIsBranches}} active{{end}}">
 				<a href="{{.RepoLink}}/branches/"><i class="octicon octicon-git-branch"></i> <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
 			</div>

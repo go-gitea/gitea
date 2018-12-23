@@ -28,7 +28,7 @@ import (
 	"github.com/golang/snappy"
 )
 
-const version uint32 = 2
+const version uint32 = 3
 
 const fieldNotUninverted = math.MaxUint64
 
@@ -187,23 +187,22 @@ func persistBase(memSegment *mem.Segment, cr *CountHashWriter, chunkFactor uint3
 }
 
 func persistStored(memSegment *mem.Segment, w *CountHashWriter) (uint64, error) {
-
 	var curr int
 	var metaBuf bytes.Buffer
 	var data, compressed []byte
+
+	metaEncoder := govarint.NewU64Base128Encoder(&metaBuf)
 
 	docNumOffsets := make(map[int]uint64, len(memSegment.Stored))
 
 	for docNum, storedValues := range memSegment.Stored {
 		if docNum != 0 {
 			// reset buffer if necessary
+			curr = 0
 			metaBuf.Reset()
 			data = data[:0]
 			compressed = compressed[:0]
-			curr = 0
 		}
-
-		metaEncoder := govarint.NewU64Base128Encoder(&metaBuf)
 
 		st := memSegment.StoredTypes[docNum]
 		sp := memSegment.StoredPos[docNum]
@@ -211,55 +210,19 @@ func persistStored(memSegment *mem.Segment, w *CountHashWriter) (uint64, error) 
 		// encode fields in order
 		for fieldID := range memSegment.FieldsInv {
 			if storedFieldValues, ok := storedValues[uint16(fieldID)]; ok {
-				// has stored values for this field
-				num := len(storedFieldValues)
-
 				stf := st[uint16(fieldID)]
 				spf := sp[uint16(fieldID)]
 
-				// process each value
-				for i := 0; i < num; i++ {
-					// encode field
-					_, err2 := metaEncoder.PutU64(uint64(fieldID))
-					if err2 != nil {
-						return 0, err2
-					}
-					// encode type
-					_, err2 = metaEncoder.PutU64(uint64(stf[i]))
-					if err2 != nil {
-						return 0, err2
-					}
-					// encode start offset
-					_, err2 = metaEncoder.PutU64(uint64(curr))
-					if err2 != nil {
-						return 0, err2
-					}
-					// end len
-					_, err2 = metaEncoder.PutU64(uint64(len(storedFieldValues[i])))
-					if err2 != nil {
-						return 0, err2
-					}
-					// encode number of array pos
-					_, err2 = metaEncoder.PutU64(uint64(len(spf[i])))
-					if err2 != nil {
-						return 0, err2
-					}
-					// encode all array positions
-					for _, pos := range spf[i] {
-						_, err2 = metaEncoder.PutU64(pos)
-						if err2 != nil {
-							return 0, err2
-						}
-					}
-					// append data
-					data = append(data, storedFieldValues[i]...)
-					// update curr
-					curr += len(storedFieldValues[i])
+				var err2 error
+				curr, data, err2 = persistStoredFieldValues(fieldID,
+					storedFieldValues, stf, spf, curr, metaEncoder, data)
+				if err2 != nil {
+					return 0, err2
 				}
 			}
 		}
-		metaEncoder.Close()
 
+		metaEncoder.Close()
 		metaBytes := metaBuf.Bytes()
 
 		// compress the data
@@ -297,6 +260,51 @@ func persistStored(memSegment *mem.Segment, w *CountHashWriter) (uint64, error) 
 	}
 
 	return rv, nil
+}
+
+func persistStoredFieldValues(fieldID int,
+	storedFieldValues [][]byte, stf []byte, spf [][]uint64,
+	curr int, metaEncoder *govarint.Base128Encoder, data []byte) (
+	int, []byte, error) {
+	for i := 0; i < len(storedFieldValues); i++ {
+		// encode field
+		_, err := metaEncoder.PutU64(uint64(fieldID))
+		if err != nil {
+			return 0, nil, err
+		}
+		// encode type
+		_, err = metaEncoder.PutU64(uint64(stf[i]))
+		if err != nil {
+			return 0, nil, err
+		}
+		// encode start offset
+		_, err = metaEncoder.PutU64(uint64(curr))
+		if err != nil {
+			return 0, nil, err
+		}
+		// end len
+		_, err = metaEncoder.PutU64(uint64(len(storedFieldValues[i])))
+		if err != nil {
+			return 0, nil, err
+		}
+		// encode number of array pos
+		_, err = metaEncoder.PutU64(uint64(len(spf[i])))
+		if err != nil {
+			return 0, nil, err
+		}
+		// encode all array positions
+		for _, pos := range spf[i] {
+			_, err = metaEncoder.PutU64(pos)
+			if err != nil {
+				return 0, nil, err
+			}
+		}
+
+		data = append(data, storedFieldValues[i]...)
+		curr += len(storedFieldValues[i])
+	}
+
+	return curr, data, nil
 }
 
 func persistPostingDetails(memSegment *mem.Segment, w *CountHashWriter, chunkFactor uint32) ([]uint64, []uint64, error) {
@@ -580,7 +588,7 @@ func persistDocValues(memSegment *mem.Segment, w *CountHashWriter,
 		if err != nil {
 			return nil, err
 		}
-		// resetting encoder for the next field
+		// reseting encoder for the next field
 		fdvEncoder.Reset()
 	}
 
@@ -625,12 +633,21 @@ func NewSegmentBase(memSegment *mem.Segment, chunkFactor uint32) (*SegmentBase, 
 		return nil, err
 	}
 
+	return InitSegmentBase(br.Bytes(), cr.Sum32(), chunkFactor,
+		memSegment.FieldsMap, memSegment.FieldsInv, numDocs,
+		storedIndexOffset, fieldsIndexOffset, docValueOffset, dictLocs)
+}
+
+func InitSegmentBase(mem []byte, memCRC uint32, chunkFactor uint32,
+	fieldsMap map[string]uint16, fieldsInv []string, numDocs uint64,
+	storedIndexOffset uint64, fieldsIndexOffset uint64, docValueOffset uint64,
+	dictLocs []uint64) (*SegmentBase, error) {
 	sb := &SegmentBase{
-		mem:               br.Bytes(),
-		memCRC:            cr.Sum32(),
+		mem:               mem,
+		memCRC:            memCRC,
 		chunkFactor:       chunkFactor,
-		fieldsMap:         memSegment.FieldsMap,
-		fieldsInv:         memSegment.FieldsInv,
+		fieldsMap:         fieldsMap,
+		fieldsInv:         fieldsInv,
 		numDocs:           numDocs,
 		storedIndexOffset: storedIndexOffset,
 		fieldsIndexOffset: fieldsIndexOffset,
@@ -639,7 +656,7 @@ func NewSegmentBase(memSegment *mem.Segment, chunkFactor uint32) (*SegmentBase, 
 		fieldDvIterMap:    make(map[uint16]*docValueIterator),
 	}
 
-	err = sb.loadDvIterators()
+	err := sb.loadDvIterators()
 	if err != nil {
 		return nil, err
 	}

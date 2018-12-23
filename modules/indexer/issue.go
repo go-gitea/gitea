@@ -60,7 +60,7 @@ func InitIssueIndexer(populateIndexer func() error) {
 		return
 	}
 
-	if err = createIssueIndexer(); err != nil {
+	if err = createIssueIndexer(setting.Indexer.IssuePath, issueIndexerLatestVersion); err != nil {
 		log.Fatal(4, "InitIssuesIndexer: create index, %v", err)
 	}
 	if err = populateIndexer(); err != nil {
@@ -69,7 +69,7 @@ func InitIssueIndexer(populateIndexer func() error) {
 }
 
 // createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer() error {
+func createIssueIndexer(path string, latestVersion int) error {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
@@ -100,8 +100,14 @@ func createIssueIndexer() error {
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
 	var err error
-	issueIndexer, err = bleve.New(setting.Indexer.IssuePath, mapping)
-	return err
+	issueIndexer, err = bleve.New(path, mapping)
+	if err != nil {
+		return err
+	}
+
+	return rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
+		Version: latestVersion,
+	})
 }
 
 // IssueIndexerBatch batch to add updates to

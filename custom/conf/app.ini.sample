@@ -144,7 +144,7 @@ START_SSH_SERVER = false
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; THe network interface the builtin SSH server should listen on
+; The network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
@@ -152,6 +152,9 @@ SSH_PORT = 22
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
+; Gitea will create a authorized_keys file by default when it is not using the internal ssh server
+; If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
 ; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128
@@ -258,11 +261,12 @@ COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
+REVERSE_PROXY_AUTHENTICATION_EMAIL = X-WEBAUTH-EMAIL
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
-; True when users are allowed to import local server paths
+; Set to true to allow users to import local server paths
 IMPORT_LOCAL_PATHS = false
-; Prevent all users (including admin) from creating custom git hooks
+; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
 
 [openid]
@@ -306,9 +310,12 @@ ACTIVE_CODE_LIVE_MINUTES = 180
 RESET_PASSWD_CODE_LIVE_MINUTES = 180
 ; Whether a new user needs to confirm their email when registering.
 REGISTER_EMAIL_CONFIRM = false
+; List of domain names that are allowed to be used to register on a Gitea instance
+; gitea.io,example.com
+EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
+; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -317,14 +324,15 @@ ENABLE_NOTIFY_MAIL = false
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
+ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
 ; Type of captcha you want to use. Options: image, recaptcha
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-RECAPTCHA_SECRET  = 
-RECAPTCHA_SITEKEY = 
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -332,8 +340,10 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableDependencies
-; Repositories will use depencies by default depending on this setting
+; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -378,6 +388,8 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
+; Should SMTP connection use TLS
+IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
@@ -537,7 +549,7 @@ SCHEDULE = @every 10m
 SCHEDULE = @every 24h
 TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
-; see more on http://git-scm.com/docs/git-fsck/1.7.5
+; see more on http://git-scm.com/docs/git-fsck
 ARGS =
 
 ; Check repository statistics
@@ -576,7 +588,7 @@ MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
-; see more on http://git-scm.com/docs/git-gc/1.7.5
+; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 
 ; Operation timeout in seconds
@@ -654,3 +666,9 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =
