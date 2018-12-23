@@ -241,7 +241,7 @@ pipeline:
       branch: [ master ]
 
   docker:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     commands:
       - GOARCH=amd64 QEMU_ARCH=amd64 make docker-generate-arch-dockerfile docker-download-qemu-binary
