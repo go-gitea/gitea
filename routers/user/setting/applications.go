@@ -15,6 +15,7 @@ import (
 
 const (
 	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsOAuthApplications base.TplName = "user/settings/applications_oauth2_edit"
 )
 
 // Applications render manage access token page
@@ -54,6 +55,38 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
+// ApplicationsPost response for add user's access token
+func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationForm) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	if ctx.HasError() {
+		loadApplicationsData(ctx)
+
+		ctx.HTML(200, tplSettingsApplications)
+		return
+	}
+	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+		Name: form.Name,
+		Type: models.OAuth2ApplicationType(form.Type),
+		RedirectURIs: []string{form.RedirectURI},
+		UserID: ctx.User.ID,
+	})
+	if err != nil {
+		ctx.ServerError("CreateOAuth2Application", err)
+		return
+	}
+	if app.Type == models.ApplicationTypeWeb {
+		if ctx.Data["ClientSecret"], err = app.GenerateClientSecret(); err != nil {
+			ctx.ServerError("GenearteClientSecret", err)
+			return
+		}
+	}
+	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"))
+	ctx.Data["App"] = app
+	ctx.HTML(200, tplSettingsOAuthApplications)
+}
+
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
 	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
@@ -74,4 +107,12 @@ func loadApplicationsData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tokens"] = tokens
+	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	if setting.OAuth2.Enable {
+		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			return
+		}
+	}
 }
