@@ -272,6 +272,21 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI str
 	return code, nil
 }
 
+// GetOAuth2GrantByID returns the grant with the given ID
+func GetOAuth2GrantByID(id int64) (*OAuth2Grant, error) {
+	return getOAuth2GrantByID(x, id)
+}
+
+func getOAuth2GrantByID(e Engine, id int64) (grant *OAuth2Grant, err error) {
+	grant = new(OAuth2Grant)
+	if has, err := e.ID(id).Get(grant); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, nil
+	}
+	return
+}
+
 //////////////////////////////////////////////////////////////
 
 // OAuth2TokenType represents the type of token for an oauth application
@@ -293,27 +308,20 @@ type OAuth2Token struct {
 
 // ParseOAuth2Token parses a singed jwt string
 func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
-	parsedToken, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(jwtToken, &OAuth2Token{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
 		}
 		return setting.OAuth2.JWTSecretBytes, nil
 	})
-	token := new(OAuth2Token)
 	if err != nil {
 		return nil, err
 	}
+	var token *OAuth2Token
 	var ok bool
-	if token.GrantID, ok = parsedToken.Header["sub"].(int64); !ok {
-		return nil, fmt.Errorf("missing jwt header: sub")
+	if token, ok = parsedToken.Claims.(*OAuth2Token); !ok || !parsedToken.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
-	if token.Type, ok = parsedToken.Header["tt"].(OAuth2TokenType); !ok {
-		return nil, fmt.Errorf("missing jwt header: tt")
-	}
-	if err := parsedToken.Claims.Valid(); err != nil {
-		return nil, err
-	}
-
 	return token, nil
 }
 
