@@ -708,10 +708,8 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if issue.Repo == nil {
-		if err := issue.LoadRepo(); err != nil {
-			return nil, err
-		}
+	if err := issue.LoadRepo(); err != nil {
+		return nil, err
 	}
 
 	return createComment(e, &CreateCommentOptions{
