@@ -66,3 +66,20 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 
 	ctx.JSON(201, convert.ToOrganization(org))
 }
+
+func GetAllOrgs(ctx *context.APIContext){
+	users,_,err := models.SearchUsersAPI(&models.SearchUserOptions{
+		Type:  models.UserTypeOrganization,
+		OrderBy: models.SearchOrderByAlphabetically,
+		Keyword: "",
+	})
+	if err != nil{
+		ctx.Error(500,"SearchOrganizations",err)
+		return
+	}
+	orgs := make([]*api.Organization,len(users))
+	for i := range users{
+		orgs[i] = convert.ToOrganization(users[i])
+	}
+	ctx.JSON(200,&orgs)
+}

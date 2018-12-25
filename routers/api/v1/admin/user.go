@@ -291,3 +291,16 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	ctx.Status(204)
 }
+
+func GetAllUsers(ctx *context.APIContext){
+	users,_,err := models.SearchUsersAPI(&models.SearchUserOptions{
+		Type: models.UserTypeIndividual,
+		OrderBy: models.SearchOrderByAlphabetically,
+		Keyword: "",
+	})
+	if err != nil {
+		ctx.Error(500,"SearchUsers",err)
+		return
+	}
+	ctx.JSON(200,&users)
+}
