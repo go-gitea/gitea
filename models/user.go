@@ -1362,14 +1362,14 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 //SearchUsersAPI takes options i.e keyword and part of user name to search
 //it returns all the results found and the number of total results.
-func SearchUsersAPI(opts *SearchUserOptions) (users []*User,_ int64,_ error){
+func SearchUsersAPI(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	cond := opts.toConds()
-	count,err := x.Where(cond).Count(new(User))
-	if err!=nil{
-		return nil,0,fmt.Errorf("Count: %v",err)
+	count, err := x.Where(cond).Count(new(User))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
-	users = make([]*User,0,count)
-	return users,count,x.Where(cond).OrderBy(opts.OrderBy.String()).Find(&users)
+	users = make([]*User, 0, count)
+	return users, count, x.Where(cond).OrderBy(opts.OrderBy.String()).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user

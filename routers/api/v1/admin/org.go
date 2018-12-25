@@ -68,7 +68,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 }
 
 //GetAllOrgs API for getting information of all the organizations
-func GetAllOrgs(ctx *context.APIContext){
+func GetAllOrgs(ctx *context.APIContext) {
 	// swagger:operation GET /admin/orgs admin adminGetAllOrgs
 	// ---
 	// summary: List all organizations
@@ -79,18 +79,18 @@ func GetAllOrgs(ctx *context.APIContext){
 	//     "$ref": "#/responses/OrganizationList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	users,_,err := models.SearchUsersAPI(&models.SearchUserOptions{
-		Type:  models.UserTypeOrganization,
+	users, _, err := models.SearchUsersAPI(&models.SearchUserOptions{
+		Type:    models.UserTypeOrganization,
 		OrderBy: models.SearchOrderByAlphabetically,
 		Keyword: "",
 	})
-	if err != nil{
-		ctx.Error(500,"SearchOrganizations",err)
+	if err != nil {
+		ctx.Error(500, "SearchOrganizations", err)
 		return
 	}
-	orgs := make([]*api.Organization,len(users))
-	for i := range users{
+	orgs := make([]*api.Organization, len(users))
+	for i := range users {
 		orgs[i] = convert.ToOrganization(users[i])
 	}
-	ctx.JSON(200,&orgs)
+	ctx.JSON(200, &orgs)
 }

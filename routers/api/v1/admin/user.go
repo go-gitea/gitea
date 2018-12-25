@@ -293,7 +293,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 }
 
 //GetAllUsers API for getting information of all the users
-func GetAllUsers(ctx *context.APIContext){
+func GetAllUsers(ctx *context.APIContext) {
 	// swagger:operation GET /admin/users admin adminGetAllUsers
 	// ---
 	// summary: List all organizations
@@ -304,14 +304,14 @@ func GetAllUsers(ctx *context.APIContext){
 	//     "$ref": "#/responses/UserList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	users,_,err := models.SearchUsersAPI(&models.SearchUserOptions{
-		Type: models.UserTypeIndividual,
+	users, _, err := models.SearchUsersAPI(&models.SearchUserOptions{
+		Type:    models.UserTypeIndividual,
 		OrderBy: models.SearchOrderByAlphabetically,
 		Keyword: "",
 	})
 	if err != nil {
-		ctx.Error(500,"SearchUsers",err)
+		ctx.Error(500, "SearchUsers", err)
 		return
 	}
-	ctx.JSON(200,&users)
+	ctx.JSON(200, &users)
 }
