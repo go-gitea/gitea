@@ -1360,6 +1360,8 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		Find(&users)
 }
 
+//SearchUsersAPI takes options i.e keyword and part of user name to search
+//it returns all the results found and the number of total results.
 func SearchUsersAPI(opts *SearchUserOptions) (users []*User,_ int64,_ error){
 	cond := opts.toConds()
 	count,err := x.Where(cond).Count(new(User))
