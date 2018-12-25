@@ -5,6 +5,8 @@
 package models
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -346,7 +348,14 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return list, nil
+
+	// Prefixing '/' for each entry, otherwise all files with the same name in subdirectories would be matched.
+	out := bytes.Buffer{}
+	scanner := bufio.NewScanner(strings.NewReader(list))
+	for scanner.Scan() {
+		fmt.Fprintf(&out, "/%s\n", scanner.Text())
+	}
+	return out.String(), nil
 }
 
 // Merge merges pull request to base repository.
