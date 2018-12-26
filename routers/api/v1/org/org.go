@@ -42,7 +42,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 
 // ListUserOrgs list user's orgs
 func ListUserOrgs(ctx *context.APIContext) {
-	// swagger:operation GET /user/{username}/orgs organization orgListUserOrgs
+	// swagger:operation GET /users/{username}/orgs organization orgListUserOrgs
 	// ---
 	// summary: List a user's organizations
 	// produces:
