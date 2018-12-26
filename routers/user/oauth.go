@@ -248,14 +248,14 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 	// remove token from database to deny duplicate usage
 	if err := authorizationCode.Invalidate(); err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidRequest,
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
 	// generate access token to access the API
 	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &models.OAuth2Token{
-		GrantID: authorizationCode.ID,
+		GrantID: authorizationCode.GrantID,
 		Type:    models.TypeAccessToken,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationDate.AsTime().Unix(),
