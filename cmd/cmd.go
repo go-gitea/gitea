@@ -9,6 +9,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,6 +22,10 @@ func argsSet(c *cli.Context, args ...string) error {
 	for _, a := range args {
 		if !c.IsSet(a) {
 			return errors.New(a + " is not set")
+		}
+
+		if len(strings.TrimSpace(c.String(a))) == 0 {
+			return errors.New(a + " is required")
 		}
 	}
 	return nil
