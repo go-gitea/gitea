@@ -467,6 +467,30 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete an organization",
+        "operationId": "orgDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "organization that is to be deleted",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
