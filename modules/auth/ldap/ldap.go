@@ -83,16 +83,6 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	log.Trace("Search for LDAP user: %s", name)
-	if ls.BindDN != "" && ls.BindPassword != "" {
-		err := l.Bind(ls.BindDN, ls.BindPassword)
-		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
-			return "", false
-		}
-		log.Trace("Bound as BindDN %s", ls.BindDN)
-	} else {
-		log.Trace("Proceeding with anonymous LDAP search.")
-	}
 
 	// A search for the user.
 	userFilter, ok := ls.sanitizedUserQuery(name)
@@ -203,20 +193,48 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		var ok bool
 		userDN, ok = ls.sanitizedUserDN(name)
+
 		if !ok {
 			return nil
+		}
+
+		err = bindUser(l, userDN, passwd)
+		if err != nil {
+			return nil
+		}
+
+		if ls.UserBase != "" {
+			// not everyone has a CN compatible with input name so we need to find
+			// the real userDN in that case
+
+			userDN, ok = ls.findUserDN(l, name)
+			if !ok {
+				return nil
+			}
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
 
 		var found bool
+
+		if ls.BindDN != "" && ls.BindPassword != "" {
+			err := l.Bind(ls.BindDN, ls.BindPassword)
+			if err != nil {
+				log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+				return nil
+			}
+			log.Trace("Bound as BindDN %s", ls.BindDN)
+		} else {
+			log.Trace("Proceeding with anonymous LDAP search.")
+		}
+
 		userDN, found = ls.findUserDN(l, name)
 		if !found {
 			return nil
 		}
 	}
 
-	if directBind || !ls.AttributesInBind {
+	if !ls.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
