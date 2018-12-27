@@ -487,7 +487,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
-					Post(bindIgnErr(auth.ProtectBranchForm{}), repo.SettingsProtectedBranchPost)
+					Post(context.RepoMustNotBeArchived(), bindIgnErr(auth.ProtectBranchForm{}), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotBare)
 
 			m.Group("/hooks", func() {
