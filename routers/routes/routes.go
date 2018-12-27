@@ -580,7 +580,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/milestone", func() {
 			m.Get("/:id", repo.MilestoneIssuesAndPulls)
-		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
+		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Combo("/compare/*", reqRepoCodeReader, reqRepoPullsReader, repo.MustAllowPulls, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
