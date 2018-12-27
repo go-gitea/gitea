@@ -61,7 +61,7 @@ type Scorch struct {
 	merges             chan *segmentMerge
 	introducerNotifier chan *epochWatcher
 	revertToSnapshots  chan *snapshotReversion
-	persisterNotifier  chan notificationChan
+	persisterNotifier  chan *epochWatcher
 	rootBolt           *bolt.DB
 	asyncTasks         sync.WaitGroup
 
@@ -114,6 +114,25 @@ func (s *Scorch) fireAsyncError(err error) {
 }
 
 func (s *Scorch) Open() error {
+	err := s.openBolt()
+	if err != nil {
+		return err
+	}
+
+	s.asyncTasks.Add(1)
+	go s.mainLoop()
+
+	if !s.readOnly && s.path != "" {
+		s.asyncTasks.Add(1)
+		go s.persisterLoop()
+		s.asyncTasks.Add(1)
+		go s.mergerLoop()
+	}
+
+	return nil
+}
+
+func (s *Scorch) openBolt() error {
 	var ok bool
 	s.path, ok = s.config["path"].(string)
 	if !ok {
@@ -136,6 +155,7 @@ func (s *Scorch) Open() error {
 			}
 		}
 	}
+
 	rootBoltPath := s.path + string(os.PathSeparator) + "root.bolt"
 	var err error
 	if s.path != "" {
@@ -156,7 +176,7 @@ func (s *Scorch) Open() error {
 	s.merges = make(chan *segmentMerge)
 	s.introducerNotifier = make(chan *epochWatcher, 1)
 	s.revertToSnapshots = make(chan *snapshotReversion)
-	s.persisterNotifier = make(chan notificationChan)
+	s.persisterNotifier = make(chan *epochWatcher, 1)
 
 	if !s.readOnly && s.path != "" {
 		err := s.removeOldZapFiles() // Before persister or merger create any new files.
@@ -164,16 +184,6 @@ func (s *Scorch) Open() error {
 			_ = s.Close()
 			return err
 		}
-	}
-
-	s.asyncTasks.Add(1)
-	go s.mainLoop()
-
-	if !s.readOnly && s.path != "" {
-		s.asyncTasks.Add(1)
-		go s.persisterLoop()
-		s.asyncTasks.Add(1)
-		go s.mergerLoop()
 	}
 
 	return nil
@@ -310,17 +320,21 @@ func (s *Scorch) prepareSegment(newSegment segment.Segment, ids []string,
 		introduction.persisted = make(chan error, 1)
 	}
 
-	// get read lock, to optimistically prepare obsoleted info
+	// optimistically prepare obsoletes outside of rootLock
 	s.rootLock.RLock()
-	for _, seg := range s.root.segment {
+	root := s.root
+	root.AddRef()
+	s.rootLock.RUnlock()
+
+	for _, seg := range root.segment {
 		delta, err := seg.segment.DocNumbers(ids)
 		if err != nil {
-			s.rootLock.RUnlock()
 			return err
 		}
 		introduction.obsoletes[seg.id] = delta
 	}
-	s.rootLock.RUnlock()
+
+	_ = root.DecRef()
 
 	s.introductions <- introduction
 

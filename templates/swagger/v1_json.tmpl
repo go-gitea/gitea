@@ -406,6 +406,42 @@
         }
       }
     },
+    "/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create an organization",
+        "operationId": "orgCreate",
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}": {
       "get": {
         "produces": [
@@ -428,6 +464,30 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Organization"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete an organization",
+        "operationId": "orgDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "organization that is to be deleted",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       },
@@ -1520,6 +1580,85 @@
         "responses": {
           "202": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/refs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get specified ref or filtered repository's refs",
+        "operationId": "repoListAllGitRefs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReferenceList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/refs/{ref}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get specified ref or filtered repository's refs",
+        "operationId": "repoListGitRefs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "part or full name of the ref",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReferenceList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3029,7 +3168,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get all of a repository's milestones",
+        "summary": "Get all of a repository's opened milestones",
         "operationId": "issueGetMilestonesList",
         "parameters": [
           {
@@ -5296,32 +5435,6 @@
         }
       }
     },
-    "/user/{username}/orgs": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "List a user's organizations",
-        "operationId": "orgListUserOrgs",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/OrganizationList"
-          }
-        }
-      }
-    },
     "/users/search": {
       "get": {
         "produces": [
@@ -5571,6 +5684,32 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
+          }
+        }
+      }
+    },
+    "/users/{username}/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a user's organizations",
+        "operationId": "orgListUserOrgs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
           }
         }
       }
@@ -6322,6 +6461,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6697,6 +6852,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6865,6 +7036,25 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitObject": {
+      "type": "object",
+      "title": "GitObject represents a Git object.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7458,6 +7648,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Reference": {
+      "type": "object",
+      "title": "Reference represents a Git reference.",
+      "properties": {
+        "object": {
+          "$ref": "#/definitions/GitObject"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Release": {
       "description": "Release represents a repository release",
       "type": "object",
@@ -7744,6 +7952,22 @@
             "owner"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -8090,6 +8314,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/PullRequest"
+        }
+      }
+    },
+    "Reference": {
+      "description": "Reference",
+      "schema": {
+        "$ref": "#/definitions/Reference"
+      }
+    },
+    "ReferenceList": {
+      "description": "ReferenceList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Reference"
         }
       }
     },
