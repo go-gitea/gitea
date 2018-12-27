@@ -119,7 +119,7 @@
 			</div>
 		</div>
 
-		{{if $.IssueWatch}}
+		{{if and $.IssueWatch (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 
 			<div class="ui watching">
