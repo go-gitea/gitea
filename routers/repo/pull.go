@@ -552,6 +552,9 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
+		if models.MergeStyle(form.Do) == models.MergeStyleRebaseMerge {
+			message = pr.GetDefaultMergeMessage()
+		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
 			message = pr.GetDefaultSquashMessage()
 		}

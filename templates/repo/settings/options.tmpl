@@ -229,6 +229,12 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge_commit"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
 								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
 							</div>
