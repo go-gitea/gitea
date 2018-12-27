@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -410,8 +411,11 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	}
 
 	var deadlineUnix util.TimeStamp
+	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+			23, 59, 59, 0, form.Deadline.Location())
+		deadlineUnix = util.TimeStamp(deadline.Unix())
 	}
 
 	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
@@ -419,5 +423,5 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	ctx.JSON(201, api.IssueDeadline{Deadline: form.Deadline})
+	ctx.JSON(201, api.IssueDeadline{Deadline: &deadline})
 }
