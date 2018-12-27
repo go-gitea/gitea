@@ -8,6 +8,7 @@
 					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 					<div class="divider"> / </div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
+					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 					{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
 					{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 				</div>
