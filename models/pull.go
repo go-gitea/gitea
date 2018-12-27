@@ -54,9 +54,10 @@ const (
 
 // PullRequest represents relation between pull request and repositories.
 type PullRequest struct {
-	ID     int64 `xorm:"pk autoincr"`
-	Type   PullRequestType
-	Status PullRequestStatus
+	ID              int64 `xorm:"pk autoincr"`
+	Type            PullRequestType
+	Status          PullRequestStatus
+	ConflictedFiles []string `xorm:"TEXT JSON"`
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -853,6 +854,17 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
 				fmt.Println(stderr)
 				pr.Status = PullRequestStatusConflict
+				if patchConflicts[i] == "error:" {
+					pr.ConflictedFiles = make([]string, 0, 5)
+					scanner := bufio.NewScanner(strings.NewReader(stderr))
+					for scanner.Scan() {
+						line := scanner.Text()
+						const prefix = "error: patch failed:"
+						if strings.HasPrefix(line, prefix) {
+							pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+						}
+					}
+				}
 				return nil
 			}
 		}
