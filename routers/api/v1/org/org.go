@@ -174,6 +174,12 @@ func Delete(ctx *context.APIContext) {
 	// summary: Delete an organization
 	// produces:
 	// - application/json
+	//parameters:
+	// - name: org
+	//   in: path
+	//   description: organization to be deleted
+	//   type: string
+	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
