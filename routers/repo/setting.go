@@ -227,6 +227,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					IgnoreWhitespaceConflicts: form.PullsIgnoreWhitespace,
 					AllowMerge:                form.PullsAllowMerge,
 					AllowRebase:               form.PullsAllowRebase,
+					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
 				},
 			})
@@ -403,19 +404,6 @@ func CollaborationPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
-	}
-
-	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() {
-		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
-		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
-			return
-		} else if isMember {
-			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-			return
-		}
 	}
 
 	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {

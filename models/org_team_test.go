@@ -243,7 +243,7 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	accessMode, err := AccessLevel(user.ID, repo)
+	accessMode, err := AccessLevel(user, repo)
 	assert.NoError(t, err)
 	assert.True(t, accessMode < AccessModeWrite)
 }
@@ -345,4 +345,18 @@ func TestHasTeamRepo(t *testing.T) {
 
 	test(2, 3, true)
 	test(2, 5, false)
+}
+
+func TestUsersInTeamsCount(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	test := func(teamIDs []int64, userIDs []int64, expected int64) {
+		count, err := UsersInTeamsCount(teamIDs, userIDs)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, count)
+	}
+
+	test([]int64{2}, []int64{1, 2, 3, 4}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
 }

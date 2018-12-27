@@ -122,6 +122,18 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+// GetMilestoneByID returns the milestone via id .
+func GetMilestoneByID(id int64) (*Milestone, error) {
+	var m Milestone
+	has, err := x.ID(id).Get(&m)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrMilestoneNotExist{id, 0}
+	}
+	return &m, nil
+}
+
 // MilestoneList is a list of milestones offering additional functionality
 type MilestoneList []*Milestone
 
@@ -377,7 +389,7 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 		return err
 	}
 
-	mode, _ := AccessLevel(doer.ID, issue.Repo)
+	mode, _ := AccessLevel(doer, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {

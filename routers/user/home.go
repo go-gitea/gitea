@@ -138,6 +138,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 	})
+
 	if ctx.Written() {
 		return
 	}
@@ -286,7 +287,12 @@ func Issues(ctx *context.Context) {
 		repo := showReposMap[repoID]
 
 		// Check if user has access to given repository.
-		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			return
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
 			ctx.Status(404)
 			return
 		}

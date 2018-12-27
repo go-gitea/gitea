@@ -51,7 +51,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	// comments,err:=models.GetCommentsByIssueIDSince(, since)
-	issue, err := models.GetRawIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetRawIssueByIndex", err)
 		return
@@ -68,6 +68,10 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
 	for i := range comments {
 		apiComments[i] = comments[i].APIFormat()
 	}
@@ -111,6 +115,11 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	})
 	if err != nil {
 		ctx.Error(500, "GetCommentsByRepoIDSince", err)
+		return
+	}
+
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
 		return
 	}
 
