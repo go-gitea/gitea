@@ -1415,13 +1415,15 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();

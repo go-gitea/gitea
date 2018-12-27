@@ -9,10 +9,11 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -233,6 +234,43 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
 	}
+
+	var reviewHookType HookEventType
+
+	switch opts.Type {
+	case ReviewTypeApprove:
+		reviewHookType = HookEventPullRequestApproved
+	case ReviewTypeComment:
+		reviewHookType = HookEventPullRequestComment
+	case ReviewTypeReject:
+		reviewHookType = HookEventPullRequestRejected
+	default:
+		// unsupported review webhook type here
+		return review, nil
+	}
+
+	pr := opts.Issue.PullRequest
+
+	if err := pr.LoadIssue(); err != nil {
+		return nil, err
+	}
+
+	mode, err := AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       opts.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  opts.Issue.Repo.APIFormat(mode),
+		Sender:      opts.Reviewer.APIFormat(),
+	}); err != nil {
+		return nil, err
+	}
+	go HookQueue.Add(opts.Issue.Repo.ID)
+
 	return review, nil
 }
 
@@ -285,10 +323,10 @@ type PullReviewersWithType struct {
 func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
 	irs := []*PullReviewersWithType{}
 	if x.Dialect().DBType() == core.MSSQL {
-		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM 
-(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix 
-FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?) 
-GROUP BY review.id, review.type, review.reviewer_id) as review 
+		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM
+(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix
+FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
+GROUP BY review.id, review.type, review.reviewer_id) as review
 INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
 			pullID, ReviewTypeApprove, ReviewTypeReject).
 			Find(&irs)
