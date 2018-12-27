@@ -36,7 +36,7 @@ docker-generate-arch-dockerfile:
 	@if [ "$(QEMU_ARCH)" != ${GOHOSTARCH} ]; then \
 		echo "Generate dockerfile for specific arch."; \
 		sed "s/^#QEMU phase/COPY docker\/qemu-${QEMU_ARCH}-static* \/usr\/bin\//g" Dockerfile > docker/Dockerfile.${QEMU_ARCH}; \
-		sed -i 's/^FROM $$target\/golang:1.10-alpine3.7 AS build-env/FROM karalabe\/xgo-latest AS build-env/g' docker/Dockerfile.${QEMU_ARCH}; \
+		sed -i 's/^FROM $$target\/golang:1.11-alpine3.8 AS build-env/FROM karalabe\/xgo-latest AS build-env/g' docker/Dockerfile.${QEMU_ARCH}; \
 		sed -i 's/^RUN apk --no-cache add build-base git/RUN GOARCH=$$GOHOSTARCH go get -u github.com\/jteeuwen\/go-bindata\/.../g' docker/Dockerfile.${QEMU_ARCH}; \
 		sed -i 's/make clean generate build/PATH=$$PATH:\$$GOPATH\/bin\/ XGOARCH="${GOARCH}" make clean generate release-linux \&\& mv \/build\/gitea-* .\/gitea/g' docker/Dockerfile.${QEMU_ARCH}; \
 	else cp Dockerfile docker/Dockerfile.${QEMU_ARCH}; \
