@@ -241,7 +241,16 @@ func TestAPIOrgRepos(t *testing.T) {
 		}
 		t.Run(testName, func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+
+			var status int
+
+			if token == "" {
+				status = http.StatusUnauthorized
+			} else {
+				status = http.StatusOK
+			}
+
+			resp := session.MakeRequest(t, req, status)
 
 			var apiRepos []*api.Repository
 			DecodeJSON(t, resp, &apiRepos)
