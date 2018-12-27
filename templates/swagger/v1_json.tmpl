@@ -5411,32 +5411,6 @@
         }
       }
     },
-    "/user/{username}/orgs": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "List a user's organizations",
-        "operationId": "orgListUserOrgs",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/OrganizationList"
-          }
-        }
-      }
-    },
     "/users/search": {
       "get": {
         "produces": [
@@ -5686,6 +5660,32 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
+          }
+        }
+      }
+    },
+    "/users/{username}/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a user's organizations",
+        "operationId": "orgListUserOrgs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
           }
         }
       }

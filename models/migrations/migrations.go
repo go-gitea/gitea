@@ -204,6 +204,8 @@ var migrations = []Migration{
 	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
 	// v75 -> v76
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+	// v76 -> v77
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 }
 
 // Migrate database to current version
