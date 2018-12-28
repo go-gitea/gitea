@@ -493,7 +493,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Checkout head branch
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", "-b", "head_repo_"+pr.HeadBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "checkout", "-b", stagingBranch, trackingBranch); err != nil {
 			return fmt.Errorf("git checkout: %s", stderr)
 		}
 		// Rebase before merging
@@ -511,7 +511,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Prepare merge with commit
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "--no-commit", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			"git", "merge", "--no-ff", "--no-commit", "-q", stagingBranch); err != nil {
 			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 
