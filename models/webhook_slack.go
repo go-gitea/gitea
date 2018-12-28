@@ -11,9 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // SlackMeta contains the slack metadata
@@ -328,6 +327,34 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	}, nil
 }
 
+func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event HookEventType) (*SlackPayload, error) {
+	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
+		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	var text, title, attachmentText string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		text = fmt.Sprintf("[%s] Pull request review %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
+	}
+
+	return &SlackPayload{
+		Channel:  slack.Channel,
+		Text:     text,
+		Username: slack.Username,
+		IconURL:  slack.IconURL,
+		Attachments: []SlackAttachment{{
+			Color: slack.Color,
+			Title: title,
+			Text:  attachmentText,
+		}},
+	}, nil
+}
+
 func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	var text, title, attachmentText string
@@ -376,6 +403,8 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
 	case HookEventRelease:
