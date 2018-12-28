@@ -400,6 +400,40 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	}, nil
 }
 
+func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *DiscordMeta, event HookEventType) (*DiscordPayload, error) {
+	var text, title string
+	var color int
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
+	}
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: text,
+				URL:         p.PullRequest.HTMLURL,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
 func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*DiscordPayload, error) {
 	var title, url string
 	var color int
@@ -492,6 +526,8 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
 	case HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
 	case HookEventRelease:
@@ -499,4 +535,20 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 	}
 
 	return s, nil
+}
+
+func parseHookPullRequestEventType(event HookEventType) (string, error) {
+
+	switch event {
+
+	case HookEventPullRequestApproved:
+		return "approved", nil
+	case HookEventPullRequestRejected:
+		return "rejected", nil
+	case HookEventPullRequestComment:
+		return "comment", nil
+
+	default:
+		return "", errors.New("unknown event type")
+	}
 }

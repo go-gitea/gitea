@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
-
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 )
@@ -425,15 +424,18 @@ type HookEventType string
 
 // Types of hook events
 const (
-	HookEventCreate       HookEventType = "create"
-	HookEventDelete       HookEventType = "delete"
-	HookEventFork         HookEventType = "fork"
-	HookEventPush         HookEventType = "push"
-	HookEventIssues       HookEventType = "issues"
-	HookEventIssueComment HookEventType = "issue_comment"
-	HookEventPullRequest  HookEventType = "pull_request"
-	HookEventRepository   HookEventType = "repository"
-	HookEventRelease      HookEventType = "release"
+	HookEventCreate              HookEventType = "create"
+	HookEventDelete              HookEventType = "delete"
+	HookEventFork                HookEventType = "fork"
+	HookEventPush                HookEventType = "push"
+	HookEventIssues              HookEventType = "issues"
+	HookEventIssueComment        HookEventType = "issue_comment"
+	HookEventPullRequest         HookEventType = "pull_request"
+	HookEventRepository          HookEventType = "repository"
+	HookEventRelease             HookEventType = "release"
+	HookEventPullRequestApproved HookEventType = "pull_request_approved"
+	HookEventPullRequestRejected HookEventType = "pull_request_rejected"
+	HookEventPullRequestComment  HookEventType = "pull_request_comment"
 )
 
 // HookRequest represents hook task request information.
