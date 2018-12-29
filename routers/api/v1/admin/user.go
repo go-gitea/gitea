@@ -307,7 +307,6 @@ func GetAllUsers(ctx *context.APIContext) {
 	users, _, err := models.SearchUsersAPI(&models.SearchUserOptions{
 		Type:    models.UserTypeIndividual,
 		OrderBy: models.SearchOrderByAlphabetically,
-		Keyword: "",
 	})
 	if err != nil {
 		ctx.Error(500, "SearchUsers", err)

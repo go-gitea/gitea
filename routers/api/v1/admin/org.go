@@ -82,7 +82,6 @@ func GetAllOrgs(ctx *context.APIContext) {
 	users, _, err := models.SearchUsersAPI(&models.SearchUserOptions{
 		Type:    models.UserTypeOrganization,
 		OrderBy: models.SearchOrderByAlphabetically,
-		Keyword: "",
 	})
 	if err != nil {
 		ctx.Error(500, "SearchOrganizations", err)
