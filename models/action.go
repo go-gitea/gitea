@@ -385,7 +385,7 @@ func NewPushCommits() *PushCommits {
 
 // ToAPIPayloadCommits converts a PushCommits object to
 // api.PayloadCommit format.
-func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit {
+func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 
 	if pc.emailUsers == nil {
@@ -400,6 +400,8 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 			if err == nil {
 				authorUsername = author.Name
 				pc.emailUsers[commit.AuthorEmail] = author
+			} else if !IsErrUserNotExist(err) {
+				return nil, fmt.Errorf("GetUserByEmail: %v", err)
 			}
 		} else {
 			authorUsername = author.Name
@@ -413,10 +415,18 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 				// TODO: check errors other than email not found.
 				committerUsername = committer.Name
 				pc.emailUsers[commit.CommitterEmail] = committer
+			} else if !IsErrUserNotExist(err) {
+				return nil, fmt.Errorf("GetUserByEmail: %v", err)
 			}
 		} else {
 			committerUsername = committer.Name
 		}
+
+		fileStatus, err := git.GetCommitFileStatus(repoPath, commit.Sha1)
+		if err != nil {
+			return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
+		}
+
 		commits[i] = &api.PayloadCommit{
 			ID:      commit.Sha1,
 			Message: commit.Message,
@@ -431,10 +441,13 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 				Email:    commit.CommitterEmail,
 				UserName: committerUsername,
 			},
+			Added:     fileStatus.Added,
+			Removed:   fileStatus.Removed,
+			Modified:  fileStatus.Modified,
 			Timestamp: commit.Timestamp,
 		}
 	}
-	return commits
+	return commits, nil
 }
 
 // AvatarLink tries to match user in database with e-mail
@@ -820,12 +833,16 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	if isHookEventPush {
+		commits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+		if err != nil {
+			return fmt.Errorf("ToAPIPayloadCommits: %v", err)
+		}
 		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
 			Ref:        opts.RefFullName,
 			Before:     opts.OldCommitID,
 			After:      opts.NewCommitID,
 			CompareURL: setting.AppURL + opts.Commits.CompareURL,
-			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
+			Commits:    commits,
 			Repo:       apiRepo,
 			Pusher:     apiPusher,
 			Sender:     apiPusher,
@@ -913,7 +930,10 @@ func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) er
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
 
-	apiCommits := opts.Commits.ToAPIPayloadCommits(repo.HTMLURL())
+	apiCommits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		return fmt.Errorf("ToAPIPayloadCommits: %v", err)
+	}
 
 	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 	apiPusher := repo.MustOwner().APIFormat()

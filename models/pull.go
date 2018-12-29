@@ -619,12 +619,18 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		l.PushFront(mergeCommit)
 	}
 
+	commits, err := ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.RepoPath(), pr.BaseRepo.HTMLURL())
+	if err != nil {
+		log.Error(4, "ToAPIPayloadCommits: %v", err)
+		return nil
+	}
+
 	p := &api.PushPayload{
 		Ref:        git.BranchPrefix + pr.BaseBranch,
 		Before:     pr.MergeBase,
 		After:      mergeCommit.ID.String(),
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
-		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
+		Commits:    commits,
 		Repo:       pr.BaseRepo.APIFormat(mode),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
