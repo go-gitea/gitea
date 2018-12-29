@@ -408,6 +408,23 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	remoteRepoName := "head_repo"
 
 	// Add head repo remote.
+	addCacheRepo := func(staging, cache string) error {
+		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		data := filepath.Join(cache, "objects")
+		if _, err := fmt.Fprintln(f, data); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
+	}
 	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git remote add): %s", tmpBasePath),
 		"git", "remote", "add", remoteRepoName, headRepoPath); err != nil {
