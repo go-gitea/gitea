@@ -6,17 +6,18 @@ package user
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"net/url"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/go-macaron/binding"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/go-macaron/binding"
 )
 
 const (
@@ -103,6 +104,50 @@ type AccessTokenResponse struct {
 	ExpiresIn   int64     `json:"expires_in"`
 	// TODO implement RefreshToken
 	RefreshToken string `json:"refresh_token"`
+}
+
+func newAccessTokenResponse(grantID int64, counter int64) (*AccessTokenResponse, *AccessTokenError) {
+	// generate access token to access the API
+	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
+	accessToken := &models.OAuth2Token{
+		GrantID: grantID,
+		Type:    models.TypeAccessToken,
+		Counter: counter,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationDate.AsTime().Unix(),
+		},
+	}
+	signedAccessToken, err := accessToken.SignToken()
+	if err != nil {
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "cannot sign token",
+		}
+	}
+
+	// generate refresh token to request an access token after it expired later
+	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshToken := &models.OAuth2Token{
+		GrantID: grantID,
+		Type:    models.TypeRefreshToken,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: refreshExpirationDate,
+		},
+	}
+	signedRefreshToken, err := refreshToken.SignToken()
+	if err != nil {
+		return nil, &AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+			ErrorDescription: "cannot sign token",
+		}
+	}
+
+	return &AccessTokenResponse{
+		AccessToken:  signedAccessToken,
+		TokenType:    TokenTypeBearer,
+		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
+		RefreshToken: signedRefreshToken,
+	}, nil
 }
 
 // AuthorizeOAuth manages authorize requests
@@ -214,6 +259,78 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+	switch form.GrantType {
+	case "refresh_token":
+		handleRefreshToken(ctx, form)
+		return
+	case "authorization_code":
+		handleAuthorizationCode(ctx, form)
+		return
+	default:
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeUnsupportedGrantType,
+			ErrorDescription: "Only refresh_token or authorization_code grant type is supported",
+		})
+	}
+}
+
+func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
+	token, err := models.ParseOAuth2Token(form.RefreshToken)
+	if err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
+	// get grant before increasing counter
+	grant, err := models.GetOAuth2GrantByID(token.GrantID)
+	if err != nil || grant == nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "grant does not exist",
+		})
+		return
+	}
+
+	// check if token got already used
+	if grant.Counter != token.Counter || token.Counter == 0 {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "token was already used",
+		})
+		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
+		return
+	}
+
+	// increase counter
+	if err := grant.IncreaseCounter(); err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
+	// refresh fields
+	grant, err = models.GetOAuth2GrantByID(token.GrantID)
+	if err != nil || grant == nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "grant does not exist",
+		})
+		return
+	}
+	accessToken, tokenErr := newAccessTokenResponse(grant.ID, grant.Counter)
+	// FIXME if this fails, the client can't use his refresh token again due to the increasemnet of the counter
+	// but this error can only occur if the signing fails => minor chance of failing
+	if tokenErr != nil {
+		handleAccessTokenError(ctx, *tokenErr)
+		return
+	}
+	ctx.JSON(200, accessToken)
+}
+
+func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -252,49 +369,13 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	// generate access token to access the API
-	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
-	accessToken := &models.OAuth2Token{
-		GrantID: authorizationCode.GrantID,
-		Type:    models.TypeAccessToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationDate.AsTime().Unix(),
-		},
-	}
-	signedAccessToken, err := accessToken.SignToken()
-	if err != nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-			ErrorDescription: "cannot sign token",
-		})
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.GrantID, 0)
+	if tokenErr != nil {
+		handleAccessTokenError(ctx, *tokenErr)
 		return
 	}
-
-	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
-	refreshToken := &models.OAuth2Token{
-		GrantID: authorizationCode.ID,
-		Type:    models.TypeRefreshToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: refreshExpirationDate,
-		},
-	}
-	signedRefreshToken, err := refreshToken.SignToken()
-	if err != nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-			ErrorDescription: "cannot sign token",
-		})
-		return
-	}
-
 	// send successful response
-	ctx.JSON(200, &AccessTokenResponse{
-		AccessToken:  signedAccessToken, // TODO add middleware
-		TokenType:    TokenTypeBearer,
-		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
-		RefreshToken: signedRefreshToken, // TODO integrate refresh tokens
-	})
+	ctx.JSON(200, resp)
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
