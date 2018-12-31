@@ -109,7 +109,7 @@ type AccessTokenResponse struct {
 func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
 	if err := grant.IncreaseCounter(); err != nil {
 		return nil, &AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "cannot increase the grant counter",
 		}
 	}
@@ -274,7 +274,7 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		return
 	default:
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnsupportedGrantType,
+			ErrorCode:        AccessTokenErrorCodeUnsupportedGrantType,
 			ErrorDescription: "Only refresh_token or authorization_code grant type is supported",
 		})
 	}
@@ -284,7 +284,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	token, err := models.ParseOAuth2Token(form.RefreshToken)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
@@ -293,7 +293,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	grant, err := models.GetOAuth2GrantByID(token.GrantID)
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "grant does not exist",
 		})
 		return
@@ -302,7 +302,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	// check if token got already used
 	if grant.Counter != token.Counter || token.Counter == 0 {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
 		})
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
