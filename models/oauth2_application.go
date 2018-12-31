@@ -240,11 +240,16 @@ func (grant *OAuth2Grant) IncreaseCounter() error {
 }
 
 func (grant *OAuth2Grant) increaseCount(e Engine) error {
-	if _, err := e.Exec("UPDATE `oauth2_grant` SET counter=counter+1 WHERE id=?", grant.ID); err != nil {
+	_, err := e.ID(grant.ID).Incr("counter").Update(grant)
+	if err != nil {
 		return err
 	}
-	_, err := e.ID(grant.ID).Get(grant)
-	return err
+	updatedGrant, err := getOAuth2GrantByID(e, grant.ID)
+	if err != nil {
+		return err
+	}
+	grant.Counter = updatedGrant.Counter
+	return nil
 }
 
 // GetOAuth2GrantByID returns the grant with the given ID

@@ -308,27 +308,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-
-	// increase counter
-	if err := grant.IncreaseCounter(); err != nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
-		})
-		return
-	}
-	// refresh fields
-	grant, err = models.GetOAuth2GrantByID(token.GrantID)
-	if err != nil || grant == nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
-			ErrorDescription: "grant does not exist",
-		})
-		return
-	}
-	accessToken, tokenErr := newAccessTokenResponse(grant.ID, grant.Counter)
-	// FIXME if this fails, the client can't use his refresh token again due to the increasemnet of the counter
-	// but this error can only occur if the signing fails => minor chance of failing
+	accessToken, tokenErr := newAccessTokenResponse(grant)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -375,7 +355,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.GrantID, authorizationCode.Grant.Counter)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
