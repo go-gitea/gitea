@@ -5,6 +5,8 @@
 package models
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +15,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Unknwon/com"
@@ -84,74 +87,286 @@ type UpdateRepoFileOptions struct {
 	IsNewFile    bool
 }
 
-// UpdateRepoFile adds or updates a file in repository.
+func (repo *Repository) bareClone(repoPath string, branch string) (err error) {
+	if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
+		fmt.Sprintf("bareClone (git clone -s --bare): %s", repoPath),
+		"git", "clone", "-s", "--bare", "-b", branch, repo.RepoPath(), repoPath); err != nil {
+		return fmt.Errorf("bareClone: %v %s", err, stderr)
+	}
+	return nil
+}
+
+func (repo *Repository) setDefaultIndex(repoPath string) (err error) {
+	if _, stderr, err := process.GetManager().ExecDir(5*time.Minute,
+		repoPath,
+		fmt.Sprintf("setDefaultIndex (git read-tree HEAD): %s", repoPath),
+		"git", "read-tree", "HEAD"); err != nil {
+		return fmt.Errorf("setDefaultIndex: %v %s", err, stderr)
+	}
+	return nil
+}
+
+// FIXME: We should probably return the mode too
+func (repo *Repository) lsFiles(repoPath string, args ...string) ([]string, error) {
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
+
+	timeout := 5 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmdArgs := []string{"ls-files", "-z", "--"}
+	for _, arg := range args {
+		if arg != "" {
+			cmdArgs = append(cmdArgs, arg)
+		}
+	}
+
+	cmd := exec.CommandContext(ctx, "git", cmdArgs...)
+	desc := fmt.Sprintf("lsFiles: (git ls-files) %v", cmdArgs)
+	cmd.Dir = repoPath
+	cmd.Stdout = stdOut
+	cmd.Stderr = stdErr
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
+	}
+
+	pid := process.GetManager().Add(desc, cmd)
+	err := cmd.Wait()
+	process.GetManager().Remove(pid)
+
+	if err != nil {
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
+		return nil, err
+	}
+
+	filelist := make([]string, len(args))
+	for _, line := range bytes.Split(stdOut.Bytes(), []byte{'\000'}) {
+		filelist = append(filelist, string(line))
+	}
+
+	return filelist, err
+}
+
+func (repo *Repository) removeFilesFromIndex(repoPath string, args ...string) error {
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
+	stdIn := new(bytes.Buffer)
+	for _, file := range args {
+		if file != "" {
+			stdIn.WriteString("0 0000000000000000000000000000000000000000\t")
+			stdIn.WriteString(file)
+			stdIn.WriteByte('\000')
+		}
+	}
+
+	timeout := 5 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmdArgs := []string{"update-index", "--remove", "-z", "--index-info"}
+	cmd := exec.CommandContext(ctx, "git", cmdArgs...)
+	desc := fmt.Sprintf("removeFilesFromIndex: (git update-index) %v", args)
+	cmd.Dir = repoPath
+	cmd.Stdout = stdOut
+	cmd.Stderr = stdErr
+	cmd.Stdin = bytes.NewReader(stdIn.Bytes())
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
+	}
+
+	pid := process.GetManager().Add(desc, cmd)
+	err := cmd.Wait()
+	process.GetManager().Remove(pid)
+
+	if err != nil {
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
+	}
+
+	return err
+}
+
+func (repo *Repository) hashObject(repoPath string, content io.Reader) (string, error) {
+	timeout := 5 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	hashCmd := exec.CommandContext(ctx, "git", "hash-object", "-w", "--stdin")
+	hashCmd.Dir = repoPath
+	hashCmd.Stdin = content
+	stdOutBuffer := new(bytes.Buffer)
+	stdErrBuffer := new(bytes.Buffer)
+	hashCmd.Stdout = stdOutBuffer
+	hashCmd.Stderr = stdErrBuffer
+	desc := fmt.Sprintf("hashObject: (git hash-object)")
+	if err := hashCmd.Start(); err != nil {
+		return "", fmt.Errorf("git hash-object: %s", err)
+	}
+
+	pid := process.GetManager().Add(desc, hashCmd)
+	err := hashCmd.Wait()
+	process.GetManager().Remove(pid)
+
+	if err != nil {
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOutBuffer, stdErrBuffer)
+		return "", err
+	}
+
+	return strings.TrimSpace(stdOutBuffer.String()), nil
+}
+
+func (repo *Repository) addObjectToIndex(repoPath, mode, objectHash, objectPath string) error {
+	if _, stderr, err := process.GetManager().ExecDir(5*time.Minute,
+		repoPath,
+		fmt.Sprintf("addObjectToIndex (git update-index): %s", repoPath),
+		"git", "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath); err != nil {
+		return fmt.Errorf("git update-index: %s", stderr)
+	}
+	return nil
+}
+
+func (repo *Repository) writeTree(repoPath string) (string, error) {
+
+	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
+		repoPath,
+		fmt.Sprintf("writeTree (git write-tree): %s", repoPath),
+		"git", "write-tree")
+	if err != nil {
+		return "", fmt.Errorf("git write-tree: %s", stderr)
+	}
+	return strings.TrimSpace(treeHash), nil
+}
+
+func (repo *Repository) commitTree(repoPath string, doer *User, treeHash string, message string) (string, error) {
+	commitTimeStr := time.Now().Format(time.UnixDate)
+
+	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+doer.DisplayName(),
+		"GIT_AUTHOR_EMAIL="+doer.getEmail(),
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+doer.DisplayName(),
+		"GIT_COMMITTER_EMAIL="+doer.getEmail(),
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+		repoPath,
+		fmt.Sprintf("commitTree (git commit-tree): %s", repoPath),
+		env,
+		"git", "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+	if err != nil {
+		return "", fmt.Errorf("git commit-tree: %s", stderr)
+	}
+	return strings.TrimSpace(commitHash), nil
+}
+
+func (repo *Repository) actuallyPush(repoPath string, doer *User, commitHash string, branch string) error {
+	isWiki := "false"
+	if strings.HasSuffix(repo.Name, ".wiki") {
+		isWiki = "true"
+	}
+
+	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
+	// Because calls hooks we need to pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+doer.DisplayName(),
+		"GIT_AUTHOR_EMAIL="+doer.getEmail(),
+		"GIT_COMMITTER_NAME="+doer.DisplayName(),
+		"GIT_COMMITTER_EMAIL="+doer.getEmail(),
+		EnvRepoName+"="+repo.Name,
+		EnvRepoUsername+"="+repo.OwnerName,
+		EnvRepoIsWiki+"="+isWiki,
+		EnvPusherName+"="+doer.Name,
+		EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
+		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
+	)
+
+	if _, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+		repoPath,
+		fmt.Sprintf("actuallyPush (git push): %s", repoPath),
+		env,
+		"git", "push", repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)); err != nil {
+		return fmt.Errorf("git push: %s", stderr)
+	}
+	return nil
+}
+
+// UpdateRepoFile adds or updates a file in the repository.
 func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	if err = repo.DiscardLocalRepoBranchChanges(opts.OldBranch); err != nil {
-		return fmt.Errorf("DiscardLocalRepoBranchChanges [branch: %s]: %v", opts.OldBranch, err)
-	} else if err = repo.UpdateLocalCopyBranch(opts.OldBranch); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch [branch: %s]: %v", opts.OldBranch, err)
+	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
+	tmpBasePath := path.Join(LocalCopyPath(), "upload-"+timeStr+".git")
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	if opts.OldBranch != opts.NewBranch {
-		if err := repo.CheckoutNewBranch(opts.OldBranch, opts.NewBranch); err != nil {
-			return fmt.Errorf("CheckoutNewBranch [old_branch: %s, new_branch: %s]: %v", opts.OldBranch, opts.NewBranch, err)
-		}
+	defer os.RemoveAll(path.Dir(tmpBasePath))
+
+	// Do a bare shared clone into tmpBasePath and
+	// make HEAD to point to the OldBranch tree
+	if err := repo.bareClone(tmpBasePath, opts.OldBranch); err != nil {
+		return fmt.Errorf("UpdateRepoFile: %v", err)
 	}
 
-	localPath := repo.LocalCopyPath()
-	oldFilePath := path.Join(localPath, opts.OldTreeName)
-	filePath := path.Join(localPath, opts.NewTreeName)
-	dir := path.Dir(filePath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
+	// Set the default index
+	if err := repo.setDefaultIndex(tmpBasePath); err != nil {
+		return fmt.Errorf("UpdateRepoFile: %v", err)
 	}
 
-	// If it's meant to be a new file, make sure it doesn't exist.
+	filesInIndex, err := repo.lsFiles(tmpBasePath, opts.NewTreeName, opts.OldTreeName)
+
+	if err != nil {
+		return fmt.Errorf("UpdateRepoFile: %v", err)
+	}
+
 	if opts.IsNewFile {
-		if com.IsExist(filePath) {
-			return ErrRepoFileAlreadyExist{filePath}
+		for _, file := range filesInIndex {
+			if file == opts.NewTreeName {
+				return ErrRepoFileAlreadyExist{opts.NewTreeName}
+			}
 		}
 	}
 
-	// Ignore move step if it's a new file under a directory.
-	// Otherwise, move the file when name changed.
-	if com.IsFile(oldFilePath) && opts.OldTreeName != opts.NewTreeName {
-		if err = git.MoveFile(localPath, opts.OldTreeName, opts.NewTreeName); err != nil {
-			return fmt.Errorf("git mv %s %s: %v", opts.OldTreeName, opts.NewTreeName, err)
+	//var stdout string
+	if opts.OldTreeName != opts.NewTreeName && len(filesInIndex) > 0 {
+		for _, file := range filesInIndex {
+			if file == opts.OldTreeName {
+				if err := repo.removeFilesFromIndex(tmpBasePath, opts.OldTreeName); err != nil {
+					return err
+				}
+			}
 		}
+
 	}
 
-	if err = ioutil.WriteFile(filePath, []byte(opts.Content), 0666); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
-	}
-
-	if err = git.AddChanges(localPath, true); err != nil {
-		return fmt.Errorf("git add --all: %v", err)
-	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
-		Committer: doer.NewGitSig(),
-		Message:   opts.Message,
-	}); err != nil {
-		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: opts.NewBranch,
-	}); err != nil {
-		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
-	}
-
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	// Add the object to the database
+	objectHash, err := repo.hashObject(tmpBasePath, strings.NewReader(opts.Content))
 	if err != nil {
-		log.Error(4, "OpenRepository: %v", err)
-		return nil
+		return err
 	}
-	commit, err := gitRepo.GetBranchCommit(opts.NewBranch)
+
+	// Add the object to the index
+	if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, opts.NewTreeName); err != nil {
+		return err
+	}
+
+	// Now write the tree
+	treeHash, err := repo.writeTree(tmpBasePath)
 	if err != nil {
-		log.Error(4, "GetBranchCommit [branch: %s]: %v", opts.NewBranch, err)
-		return nil
+		return err
+	}
+
+	// Now commit the tree
+	commitHash, err := repo.commitTree(tmpBasePath, doer, treeHash, opts.Message)
+	if err != nil {
+		return err
+	}
+
+	// Then push this tree to NewBranch
+	if err := repo.actuallyPush(tmpBasePath, doer, commitHash, opts.NewBranch); err != nil {
+		return err
 	}
 
 	// Simulate push event.
@@ -172,7 +387,7 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 			RepoName:     repo.Name,
 			RefFullName:  git.BranchPrefix + opts.NewBranch,
 			OldCommitID:  oldCommitID,
-			NewCommitID:  commit.ID.String(),
+			NewCommitID:  commitHash,
 		},
 	)
 	if err != nil {
