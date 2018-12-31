@@ -479,10 +479,10 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				continue
 			}
 			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil {
+			if err != nil && !git.IsErrNotExist(err) {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
-			if !gitRepo.IsTagExist(rel.TagName) || commitID != rel.Sha1 {
+			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
 				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}
