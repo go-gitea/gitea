@@ -244,6 +244,7 @@ type OAuth2Grant struct {
 	ID            int64          `xorm:"pk autoincr"`
 	UserID        int64          `xorm:"INDEX unique(user_application)"`
 	ApplicationID int64          `xorm:"INDEX unique(user_application)"`
+	Counter	      int64	     `xorm:"NOT NULL DEFAULT 1"`
 	CreatedUnix   util.TimeStamp `xorm:"created"`
 	UpdatedUnix   util.TimeStamp `xorm:"updated"`
 }
@@ -270,6 +271,17 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI str
 		return nil, err
 	}
 	return code, nil
+}
+
+func (grant *OAuth2Grant) IncreaseCounter() error {
+	return grant.increaseCount(x)
+}
+
+func (grant *OAuth2Grant) increaseCount(e Engine) error {
+	if _, err := e.Exec("UPDATE `oauth2_grant` SET counter=counter+1 WHERE id=?", grant.ID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetOAuth2GrantByID returns the grant with the given ID
@@ -303,6 +315,7 @@ const (
 type OAuth2Token struct {
 	GrantID int64           `json:"sub"`
 	Type    OAuth2TokenType `json:"tt"`
+	Counter int64		`json:"cnt,omitempty"`
 	jwt.StandardClaims
 }
 

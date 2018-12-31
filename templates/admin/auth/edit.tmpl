@@ -55,11 +55,11 @@
 							<input id="bind_password" name="bind_password" type="password" value="{{$cfg.BindPassword}}">
 							<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 						</div>
-						<div class="required field">
+					{{end}}
+					<div class="{{if .Source.IsLDAP}}required{{end}} field">
 							<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
 							<input id="user_base" name="user_base" value="{{$cfg.UserBase}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com" required>
-						</div>
-					{{end}}
+					</div>
 					{{if .Source.IsDLDAP}}
 						<div class="required field">
 							<label for="user_dn">{{.i18n.Tr "admin.auths.user_dn"}}</label>
