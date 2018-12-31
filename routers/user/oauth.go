@@ -106,13 +106,18 @@ type AccessTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func newAccessTokenResponse(grantID int64, counter int64) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
+	if err := grant.IncreaseCounter(); err != nil {
+		return nil, &AccessTokenError{
+			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "cannot increase the grant counter",
+		}
+	}
 	// generate access token to access the API
 	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &models.OAuth2Token{
-		GrantID: grantID,
+		GrantID: grant.ID,
 		Type:    models.TypeAccessToken,
-		Counter: counter,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationDate.AsTime().Unix(),
 		},
@@ -128,7 +133,8 @@ func newAccessTokenResponse(grantID int64, counter int64) (*AccessTokenResponse,
 	// generate refresh token to request an access token after it expired later
 	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
 	refreshToken := &models.OAuth2Token{
-		GrantID: grantID,
+		GrantID: grant.ID,
+		Counter: grant.Counter,
 		Type:    models.TypeRefreshToken,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: refreshExpirationDate,
@@ -369,7 +375,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.GrantID, 0)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.GrantID, authorizationCode.Grant.Counter)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
