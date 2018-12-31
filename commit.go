@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,6 +10,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -277,6 +279,56 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		}
 	}
 	return nil, nil
+}
+
+// CommitFileStatus represents status of files in a commit.
+type CommitFileStatus struct {
+	Added    []string
+	Removed  []string
+	Modified []string
+}
+
+// NewCommitFileStatus creates a CommitFileStatus
+func NewCommitFileStatus() *CommitFileStatus {
+	return &CommitFileStatus{
+		[]string{}, []string{}, []string{},
+	}
+}
+
+// GetCommitFileStatus returns file status of commit in given repository.
+func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+	stdout, w := io.Pipe()
+	done := make(chan struct{})
+	fileStatus := NewCommitFileStatus()
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			fields := strings.Fields(scanner.Text())
+			if len(fields) < 2 {
+				continue
+			}
+
+			switch fields[0][0] {
+			case 'A':
+				fileStatus.Added = append(fileStatus.Added, fields[1])
+			case 'D':
+				fileStatus.Removed = append(fileStatus.Removed, fields[1])
+			case 'M':
+				fileStatus.Modified = append(fileStatus.Modified, fields[1])
+			}
+		}
+		done <- struct{}{}
+	}()
+
+	stderr := new(bytes.Buffer)
+	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
+	w.Close() // Close writer to exit parsing goroutine
+	if err != nil {
+		return nil, concatenateError(err, stderr.String())
+	}
+
+	<-done
+	return fileStatus, nil
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
