@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-01
 * BREAKING
   * Restrict permission check on repositories and fix some problems (#5314)
-  * How only opened milestones on issues page milestone filter (#5051)
+  * Show only opened milestones on issues page milestone filter (#5051)
 * FEATURE
   * Implement git refs API for listing references (branches, tags and other) (#5354)
   * Approvals at Branch Protection (#5350)
