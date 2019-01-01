@@ -145,7 +145,7 @@ func GetIssue(ctx *context.APIContext) {
 func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
 	// ---
-	// summary: Create an issue
+	// summary: Create an issue. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -237,7 +237,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
-	// summary: Edit an issue
+	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -361,7 +361,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
 	// ---
-	// summary: Set an issue deadline. If set to null, the deadline is deleted.
+	// summary: Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
