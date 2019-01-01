@@ -6,7 +6,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-01
 * BREAKING
-  * Refactor heatmap to vue component (#5401)
   * Restrict permission check on repositories and fix some problems (#5314)
   * Remove maxlines option for file logger (#5282)
   * How only opened milestones on issues page milestone filter (#5051)
@@ -17,6 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add api for user to create org (#5268)
   * Create AuthorizedKeysCommand (#5236)
   * User action heatmap (#5131)
+  * Refactor heatmap to vue component (#5401)
   * Webhook for Pull Request approval/rejection (#5027)
   * Add command for migrating database (#4954)
   * Search keyword by splitting provided values by , (#4939)
