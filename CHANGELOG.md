@@ -7,7 +7,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-01
 * BREAKING
   * Restrict permission check on repositories and fix some problems (#5314)
-  * Remove maxlines option for file logger (#5282)
   * How only opened milestones on issues page milestone filter (#5051)
 * FEATURE
   * Implement git refs API for listing references (branches, tags and other) (#5354)
@@ -76,8 +75,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix: Add secret to all webhook's payload where it has been missing (#5199)
   * Fix race on updatesize (#5190)
   * Fix create team, update team missing units (#5188)
-  * Fix sqlite lock (#5184)
-  * Fix sqlite lock (#5176)
+  * Fix sqlite lock (#5184 & #5176)
   * Fix showing pull request link when delete a branch (#5166)
   * Fix JSON result of empty array in heatmap data array (#5154)
   * Update build tags for sqlite_unlock notify (#5144)
@@ -112,6 +110,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Set heatmap color range configurable (#5165)
   * Block registration based on email domain (#5157)
   * Update vendor/go-sqlite3 (#5133)
+  * Update x/net lib (#5169)
   * Show review summary in pull requests (#5132)
   * Use type switch (#5122)
   * Remove duplicated if bodies (#5121)
@@ -155,7 +154,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * MISC
   * Upgrade alpine to 3.8 (#5423)
   * Git-Trees API (#5403)
-  * Update x/net lib (#5169)
   * Only chown directories during docker setup if necessary. Fix #4425 (#5064)
 
 ## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
