@@ -23,6 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Give user a link to create PR after push (#4716)
   * Add rebase with merge commit merge style (#3844) (#4052)
 * BUGFIXES
+  * Fix bug on modifying sshd username (#5624)
   * Delete tags in mirror which are removed for original repo. (#5609)
   * Fix wrong text getting saved on editing second comment on an issue. (#5608)
   * Fix nil pointer when adding a due date  (#5587)
@@ -106,7 +107,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add AutoHead functionality. (#5186)
   * Fix emojis not showing in commit messages (#5168)
   * Block registration based on email domain (#5157)
-  * Update vendor/go-sqlite3 (#5133)
+  * Update vendor/go-sqlite3 (#5133 & #5162)
   * Update x/net lib (#5169)
   * Show review summary in pull requests (#5132)
   * Use type switch (#5122)
@@ -142,7 +143,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUILD
   * Replace lint to revive (#5422)
   * Update golang version in Dockerfile (#5246)
-  * Update vendor/github.com/mattn/go-sqlite3 (#5162)
 * DOCS
   * Typo in routers/api/v1/org/org.go fixed. (#5598)
   * Update the docs for sqlite_unlock_notify (#5145)
