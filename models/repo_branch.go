@@ -14,6 +14,46 @@ import (
 	"github.com/Unknwon/com"
 )
 
+// discardLocalRepoBranchChanges discards local commits/changes of
+// given branch to make sure it is even to remote branch.
+func discardLocalRepoBranchChanges(localPath, branch string) error {
+	if !com.IsExist(localPath) {
+		return nil
+	}
+	// No need to check if nothing in the repository.
+	if !git.IsBranchExist(localPath, branch) {
+		return nil
+	}
+
+	refName := "origin/" + branch
+	if err := git.ResetHEAD(localPath, true, refName); err != nil {
+		return fmt.Errorf("git reset --hard %s: %v", refName, err)
+	}
+	return nil
+}
+
+// DiscardLocalRepoBranchChanges discards the local repository branch changes
+func (repo *Repository) DiscardLocalRepoBranchChanges(branch string) error {
+	return discardLocalRepoBranchChanges(repo.LocalCopyPath(), branch)
+}
+
+// checkoutNewBranch checks out to a new branch from the a branch name.
+func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
+	if err := git.Checkout(localPath, git.CheckoutOptions{
+		Timeout:   time.Duration(setting.Git.Timeout.Pull) * time.Second,
+		Branch:    newBranch,
+		OldBranch: oldBranch,
+	}); err != nil {
+		return fmt.Errorf("git checkout -b %s %s: %v", newBranch, oldBranch, err)
+	}
+	return nil
+}
+
+// CheckoutNewBranch checks out a new branch
+func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
+	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
+}
+
 // Branch holds the branch information
 type Branch struct {
 	Path string
