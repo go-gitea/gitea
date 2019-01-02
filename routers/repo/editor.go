@@ -559,6 +559,17 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + form.TreePath)
 }
 
+func cleanUploadFileName(name string) string {
+	name = strings.TrimLeft(name, "./\\")
+	name = strings.Replace(name, "../", "", -1)
+	name = strings.Replace(name, "..\\", "", -1)
+	name = strings.TrimPrefix(path.Clean(name), ".git/")
+	if name == ".git" {
+		return ""
+	}
+	return name
+}
+
 // UploadFileToServer upload file to server file dir not git
 func UploadFileToServer(ctx *context.Context) {
 	file, header, err := ctx.Req.FormFile("file")
@@ -591,7 +602,13 @@ func UploadFileToServer(ctx *context.Context) {
 		}
 	}
 
-	upload, err := models.NewUpload(header.Filename, buf, file)
+	name := cleanUploadFileName(header.Filename)
+	if len(name) == 0 {
+		ctx.Error(500, "Upload file name is invalid")
+		return
+	}
+
+	upload, err := models.NewUpload(name, buf, file)
 	if err != nil {
 		ctx.Error(500, fmt.Sprintf("NewUpload: %v", err))
 		return
