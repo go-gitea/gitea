@@ -9,12 +9,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -398,43 +396,27 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	return nil
 }
 
-// GetDiffPreview produces and returns diff result of a file which is not yet committed.
-func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *Diff, err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+func (repo *Repository) diffIndex(repoPath string) (diff *Diff, err error) {
+	timeout := 5 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	if err = repo.DiscardLocalRepoBranchChanges(branch); err != nil {
-		return nil, fmt.Errorf("DiscardLocalRepoBranchChanges [branch: %s]: %v", branch, err)
-	} else if err = repo.UpdateLocalCopyBranch(branch); err != nil {
-		return nil, fmt.Errorf("UpdateLocalCopyBranch [branch: %s]: %v", branch, err)
-	}
+	stdErr := new(bytes.Buffer)
 
-	localPath := repo.LocalCopyPath()
-	filePath := path.Join(localPath, treePath)
-	dir := filepath.Dir(filePath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err = ioutil.WriteFile(filePath, []byte(content), 0666); err != nil {
-		return nil, fmt.Errorf("WriteFile: %v", err)
-	}
-
-	cmd := exec.Command("git", "diff", treePath)
-	cmd.Dir = localPath
-	cmd.Stderr = os.Stderr
+	cmd := exec.CommandContext(ctx, "git", "diff-index", "--cached", "-p", "HEAD")
+	cmd.Dir = repoPath
+	cmd.Stderr = stdErr
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("StdoutPipe: %v", err)
+		return nil, fmt.Errorf("StdoutPipe: %v stderr %s", err, stdErr.String())
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("Start: %v", err)
+		return nil, fmt.Errorf("Start: %v stderr %s", err, stdErr.String())
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffPreview [repo_path: %s]", repo.RepoPath()), cmd)
+	pid := process.GetManager().Add(fmt.Sprintf("diffIndex [repo_path: %s]", repo.RepoPath()), cmd)
 	defer process.GetManager().Remove(pid)
 
 	diff, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdout)
@@ -447,6 +429,41 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 	}
 
 	return diff, nil
+}
+
+// GetDiffPreview produces and returns diff result of a file which is not yet committed.
+func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *Diff, err error) {
+	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
+	tmpBasePath := path.Join(LocalCopyPath(), "upload-"+timeStr+".git")
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return nil, fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
+	}
+
+	defer os.RemoveAll(path.Dir(tmpBasePath))
+
+	// Do a bare shared clone into tmpBasePath and
+	// make HEAD to point to the branch tree
+	if err := repo.bareClone(tmpBasePath, branch); err != nil {
+		return nil, fmt.Errorf("GetDiffPreview: %v", err)
+	}
+
+	// Set the default index
+	if err := repo.setDefaultIndex(tmpBasePath); err != nil {
+		return nil, fmt.Errorf("GetDiffPreview: %v", err)
+	}
+
+	// Add the object to the database
+	objectHash, err := repo.hashObject(tmpBasePath, strings.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf("GetDiffPreview: %v", err)
+	}
+
+	// Add the object to the index
+	if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, treePath); err != nil {
+		return nil, fmt.Errorf("GetDiffPreview: %v", err)
+	}
+
+	return repo.diffIndex(tmpBasePath)
 }
 
 // ________         .__          __           ___________.__.__
