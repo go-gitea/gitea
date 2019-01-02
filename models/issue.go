@@ -1702,6 +1702,15 @@ func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*Issue, err e
 		Find(&issueDeps)
 }
 
+// Returns true if the issue has any open issue as its dependency.
+func (issue *Issue) isBlocked(e Engine) (bool, error) {
+	count, err := e.Table("issue_dependency").
+		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Where("dependency_id = ? AND issue.is_closed = ?", issue.ID, false).
+		Count()
+	return count > 0, err
+}
+
 // BlockedByDependencies finds all Dependencies an issue is blocked by
 func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 	return issue.getBlockedByDependencies(x)
@@ -1710,4 +1719,9 @@ func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 	return issue.getBlockingDependencies(x)
+}
+
+// IsBlocked returns true if the issue has any open issue as its dependency.
+func (issue *Issue) IsBlocked() (bool, error) {
+	return issue.isBlocked(x)
 }

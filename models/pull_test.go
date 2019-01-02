@@ -90,7 +90,7 @@ func TestPullRequestsOldest(t *testing.T) {
 
 func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr, err := GetUnmergedPullRequest(1, 1, "branch2", "master")
+	pr, err := GetUnmergedPullRequest(1, 1, "develop", "master")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
@@ -101,12 +101,12 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	prs, err := GetUnmergedPullRequestsByHeadInfo(1, "branch2")
+	prs, err := GetUnmergedPullRequestsByHeadInfo(1, "develop")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {
 		assert.Equal(t, int64(1), pr.HeadRepoID)
-		assert.Equal(t, "branch2", pr.HeadBranch)
+		assert.Equal(t, "develop", pr.HeadBranch)
 	}
 }
 
@@ -267,4 +267,78 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 
 	pr.Issue.Title = "[wip] " + original
 	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
+}
+
+func closeActivePullRequests(t *testing.T, pr *PullRequest, repo *Repository, branchName string) {
+	assert.NoError(t, repo.GetOwner())
+
+	CloseActivePullRequests(repo.Owner, repo, branchName)
+	pr.Issue = nil
+	pr.LoadIssue()
+	assert.Equal(t, true, pr.Issue.IsClosed)
+}
+
+func TestPullRequest_CloseActivePullRequests(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Delete head branch.
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.GetHeadRepo()
+	closeActivePullRequests(t, pr, pr.HeadRepo, pr.HeadBranch)
+
+	// Reopen pull request.
+	assert.NoError(t, pr.Issue.ChangeStatus(pr.HeadRepo.Owner, false))
+
+	// Delete base branch.
+	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.GetBaseRepo()
+	closeActivePullRequests(t, pr, pr.BaseRepo, pr.BaseBranch)
+}
+
+func createTestPullRequest(t *testing.T, repo *Repository, user *User, baseBranch string, headBranch string) *PullRequest {
+	prIssue := &Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "test",
+		PosterID: user.ID,
+		Poster:   user,
+	}
+	pr := &PullRequest{
+		HeadRepoID:   repo.ID,
+		BaseRepoID:   repo.ID,
+		HeadRepo:     repo,
+		BaseRepo:     repo,
+		HeadUserName: user.Name,
+		HeadBranch:   headBranch,
+		BaseBranch:   baseBranch,
+		Type:         PullRequestGitea,
+	}
+	labelIDs := make([]int64, 0)
+	uuids := make([]string, 0)
+	patch := make([]byte, 0)
+	assigneeIDs := make([]int64, 0)
+	err := NewPullRequest(repo, prIssue, labelIDs, uuids, pr, patch, assigneeIDs)
+	assert.NoError(t, err)
+	return pr
+}
+
+func TestPullRequest_CloseActivePullRequestsDependent(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Create a test pull request.
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	pr1 := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr2 := createTestPullRequest(t, repo, user, "develop", "master")
+	pr1.LoadIssue()
+	pr2.LoadIssue()
+
+	// Add a dependency from pr2 to pr1.
+	err := CreateIssueDependency(user, pr2.Issue, pr1.Issue)
+	assert.NoError(t, err)
+
+	closeActivePullRequests(t, pr2, pr2.BaseRepo, pr2.BaseBranch)
+	pr1.Issue = nil
+	pr1.LoadIssue()
+	assert.Equal(t, true, pr1.Issue.IsClosed)
 }

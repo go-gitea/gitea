@@ -669,6 +669,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	case ActionDeleteBranch: // Delete Branch
 		isHookEventPush = true
 
+		CloseActivePullRequests(pusher, repo, refName)
+
 		if err = PrepareWebhooks(repo, HookEventDelete, &api.DeletePayload{
 			Ref:        refName,
 			RefType:    "branch",

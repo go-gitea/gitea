@@ -1472,3 +1472,46 @@ func TestPullRequests() {
 func InitTestPullRequests() {
 	go TestPullRequests()
 }
+
+// CloseActivePullRequests closes the issue of all the active pull requests associated with a branch
+func CloseActivePullRequests(doer *User, repo *Repository, branchName string) {
+	baseprs, err := GetUnmergedPullRequestsByBaseInfo(repo.ID, branchName)
+	if err != nil {
+		log.Error(4, "Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repo.ID, branchName, err)
+		return
+	}
+	headprs, err := GetUnmergedPullRequestsByHeadInfo(repo.ID, branchName)
+	if err != nil {
+		log.Error(4, "Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repo.ID, branchName, err)
+		return
+	}
+	prs := append(baseprs, headprs...)
+	for statusChanged := true; statusChanged; {
+		statusChanged = false
+		for _, pr := range prs {
+			if err = pr.LoadIssue(); err != nil {
+				log.Error(4, "LoadIssue: %v", err)
+			}
+			if pr.Issue.IsClosed {
+				continue
+			}
+			if blocked, err := pr.Issue.IsBlocked(); err != nil {
+				log.Error(4, "IsBlocked: %v", err)
+			} else if !blocked {
+				err = pr.Issue.ChangeStatus(doer, true)
+				if err != nil {
+					log.Error(4, "ChangeStatus: %v", err)
+				} else {
+					log.Trace("Issue [%d] status changed to closed", pr.IssueID)
+					statusChanged = true
+				}
+			}
+		}
+	}
+
+	for _, pr := range prs {
+		if !pr.Issue.IsClosed {
+			log.Warn("Issue [%d] status change blocked by existing dependencies.", pr.Issue.ID)
+		}
+	}
+}

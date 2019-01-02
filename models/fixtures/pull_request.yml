@@ -22,7 +22,7 @@
   head_repo_id: 1
   base_repo_id: 1
   head_user_name: user1
-  head_branch: branch2
+  head_branch: develop
   base_branch: master
   merge_base: fedcba9876543210
   has_merged: false
