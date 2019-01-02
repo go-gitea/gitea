@@ -130,10 +130,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make gitea serv use api/internal (#4886)
   * Add support for search by uid (#4876)
   * Allow to add organization members as collaborators on organization owned repositories (#4748)
-* SECURITY
-  * Fix #5565 by htmlEncoding titles in issues and milestones (#5570)
-  * Fix #5226 by adding CSRF checking to api reqToken and add CSRF to the POST header for deadline (#5250)
-  * Update go-macaron/session to latest mast to fix RCE-bug (#5177)
 * TESTING
   * Kill testing processes if the test takes too long (#5174)
   * Update outdated Go toolchain version for .drone.yml (#5146)
