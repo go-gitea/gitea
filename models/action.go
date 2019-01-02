@@ -477,7 +477,7 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
+func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -498,6 +498,11 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 			if err = CreateRefComment(doer, repo, issue, message, c.Sha1); err != nil {
 				return err
 			}
+		}
+
+		// Change issue status only if the commit has been pushed to the default branch.
+		if repo.DefaultBranch != branchName {
+			continue
 		}
 
 		refMarked = make(map[int64]bool)
@@ -609,7 +614,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 		}
 
-		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits); err != nil {
+		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
 			log.Error(4, "updateIssuesCommit: %v", err)
 		}
 	}
