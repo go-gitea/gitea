@@ -21,7 +21,6 @@ import (
 
 	"code.gitea.io/git"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -712,64 +711,59 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
 	}
 
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	if err = repo.DiscardLocalRepoBranchChanges(opts.OldBranch); err != nil {
-		return fmt.Errorf("DiscardLocalRepoBranchChanges [branch: %s]: %v", opts.OldBranch, err)
-	} else if err = repo.UpdateLocalCopyBranch(opts.OldBranch); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch [branch: %s]: %v", opts.OldBranch, err)
+	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
+	tmpBasePath := path.Join(LocalCopyPath(), "upload-"+timeStr+".git")
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	if opts.OldBranch != opts.NewBranch {
-		if err = repo.CheckoutNewBranch(opts.OldBranch, opts.NewBranch); err != nil {
-			return fmt.Errorf("CheckoutNewBranch [old_branch: %s, new_branch: %s]: %v", opts.OldBranch, opts.NewBranch, err)
-		}
+	defer os.RemoveAll(path.Dir(tmpBasePath))
+
+	// Do a bare shared clone into tmpBasePath and
+	// make HEAD to point to the OldBranch tree
+	if err := repo.bareClone(tmpBasePath, opts.OldBranch); err != nil {
+		return fmt.Errorf("UpdateRepoFiles: %v", err)
 	}
 
-	localPath := repo.LocalCopyPath()
-	dirPath := path.Join(localPath, opts.TreePath)
-
-	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dirPath, err)
+	// Set the default index
+	if err := repo.setDefaultIndex(tmpBasePath); err != nil {
+		return fmt.Errorf("UpdateRepoFiles: %v", err)
 	}
 
 	// Copy uploaded files into repository.
 	for _, upload := range uploads {
-		tmpPath := upload.LocalPath()
-		targetPath := path.Join(dirPath, upload.Name)
-		if !com.IsFile(tmpPath) {
-			continue
+		file, err := os.Open(upload.LocalPath())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		objectHash, err := repo.hashObject(tmpBasePath, file)
+		if err != nil {
+			return err
 		}
 
-		if err = com.Copy(tmpPath, targetPath); err != nil {
-			return fmt.Errorf("Copy: %v", err)
+		// Add the object to the index
+		if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, path.Join(opts.TreePath, upload.Name)); err != nil {
+			return err
 		}
 	}
 
-	if err = git.AddChanges(localPath, true); err != nil {
-		return fmt.Errorf("git add --all: %v", err)
-	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
-		Committer: doer.NewGitSig(),
-		Message:   opts.Message,
-	}); err != nil {
-		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: opts.NewBranch,
-	}); err != nil {
-		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
+	// Now write the tree
+	treeHash, err := repo.writeTree(tmpBasePath)
+	if err != nil {
+		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	// Now commit the tree
+	commitHash, err := repo.commitTree(tmpBasePath, doer, treeHash, opts.Message)
 	if err != nil {
-		log.Error(4, "OpenRepository: %v", err)
-		return nil
+		return err
 	}
-	commit, err := gitRepo.GetBranchCommit(opts.NewBranch)
-	if err != nil {
-		log.Error(4, "GetBranchCommit [branch: %s]: %v", opts.NewBranch, err)
-		return nil
+
+	// Then push this tree to NewBranch
+	if err := repo.actuallyPush(tmpBasePath, doer, commitHash, opts.NewBranch); err != nil {
+		return err
 	}
 
 	// Simulate push event.
@@ -790,12 +784,13 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 			RepoName:     repo.Name,
 			RefFullName:  git.BranchPrefix + opts.NewBranch,
 			OldCommitID:  oldCommitID,
-			NewCommitID:  commit.ID.String(),
+			NewCommitID:  commitHash,
 		},
 	)
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
 
+	// FIXME: Should we UpdateRepoIndexer(repo) here?
 	return DeleteUploads(uploads...)
 }
