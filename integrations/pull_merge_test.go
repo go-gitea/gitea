@@ -77,6 +77,19 @@ func TestPullRebase(t *testing.T) {
 	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
 }
 
+func TestPullRebaseMerge(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+
+	elem := strings.Split(test.RedirectURL(resp), "/")
+	assert.EqualValues(t, "pulls", elem[3])
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+}
+
 func TestPullSquash(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
