@@ -485,49 +485,44 @@ type DeleteRepoFileOptions struct {
 
 // DeleteRepoFile deletes a repository file
 func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	if err = repo.DiscardLocalRepoBranchChanges(opts.OldBranch); err != nil {
-		return fmt.Errorf("DiscardLocalRepoBranchChanges [branch: %s]: %v", opts.OldBranch, err)
-	} else if err = repo.UpdateLocalCopyBranch(opts.OldBranch); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch [branch: %s]: %v", opts.OldBranch, err)
+	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
+	tmpBasePath := path.Join(LocalCopyPath(), "upload-"+timeStr+".git")
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	if opts.OldBranch != opts.NewBranch {
-		if err := repo.CheckoutNewBranch(opts.OldBranch, opts.NewBranch); err != nil {
-			return fmt.Errorf("CheckoutNewBranch [old_branch: %s, new_branch: %s]: %v", opts.OldBranch, opts.NewBranch, err)
-		}
+	defer os.RemoveAll(path.Dir(tmpBasePath))
+
+	// Do a bare shared clone into tmpBasePath and
+	// make HEAD to point to the OldBranch tree
+	if err := repo.bareClone(tmpBasePath, opts.OldBranch); err != nil {
+		return fmt.Errorf("UpdateRepoFile: %s", err)
 	}
 
-	localPath := repo.LocalCopyPath()
-	if err = os.Remove(path.Join(localPath, opts.TreePath)); err != nil {
-		return fmt.Errorf("Remove: %v", err)
+	// Set the default index
+	if err := repo.setDefaultIndex(tmpBasePath); err != nil {
+		return fmt.Errorf("UpdateRepoFile: %v", err)
 	}
 
-	if err = git.AddChanges(localPath, true); err != nil {
-		return fmt.Errorf("git add --all: %v", err)
-	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
-		Committer: doer.NewGitSig(),
-		Message:   opts.Message,
-	}); err != nil {
-		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: opts.NewBranch,
-	}); err != nil {
-		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
+	if err := repo.removeFilesFromIndex(tmpBasePath, opts.TreePath); err != nil {
+		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	// Now write the tree
+	treeHash, err := repo.writeTree(tmpBasePath)
 	if err != nil {
-		log.Error(4, "OpenRepository: %v", err)
-		return nil
+		return err
 	}
-	commit, err := gitRepo.GetBranchCommit(opts.NewBranch)
+
+	// Now commit the tree
+	commitHash, err := repo.commitTree(tmpBasePath, doer, treeHash, opts.Message)
 	if err != nil {
-		log.Error(4, "GetBranchCommit [branch: %s]: %v", opts.NewBranch, err)
-		return nil
+		return err
+	}
+
+	// Then push this tree to NewBranch
+	if err := repo.actuallyPush(tmpBasePath, doer, commitHash, opts.NewBranch); err != nil {
+		return err
 	}
 
 	// Simulate push event.
@@ -548,12 +543,14 @@ func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (
 			RepoName:     repo.Name,
 			RefFullName:  git.BranchPrefix + opts.NewBranch,
 			OldCommitID:  oldCommitID,
-			NewCommitID:  commit.ID.String(),
+			NewCommitID:  commitHash,
 		},
 	)
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
+
+	// FIXME: Should we UpdateRepoIndexer(repo) here?
 	return nil
 }
 
