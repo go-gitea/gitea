@@ -305,7 +305,7 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	}
 
 	// Add the object to the index
-	if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, opts.NewTreeName); err != nil {
+	if err := repo.addObjectToIndex(tmpBasePath, "100644", objectHash, opts.NewTreeName); err != nil {
 		return err
 	}
 
@@ -418,7 +418,7 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 	}
 
 	// Add the object to the index
-	if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, treePath); err != nil {
+	if err := repo.addObjectToIndex(tmpBasePath, "100644", objectHash, treePath); err != nil {
 		return nil, fmt.Errorf("GetDiffPreview: %v", err)
 	}
 
@@ -704,7 +704,7 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 		}
 
 		// Add the object to the index
-		if err := repo.addObjectToIndex(tmpBasePath, "100666", objectHash, path.Join(opts.TreePath, upload.Name)); err != nil {
+		if err := repo.addObjectToIndex(tmpBasePath, "100644", objectHash, path.Join(opts.TreePath, upload.Name)); err != nil {
 			return err
 		}
 	}
