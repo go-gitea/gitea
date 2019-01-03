@@ -105,6 +105,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	payloadCommits, err := pushCommits.ToAPIPayloadCommits(RepoPath("username", "reponame"), "/username/reponame")
+	assert.NoError(t, err)
 	if assert.Len(t, payloadCommits, 2) {
 		assert.Equal(t, "abcdef1", payloadCommits[0].ID)
 		assert.Equal(t, "message1", payloadCommits[0].Message)
