@@ -266,9 +266,9 @@ func (comments CommentList) Issues() IssueList {
 	var issues = make(map[int64]*Issue, len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
-			issue, ok := issues[comment.Issue.ID]
+			_, ok := issues[comment.Issue.ID]
 			if !ok {
-				issues[comment.Issue.ID] = issue
+				issues[comment.Issue.ID] = comment.Issue
 			}
 		}
 	}
