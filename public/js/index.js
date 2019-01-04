@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -171,6 +175,87 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function initImagePaste(target) {
+    target.each(function(i, field) {
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,6 +263,7 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
@@ -312,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -604,7 +690,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -761,9 +847,103 @@ function initRepository() {
     }
 }
 
-function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
+function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
 
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
+
+    $('button.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var path = $(this).data('path');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+            assingMenuAttributes(commentCloud.find('.menu'));
+
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
+        }
+        commentCloud.find('textarea').focus();
+    });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
+}
+
+function initRepositoryCollaboration() {
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -790,7 +970,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -825,6 +1005,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
@@ -854,7 +1035,6 @@ String.prototype.endsWith = function (pattern) {
         return pos;
     }
 })(jQuery);
-
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1089,8 +1269,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -1237,13 +1415,15 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1364,7 +1544,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -1438,7 +1618,7 @@ function initU2FAuth() {
     }
     u2fApi.ensureSupport()
         .then(function () {
-            $.getJSON('/user/u2f/challenge').success(function(req) {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1451,16 +1631,16 @@ function initU2FAuth() {
             });
         }).catch(function () {
             // Fallback in case browser do not support U2F
-            window.location.href = "/user/two_factor"
+            window.location.href = suburl + "/user/two_factor"
         })
 }
 function u2fSigned(resp) {
     $.ajax({
-        url:'/user/u2f/sign',
-        type:"POST",
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
     }).fail(function (xhr, textStatus) {
@@ -1473,11 +1653,11 @@ function u2fRegistered(resp) {
         return;
     }
     $.ajax({
-        url:'/user/settings/security/u2f/register',
-        type:"POST",
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
         success: function(){
             window.location.reload();
         },
@@ -1531,7 +1711,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-    $.post("/user/settings/security/u2f/request_register", {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
         "_csrf": csrf,
         "name": $('#nickname').val()
     }).success(function(req) {
@@ -1553,6 +1733,24 @@ function u2fRegisterRequest() {
         if(xhr.status === 409) {
             $("#nickname").closest("div.field").addClass("error");
         }
+    });
+}
+
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
     });
 }
 
@@ -1656,6 +1854,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1770,6 +1973,8 @@ $(document).ready(function () {
     initU2FAuth();
     initU2FRegister();
     initIssueList();
+    initWipTitle();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2094,6 +2299,101 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function initHeatmap(appElementId, heatmapUser, locale) {
+    var el = document.getElementById(appElementId);
+    if (!el) {
+        return;
+    }
+
+    locale = locale || {};
+
+    locale.contributions = locale.contributions || 'contributions';
+    locale.no_contributions = locale.no_contributions || 'No contributions';
+
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('activity-heatmap', {
+        delimiters: vueDelimeters,
+
+        props: {
+            user: {
+                type: String,
+                required: true
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            locale: {
+                type: Object,
+                required: true
+            }
+        },
+
+        data: function () {
+            return {
+                isLoading: true,
+                colorRange: [],
+                endDate: null,
+                values: []
+            };
+        },
+
+        mounted: function() {
+            this.colorRange = [
+                this.getColor(0),
+                this.getColor(1),
+                this.getColor(2),
+                this.getColor(3),
+                this.getColor(4),
+                this.getColor(5)
+            ];
+            console.log(this.colorRange);
+            this.endDate = new Date();
+            this.loadHeatmap(this.user);
+        },
+
+        methods: {
+            loadHeatmap: function(userName) {
+                var self = this;
+                $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
+                    var chartData = [];
+                    for (var i = 0; i < chartRawData.length; i++) {
+                        chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+                    }
+                    self.values = chartData;
+                    self.isLoading = false;
+                });
+            },
+
+            getColor: function(idx) {
+                var el = document.createElement('div');
+                el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
+
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
+            }
+        },
+
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+    });
+
+    new Vue({
+        delimiters: vueDelimeters,
+        el: el,
+
+        data: {
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            heatmapUser: heatmapUser,
+            locale: locale
+        },
+    });
+}
+
 function initFilterBranchTagDropdown(selector) {
     $(selector).each(function() {
         var $dropdown = $(this);
@@ -2313,7 +2613,7 @@ function initTopicbar() {
 
     mgrBtn.click(function() {
         viewDiv.hide();
-        editDiv.show();
+        editDiv.css('display', ''); // show Semantic UI Grid
     });
 
     function getPrompts() {
@@ -2344,7 +2644,7 @@ function initTopicbar() {
                 for (var i=0; i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
-                editDiv.hide();
+                editDiv.css('display', 'none'); // hide Semantic UI Grid
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2398,7 +2698,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2478,6 +2778,10 @@ function updateDeadline(deadlineString) {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
         contentType: 'application/json',
         type: 'POST',
         success: function () {
@@ -2509,13 +2813,13 @@ function initIssueList() {
     $('.new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
@@ -2526,4 +2830,13 @@ function initIssueList() {
             fullTextSearch: true
         })
     ;
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('button.comment-form-reply').show();
+    } else {
+        form.closest('.comment-code-cloud').remove()
+    }
 }

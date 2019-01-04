@@ -197,14 +197,15 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("newCommitStatus[nil, %s]: no repository specified", opts.SHA)
 	}
 	opts.CommitStatus.RepoID = opts.Repo.ID
+	repoPath := opts.Repo.repoPath(sess)
 
 	if opts.Creator == nil {
-		return fmt.Errorf("newCommitStatus[%s, %s]: no user specified", opts.Repo.RepoPath(), opts.SHA)
+		return fmt.Errorf("newCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	gitRepo, err := git.OpenRepository(opts.Repo.RepoPath())
+	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %v", opts.Repo.RepoPath(), err)
+		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	if _, err := gitRepo.GetCommit(opts.SHA); err != nil {
 		return fmt.Errorf("GetCommit[%s]: %v", opts.SHA, err)
@@ -219,19 +220,19 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
 	if err != nil {
 		sess.Rollback()
-		return fmt.Errorf("newCommitStatus[%s, %s]: %v", opts.Repo.RepoPath(), opts.SHA, err)
+		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 	if has {
-		log.Debug("newCommitStatus[%s, %s]: found", opts.Repo.RepoPath(), opts.SHA)
+		log.Debug("newCommitStatus[%s, %s]: found", repoPath, opts.SHA)
 		nextIndex = lastCommitStatus.Index
 	}
 	opts.CommitStatus.Index = nextIndex + 1
-	log.Debug("newCommitStatus[%s, %s]: %d", opts.Repo.RepoPath(), opts.SHA, opts.CommitStatus.Index)
+	log.Debug("newCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
 
 	// Insert new CommitStatus
 	if _, err = sess.Insert(opts.CommitStatus); err != nil {
 		sess.Rollback()
-		return fmt.Errorf("newCommitStatus[%s, %s]: %v", opts.Repo.RepoPath(), opts.SHA, err)
+		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
 	return nil

@@ -84,7 +84,7 @@ func InitRepoIndexer(populateIndexer func() error) {
 		return
 	}
 
-	if err = createRepoIndexer(); err != nil {
+	if err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion); err != nil {
 		log.Fatal(4, "CreateRepoIndexer: %v", err)
 	}
 	if err = populateIndexer(); err != nil {
@@ -93,7 +93,7 @@ func InitRepoIndexer(populateIndexer func() error) {
 }
 
 // createRepoIndexer create a repo indexer if one does not already exist
-func createRepoIndexer() error {
+func createRepoIndexer(path string, latestVersion int) error {
 	var err error
 	docMapping := bleve.NewDocumentMapping()
 	numericFieldMapping := bleve.NewNumericFieldMapping()
@@ -119,8 +119,13 @@ func createRepoIndexer() error {
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	repoIndexer, err = bleve.New(setting.Indexer.RepoPath, mapping)
-	return err
+	repoIndexer, err = bleve.New(path, mapping)
+	if err != nil {
+		return err
+	}
+	return rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
+		Version: latestVersion,
+	})
 }
 
 func filenameIndexerID(repoID int64, filename string) string {

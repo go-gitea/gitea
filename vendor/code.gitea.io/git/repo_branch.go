@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +8,9 @@ package git
 import (
 	"fmt"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -60,16 +64,23 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	stdout, err := NewCommand("for-each-ref", "--format=%(refname)", BranchPrefix).RunInDir(repo.Path)
+	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	refs := strings.Split(stdout, "\n")
-	branches := make([]string, len(refs)-1)
-	for i, ref := range refs[:len(refs)-1] {
-		branches[i] = strings.TrimPrefix(ref, BranchPrefix)
+	branchIter, err := r.Branches()
+	if err != nil {
+		return nil, err
 	}
+	branches := make([]string, 0)
+	if err = branchIter.ForEach(func(branch *plumbing.Reference) error {
+		branches = append(branches, branch.Name().Short())
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	return branches, nil
 }
 
