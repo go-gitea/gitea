@@ -152,7 +152,7 @@ type User struct {
 	NumMembers  int
 	Teams       []*Team     `xorm:"-"`
 	Members     []*User     `xorm:"-"`
-	Visibility  VisibleType `xorm:"DEFAULT 1"`
+	Visibility  VisibleType `xorm:"NOT NULL DEFAULT 1"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
