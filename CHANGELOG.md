@@ -11,6 +11,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
 * SECURITY
   * Prevent DeleteFilePost doing arbitrary deletion (#5631)
+* BUGFIX
+  * Fix wrong text getting saved on editing second comment on an issue (#5608)
 
 ## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-02
 * BREAKING
