@@ -44,7 +44,11 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
-	err = issue.loadAssignees(x)
+	return getAssigneesByIssue(x, issue)
+}
+
+func getAssigneesByIssue(e Engine, issue *Issue) (assignees []*User, err error) {
+	err = issue.loadAssignees(e)
 	if err != nil {
 		return assignees, err
 	}
