@@ -174,7 +174,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
+			Repository:  issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:      doer.APIFormat(),
 		}
 		if removed {
@@ -191,8 +191,8 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
+			Issue:      issue.apiFormat(sess),
+			Repository: issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:     doer.APIFormat(),
 		}
 		if removed {

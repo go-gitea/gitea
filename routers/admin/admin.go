@@ -215,6 +215,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["LogRootPath"] = setting.LogRootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
+	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
 
 	ctx.Data["SSH"] = setting.SSH
 
