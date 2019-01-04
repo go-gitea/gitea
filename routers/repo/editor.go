@@ -62,6 +62,16 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["RequireSimpleMDE"] = true
 	canCommit := renderCommitRights(ctx)
 
+	treePath := cleanUploadFileName(ctx.Repo.TreePath)
+	if treePath != ctx.Repo.TreePath {
+		if isNewFile {
+			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_new", ctx.Repo.BranchName, treePath))
+		} else {
+			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_edit", ctx.Repo.BranchName, treePath))
+		}
+		return
+	}
+
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
 	if !isNewFile {
@@ -155,7 +165,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 
 	oldBranchName := ctx.Repo.BranchName
 	branchName := oldBranchName
-	oldTreePath := ctx.Repo.TreePath
+	oldTreePath := cleanUploadFileName(ctx.Repo.TreePath)
 	lastCommit := form.LastCommit
 	form.LastCommit = ctx.Repo.Commit.ID.String()
 
@@ -328,7 +338,11 @@ func NewFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
 
 // DiffPreviewPost render preview diff page
 func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
-	treePath := ctx.Repo.TreePath
+	treePath := cleanUploadFileName(ctx.Repo.TreePath)
+	if len(treePath) == 0 {
+		ctx.Error(500, "file name to diff is invalid")
+		return
+	}
 
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
 	if err != nil {
@@ -358,7 +372,14 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 func DeleteFile(ctx *context.Context) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	ctx.Data["TreePath"] = ctx.Repo.TreePath
+	treePath := cleanUploadFileName(ctx.Repo.TreePath)
+
+	if treePath != ctx.Repo.TreePath {
+		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_delete", ctx.Repo.BranchName, treePath))
+		return
+	}
+
+	ctx.Data["TreePath"] = treePath
 	canCommit := renderCommitRights(ctx)
 
 	ctx.Data["commit_summary"] = ""
@@ -453,6 +474,12 @@ func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	renderUploadSettings(ctx)
 	canCommit := renderCommitRights(ctx)
+	treePath := cleanUploadFileName(ctx.Repo.TreePath)
+	if treePath != ctx.Repo.TreePath {
+		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_upload", ctx.Repo.BranchName, treePath))
+		return
+	}
+	ctx.Repo.TreePath = treePath
 
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 	if len(treeNames) == 0 {

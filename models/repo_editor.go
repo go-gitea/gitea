@@ -455,33 +455,48 @@ func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (
 	// Do a bare shared clone into tmpBasePath and
 	// make HEAD to point to the OldBranch tree
 	if err := repo.bareClone(tmpBasePath, opts.OldBranch); err != nil {
-		return fmt.Errorf("UpdateRepoFile: %s", err)
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	// Set the default index
 	if err := repo.setDefaultIndex(tmpBasePath); err != nil {
-		return fmt.Errorf("UpdateRepoFile: %v", err)
+		return fmt.Errorf("DeleteRepoFile: %v", err)
+	}
+
+	filelist, err := repo.lsFiles(tmpBasePath, opts.TreePath)
+	if err != nil {
+		return fmt.Errorf("DeleteRepoFile: %v", err)
+	}
+
+	inFilelist := false
+	for _, file := range filelist {
+		if file == opts.TreePath {
+			inFilelist = true
+		}
+	}
+	if !inFilelist {
+		return git.ErrNotExist{RelPath: opts.TreePath}
 	}
 
 	if err := repo.removeFilesFromIndex(tmpBasePath, opts.TreePath); err != nil {
-		return err
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	// Now write the tree
 	treeHash, err := repo.writeTree(tmpBasePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	// Now commit the tree
 	commitHash, err := repo.commitTree(tmpBasePath, doer, treeHash, opts.Message)
 	if err != nil {
-		return err
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	// Then push this tree to NewBranch
 	if err := repo.actuallyPush(tmpBasePath, doer, commitHash, opts.NewBranch); err != nil {
-		return err
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	// Simulate push event.
