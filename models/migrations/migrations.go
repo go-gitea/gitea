@@ -207,8 +207,8 @@ var migrations = []Migration{
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
-  // v77 -> v78
-  NewMigration("add visibility for user and org", addVisibilityForUserAndOrg),
+	// v77 -> v78
+	NewMigration("add visibility for user and org", addVisibilityForUserAndOrg),
 }
 
 // Migrate database to current version
