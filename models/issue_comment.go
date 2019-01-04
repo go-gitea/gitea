@@ -559,7 +559,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.LoadReview(); err != nil {
+				if err := comment.loadReview(e); err != nil {
 					return err
 				}
 			}
