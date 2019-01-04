@@ -173,7 +173,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: issue.PullRequest.apiFormat(sess),
 			Repository:  issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:      doer.APIFormat(),
 		}
