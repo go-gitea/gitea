@@ -4,6 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.7.0-rc2) - 2019-01-04
+* SECURITY
+  * Prevent DeleteFilePost doing arbitrary deletion (#5631)
+
+## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
+* SECURITY
+  * Prevent DeleteFilePost doing arbitrary deletion (#5631)
+* BUGFIX
+  * Fix wrong text getting saved on editing second comment on an issue (#5608)
+
 ## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-02
 * BREAKING
   * Restrict permission check on repositories and fix some problems (#5314)
