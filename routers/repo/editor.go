@@ -576,12 +576,13 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 }
 
 func cleanUploadFileName(name string) string {
-	name = strings.TrimLeft(name, "./\\")
-	name = strings.Replace(name, "../", "", -1)
-	name = strings.Replace(name, "..\\", "", -1)
-	name = strings.TrimPrefix(path.Clean(name), ".git/")
-	if name == ".git" {
-		return ""
+	// Rebase the filename
+	name = strings.Trim(path.Clean("/"+name), " /")
+	// Git disallows any filenames to have a .git directory in them.
+	for _, part := range strings.Split(name, "/") {
+		if strings.ToLower(part) == ".git" {
+			return ""
+		}
 	}
 	return name
 }
