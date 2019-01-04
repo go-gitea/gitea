@@ -15,14 +15,15 @@ func TestCleanUploadName(t *testing.T) {
 	models.PrepareTestEnv(t)
 
 	var kases = map[string]string{
-		".git/refs/master": "git/refs/master",
+		".git/refs/master": "",
 		"/root/abc":        "root/abc",
 		"./../../abc":      "abc",
-		"a/../.git":        "a/.git",
-		"a/../../../abc":   "a/abc",
+		"a/../.git":        "",
+		"a/../../../abc":   "abc",
 		"../../../acd":     "acd",
-		"../../.git/abc":   "git/abc",
-		"..\\..\\.git/abc": "git/abc",
+		"../../.git/abc":   "",
+		"..\\..\\.git/abc": "..\\..\\.git/abc",
+		"abc/../def":       "def",
 	}
 	for k, v := range kases {
 		assert.EqualValues(t, v, cleanUploadFileName(k))
