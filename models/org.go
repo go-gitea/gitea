@@ -372,7 +372,7 @@ func HasOrgVisible(orgs []*User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
 		for _, org := range orgs {
-			if org.Visibility == VisibilityPublic {
+			if org.Visibility == VisibleTypePublic {
 				return true
 			}
 		}
