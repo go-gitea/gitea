@@ -4,6 +4,12 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
+* SECURITY
+  * Prevent DeleteFilePost doing arbitrary deletion (#5631)
+* BUGFIX
+  * Fix wrong text getting saved on editing second comment on an issue (#5608)
+
 ## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
 * SECURITY
   * Sanitize uploaded file names (#5571) (#5573)
