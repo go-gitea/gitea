@@ -340,3 +340,7 @@ echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /hom
 ```
 
 Now you should be able to use Git over SSH to your container without disrupting SSH access to the host.
+
+Please note: SSH container passthrough will work only if using opensshd in container, and will not work if
+`AuthorizedKeysCommand` is used in combination with setting `SSH_CREATE_AUTHORIZED_KEYS_FILE=false` to disable
+authorized files key generation.
