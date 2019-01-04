@@ -163,7 +163,11 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		branchName = form.NewBranchName
 	}
 
-	form.TreePath = strings.Trim(path.Clean("/"+form.TreePath), " /")
+	form.TreePath = cleanUploadFileName(form.TreePath)
+	if len(form.TreePath) == 0 {
+		ctx.Error(500, "Upload file name is invalid")
+		return
+	}
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 
 	ctx.Data["TreePath"] = form.TreePath
@@ -373,6 +377,13 @@ func DeleteFile(ctx *context.Context) {
 func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+
+	ctx.Repo.TreePath = cleanUploadFileName(ctx.Repo.TreePath)
+	if len(ctx.Repo.TreePath) == 0 {
+		ctx.Error(500, "Delete file name is invalid")
+		return
+	}
+
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
 	canCommit := renderCommitRights(ctx)
 
@@ -477,7 +488,12 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		branchName = form.NewBranchName
 	}
 
-	form.TreePath = strings.Trim(path.Clean("/"+form.TreePath), " /")
+	form.TreePath = cleanUploadFileName(form.TreePath)
+	if len(form.TreePath) == 0 {
+		ctx.Error(500, "Upload file name is invalid")
+		return
+	}
+
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 	if len(treeNames) == 0 {
 		// We must at least have one element for user to input.
