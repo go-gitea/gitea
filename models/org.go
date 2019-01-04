@@ -363,7 +363,7 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Find(&orgs)
 }
 
-// HasOrgVisible tell if the given user can see one of the given orgs
+// HasOrgVisible tell if the given user can see one or more of the given orgs
 func HasOrgVisible(orgs []*User, user *User) bool {
 	if len(orgs) == 0 {
 		return false
@@ -372,7 +372,7 @@ func HasOrgVisible(orgs []*User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
 		for _, org := range orgs {
-			if org.Visibility == 1 {
+			if org.Visibility == VisibilityPublic {
 				return true
 			}
 		}
@@ -384,15 +384,12 @@ func HasOrgVisible(orgs []*User, user *User) bool {
 	}
 	for _, org := range orgs {
 		switch org.Visibility {
-		case VisibleTypePublic:
-			return true
-		case VisibleTypeLimited:
-			return true
 		case VisibleTypePrivate:
 			if org.IsUserOrgPartOf(user.ID) {
 				return true
 			}
 		default:
+			return true
 		}
 	}
 
