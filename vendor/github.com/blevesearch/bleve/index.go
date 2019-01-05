@@ -15,11 +15,12 @@
 package bleve
 
 import (
+	"context"
+
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/mapping"
-	"golang.org/x/net/context"
 )
 
 // A Batch groups together multiple Index and Delete

@@ -343,8 +343,9 @@ func (s *SegmentBase) DocNumbers(ids []string) (*roaring.Bitmap, error) {
 			return nil, err
 		}
 
+		var postings *PostingsList
 		for _, id := range ids {
-			postings, err := idDict.postingsList([]byte(id), nil)
+			postings, err = idDict.postingsList([]byte(id), nil, postings)
 			if err != nil {
 				return nil, err
 			}

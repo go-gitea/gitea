@@ -80,22 +80,6 @@ func accessLevel(e Engine, userID int64, repo *Repository) (AccessMode, error) {
 	return a.Mode, nil
 }
 
-// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
-// user does not have access.
-func AccessLevel(userID int64, repo *Repository) (AccessMode, error) {
-	return accessLevel(x, userID, repo)
-}
-
-func hasAccess(e Engine, userID int64, repo *Repository, testMode AccessMode) (bool, error) {
-	mode, err := accessLevel(e, userID, repo)
-	return testMode <= mode, err
-}
-
-// HasAccess returns true if user has access to repo
-func HasAccess(userID int64, repo *Repository, testMode AccessMode) (bool, error) {
-	return hasAccess(x, userID, repo, testMode)
-}
-
 type repoAccess struct {
 	Access     `xorm:"extends"`
 	Repository `xorm:"extends"`

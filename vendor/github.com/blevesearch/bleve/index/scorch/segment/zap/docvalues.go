@@ -99,7 +99,7 @@ func (s *SegmentBase) loadFieldDocValueIterator(field string,
 func (di *docValueIterator) loadDvChunk(chunkNumber,
 	localDocNum uint64, s *SegmentBase) error {
 	// advance to the chunk where the docValues
-	// reside for the given docID
+	// reside for the given docNum
 	destChunkDataLoc := di.dvDataLoc
 	for i := 0; i < int(chunkNumber); i++ {
 		destChunkDataLoc += di.chunkLens[i]
@@ -116,7 +116,7 @@ func (di *docValueIterator) loadDvChunk(chunkNumber,
 	offset := uint64(0)
 	di.curChunkHeader = make([]MetaData, int(numDocs))
 	for i := 0; i < int(numDocs); i++ {
-		di.curChunkHeader[i].DocID, read = binary.Uvarint(s.mem[chunkMetaLoc+offset : chunkMetaLoc+offset+binary.MaxVarintLen64])
+		di.curChunkHeader[i].DocNum, read = binary.Uvarint(s.mem[chunkMetaLoc+offset : chunkMetaLoc+offset+binary.MaxVarintLen64])
 		offset += uint64(read)
 		di.curChunkHeader[i].DocDvLoc, read = binary.Uvarint(s.mem[chunkMetaLoc+offset : chunkMetaLoc+offset+binary.MaxVarintLen64])
 		offset += uint64(read)
@@ -131,10 +131,10 @@ func (di *docValueIterator) loadDvChunk(chunkNumber,
 	return nil
 }
 
-func (di *docValueIterator) visitDocValues(docID uint64,
+func (di *docValueIterator) visitDocValues(docNum uint64,
 	visitor index.DocumentFieldTermVisitor) error {
-	// binary search the term locations for the docID
-	start, length := di.getDocValueLocs(docID)
+	// binary search the term locations for the docNum
+	start, length := di.getDocValueLocs(docNum)
 	if start == math.MaxUint64 || length == math.MaxUint64 {
 		return nil
 	}
@@ -144,7 +144,7 @@ func (di *docValueIterator) visitDocValues(docID uint64,
 		return err
 	}
 
-	// pick the terms for the given docID
+	// pick the terms for the given docNum
 	uncompressed = uncompressed[start : start+length]
 	for {
 		i := bytes.Index(uncompressed, termSeparatorSplitSlice)
@@ -159,11 +159,11 @@ func (di *docValueIterator) visitDocValues(docID uint64,
 	return nil
 }
 
-func (di *docValueIterator) getDocValueLocs(docID uint64) (uint64, uint64) {
+func (di *docValueIterator) getDocValueLocs(docNum uint64) (uint64, uint64) {
 	i := sort.Search(len(di.curChunkHeader), func(i int) bool {
-		return di.curChunkHeader[i].DocID >= docID
+		return di.curChunkHeader[i].DocNum >= docNum
 	})
-	if i < len(di.curChunkHeader) && di.curChunkHeader[i].DocID == docID {
+	if i < len(di.curChunkHeader) && di.curChunkHeader[i].DocNum == docNum {
 		return di.curChunkHeader[i].DocDvLoc, di.curChunkHeader[i].DocDvLen
 	}
 	return math.MaxUint64, math.MaxUint64

@@ -350,8 +350,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 
 	pr.LoadIssue()
 	issue := pr.Issue
+	issue.Repo = ctx.Repo.Repository
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -382,8 +383,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
-
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -395,7 +395,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -405,12 +405,24 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Labels != nil {
+		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+		if err != nil {
+			ctx.Error(500, "GetLabelsInRepoByIDsError", err)
+			return
+		}
+		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
+			ctx.Error(500, "ReplaceLabelsError", err)
+			return
+		}
+	}
+
 	if err = models.UpdateIssue(issue); err != nil {
 		ctx.Error(500, "UpdateIssue", err)
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return
@@ -651,7 +663,12 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
+	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
 		ctx.Status(404)
 		return nil, nil, nil, nil, "", ""

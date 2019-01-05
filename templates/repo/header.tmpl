@@ -30,7 +30,7 @@
 						{{.NumStars}}
 					</a>
 				</div>
-				{{if .CanBeForked}}
+				{{if and (not .IsBare) ($.Permission.CanRead $.UnitTypeCode)}}
 					<div class="ui compact labeled button" tabindex="0">
 						<a class="ui compact button {{if not $.CanSignedUserFork}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" data-position="top center" data-variation="tiny"{{end}}>
 							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
@@ -47,43 +47,43 @@
 {{if not .IsDiffCompare}}
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
-			{{if .Repository.UnitEnabled $.UnitTypeCode}}
+			{{if .Permission.CanRead $.UnitTypeCode}}
 			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
 				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
 			</a>
 			{{end}}
 
-			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
+			{{if .Permission.CanRead $.UnitTypeIssues}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 				</a>
 			{{end}}
 
-			{{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}
+			{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank" rel="noopener noreferrer">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
 			{{end}}
 
-			{{if .Repository.AllowsPulls}}
+			{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 				<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
 					<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 				</a>
 			{{end}}
 
-			{{if and (.Repository.UnitEnabled $.UnitTypeReleases) (not .IsBareRepo) }}
+			{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsBareRepo) }}
 			<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 				<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
 			</a>
 			{{end}}
 
-			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
-				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
+			{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
+				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>
 			{{end}}
 
-			{{if and (.Repository.AnyUnitEnabled $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsBareRepo)}}
+			{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsBareRepo)}}
 				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
 					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
 				</a>
@@ -91,7 +91,7 @@
 
 			{{template "custom/extra_tabs" .}}
 
-			{{if .IsRepositoryAdmin}}
+			{{if .Permission.IsAdmin}}
 				<div class="right menu">
 					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
 						<i class="octicon octicon-tools"></i> {{.i18n.Tr "repo.settings"}}

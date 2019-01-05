@@ -63,7 +63,11 @@ func (m *Mirror) AfterLoad(session *xorm.Session) {
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
-	m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
+	if m.Interval != 0 {
+		m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
+	} else {
+		m.NextUpdateUnix = 0
+	}
 }
 
 func remoteAddress(repoPath string) (string, error) {
@@ -302,6 +306,7 @@ func MirrorUpdate() {
 
 	if err := x.
 		Where("next_update_unix<=?", time.Now().Unix()).
+		And("next_update_unix!=0").
 		Iterate(new(Mirror), func(idx int, bean interface{}) error {
 			m := bean.(*Mirror)
 			if m.Repo == nil {

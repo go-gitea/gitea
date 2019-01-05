@@ -47,7 +47,7 @@
   avatar_email: user3@example.com
   num_repos: 3
   num_members: 2
-  num_teams: 2
+  num_teams: 3
 
 -
   id: 4
@@ -266,7 +266,7 @@
   num_repos: 2
   is_active: true
   num_members: 2
-  num_teams: 1
+  num_teams: 3
 
 -
   id: 18

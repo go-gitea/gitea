@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -41,13 +42,24 @@ func (p *Parser) Extensions() []string {
 	return p.FileExtensions
 }
 
+func envMark(envName string) string {
+	if runtime.GOOS == "windows" {
+		return "%" + envName + "%"
+	}
+	return "$" + envName
+}
+
 // Render renders the data of the document to HTML via the external tool.
 func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	var (
-		bs       []byte
-		buf      = bytes.NewBuffer(bs)
-		rd       = bytes.NewReader(rawBytes)
-		commands = strings.Fields(p.Command)
+		bs           []byte
+		buf          = bytes.NewBuffer(bs)
+		rd           = bytes.NewReader(rawBytes)
+		urlRawPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
+
+		command = strings.NewReplacer(envMark("GITEA_PREFIX_SRC"), urlPrefix,
+			envMark("GITEA_PREFIX_RAW"), urlRawPrefix).Replace(p.Command)
+		commands = strings.Fields(command)
 		args     = commands[1:]
 	)
 
@@ -79,7 +91,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	cmd.Env = append(
 		os.Environ(),
 		"GITEA_PREFIX_SRC="+urlPrefix,
-		"GITEA_PREFIX_RAW="+strings.Replace(urlPrefix, "/src/", "/raw/", 1),
+		"GITEA_PREFIX_RAW="+urlRawPrefix,
 	)
 	if !p.IsInputFile {
 		cmd.Stdin = rd
