@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,9 @@ package auth
 
 import (
 	"mime/multipart"
+	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -72,14 +76,52 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName string `binding:"Required;AlphaDashDot;MaxSize(35)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	Password           string `binding:"Required;MaxSize(255)"`
+	Retype             string
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
+}
+
+// Validate valideates the fields
+func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsEmailDomainWhitelisted validates that the email address
+// provided by the user matches what has been configured .
+// If the domain whitelist from the config is empty, it marks the
+// email as whitelisted
+func (f RegisterForm) IsEmailDomainWhitelisted() bool {
+	if len(setting.Service.EmailDomainWhitelist) == 0 {
+		return true
+	}
+
+	n := strings.LastIndex(f.Email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := strings.ToLower(f.Email[n+1:])
+
+	for _, v := range setting.Service.EmailDomainWhitelist {
+		if strings.ToLower(v) == domain {
+			return true
+		}
+	}
+
+	return false
+}
+
+// MustChangePasswordForm form for updating your password after account creation
+// by an admin
+type MustChangePasswordForm struct {
 	Password string `binding:"Required;MaxSize(255)"`
 	Retype   string
 }
 
 // Validate valideates the fields
-func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

@@ -22,7 +22,7 @@ func TestAPICreateRelease(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
-
+	token := getTokenForLoggedInUser(t, session)
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	assert.NoError(t, err)
 
@@ -32,8 +32,8 @@ func TestAPICreateRelease(t *testing.T) {
 	commitID, err := gitRepo.GetTagCommitID("v0.0.1")
 	assert.NoError(t, err)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases",
-		owner.Name, repo.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases?token=%s",
+		owner.Name, repo.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
 		TagName:      "v0.0.1",
 		Title:        "v0.0.1",
@@ -53,8 +53,8 @@ func TestAPICreateRelease(t *testing.T) {
 		Note:    newRelease.Note,
 	})
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d",
-		owner.Name, repo.Name, newRelease.ID)
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
+		owner.Name, repo.Name, newRelease.ID, token)
 	req = NewRequest(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 

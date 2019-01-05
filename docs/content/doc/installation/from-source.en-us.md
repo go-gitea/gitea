@@ -66,7 +66,7 @@ provided to keep the build process as simple as possible.
 Depending on requirements, the following build tags can be included.
 
 * `bindata`: Build a single monolithic binary, with all assets included.
-* `sqlite`: Enable support for a [SQLite3](https://sqlite.org/) database. Suggested only
+* `sqlite sqlite_unlock_notify`: Enable support for a [SQLite3](https://sqlite.org/) database. Suggested only
   for tiny installations.
 * `tidb`: Enable support for a [TiDB](https://github.com/pingcap/tidb) database.
 * `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can be used to

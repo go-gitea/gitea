@@ -39,7 +39,7 @@ type chunkedContentCoder struct {
 // MetaData represents the data information inside a
 // chunk.
 type MetaData struct {
-	DocID    uint64 // docid of the data inside the chunk
+	DocNum   uint64 // docNum of the data inside the chunk
 	DocDvLoc uint64 // starting offset for a given docid
 	DocDvLen uint64 // length of data inside the chunk for the given docid
 }
@@ -52,7 +52,7 @@ func newChunkedContentCoder(chunkSize uint64,
 	rv := &chunkedContentCoder{
 		chunkSize: chunkSize,
 		chunkLens: make([]uint64, total),
-		chunkMeta: []MetaData{},
+		chunkMeta: make([]MetaData, 0, total),
 	}
 
 	return rv
@@ -68,7 +68,7 @@ func (c *chunkedContentCoder) Reset() {
 	for i := range c.chunkLens {
 		c.chunkLens[i] = 0
 	}
-	c.chunkMeta = []MetaData{}
+	c.chunkMeta = c.chunkMeta[:0]
 }
 
 // Close indicates you are done calling Add() this allows
@@ -88,7 +88,7 @@ func (c *chunkedContentCoder) flushContents() error {
 
 	// write out the metaData slice
 	for _, meta := range c.chunkMeta {
-		_, err := writeUvarints(&c.chunkMetaBuf, meta.DocID, meta.DocDvLoc, meta.DocDvLen)
+		_, err := writeUvarints(&c.chunkMetaBuf, meta.DocNum, meta.DocDvLoc, meta.DocDvLen)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func (c *chunkedContentCoder) Add(docNum uint64, vals []byte) error {
 		// clearing the chunk specific meta for next chunk
 		c.chunkBuf.Reset()
 		c.chunkMetaBuf.Reset()
-		c.chunkMeta = []MetaData{}
+		c.chunkMeta = c.chunkMeta[:0]
 		c.currChunk = chunk
 	}
 
@@ -130,7 +130,7 @@ func (c *chunkedContentCoder) Add(docNum uint64, vals []byte) error {
 	}
 
 	c.chunkMeta = append(c.chunkMeta, MetaData{
-		DocID:    docNum,
+		DocNum:   docNum,
 		DocDvLoc: uint64(dvOffset),
 		DocDvLen: uint64(dvSize),
 	})

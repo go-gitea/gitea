@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/routers/utils"
+
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -110,9 +112,11 @@ type RepoSettingForm struct {
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
 	PullsAllowRebase                 bool
+	PullsAllowRebaseMerge            bool
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+	EnableIssueDependencies          bool
 
 	// Admin settings
 	EnableHealthCheck bool
@@ -132,13 +136,16 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected            bool
-	EnableWhitelist      bool
-	WhitelistUsers       string
-	WhitelistTeams       string
-	EnableMergeWhitelist bool
-	MergeWhitelistUsers  string
-	MergeWhitelistTeams  string
+	Protected               bool
+	EnableWhitelist         bool
+	WhitelistUsers          string
+	WhitelistTeams          string
+	EnableMergeWhitelist    bool
+	MergeWhitelistUsers     string
+	MergeWhitelistTeams     string
+	RequiredApprovals       int64
+	ApprovalsWhitelistUsers string
+	ApprovalsWhitelistTeams string
 }
 
 // Validate validates the fields
@@ -222,6 +229,11 @@ type NewSlackHookForm struct {
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// HasInvalidChannel validates the channel name is in the right format
+func (f NewSlackHookForm) HasInvalidChannel() bool {
+	return !utils.IsValidSlackChannel(f.Channel)
 }
 
 // NewDiscordHookForm form for creating discord hook
@@ -352,7 +364,7 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // MergePullRequestForm form for merging Pull Request
 type MergePullRequestForm struct {
-	Do                string `binding:"Required;In(merge,rebase,squash)"`
+	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string
 }
@@ -360,6 +372,54 @@ type MergePullRequestForm struct {
 // Validate validates the fields
 func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// CodeCommentForm form for adding code comments for PRs
+type CodeCommentForm struct {
+	Content  string `binding:"Required"`
+	Side     string `binding:"Required;In(previous,proposed)"`
+	Line     int64
+	TreePath string `form:"path" binding:"Required"`
+	IsReview bool   `form:"is_review"`
+	Reply    int64  `form:"reply"`
+}
+
+// Validate validates the fields
+func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// SubmitReviewForm for submitting a finished code review
+type SubmitReviewForm struct {
+	Content string
+	Type    string `binding:"Required;In(approve,comment,reject)"`
+}
+
+// Validate validates the fields
+func (f *SubmitReviewForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// ReviewType will return the corresponding reviewtype for type
+func (f SubmitReviewForm) ReviewType() models.ReviewType {
+	switch f.Type {
+	case "approve":
+		return models.ReviewTypeApprove
+	case "comment":
+		return models.ReviewTypeComment
+	case "reject":
+		return models.ReviewTypeReject
+	default:
+		return models.ReviewTypeUnknown
+	}
+}
+
+// HasEmptyContent checks if the content of the review form is empty.
+func (f SubmitReviewForm) HasEmptyContent() bool {
+	reviewType := f.ReviewType()
+
+	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+		len(strings.TrimSpace(f.Content)) == 0
 }
 
 // __________       .__

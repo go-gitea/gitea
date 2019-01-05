@@ -60,6 +60,10 @@ FILE_MAX_SIZE = 3
 ; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
+[repository.pull-request]
+; List of prefixes used in Pull Request title to mark them as Work In Progress
+WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
@@ -67,6 +71,10 @@ EXPLORE_PAGING_NUM = 20
 ISSUE_PAGING_NUM = 10
 ; Number of maximum commits displayed in one activity feed
 FEED_MAX_COMMIT_NUM = 5
+; Number of maximum commits displayed in commit graph.
+GRAPH_MAX_COMMIT_NUM = 100
+; Number of line of codes shown for a code comment
+CODE_COMMENT_LINES = 4
 ; Value of `theme-color` meta tag, used by Android >= 5.0
 ; An invalid color like "none" or "disable" will have the default style
 ; More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
@@ -75,13 +83,15 @@ THEME_COLOR_META_TAG = `#6cc644`
 MAX_DISPLAY_FILE_SIZE = 8388608
 ; Whether the email of the user should be shown in the Explore Users page
 SHOW_USER_EMAIL = true
+; Set the default theme for the Gitea install
+DEFAULT_THEME = gitea
 
 [ui.admin]
 ; Number of users that are displayed on one page
 USER_PAGING_NUM = 50
 ; Number of repos that are displayed on one page
 REPO_PAGING_NUM = 50
-; Number of notices that are displayed on in one page
+; Number of notices that are displayed on one page
 NOTICE_PAGING_NUM = 25
 ; Number of organizations that are displayed on one page
 ORG_PAGING_NUM = 50
@@ -134,7 +144,7 @@ START_SSH_SERVER = false
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; THe network interface the builtin SSH server should listen on
+; The network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
@@ -142,6 +152,9 @@ SSH_PORT = 22
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
+; Gitea will create a authorized_keys file by default when it is not using the internal ssh server
+; If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
 ; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128
@@ -181,6 +194,12 @@ STATIC_ROOT_PATH =
 APP_DATA_PATH = data
 ; Application level GZIP support
 ENABLE_GZIP = false
+; Application profiling (memory and cpu)
+; For "web" command it listens on localhost:6060
+; For "serve" command it dumps to disk at PPROF_DATA_PATH as (cpuprofile|memprofile)_<username>_<temporary id>
+ENABLE_PPROF = false
+; PPROF_DATA_PATH, use an absolute path when you start gitea as service
+PPROF_DATA_PATH = data/tmp/pprof
 ; Landing page, can be "home", "explore", or "organizations"
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
@@ -207,9 +226,10 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
-; For "postgres" only, either "disable", "require" or "verify-full"
+; For Postgres, either "disable" (default), "require", or "verify-full"
+; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
-; For "sqlite3" and "tidb", use absolute path when you start gitea as service
+; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
 SQLITE_TIMEOUT = 500
@@ -241,11 +261,12 @@ COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
+REVERSE_PROXY_AUTHENTICATION_EMAIL = X-WEBAUTH-EMAIL
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
-; True when users are allowed to import local server paths
+; Set to true to allow users to import local server paths
 IMPORT_LOCAL_PATHS = false
-; Prevent all users (including admin) from creating custom git hooks
+; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
 
 [openid]
@@ -289,9 +310,12 @@ ACTIVE_CODE_LIVE_MINUTES = 180
 RESET_PASSWD_CODE_LIVE_MINUTES = 180
 ; Whether a new user needs to confirm their email when registering.
 REGISTER_EMAIL_CONFIRM = false
+; List of domain names that are allowed to be used to register on a Gitea instance
+; gitea.io,example.com
+EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
+; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -300,14 +324,26 @@ ENABLE_NOTIFY_MAIL = false
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
+ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
-ENABLE_CAPTCHA = true
+ENABLE_CAPTCHA = false
+; Type of captcha you want to use. Options: image, recaptcha
+CAPTCHA_TYPE = image
+; Enable recaptcha to use Google's recaptcha service
+; Go to https://www.google.com/recaptcha/admin to sign up for a key
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Default value for EnableDependencies
+; Repositories will use dependencies by default depending on this setting
+DEFAULT_ENABLE_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -352,6 +388,8 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
+; Should SMTP connection use TLS
+IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
@@ -402,6 +440,10 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
+; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
+; used when resizing the image.
+AVATAR_MAX_WIDTH = 4096
+AVATAR_MAX_HEIGHT = 3072
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
@@ -507,7 +549,7 @@ SCHEDULE = @every 10m
 SCHEDULE = @every 24h
 TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
-; see more on http://git-scm.com/docs/git-fsck/1.7.5
+; see more on http://git-scm.com/docs/git-fsck
 ARGS =
 
 ; Check repository statistics
@@ -546,7 +588,7 @@ MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
-; see more on http://git-scm.com/docs/git-gc/1.7.5
+; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 
 ; Operation timeout in seconds
@@ -564,8 +606,8 @@ DEFAULT_INTERVAL = 8h
 MIN_INTERVAL = 10m
 
 [api]
-; Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
-ENABLE_SWAGGER_ENDPOINT = true
+; Enables Swagger. True or false; default is true.
+ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
 
@@ -624,3 +666,9 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =

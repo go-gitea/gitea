@@ -99,6 +99,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	ctx.Data["HeatmapUser"] = ctxUser.Name
 
 	var err error
 	var mirrors []*models.Repository
@@ -136,6 +138,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 	})
+
 	if ctx.Written() {
 		return
 	}
@@ -213,7 +216,7 @@ func Issues(ctx *context.Context) {
 			return
 		}
 	}
-	if len(userRepoIDs) <= 0 {
+	if len(userRepoIDs) == 0 {
 		userRepoIDs = []int64{-1}
 	}
 
@@ -253,6 +256,8 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
+	opts.Labels = ctx.Query("labels")
+
 	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.ServerError("Issues", err)
@@ -282,7 +287,12 @@ func Issues(ctx *context.Context) {
 		repo := showReposMap[repoID]
 
 		// Check if user has access to given repository.
-		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			return
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
 			ctx.Status(404)
 			return
 		}

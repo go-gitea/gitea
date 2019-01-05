@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+
 	"github.com/Unknwon/paginater"
 )
 
@@ -99,7 +100,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = append(buf, d...)
+				buf = templates.ToUTF8WithFallback(append(buf, d...))
+
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
@@ -135,7 +137,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = true
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
 	}
@@ -151,6 +153,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		return
 	}
 	defer dataRc.Close()
+
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
@@ -201,7 +205,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = append(buf, d...)
+		buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
@@ -252,7 +256,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 		} else if !ctx.Repo.IsViewBranch {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.IsWriter() {
+		} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		}
 
@@ -260,6 +264,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsPDFFile"] = true
 	case base.IsVideoFile(buf):
 		ctx.Data["IsVideoFile"] = true
+	case base.IsAudioFile(buf):
+		ctx.Data["IsAudioFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}
@@ -269,16 +275,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.IsWriter() {
+	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if len(ctx.Repo.Repository.Units) > 0 {
+	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
-		for _, repoUnit := range ctx.Repo.Repository.Units {
+		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
 				renderCode(ctx)
 				return

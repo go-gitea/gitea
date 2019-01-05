@@ -1,0 +1,51 @@
+{{range .comments}}
+
+{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.Lang }}
+<div class="comment" id="{{.HashTag}}">
+	<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
+		<img src="{{.Poster.RelAvatarLink}}">
+	</a>
+	<div class="content">
+		<div class="ui top attached header">
+			<span class="text grey"><a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a> {{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span>
+			<div class="ui right actions">
+			{{if and .Review}}
+				{{if eq .Review.Type 0}}
+					<div class="item tag">
+					{{$.root.i18n.Tr "repo.issues.review.pending"}}
+					</div>
+				{{else}}
+					<div class="item tag">
+					{{$.root.i18n.Tr "repo.issues.review.review"}}
+					</div>
+				{{end}}
+			{{end}}
+			{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
+			{{if or $.root.Permission.IsAdmin (eq .Poster.ID $.root.SignedUserID)}}
+				<div class="item action">
+					<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+					<a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.root.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.root.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
+				</div>
+			{{end}}
+			</div>
+		</div>
+		<div class="ui attached segment">
+			<div class="render-content markdown has-emoji">
+			{{if .RenderedContent}}
+				{{.RenderedContent|Str2html}}
+			{{else}}
+				<span class="no-content">{{$.root.i18n.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+			<div class="raw-content hide">{{.Content}}</div>
+			<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
+		</div>
+		{{$reactions := .Reactions.GroupByType}}
+		{{if $reactions}}
+			<div class="ui attached segment reactions">
+			{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions }}
+			</div>
+		{{end}}
+	</div>
+</div>
+{{end}}

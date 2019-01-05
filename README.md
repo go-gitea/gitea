@@ -29,7 +29,7 @@ This project has been
 
 From the root of the source tree, run:
 
-    make generate all
+    TAGS="bindata" make generate all
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 
@@ -38,7 +38,7 @@ More info: https://docs.gitea.io/en-us/install-from-source/
     ./gitea web
 
 NOTE: If you're interested in using our APIs, we have experimental
-support with [documentation](https://godoc.org/code.gitea.io/sdk/gitea).
+support with [documentation](https://try.gitea.io/api/swagger).
 
 ## Contributing
 
@@ -89,6 +89,10 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 **How do you pronounce Gitea?**
 
 Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
+
+**Why is this not hosted on a Gitea instance?**
+
+We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 
 ## License
 

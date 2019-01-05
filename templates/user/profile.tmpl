@@ -31,14 +31,14 @@
 							{{if .Owner.Website}}
 								<li>
 									<i class="octicon octicon-link"></i>
-									<a target="_blank" rel="noopener" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
+									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
 										<i class="fa fa-openid"></i>
-										<a target="_blank" rel="noopener" href="{{.URI}}">{{.URI}}</a>
+										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
 									</li>
 								{{end}}
 							{{end}}
@@ -95,6 +95,16 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
+					{{if .EnableHeatmap}}
+						<div id="user-heatmap" style="padding-right: 40px">
+							<activity-heatmap :locale="locale" :suburl="suburl" :user="heatmapUser">
+								<div slot="loading">
+									<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.i18n.Tr "user.heatmap.loading"}}</div>
+								</div>
+							</activity-heatmap>
+						</div>
+						<div class="ui divider"></div>
+					{{end}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>
