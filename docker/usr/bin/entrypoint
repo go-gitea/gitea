@@ -4,7 +4,7 @@ if [ "${USER}" != "git" ]; then
     # rename user
     sed -i -e "s/^git\:/${USER}\:/g" /etc/passwd
     # switch sshd config to different user
-    sed -i -e "s/AllowUsers git/AllowUsers ${USER}/g" /etc/ssh/sshd_config
+    sed -i -e "s/AllowUsers git$/AllowUsers ${USER}/g" /etc/ssh/sshd_config
 fi
 
 ## Change GID for USER?

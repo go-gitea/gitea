@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -144,7 +145,7 @@ func GetIssue(ctx *context.APIContext) {
 func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
 	// ---
-	// summary: Create an issue
+	// summary: Create an issue. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -169,12 +170,13 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/Issue"
 
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
 	issue := &models.Issue{
 		RepoID:       ctx.Repo.Repository.ID,
+		Repo:         ctx.Repo.Repository,
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
@@ -184,7 +186,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
@@ -212,7 +214,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
-		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
+		if err := issue.ChangeStatus(ctx.User, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -235,7 +237,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
-	// summary: Edit an issue
+	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -273,8 +275,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 		return
 	}
+	issue.Repo = ctx.Repo.Repository
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}
@@ -288,7 +291,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Update the deadline
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.IsWriter() {
+	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -305,8 +308,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
-
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -319,7 +321,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != nil &&
+	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -334,7 +336,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -359,7 +361,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
 	// ---
-	// summary: Set an issue deadline. If set to null, the deadline is deleted.
+	// summary: Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -403,14 +405,17 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
 	}
 
 	var deadlineUnix util.TimeStamp
+	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+			23, 59, 59, 0, form.Deadline.Location())
+		deadlineUnix = util.TimeStamp(deadline.Unix())
 	}
 
 	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
@@ -418,5 +423,5 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	ctx.JSON(201, api.IssueDeadline{Deadline: form.Deadline})
+	ctx.JSON(201, api.IssueDeadline{Deadline: &deadline})
 }
