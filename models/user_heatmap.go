@@ -35,6 +35,7 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	err := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
+		And("act_user_id = ?", user.ID).
 		And("created_unix > ?", (util.TimeStampNow() - 31536000)).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
