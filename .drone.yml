@@ -374,6 +374,7 @@ services:
     environment:
       - MYSQL_DATABASE=test
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_DATABASE=testgitea
     when:
       event: [ push, tag, pull_request ]
 
