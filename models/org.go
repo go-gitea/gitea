@@ -393,8 +393,12 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(orgID int64) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, orgID)
+}
+
+func getOrgUsersByOrgID(e Engine, orgID int64) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
-	err := x.
+	err := e.
 		Where("org_id=?", orgID).
 		Find(&ous)
 	return ous, err
