@@ -561,7 +561,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -2071,7 +2071,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
