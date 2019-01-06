@@ -6,40 +6,28 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"os"
 )
 
-// FormatFileSize formats the filesize
-func FormatFileSize(bytes int64) string {
-	var result float64
-	var format string
-	var measure string
-	if bytes < 10240 { // bytes
-		result = float64(bytes) / float64(1048)
-		measure = "Bytes"
-	} else if bytes < 1048576 { // kbytes
-		result = float64(bytes) / float64(102400)
-		measure = "KB"
-	} else if bytes < 1048576000 { // mbytes
-		result = float64(bytes) / float64(1048576)
-		measure = "MB"
-	} else if bytes < 1048576000000 { // gbytes
-		result = float64(bytes) / float64(1048576000)
-		measure = "GB"
-	} else if bytes < 1048576000000000 { // tbytes
-		result = float64(bytes) / float64(1048576000000)
-		measure = "TB"
+func humanateBytes(s uint64, base float64, sizes []string) string {
+	if s < 10 {
+		return fmt.Sprintf("%d B", s)
+	}
+	e := math.Floor(math.Log(float64(s)) / math.Log(base))
+	suffix := sizes[int(e)]
+	val := math.Floor(float64(s)/math.Pow(base, e)*10+0.5) / 10
+	f := "%.1f %s"
+	if val < 0.1 {
+		f = "%.2f %s"
 	}
 
-	if result < 0.01 {
-		format = "%.2f"
-		result = 0.01
-	} else if result < 0.1 {
-		format = "%.2f"
-	} else {
-		format = "%.1f"
-	}
-	return fmt.Sprintf(format, result) + " " + measure
+	return fmt.Sprintf(f, val, suffix)
+}
+
+// FormatFileSize formats the filesize
+func FormatFileSize(bytes int64) string {
+	return humanateBytes(bytes, 1024, []string{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"})
 }
 
 // GetFileSize returns file size
