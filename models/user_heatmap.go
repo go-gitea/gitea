@@ -32,23 +32,22 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 		groupByName = groupBy
 	}
 
-	var isOrganization string
-	switch user.Type {
-	case UserTypeIndividual:
-		// For invidividual users only their own contributions count
-		isOrganization = "0"
-	case UserTypeOrganization:
-		// For organisations contributions by every user in owned repos count
-		isOrganization = "1" // mssql does not support boolean literal for expressions
-	}
-
-	err := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
+	sess := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
-		And("(1 = ? OR act_user_id = ?)", isOrganization, user.ID).
-		And("created_unix > ?", (util.TimeStampNow() - 31536000)).
-		GroupBy(groupByName).
+		And("created_unix > ?", (util.TimeStampNow() - 31536000))
+
+	// * Heatmaps for individual users only include actions that the user themself
+	//   did.
+	// * For organizations actions by all users that were made in owned
+	//   repositories are counted.
+	if user.Type == UserTypeIndividual {
+		sess = sess.And("act_user_id = ?", user.ID)
+	}
+
+	err := sess.GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
+
 	return hdata, err
 }
