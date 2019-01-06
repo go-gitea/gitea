@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"sort"
 	"strings"
 
@@ -57,41 +56,6 @@ func (r *Release) loadAttributes(e Engine) error {
 		}
 	}
 	return GetReleaseAttachments(r)
-}
-
-// buildArchivePath construct the correct archive path for the release
-func buildArchivePath(r *Release, isZip bool) string {
-	repoPath := setting.RepoRootPath
-	repo := &Repository{ID: r.RepoID}
-	_, err := x.Get(repo)
-	if err != nil {
-		return "buildArchivePath -> Unknow Repository"
-	}
-	user := r.Publisher
-	var subPath, typ, ext string
-	if isZip {
-		subPath = "archives"
-		typ = "zip"
-		ext = ".zip"
-	} else {
-		subPath = "archives"
-		typ = "targz"
-		ext = ".tar.gz"
-	}
-	result := path.Join(repoPath, user.LowerName, repo.Name+".git", subPath, typ, r.Sha1[0:10]) + ext
-	return result
-}
-
-// GetReleaseZIPFileSize returns the ZIP file size
-func (r *Release) GetReleaseZIPFileSize() string {
-	archivePath := buildArchivePath(r, true)
-	return util.FormatFileSize(util.GetFileSize(archivePath))
-}
-
-// GetReleaseTARFileSize returns the TAR file size
-func (r *Release) GetReleaseTARFileSize() string {
-	archivePath := buildArchivePath(r, false)
-	return util.FormatFileSize(util.GetFileSize(archivePath))
 }
 
 // LoadAttributes load repo and publisher attributes for a release
