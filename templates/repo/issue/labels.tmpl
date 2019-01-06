@@ -59,7 +59,7 @@
 		{{template "base/alert" .}}
 		<div class="ui black label">{{.i18n.Tr "repo.issues.label_count" .NumLabels}}</div>
 		<div class="label list">
-			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0)}}
+			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
 				<div class="ui centered grid">
 					<div class="twelve wide column eight wide computer column">
 						<div class="ui attached left aligned segment">
