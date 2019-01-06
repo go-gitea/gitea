@@ -8,7 +8,6 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
@@ -33,7 +33,7 @@ const (
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.Handle(404, "Install", errors.New("Installation is prohibited"))
+		ctx.NotFound("Install", errors.New("Installation is prohibited"))
 		return
 	}
 
@@ -43,9 +43,6 @@ func InstallInit(ctx *context.Context) {
 	dbOpts := []string{"MySQL", "PostgreSQL", "MSSQL"}
 	if models.EnableSQLite3 {
 		dbOpts = append(dbOpts, "SQLite3")
-	}
-	if models.EnableTiDB {
-		dbOpts = append(dbOpts, "TiDB")
 	}
 	ctx.Data["DbOptions"] = dbOpts
 }
@@ -57,6 +54,7 @@ func Install(ctx *context.Context) {
 	// Database settings
 	form.DbHost = models.DbCfg.Host
 	form.DbUser = models.DbCfg.User
+	form.DbPasswd = models.DbCfg.Passwd
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
 
@@ -70,10 +68,6 @@ func Install(ctx *context.Context) {
 		if models.EnableSQLite3 {
 			ctx.Data["CurDbOption"] = "SQLite3"
 		}
-	case "tidb":
-		if models.EnableTiDB {
-			ctx.Data["CurDbOption"] = "TiDB"
-		}
 	}
 
 	// Application general settings
@@ -81,7 +75,7 @@ func Install(ctx *context.Context) {
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.ContentPath
 
-	// Note(unknwon): it's hard for Windows users change a running user,
+	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
 	if setting.IsWindows && setting.RunUser == "git" {
 		form.RunUser = user.CurrentUsername()
@@ -108,11 +102,15 @@ func Install(ctx *context.Context) {
 	form.OfflineMode = setting.OfflineMode
 	form.DisableGravatar = setting.DisableGravatar
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
+	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
+	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
+	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
 	form.RequireSignInView = setting.Service.RequireSignInView
 	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
+	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
 	auth.AssignForm(form, ctx.Data)
@@ -145,7 +143,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3", "TiDB": "tidb"}
+	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
 	models.DbCfg.Type = dbTypes[form.DbType]
 	models.DbCfg.Host = form.DbHost
 	models.DbCfg.User = form.DbUser
@@ -154,15 +152,10 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	models.DbCfg.SSLMode = form.SSLMode
 	models.DbCfg.Path = form.DbPath
 
-	if (models.DbCfg.Type == "sqlite3" || models.DbCfg.Type == "tidb") &&
+	if (models.DbCfg.Type == "sqlite3") &&
 		len(models.DbCfg.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
-		return
-	} else if models.DbCfg.Type == "tidb" &&
-		strings.ContainsAny(path.Base(models.DbCfg.Path), ".-") {
-		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), tplInstall, &form)
 		return
 	}
 
@@ -171,7 +164,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if err = models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/installation/install_from_binary.html"), tplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
 			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
@@ -272,7 +265,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(base.GetRandomBytesAsBase64(32))
+		var secretKey string
+		if secretKey, err = generate.NewLfsJwtSecret(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(secretKey)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -292,11 +290,15 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(com.ToStr(form.OfflineMode))
 	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(com.ToStr(form.DisableGravatar))
 	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(com.ToStr(form.EnableFederatedAvatar))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(com.ToStr(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(com.ToStr(form.DisableRegistration))
+	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(com.ToStr(form.AllowOnlyExternalRegistration))
 	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(com.ToStr(form.EnableCaptcha))
 	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(com.ToStr(form.RequireSignInView))
 	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(com.ToStr(form.DefaultKeepEmailPrivate))
 	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(com.ToStr(form.DefaultAllowCreateOrganization))
+	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(com.ToStr(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(com.ToStr(form.NoReplyAddress))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
@@ -304,12 +306,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("file")
-	cfg.Section("log").Key("LEVEL").SetValue("Info")
+	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 	var secretKey string
-	if secretKey, err = base.GetRandomString(10); err != nil {
+	if secretKey, err = generate.NewSecretKey(); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
 		return
 	}

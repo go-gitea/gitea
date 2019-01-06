@@ -5,25 +5,35 @@
 package repo
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // ListHooks list all hooks of a repository
 func ListHooks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/hooks
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: apiHooks
-	//       500: error
-
+	// swagger:operation GET /repos/{owner}/{repo}/hooks repository repoListHooks
+	// ---
+	// summary: List the hooks in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/HookList"
 	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(500, "GetWebhooksByRepoID", err)
@@ -39,6 +49,31 @@ func ListHooks(ctx *context.APIContext) {
 
 // GetHook get a repo's hook by id
 func GetHook(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/hooks/{id} repository repoGetHook
+	// ---
+	// summary: Get a hook
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Hook"
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
@@ -48,21 +83,90 @@ func GetHook(ctx *context.APIContext) {
 	ctx.JSON(200, convert.ToHook(repo.RepoLink, hook))
 }
 
+// TestHook tests a hook
+func TestHook(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/hooks/{id}/tests repository repoTestHook
+	// ---
+	// summary: Test a push webhook
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to test
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	if ctx.Repo.Commit == nil {
+		// if repo does not have any commits, then don't send a webhook
+		ctx.Status(204)
+		return
+	}
+
+	hookID := ctx.ParamsInt64(":id")
+	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		return
+	}
+
+	if err := models.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
+		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before: ctx.Repo.Commit.ID.String(),
+		After:  ctx.Repo.Commit.ID.String(),
+		Commits: []*api.PayloadCommit{
+			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
+		},
+		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Pusher: ctx.User.APIFormat(),
+		Sender: ctx.User.APIFormat(),
+	}); err != nil {
+		ctx.Error(500, "PrepareWebhook: ", err)
+		return
+	}
+	go models.HookQueue.Add(ctx.Repo.Repository.ID)
+	ctx.Status(204)
+}
+
 // CreateHook create a hook for a repository
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
-	// swagger:route POST /repos/{username}/{reponame}/hooks
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: apiHook
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /repos/{owner}/{repo}/hooks repository repoCreateHook
+	// ---
+	// summary: Create a hook
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateHookOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Hook"
 	if !utils.CheckCreateHookOption(ctx, &form) {
 		return
 	}
@@ -71,32 +175,68 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 
 // EditHook modify a hook of a repository
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
-	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id}
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: apiHook //TODO
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation PATCH /repos/{owner}/{repo}/hooks/{id} repository repoEditHook
+	// ---
+	// summary: Edit a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the hook
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditHookOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Hook"
 	hookID := ctx.ParamsInt64(":id")
 	utils.EditRepoHook(ctx, &form, hookID)
 }
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id}
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       204: empty
-	//       404: notFound
-	//       500: error
-
+	// swagger:operation DELETE /repos/{owner}/{repo}/hooks/{id} repository repoDeleteHook
+	// ---
+	// summary: Delete a hook in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrWebhookNotExist(err) {
 			ctx.Status(404)

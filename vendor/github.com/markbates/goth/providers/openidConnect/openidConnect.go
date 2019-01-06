@@ -1,17 +1,17 @@
 package openidConnect
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/markbates/goth"
+	"golang.org/x/oauth2"
+	"io/ioutil"
 	"net/http"
 	"strings"
-	"fmt"
-	"encoding/json"
-	"encoding/base64"
-	"io/ioutil"
-	"errors"
-	"golang.org/x/oauth2"
-	"github.com/markbates/goth"
 	"time"
-	"bytes"
 )
 
 const (
@@ -89,14 +89,14 @@ func New(clientKey, secret, callbackURL, openIDAutoDiscoveryURL string, scopes .
 		Secret:      secret,
 		CallbackURL: callbackURL,
 
-		UserIdClaims:   []string{subjectClaim},
-		NameClaims:     []string{NameClaim},
-		NickNameClaims: []string{NicknameClaim, PreferredUsernameClaim},
-		EmailClaims:    []string{EmailClaim},
-		AvatarURLClaims:[]string{PictureClaim},
-		FirstNameClaims:[]string{GivenNameClaim},
-		LastNameClaims: []string{FamilyNameClaim},
-		LocationClaims: []string{AddressClaim},
+		UserIdClaims:    []string{subjectClaim},
+		NameClaims:      []string{NameClaim},
+		NickNameClaims:  []string{NicknameClaim, PreferredUsernameClaim},
+		EmailClaims:     []string{EmailClaim},
+		AvatarURLClaims: []string{PictureClaim},
+		FirstNameClaims: []string{GivenNameClaim},
+		LastNameClaims:  []string{FamilyNameClaim},
+		LocationClaims:  []string{AddressClaim},
 
 		providerName: "openid-connect",
 	}
@@ -200,7 +200,17 @@ func (p *Provider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
 func (p *Provider) validateClaims(claims map[string]interface{}) (time.Time, error) {
 	audience := getClaimValue(claims, []string{audienceClaim})
 	if audience != p.ClientKey {
-		return time.Time{}, errors.New("audience in token does not match client key")
+		found := false
+		audiences := getClaimValues(claims, []string{audienceClaim})
+		for _, aud := range audiences {
+			if aud == p.ClientKey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return time.Time{}, errors.New("audience in token does not match client key")
+		}
 	}
 
 	issuer := getClaimValue(claims, []string{issuerClaim})
@@ -353,6 +363,24 @@ func getClaimValue(data map[string]interface{}, claims []string) string {
 	}
 
 	return ""
+}
+
+func getClaimValues(data map[string]interface{}, claims []string) []string {
+	var result []string
+
+	for _, claim := range claims {
+		if value, ok := data[claim]; ok {
+			if stringValues, ok := value.([]interface{}); ok {
+				for _, stringValue := range stringValues {
+					if s, ok := stringValue.(string); ok && len(s) > 0 {
+						result = append(result, s)
+					}
+				}
+			}
+		}
+	}
+
+	return result
 }
 
 // decodeJWT decodes a JSON Web Token into a simple map

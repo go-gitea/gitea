@@ -66,7 +66,7 @@ func (q *WildcardQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *WildcardQuery) Boost() float64{
+func (q *WildcardQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -74,11 +74,11 @@ func (q *WildcardQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *WildcardQuery) Field() string{
+func (q *WildcardQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *WildcardQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *WildcardQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
@@ -91,7 +91,7 @@ func (q *WildcardQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, ex
 		}
 	}
 
-	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), explain)
+	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), options)
 }
 
 func (q *WildcardQuery) Validate() error {
@@ -101,6 +101,6 @@ func (q *WildcardQuery) Validate() error {
 }
 
 func (q *WildcardQuery) convertToRegexp() (*regexp.Regexp, error) {
-	regexpString := "^" + wildcardRegexpReplacer.Replace(q.Wildcard) + "$"
+	regexpString := wildcardRegexpReplacer.Replace(q.Wildcard)
 	return regexp.Compile(regexpString)
 }

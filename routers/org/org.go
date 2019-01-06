@@ -24,7 +24,7 @@ const (
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	if !ctx.User.CanCreateOrganization() {
-		ctx.Handle(500, "Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
 	ctx.HTML(200, tplCreateOrg)
@@ -33,6 +33,11 @@ func Create(ctx *context.Context) {
 // CreatePost response for create organization
 func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
+
+	if !ctx.User.CanCreateOrganization() {
+		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		return
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplCreateOrg)
@@ -57,7 +62,7 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 		case models.IsErrUserNotAllowedCreateOrg(err):
 			ctx.RenderWithErr(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:
-			ctx.Handle(500, "CreateOrganization", err)
+			ctx.ServerError("CreateOrganization", err)
 		}
 		return
 	}

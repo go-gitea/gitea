@@ -4,6 +4,10 @@
 
 package models
 
+import (
+	"strings"
+)
+
 // UnitType is Unit's Type
 type UnitType int
 
@@ -12,15 +16,41 @@ const (
 	UnitTypeCode            UnitType = iota + 1 // 1 code
 	UnitTypeIssues                              // 2 issues
 	UnitTypePullRequests                        // 3 PRs
-	UnitTypeCommits                             // 4 Commits
-	UnitTypeReleases                            // 5 Releases
-	UnitTypeWiki                                // 6 Wiki
-	UnitTypeSettings                            // 7 Settings
-	UnitTypeExternalWiki                        // 8 ExternalWiki
-	UnitTypeExternalTracker                     // 9 ExternalTracker
+	UnitTypeReleases                            // 4 Releases
+	UnitTypeWiki                                // 5 Wiki
+	UnitTypeExternalWiki                        // 6 ExternalWiki
+	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
-// Unit is a tab page of one repository
+var (
+	// allRepUnitTypes contains all the unit types
+	allRepUnitTypes = []UnitType{
+		UnitTypeCode,
+		UnitTypeIssues,
+		UnitTypePullRequests,
+		UnitTypeReleases,
+		UnitTypeWiki,
+		UnitTypeExternalWiki,
+		UnitTypeExternalTracker,
+	}
+
+	// defaultRepoUnits contains the default unit types
+	defaultRepoUnits = []UnitType{
+		UnitTypeCode,
+		UnitTypeIssues,
+		UnitTypePullRequests,
+		UnitTypeReleases,
+		UnitTypeWiki,
+	}
+
+	// MustRepoUnits contains the units could not be disabled currently
+	MustRepoUnits = []UnitType{
+		UnitTypeCode,
+		UnitTypeReleases,
+	}
+)
+
+// Unit is a section of one repository
 type Unit struct {
 	Type    UnitType
 	NameKey string
@@ -29,13 +59,26 @@ type Unit struct {
 	Idx     int
 }
 
+// CanDisable returns if this unit could be disabled.
+func (u *Unit) CanDisable() bool {
+	return true
+}
+
+// IsLessThan compares order of two units
+func (u Unit) IsLessThan(unit Unit) bool {
+	if (u.Type == UnitTypeExternalTracker || u.Type == UnitTypeExternalWiki) && unit.Type != UnitTypeExternalTracker && unit.Type != UnitTypeExternalWiki {
+		return false
+	}
+	return u.Idx < unit.Idx
+}
+
 // Enumerate all the units
 var (
 	UnitCode = Unit{
 		UnitTypeCode,
 		"repo.code",
 		"/",
-		"repo.code_desc",
+		"repo.code.desc",
 		0,
 	}
 
@@ -43,15 +86,15 @@ var (
 		UnitTypeIssues,
 		"repo.issues",
 		"/issues",
-		"repo.issues_desc",
+		"repo.issues.desc",
 		1,
 	}
 
 	UnitExternalTracker = Unit{
 		UnitTypeExternalTracker,
-		"repo.issues",
+		"repo.ext_issues",
 		"/issues",
-		"repo.issues_desc",
+		"repo.ext_issues.desc",
 		1,
 	}
 
@@ -59,67 +102,32 @@ var (
 		UnitTypePullRequests,
 		"repo.pulls",
 		"/pulls",
-		"repo.pulls_desc",
+		"repo.pulls.desc",
 		2,
-	}
-
-	UnitCommits = Unit{
-		UnitTypeCommits,
-		"repo.commits",
-		"/commits/master",
-		"repo.commits_desc",
-		3,
 	}
 
 	UnitReleases = Unit{
 		UnitTypeReleases,
 		"repo.releases",
 		"/releases",
-		"repo.releases_desc",
-		4,
+		"repo.releases.desc",
+		3,
 	}
 
 	UnitWiki = Unit{
 		UnitTypeWiki,
 		"repo.wiki",
 		"/wiki",
-		"repo.wiki_desc",
-		5,
+		"repo.wiki.desc",
+		4,
 	}
 
 	UnitExternalWiki = Unit{
 		UnitTypeExternalWiki,
-		"repo.wiki",
+		"repo.ext_wiki",
 		"/wiki",
-		"repo.wiki_desc",
-		5,
-	}
-
-	UnitSettings = Unit{
-		UnitTypeSettings,
-		"repo.settings",
-		"/settings",
-		"repo.settings_desc",
-		6,
-	}
-
-	// defaultRepoUnits contains all the default unit types
-	defaultRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeIssues,
-		UnitTypePullRequests,
-		UnitTypeCommits,
-		UnitTypeReleases,
-		UnitTypeWiki,
-		UnitTypeSettings,
-	}
-
-	// MustRepoUnits contains the units could be disabled currently
-	MustRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeCommits,
-		UnitTypeReleases,
-		UnitTypeSettings,
+		"repo.ext_wiki.desc",
+		4,
 	}
 
 	// Units contains all the units
@@ -128,10 +136,21 @@ var (
 		UnitTypeIssues:          UnitIssues,
 		UnitTypeExternalTracker: UnitExternalTracker,
 		UnitTypePullRequests:    UnitPullRequests,
-		UnitTypeCommits:         UnitCommits,
 		UnitTypeReleases:        UnitReleases,
 		UnitTypeWiki:            UnitWiki,
 		UnitTypeExternalWiki:    UnitExternalWiki,
-		UnitTypeSettings:        UnitSettings,
 	}
 )
+
+// FindUnitTypes give the unit key name and return unit
+func FindUnitTypes(nameKeys ...string) (res []UnitType) {
+	for _, key := range nameKeys {
+		for t, u := range Units {
+			if strings.EqualFold(key, u.NameKey) {
+				res = append(res, t)
+				break
+			}
+		}
+	}
+	return
+}

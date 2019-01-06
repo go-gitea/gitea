@@ -25,7 +25,7 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	_, exists, err := GetIssueWatch(1, 1)
+	_, exists, err := GetIssueWatch(9, 1)
 	assert.Equal(t, true, exists)
 	assert.NoError(t, err)
 
@@ -42,6 +42,11 @@ func TestGetIssueWatchers(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	iws, err := GetIssueWatchers(1)
+	assert.NoError(t, err)
+	// Watcher is inactive, thus 0
+	assert.Equal(t, 0, len(iws))
+
+	iws, err = GetIssueWatchers(2)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(iws))
 

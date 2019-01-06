@@ -24,10 +24,14 @@ type AuthenticationForm struct {
 	AttributeName                 string
 	AttributeSurname              string
 	AttributeMail                 string
+	AttributeSSHPublicKey         string
 	AttributesInBind              bool
+	UsePagedSearch                bool
+	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
 	IsActive                      bool
+	IsSyncEnabled                 bool
 	SMTPAuth                      string
 	SMTPHost                      string
 	SMTPPort                      int

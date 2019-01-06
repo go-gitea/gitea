@@ -34,7 +34,7 @@ func Notices(ctx *context.Context) {
 
 	notices, err := models.Notices(page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
-		ctx.Handle(500, "Notices", err)
+		ctx.ServerError("Notices", err)
 		return
 	}
 	ctx.Data["Notices"] = notices
@@ -66,7 +66,7 @@ func DeleteNotices(ctx *context.Context) {
 // EmptyNotices delete all the notices
 func EmptyNotices(ctx *context.Context) {
 	if err := models.DeleteNotices(0, 0); err != nil {
-		ctx.Handle(500, "DeleteNotices", err)
+		ctx.ServerError("DeleteNotices", err)
 		return
 	}
 

@@ -1,0 +1,22 @@
+{{template "base/head" .}}
+<div class="user signin">
+	<div class="ui middle centered very relaxed page grid">
+		<div class="column">
+			<h3 class="ui top attached header">
+			{{.i18n.Tr "twofa"}}
+			</h3>
+			<div class="ui attached segment">
+				<i class="huge key icon"></i>
+				<h3>{{.i18n.Tr "u2f_insert_key"}}</h3>
+				{{template "base/alert" .}}
+				<p>{{.i18n.Tr "u2f_sign_in"}}</p>
+			</div>
+			<div id="wait-for-key" class="ui attached segment"><div class="ui active indeterminate inline loader"></div> {{.i18n.Tr "u2f_press_button"}} </div>
+			<div class="ui attached segment">
+				<a href="{{AppSubUrl}}/user/two_factor">{{.i18n.Tr "u2f_use_twofa"}}</a>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "user/auth/u2f_error" .}}
+{{template "base/footer" .}}

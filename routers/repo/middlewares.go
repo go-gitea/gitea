@@ -15,7 +15,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
 		if err := models.CreateRepositoryNotice(description); err != nil {
-			ctx.Handle(500, "ErrCreatingReporitoryNotice", err)
+			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return
 	}
@@ -47,6 +47,17 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 	ctx.Data["IsSplitStyle"] = style == "split"
 	if err := ctx.User.UpdateDiffViewStyle(style); err != nil {
-		ctx.Handle(500, "ErrUpdateDiffViewStyle", err)
+		ctx.ServerError("ErrUpdateDiffViewStyle", err)
+	}
+}
+
+// SetWhitespaceBehavior set whitespace behavior as render variable
+func SetWhitespaceBehavior(ctx *context.Context) {
+	whitespaceBehavior := ctx.Query("whitespace")
+	switch whitespaceBehavior {
+	case "ignore-all", "ignore-eol", "ignore-change":
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	default:
+		ctx.Data["WhitespaceBehavior"] = ""
 	}
 }

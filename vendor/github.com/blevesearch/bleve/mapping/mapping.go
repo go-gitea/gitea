@@ -22,10 +22,19 @@ import (
 	"github.com/blevesearch/bleve/document"
 )
 
-// A Classifier is an interface describing any object
-// which knows how to identify its own type.
+// A Classifier is an interface describing any object which knows how to
+// identify its own type.  Alternatively, if a struct already has a Type
+// field or method in conflict, one can use BleveType instead.
 type Classifier interface {
 	Type() string
+}
+
+// A bleveClassifier is an interface describing any object which knows how
+// to identify its own type.  This is introduced as an alternative to the
+// Classifier interface which often has naming conflicts with existing
+// structures.
+type bleveClassifier interface {
+	BleveType() string
 }
 
 var logger = log.New(ioutil.Discard, "bleve mapping ", log.LstdFlags)

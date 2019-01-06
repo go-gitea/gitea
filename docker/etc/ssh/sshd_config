@@ -29,4 +29,5 @@ AllowUsers git
 
 Banner none
 Subsystem sftp /usr/lib/ssh/sftp-server
-UsePrivilegeSeparation no
+
+AcceptEnv GIT_PROTOCOL

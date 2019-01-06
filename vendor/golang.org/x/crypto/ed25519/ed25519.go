@@ -3,20 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Package ed25519 implements the Ed25519 signature algorithm. See
-// http://ed25519.cr.yp.to/.
+// https://ed25519.cr.yp.to/.
 //
 // These functions are also compatible with the “Ed25519” function defined in
-// https://tools.ietf.org/html/draft-irtf-cfrg-eddsa-05.
+// RFC 8032.
 package ed25519
 
 // This code is a port of the public domain, “ref10” implementation of ed25519
 // from SUPERCOP.
 
 import (
+	"bytes"
 	"crypto"
 	cryptorand "crypto/rand"
 	"crypto/sha512"
-	"crypto/subtle"
 	"errors"
 	"io"
 	"strconv"
@@ -171,11 +171,18 @@ func Verify(publicKey PublicKey, message, sig []byte) bool {
 	edwards25519.ScReduce(&hReduced, &digest)
 
 	var R edwards25519.ProjectiveGroupElement
-	var b [32]byte
-	copy(b[:], sig[32:])
-	edwards25519.GeDoubleScalarMultVartime(&R, &hReduced, &A, &b)
+	var s [32]byte
+	copy(s[:], sig[32:])
+
+	// https://tools.ietf.org/html/rfc8032#section-5.1.7 requires that s be in
+	// the range [0, order) in order to prevent signature malleability.
+	if !edwards25519.ScMinimal(&s) {
+		return false
+	}
+
+	edwards25519.GeDoubleScalarMultVartime(&R, &hReduced, &A, &s)
 
 	var checkR [32]byte
 	R.ToBytes(&checkR)
-	return subtle.ConstantTimeCompare(sig[:32], checkR[:]) == 1
+	return bytes.Equal(sig[:32], checkR[:])
 }

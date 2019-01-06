@@ -25,10 +25,9 @@ import (
 )
 
 type PhraseQuery struct {
-	Terms       []string `json:"terms"`
-	Field       string   `json:"field,omitempty"`
-	BoostVal    *Boost   `json:"boost,omitempty"`
-	termQueries []Query
+	Terms    []string `json:"terms"`
+	Field    string   `json:"field,omitempty"`
+	BoostVal *Boost   `json:"boost,omitempty"`
 }
 
 // NewPhraseQuery creates a new Query for finding
@@ -38,18 +37,9 @@ type PhraseQuery struct {
 // specified field. Queried field must have been indexed with
 // IncludeTermVectors set to true.
 func NewPhraseQuery(terms []string, field string) *PhraseQuery {
-	termQueries := make([]Query, 0)
-	for _, term := range terms {
-		if term != "" {
-			tq := NewTermQuery(term)
-			tq.SetField(field)
-			termQueries = append(termQueries, tq)
-		}
-	}
 	return &PhraseQuery{
-		Terms:       terms,
-		Field:       field,
-		termQueries: termQueries,
+		Terms: terms,
+		Field: field,
 	}
 }
 
@@ -58,22 +48,16 @@ func (q *PhraseQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *PhraseQuery) Boost() float64{
+func (q *PhraseQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-func (q *PhraseQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
-
-	conjunctionQuery := NewConjunctionQuery(q.termQueries)
-	conjunctionSearcher, err := conjunctionQuery.Searcher(i, m, explain)
-	if err != nil {
-		return nil, err
-	}
-	return searcher.NewPhraseSearcher(i, conjunctionSearcher.(*searcher.ConjunctionSearcher), q.Terms)
+func (q *PhraseQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
+	return searcher.NewPhraseSearcher(i, q.Terms, q.Field, options)
 }
 
 func (q *PhraseQuery) Validate() error {
-	if len(q.termQueries) < 1 {
+	if len(q.Terms) < 1 {
 		return fmt.Errorf("phrase query must contain at least one term")
 	}
 	return nil
@@ -89,9 +73,5 @@ func (q *PhraseQuery) UnmarshalJSON(data []byte) error {
 	q.Terms = tmp.Terms
 	q.Field = tmp.Field
 	q.BoostVal = tmp.BoostVal
-	q.termQueries = make([]Query, len(q.Terms))
-	for i, term := range q.Terms {
-		q.termQueries[i] = &TermQuery{Term: term, FieldVal: q.Field, BoostVal: q.BoostVal}
-	}
 	return nil
 }

@@ -14,6 +14,29 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 )
 
+// appendPrivateInformation appends the owner and key type information to api.PublicKey
+func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defaultUser *models.User) (*api.PublicKey, error) {
+	if key.Type == models.KeyTypeDeploy {
+		apiKey.KeyType = "deploy"
+	} else if key.Type == models.KeyTypeUser {
+		apiKey.KeyType = "user"
+
+		if defaultUser.ID == key.OwnerID {
+			apiKey.Owner = defaultUser.APIFormat()
+		} else {
+			user, err := models.GetUserByID(key.OwnerID)
+			if err != nil {
+				return apiKey, err
+			}
+			apiKey.Owner = user.APIFormat()
+		}
+	} else {
+		apiKey.KeyType = "unknown"
+	}
+	apiKey.ReadOnly = key.Mode == models.AccessModeRead
+	return apiKey, nil
+}
+
 // GetUserByParamsName get user by name
 func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 	user, err := models.GetUserByName(ctx.Params(name))
@@ -37,8 +60,27 @@ func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }
 
-func listPublicKeys(ctx *context.APIContext, uid int64) {
-	keys, err := models.ListPublicKeys(uid)
+func listPublicKeys(ctx *context.APIContext, user *models.User) {
+	var keys []*models.PublicKey
+	var err error
+
+	fingerprint := ctx.Query("fingerprint")
+	username := ctx.Params("username")
+
+	if fingerprint != "" {
+		// Querying not just listing
+		if username != "" {
+			// Restrict to provided uid
+			keys, err = models.SearchPublicKey(user.ID, fingerprint)
+		} else {
+			// Unrestricted
+			keys, err = models.SearchPublicKey(0, fingerprint)
+		}
+	} else {
+		// Use ListPublicKeys
+		keys, err = models.ListPublicKeys(user.ID)
+	}
+
 	if err != nil {
 		ctx.Error(500, "ListPublicKeys", err)
 		return
@@ -48,55 +90,78 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
+		if ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID {
+			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
+		}
 	}
 
 	ctx.JSON(200, &apiKeys)
 }
 
-// ListMyPublicKeys list all my public keys
+// ListMyPublicKeys list all of the authenticated user's public keys
 func ListMyPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /user/keys userCurrentListKeys
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKeyList
-	//       500: error
-
-	listPublicKeys(ctx, ctx.User.ID)
+	// swagger:operation GET /user/keys user userCurrentListKeys
+	// ---
+	// summary: List the authenticated user's public keys
+	// parameters:
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKeyList"
+	listPublicKeys(ctx, ctx.User)
 }
 
-// ListPublicKeys list all user's public keys
+// ListPublicKeys list the given user's public keys
 func ListPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/keys userListKeys
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKeyList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/keys user userListKeys
+	// ---
+	// summary: List the given user's public keys
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: fingerprint
+	//   in: query
+	//   description: fingerprint of the key
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKeyList"
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	listPublicKeys(ctx, user.ID)
+	listPublicKeys(ctx, user)
 }
 
-// GetPublicKey get one public key
+// GetPublicKey get a public key
 func GetPublicKey(ctx *context.APIContext) {
-	// swagger:route GET /user/keys/{id} userCurrentGetKey
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKey
-	//       404: notFound
-	//       500: error
-
+	// swagger:operation GET /user/keys/{id} user userCurrentGetKey
+	// ---
+	// summary: Get a public key
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of key to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
@@ -108,7 +173,11 @@ func GetPublicKey(ctx *context.APIContext) {
 	}
 
 	apiLink := composePublicKeysAPILink()
-	ctx.JSON(200, convert.ToPublicKey(apiLink, key))
+	apiKey := convert.ToPublicKey(apiLink, key)
+	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	}
+	ctx.JSON(200, apiKey)
 }
 
 // CreateUserPublicKey creates new public key to given user by ID.
@@ -119,47 +188,66 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := models.AddPublicKey(uid, form.Title, content)
+	key, err := models.AddPublicKey(uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
 	}
 	apiLink := composePublicKeysAPILink()
-	ctx.JSON(201, convert.ToPublicKey(apiLink, key))
+	apiKey := convert.ToPublicKey(apiLink, key)
+	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	}
+	ctx.JSON(201, apiKey)
 }
 
 // CreatePublicKey create one public key for me
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	// swagger:route POST /user/keys userCurrentPostKey
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: PublicKey
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /user/keys user userCurrentPostKey
+	// ---
+	// summary: Create a public key
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PublicKey"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	CreateUserPublicKey(ctx, form, ctx.User.ID)
 }
 
-// DeletePublicKey delete one public key of mine
+// DeletePublicKey delete one public key
 func DeletePublicKey(ctx *context.APIContext) {
-	// swagger:route DELETE /user/keys/{id} userCurrentDeleteKey
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       204: empty
-	//       403: forbidden
-	//       500: error
-
+	// swagger:operation DELETE /user/keys/{id} user userCurrentDeleteKey
+	// ---
+	// summary: Delete a public key
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of key to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrKeyAccessDenied(err) {
+		if models.IsErrKeyNotExist(err) {
+			ctx.Status(404)
+		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
 			ctx.Error(500, "DeletePublicKey", err)

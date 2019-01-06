@@ -1,12 +1,12 @@
 package openidConnect
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/markbates/goth"
-	"encoding/json"
+	"golang.org/x/oauth2"
 	"strings"
 	"time"
-	"golang.org/x/oauth2"
 )
 
 // Session stores data during the auth process with the OpenID Connect provider.

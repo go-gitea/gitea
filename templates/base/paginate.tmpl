@@ -2,21 +2,21 @@
 	{{if gt .TotalPages 1}}
 		<div class="center page buttons">
 			<div class="ui borderless pagination menu">
-				<a class="{{if .IsFirst}}disabled{{end}} item" {{if not .IsFirst}}href="{{$.Link}}?q={{$.Keyword}}&tab={{$.TabName}}"{{end}}><i class="angle double left icon"></i> {{$.i18n.Tr "admin.first_page"}}</a>
-				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?page={{.Previous}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>
+				<a class="{{if .IsFirst}}disabled{{end}} item" {{if not .IsFirst}}href="{{$.Link}}?sort={{$.SortType}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}><i class="angle double left icon"></i> {{$.i18n.Tr "admin.first_page"}}</a>
+				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?sort={{$.SortType}}&page={{.Previous}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>
 					<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
 				</a>
 				{{range .Pages}}
 					{{if eq .Num -1}}
 						<a class="disabled item">...</a>
 					{{else}}
-						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?page={{.Num}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>{{.Num}}</a>
+						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?sort={{$.SortType}}&page={{.Num}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>{{.Num}}</a>
 					{{end}}
 				{{end}}
-				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?page={{.Next}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>
+				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?sort={{$.SortType}}&page={{.Next}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>
 					{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
 				</a>
-				<a class="{{if .IsLast}}disabled{{end}} item" {{if not .IsLast}}href="{{$.Link}}?page={{.TotalPages}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>{{$.i18n.Tr "admin.last_page"}}&nbsp;<i class="angle double right icon"></i></a>
+				<a class="{{if .IsLast}}disabled{{end}} item" {{if not .IsLast}}href="{{$.Link}}?sort={{$.SortType}}&page={{.TotalPages}}&q={{$.Keyword}}&tab={{$.TabName}}"{{end}}>{{$.i18n.Tr "admin.last_page"}}&nbsp;<i class="angle double right icon"></i></a>
 			</div>
 		</div>
 	{{end}}

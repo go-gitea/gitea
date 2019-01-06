@@ -5,6 +5,8 @@
 package auth
 
 import (
+	"code.gitea.io/gitea/models"
+
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 )
@@ -53,6 +55,7 @@ type CreateTeamForm struct {
 	TeamName    string `binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description string `binding:"MaxSize(255)"`
 	Permission  string
+	Units       []models.UnitType
 }
 
 // Validate validates the fields

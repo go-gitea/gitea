@@ -25,7 +25,7 @@ var (
 	// Prefix the log prefix
 	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
-	GitVersionRequired = "1.8.1.6"
+	GitVersionRequired = "1.7.2"
 )
 
 func log(format string, args ...interface{}) {

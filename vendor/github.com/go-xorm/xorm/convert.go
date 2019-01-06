@@ -209,10 +209,10 @@ func convertAssign(dest, src interface{}) error {
 		if src == nil {
 			dv.Set(reflect.Zero(dv.Type()))
 			return nil
-		} else {
-			dv.Set(reflect.New(dv.Type().Elem()))
-			return convertAssign(dv.Interface(), src)
 		}
+
+		dv.Set(reflect.New(dv.Type().Elem()))
+		return convertAssign(dv.Interface(), src)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		s := asString(src)
 		i64, err := strconv.ParseInt(s, 10, dv.Type().Bits())
@@ -333,4 +333,16 @@ func convertInt(v interface{}) (int64, error) {
 		return i, nil
 	}
 	return 0, fmt.Errorf("unsupported type: %v", v)
+}
+
+func asBool(bs []byte) (bool, error) {
+	if len(bs) == 0 {
+		return false, nil
+	}
+	if bs[0] == 0x00 {
+		return false, nil
+	} else if bs[0] == 0x01 {
+		return true, nil
+	}
+	return strconv.ParseBool(string(bs))
 }

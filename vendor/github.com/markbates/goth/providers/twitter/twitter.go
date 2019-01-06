@@ -9,10 +9,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"fmt"
+
 	"github.com/markbates/goth"
 	"github.com/mrjones/oauth"
 	"golang.org/x/oauth2"
-	"fmt"
 )
 
 var (
@@ -30,10 +31,10 @@ var (
 // If you'd like to use authenticate instead of authorize, use NewAuthenticate instead.
 func New(clientKey, secret, callbackURL string) *Provider {
 	p := &Provider{
-		ClientKey:           clientKey,
-		Secret:              secret,
-		CallbackURL:         callbackURL,
-		providerName:        "twitter",
+		ClientKey:    clientKey,
+		Secret:       secret,
+		CallbackURL:  callbackURL,
+		providerName: "twitter",
 	}
 	p.consumer = newConsumer(p, authorizeURL)
 	return p
@@ -43,10 +44,10 @@ func New(clientKey, secret, callbackURL string) *Provider {
 // NewAuthenticate uses the authenticate URL instead of the authorize URL.
 func NewAuthenticate(clientKey, secret, callbackURL string) *Provider {
 	p := &Provider{
-		ClientKey:           clientKey,
-		Secret:              secret,
-		CallbackURL:         callbackURL,
-		providerName:        "twitter",
+		ClientKey:    clientKey,
+		Secret:       secret,
+		CallbackURL:  callbackURL,
+		providerName: "twitter",
 	}
 	p.consumer = newConsumer(p, authenticateURL)
 	return p
@@ -107,7 +108,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 
 	response, err := p.consumer.Get(
 		endpointProfile,
-		map[string]string{"include_entities": "false", "skip_status": "true"},
+		map[string]string{"include_entities": "false", "skip_status": "true", "include_email": "true"},
 		sess.AccessToken)
 	if err != nil {
 		return user, err
@@ -126,6 +127,9 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 
 	user.Name = user.RawData["name"].(string)
 	user.NickName = user.RawData["screen_name"].(string)
+	if user.RawData["email"] != nil {
+		user.Email = user.RawData["email"].(string)
+	}
 	user.Description = user.RawData["description"].(string)
 	user.AvatarURL = user.RawData["profile_image_url"].(string)
 	user.UserID = user.RawData["id_str"].(string)

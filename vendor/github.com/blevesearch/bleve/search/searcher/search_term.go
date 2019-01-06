@@ -22,16 +22,13 @@ import (
 
 type TermSearcher struct {
 	indexReader index.IndexReader
-	term        string
-	field       string
 	reader      index.TermFieldReader
 	scorer      *scorer.TermQueryScorer
 	tfd         index.TermFieldDoc
-	explain     bool
 }
 
-func NewTermSearcher(indexReader index.IndexReader, term string, field string, boost float64, explain bool) (*TermSearcher, error) {
-	reader, err := indexReader.TermFieldReader([]byte(term), field, true, true, true)
+func NewTermSearcher(indexReader index.IndexReader, term string, field string, boost float64, options search.SearcherOptions) (*TermSearcher, error) {
+	reader, err := indexReader.TermFieldReader([]byte(term), field, true, true, options.IncludeTermVectors)
 	if err != nil {
 		return nil, err
 	}
@@ -40,12 +37,27 @@ func NewTermSearcher(indexReader index.IndexReader, term string, field string, b
 		_ = reader.Close()
 		return nil, err
 	}
-	scorer := scorer.NewTermQueryScorer(term, field, boost, count, reader.Count(), explain)
+	scorer := scorer.NewTermQueryScorer([]byte(term), field, boost, count, reader.Count(), options)
 	return &TermSearcher{
 		indexReader: indexReader,
-		term:        term,
-		field:       field,
-		explain:     explain,
+		reader:      reader,
+		scorer:      scorer,
+	}, nil
+}
+
+func NewTermSearcherBytes(indexReader index.IndexReader, term []byte, field string, boost float64, options search.SearcherOptions) (*TermSearcher, error) {
+	reader, err := indexReader.TermFieldReader(term, field, true, true, options.IncludeTermVectors)
+	if err != nil {
+		return nil, err
+	}
+	count, err := indexReader.DocCount()
+	if err != nil {
+		_ = reader.Close()
+		return nil, err
+	}
+	scorer := scorer.NewTermQueryScorer(term, field, boost, count, reader.Count(), options)
+	return &TermSearcher{
+		indexReader: indexReader,
 		reader:      reader,
 		scorer:      scorer,
 	}, nil

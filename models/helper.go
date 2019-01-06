@@ -19,3 +19,11 @@ func valuesRepository(m map[int64]*Repository) []*Repository {
 	}
 	return values
 }
+
+func valuesUser(m map[int64]*User) []*User {
+	var values = make([]*User, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
+}

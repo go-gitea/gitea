@@ -5,7 +5,6 @@
 package private
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -25,9 +24,7 @@ func PushUpdate(opt models.PushUpdateOptions) error {
 		return err
 	}
 
-	resp, err := newRequest(reqURL, "POST").Body(body).SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}).Response()
+	resp, err := newInternalRequest(reqURL, "POST").Body(body).Response()
 	if err != nil {
 		return err
 	}

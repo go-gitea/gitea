@@ -31,10 +31,10 @@ type ConjunctionSearcher struct {
 	maxIDIdx    int
 	scorer      *scorer.ConjunctionQueryScorer
 	initialized bool
-	explain     bool
+	options     search.SearcherOptions
 }
 
-func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, explain bool) (*ConjunctionSearcher, error) {
+func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, options search.SearcherOptions) (*ConjunctionSearcher, error) {
 	// build the downstream searchers
 	searchers := make(OrderedSearcherList, len(qsearchers))
 	for i, searcher := range qsearchers {
@@ -45,10 +45,10 @@ func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 	// build our searcher
 	rv := ConjunctionSearcher{
 		indexReader: indexReader,
-		explain:     explain,
+		options:     options,
 		searchers:   searchers,
 		currs:       make([]*search.DocumentMatch, len(searchers)),
-		scorer:      scorer.NewConjunctionQueryScorer(explain),
+		scorer:      scorer.NewConjunctionQueryScorer(options),
 	}
 	rv.computeQueryNorm()
 	return &rv, nil
@@ -57,25 +57,25 @@ func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 func (s *ConjunctionSearcher) computeQueryNorm() {
 	// first calculate sum of squared weights
 	sumOfSquaredWeights := 0.0
-	for _, termSearcher := range s.searchers {
-		sumOfSquaredWeights += termSearcher.Weight()
+	for _, searcher := range s.searchers {
+		sumOfSquaredWeights += searcher.Weight()
 	}
 	// now compute query norm from this
 	s.queryNorm = 1.0 / math.Sqrt(sumOfSquaredWeights)
 	// finally tell all the downstream searchers the norm
-	for _, termSearcher := range s.searchers {
-		termSearcher.SetQueryNorm(s.queryNorm)
+	for _, searcher := range s.searchers {
+		searcher.SetQueryNorm(s.queryNorm)
 	}
 }
 
 func (s *ConjunctionSearcher) initSearchers(ctx *search.SearchContext) error {
 	var err error
 	// get all searchers pointing at their first match
-	for i, termSearcher := range s.searchers {
+	for i, searcher := range s.searchers {
 		if s.currs[i] != nil {
 			ctx.DocumentMatchPool.Put(s.currs[i])
 		}
-		s.currs[i], err = termSearcher.Next(ctx)
+		s.currs[i], err = searcher.Next(ctx)
 		if err != nil {
 			return err
 		}
@@ -160,11 +160,11 @@ OUTER:
 
 		// we know all the searchers are pointing at the same thing
 		// so they all need to be bumped
-		for i, termSearcher := range s.searchers {
+		for i, searcher := range s.searchers {
 			if s.currs[i] != rv {
 				ctx.DocumentMatchPool.Put(s.currs[i])
 			}
-			s.currs[i], err = termSearcher.Next(ctx)
+			s.currs[i], err = searcher.Next(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -184,6 +184,9 @@ func (s *ConjunctionSearcher) Advance(ctx *search.SearchContext, ID index.IndexI
 		}
 	}
 	for i := range s.searchers {
+		if s.currs[i] != nil && s.currs[i].IndexInternalID.Compare(ID) >= 0 {
+			continue
+		}
 		err := s.advanceChild(ctx, i, ID)
 		if err != nil {
 			return nil, err

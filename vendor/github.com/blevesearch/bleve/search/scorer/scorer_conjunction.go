@@ -19,26 +19,26 @@ import (
 )
 
 type ConjunctionQueryScorer struct {
-	explain bool
+	options search.SearcherOptions
 }
 
-func NewConjunctionQueryScorer(explain bool) *ConjunctionQueryScorer {
+func NewConjunctionQueryScorer(options search.SearcherOptions) *ConjunctionQueryScorer {
 	return &ConjunctionQueryScorer{
-		explain: explain,
+		options: options,
 	}
 }
 
 func (s *ConjunctionQueryScorer) Score(ctx *search.SearchContext, constituents []*search.DocumentMatch) *search.DocumentMatch {
 	var sum float64
 	var childrenExplanations []*search.Explanation
-	if s.explain {
+	if s.options.Explain {
 		childrenExplanations = make([]*search.Explanation, len(constituents))
 	}
 
 	locations := []search.FieldTermLocationMap{}
 	for i, docMatch := range constituents {
 		sum += docMatch.Score
-		if s.explain {
+		if s.options.Explain {
 			childrenExplanations[i] = docMatch.Expl
 		}
 		if docMatch.Locations != nil {
@@ -47,7 +47,7 @@ func (s *ConjunctionQueryScorer) Score(ctx *search.SearchContext, constituents [
 	}
 	newScore := sum
 	var newExpl *search.Explanation
-	if s.explain {
+	if s.options.Explain {
 		newExpl = &search.Explanation{Value: sum, Message: "sum of:", Children: childrenExplanations}
 	}
 

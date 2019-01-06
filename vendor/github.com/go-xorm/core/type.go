@@ -69,15 +69,18 @@ var (
 	Enum = "ENUM"
 	Set  = "SET"
 
-	Char       = "CHAR"
-	Varchar    = "VARCHAR"
-	NVarchar   = "NVARCHAR"
-	TinyText   = "TINYTEXT"
-	Text       = "TEXT"
-	Clob       = "CLOB"
-	MediumText = "MEDIUMTEXT"
-	LongText   = "LONGTEXT"
-	Uuid       = "UUID"
+	Char             = "CHAR"
+	Varchar          = "VARCHAR"
+	NVarchar         = "NVARCHAR"
+	TinyText         = "TINYTEXT"
+	Text             = "TEXT"
+	NText            = "NTEXT"
+	Clob             = "CLOB"
+	MediumText       = "MEDIUMTEXT"
+	LongText         = "LONGTEXT"
+	Uuid             = "UUID"
+	UniqueIdentifier = "UNIQUEIDENTIFIER"
+	SysName          = "SYSNAME"
 
 	Date       = "DATE"
 	DateTime   = "DATETIME"
@@ -100,7 +103,8 @@ var (
 	LongBlob   = "LONGBLOB"
 	Bytea      = "BYTEA"
 
-	Bool = "BOOL"
+	Bool    = "BOOL"
+	Boolean = "BOOLEAN"
 
 	Serial    = "SERIAL"
 	BigSerial = "BIGSERIAL"
@@ -127,10 +131,12 @@ var (
 		NVarchar:   TEXT_TYPE,
 		TinyText:   TEXT_TYPE,
 		Text:       TEXT_TYPE,
+		NText:      TEXT_TYPE,
 		MediumText: TEXT_TYPE,
 		LongText:   TEXT_TYPE,
 		Uuid:       TEXT_TYPE,
 		Clob:       TEXT_TYPE,
+		SysName:    TEXT_TYPE,
 
 		Date:       TIME_TYPE,
 		DateTime:   TIME_TYPE,
@@ -147,11 +153,12 @@ var (
 		Binary:    BLOB_TYPE,
 		VarBinary: BLOB_TYPE,
 
-		TinyBlob:   BLOB_TYPE,
-		Blob:       BLOB_TYPE,
-		MediumBlob: BLOB_TYPE,
-		LongBlob:   BLOB_TYPE,
-		Bytea:      BLOB_TYPE,
+		TinyBlob:         BLOB_TYPE,
+		Blob:             BLOB_TYPE,
+		MediumBlob:       BLOB_TYPE,
+		LongBlob:         BLOB_TYPE,
+		Bytea:            BLOB_TYPE,
+		UniqueIdentifier: BLOB_TYPE,
 
 		Bool: NUMERIC_TYPE,
 
@@ -163,7 +170,7 @@ var (
 	uintTypes = sort.StringSlice{"*uint", "*uint16", "*uint32", "*uint8"}
 )
 
-// !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparision
+// !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparison
 var (
 	c_EMPTY_STRING       string
 	c_BOOL_DEFAULT       bool
@@ -288,9 +295,9 @@ func SQLType2Type(st SQLType) reflect.Type {
 		return reflect.TypeOf(float32(1))
 	case Double:
 		return reflect.TypeOf(float64(1))
-	case Char, Varchar, NVarchar, TinyText, Text, MediumText, LongText, Enum, Set, Uuid, Clob:
+	case Char, Varchar, NVarchar, TinyText, Text, NText, MediumText, LongText, Enum, Set, Uuid, Clob, SysName:
 		return reflect.TypeOf("")
-	case TinyBlob, Blob, LongBlob, Bytea, Binary, MediumBlob, VarBinary:
+	case TinyBlob, Blob, LongBlob, Bytea, Binary, MediumBlob, VarBinary, UniqueIdentifier:
 		return reflect.TypeOf([]byte{})
 	case Bool:
 		return reflect.TypeOf(true)

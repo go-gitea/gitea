@@ -54,14 +54,16 @@ func TestNotices(t *testing.T) {
 
 	notices, err := Notices(1, 2)
 	assert.NoError(t, err)
-	assert.Len(t, notices, 2)
-	assert.Equal(t, int64(3), notices[0].ID)
-	assert.Equal(t, int64(2), notices[1].ID)
+	if assert.Len(t, notices, 2) {
+		assert.Equal(t, int64(3), notices[0].ID)
+		assert.Equal(t, int64(2), notices[1].ID)
+	}
 
 	notices, err = Notices(2, 2)
 	assert.NoError(t, err)
-	assert.Len(t, notices, 1)
-	assert.Equal(t, int64(1), notices[0].ID)
+	if assert.Len(t, notices, 1) {
+		assert.Equal(t, int64(1), notices[0].ID)
+	}
 }
 
 func TestDeleteNotice(t *testing.T) {

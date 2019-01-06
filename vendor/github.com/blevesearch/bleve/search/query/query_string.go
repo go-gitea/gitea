@@ -39,16 +39,20 @@ func (q *QueryStringQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *QueryStringQuery) Boost() float64{
+func (q *QueryStringQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
-func (q *QueryStringQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *QueryStringQuery) Parse() (Query, error) {
+	return parseQuerySyntax(q.Query)
+}
+
+func (q *QueryStringQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	newQuery, err := parseQuerySyntax(q.Query)
 	if err != nil {
 		return nil, err
 	}
-	return newQuery.Searcher(i, m, explain)
+	return newQuery.Searcher(i, m, options)
 }
 
 func (q *QueryStringQuery) Validate() error {

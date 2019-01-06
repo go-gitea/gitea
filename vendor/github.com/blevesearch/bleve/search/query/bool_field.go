@@ -22,7 +22,7 @@ import (
 )
 
 type BoolFieldQuery struct {
-	Bool  bool   `json:"bool"`
+	Bool     bool   `json:"bool"`
 	FieldVal string `json:"field,omitempty"`
 	BoostVal *Boost `json:"boost,omitempty"`
 }
@@ -39,20 +39,19 @@ func (q *BoolFieldQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *BoolFieldQuery) Boost() float64{
-		return q.BoostVal.Value()
+func (q *BoolFieldQuery) Boost() float64 {
+	return q.BoostVal.Value()
 }
 
 func (q *BoolFieldQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *BoolFieldQuery) Field() string{
+func (q *BoolFieldQuery) Field() string {
 	return q.FieldVal
 }
 
-
-func (q *BoolFieldQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *BoolFieldQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
@@ -61,5 +60,5 @@ func (q *BoolFieldQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, e
 	if q.Bool {
 		term = "T"
 	}
-	return searcher.NewTermSearcher(i, term, field, q.BoostVal.Value(), explain)
+	return searcher.NewTermSearcher(i, term, field, q.BoostVal.Value(), options)
 }

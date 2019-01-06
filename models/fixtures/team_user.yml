@@ -27,3 +27,39 @@
   org_id: 7
   team_id: 4
   uid: 5
+
+-
+  id: 6
+  org_id: 17
+  team_id: 5
+  uid: 15
+
+-
+  id: 7
+  org_id: 17
+  team_id: 5
+  uid: 18
+
+-
+  id: 8
+  org_id: 19
+  team_id: 6
+  uid: 20
+
+-
+  id: 9
+  org_id: 3
+  team_id: 7
+  uid: 15
+
+-
+  id: 10
+  org_id: 17
+  team_id: 8
+  uid: 2
+
+-
+  id: 11
+  org_id: 17
+  team_id: 9
+  uid: 20

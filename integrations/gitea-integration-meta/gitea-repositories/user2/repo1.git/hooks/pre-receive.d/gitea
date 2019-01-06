@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-"$GITEA_ROOT/gitea" hook --config='integrations/app.ini' pre-receive

@@ -19,17 +19,9 @@ import (
 	"github.com/blevesearch/bleve/search"
 )
 
-type FuzzySearcher struct {
-	indexReader index.IndexReader
-	term        string
-	prefix      int
-	fuzziness   int
-	field       string
-	explain     bool
-	searcher    *DisjunctionSearcher
-}
-
-func NewFuzzySearcher(indexReader index.IndexReader, term string, prefix, fuzziness int, field string, boost float64, explain bool) (*FuzzySearcher, error) {
+func NewFuzzySearcher(indexReader index.IndexReader, term string,
+	prefix, fuzziness int, field string, boost float64,
+	options search.SearcherOptions) (search.Searcher, error) {
 	// Note: we don't byte slice the term for a prefix because of runes.
 	prefixTerm := ""
 	for i, r := range term {
@@ -40,46 +32,18 @@ func NewFuzzySearcher(indexReader index.IndexReader, term string, prefix, fuzzin
 		}
 	}
 
-	candidateTerms, err := findFuzzyCandidateTerms(indexReader, term, fuzziness, field, prefixTerm)
+	candidateTerms, err := findFuzzyCandidateTerms(indexReader, term, fuzziness,
+		field, prefixTerm)
 	if err != nil {
 		return nil, err
 	}
 
-	// enumerate all the terms in the range
-	qsearchers := make([]search.Searcher, 0, len(candidateTerms))
-	qsearchersClose := func() {
-		for _, searcher := range qsearchers {
-			_ = searcher.Close()
-		}
-	}
-	for _, cterm := range candidateTerms {
-		qsearcher, err := NewTermSearcher(indexReader, cterm, field, boost, explain)
-		if err != nil {
-			qsearchersClose()
-			return nil, err
-		}
-		qsearchers = append(qsearchers, qsearcher)
-	}
-
-	// build disjunction searcher of these ranges
-	searcher, err := NewDisjunctionSearcher(indexReader, qsearchers, 0, explain)
-	if err != nil {
-		qsearchersClose()
-		return nil, err
-	}
-
-	return &FuzzySearcher{
-		indexReader: indexReader,
-		term:        term,
-		prefix:      prefix,
-		fuzziness:   fuzziness,
-		field:       field,
-		explain:     explain,
-		searcher:    searcher,
-	}, nil
+	return NewMultiTermSearcher(indexReader, candidateTerms, field,
+		boost, options, true)
 }
 
-func findFuzzyCandidateTerms(indexReader index.IndexReader, term string, fuzziness int, field, prefixTerm string) (rv []string, err error) {
+func findFuzzyCandidateTerms(indexReader index.IndexReader, term string,
+	fuzziness int, field, prefixTerm string) (rv []string, err error) {
 	rv = make([]string, 0)
 	var fieldDict index.FieldDict
 	if len(prefixTerm) > 0 {
@@ -107,37 +71,4 @@ func findFuzzyCandidateTerms(indexReader index.IndexReader, term string, fuzzine
 	}
 
 	return rv, err
-}
-
-func (s *FuzzySearcher) Count() uint64 {
-	return s.searcher.Count()
-}
-
-func (s *FuzzySearcher) Weight() float64 {
-	return s.searcher.Weight()
-}
-
-func (s *FuzzySearcher) SetQueryNorm(qnorm float64) {
-	s.searcher.SetQueryNorm(qnorm)
-}
-
-func (s *FuzzySearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch, error) {
-	return s.searcher.Next(ctx)
-
-}
-
-func (s *FuzzySearcher) Advance(ctx *search.SearchContext, ID index.IndexInternalID) (*search.DocumentMatch, error) {
-	return s.searcher.Advance(ctx, ID)
-}
-
-func (s *FuzzySearcher) Close() error {
-	return s.searcher.Close()
-}
-
-func (s *FuzzySearcher) Min() int {
-	return 0
-}
-
-func (s *FuzzySearcher) DocumentMatchPoolSize() int {
-	return s.searcher.DocumentMatchPoolSize()
 }

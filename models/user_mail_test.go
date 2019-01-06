@@ -14,15 +14,17 @@ func TestGetEmailAddresses(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	emails, _ := GetEmailAddresses(int64(1))
-	assert.Len(t, emails, 3)
-	assert.False(t, emails[0].IsPrimary)
-	assert.True(t, emails[2].IsActivated)
-	assert.True(t, emails[2].IsPrimary)
+	if assert.Len(t, emails, 3) {
+		assert.False(t, emails[0].IsPrimary)
+		assert.True(t, emails[2].IsActivated)
+		assert.True(t, emails[2].IsPrimary)
+	}
 
 	emails, _ = GetEmailAddresses(int64(2))
-	assert.Len(t, emails, 2)
-	assert.True(t, emails[0].IsPrimary)
-	assert.True(t, emails[0].IsActivated)
+	if assert.Len(t, emails, 2) {
+		assert.True(t, emails[0].IsPrimary)
+		assert.True(t, emails[0].IsActivated)
+	}
 }
 
 func TestIsEmailUsed(t *testing.T) {

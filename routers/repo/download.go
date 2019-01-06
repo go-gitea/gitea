@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -45,10 +46,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return err
 	}
+	defer dataRc.Close()
 
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
@@ -58,13 +60,29 @@ func SingleDownload(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Handle(404, "GetBlobByPath", nil)
+			ctx.NotFound("GetBlobByPath", nil)
 		} else {
-			ctx.Handle(500, "GetBlobByPath", err)
+			ctx.ServerError("GetBlobByPath", err)
 		}
 		return
 	}
 	if err = ServeBlob(ctx, blob); err != nil {
-		ctx.Handle(500, "ServeBlob", err)
+		ctx.ServerError("ServeBlob", err)
+	}
+}
+
+// DownloadByID download a file by sha1 ID
+func DownloadByID(ctx *context.Context) {
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetBlob", nil)
+		} else {
+			ctx.ServerError("GetBlob", err)
+		}
+		return
+	}
+	if err = ServeBlob(ctx, blob); err != nil {
+		ctx.ServerError("ServeBlob", err)
 	}
 }

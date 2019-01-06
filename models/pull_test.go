@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -65,9 +66,10 @@ func TestPullRequestsNewest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(2), prs[0].ID)
-	assert.Equal(t, int64(1), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(2), prs[0].ID)
+		assert.Equal(t, int64(1), prs[1].ID)
+	}
 }
 
 func TestPullRequestsOldest(t *testing.T) {
@@ -80,9 +82,10 @@ func TestPullRequestsOldest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(1), prs[0].ID)
-	assert.Equal(t, int64(2), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(1), prs[0].ID)
+		assert.Equal(t, int64(2), prs[1].ID)
+	}
 }
 
 func TestGetUnmergedPullRequest(t *testing.T) {
@@ -191,8 +194,12 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.AddToTaskQueue()
 
-	// briefly sleep so that background threads have time to run
-	time.Sleep(time.Millisecond)
+	select {
+	case id := <-pullRequestQueue.Queue():
+		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
+	case <-time.After(time.Second):
+		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+	}
 
 	assert.True(t, pullRequestQueue.Exist(pr.ID))
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
@@ -229,4 +236,35 @@ func TestChangeUsernameInPullRequests(t *testing.T) {
 		assert.Equal(t, newUsername, pr.HeadUserName)
 	}
 	CheckConsistencyFor(t, &PullRequest{})
+}
+
+func TestPullRequest_IsWorkInProgress(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.LoadIssue()
+
+	assert.False(t, pr.IsWorkInProgress())
+
+	pr.Issue.Title = "WIP: " + pr.Issue.Title
+	assert.True(t, pr.IsWorkInProgress())
+
+	pr.Issue.Title = "[wip]: " + pr.Issue.Title
+	assert.True(t, pr.IsWorkInProgress())
+}
+
+func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr.LoadIssue()
+
+	assert.Empty(t, pr.GetWorkInProgressPrefix())
+
+	original := pr.Issue.Title
+	pr.Issue.Title = "WIP: " + original
+	assert.Equal(t, "WIP:", pr.GetWorkInProgressPrefix())
+
+	pr.Issue.Title = "[wip] " + original
+	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
 }

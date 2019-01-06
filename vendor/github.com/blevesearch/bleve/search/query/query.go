@@ -36,7 +36,8 @@ func SetLog(l *log.Logger) {
 // A Query represents a description of the type
 // and parameters for a query into the index.
 type Query interface {
-	Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error)
+	Searcher(i index.IndexReader, m mapping.IndexMapping,
+		options search.SearcherOptions) (search.Searcher, error)
 }
 
 // A BoostableQuery represents a Query which can be boosted
@@ -122,7 +123,13 @@ func ParseQuery(input []byte) (Query, error) {
 		var rv PhraseQuery
 		err := json.Unmarshal(input, &rv)
 		if err != nil {
-			return nil, err
+			// now try multi-phrase
+			var rv2 MultiPhraseQuery
+			err = json.Unmarshal(input, &rv2)
+			if err != nil {
+				return nil, err
+			}
+			return &rv2, nil
 		}
 		return &rv, nil
 	}
@@ -154,10 +161,20 @@ func ParseQuery(input []byte) (Query, error) {
 		}
 		return &rv, nil
 	}
-	_, hasMin := tmp["min"]
-	_, hasMax := tmp["max"]
+	_, hasMin := tmp["min"].(float64)
+	_, hasMax := tmp["max"].(float64)
 	if hasMin || hasMax {
 		var rv NumericRangeQuery
+		err := json.Unmarshal(input, &rv)
+		if err != nil {
+			return nil, err
+		}
+		return &rv, nil
+	}
+	_, hasMinStr := tmp["min"].(string)
+	_, hasMaxStr := tmp["max"].(string)
+	if hasMinStr || hasMaxStr {
+		var rv TermRangeQuery
 		err := json.Unmarshal(input, &rv)
 		if err != nil {
 			return nil, err
@@ -237,6 +254,25 @@ func ParseQuery(input []byte) (Query, error) {
 		}
 		return &rv, nil
 	}
+	_, hasTopLeft := tmp["top_left"]
+	_, hasBottomRight := tmp["bottom_right"]
+	if hasTopLeft && hasBottomRight {
+		var rv GeoBoundingBoxQuery
+		err := json.Unmarshal(input, &rv)
+		if err != nil {
+			return nil, err
+		}
+		return &rv, nil
+	}
+	_, hasDistance := tmp["distance"]
+	if hasDistance {
+		var rv GeoDistanceQuery
+		err := json.Unmarshal(input, &rv)
+		if err != nil {
+			return nil, err
+		}
+		return &rv, nil
+	}
 	return nil, fmt.Errorf("unknown query type")
 }
 
@@ -299,14 +335,6 @@ func expandQuery(m mapping.IndexMapping, query Query) (Query, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &q, nil
-		case *PhraseQuery:
-			q := *query.(*PhraseQuery)
-			children, err := expandSlice(q.termQueries)
-			if err != nil {
-				return nil, err
-			}
-			q.termQueries = children
 			return &q, nil
 		default:
 			return query, nil

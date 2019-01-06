@@ -5,7 +5,6 @@
 package japanese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -23,10 +22,9 @@ var eucJP = internal.Encoding{
 	identifier.EUCPkdFmtJapanese,
 }
 
-var errInvalidEUCJP = errors.New("japanese: invalid EUC-JP encoding")
-
 type eucJPDecoder struct{ transform.NopResetter }
 
+// See https://encoding.spec.whatwg.org/#euc-jp-decoder.
 func (eucJPDecoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err error) {
 	r, size := rune(0), 0
 loop:
@@ -37,60 +35,79 @@ loop:
 
 		case c0 == 0x8e:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				break
 			}
 			c1 := src[nSrc+1]
-			if c1 < 0xa1 || 0xdf < c1 {
-				err = errInvalidEUCJP
-				break loop
+			switch {
+			case c1 < 0xa1:
+				r, size = utf8.RuneError, 1
+			case c1 > 0xdf:
+				r, size = utf8.RuneError, 2
+				if c1 == 0xff {
+					size = 1
+				}
+			default:
+				r, size = rune(c1)+(0xff61-0xa1), 2
 			}
-			r, size = rune(c1)+(0xff61-0xa1), 2
-
 		case c0 == 0x8f:
 			if nSrc+2 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				if p := nSrc + 1; p < len(src) && 0xa1 <= src[p] && src[p] < 0xfe {
+					size = 2
+				}
+				break
 			}
 			c1 := src[nSrc+1]
 			if c1 < 0xa1 || 0xfe < c1 {
-				err = errInvalidEUCJP
-				break loop
+				r, size = utf8.RuneError, 1
+				break
 			}
 			c2 := src[nSrc+2]
 			if c2 < 0xa1 || 0xfe < c2 {
-				err = errInvalidEUCJP
-				break loop
+				r, size = utf8.RuneError, 2
+				break
 			}
-			r, size = '\ufffd', 3
+			r, size = utf8.RuneError, 3
 			if i := int(c1-0xa1)*94 + int(c2-0xa1); i < len(jis0212Decode) {
 				r = rune(jis0212Decode[i])
 				if r == 0 {
-					r = '\ufffd'
+					r = utf8.RuneError
 				}
 			}
 
 		case 0xa1 <= c0 && c0 <= 0xfe:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				break
 			}
 			c1 := src[nSrc+1]
 			if c1 < 0xa1 || 0xfe < c1 {
-				err = errInvalidEUCJP
-				break loop
+				r, size = utf8.RuneError, 1
+				break
 			}
-			r, size = '\ufffd', 2
+			r, size = utf8.RuneError, 2
 			if i := int(c0-0xa1)*94 + int(c1-0xa1); i < len(jis0208Decode) {
 				r = rune(jis0208Decode[i])
 				if r == 0 {
-					r = '\ufffd'
+					r = utf8.RuneError
 				}
 			}
 
 		default:
-			err = errInvalidEUCJP
-			break loop
+			r, size = utf8.RuneError, 1
 		}
 
 		if nDst+utf8.RuneLen(r) > len(dst) {
@@ -98,9 +115,6 @@ loop:
 			break loop
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidEUCJP
 	}
 	return nDst, nSrc, err
 }

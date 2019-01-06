@@ -85,10 +85,10 @@
 						<span class="help">{{.i18n.Tr "install.repo_path_helper"}}</span>
 					</div>
 					<div class="inline field {{if .Err_LFSRootPath}}error{{end}}">
-          	<label for="lfs_root_path">{{.i18n.Tr "install.lfs_path"}}</label>
-          	<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
-          	<span class="help">{{.i18n.Tr "install.lfs_path_helper"}}</span>
-          </div>
+						<label for="lfs_root_path">{{.i18n.Tr "install.lfs_path"}}</label>
+						<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
+						<span class="help">{{.i18n.Tr "install.lfs_path_helper"}}</span>
+					</div>
 					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
 						<label for="run_user">{{.i18n.Tr "install.run_user"}}</label>
 						<input id="run_user" name="run_user" value="{{.run_user}}" required>
@@ -99,7 +99,7 @@
 						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gitea.io" required>
 						<span class="help">{{.i18n.Tr "install.domain_helper"}}</span>
 					</div>
-					<div class="inline required field">
+					<div class="inline field">
 						<label for="ssh_port">{{.i18n.Tr "install.ssh_port"}}</label>
 						<input id="ssh_port" name="ssh_port" value="{{.ssh_port}}">
 						<span class="help">{{.i18n.Tr "install.ssh_port_helper"}}</span>
@@ -189,9 +189,27 @@
 								</div>
 							</div>
 							<div class="inline field">
+								<div class="ui checkbox" id="enable-openid-signin">
+									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
+									<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
 								<div class="ui checkbox" id="disable-registration">
 									<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
 									<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox" id="allow-only-external-registration">
+									<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
+									<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox" id="enable-openid-signup">
+									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
+									<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
 								</div>
 							</div>
 							<div class="inline field">
@@ -216,6 +234,12 @@
 								<div class="ui checkbox">
 									<label class="poping up" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
 									<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox">
+									<label class="poping up" data-content="{{.i18n.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.i18n.Tr "install.default_enable_timetracking"}}</strong></label>
+									<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
 								</div>
 							</div>
 							<div class="inline field">

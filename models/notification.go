@@ -6,7 +6,8 @@ package models
 
 import (
 	"fmt"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 type (
@@ -51,32 +52,8 @@ type Notification struct {
 	Issue      *Issue      `xorm:"-"`
 	Repository *Repository `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX NOT NULL"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX NOT NULL"`
-}
-
-// BeforeInsert runs while inserting a record
-func (n *Notification) BeforeInsert() {
-	var (
-		now     = time.Now()
-		nowUnix = now.Unix()
-	)
-	n.Created = now
-	n.CreatedUnix = nowUnix
-	n.Updated = now
-	n.UpdatedUnix = nowUnix
-}
-
-// BeforeUpdate runs while updating a record
-func (n *Notification) BeforeUpdate() {
-	var (
-		now     = time.Now()
-		nowUnix = now.Unix()
-	)
-	n.Updated = now
-	n.UpdatedUnix = nowUnix
+	CreatedUnix util.TimeStamp `xorm:"created INDEX NOT NULL"`
+	UpdatedUnix util.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
@@ -142,7 +119,17 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		}
 	}
 
+	issue.loadRepo(e)
+
 	for _, watch := range watches {
+		issue.Repo.Units = nil
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypePullRequests) {
+			continue
+		}
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypeIssues) {
+			continue
+		}
+
 		if err := notifyUser(watch.UserID); err != nil {
 			return err
 		}
@@ -195,7 +182,7 @@ func updateIssueNotification(e Engine, userID, issueID, updatedByID int64) error
 	notification.Status = NotificationStatusUnread
 	notification.UpdatedBy = updatedByID
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -212,6 +199,7 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPage int) ([]*Notification, error) {
 	return notificationsForUser(x, user, statuses, page, perPage)
 }
+
 func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
 	if len(statuses) == 0 {
 		return
@@ -274,7 +262,7 @@ func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 
 	notification.Status = NotificationStatusRead
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -291,7 +279,7 @@ func SetNotificationStatus(notificationID int64, user *User, status Notification
 
 	notification.Status = status
 
-	_, err = x.Id(notificationID).Update(notification)
+	_, err = x.ID(notificationID).Update(notification)
 	return err
 }
 
@@ -310,4 +298,14 @@ func getNotificationByID(notificationID int64) (*Notification, error) {
 	}
 
 	return notification, nil
+}
+
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
+func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
+	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
+	_, err := x.
+		Where("user_id = ? AND status = ?", user.ID, currentStatus).
+		Cols("status", "updated_by", "updated_unix").
+		Update(n)
+	return err
 }

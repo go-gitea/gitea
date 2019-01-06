@@ -325,9 +325,8 @@ func ReadEntity(packets *packet.Reader) (*Entity, error) {
 		if e.PrivateKey, ok = p.(*packet.PrivateKey); !ok {
 			packets.Unread(p)
 			return nil, errors.StructuralError("first packet was not a public/private key")
-		} else {
-			e.PrimaryKey = &e.PrivateKey.PublicKey
 		}
+		e.PrimaryKey = &e.PrivateKey.PublicKey
 	}
 
 	if !e.PrimaryKey.PubKeyAlgo.CanSign() {
@@ -487,7 +486,7 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 	isPrimaryId := true
 	e.Identities[uid.Id] = &Identity{
-		Name:   uid.Name,
+		Name:   uid.Id,
 		UserId: uid,
 		SelfSignature: &packet.Signature{
 			CreationTime: currentTime,
@@ -506,6 +505,11 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	// set the PreferredHash for the SelfSignature.
 	if config != nil && config.DefaultHash != 0 {
 		e.Identities[uid.Id].SelfSignature.PreferredHash = []uint8{hashToHashId(config.DefaultHash)}
+	}
+
+	// Likewise for DefaultCipher.
+	if config != nil && config.DefaultCipher != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredSymmetric = []uint8{uint8(config.DefaultCipher)}
 	}
 
 	e.Subkeys = make([]Subkey, 1)

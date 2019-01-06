@@ -35,7 +35,7 @@ func Authentications(ctx *context.Context) {
 	var err error
 	ctx.Data["Sources"], err = models.LoginSources()
 	if err != nil {
-		ctx.Handle(500, "LoginSources", err)
+		ctx.ServerError("LoginSources", err)
 		return
 	}
 
@@ -74,6 +74,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["CurrentSecurityProtocol"] = models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
+	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
@@ -90,25 +91,31 @@ func NewAuthSource(ctx *context.Context) {
 }
 
 func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
+	var pageSize uint32
+	if form.UsePagedSearch {
+		pageSize = uint32(form.SearchPageSize)
+	}
 	return &models.LDAPConfig{
 		Source: &ldap.Source{
-			Name:              form.Name,
-			Host:              form.Host,
-			Port:              form.Port,
-			SecurityProtocol:  ldap.SecurityProtocol(form.SecurityProtocol),
-			SkipVerify:        form.SkipVerify,
-			BindDN:            form.BindDN,
-			UserDN:            form.UserDN,
-			BindPassword:      form.BindPassword,
-			UserBase:          form.UserBase,
-			AttributeUsername: form.AttributeUsername,
-			AttributeName:     form.AttributeName,
-			AttributeSurname:  form.AttributeSurname,
-			AttributeMail:     form.AttributeMail,
-			AttributesInBind:  form.AttributesInBind,
-			Filter:            form.Filter,
-			AdminFilter:       form.AdminFilter,
-			Enabled:           true,
+			Name:                  form.Name,
+			Host:                  form.Host,
+			Port:                  form.Port,
+			SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
+			SkipVerify:            form.SkipVerify,
+			BindDN:                form.BindDN,
+			UserDN:                form.UserDN,
+			BindPassword:          form.BindPassword,
+			UserBase:              form.UserBase,
+			AttributeUsername:     form.AttributeUsername,
+			AttributeName:         form.AttributeName,
+			AttributeSurname:      form.AttributeSurname,
+			AttributeMail:         form.AttributeMail,
+			AttributesInBind:      form.AttributesInBind,
+			AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+			SearchPageSize:        pageSize,
+			Filter:                form.Filter,
+			AdminFilter:           form.AdminFilter,
+			Enabled:               true,
 		},
 	}
 }
@@ -186,16 +193,17 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	}
 
 	if err := models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginType(form.Type),
-		Name:      form.Name,
-		IsActived: form.IsActive,
-		Cfg:       config,
+		Type:          models.LoginType(form.Type),
+		Name:          form.Name,
+		IsActived:     form.IsActive,
+		IsSyncEnabled: form.IsSyncEnabled,
+		Cfg:           config,
 	}); err != nil {
 		if models.IsErrLoginSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(models.ErrLoginSourceAlreadyExist).Name), tplAuthNew, form)
 		} else {
-			ctx.Handle(500, "CreateSource", err)
+			ctx.ServerError("CreateSource", err)
 		}
 		return
 	}
@@ -219,7 +227,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -243,7 +251,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -273,13 +281,14 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	source.Name = form.Name
 	source.IsActived = form.IsActive
+	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := models.UpdateSource(source); err != nil {
 		if models.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.HTML(200, tplAuthEdit)
 		} else {
-			ctx.Handle(500, "UpdateSource", err)
+			ctx.ServerError("UpdateSource", err)
 		}
 		return
 	}
@@ -293,7 +302,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 

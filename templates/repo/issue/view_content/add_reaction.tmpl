@@ -1,0 +1,18 @@
+{{if .ctx.IsSigned}}
+<div class="item action ui pointing top right select-reaction dropdown" data-action-url="{{ .ActionURL }}">
+	<a class="add-reaction">
+		<i class="octicon octicon-plus-small" style="width: 10px"></i>
+		<i class="octicon octicon-smiley"></i>
+	</a>
+	<div class="menu has-emoji">
+		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>
+		<div class="divider"></div>
+		<div class="item" data-content="+1">:+1:</div>
+		<div class="item" data-content="-1">:-1:</div>
+		<div class="item" data-content="laugh">:laughing:</div>
+		<div class="item" data-content="confused">:confused:</div>
+		<div class="item" data-content="heart">:heart:</div>
+		<div class="item" data-content="hooray">:tada:</div>
+	</div>
+</div>
+{{end}}

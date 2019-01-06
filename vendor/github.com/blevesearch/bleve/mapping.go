@@ -59,3 +59,7 @@ func NewDateTimeFieldMapping() *mapping.FieldMapping {
 func NewBooleanFieldMapping() *mapping.FieldMapping {
 	return mapping.NewBooleanFieldMapping()
 }
+
+func NewGeoPointFieldMapping() *mapping.FieldMapping {
+	return mapping.NewGeoPointFieldMapping()
+}

@@ -4,7 +4,7 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 2
+  num_repos: 3
   num_members: 1
 
 -
@@ -32,4 +32,49 @@
   name: Owners
   authorize: 4 # owner
   num_repos: 0
+  num_members: 1
+
+-
+  id: 5
+  org_id: 17
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 2
+  num_members: 2
+
+-
+  id: 6
+  org_id: 19
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 2
+  num_members: 1
+
+-
+  id: 7
+  org_id: 3
+  lower_name: test_team
+  name: test_team
+  authorize: 2 # write
+  num_repos: 1
+  num_members: 1
+
+-
+  id: 8
+  org_id: 17
+  lower_name: test_team
+  name: test_team
+  authorize: 2 # write
+  num_repos: 1
+  num_members: 1
+
+-
+  id: 9
+  org_id: 17
+  lower_name: review_team
+  name: review_team
+  authorize: 1 # read
+  num_repos: 1
   num_members: 1

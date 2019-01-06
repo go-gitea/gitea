@@ -7,7 +7,6 @@ package auth
 import (
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 )
 
@@ -36,7 +36,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	// Check access token.
 	if IsAPIPath(ctx.Req.URL.Path) {
 		tokenSHA := ctx.Query("token")
-		if len(tokenSHA) <= 0 {
+		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
 		}
 		if len(tokenSHA) == 0 {
@@ -59,10 +59,11 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 				}
 				return 0
 			}
-			t.Updated = time.Now()
+			t.UpdatedUnix = util.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error(4, "UpdateAccessToken: %v", err)
 			}
+			ctx.Data["IsApiToken"] = true
 			return t.UID
 		}
 	}
@@ -104,9 +105,16 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 
 				// Check if enabled auto-registration.
 				if setting.Service.EnableReverseProxyAutoRegister {
+					email := gouuid.NewV4().String() + "@localhost"
+					if setting.Service.EnableReverseProxyEmail {
+						webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
+						if len(webAuthEmail) > 0 {
+							email = webAuthEmail
+						}
+					}
 					u := &models.User{
 						Name:     webAuthUser,
-						Email:    gouuid.NewV4().String() + "@localhost",
+						Email:    email,
 						Passwd:   webAuthUser,
 						IsActive: true,
 					}
@@ -136,7 +144,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				}
 				return nil, false
 			}
-
+			ctx.Data["IsApiToken"] = true
 			return u, true
 		}
 	}

@@ -5,12 +5,16 @@
 package utils
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	"encoding/json"
+	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
-	"encoding/json"
+	"code.gitea.io/gitea/routers/utils"
+	api "code.gitea.io/sdk/gitea"
+
 	"github.com/Unknwon/com"
 )
 
@@ -69,7 +73,7 @@ func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
 	hook, ok := addHook(ctx, form, org.ID, 0)
 	if ok {
-		ctx.JSON(200, convert.ToHook(org.HomeLink(), hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(org.HomeLink(), hook))
 	}
 }
 
@@ -78,7 +82,7 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	repo := ctx.Repo
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
 	if ok {
-		ctx.JSON(200, convert.ToHook(repo.RepoLink, hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(repo.RepoLink, hook))
 	}
 }
 
@@ -97,9 +101,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
-				Create:      com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
-				Push:        com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
-				PullRequest: com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest)),
+				Create:       com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
+				Delete:       com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
+				Fork:         com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
+				Issues:       com.IsSliceContainsStr(form.Events, string(models.HookEventIssues)),
+				IssueComment: com.IsSliceContainsStr(form.Events, string(models.HookEventIssueComment)),
+				Push:         com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
+				PullRequest:  com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest)),
+				Repository:   com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
+				Release:      com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
 			},
 		},
 		IsActive:     form.Active,
@@ -111,8 +121,14 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			ctx.Error(422, "", "Missing config option: channel")
 			return nil, false
 		}
+
+		if !utils.IsValidSlackChannel(channel) {
+			ctx.Error(400, "", "Invalid slack channel name")
+			return nil, false
+		}
+
 		meta, err := json.Marshal(&models.SlackMeta{
-			Channel:  channel,
+			Channel:  strings.TrimSpace(channel),
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
 			Color:    form.Config["color"],
@@ -210,6 +226,16 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	w.Create = com.IsSliceContainsStr(form.Events, string(models.HookEventCreate))
 	w.Push = com.IsSliceContainsStr(form.Events, string(models.HookEventPush))
 	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
+	w.Create = com.IsSliceContainsStr(form.Events, string(models.HookEventCreate))
+	w.Delete = com.IsSliceContainsStr(form.Events, string(models.HookEventDelete))
+	w.Fork = com.IsSliceContainsStr(form.Events, string(models.HookEventFork))
+	w.Issues = com.IsSliceContainsStr(form.Events, string(models.HookEventIssues))
+	w.IssueComment = com.IsSliceContainsStr(form.Events, string(models.HookEventIssueComment))
+	w.Push = com.IsSliceContainsStr(form.Events, string(models.HookEventPush))
+	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
+	w.Repository = com.IsSliceContainsStr(form.Events, string(models.HookEventRepository))
+	w.Release = com.IsSliceContainsStr(form.Events, string(models.HookEventRelease))
+
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(500, "UpdateEvent", err)
 		return false

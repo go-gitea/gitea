@@ -25,43 +25,47 @@ var (
 	}
 
 	// Extensions that are same as highlight classes.
-	highlightExts = map[string]bool{
-		".arm":    true,
-		".as":     true,
-		".sh":     true,
-		".cs":     true,
-		".cpp":    true,
-		".c":      true,
-		".css":    true,
-		".cmake":  true,
-		".bat":    true,
-		".dart":   true,
-		".patch":  true,
-		".elixir": true,
-		".erlang": true,
-		".go":     true,
-		".html":   true,
-		".xml":    true,
-		".hs":     true,
-		".ini":    true,
-		".json":   true,
-		".java":   true,
-		".js":     true,
-		".less":   true,
-		".lua":    true,
-		".php":    true,
-		".py":     true,
-		".rb":     true,
-		".scss":   true,
-		".sql":    true,
-		".scala":  true,
-		".swift":  true,
-		".ts":     true,
-		".vb":     true,
+	highlightExts = map[string]struct{}{
+		".arm":    {},
+		".as":     {},
+		".sh":     {},
+		".cs":     {},
+		".cpp":    {},
+		".c":      {},
+		".css":    {},
+		".cmake":  {},
+		".bat":    {},
+		".dart":   {},
+		".patch":  {},
+		".elixir": {},
+		".erlang": {},
+		".go":     {},
+		".html":   {},
+		".xml":    {},
+		".hs":     {},
+		".ini":    {},
+		".json":   {},
+		".java":   {},
+		".js":     {},
+		".less":   {},
+		".lua":    {},
+		".php":    {},
+		".py":     {},
+		".rb":     {},
+		".scss":   {},
+		".sql":    {},
+		".scala":  {},
+		".swift":  {},
+		".ts":     {},
+		".vb":     {},
+		".yml":    {},
+		".yaml":   {},
 	}
 
 	// Extensions that are not same as highlight classes.
-	highlightMapping = map[string]string{}
+	highlightMapping = map[string]string{
+		".txt": "nohighlight",
+	}
 )
 
 // NewContext loads highlight map
@@ -85,7 +89,7 @@ func FileNameToHighlightClass(fname string) string {
 	}
 
 	ext := path.Ext(fname)
-	if highlightExts[ext] {
+	if _, ok := highlightExts[ext]; ok {
 		return ext[1:]
 	}
 

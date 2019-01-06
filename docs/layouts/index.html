@@ -1,0 +1,23 @@
+{{ partial "header.html" . }}
+{{ partial "navbar.html" . }}
+
+<div class="container content">
+	<div class="row">
+		<div class="col-md-3">
+			{{ partial "menu" . }}
+		</div>
+		<div class="col-md-9">
+			{{ range where .Site.Pages "Type" "page" }}
+				{{ .Content }}
+			{{ end }}
+
+			{{ if .Site.DisqusShortname }}
+				<div class="col-xs-12">
+					{{ partial "disqus.html" . }}
+				</div>
+			{{ end }}
+		</div>
+	</div>
+</div>
+
+{{ partial "footer.html" . }}

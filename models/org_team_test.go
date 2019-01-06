@@ -243,23 +243,28 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	accessMode, err := AccessLevel(user.ID, repo)
+	accessMode, err := AccessLevel(user, repo)
 	assert.NoError(t, err)
 	assert.True(t, accessMode < AccessModeWrite)
 }
 
 func TestIsTeamMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
+	test := func(orgID, teamID, userID int64, expected bool) {
+		isMember, err := IsTeamMember(orgID, teamID, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, isMember)
+	}
 
-	assert.True(t, IsTeamMember(3, 1, 2))
-	assert.False(t, IsTeamMember(3, 1, 4))
-	assert.False(t, IsTeamMember(3, 1, NonexistentID))
+	test(3, 1, 2, true)
+	test(3, 1, 4, false)
+	test(3, 1, NonexistentID, false)
 
-	assert.True(t, IsTeamMember(3, 2, 2))
-	assert.True(t, IsTeamMember(3, 2, 4))
+	test(3, 2, 2, true)
+	test(3, 2, 4, true)
 
-	assert.False(t, IsTeamMember(3, NonexistentID, NonexistentID))
-	assert.False(t, IsTeamMember(NonexistentID, NonexistentID, NonexistentID))
+	test(3, NonexistentID, NonexistentID, false)
+	test(NonexistentID, NonexistentID, NonexistentID, false)
 }
 
 func TestGetTeamMembers(t *testing.T) {
@@ -340,4 +345,18 @@ func TestHasTeamRepo(t *testing.T) {
 
 	test(2, 3, true)
 	test(2, 5, false)
+}
+
+func TestUsersInTeamsCount(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	test := func(teamIDs []int64, userIDs []int64, expected int64) {
+		count, err := UsersInTeamsCount(teamIDs, userIDs)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, count)
+	}
+
+	test([]int64{2}, []int64{1, 2, 3, 4}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
 }

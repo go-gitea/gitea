@@ -34,7 +34,16 @@ func newStoreList(cap int, compare collectorCompare) *collectStoreList {
 	return rv
 }
 
-func (c *collectStoreList) Add(doc *search.DocumentMatch) {
+func (c *collectStoreList) AddNotExceedingSize(doc *search.DocumentMatch,
+	size int) *search.DocumentMatch {
+	c.add(doc)
+	if c.len() > size {
+		return c.removeLast()
+	}
+	return nil
+}
+
+func (c *collectStoreList) add(doc *search.DocumentMatch) {
 	for e := c.results.Front(); e != nil; e = e.Next() {
 		curr := e.Value.(*search.DocumentMatch)
 		if c.compare(doc, curr) >= 0 {
@@ -46,7 +55,7 @@ func (c *collectStoreList) Add(doc *search.DocumentMatch) {
 	c.results.PushBack(doc)
 }
 
-func (c *collectStoreList) RemoveLast() *search.DocumentMatch {
+func (c *collectStoreList) removeLast() *search.DocumentMatch {
 	return c.results.Remove(c.results.Front()).(*search.DocumentMatch)
 }
 
@@ -73,6 +82,6 @@ func (c *collectStoreList) Final(skip int, fixup collectorFixup) (search.Documen
 	return search.DocumentMatchCollection{}, nil
 }
 
-func (c *collectStoreList) Len() int {
+func (c *collectStoreList) len() int {
 	return c.results.Len()
 }

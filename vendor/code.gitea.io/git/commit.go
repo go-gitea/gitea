@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/mcuadros/go-version"
 )
 
 // Commit represents a git commit.
@@ -36,14 +34,18 @@ type CommitGPGSignature struct {
 }
 
 // similar to https://github.com/git/git/blob/3bc53220cb2dcf709f7a027a3f526befd021d858/commit.c#L1128
-func newGPGSignatureFromCommitline(data []byte, signatureStart int) (*CommitGPGSignature, error) {
+func newGPGSignatureFromCommitline(data []byte, signatureStart int, tag bool) (*CommitGPGSignature, error) {
 	sig := new(CommitGPGSignature)
 	signatureEnd := bytes.LastIndex(data, []byte("-----END PGP SIGNATURE-----"))
 	if signatureEnd == -1 {
 		return nil, fmt.Errorf("end of commit signature not found")
 	}
 	sig.Signature = strings.Replace(string(data[signatureStart:signatureEnd+27]), "\n ", "\n", -1)
-	sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	if tag {
+		sig.Payload = string(data[:signatureStart-1])
+	} else {
+		sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	}
 	return sig, nil
 }
 
@@ -54,7 +56,7 @@ func (c *Commit) Message() string {
 
 // Summary returns first line of commit message.
 func (c *Commit) Summary() string {
-	return strings.Split(c.CommitMessage, "\n")[0]
+	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -100,10 +102,11 @@ func (c *Commit) IsImageFile(name string) bool {
 		return false
 	}
 
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return false
 	}
+	defer dataRc.Close()
 	buf := make([]byte, 1024)
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
@@ -160,13 +163,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	var cmd *Command
-	isFallback := false
-	if version.Compare(gitVersion, "1.8.0", "<") {
-		isFallback = true
-		cmd = NewCommand("log", "--pretty=format:''")
-	} else {
-		cmd = NewCommand("rev-list", "--count")
-	}
+	cmd = NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)
@@ -177,9 +174,6 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 		return 0, err
 	}
 
-	if isFallback {
-		return int64(strings.Count(stdout, "\n")) + 1, nil
-	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
@@ -235,6 +229,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 
 	entry, err := c.GetTreeEntryByPath(".gitmodules")
 	if err != nil {
+		if _, ok := err.(ErrNotExist); ok {
+			return nil, nil
+		}
 		return nil, err
 	}
 	rd, err := entry.Blob().Data()
@@ -273,9 +270,27 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		return nil, err
 	}
 
-	module, has := modules.Get(entryname)
-	if has {
-		return module.(*SubModule), nil
+	if modules != nil {
+		module, has := modules.Get(entryname)
+		if has {
+			return module.(*SubModule), nil
+		}
 	}
 	return nil, nil
+}
+
+// GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
+func GetFullCommitID(repoPath, shortID string) (string, error) {
+	if len(shortID) >= 40 {
+		return shortID, nil
+	}
+
+	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "exit status 128") {
+			return "", ErrNotExist{shortID, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(commitID), nil
 }

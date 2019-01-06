@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,7 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mcuadros/go-version"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -56,30 +58,29 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	if version.Compare(gitVersion, "1.7.10", "<") {
-		return ErrUnsupportedVersion{"1.7.10"}
-	}
-
 	_, err := NewCommand("symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
 	return err
 }
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	stdout, err := NewCommand("show-ref", "--heads").RunInDir(repo.Path)
+	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	infos := strings.Split(stdout, "\n")
-	branches := make([]string, len(infos)-1)
-	for i, info := range infos[:len(infos)-1] {
-		fields := strings.Fields(info)
-		if len(fields) != 2 {
-			continue // NOTE: I should believe git will not give me wrong string.
-		}
-		branches[i] = strings.TrimPrefix(fields[1], BranchPrefix)
+	branchIter, err := r.Branches()
+	if err != nil {
+		return nil, err
 	}
+	branches := make([]string, 0)
+	if err = branchIter.ForEach(func(branch *plumbing.Reference) error {
+		branches = append(branches, branch.Name().Short())
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	return branches, nil
 }
 
@@ -90,10 +91,12 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommand("branch", "-d")
+	cmd := NewCommand("branch")
 
 	if opts.Force {
-		cmd.AddArguments("-f")
+		cmd.AddArguments("-D")
+	} else {
+		cmd.AddArguments("-d")
 	}
 
 	cmd.AddArguments(name)

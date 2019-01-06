@@ -6,7 +6,7 @@
 				<input value="{{.Issue.Title}}">
 			</div>
 		</h1>
-		{{if .IsIssueOwner}}
+		{{if or .IsIssueWriter .IsIssuePoster}}
 			<div class="four wide column">
 				<div class="edit-zone text right">
 					<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
@@ -26,15 +26,15 @@
 
 	{{if .Issue.IsPull}}
 		{{if .Issue.PullRequest.HasMerged}}
-			{{ $mergedStr:= TimeSince .Issue.PullRequest.Merged $.Lang }}
+			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.Name}}</a>
-			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Safe}}</span>
+			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Str2html}}</span>
 		{{else}}
 			<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.Name}}</a>
 			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 		{{end}}
 	{{else}}
-		{{ $createdStr:= TimeSince .Issue.Created $.Lang }}
+		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 		<span class="time-desc">
 			{{if gt .Issue.Poster.ID 0}}
 				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.Name | Safe}}

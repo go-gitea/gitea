@@ -6,7 +6,6 @@ package validation
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 
@@ -19,7 +18,7 @@ const (
 )
 
 var (
-	// GitRefNamePattern is regular expression wirh unallowed characters in git reference name
+	// GitRefNamePattern is regular expression with unallowed characters in git reference name
 	GitRefNamePattern = regexp.MustCompile("[^\\d\\w-_\\./]")
 )
 
@@ -44,11 +43,17 @@ func addGitRefNameBindingRule() {
 			}
 			// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
 			if strings.HasPrefix(str, "/") || strings.HasSuffix(str, "/") ||
-				strings.HasPrefix(str, ".") || strings.HasSuffix(str, ".") ||
-				strings.HasSuffix(str, ".lock") ||
-				strings.Contains(str, "..") || strings.Contains(str, "//") {
+				strings.HasSuffix(str, ".") || strings.Contains(str, "..") ||
+				strings.Contains(str, "//") {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
+			}
+			parts := strings.Split(str, "/")
+			for _, part := range parts {
+				if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
+					errs.Add([]string{name}, ErrGitRefName, "GitRefName")
+					return false, errs
+				}
 			}
 
 			return true, errs
@@ -64,13 +69,9 @@ func addValidURLBindingRule() {
 		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
-			if len(str) != 0 {
-				if u, err := url.ParseRequestURI(str); err != nil ||
-					(u.Scheme != "http" && u.Scheme != "https") ||
-					!validPort(portOnly(u.Host)) {
-					errs.Add([]string{name}, binding.ERR_URL, "Url")
-					return false, errs
-				}
+			if len(str) != 0 && !IsValidURL(str) {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
 			}
 
 			return true, errs

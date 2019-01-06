@@ -37,7 +37,7 @@ func (s *FragmentScorer) Score(f *highlight.Fragment) {
 OUTER:
 	for _, locations := range s.tlm {
 		for _, location := range locations {
-			if highlight.SameArrayPositions(f.ArrayPositions, location.ArrayPositions) && int(location.Start) >= f.Start && int(location.End) <= f.End {
+			if location.ArrayPositions.Equals(f.ArrayPositions) && int(location.Start) >= f.Start && int(location.End) <= f.End {
 				score += 1.0
 				// once we find a term in the fragment
 				// don't care about additional matches

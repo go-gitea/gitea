@@ -17,7 +17,6 @@ package facet
 import (
 	"sort"
 
-	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 )
 
@@ -27,6 +26,7 @@ type TermsFacetBuilder struct {
 	termsCount map[string]int
 	total      int
 	missing    int
+	sawValue   bool
 }
 
 func NewTermsFacetBuilder(field string, size int) *TermsFacetBuilder {
@@ -41,19 +41,20 @@ func (fb *TermsFacetBuilder) Field() string {
 	return fb.field
 }
 
-func (fb *TermsFacetBuilder) Update(ft index.FieldTerms) {
-	terms, ok := ft[fb.field]
-	if ok {
-		for _, term := range terms {
-			existingCount, existed := fb.termsCount[term]
-			if existed {
-				fb.termsCount[term] = existingCount + 1
-			} else {
-				fb.termsCount[term] = 1
-			}
-			fb.total++
-		}
-	} else {
+func (fb *TermsFacetBuilder) UpdateVisitor(field string, term []byte) {
+	if field == fb.field {
+		fb.sawValue = true
+		fb.termsCount[string(term)] = fb.termsCount[string(term)] + 1
+		fb.total++
+	}
+}
+
+func (fb *TermsFacetBuilder) StartDoc() {
+	fb.sawValue = false
+}
+
+func (fb *TermsFacetBuilder) EndDoc() {
+	if !fb.sawValue {
 		fb.missing++
 	}
 }

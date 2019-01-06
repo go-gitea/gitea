@@ -10,7 +10,7 @@ import (
 	"fmt"
 )
 
-// Organization a group of some repositories, users and teams
+// Organization represents an organization
 type Organization struct {
 	ID          int64  `json:"id"`
 	UserName    string `json:"username"`
@@ -39,8 +39,9 @@ func (c *Client) GetOrg(orgname string) (*Organization, error) {
 	return org, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s", orgname), nil, nil, org)
 }
 
-// CreateOrgOption create one organization options
+// CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
+	// required: true
 	UserName    string `json:"username" binding:"Required"`
 	FullName    string `json:"full_name"`
 	Description string `json:"description"`
@@ -48,7 +49,7 @@ type CreateOrgOption struct {
 	Location    string `json:"location"`
 }
 
-// EditOrgOption edit one organization options
+// EditOrgOption options for editing an organization
 type EditOrgOption struct {
 	FullName    string `json:"full_name"`
 	Description string `json:"description"`

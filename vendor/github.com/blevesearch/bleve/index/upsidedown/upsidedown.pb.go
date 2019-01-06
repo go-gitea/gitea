@@ -3,15 +3,15 @@
 // DO NOT EDIT!
 
 /*
-Package upsidedown is a generated protocol buffer package.
+	Package upsidedown is a generated protocol buffer package.
 
-It is generated from these files:
-	upsidedown.proto
+	It is generated from these files:
+		upsidedown.proto
 
-It has these top-level messages:
-	BackIndexTermEntry
-	BackIndexStoreEntry
-	BackIndexRowValue
+	It has these top-level messages:
+		BackIndexTermsEntry
+		BackIndexStoreEntry
+		BackIndexRowValue
 */
 package upsidedown
 
@@ -26,28 +26,28 @@ import github_com_golang_protobuf_proto "github.com/golang/protobuf/proto"
 var _ = proto.Marshal
 var _ = math.Inf
 
-type BackIndexTermEntry struct {
-	Term             *string `protobuf:"bytes,1,req,name=term" json:"term,omitempty"`
-	Field            *uint32 `protobuf:"varint,2,req,name=field" json:"field,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+type BackIndexTermsEntry struct {
+	Field            *uint32  `protobuf:"varint,1,req,name=field" json:"field,omitempty"`
+	Terms            []string `protobuf:"bytes,2,rep,name=terms" json:"terms,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
-func (m *BackIndexTermEntry) Reset()         { *m = BackIndexTermEntry{} }
-func (m *BackIndexTermEntry) String() string { return proto.CompactTextString(m) }
-func (*BackIndexTermEntry) ProtoMessage()    {}
+func (m *BackIndexTermsEntry) Reset()         { *m = BackIndexTermsEntry{} }
+func (m *BackIndexTermsEntry) String() string { return proto.CompactTextString(m) }
+func (*BackIndexTermsEntry) ProtoMessage()    {}
 
-func (m *BackIndexTermEntry) GetTerm() string {
-	if m != nil && m.Term != nil {
-		return *m.Term
-	}
-	return ""
-}
-
-func (m *BackIndexTermEntry) GetField() uint32 {
+func (m *BackIndexTermsEntry) GetField() uint32 {
 	if m != nil && m.Field != nil {
 		return *m.Field
 	}
 	return 0
+}
+
+func (m *BackIndexTermsEntry) GetTerms() []string {
+	if m != nil {
+		return m.Terms
+	}
+	return nil
 }
 
 type BackIndexStoreEntry struct {
@@ -75,7 +75,7 @@ func (m *BackIndexStoreEntry) GetArrayPositions() []uint64 {
 }
 
 type BackIndexRowValue struct {
-	TermEntries      []*BackIndexTermEntry  `protobuf:"bytes,1,rep,name=termEntries" json:"termEntries,omitempty"`
+	TermsEntries     []*BackIndexTermsEntry `protobuf:"bytes,1,rep,name=termsEntries" json:"termsEntries,omitempty"`
 	StoredEntries    []*BackIndexStoreEntry `protobuf:"bytes,2,rep,name=storedEntries" json:"storedEntries,omitempty"`
 	XXX_unrecognized []byte                 `json:"-"`
 }
@@ -84,9 +84,9 @@ func (m *BackIndexRowValue) Reset()         { *m = BackIndexRowValue{} }
 func (m *BackIndexRowValue) String() string { return proto.CompactTextString(m) }
 func (*BackIndexRowValue) ProtoMessage()    {}
 
-func (m *BackIndexRowValue) GetTermEntries() []*BackIndexTermEntry {
+func (m *BackIndexRowValue) GetTermsEntries() []*BackIndexTermsEntry {
 	if m != nil {
-		return m.TermEntries
+		return m.TermsEntries
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (m *BackIndexRowValue) GetStoredEntries() []*BackIndexStoreEntry {
 	return nil
 }
 
-func (m *BackIndexTermEntry) Unmarshal(data []byte) error {
+func (m *BackIndexTermsEntry) Unmarshal(data []byte) error {
 	var hasFields [1]uint64
 	l := len(data)
 	iNdEx := 0
@@ -119,8 +119,26 @@ func (m *BackIndexTermEntry) Unmarshal(data []byte) error {
 		wireType := int(wire & 0x7)
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Field", wireType)
+			}
+			var v uint32
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Field = &v
+			hasFields[0] |= uint64(0x00000001)
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Term", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Terms", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -138,28 +156,8 @@ func (m *BackIndexTermEntry) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			s := string(data[iNdEx:postIndex])
-			m.Term = &s
+			m.Terms = append(m.Terms, string(data[iNdEx:postIndex]))
 			iNdEx = postIndex
-			hasFields[0] |= uint64(0x00000001)
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Field", wireType)
-			}
-			var v uint32
-			for shift := uint(0); ; shift += 7 {
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				v |= (uint32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Field = &v
-			hasFields[0] |= uint64(0x00000002)
 		default:
 			var sizeOfWire int
 			for {
@@ -185,9 +183,6 @@ func (m *BackIndexTermEntry) Unmarshal(data []byte) error {
 		}
 	}
 	if hasFields[0]&uint64(0x00000001) == 0 {
-		return new(github_com_golang_protobuf_proto.RequiredNotSetError)
-	}
-	if hasFields[0]&uint64(0x00000002) == 0 {
 		return new(github_com_golang_protobuf_proto.RequiredNotSetError)
 	}
 
@@ -299,7 +294,7 @@ func (m *BackIndexRowValue) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TermEntries", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TermsEntries", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -320,8 +315,8 @@ func (m *BackIndexRowValue) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.TermEntries = append(m.TermEntries, &BackIndexTermEntry{})
-			if err := m.TermEntries[len(m.TermEntries)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			m.TermsEntries = append(m.TermsEntries, &BackIndexTermsEntry{})
+			if err := m.TermsEntries[len(m.TermsEntries)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -472,15 +467,17 @@ var (
 	ErrInvalidLengthUpsidedown = fmt.Errorf("proto: negative length found during unmarshaling")
 )
 
-func (m *BackIndexTermEntry) Size() (n int) {
+func (m *BackIndexTermsEntry) Size() (n int) {
 	var l int
 	_ = l
-	if m.Term != nil {
-		l = len(*m.Term)
-		n += 1 + l + sovUpsidedown(uint64(l))
-	}
 	if m.Field != nil {
 		n += 1 + sovUpsidedown(uint64(*m.Field))
+	}
+	if len(m.Terms) > 0 {
+		for _, s := range m.Terms {
+			l = len(s)
+			n += 1 + l + sovUpsidedown(uint64(l))
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -508,8 +505,8 @@ func (m *BackIndexStoreEntry) Size() (n int) {
 func (m *BackIndexRowValue) Size() (n int) {
 	var l int
 	_ = l
-	if len(m.TermEntries) > 0 {
-		for _, e := range m.TermEntries {
+	if len(m.TermsEntries) > 0 {
+		for _, e := range m.TermsEntries {
 			l = e.Size()
 			n += 1 + l + sovUpsidedown(uint64(l))
 		}
@@ -539,7 +536,7 @@ func sovUpsidedown(x uint64) (n int) {
 func sozUpsidedown(x uint64) (n int) {
 	return sovUpsidedown(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *BackIndexTermEntry) Marshal() (data []byte, err error) {
+func (m *BackIndexTermsEntry) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -549,25 +546,32 @@ func (m *BackIndexTermEntry) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *BackIndexTermEntry) MarshalTo(data []byte) (n int, err error) {
+func (m *BackIndexTermsEntry) MarshalTo(data []byte) (n int, err error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Term == nil {
-		return 0, new(github_com_golang_protobuf_proto.RequiredNotSetError)
-	} else {
-		data[i] = 0xa
-		i++
-		i = encodeVarintUpsidedown(data, i, uint64(len(*m.Term)))
-		i += copy(data[i:], *m.Term)
-	}
 	if m.Field == nil {
 		return 0, new(github_com_golang_protobuf_proto.RequiredNotSetError)
 	} else {
-		data[i] = 0x10
+		data[i] = 0x8
 		i++
 		i = encodeVarintUpsidedown(data, i, uint64(*m.Field))
+	}
+	if len(m.Terms) > 0 {
+		for _, s := range m.Terms {
+			data[i] = 0x12
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
@@ -625,8 +629,8 @@ func (m *BackIndexRowValue) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.TermEntries) > 0 {
-		for _, msg := range m.TermEntries {
+	if len(m.TermsEntries) > 0 {
+		for _, msg := range m.TermsEntries {
 			data[i] = 0xa
 			i++
 			i = encodeVarintUpsidedown(data, i, uint64(msg.Size()))

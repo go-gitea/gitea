@@ -12,10 +12,5 @@ import (
 
 // Static implements the macaron static handler for serving assets.
 func Static(opts *Options) macaron.Handler {
-	return macaron.Static(
-		opts.Directory,
-		macaron.StaticOptions{
-			SkipLogging: opts.SkipLogging,
-		},
-	)
+	return opts.staticHandler(opts.Directory)
 }

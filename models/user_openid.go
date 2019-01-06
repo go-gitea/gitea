@@ -76,7 +76,7 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {
-		deleted, err = x.Id(openid.ID).Delete(&address)
+		deleted, err = x.ID(openid.ID).Delete(&address)
 	} else {
 		deleted, err = x.
 			Where("openid=?", openid.URI).
@@ -93,7 +93,7 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 
 // ToggleUserOpenIDVisibility toggles visibility of an openid address of given user.
 func ToggleUserOpenIDVisibility(id int64) (err error) {
-	_, err = x.Exec("update user_open_id set show = not show where id = ?", id)
+	_, err = x.Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
 	return err
 }
 

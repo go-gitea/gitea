@@ -11,9 +11,9 @@ import (
 	"net/url"
 	"strconv"
 
+	"fmt"
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
-	"fmt"
 )
 
 // These vars define the Authentication, Token, and Profile URLS for Gitlab. If

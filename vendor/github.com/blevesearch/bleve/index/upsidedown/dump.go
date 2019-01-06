@@ -127,10 +127,12 @@ func (i *IndexReader) DumpDoc(id string) chan interface{} {
 		}
 		// build sorted list of term keys
 		keys := make(keyset, 0)
-		for _, entry := range back.termEntries {
-			tfr := NewTermFrequencyRow([]byte(*entry.Term), uint16(*entry.Field), idBytes, 0, 0)
-			key := tfr.Key()
-			keys = append(keys, key)
+		for _, entry := range back.termsEntries {
+			for i := range entry.Terms {
+				tfr := NewTermFrequencyRow([]byte(entry.Terms[i]), uint16(*entry.Field), idBytes, 0, 0)
+				key := tfr.Key()
+				keys = append(keys, key)
+			}
 		}
 		sort.Sort(keys)
 

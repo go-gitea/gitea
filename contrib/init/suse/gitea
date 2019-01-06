@@ -18,10 +18,10 @@
 # Default values
 
 NAME=gitea
-GITEA_HOME=/home/git/gitea
-GITEA_PATH=${GITEA_HOME}/$NAME
+GITEA_HOME=/var/lib/$NAME
+GITEA_PATH=/usr/local/bin/$NAME
 GITEA_USER=git
-SERVICENAME="Git - with a cup of tea"
+SERVICENAME="Gitea - Git with a cup of tea"
 LOCKFILE=/var/lock/subsys/gitea
 LOGPATH=${GITEA_HOME}/log
 LOGFILE=${LOGPATH}/error.log
@@ -58,7 +58,7 @@ case "$1" in
 			# return skipped as service is already running
 			(exit 5)
 		else
-			su - ${GITEA_USER} -c "USER=${GITEA_USER} ${GITEA_PATH} web 2>&1 >>${LOGFILE} &"
+			su - ${GITEA_USER} -c "USER=${GITEA_USER} GITEA_WORK_DIR=${GITEA_HOME} ${GITEA_PATH} web -c /etc/${NAME}/app.ini 2>&1 >>${LOGFILE} &"
 		fi
 
 		# Remember status and be verbose

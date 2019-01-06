@@ -1,0 +1,63 @@
+<h4 class="ui top attached header">
+	{{.i18n.Tr "settings.manage_openid"}}
+</h4>
+<div class="ui attached segment">
+	<div class="ui openid list">
+		<div class="item">
+			{{.i18n.Tr "settings.openid_desc"}}
+		</div>
+		{{range .OpenIDs}}
+			<div class="item">
+				<div class="right floated content">
+						<button class="ui red tiny button delete-button" id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
+							{{$.i18n.Tr "settings.delete_key"}}
+						</button>
+				</div>
+					<div class="right floated content">
+						<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
+						{{$.CsrfTokenHtml}}
+						<input name="id" type="hidden" value="{{.ID}}">
+						{{if .Show}}
+							<button class="ui tiny button">
+							<i class="icon fa-eye"></i>
+							{{$.i18n.Tr "settings.hide_openid"}}
+							</button>
+						{{else}}
+							<button class="ui tiny button">
+							<i class="icon fa-eye-slash"></i>
+							{{$.i18n.Tr "settings.show_openid"}}
+							</button>
+						{{end}}
+						</button>
+						</form>
+					</div>
+					<div class="content">
+						<strong>{{.URI}}</strong>
+					</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+<div class="ui attached bottom segment">
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/openid" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_OpenID}}error{{end}}">
+			<label for="openid">{{.i18n.Tr "settings.add_new_openid"}}</label>
+			<input id="openid" name="openid" type="text" required>
+		</div>
+		<button class="ui green button">
+			{{.i18n.Tr "settings.add_openid"}}
+		</button>
+	</form>
+</div>
+
+<div class="ui small basic delete modal" id="delete-openid">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		{{.i18n.Tr "settings.openid_deletion"}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "settings.openid_deletion_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>

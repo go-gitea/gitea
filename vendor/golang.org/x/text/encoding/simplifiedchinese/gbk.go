@@ -5,7 +5,6 @@
 package simplifiedchinese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -40,11 +39,6 @@ var gbk18030 = internal.Encoding{
 	identifier.GB18030,
 }
 
-var (
-	errInvalidGB18030 = errors.New("simplifiedchinese: invalid GB18030 encoding")
-	errInvalidGBK     = errors.New("simplifiedchinese: invalid GBK encoding")
-)
-
 type gbkDecoder struct {
 	transform.NopResetter
 	gb18030 bool
@@ -66,8 +60,12 @@ loop:
 
 		case c0 < 0xff:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				goto write
 			}
 			c1 := src[nSrc+1]
 			switch {
@@ -77,18 +75,24 @@ loop:
 				c1 -= 0x41
 			case d.gb18030 && 0x30 <= c1 && c1 < 0x40:
 				if nSrc+3 >= len(src) {
-					err = transform.ErrShortSrc
-					break loop
+					if !atEOF {
+						err = transform.ErrShortSrc
+						break loop
+					}
+					// The second byte here is always ASCII, so we can set size
+					// to 1 in all cases.
+					r, size = utf8.RuneError, 1
+					goto write
 				}
 				c2 := src[nSrc+2]
 				if c2 < 0x81 || 0xff <= c2 {
-					err = errInvalidGB18030
-					break loop
+					r, size = utf8.RuneError, 1
+					goto write
 				}
 				c3 := src[nSrc+3]
 				if c3 < 0x30 || 0x3a <= c3 {
-					err = errInvalidGB18030
-					break loop
+					r, size = utf8.RuneError, 1
+					goto write
 				}
 				size = 4
 				r = ((rune(c0-0x81)*10+rune(c1-0x30))*126+rune(c2-0x81))*10 + rune(c3-0x30)
@@ -109,17 +113,13 @@ loop:
 				r -= 189000
 				if 0 <= r && r < 0x100000 {
 					r += 0x10000
-					goto write
-				}
-				err = errInvalidGB18030
-				break loop
-			default:
-				if d.gb18030 {
-					err = errInvalidGB18030
 				} else {
-					err = errInvalidGBK
+					r, size = utf8.RuneError, 1
 				}
-				break loop
+				goto write
+			default:
+				r, size = utf8.RuneError, 1
+				goto write
 			}
 			r, size = '\ufffd', 2
 			if i := int(c0-0x81)*190 + int(c1); i < len(decode) {
@@ -130,12 +130,7 @@ loop:
 			}
 
 		default:
-			if d.gb18030 {
-				err = errInvalidGB18030
-			} else {
-				err = errInvalidGBK
-			}
-			break loop
+			r, size = utf8.RuneError, 1
 		}
 
 	write:
@@ -144,13 +139,6 @@ loop:
 			break loop
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		if d.gb18030 {
-			err = errInvalidGB18030
-		} else {
-			err = errInvalidGBK
-		}
 	}
 	return nDst, nSrc, err
 }

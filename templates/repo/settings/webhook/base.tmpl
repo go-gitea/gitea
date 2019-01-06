@@ -1,0 +1,9 @@
+{{template "base/head" .}}
+<div class="repository settings webhooks">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container">
+		{{template "repo/settings/webhook/list" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

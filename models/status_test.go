@@ -19,8 +19,7 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	statuses, err := GetCommitStatuses(repo1, sha1, 0)
 	assert.NoError(t, err)
-	if assert.Equal(t, 5, len(statuses), "Expected to get 5 statuses") {
-
+	if assert.Len(t, statuses, 5) {
 		assert.Equal(t, statuses[0].Context, "ci/awesomeness")
 		assert.Equal(t, statuses[0].State, CommitStatusPending)
 

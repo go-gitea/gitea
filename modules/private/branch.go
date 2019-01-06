@@ -5,7 +5,6 @@
 package private
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -20,9 +19,7 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBra
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/branch/%d/%s", repoID, branchName)
 	log.GitLogger.Trace("GetProtectedBranchBy: %s", reqURL)
 
-	resp, err := newRequest(reqURL, "GET").SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}).Response()
+	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +33,34 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBra
 
 	// All 2XX status codes are accepted and others will return an error
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
+		return nil, fmt.Errorf("Failed to get protected branch: %s", decodeJSONError(resp).Err)
 	}
 
 	return &branch, nil
+}
+
+// CanUserPush returns if user can push
+func CanUserPush(protectedBranchID, userID int64) (bool, error) {
+	// Ask for running deliver hook and test pull request tasks.
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/protectedbranch/%d/%d", protectedBranchID, userID)
+	log.GitLogger.Trace("CanUserPush: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return false, err
+	}
+
+	var canPush = make(map[string]interface{})
+	if err := json.NewDecoder(resp.Body).Decode(&canPush); err != nil {
+		return false, err
+	}
+
+	defer resp.Body.Close()
+
+	// All 2XX status codes are accepted and others will return an error
+	if resp.StatusCode/100 != 2 {
+		return false, fmt.Errorf("Failed to retrieve push user: %s", decodeJSONError(resp).Err)
+	}
+
+	return canPush["can_push"].(bool), nil
 }

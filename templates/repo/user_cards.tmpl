@@ -12,11 +12,11 @@
 
 				<div class="meta">
 					{{if .Website}}
-						<span class="octicon octicon-link"></span> <a href="{{.Website}}" target="_blank" rel="noopener">{{.Website}}</a>
+						<span class="octicon octicon-link"></span> <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
 						<span class="octicon octicon-location"></span> {{.Location}}
 					{{else}}
-						<span class="octicon octicon-clock"></span> {{$.i18n.Tr "user.join_on"}} {{DateFmtShort .Created}}
+						<span class="octicon octicon-clock"></span> {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>
