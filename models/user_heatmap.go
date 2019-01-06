@@ -36,16 +36,16 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	switch user.Type {
 	case UserTypeIndividual:
 		// For invidividual users only their own contributions count
-		isOrganization = "1 = 0"
+		isOrganization = "0"
 	case UserTypeOrganization:
 		// For organisations contributions by every user in owned repos count
-		isOrganization = "1 = 1" // mssql does not support boolean literal for expressions
+		isOrganization = "1" // mssql does not support boolean literal for expressions
 	}
 
 	err := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
-		And("(? OR act_user_id = ?)", isOrganization, user.ID).
+		And("(1 = ? OR act_user_id = ?)", isOrganization, user.ID).
 		And("created_unix > ?", (util.TimeStampNow() - 31536000)).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
