@@ -32,10 +32,14 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 		groupByName = groupBy
 	}
 
+	// For invidividual users only their own contributions count
+	// For organisations contributions by every user in owned repos count
+	var isOrganization = user.Type == UserTypeOrganization
+
 	err := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
-		And("act_user_id = ?", user.ID).
+		And("(? OR act_user_id = ?)", isOrganization, user.ID).
 		And("created_unix > ?", (util.TimeStampNow() - 31536000)).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
