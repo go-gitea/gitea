@@ -7,6 +7,14 @@ if [ "${USER}" != "git" ]; then
     sed -i -e "s/AllowUsers git$/AllowUsers ${USER}/g" /etc/ssh/sshd_config
 fi
 
+if [ -z "${USER_GID}" ]; then
+  USER_GID="`id -g ${USER}`"
+fi
+
+if [ -z "${USER_UID}" ]; then
+  USER_UID="`id -u ${USER}`"
+fi
+
 ## Change GID for USER?
 if [ -n "${USER_GID}" ] && [ "${USER_GID}" != "`id -g ${USER}`" ]; then
     sed -i -e "s/^${USER}:\([^:]*\):[0-9]*/${USER}:\1:${USER_GID}/" /etc/group
@@ -21,6 +29,13 @@ fi
 for FOLDER in /data/gitea/conf /data/gitea/log /data/git /data/ssh; do
     mkdir -p ${FOLDER}
 done
+
+if [ -f /data/gitea/conf/app.ini ]; then
+    echo "Found app.ini config file, migrating database"
+    chmod 644 /data/gitea/conf/app.ini
+    chown -R ${USER_UID}:${USER_GID} /data/git /data/gitea
+    su - ${USER} -c gitea migrate -c /data/gitea/conf/app.ini
+fi
 
 if [ $# -gt 0 ]; then
     exec "$@"
