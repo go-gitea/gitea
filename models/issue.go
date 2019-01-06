@@ -200,7 +200,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+	if _, err := ReactionList(reactions).loadUsers(e); err != nil {
 		return err
 	}
 
