@@ -30,7 +30,21 @@ HTTP_PORT = 3000
 CERT_FILE = cert.pem
 KEY_FILE = key.pem
 ```
+
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
+
+### Setting-up HTTP redirection
+
+The Gitea server is only able to listen to one port; to redirect HTTP requests to the HTTPS port, you will need to enable the HTTP redirection service:
+
+```ini
+[server]
+REDIRECT_OTHER_PORT = true
+; Port the redirection service should listen on
+PORT_TO_REDIRECT = 3080
+```
+
+If you are using Docker, make sure that this port is configured in your `docker-compose.yml` file.
 
 ## Using Let's Encrypt
 

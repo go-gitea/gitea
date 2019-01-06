@@ -476,8 +476,34 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 	return issue, nil
 }
 
+func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[int64]bool, status bool) error {
+	issue, err := getIssueFromRef(repo, ref)
+	if err != nil {
+		return err
+	}
+
+	if issue == nil || refMarked[issue.ID] {
+		return nil
+	}
+	refMarked[issue.ID] = true
+
+	if issue.RepoID != repo.ID || issue.IsClosed == status {
+		return nil
+	}
+
+	issue.Repo = repo
+	if err = issue.ChangeStatus(doer, status); err != nil {
+		// Don't return an error when dependencies are open as this would let the push fail
+		if IsErrDependenciesLeft(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
+func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -500,51 +526,21 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 			}
 		}
 
+		// Change issue status only if the commit has been pushed to the default branch.
+		if repo.DefaultBranch != branchName {
+			continue
+		}
+
 		refMarked = make(map[int64]bool)
-		// FIXME: can merge this one and next one to a common function.
 		for _, ref := range issueCloseKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
-			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || issue.IsClosed {
-				continue
-			}
-
-			issue.Repo = repo
-			if err = issue.ChangeStatus(doer, true); err != nil {
-				// Don't return an error when dependencies are open as this would let the push fail
-				if IsErrDependenciesLeft(err) {
-					return nil
-				}
+			if err := changeIssueStatus(repo, doer, ref, refMarked, true); err != nil {
 				return err
 			}
 		}
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
 		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
-			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || !issue.IsClosed {
-				continue
-			}
-
-			issue.Repo = repo
-			if err = issue.ChangeStatus(doer, false); err != nil {
+			if err := changeIssueStatus(repo, doer, ref, refMarked, false); err != nil {
 				return err
 			}
 		}
@@ -609,7 +605,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 		}
 
-		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits); err != nil {
+		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
 			log.Error(4, "updateIssuesCommit: %v", err)
 		}
 	}
