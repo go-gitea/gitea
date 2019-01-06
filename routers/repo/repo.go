@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -340,7 +339,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(404, "RedirectDownload", errors.New("Attachment not found"))
+	ctx.Error(404)
 }
 
 // Download download an archive of a repository
