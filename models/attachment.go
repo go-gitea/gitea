@@ -42,15 +42,6 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
-// FileSize is returning the file datasize
-func (a *Attachment) FileSize() (string, error) {
-	stats, err := os.Stat(AttachmentLocalPath(a.UUID))
-	if err != nil {
-		return "error", fmt.Errorf("AttachmentFileSize: %v", err)
-	}
-	return util.FormatFileSize(stats.Size()), nil
-}
-
 // APIFormat converts models.Attachment to api.Attachment
 func (a *Attachment) APIFormat() *api.Attachment {
 	return &api.Attachment{
