@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -331,7 +332,7 @@ func RedirectDownload(ctx *context.Context) {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
-			ctx.Error(404, "RedirectDownload", err)
+			ctx.Error(404)
 			return
 		}
 		if att != nil {
