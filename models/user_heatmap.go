@@ -32,9 +32,15 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 		groupByName = groupBy
 	}
 
-	// For invidividual users only their own contributions count
-	// For organisations contributions by every user in owned repos count
-	var isOrganization = user.Type == UserTypeOrganization
+	var isOrganization string
+	switch user.Type {
+	case UserTypeIndividual:
+		// For invidividual users only their own contributions count
+		isOrganization = "1 = 0"
+	case UserTypeOrganization:
+		// For organisations contributions by every user in owned repos count
+		isOrganization = "1 = 1" // mssql does not support boolean literal for expressions
+	}
 
 	err := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
