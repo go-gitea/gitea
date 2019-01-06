@@ -324,21 +324,22 @@ func RedirectDownload(ctx *context.Context) {
 			ctx.Error(404)
 			return
 		}
-		ctx.Handle(500, "RedirectDownload: Failed to get attachment", err)
+		ctx.ServerError("RedirectDownload", err)
 		return
 	}
 	if len(releases) == 1 {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
-			ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
+			ctx.Error(404, "RedirectDownload", err)
 			return
 		}
 		if att != nil {
 			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+			return
 		}
 	}
-	ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
+	ctx.Error(404, "RedirectDownload", errors.New("Attachment not found"))
 }
 
 // Download download an archive of a repository
