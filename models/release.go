@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
 )
@@ -280,6 +281,15 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize 
 		Limit(pageSize, (page-1)*pageSize).
 		Where(opts.toConds(repoID)).
 		Find(&rels)
+	return rels, err
+}
+
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
+func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = x.
+		Desc("created_unix").
+		In("tag_name", tagNames).
+		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
 
