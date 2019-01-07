@@ -168,9 +168,9 @@ func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
 type AccessTokenForm struct {
-	GrantType    string `binding:"Required;In(authorization_code,refresh_token)"`
-	ClientID     string `binding:"Required"`
-	ClientSecret string `binding:"Required"`
+	GrantType    string
+	ClientID     string
+	ClientSecret string
 	RedirectURI  string
 	// TODO Specify authentication code length to prevent against birthday attacks
 	Code         string

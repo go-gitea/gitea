@@ -113,6 +113,7 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 		return
 	}
 
+	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
 	if err = models.NewMilestone(&models.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
@@ -175,6 +176,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 		return
 	}
 
+	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
