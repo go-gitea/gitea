@@ -32,6 +32,8 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 * Verify by starting Gitea with `gitea web`.
 * Enter Gitea admin panel on the UI, run `Rewrite '.ssh/authorized_keys' file`.
 * If custom or config path was changed, run `Rewrite all update hook of repositories`.
+* Launch every major version of the binary ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) to
+* migrate database.
 
 ## Change gogs specific information
 

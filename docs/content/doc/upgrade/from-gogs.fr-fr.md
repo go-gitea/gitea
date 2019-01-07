@@ -28,6 +28,7 @@ Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécute
 * Copiez le répertoire `gogs/data/` vers `gitea/data/`.
 * Vérifiez votre installation en exécutant Gitea avec la commande `gitea web`.
 * Connectez vous au panel d'administration de Gitea et exécutez l'action `Rewrite '.ssh/authorized_keys' file`, puis l'action `Rewrite all update hook of repositories` (obligatoire si le chemin menant à votre configuration personnalisée à changé).
+* Lancez le binaire de version majeure en version majeure ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) afin de récupérer les migrations de base de données.
 
 ## Modifier les informations spécifiques de gogs
 
