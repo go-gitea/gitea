@@ -38,13 +38,6 @@ func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
 	assert.True(t, code.ValidateCodeChallenge(""))
 }
 
-func TestOAuth2Application_PrimaryRedirectURI(t *testing.T) {
-	app := &OAuth2Application{
-		RedirectURIs: []string{"a", "b", "c"},
-	}
-	assert.Equal(t, "a", app.PrimaryRedirectURI())
-}
-
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
