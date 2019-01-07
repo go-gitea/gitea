@@ -143,6 +143,10 @@ type AuthorizationForm struct {
 	ClientID     string `binding:"Required"`
 	RedirectURI  string
 	State        string
+
+	// PKCE support
+	CodeChallengeMethod string // S256, plain
+	CodeChallenge       string
 }
 
 // Validate valideates the fields
@@ -171,6 +175,9 @@ type AccessTokenForm struct {
 	// TODO Specify authentication code length to prevent against birthday attacks
 	Code         string
 	RefreshToken string
+
+	// PKCE support
+	CodeVerifier string
 }
 
 // Validate valideates the fields

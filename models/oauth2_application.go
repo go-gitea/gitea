@@ -5,15 +5,17 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"net/url"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
+	"github.com/dgrijalva/jwt-go"
 	gouuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -141,12 +143,14 @@ func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Applic
 
 // OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.
 type OAuth2AuthorizationCode struct {
-	ID          int64        `xorm:"pk autoincr"`
-	Grant       *OAuth2Grant `xorm:"-"`
-	GrantID     int64
-	Code        string `xorm:"INDEX unique"`
-	RedirectURI string
-	ValidUntil  util.TimeStamp `xorm:"index"`
+	ID                  int64        `xorm:"pk autoincr"`
+	Grant               *OAuth2Grant `xorm:"-"`
+	GrantID             int64
+	Code                string `xorm:"INDEX unique"`
+	CodeChallenge       string
+	CodeChallengeMethod string
+	RedirectURI         string
+	ValidUntil          util.TimeStamp `xorm:"index"`
 }
 
 // TableName sets the table name to `oauth2_authorization_code`
@@ -176,6 +180,28 @@ func (code *OAuth2AuthorizationCode) Invalidate() error {
 func (code *OAuth2AuthorizationCode) invalidate(e Engine) error {
 	_, err := e.Delete(code)
 	return err
+}
+
+// ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
+func (code *OAuth2AuthorizationCode) ValidateCodeChallenge(verifier string) bool {
+	return code.validateCodeChallenge(x, verifier)
+}
+
+func (code *OAuth2AuthorizationCode) validateCodeChallenge(e Engine, verifier string) bool {
+	switch code.CodeChallengeMethod {
+	case "S256":
+		// base64url(SHA256(verifier)) see https://tools.ietf.org/html/rfc7636#section-4.6
+		h := sha256.Sum256([]byte(verifier))
+		hashedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
+		return hashedVerifier == code.CodeChallenge
+	case "plain":
+		return verifier == code.CodeChallenge
+	case "":
+		return true
+	default:
+		// unsupported method -> return false
+		return false
+	}
 }
 
 // GetOAuth2AuthorizationByCode returns an authorization by its code
@@ -216,17 +242,19 @@ func (grant *OAuth2Grant) TableName() string {
 }
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
-func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI string) (*OAuth2AuthorizationCode, error) {
-	return grant.generateNewAuthorizationCode(x, redirectURI)
+func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
+	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
 
-func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI string) (*OAuth2AuthorizationCode, error) {
+func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
 	secret := gouuid.NewV4().String()
 	code := &OAuth2AuthorizationCode{
-		Grant:       grant,
-		GrantID:     grant.ID,
-		RedirectURI: redirectURI,
-		Code:        secret,
+		Grant:               grant,
+		GrantID:             grant.ID,
+		RedirectURI:         redirectURI,
+		Code:                secret,
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
 	}
 	if _, err := e.Insert(code); err != nil {
 		return nil, err
