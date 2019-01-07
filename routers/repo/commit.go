@@ -201,7 +201,7 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, commitID, 0)
 	if err != nil {
 		log.Error(3, "GetLatestCommitStatus: %v", err)
 	}
