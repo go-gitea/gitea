@@ -10,7 +10,7 @@ func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
 	// test plain
 	code := &OAuth2AuthorizationCode{
 		CodeChallengeMethod: "plain",
-		CodeChallenge: "test123",
+		CodeChallenge:       "test123",
 	}
 	assert.True(t, code.ValidateCodeChallenge("test123"))
 	assert.False(t, code.ValidateCodeChallenge("ierwgjoergjio"))
@@ -18,7 +18,7 @@ func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
 	// test S256
 	code = &OAuth2AuthorizationCode{
 		CodeChallengeMethod: "S256",
-		CodeChallenge: "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg",
+		CodeChallenge:       "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg",
 	}
 	assert.True(t, code.ValidateCodeChallenge("N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt"))
 	assert.False(t, code.ValidateCodeChallenge("wiogjerogorewngoenrgoiuenorg"))
@@ -26,14 +26,14 @@ func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
 	// test unknown
 	code = &OAuth2AuthorizationCode{
 		CodeChallengeMethod: "monkey",
-		CodeChallenge: "foiwgjioriogeiogjerger",
+		CodeChallenge:       "foiwgjioriogeiogjerger",
 	}
 	assert.False(t, code.ValidateCodeChallenge("foiwgjioriogeiogjerger"))
 
 	// test no code challenge
 	code = &OAuth2AuthorizationCode{
 		CodeChallengeMethod: "",
-		CodeChallenge: "foierjiogerogerg",
+		CodeChallenge:       "foierjiogerogerg",
 	}
 	assert.True(t, code.ValidateCodeChallenge(""))
 }

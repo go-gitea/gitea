@@ -4,6 +4,5 @@
   name: "Test"
   client_id: "da7da3ba-9a13-4167-856f-3899de0b0138"
   redirect_uris: '["a"]'
-  type: "web"
   created_unix: 1546869730
   updated_unix: 1546869730
