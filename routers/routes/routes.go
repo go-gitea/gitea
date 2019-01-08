@@ -6,9 +6,11 @@ package routes
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -45,12 +47,35 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
+	return func(ctx *macaron.Context) {
+		start := time.Now()
+
+		l.Log(fmt.Sprintf("[Macaron] Started %s %s for %s", ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr()))
+
+		rw := ctx.Resp.(macaron.ResponseWriter)
+		ctx.Next()
+
+		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
-	m := macaron.New()
-	if !setting.DisableRouterLog {
-		m.Use(macaron.Logger())
+	var m *macaron.Macaron
+	if strings.ToUpper(setting.MacaronLogLevel) == "CONSOLE" {
+		m = macaron.New()
+		if !setting.DisableRouterLog {
+			m.Use(macaron.Logger())
+		}
+
+	} else {
+		loggerAsWriter := log.NewLoggerAsWriter(setting.MacaronLogLevel)
+		m = macaron.NewWithLogger(loggerAsWriter)
+		if !setting.DisableRouterLog {
+			m.Use(giteaLogger(loggerAsWriter))
+		}
 	}
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {

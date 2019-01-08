@@ -118,6 +118,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
+- `MACARON_LOG_LEVEL`: **console**: Sets the macaron log level, with `console` Macaron logs to `os.Stdout`, set this to a valid log level to send it to gitea's default log.
 - `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
 - `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.

@@ -183,6 +183,7 @@ MINIMUM_KEY_SIZE_CHECK = false
 ; Disable CDN even in "prod" mode
 OFFLINE_MODE = false
 DISABLE_ROUTER_LOG = false
+MACARON_LOG_LEVEL = console
 ; Generate steps:
 ; $ ./gitea cert -ca=true -duration=8760h0m0s -host=myhost.example.com
 ;
