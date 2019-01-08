@@ -85,6 +85,38 @@
 			</form>
 		</div>
 
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_themes"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui email list">
+				<div class="item">
+					{{.i18n.Tr "settings.theme_desc"}}
+				</div>
+
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+					<div class="field">
+						<label for="language">{{.i18n.Tr "settings.language"}}</label>
+						<div class="ui language selection dropdown" id="language">
+							<input name="language" type="hidden" value="{{.SignedUser.Language}}">
+							<i class="dropdown icon"></i>
+							<div
+								class="text">{{range .AllThemes}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
+							<div class="menu">
+							{{range .AllLangs}}
+								<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+							{{end}}
+							</div>
+						</div>
+					</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_profile"}}</button>
+				</div>
+			</form>
+			</div>
+		</div>
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "settings.delete_account"}}
 		</h4>
