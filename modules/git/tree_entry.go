@@ -50,7 +50,7 @@ func (te *TreeEntry) Name() string {
 
 // Mode returns the mode of the entry
 func (te *TreeEntry) Mode() EntryMode {
-	return te.mode
+	return EntryMode(te.gogitTreeEntry.Mode)
 }
 
 // Size returns the size of the entry

@@ -123,7 +123,7 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 	// We do a tree traversal with nodes sorted by commit time
 	seen := make(map[plumbing.Hash]bool)
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
-		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
+		if a.(*commitAndPaths).commit.Committer.When.Before(b.(*commitAndPaths).commit.Committer.When) {
 			return 1
 		}
 		return -1

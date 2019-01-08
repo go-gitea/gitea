@@ -128,11 +128,20 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	tree.Entries = make([]gitea.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
-		tree.Entries[i].Path = entries[e].Name()
-		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
-		tree.Entries[i].Type = string(entries[e].Type)
-		tree.Entries[i].Size = entries[e].Size()
-		tree.Entries[i].SHA = entries[e].ID.String()
+
+		tree.Entries[e].Path = entries[e].Name()
+		tree.Entries[e].Mode = fmt.Sprintf("%06x", entries[e].Mode())
+
+		if entries[e].Mode() == git.EntryModeCommit {
+			tree.Entries[e].Type = "commit"
+		} else if entries[e].Mode() == git.EntryModeTree {
+			tree.Entries[e].Type = "tree"
+		} else {
+			tree.Entries[e].Type = "blob"
+		}
+
+		tree.Entries[e].Size = entries[e].Size()
+		tree.Entries[e].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())

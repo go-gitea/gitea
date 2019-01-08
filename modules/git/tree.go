@@ -110,7 +110,7 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 		}
 
 		convertedEntry := &TreeEntry{
-			ID:             SHA1(entry.Hash),
+			ID:             entry.Hash,
 			gogitTreeEntry: &entry,
 			ptree:          t,
 		}
