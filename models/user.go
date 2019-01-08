@@ -177,6 +177,12 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
+// UpdateTheme updates a users' theme irrespective of the site wide theme
+func (u *User) UpdateTheme(themeName string) error {
+	u.Theme = themeName
+	return UpdateUserCols(u, "theme")
+}
+
 // getEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) getEmail() string {

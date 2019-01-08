@@ -168,6 +168,38 @@ func DeleteAccount(ctx *context.Context) {
 	}
 }
 
+// UpdateUIThemePost is used to update users' specific theme
+func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
+
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccount"] = true
+
+	if ctx.HasError() {
+		loadAccountData(ctx)
+
+		ctx.HTML(200, tplSettingsAccount)
+		return
+	}
+
+	if !form.IsThemeExists() {
+		loadAccountData(ctx)
+
+		ctx.RenderWithErr(ctx.Tr("settings.theme_update_error"), tplSettingsAccount, &form)
+		return
+	}
+
+	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+		loadAccountData(ctx)
+
+		ctx.RenderWithErr(ctx.Tr("settings.theme_update_error"), tplSettingsAccount, &form)
+		return
+	}
+
+	log.Trace("Update user theme: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+}
+
 func loadAccountData(ctx *context.Context) {
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
