@@ -194,7 +194,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	// Unassign a user from any issue he has been assigned to in the
+	// Unassign a user from any issue (s)he has been assigned to in the
 	// repository
 	if err := removeIssueAssignees(sess, uid, repo.ID); err != nil {
 		return err
