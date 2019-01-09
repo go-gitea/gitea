@@ -194,6 +194,12 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
+	// Unassign a user from any issue he has been assigned to in the
+	// repository
+	if err := removeIssueAssignees(sess, uid, repo.ID); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -229,4 +235,15 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	}
 
 	return x.Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+}
+
+func removeIssueAssignees(e Engine, userID int64, repoID int64) error {
+	assignee := &IssueAssignees{
+		AssigneeID: userID,
+	}
+
+	_, err := e.
+		Join("INNER", "issue", "`issue`.id = `issues_assignees`.issue_id AND `issue`.repo_id = ?", repoID).
+		Delete(assignee)
+	return err
 }
