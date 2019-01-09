@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -64,17 +63,16 @@ func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
 	var m *macaron.Macaron
-	if strings.ToUpper(setting.MacaronLogLevel) == "CONSOLE" {
-		m = macaron.New()
-		if !setting.DisableRouterLog {
-			m.Use(macaron.Logger())
-		}
-
-	} else {
-		loggerAsWriter := log.NewLoggerAsWriter(setting.MacaronLogLevel)
+	if setting.RedirectMacaronLog {
+		loggerAsWriter := log.NewLoggerAsWriter("INFO")
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog {
 			m.Use(giteaLogger(loggerAsWriter))
+		}
+	} else {
+		m = macaron.New()
+		if !setting.DisableRouterLog {
+			m.Use(macaron.Logger())
 		}
 	}
 	m.Use(macaron.Recovery())
