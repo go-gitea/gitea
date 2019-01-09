@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 
+	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,10 +18,13 @@ func TestRelease_Create(t *testing.T) {
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repoPath := RepoPath(user.Name, repo.Name)
+
+	repoPath := repo.LocalCopyPath()
+	assert.True(t, com.IsExist(repoPath))
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	assert.NotNil(t, gitRepo)
 
 	assert.NoError(t, CreateRelease(gitRepo, &Release{
 		RepoID:       repo.ID,
