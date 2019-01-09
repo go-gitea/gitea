@@ -792,6 +792,7 @@ func CreateUser(u *User) (err error) {
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
