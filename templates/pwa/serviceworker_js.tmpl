@@ -32,9 +32,6 @@ var urlsToCache = [
   '{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css',
   '{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css',
   '{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css',
-{{if ne DefaultTheme "gitea"}}
-  '{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css',
-{{end}}
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
 		'{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css'
