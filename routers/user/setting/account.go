@@ -175,23 +175,19 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
-		loadAccountData(ctx)
-
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
 	if !form.IsThemeExists() {
-		loadAccountData(ctx)
-
-		ctx.RenderWithErr(ctx.Tr("settings.theme_update_error"), tplSettingsAccount, &form)
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
 	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
-		loadAccountData(ctx)
-
-		ctx.RenderWithErr(ctx.Tr("settings.theme_update_error"), tplSettingsAccount, &form)
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
