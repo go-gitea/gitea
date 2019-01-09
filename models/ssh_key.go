@@ -844,6 +844,11 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err = deletePublicKeys(sess, key.KeyID); err != nil {
 			return err
 		}
+
+		// after deleted the public keys, should rewrite the public keys file
+		if err = rewriteAllPublicKeys(sess); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
