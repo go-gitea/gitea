@@ -166,8 +166,7 @@ func (u *User) BeforeUpdate() {
 	u.Description = base.TruncateString(u.Description, 255)
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
+// AfterLoad is invoked from XORM after filling all the fields of this object.
 func (u *User) AfterLoad() {
 	if u.Theme == "" {
 		u.Theme = setting.UI.DefaultTheme

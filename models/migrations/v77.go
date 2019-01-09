@@ -10,7 +10,7 @@ import (
 
 func addUserDefaultTheme(x *xorm.Engine) error {
 	type User struct {
-		Theme string `xorm:"NOT NULL"`
+		Theme string `xorm:"VARCHAR(30)"`
 	}
 
 	return x.Sync2(new(User))

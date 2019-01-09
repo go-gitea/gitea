@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
-	macaron "gopkg.in/macaron.v1"
 
 	"github.com/go-macaron/binding"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // InstallForm form for installation page
