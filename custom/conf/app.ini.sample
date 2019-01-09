@@ -85,6 +85,8 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
+; All available themes
+THEMES = gitea,arc-green
 
 [ui.admin]
 ; Number of users that are displayed on one page
