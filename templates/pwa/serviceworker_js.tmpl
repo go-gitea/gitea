@@ -35,7 +35,14 @@ var urlsToCache = [
 {{if ne DefaultTheme "gitea"}}
   '{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css',
 {{end}}
-  
+{{if .IsSigned }}
+	{{ if ne .SignedUser.Theme "gitea" }}
+		'{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css'
+	{{end}}
+{{else if ne DefaultTheme "gitea"}}
+	'{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css'
+{{end}}
+
   // img
   '{{AppSubUrl}}/img/gitea-sm.png',
   '{{AppSubUrl}}/img/gitea-lg.png',
