@@ -112,8 +112,11 @@ func IsMarkupFile(name, markup string) bool {
 
 // IsReadmeFile reports whether name looks like a README file
 // based on its name.
-func IsReadmeFile(name string) bool {
+func IsReadmeFile(name string, strict bool) bool {
 	name = strings.ToLower(name)
+	if strict {
+		return name == "readme.md"
+	}
 	if len(name) < 6 {
 		return false
 	} else if len(name) == 6 {

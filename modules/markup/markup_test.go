@@ -32,9 +32,9 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, IsReadmeFile(testCase))
+		assert.True(t, IsReadmeFile(testCase, false))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, IsReadmeFile(testCase))
+		assert.False(t, IsReadmeFile(testCase, false))
 	}
 }
