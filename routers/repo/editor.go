@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/uploader"
 )
 
 const (
@@ -308,7 +309,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := ctx.Repo.Repository.UpdateRepoFile(ctx.User, models.UpdateRepoFileOptions{
+	if err := uploader.UpdateRepoFile(ctx.Repo.Repository, ctx.User, uploader.UpdateRepoFileOptions{
 		LastCommitID: lastCommit,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -353,7 +354,7 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	diff, err := ctx.Repo.Repository.GetDiffPreview(ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := uploader.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(500, "GetDiffPreview: "+err.Error())
 		return
@@ -447,7 +448,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := ctx.Repo.Repository.DeleteRepoFile(ctx.User, models.DeleteRepoFileOptions{
+	if err := uploader.DeleteRepoFile(ctx.Repo.Repository, ctx.User, uploader.DeleteRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -582,7 +583,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := ctx.Repo.Repository.UploadRepoFiles(ctx.User, models.UploadRepoFileOptions{
+	if err := uploader.UploadRepoFiles(ctx.Repo.Repository, ctx.User, uploader.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
