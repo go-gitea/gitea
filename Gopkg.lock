@@ -406,11 +406,11 @@
   version = "v0.6.0"
 
 [[projects]]
-  digest = "1:931a62a1aacc37a5e4c309a111642ec4da47b4dc453cd4ba5481b12eedb04a5d"
+  digest = "1:d366480c27ab51b3f7e995f25503063e7a6ebc7feb269df2499c33471f35cd62"
   name = "github.com/go-xorm/xorm"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "401f4ee8ff8cbc40a4754cb12192fbe4f02f3979"
+  revision = "1cd2662be938bfee0e34af92fe448513e0560fb1"
 
 [[projects]]
   branch = "master"

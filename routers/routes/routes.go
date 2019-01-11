@@ -42,7 +42,7 @@ import (
 	"github.com/go-macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // NewMacaron initializes Macaron instance.
@@ -243,6 +243,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
+			m.Post("/theme", bindIgnErr(auth.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
 			m.Get("", userSetting.Security)
@@ -292,6 +293,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
+		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
 	m.Group("/user", func() {
