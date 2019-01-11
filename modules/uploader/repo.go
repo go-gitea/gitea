@@ -295,3 +295,61 @@ func (t *TemporaryUploadRepository) DiffIndex() (diff *models.Diff, err error) {
 
 	return diff, nil
 }
+
+// CheckAttribute checks the given attribute of the provided files
+func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
+
+	timeout := 5 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmdArgs := []string{"check-attr", "-z", attribute, "--cached", "--"}
+	for _, arg := range args {
+		if arg != "" {
+			cmdArgs = append(cmdArgs, arg)
+		}
+	}
+
+	cmd := exec.CommandContext(ctx, "git", cmdArgs...)
+	desc := fmt.Sprintf("checkAttr: (git check-attr) %s %v", attribute, cmdArgs)
+	cmd.Dir = t.basePath
+	cmd.Stdout = stdOut
+	cmd.Stderr = stdErr
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
+	}
+
+	pid := process.GetManager().Add(desc, cmd)
+	err := cmd.Wait()
+	process.GetManager().Remove(pid)
+
+	if err != nil {
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
+		return nil, err
+	}
+
+	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
+
+	if len(fields)%3 != 1 {
+		return nil, fmt.Errorf("Wrong number of fields in return from check-attr")
+	}
+
+	var name2attribute2info = make(map[string]map[string]string)
+
+	for i := 0; i < (len(fields) / 3); i++ {
+		filename := string(fields[3*i])
+		attribute := string(fields[3*i+1])
+		info := string(fields[3*i+2])
+		attribute2info := name2attribute2info[filename]
+		if attribute2info == nil {
+			attribute2info = make(map[string]string)
+		}
+		attribute2info[attribute] = info
+		name2attribute2info[filename] = attribute2info
+	}
+
+	return name2attribute2info, err
+}

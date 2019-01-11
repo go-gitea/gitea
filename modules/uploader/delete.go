@@ -21,7 +21,7 @@ type DeleteRepoFileOptions struct {
 }
 
 // DeleteRepoFile deletes a file in the given repository
-func DeleteRepoFile(repo *models.Repository, doer *models.User, opts DeleteRepoFileOptions) error {
+func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) error {
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
 	if err != nil {

@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // UpdateRepoFileOptions holds the repository file update options
@@ -25,7 +27,7 @@ type UpdateRepoFileOptions struct {
 }
 
 // UpdateRepoFile adds or updates a file in the given repository
-func UpdateRepoFile(repo *models.Repository, doer *models.User, opts UpdateRepoFileOptions) error {
+func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) error {
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
 	if err != nil {
@@ -63,8 +65,27 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts UpdateRepoF
 
 	}
 
+	// Check there is no way this can return multiple infos
+	filename2attribute2info, err := t.CheckAttribute("filter", opts.NewTreeName)
+	if err != nil {
+		return err
+	}
+
+	content := opts.Content
+	var lfsMetaObject *models.LFSMetaObject
+
+	if filename2attribute2info[opts.NewTreeName] != nil && filename2attribute2info[opts.NewTreeName]["filter"] == "lfs" {
+		// OK so we are supposed to LFS this data!
+		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+		if err != nil {
+			return err
+		}
+		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
+		content = lfsMetaObject.Pointer()
+	}
+
 	// Add the object to the database
-	objectHash, err := t.HashObject(strings.NewReader(opts.Content))
+	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {
 		return err
 	}
@@ -84,6 +105,23 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts UpdateRepoF
 	commitHash, err := t.CommitTree(doer, treeHash, opts.Message)
 	if err != nil {
 		return err
+	}
+
+	if lfsMetaObject != nil {
+		// We have an LFS object - create it
+		lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
+		if err != nil {
+			return err
+		}
+		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+		if !contentStore.Exists(lfsMetaObject) {
+			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
+				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+					return fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
+				}
+				return err
+			}
+		}
 	}
 
 	// Then push this tree to NewBranch
