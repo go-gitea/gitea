@@ -43,7 +43,6 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
-
 	if err := sess.Begin(); err != nil {
 		return err
 	}
