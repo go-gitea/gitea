@@ -129,7 +129,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = models.SearchIssuesByKeyword(keyword, repo.ID)
+		issueIDs, err = models.SearchIssuesByKeyword(repo.ID, keyword)
 		if err != nil {
 			ctx.ServerError("issueIndexer.Search", err)
 			return

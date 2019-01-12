@@ -122,7 +122,7 @@ func DeleteRepoIssueIndexer(repo *Repository) {
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
-func SearchIssuesByKeyword(keyword string, repoID int64) ([]int64, error) {
+func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
 	if err != nil {

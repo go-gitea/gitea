@@ -77,7 +77,7 @@ func ListIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	var err error
 	if len(keyword) > 0 {
-		issueIDs, err = models.SearchIssuesByKeyword(keyword, ctx.Repo.Repository.ID)
+		issueIDs, err = models.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
