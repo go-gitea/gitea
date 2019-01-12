@@ -217,6 +217,8 @@ var migrations = []Migration{
 	NewMigration("add is locked to issues", addIsLockedToIssues),
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("create repo transfer table", addRepoTransfer),
 }
 
 // Migrate database to current version
