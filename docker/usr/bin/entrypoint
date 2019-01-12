@@ -32,7 +32,6 @@ done
 
 if [ -f /data/gitea/conf/app.ini ]; then
     echo "Found app.ini config file, migrating database"
-    chmod 644 /data/gitea/conf/app.ini
     chown -R ${USER_UID}:${USER_GID} /data/git /data/gitea
     su - ${USER} -c gitea migrate -c /data/gitea/conf/app.ini
 fi
