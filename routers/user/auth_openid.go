@@ -114,8 +114,8 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
-	log.Error(1, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
 	if err != nil {
+		log.Error(1, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
 		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
 		return
 	}
