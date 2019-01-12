@@ -27,6 +27,22 @@ type RepoTransfer struct {
 }
 
 func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) error {
+	// Make sure the repo isn't being transferred to someone currently
+	// Only one transfer process can be initiated at a time.
+	// It has to be cancelled for a new transfer to occur
+
+	n, err := x.Count(&RepoTransfer{
+		RepoID: repo.ID,
+		UserID: doer.ID,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if n > 0 {
+		return ErrRepoTransferInProgress{newOwnerName, repo.Name}
+	}
 
 	newOwner, err := GetUserByName(newOwnerName)
 	if err != nil {

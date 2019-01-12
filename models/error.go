@@ -639,6 +639,23 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// ErrRepoTransferInProgress represents the state of a repository that has an
+// ongoing transfer
+type ErrRepoTransferInProgress struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
+func IsErrRepoTransferInProgress(err error) bool {
+	_, ok := err.(ErrRepoTransferInProgress)
+	return ok
+}
+
+func (err ErrRepoTransferInProgress) Error() string {
+	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
 type ErrRepoAlreadyExist struct {
 	Uname string

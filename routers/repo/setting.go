@@ -324,6 +324,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if err = models.StartRepositoryTransfer(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			} else if models.IsErrRepoTransferInProgress(err) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
