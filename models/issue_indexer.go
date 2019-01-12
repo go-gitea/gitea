@@ -59,8 +59,7 @@ func InitIssueIndexer() error {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer() {
-	page := 1
-	for {
+	for page := 1; ; page++ {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:        page,
 			PageSize:    RepositoryListDefaultPageSize,
@@ -75,7 +74,7 @@ func populateIssueIndexer() {
 		if len(repos) == 0 {
 			return
 		}
-		page++
+
 		for _, repo := range repos {
 			is, err := Issues(&IssuesOptions{
 				RepoIDs:  []int64{repo.ID},
