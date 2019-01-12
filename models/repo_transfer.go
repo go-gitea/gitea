@@ -34,6 +34,7 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 	n, err := x.Count(&RepoTransfer{
 		RepoID: repo.ID,
 		UserID: doer.ID,
+		Status: Pending,
 	})
 
 	if err != nil {
