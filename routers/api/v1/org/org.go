@@ -42,7 +42,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 
 // ListUserOrgs list user's orgs
 func ListUserOrgs(ctx *context.APIContext) {
-	// swagger:operation GET /user/{username}/orgs organization orgListUserOrgs
+	// swagger:operation GET /users/{username}/orgs organization orgListUserOrgs
 	// ---
 	// summary: List a user's organizations
 	// produces:
@@ -165,4 +165,27 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	}
 
 	ctx.JSON(200, convert.ToOrganization(org))
+}
+
+//Delete an organization
+func Delete(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org} organization orgDelete
+	// ---
+	// summary: Delete an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: organization that is to be deleted
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	if err := models.DeleteOrganization(ctx.Org.Organization); err != nil {
+		ctx.Error(500, "DeleteOrganization", err)
+		return
+	}
+	ctx.Status(204)
 }

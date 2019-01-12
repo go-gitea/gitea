@@ -50,12 +50,18 @@ Admin operations:
 
 - Commands:
     - `create-user`
-        - Options: 
+        - Options:
             - `--name value`: Username. Required.
             - `--password value`: Password. Required.
             - `--email value`: Email. Required.
             - `--admin`: If provided, this makes the user an admin. Optional.
             - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+            - `--must-change-password`: If provided, the created user will be required to choose a newer password after
+	    the initial login. Optional. (default: false).
+            - ``--random-password``: If provided, a randomly generated password will be used as the password of
+	    the created user. The value of `--password` will be discarded. Optional.
+            - `--random-password-length`: If provided, it will be used to configure the length of the randomly
+	    generated password. Optional. (default: 12)
         - Examples:
             - `gitea admin create-user --name myname --password asecurepassword --email me@example.com`
     - `change-password`

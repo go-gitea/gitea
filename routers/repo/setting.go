@@ -227,6 +227,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					IgnoreWhitespaceConflicts: form.PullsIgnoreWhitespace,
 					AllowMerge:                form.PullsAllowMerge,
 					AllowRebase:               form.PullsAllowRebase,
+					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
 				},
 			})

@@ -122,9 +122,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
-- `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
-   on another (https) port.
-- `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
+- `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
+- `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
    By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
@@ -160,6 +159,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
    authentication.
+- `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
+   authentication provided email.
 - `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
@@ -188,6 +189,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
+- `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
+   provided email rather than a generated email.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
