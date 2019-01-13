@@ -112,13 +112,12 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["IsBlame"] = true
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanEditFile"] = true
 		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 	} else if !ctx.Repo.IsViewBranch {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.IsWriter() {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 
 	ctx.Data["FileSize"] = blob.Size()
