@@ -31,32 +31,32 @@ func TestReadingBlameOutput(t *testing.T) {
 
 	assert.Equal(t, &BlameFile{
 		[]BlamePart{
-			BlamePart{
+			{
 				"4b92a6c2df",
 				[]string{
 					"// Copyright 2014 The Gogs Authors. All rights reserved.",
 				},
 			},
-			BlamePart{
+			{
 				"ce21ed6c34",
 				[]string{
 					"// Copyright 2016 The Gitea Authors. All rights reserved.",
 				},
 			},
-			BlamePart{
+			{
 				"4b92a6c2df",
 				[]string{
 					"// Use of this source code is governed by a MIT-style",
 					"// license that can be found in the LICENSE file.",
 				},
 			},
-			BlamePart{
+			{
 				"be0ba9ea88",
 				[]string{
 					"",
 				},
 			},
-			BlamePart{
+			{
 				"e2aa991e10",
 				[]string{
 					"// Gitea (git with a cup of tea) is a painless self-hosted Git Service.",
