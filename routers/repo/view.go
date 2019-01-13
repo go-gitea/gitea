@@ -56,19 +56,32 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	var readmeFile *git.Blob
+	// 3 for the extensions in exts[] in order
+	// the last one is for a readme that doesn't
+	// strictly match an extension
+	var readmeFiles [4]*git.Blob
+	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 
-		if markup.IsReadmeFile(entry.Name(), true) {
-			readmeFile = entry.Blob()
-			break
+		for i, ext := range exts {
+			if markup.IsReadmeFile(entry.Name(), ext) {
+				readmeFiles[i] = entry.Blob()
+			}
 		}
 
-		if markup.IsReadmeFile(entry.Name(), false) {
-			readmeFile = entry.Blob()
+		if markup.IsReadmeFile(entry.Name()) {
+			readmeFiles[3] = entry.Blob()
+		}
+	}
+
+	var readmeFile *git.Blob
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
+			break
 		}
 	}
 
@@ -207,7 +220,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = templates.ToUTF8WithFallback(append(buf, d...))
 
-		readmeExist := markup.IsReadmeFile(blob.Name(), false)
+		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markup.Type(blob.Name()) != "" {
 			ctx.Data["IsMarkup"] = true
