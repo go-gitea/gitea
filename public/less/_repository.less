@@ -373,6 +373,37 @@
                         }
                     }
                 }
+                .lines-commit {
+                    vertical-align: top;
+                    color: #999;
+                    padding: 0;
+                    background: #f5f5f5;
+                    width: 1%;
+                    -moz-user-select: none;
+                    -ms-user-select: none;
+                    -webkit-user-select: none;
+                    user-select: none;
+
+                    span {
+                        //FIXME
+                        width: 150px;
+
+                        line-height: 20px;
+                        padding: 0 10px;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                        cursor: pointer;
+                        display: block;
+                    }
+                }
+                .lines-num,
+                .lines-code,
+                .lines-commit {
+                    .bottom-line {
+                        border-bottom: 1px solid black
+                    }
+                }
                 .active {
                     background: #ffffdd;
                 }
