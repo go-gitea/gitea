@@ -318,7 +318,7 @@ func IsOrganizationMember(orgID, uid int64) (bool, error) {
 }
 
 func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
-	return x.
+	return e.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Table("org_user").
