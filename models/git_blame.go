@@ -21,7 +21,7 @@ type BlameFile struct {
 	Parts []BlamePart
 }
 
-// BlamePart represents block of blame - continous lines with one sha
+// BlamePart represents block of blame - continuous lines with one sha
 type BlamePart struct {
 	Sha   string
 	Lines []string
