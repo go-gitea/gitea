@@ -639,6 +639,24 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// ErrNoPendingRepoTransfer is an error type for repositories without a pending
+// transfer request
+type ErrNoPendingRepoTransfer struct {
+	RepoID int64
+	UserID int64
+}
+
+func (e ErrNoPendingRepoTransfer) Error() string {
+	return ""
+}
+
+// IsErrNoPendingTransfer is an error type when a repository has no pending
+// transfers
+func IsErrNoPendingTransfer(err error) bool {
+	_, ok := err.(ErrNoPendingRepoTransfer)
+	return ok
+}
+
 // ErrRepoTransferInProgress represents the state of a repository that has an
 // ongoing transfer
 type ErrRepoTransferInProgress struct {

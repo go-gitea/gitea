@@ -16,16 +16,52 @@ const (
 	Accepted
 )
 
+// RepoTransfer is used to manage repository transfers
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64
 	RecipientID int64
+	Recipient   *User `xorm:"-"`
 	RepoID      int64
 	CreatedUnix util.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX NOT NULL updated"`
 	Status      RepoStatus
 }
 
+// LoadRecipient fetches the transfer recipient from the database
+func (r *RepoTransfer) LoadRecipient() error {
+	if r.Recipient != nil {
+		return nil
+	}
+
+	u, err := GetUserByID(r.RecipientID)
+	if err != nil {
+		return err
+	}
+
+	r.Recipient = u
+	return nil
+}
+
+func GetPendingRepositoryTransfer(repo *Repository, doer *User) (*RepoTransfer, error) {
+	var transfer = new(RepoTransfer)
+
+	_, err := x.Where("status = ? AND repo_id = ? AND user_id = ?", Pending, repo.ID, doer.ID).
+		Get(transfer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if transfer.ID == 0 {
+		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID, UserID: doer.ID}
+	}
+
+	return transfer, nil
+}
+
+// StartRepositoryTransfer marks the repository transfer as "pending". It
+// doesn't actually transfer the repository until the user acks the transfer.
 func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) error {
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
@@ -36,7 +72,6 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 		UserID: doer.ID,
 		Status: Pending,
 	})
-
 	if err != nil {
 		return err
 	}

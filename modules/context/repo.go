@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"gopkg.in/macaron.v1"
+	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // PullRequest contains informations to make a pull request
@@ -451,6 +451,22 @@ func RepoAssignment() macaron.Handler {
 			}
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
+
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository, ctx.User)
+		if err == nil && repoTransfer != nil {
+			if err := repoTransfer.LoadRecipient(); err != nil {
+				ctx.ServerError("LoadRecipient", err)
+				return
+			}
+
+			ctx.Data["RepoTransfer"] = repoTransfer
+			ctx.Data["IsRepoTransferInProgress"] = true
+		}
+
+		if err != nil && !models.IsErrNoPendingTransfer(err) {
+			ctx.ServerError("GetPendingRepositoryTransfer", err)
+			return
+		}
 
 		if ctx.Query("go-get") == "1" {
 			ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
