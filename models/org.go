@@ -314,6 +314,10 @@ func IsOrganizationOwner(orgID, uid int64) (bool, error) {
 
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(orgID, uid int64) (bool, error) {
+	return isOrganizationMember(x, orgID, uid)
+}
+
+func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
 	return x.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
