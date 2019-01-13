@@ -16,10 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/process"
 )
 
+// BlameFile represents while git blame output
 type BlameFile struct {
 	Parts []BlamePart
 }
 
+// BlamePart represents block of blame - continous lines with one sha
 type BlamePart struct {
 	Sha   string
 	Lines []string
@@ -62,6 +64,7 @@ func parseBlameOutput(reader io.Reader) (*BlameFile, error) {
 	return &BlameFile{parts}, nil
 }
 
+// GetBlame returns blame output for given repo, commit and file
 func GetBlame(repoPath, commitID, file string) (*BlameFile, error) {
 
 	_, err := git.OpenRepository(repoPath)
