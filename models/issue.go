@@ -1121,9 +1121,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
 	}
-	if err = issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
-	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{

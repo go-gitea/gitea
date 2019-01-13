@@ -588,12 +588,13 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:4b992ec853d0ea9bac3dcf09a64af61de1a392e6cb0eef2204c0c92f4ae6b911"
+  digest = "1:aa7dcd6a0db70d514821f8739d0a22e7df33b499d8d399cf15b2858d44f8319e"
   name = "github.com/markbates/goth"
   packages = [
     ".",
     "gothic",
     "providers/bitbucket",
+    "providers/discord",
     "providers/dropbox",
     "providers/facebook",
     "providers/github",
@@ -603,8 +604,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "bc6d8ddf751a745f37ca5567dbbfc4157bbf5da9"
-  version = "v1.47.2"
+  revision = "157987f620ff2fc5e1f6a1427a3685219fbf6ff4"
+  version = "v1.49.0"
 
 [[projects]]
   digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
@@ -1179,6 +1180,7 @@
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",
+    "github.com/markbates/goth/providers/discord",
     "github.com/markbates/goth/providers/dropbox",
     "github.com/markbates/goth/providers/facebook",
     "github.com/markbates/goth/providers/github",
