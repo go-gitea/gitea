@@ -43,6 +43,8 @@ func (r *RepoTransfer) LoadRecipient() error {
 	return nil
 }
 
+// GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
+// process for the repository
 func GetPendingRepositoryTransfer(repo *Repository, doer *User) (*RepoTransfer, error) {
 	var transfer = new(RepoTransfer)
 
@@ -58,6 +60,16 @@ func GetPendingRepositoryTransfer(repo *Repository, doer *User) (*RepoTransfer, 
 	}
 
 	return transfer, nil
+}
+
+// CancelRepositoryTransfer makes sure to set the transfer process as
+// "rejected". Thus ending the transfer process
+func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
+	repoTransfer.Status = Rejected
+	repoTransfer.UpdatedUnix = util.TimeStampNow()
+	_, err := x.ID(repoTransfer.ID).Cols("updated_unix", "status").
+		Update(repoTransfer)
+	return err
 }
 
 // StartRepositoryTransfer marks the repository transfer as "pending". It
