@@ -103,7 +103,11 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled() bool {
-	if err := issue.loadRepo(x); err != nil {
+	return issue.isTimetrackerEnabled(x)
+}
+
+func (issue *Issue) isTimetrackerEnabled(e Engine) bool {
+	if err := issue.loadRepo(e); err != nil {
 		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
@@ -196,7 +200,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+	if _, err := ReactionList(reactions).loadUsers(e); err != nil {
 		return err
 	}
 
@@ -255,7 +259,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
-	if issue.IsTimetrackerEnabled() {
+	if issue.isTimetrackerEnabled(e) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}

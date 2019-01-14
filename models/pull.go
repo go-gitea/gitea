@@ -721,15 +721,15 @@ var patchConflicts = []string{
 }
 
 // testPatch checks if patch can be merged to base repository without conflict.
-func (pr *PullRequest) testPatch() (err error) {
+func (pr *PullRequest) testPatch(e Engine) (err error) {
 	if pr.BaseRepo == nil {
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
 	}
 
-	patchPath, err := pr.BaseRepo.PatchPath(pr.Index)
+	patchPath, err := pr.BaseRepo.patchPath(e, pr.Index)
 	if err != nil {
 		return fmt.Errorf("BaseRepo.PatchPath: %v", err)
 	}
@@ -758,7 +758,7 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.getUnit(e, UnitTypePullRequests)
 	if err != nil {
 		return err
 	}
@@ -811,12 +811,12 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	}
 
 	pr.Index = pull.Index
-	if err = repo.SavePatch(pr.Index, patch); err != nil {
+	if err = repo.savePatch(sess, pr.Index, patch); err != nil {
 		return fmt.Errorf("SavePatch: %v", err)
 	}
 
 	pr.BaseRepo = repo
-	if err = pr.testPatch(); err != nil {
+	if err = pr.testPatch(sess); err != nil {
 		return fmt.Errorf("testPatch: %v", err)
 	}
 	// No conflict appears after test means mergeable.
@@ -1363,7 +1363,7 @@ func TestPullRequests() {
 		if pr.manuallyMerged() {
 			continue
 		}
-		if err := pr.testPatch(); err != nil {
+		if err := pr.testPatch(x); err != nil {
 			log.Error(3, "testPatch: %v", err)
 			continue
 		}
@@ -1387,7 +1387,7 @@ func TestPullRequests() {
 			continue
 		} else if pr.manuallyMerged() {
 			continue
-		} else if err = pr.testPatch(); err != nil {
+		} else if err = pr.testPatch(x); err != nil {
 			log.Error(4, "testPatch[%d]: %v", pr.ID, err)
 			continue
 		}
