@@ -168,17 +168,16 @@ func HTTP(ctx *context.Context) {
 				if authUser == nil {
 					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					return
-				} else {
-					_, err = models.GetTwoFactorByUID(authUser.ID)
+				}
 
-					if err == nil {
-						// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
-						ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
-						return
-					} else if !models.IsErrTwoFactorNotEnrolled(err) {
-						ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-						return
-					}
+				_, err = models.GetTwoFactorByUID(authUser.ID)
+				if err == nil {
+					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
+					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
+					return
+				} else if !models.IsErrTwoFactorNotEnrolled(err) {
+					ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
+					return
 				}
 			}
 		}
