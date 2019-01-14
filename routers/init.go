@@ -7,6 +7,7 @@ package routers
 import (
 	"path"
 	"strings"
+        "time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
@@ -55,9 +56,15 @@ func GlobalInit() {
 	if setting.InstallLock {
 		highlight.NewContext()
 		markup.Init()
-
-		if err := models.NewEngine(migrations.Migrate); err != nil {
-			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
+                // In case of delays connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synolgy
+		for i := 0; i < 10; i++ {
+			if err := models.NewEngine(migrations.Migrate); err == nil {
+				break
+			} else if i == 9 {
+				log.Fatal(4, "Failed to initialize ORM engine: %v", err)
+			}
+                        time.Sleep(3 * time.Second)
+		        log.Info("ORM engine initialization failed. Retry #%d/10...", i+1)
 		}
 		models.HasEngine = true
 		if err := models.InitOAuth2(); err != nil {
