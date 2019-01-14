@@ -149,6 +149,8 @@ in the current directory.
 - Options:
     - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
     - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
+    - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
+    - `--database`, `-d`: Specify the database SQL syntax. Optional.
     - `--verbose`, `-v`: If provided, shows additional details. Optional.
 - Examples:
     - `gitea dump`
