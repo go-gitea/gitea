@@ -60,6 +60,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    the top of the list. Name must match file name in conf/license or custom/conf/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the
    HTTP protocol.
+- `ACCESS_CONTROL_ALLOW_ORIGIN`: ****: Value for Access-Control-Allow-Origin header, default is not to present.
+   WARNING: This maybe harmful to you website if you do not give it a right value.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
 - `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
