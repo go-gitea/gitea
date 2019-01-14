@@ -139,41 +139,41 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 
 			uname, passwd, _ := base.BasicAuthDecode(auths[1])
 
-                        // Check if username or password is a token
-                        isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
-                        // Assume username is token
-                        authToken := uname
-                        if !isUsernameToken {
-                                // Assume password is token
-                                authToken = passwd
-                        }
-                        token, err := models.GetAccessTokenBySHA(authToken)
-                        if err == nil {
-                                if isUsernameToken {
+			// Check if username or password is a token
+			isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+			// Assume username is token
+			authToken := uname
+			if !isUsernameToken {
+				// Assume password is token
+				authToken = passwd
+			}
+			token, err := models.GetAccessTokenBySHA(authToken)
+			if err == nil {
+				if isUsernameToken {
 					u, err = models.GetUserByID(token.UID)
-                                        if err != nil {
+					if err != nil {
 						log.Error(4, "GetUserByID:  %v", err)
 						return nil, false
-                                        }
-                                } else {
+					}
+				} else {
 					u, err = models.GetUserByName(uname)
-                                        if err != nil {
+					if err != nil {
 						log.Error(4, "GetUserByID:  %v", err)
 						return nil, false
-                                        }
-                                        if u.ID != token.UID {
+					}
+					if u.ID != token.UID {
 						return nil, false
-                                        }
-                                }
-                                token.UpdatedUnix = util.TimeStampNow()
-                                if err = models.UpdateAccessToken(token); err != nil {
+					}
+				}
+				token.UpdatedUnix = util.TimeStampNow()
+				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error(4, "UpdateAccessToken:  %v", err)
-                                }
-                        } else {
-                                if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-                                        log.Error(4, "GetAccessTokenBySha: %v", err)
-                                }
-                        }
+				}
+			} else {
+				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+					log.Error(4, "GetAccessTokenBySha: %v", err)
+				}
+			}
 
 			if u == nil {
 				u, err = models.UserSignIn(uname, passwd)
