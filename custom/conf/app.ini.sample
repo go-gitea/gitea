@@ -31,6 +31,9 @@ PULL_REQUEST_QUEUE_LENGTH = 1000
 PREFERRED_LICENSES = Apache License 2.0,MIT License
 ; Disable the ability to interact with repositories using the HTTP protocol
 DISABLE_HTTP_GIT = false
+; Value for Access-Control-Allow-Origin header, default is not to present
+; WARNING: This maybe harmful to you website if you do not give it a right value.
+ACCESS_CONTROL_ALLOW_ORIGIN = 
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 
