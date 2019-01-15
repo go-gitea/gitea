@@ -28,13 +28,25 @@ import (
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
 	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
+		allowedOrigin := setting.Repository.AccessControlAllowOrigin
 		// Set CORS headers for browser-based git clients
-		ctx.Resp.Header().Set("Access-Control-Allow-Origin", setting.Repository.AccessControlAllowOrigin)
+		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
 
 		// Handle preflight OPTIONS request
 		if ctx.Req.Method == "OPTIONS" {
-			ctx.Status(http.StatusOK)
+			if allowedOrigin == "*" {
+				ctx.Status(http.StatusOK)
+			} else if allowedOrigin == "null" {
+				ctx.Status(http.StatusForbidden)
+			} else {
+				origin := ctx.Req.Header.Get("Origin")
+				if len(origin) > 0 && origin == allowedOrigin {
+					ctx.Status(http.StatusOK)
+				} else {
+					ctx.Status(http.StatusForbidden)
+				}
+			}
 			return
 		}
 	}
