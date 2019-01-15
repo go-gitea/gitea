@@ -321,7 +321,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err = models.StartRepositoryTransfer(ctx.User, newOwner, repo); err != nil {
+		if err = models.StartRepositoryTransfer(newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -349,7 +349,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository, ctx.User)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.abort_transfer_invalid")

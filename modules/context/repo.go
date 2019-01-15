@@ -452,7 +452,7 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository, ctx.User)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err == nil && repoTransfer != nil {
 			if err := repoTransfer.LoadRecipient(); err != nil {
 				ctx.ServerError("LoadRecipient", err)

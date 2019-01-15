@@ -643,11 +643,10 @@ func (err ErrRepoNotExist) Error() string {
 // transfer request
 type ErrNoPendingRepoTransfer struct {
 	RepoID int64
-	UserID int64
 }
 
 func (e ErrNoPendingRepoTransfer) Error() string {
-	return ""
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", e.RepoID)
 }
 
 // IsErrNoPendingTransfer is an error type when a repository has no pending

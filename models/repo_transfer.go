@@ -19,7 +19,6 @@ const (
 // RepoTransfer is used to manage repository transfers
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64
 	RecipientID int64
 	Recipient   *User `xorm:"-"`
 	RepoID      int64
@@ -45,10 +44,10 @@ func (r *RepoTransfer) LoadRecipient() error {
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
-func GetPendingRepositoryTransfer(repo *Repository, doer *User) (*RepoTransfer, error) {
+func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	var transfer = new(RepoTransfer)
 
-	_, err := x.Where("status = ? AND repo_id = ? AND user_id = ?", Pending, repo.ID, doer.ID).
+	_, err := x.Where("status = ? AND repo_id = ? ", Pending, repo.ID).
 		Get(transfer)
 
 	if err != nil {
@@ -56,7 +55,7 @@ func GetPendingRepositoryTransfer(repo *Repository, doer *User) (*RepoTransfer, 
 	}
 
 	if transfer.ID == 0 {
-		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID, UserID: doer.ID}
+		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID}
 	}
 
 	return transfer, nil
@@ -74,14 +73,13 @@ func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 
 // StartRepositoryTransfer marks the repository transfer as "pending". It
 // doesn't actually transfer the repository until the user acks the transfer.
-func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) error {
+func StartRepositoryTransfer(newOwnerName string, repo *Repository) error {
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
 	// It has to be cancelled for a new transfer to occur
 
 	n, err := x.Count(&RepoTransfer{
 		RepoID: repo.ID,
-		UserID: doer.ID,
 		Status: Pending,
 	})
 	if err != nil {
@@ -107,7 +105,6 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 
 	transfer := &RepoTransfer{
 		RepoID:      repo.ID,
-		UserID:      doer.ID,
 		RecipientID: newOwner.ID,
 		Status:      Pending,
 		CreatedUnix: util.TimeStampNow(),
