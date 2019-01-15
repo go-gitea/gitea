@@ -175,8 +175,8 @@ var (
 	UsePostgreSQL        bool
 	UseTiDB              bool
 	LogSQL               bool
-        DBConnectRetries     int
-        DBConnectBackoff     time.Duration
+	DBConnectRetries     int
+	DBConnectBackoff     time.Duration
 
 	// Indexer settings
 	Indexer struct {
