@@ -57,17 +57,15 @@ func GlobalInit() {
 	if setting.InstallLock {
 		highlight.NewContext()
 		markup.Init()
-                maxRetries := setting.Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
-                retryWait := setting.Cfg.Section("database").Key("DB_RETRY_BKOFF").MustDuration(3 * time.Second)
                 // In case of delays connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synolgy
 		log.Info("Beginning ORM engine init...")
-		for i := 0; i < maxRetries; i++ {
+		for i := 0; i < setting.DBConnectRetries; i++ {
 			if err := models.NewEngine(migrations.Migrate); err == nil {
 				break
-			} else if i == maxRetries-1 {
+			} else if i == setting.DBConnectRetries-1 {
 				log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 			}
-                        time.Sleep(retryWait)
+                        time.Sleep(setting.DBConnectBackoff)
 		        log.Info("ORM engine initialization failed. Retry #%d/10...", i+1)
 		}
 		log.Info("ORM engine init success!")
