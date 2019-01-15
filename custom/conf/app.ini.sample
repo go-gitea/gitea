@@ -245,7 +245,7 @@ LOG_SQL = true
 ; Maximum number of DB Connect retries
 DB_RETRIES = 10
 ; Backoff time per DB retry (seconds)
-DB_RETRY_BKOFF = 3
+DB_RETRY_BACKOFF = 3
 
 
 [indexer]
