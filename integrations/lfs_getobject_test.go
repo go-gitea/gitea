@@ -32,10 +32,20 @@ func GenerateLFSOid(content io.Reader) (string, error) {
 	return hex.EncodeToString(sum), nil
 }
 
+var lfsID = int64(20000)
+
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
 	oid, err := GenerateLFSOid(bytes.NewReader(*content))
 	assert.NoError(t, err)
-	lfsMetaObject := &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+	var lfsMetaObject *models.LFSMetaObject
+
+	if setting.UsePostgreSQL {
+		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+	} else {
+		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+	}
+
+	lfsID = lfsID + 1
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
 	contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
@@ -51,6 +61,7 @@ func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
+	defer repo.RemoveLFSMetaObjectByOid(oid)
 
 	session := loginUser(t, "user2")
 
