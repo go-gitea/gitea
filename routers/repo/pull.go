@@ -766,7 +766,12 @@ func PrepareCompareDiff(
 
 	if prInfo.Commits.Len() == 1 {
 		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
-		title = c.UserCommit.Summary()
+		title = strings.TrimSpace(c.UserCommit.Summary())
+
+		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		if len(body) > 1 {
+			ctx.Data["content"] = strings.Join(body[1:], "\n")
+		}
 	} else {
 		title = headBranch
 	}
