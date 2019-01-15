@@ -722,8 +722,9 @@ func PrepareCompareDiff(
 	baseBranch, headBranch string) bool {
 
 	var (
-		repo = ctx.Repo.Repository
-		err  error
+		repo  = ctx.Repo.Repository
+		err   error
+		title string
 	)
 
 	// Get diff information.
@@ -762,6 +763,15 @@ func PrepareCompareDiff(
 	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+
+	if prInfo.Commits.Len() == 1 {
+		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+		title = c.UserCommit.Summary()
+	} else {
+		title = headBranch
+	}
+
+	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
