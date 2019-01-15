@@ -40,6 +40,7 @@ type Repository struct {
 	Watchers      int         `json:"watchers_count"`
 	OpenIssues    int         `json:"open_issues_count"`
 	DefaultBranch string      `json:"default_branch"`
+	Archived      bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time

@@ -27,6 +27,18 @@ import (
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
+	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
+		// Set CORS headers for browser-based git clients
+		ctx.Resp.Header().Set("Access-Control-Allow-Origin", setting.Repository.AccessControlAllowOrigin)
+		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
+
+		// Handle preflight OPTIONS request
+		if ctx.Req.Method == "OPTIONS" {
+			ctx.Status(http.StatusOK)
+			return
+		}
+	}
+
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
@@ -182,36 +194,19 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
-		if !isPublicPull {
-			has, err := models.HasAccess(authUser.ID, repo, accessMode)
-			if err != nil {
-				ctx.ServerError("HasAccess", err)
-				return
-			} else if !has {
-				if accessMode == models.AccessModeRead {
-					has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
-					if err != nil {
-						ctx.ServerError("HasAccess2", err)
-						return
-					} else if !has {
-						ctx.HandleText(http.StatusForbidden, "User permission denied")
-						return
-					}
-				} else {
-					ctx.HandleText(http.StatusForbidden, "User permission denied")
-					return
-				}
-			}
-
-			if !isPull && repo.IsMirror {
-				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
-				return
-			}
+		perm, err := models.GetUserRepoPermission(repo, authUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
 		}
 
-		if !repo.CheckUnitUser(authUser.ID, authUser.IsAdmin, unitType) {
-			ctx.HandleText(http.StatusForbidden, fmt.Sprintf("User %s does not have allowed access to repository %s 's code",
-				authUser.Name, repo.RepoPath()))
+		if !perm.CanAccess(accessMode, unitType) {
+			ctx.HandleText(http.StatusForbidden, "User permission denied")
+			return
+		}
+
+		if !isPull && repo.IsMirror {
+			ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
 			return
 		}
 

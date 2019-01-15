@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -33,6 +34,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -80,6 +82,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -88,11 +91,6 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -100,6 +98,11 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -149,20 +152,17 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the label to remove
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -170,6 +170,11 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -215,6 +220,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -223,11 +229,6 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -235,6 +236,11 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 
@@ -284,15 +290,11 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -300,6 +302,11 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(403)
 		return
 	}
 

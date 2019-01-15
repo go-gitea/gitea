@@ -112,6 +112,7 @@ type RepoSettingForm struct {
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
 	PullsAllowRebase                 bool
+	PullsAllowRebaseMerge            bool
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
@@ -135,13 +136,16 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected            bool
-	EnableWhitelist      bool
-	WhitelistUsers       string
-	WhitelistTeams       string
-	EnableMergeWhitelist bool
-	MergeWhitelistUsers  string
-	MergeWhitelistTeams  string
+	Protected               bool
+	EnableWhitelist         bool
+	WhitelistUsers          string
+	WhitelistTeams          string
+	EnableMergeWhitelist    bool
+	MergeWhitelistUsers     string
+	MergeWhitelistTeams     string
+	RequiredApprovals       int64
+	ApprovalsWhitelistUsers string
+	ApprovalsWhitelistTeams string
 }
 
 // Validate validates the fields
@@ -360,7 +364,7 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // MergePullRequestForm form for merging Pull Request
 type MergePullRequestForm struct {
-	Do                string `binding:"Required;In(merge,rebase,squash)"`
+	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string
 }
@@ -377,6 +381,7 @@ type CodeCommentForm struct {
 	Line     int64
 	TreePath string `form:"path" binding:"Required"`
 	IsReview bool   `form:"is_review"`
+	Reply    int64  `form:"reply"`
 }
 
 // Validate validates the fields

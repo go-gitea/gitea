@@ -46,6 +46,7 @@ func NewServices() {
 // GlobalInit is for global configuration reload-able.
 func GlobalInit() {
 	setting.NewContext()
+	setting.CheckLFSVersion()
 	log.Trace("AppPath: %s", setting.AppPath)
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)

@@ -41,3 +41,14 @@
   tree_path: "README.md"
   created_unix: 946684812
   invalidated: false
+
+-
+  id: 6
+  type: 21 # code comment
+  poster_id: 1
+  issue_id: 2
+  content: "it's already invalidated. boring..."
+  line: -4
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: true

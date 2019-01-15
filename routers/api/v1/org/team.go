@@ -54,6 +54,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -89,6 +90,20 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
+
+	unitTypes := models.FindUnitTypes(form.Units...)
+
+	if team.Authorize < models.AccessModeOwner {
+		var units = make([]*models.TeamUnit, 0, len(form.Units))
+		for _, tp := range unitTypes {
+			units = append(units, &models.TeamUnit{
+				OrgID: ctx.Org.Organization.ID,
+				Type:  tp,
+			})
+		}
+		team.Units = units
+	}
+
 	if err := models.NewTeam(team); err != nil {
 		if models.IsErrTeamAlreadyExist(err) {
 			ctx.Error(422, "", err)
@@ -127,6 +142,19 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	team.Name = form.Name
 	team.Description = form.Description
 	team.Authorize = models.ParseAccessMode(form.Permission)
+	unitTypes := models.FindUnitTypes(form.Units...)
+
+	if team.Authorize < models.AccessModeOwner {
+		var units = make([]*models.TeamUnit, 0, len(form.Units))
+		for _, tp := range unitTypes {
+			units = append(units, &models.TeamUnit{
+				OrgID: ctx.Org.Organization.ID,
+				Type:  tp,
+			})
+		}
+		team.Units = units
+	}
+
 	if err := models.UpdateTeam(team, true); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
@@ -144,12 +172,11 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     description: team deleted
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -169,6 +196,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -205,6 +233,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -237,6 +266,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: username
 	//   in: path
@@ -270,6 +300,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -280,7 +311,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(team.Repos))
 	for i, repo := range team.Repos {
-		access, err := models.AccessLevel(ctx.User.ID, repo)
+		access, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
 			ctx.Error(500, "GetTeamRepos", err)
 			return
@@ -316,6 +347,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path
@@ -334,7 +366,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User.ID, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {
@@ -362,6 +394,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the team
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: org
 	//   in: path
@@ -380,7 +413,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User.ID, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {

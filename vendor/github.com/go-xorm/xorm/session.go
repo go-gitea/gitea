@@ -102,6 +102,12 @@ func (session *Session) Close() {
 	}
 }
 
+// ContextCache enable context cache or not
+func (session *Session) ContextCache(context ContextCache) *Session {
+	session.statement.context = context
+	return session
+}
+
 // IsClosed returns if session is closed
 func (session *Session) IsClosed() bool {
 	return session.db == nil
@@ -838,4 +844,13 @@ func (session *Session) LastSQL() (string, []interface{}) {
 func (session *Session) Unscoped() *Session {
 	session.statement.Unscoped()
 	return session
+}
+
+func (session *Session) incrVersionFieldValue(fieldValue *reflect.Value) {
+	switch fieldValue.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		fieldValue.SetInt(fieldValue.Int() + 1)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		fieldValue.SetUint(fieldValue.Uint() + 1)
+	}
 }

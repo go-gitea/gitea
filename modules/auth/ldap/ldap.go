@@ -83,16 +83,6 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	log.Trace("Search for LDAP user: %s", name)
-	if ls.BindDN != "" && ls.BindPassword != "" {
-		err := l.Bind(ls.BindDN, ls.BindPassword)
-		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
-			return "", false
-		}
-		log.Trace("Bound as BindDN %s", ls.BindDN)
-	} else {
-		log.Trace("Proceeding with anonymous LDAP search.")
-	}
 
 	// A search for the user.
 	userFilter, ok := ls.sanitizedUserQuery(name)
@@ -203,20 +193,48 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		var ok bool
 		userDN, ok = ls.sanitizedUserDN(name)
+
 		if !ok {
 			return nil
+		}
+
+		err = bindUser(l, userDN, passwd)
+		if err != nil {
+			return nil
+		}
+
+		if ls.UserBase != "" {
+			// not everyone has a CN compatible with input name so we need to find
+			// the real userDN in that case
+
+			userDN, ok = ls.findUserDN(l, name)
+			if !ok {
+				return nil
+			}
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
 
 		var found bool
+
+		if ls.BindDN != "" && ls.BindPassword != "" {
+			err := l.Bind(ls.BindDN, ls.BindPassword)
+			if err != nil {
+				log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+				return nil
+			}
+			log.Trace("Bound as BindDN %s", ls.BindDN)
+		} else {
+			log.Trace("Proceeding with anonymous LDAP search.")
+		}
+
 		userDN, found = ls.findUserDN(l, name)
 		if !found {
 			return nil
 		}
 	}
 
-	if directBind || !ls.AttributesInBind {
+	if !ls.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
@@ -229,10 +247,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
+		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey},
 		nil)
 
 	sr, err := l.Search(search)
@@ -253,6 +271,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
+	sshPublicKey := sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
 	isAdmin := checkAdmin(l, ls, userDN)
 
 	if !directBind && ls.AttributesInBind {
@@ -264,11 +283,12 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	return &SearchResult{
-		Username: username,
-		Name:     firstname,
-		Surname:  surname,
-		Mail:     mail,
-		IsAdmin:  isAdmin,
+		Username:     username,
+		Name:         firstname,
+		Surname:      surname,
+		Mail:         mail,
+		SSHPublicKey: sshPublicKey,
+		IsAdmin:      isAdmin,
 	}
 }
 

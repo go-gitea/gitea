@@ -33,8 +33,9 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
-	"github.com/kballard/go-shellquote"
-	"gopkg.in/ini.v1"
+	shellquote "github.com/kballard/go-shellquote"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -118,23 +119,24 @@ var (
 	LetsEncryptEmail     string
 
 	SSH = struct {
-		Disabled             bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain               string         `ini:"SSH_DOMAIN"`
-		Port                 int            `ini:"SSH_PORT"`
-		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
-		RootPath             string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
-		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		MinimumKeySizeCheck  bool           `ini:"-"`
-		MinimumKeySizes      map[string]int `ini:"-"`
-		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
+		Disabled                 bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer       bool           `ini:"START_SSH_SERVER"`
+		BuiltinServerUser        string         `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                   string         `ini:"SSH_DOMAIN"`
+		Port                     int            `ini:"SSH_PORT"`
+		ListenHost               string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort               int            `ini:"SSH_LISTEN_PORT"`
+		RootPath                 string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers            []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges       []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs               []string       `ini:"SSH_SERVER_MACS"`
+		KeyTestPath              string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath               string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup     bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck      bool           `ini:"-"`
+		MinimumKeySizes          map[string]int `ini:"-"`
+		CreateAuthorizedKeysFile bool           `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		ExposeAnonymous          bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -155,15 +157,16 @@ var (
 	}
 
 	// Security settings
-	InstallLock          bool
-	SecretKey            string
-	LogInRememberDays    int
-	CookieUserName       string
-	CookieRememberName   string
-	ReverseProxyAuthUser string
-	MinPasswordLength    int
-	ImportLocalPaths     bool
-	DisableGitHooks      bool
+	InstallLock           bool
+	SecretKey             string
+	LogInRememberDays     int
+	CookieUserName        string
+	CookieRememberName    string
+	ReverseProxyAuthUser  string
+	ReverseProxyAuthEmail string
+	MinPasswordLength     int
+	ImportLocalPaths      bool
+	DisableGitHooks       bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -198,15 +201,16 @@ var (
 
 	// Repository settings
 	Repository = struct {
-		AnsiCharset            string
-		ForcePrivate           bool
-		DefaultPrivate         string
-		MaxCreationLimit       int
-		MirrorQueueLength      int
-		PullRequestQueueLength int
-		PreferredLicenses      []string
-		DisableHTTPGit         bool
-		UseCompatSSHURI        bool
+		AnsiCharset              string
+		ForcePrivate             bool
+		DefaultPrivate           string
+		MaxCreationLimit         int
+		MirrorQueueLength        int
+		PullRequestQueueLength   int
+		PreferredLicenses        []string
+		DisableHTTPGit           bool
+		AccessControlAllowOrigin string
+		UseCompatSSHURI          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -234,15 +238,16 @@ var (
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
 	}{
-		AnsiCharset:            "",
-		ForcePrivate:           false,
-		DefaultPrivate:         RepoCreatingLastUserVisibility,
-		MaxCreationLimit:       -1,
-		MirrorQueueLength:      1000,
-		PullRequestQueueLength: 1000,
-		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
-		DisableHTTPGit:         false,
-		UseCompatSSHURI:        false,
+		AnsiCharset:              "",
+		ForcePrivate:             false,
+		DefaultPrivate:           RepoCreatingLastUserVisibility,
+		MaxCreationLimit:         -1,
+		MirrorQueueLength:        1000,
+		PullRequestQueueLength:   1000,
+		PreferredLicenses:        []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:           false,
+		AccessControlAllowOrigin: "",
+		UseCompatSSHURI:          false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -300,6 +305,7 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
+		Themes              []string
 
 		Admin struct {
 			UserPagingNum   int
@@ -326,6 +332,7 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
+		Themes:              []string{`gitea`, `arc-green`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -558,6 +565,15 @@ var (
 		TrustedFacets []string
 	}{}
 
+	// Metrics settings
+	Metrics = struct {
+		Enabled bool
+		Token   string
+	}{
+		Enabled: false,
+		Token:   "",
+	}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
@@ -678,6 +694,27 @@ func createPIDFile(pidPath string) {
 	defer file.Close()
 	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
 		log.Fatal(4, "Failed to write PID information: %v", err)
+	}
+}
+
+// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
+func CheckLFSVersion() {
+	if LFS.StartServer {
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal(4, "Error retrieving git version: %v", err)
+		}
+
+		if !version.Compare(binVersion, "2.1.2", ">=") {
+			LFS.StartServer = false
+			log.Error(4, "LFS server support needs at least Git v2.1.2")
+		} else {
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+		}
 	}
 }
 
@@ -861,6 +898,7 @@ func NewContext() {
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	sec = Cfg.Section("server")
@@ -875,7 +913,6 @@ func NewContext() {
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
-
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
 			log.Fatal(4, "Failed to create '%s': %v", LFS.ContentPath, err)
 		}
@@ -909,42 +946,6 @@ func NewContext() {
 				return
 			}
 		}
-
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			log.Fatal(4, "Error retrieving git version: %v", err)
-		}
-
-		splitVersion := strings.SplitN(binVersion, ".", 4)
-
-		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
-		if err != nil {
-			log.Fatal(4, "Error parsing git major version: %v", err)
-		}
-		minorVersion, err := strconv.ParseUint(splitVersion[1], 10, 64)
-		if err != nil {
-			log.Fatal(4, "Error parsing git minor version: %v", err)
-		}
-		revisionVersion, err := strconv.ParseUint(splitVersion[2], 10, 64)
-		if err != nil {
-			log.Fatal(4, "Error parsing git revision version: %v", err)
-		}
-
-		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
-			(majorVersion == 2 && minorVersion == 1 && revisionVersion >= 2)) {
-
-			LFS.StartServer = false
-			log.Error(4, "LFS server support needs at least Git v2.1.2")
-
-		} else {
-
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-
-		}
 	}
 
 	sec = Cfg.Section("security")
@@ -954,6 +955,7 @@ func NewContext() {
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
+	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
@@ -1121,6 +1123,8 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
+	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
+		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
 
 	sec = Cfg.Section("mirror")
@@ -1193,6 +1197,16 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Fatal(4, "Error retrieving git version: %v", err)
+	}
+
+	if version.Compare(binVersion, "2.9", ">=") {
+		// Explicitly disable credential helper, otherwise Git credentials might leak
+		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
+	}
 }
 
 // Service settings
@@ -1200,6 +1214,7 @@ var Service struct {
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
+	EmailDomainWhitelist                    []string
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
@@ -1207,6 +1222,7 @@ var Service struct {
 	EnableNotifyMail                        bool
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
+	EnableReverseProxyEmail                 bool
 	EnableCaptcha                           bool
 	CaptchaType                             string
 	RecaptchaSecret                         string
@@ -1218,6 +1234,7 @@ var Service struct {
 	DefaultEnableDependencies               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	EnableUserHeatmap                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1232,10 +1249,12 @@ func newService() {
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
+	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
@@ -1249,6 +1268,7 @@ func newService() {
 	Service.DefaultEnableDependencies = sec.Key("DEFAULT_ENABLE_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
@@ -1325,10 +1345,9 @@ func newLogService() {
 			}
 
 			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
@@ -1391,10 +1410,9 @@ func NewXORMLogService(disableConsole bool) {
 			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
-				sec.Key("MAX_LINES").MustInt(1000000),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
@@ -1506,6 +1524,7 @@ type Mailer struct {
 	SkipVerify        bool
 	UseCertificate    bool
 	CertFile, KeyFile string
+	IsTLSEnabled      bool
 
 	// Sendmail sender
 	UseSendmail  bool
@@ -1539,6 +1558,7 @@ func newMailService() {
 		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
 		CertFile:       sec.Key("CERT_FILE").String(),
 		KeyFile:        sec.Key("KEY_FILE").String(),
+		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
 		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),

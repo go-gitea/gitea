@@ -25,7 +25,7 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 
 	type Topic struct {
 		ID          int64
-		Name        string `xorm:"UNIQUE"`
+		Name        string `xorm:"UNIQUE VARCHAR(25)"`
 		RepoCount   int
 		CreatedUnix int64 `xorm:"INDEX created"`
 		UpdatedUnix int64 `xorm:"INDEX updated"`
@@ -205,9 +205,6 @@ func reformatAndRemoveIncorrectTopics(x *xorm.Engine) (err error) {
 			return err
 		}
 	}
-	if err := sess.Commit(); err != nil {
-		return err
-	}
 
-	return nil
+	return sess.Commit()
 }
