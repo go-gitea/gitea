@@ -20,10 +20,6 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		IsEmpty bool `xorm:"INDEX"`
 	}
 
-	if err := x.Sync(new(Repository)); err != nil {
-		return fmt.Errorf("sync: %v", err)
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
