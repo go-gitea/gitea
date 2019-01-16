@@ -55,7 +55,7 @@ func getTelegramCreatePayload(p *api.CreatePayload) (*TelegramPayload, error) {
 func getTelegramDeletePayload(p *api.DeletePayload) (*TelegramPayload, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
-	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
+	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
 	return &TelegramPayload{
