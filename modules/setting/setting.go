@@ -169,14 +169,14 @@ var (
 	DisableGitHooks       bool
 
 	// Database settings
-	UseSQLite3           bool
-	UseMySQL             bool
-	UseMSSQL             bool
-	UsePostgreSQL        bool
-	UseTiDB              bool
-	LogSQL               bool
-	DBConnectRetries     int
-	DBConnectBackoff     time.Duration
+	UseSQLite3       bool
+	UseMySQL         bool
+	UseMSSQL         bool
+	UsePostgreSQL    bool
+	UseTiDB          bool
+	LogSQL           bool
+	DBConnectRetries int
+	DBConnectBackoff time.Duration
 
 	// Indexer settings
 	Indexer struct {
