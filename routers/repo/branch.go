@@ -126,7 +126,19 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		return err
 	}
 
-	// Don't return error here
+	// Don't return error below this
+	if err := models.PushUpdate(branchName, models.PushUpdateOptions{
+		RefFullName:  git.BranchPrefix + branchName,
+		OldCommitID:  commit.ID.String(),
+		NewCommitID:  git.EmptySHA,
+		PusherID:     ctx.User.ID,
+		PusherName:   ctx.User.Name,
+		RepoUserName: ctx.Repo.Owner.Name,
+		RepoName:     ctx.Repo.Repository.Name,
+	}); err != nil {
+		log.Error(4, "Update: %v", err)
+	}
+
 	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID.String(), ctx.User.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}

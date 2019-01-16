@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
 )
@@ -283,6 +284,15 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize 
 	return rels, err
 }
 
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
+func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = x.
+		Desc("created_unix").
+		In("tag_name", tagNames).
+		Find(&rels, Release{RepoID: repoID})
+	return rels, err
+}
+
 // GetReleaseCountByRepoID returns the count of releases of repository
 func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
 	return x.Where(opts.toConds(repoID)).Count(&Release{})
@@ -479,10 +489,10 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				continue
 			}
 			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil {
+			if err != nil && !git.IsErrNotExist(err) {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
-			if !gitRepo.IsTagExist(rel.TagName) || commitID != rel.Sha1 {
+			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
 				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}

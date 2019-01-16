@@ -390,12 +390,12 @@
   revision = "d523deb1b23d913de5bdada721a6071e71283618"
 
 [[projects]]
-  digest = "1:1397763fd29d5667bcfbacde8a37542ee145416b3acb7e1b149c98fef2567930"
+  digest = "1:06d21295033f211588d0ad7ff391cc1b27e72b60cb6d4b7db0d70cffae4cf228"
   name = "github.com/go-xorm/builder"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "dc8bf48f58fab2b4da338ffd25191905fd741b8f"
-  version = "v0.3.0"
+  revision = "03eb88feccce3e477c318ce7f6f1b386544ab20b"
+  version = "v0.3.3"
 
 [[projects]]
   digest = "1:c910feae32bcc3cbf068c7263424d9f198da931c0cad909179621835e6f87cb8"
@@ -406,11 +406,11 @@
   version = "v0.6.0"
 
 [[projects]]
-  digest = "1:22a1ac7f654095f6817076eb975368bab5481e42554d0121ea37e28a86a3f83d"
+  digest = "1:d366480c27ab51b3f7e995f25503063e7a6ebc7feb269df2499c33471f35cd62"
   name = "github.com/go-xorm/xorm"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "ad69f7d8f0861a29438154bb0a20b60501298480"
+  revision = "1cd2662be938bfee0e34af92fe448513e0560fb1"
 
 [[projects]]
   branch = "master"
@@ -588,12 +588,13 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:4b992ec853d0ea9bac3dcf09a64af61de1a392e6cb0eef2204c0c92f4ae6b911"
+  digest = "1:aa7dcd6a0db70d514821f8739d0a22e7df33b499d8d399cf15b2858d44f8319e"
   name = "github.com/markbates/goth"
   packages = [
     ".",
     "gothic",
     "providers/bitbucket",
+    "providers/discord",
     "providers/dropbox",
     "providers/facebook",
     "providers/github",
@@ -603,8 +604,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "bc6d8ddf751a745f37ca5567dbbfc4157bbf5da9"
-  version = "v1.47.2"
+  revision = "157987f620ff2fc5e1f6a1427a3685219fbf6ff4"
+  version = "v1.49.0"
 
 [[projects]]
   digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
@@ -1179,6 +1180,7 @@
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",
+    "github.com/markbates/goth/providers/discord",
     "github.com/markbates/goth/providers/dropbox",
     "github.com/markbates/goth/providers/facebook",
     "github.com/markbates/goth/providers/github",
