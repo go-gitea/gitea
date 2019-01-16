@@ -581,6 +581,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.RepoMustNotBeArchived(), repo.Action)
 	m.Get("/:username/:reponame/settings/transfer/acknowledge", reqSignIn, context.RepoAssignment(), repo.TransferRepo)
 
+	m.Get("/:username/:reponame/transfer/acknowledge", reqSignIn, context.RepoAssignment(), repo.AcknowledgeTranfer)
+
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
