@@ -4,6 +4,12 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.6.4](https://github.com/go-gitea/gitea/releases/tag/v1.6.4) - 2019-01-15
+* BUGFIX
+  * Fix SSH key now can be reused as public key after deleting as deploy key (#5671) (#5685)
+  * When redirecting clean the path to avoid redirecting to external site (#5669) (#5703)
+  * Fix to use correct value for "MSpan Structures Obtained" (#5706) (#5715)
+
 ## [1.7.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.7.0-rc2) - 2019-01-04
 * SECURITY
   * Prevent DeleteFilePost doing arbitrary deletion (#5631)
