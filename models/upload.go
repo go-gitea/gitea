@@ -119,6 +119,10 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		return fmt.Errorf("delete uploads: %v", err)
 	}
 
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
 		if !com.IsFile(localPath) {
@@ -130,12 +134,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		}
 	}
 
-	return sess.Commit()
-}
-
-// DeleteUpload delete a upload
-func DeleteUpload(u *Upload) error {
-	return DeleteUploads(u)
+	return nil
 }
 
 // DeleteUploadByUUID deletes a upload by UUID
@@ -148,7 +147,7 @@ func DeleteUploadByUUID(uuid string) error {
 		return fmt.Errorf("GetUploadByUUID: %v", err)
 	}
 
-	if err := DeleteUpload(upload); err != nil {
+	if err := DeleteUploads(upload); err != nil {
 		return fmt.Errorf("DeleteUpload: %v", err)
 	}
 
