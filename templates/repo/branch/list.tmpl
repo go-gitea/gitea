@@ -52,7 +52,7 @@
 										{{else if .IsDeleted}}
 											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
 										{{else}}
-											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-val="{{.Name}}"><i class="trash icon text red"></i></a>
+											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
 										{{end}}
 										</td>
 									{{end}}
@@ -69,7 +69,7 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		<i class="trash icon"></i>
-		{{.i18n.Tr "repo.branch.delete_html"}} <span class="branch-name"></span>
+		{{.i18n.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">
 		<p>{{.i18n.Tr "repo.branch.delete_desc" | Str2html}}</p>

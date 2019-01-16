@@ -297,6 +297,8 @@ const (
 	MergeStyleMerge MergeStyle = "merge"
 	// MergeStyleRebase rebase before merging
 	MergeStyleRebase MergeStyle = "rebase"
+	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
+	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
 )
@@ -434,6 +436,41 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 			"git", "merge", "--ff-only", "-q", "head_repo_"+pr.HeadBranch); err != nil {
 			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
+	case MergeStyleRebaseMerge:
+		// Checkout head branch
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
+			"git", "checkout", "-b", "head_repo_"+pr.HeadBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			return fmt.Errorf("git checkout: %s", stderr)
+		}
+		// Rebase before merging
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
+			"git", "rebase", "-q", pr.BaseBranch); err != nil {
+			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		}
+		// Checkout base branch again
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
+			"git", "checkout", pr.BaseBranch); err != nil {
+			return fmt.Errorf("git checkout: %s", stderr)
+		}
+		// Prepare merge with commit
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
+			"git", "merge", "--no-ff", "--no-commit", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		}
+
+		// Set custom message and author and create merge commit
+		sig := doer.NewGitSig()
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git commit): %s", tmpBasePath),
+			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+			"-m", message); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		}
+
 	case MergeStyleSquash:
 		// Merge with squash
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
@@ -684,15 +721,15 @@ var patchConflicts = []string{
 }
 
 // testPatch checks if patch can be merged to base repository without conflict.
-func (pr *PullRequest) testPatch() (err error) {
+func (pr *PullRequest) testPatch(e Engine) (err error) {
 	if pr.BaseRepo == nil {
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
 	}
 
-	patchPath, err := pr.BaseRepo.PatchPath(pr.Index)
+	patchPath, err := pr.BaseRepo.patchPath(e, pr.Index)
 	if err != nil {
 		return fmt.Errorf("BaseRepo.PatchPath: %v", err)
 	}
@@ -721,7 +758,7 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.getUnit(e, UnitTypePullRequests)
 	if err != nil {
 		return err
 	}
@@ -774,12 +811,12 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	}
 
 	pr.Index = pull.Index
-	if err = repo.SavePatch(pr.Index, patch); err != nil {
+	if err = repo.savePatch(sess, pr.Index, patch); err != nil {
 		return fmt.Errorf("SavePatch: %v", err)
 	}
 
 	pr.BaseRepo = repo
-	if err = pr.testPatch(); err != nil {
+	if err = pr.testPatch(sess); err != nil {
 		return fmt.Errorf("testPatch: %v", err)
 	}
 	// No conflict appears after test means mergeable.
@@ -808,8 +845,6 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
-	} else if err = pull.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
 	}
 
 	pr.Issue = pull
@@ -1328,7 +1363,7 @@ func TestPullRequests() {
 		if pr.manuallyMerged() {
 			continue
 		}
-		if err := pr.testPatch(); err != nil {
+		if err := pr.testPatch(x); err != nil {
 			log.Error(3, "testPatch: %v", err)
 			continue
 		}
@@ -1352,7 +1387,7 @@ func TestPullRequests() {
 			continue
 		} else if pr.manuallyMerged() {
 			continue
-		} else if err = pr.testPatch(); err != nil {
+		} else if err = pr.testPatch(x); err != nil {
 			log.Error(4, "testPatch[%d]: %v", pr.ID, err)
 			continue
 		}

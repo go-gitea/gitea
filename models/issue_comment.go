@@ -361,7 +361,11 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
-func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
+func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
+	return c.mailParticipants(x, opType, issue)
+}
+
+func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
 	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
@@ -555,7 +559,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.LoadReview(); err != nil {
+				if err := comment.loadReview(e); err != nil {
 					return err
 				}
 			}
@@ -632,9 +636,6 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if err = notifyWatchers(e, act); err != nil {
 			log.Error(4, "notifyWatchers: %v", err)
 		}
-		if err = comment.MailParticipants(e, act.OpType, opts.Issue); err != nil {
-			log.Error(4, "MailParticipants: %v", err)
-		}
 	}
 	return nil
 }
@@ -706,6 +707,10 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 	} else { // Otherwise modified
 		commentType = CommentTypeModifiedDeadline
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+	}
+
+	if err := issue.loadRepo(e); err != nil {
+		return nil, err
 	}
 
 	return createComment(e, &CreateCommentOptions{

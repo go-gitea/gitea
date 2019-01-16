@@ -177,7 +177,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mssql:
-    image: golang:1.10
+    image: golang:1.11
     pull: true
     group: test
     environment:
