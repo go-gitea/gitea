@@ -140,6 +140,7 @@ type User struct {
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
+	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -165,6 +166,13 @@ func (u *User) BeforeUpdate() {
 	u.Description = base.TruncateString(u.Description, 255)
 }
 
+// AfterLoad is invoked from XORM after filling all the fields of this object.
+func (u *User) AfterLoad() {
+	if u.Theme == "" {
+		u.Theme = setting.UI.DefaultTheme
+	}
+}
+
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
 	u.LastLoginUnix = util.TimeStampNow()
@@ -174,6 +182,12 @@ func (u *User) SetLastLogin() {
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(u, "diff_view_style")
+}
+
+// UpdateTheme updates a users' theme irrespective of the site wide theme
+func (u *User) UpdateTheme(themeName string) error {
+	u.Theme = themeName
+	return UpdateUserCols(u, "theme")
 }
 
 // getEmail returns an noreply email, if the user has set to keep his
@@ -777,6 +791,7 @@ func CreateUser(u *User) (err error) {
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
 
 	if _, err = sess.Insert(u); err != nil {
 		return err

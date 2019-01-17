@@ -151,6 +151,11 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
+// GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
+func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
+	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)
+}
+
 func getAttachmentsByIssueID(e Engine, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, e.Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
@@ -169,6 +174,18 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+}
+
+// getAttachmentByReleaseIDFileName return a file based on the the following infos:
+func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string) (*Attachment, error) {
+	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
+	has, err := e.Get(attach)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, err
+	}
+	return attach, nil
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
