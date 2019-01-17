@@ -201,15 +201,16 @@ var (
 
 	// Repository settings
 	Repository = struct {
-		AnsiCharset            string
-		ForcePrivate           bool
-		DefaultPrivate         string
-		MaxCreationLimit       int
-		MirrorQueueLength      int
-		PullRequestQueueLength int
-		PreferredLicenses      []string
-		DisableHTTPGit         bool
-		UseCompatSSHURI        bool
+		AnsiCharset              string
+		ForcePrivate             bool
+		DefaultPrivate           string
+		MaxCreationLimit         int
+		MirrorQueueLength        int
+		PullRequestQueueLength   int
+		PreferredLicenses        []string
+		DisableHTTPGit           bool
+		AccessControlAllowOrigin string
+		UseCompatSSHURI          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -237,15 +238,16 @@ var (
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
 	}{
-		AnsiCharset:            "",
-		ForcePrivate:           false,
-		DefaultPrivate:         RepoCreatingLastUserVisibility,
-		MaxCreationLimit:       -1,
-		MirrorQueueLength:      1000,
-		PullRequestQueueLength: 1000,
-		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
-		DisableHTTPGit:         false,
-		UseCompatSSHURI:        false,
+		AnsiCharset:              "",
+		ForcePrivate:             false,
+		DefaultPrivate:           RepoCreatingLastUserVisibility,
+		MaxCreationLimit:         -1,
+		MirrorQueueLength:        1000,
+		PullRequestQueueLength:   1000,
+		PreferredLicenses:        []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:           false,
+		AccessControlAllowOrigin: "",
+		UseCompatSSHURI:          false,
 
 		// Repository editor settings
 		Editor: struct {
