@@ -1112,8 +1112,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	UpdateIssueIndexer(issue.ID)
-
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
@@ -1652,7 +1650,6 @@ func updateIssue(e Engine, issue *Issue) error {
 	if err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 
