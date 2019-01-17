@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:aed2bc1c4026233af8ad43cab9d9464a0e3b906d3d058d2d6e814f3e1ddfa528"
+  digest = "1:8a559f110defa54f847a3efa2734297571d960b476699579f2008e4a37b62a1a"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "d95a6e0392218961d1bdd18020290a20bd61b063"
+  revision = "140e9fcba7583e1c6f22eb57676bb00794ef14a8"
 
 [[projects]]
   digest = "1:3fcef06a1a6561955c94af6c7757a6fa37605eb653f0d06ab960e5bb80092195"
