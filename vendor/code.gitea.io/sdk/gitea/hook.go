@@ -371,6 +371,7 @@ type PushPayload struct {
 	After      string           `json:"after"`
 	CompareURL string           `json:"compare_url"`
 	Commits    []*PayloadCommit `json:"commits"`
+	HeadCommit *PayloadCommit   `json:"head_commit"`
 	Repo       *Repository      `json:"repository"`
 	Pusher     *User            `json:"pusher"`
 	Sender     *User            `json:"sender"`
