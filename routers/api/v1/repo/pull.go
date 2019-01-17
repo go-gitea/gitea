@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/git"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/sdk/gitea"
@@ -36,6 +38,33 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: Page number
+	//   type: integer
+	// - name: state
+	//   in: query
+	//   description: "State of pull request: open or closed (optional)"
+	//   type: string
+	//   enum: [closed, open, all]
+	// - name: sort
+	//   in: query
+	//   description: "Type of sort"
+	//   type: string
+	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
+	// - name: milestone
+	//   in: query
+	//   description: "ID of the milestone"
+	//   type: integer
+	//   format: int64
+	// - name: labels
+	//   in: query
+	//   description: "Label IDs"
+	//   type: array
+	//   collectionFormat: multi
+	//   items:
+	//     type: integer
+	//     format: int64
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
@@ -99,6 +128,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the pull request to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -269,6 +299,8 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
+	notification.NotifyNewPullRequest(pr)
+
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 	ctx.JSON(201, pr.APIFormat())
 }
@@ -297,6 +329,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//   in: path
 	//   description: index of the pull request to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -317,8 +350,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 
 	pr.LoadIssue()
 	issue := pr.Issue
+	issue.Repo = ctx.Repo.Repository
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
 		ctx.Status(403)
 		return
 	}
@@ -349,8 +383,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
-
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -362,7 +395,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -372,15 +405,33 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
+	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Labels != nil {
+		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+		if err != nil {
+			ctx.Error(500, "GetLabelsInRepoByIDsError", err)
+			return
+		}
+		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
+			ctx.Error(500, "ReplaceLabelsError", err)
+			return
+		}
+	}
+
 	if err = models.UpdateIssue(issue); err != nil {
 		ctx.Error(500, "UpdateIssue", err)
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+				return
+			}
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
+
+		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database
@@ -420,16 +471,13 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the pull request
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     description: pull request has been merged
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: pull request has not been merged
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -468,6 +516,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   in: path
 	//   description: index of the pull request to merge
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -505,7 +554,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() || pr.HasMerged {
+	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
 		ctx.Status(405)
 		return
 	}
@@ -614,7 +663,12 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
+	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
 		ctx.Status(404)
 		return nil, nil, nil, nil, "", ""

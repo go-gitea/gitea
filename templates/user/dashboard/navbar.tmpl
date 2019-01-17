@@ -23,9 +23,11 @@
 							</a>
 						{{end}}
 					</div>
+					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						<i class="octicon octicon-plus"></i>&nbsp;&nbsp;&nbsp;{{.i18n.Tr "new_org"}}
 					</a>
+					{{end}}
 				</div>
 			</div>
 		</div>

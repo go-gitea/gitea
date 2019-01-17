@@ -18,7 +18,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
@@ -192,6 +192,22 @@ var migrations = []Migration{
 	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
 	// v69 -> v70
 	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// v70 -> v71
+	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v71 -> v72
+	NewMigration("protect each scratch token", addScratchHash),
+	// v72 -> v73
+	NewMigration("add review", addReview),
+	// v73 -> v74
+	NewMigration("add must_change_password column for users table", addMustChangePassword),
+	// v74 -> v75
+	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	// v75 -> v76
+	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+	// v76 -> v77
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
+	// v77 -> v78
+	NewMigration("add theme to users", addUserDefaultTheme),
 }
 
 // Migrate database to current version

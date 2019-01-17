@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -62,6 +63,22 @@ func SingleDownload(ctx *context.Context) {
 			ctx.NotFound("GetBlobByPath", nil)
 		} else {
 			ctx.ServerError("GetBlobByPath", err)
+		}
+		return
+	}
+	if err = ServeBlob(ctx, blob); err != nil {
+		ctx.ServerError("ServeBlob", err)
+	}
+}
+
+// DownloadByID download a file by sha1 ID
+func DownloadByID(ctx *context.Context) {
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetBlob", nil)
+		} else {
+			ctx.ServerError("GetBlob", err)
 		}
 		return
 	}

@@ -150,6 +150,8 @@
 				{{end}}
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.default_enable_dependencies"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultEnableDependencies}}-check{{end}}-square-o"></i></dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>

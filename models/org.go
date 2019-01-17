@@ -182,10 +182,6 @@ func CreateOrganization(org, owner *User) (err error) {
 		return fmt.Errorf("insert team-user relation: %v", err)
 	}
 
-	if err = os.MkdirAll(UserPath(org.Name), os.ModePerm); err != nil {
-		return fmt.Errorf("create directory: %v", err)
-	}
-
 	return sess.Commit()
 }
 
@@ -318,7 +314,11 @@ func IsOrganizationOwner(orgID, uid int64) (bool, error) {
 
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(orgID, uid int64) (bool, error) {
-	return x.
+	return isOrganizationMember(x, orgID, uid)
+}
+
+func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
+	return e.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Table("org_user").
@@ -383,7 +383,7 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
-		Join("LEFT", "user", "`org_user`.org_id=`user`.id").
+		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
 		Where("`org_user`.uid=?", uid)
 	if !all {
 		// Only show public organizations
@@ -397,8 +397,12 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(orgID int64) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, orgID)
+}
+
+func getOrgUsersByOrgID(e Engine, orgID int64) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
-	err := x.
+	err := e.
 		Where("org_id=?", orgID).
 		Find(&ous)
 	return ous, err
@@ -454,7 +458,7 @@ func AddOrgUser(orgID, uid int64) error {
 func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	ou := new(OrgUser)
 
-	has, err := x.
+	has, err := sess.
 		Where("uid=?", userID).
 		And("org_id=?", orgID).
 		Get(ou)
@@ -464,21 +468,21 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 		return nil
 	}
 
-	org, err := GetUserByID(orgID)
+	org, err := getUserByID(sess, orgID)
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", orgID, err)
 	}
 
 	// Check if the user to delete is the last member in owner team.
-	if isOwner, err := IsOrganizationOwner(orgID, userID); err != nil {
+	if isOwner, err := isOrganizationOwner(sess, orgID, userID); err != nil {
 		return err
 	} else if isOwner {
-		t, err := org.GetOwnerTeam()
+		t, err := org.getOwnerTeam(sess)
 		if err != nil {
 			return err
 		}
 		if t.NumMembers == 1 {
-			if err := t.GetMembers(); err != nil {
+			if err := t.getMembers(sess); err != nil {
 				return err
 			}
 			if t.Members[0].ID == userID {
@@ -494,7 +498,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	}
 
 	// Delete all repository accesses and unwatch them.
-	env, err := org.AccessibleReposEnv(userID)
+	env, err := org.accessibleReposEnv(sess, userID)
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
@@ -518,7 +522,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	}
 
 	// Delete member in his/her teams.
-	teams, err := getUserTeams(sess, org.ID, userID)
+	teams, err := getUserOrgTeams(sess, org.ID, userID)
 	if err != nil {
 		return err
 	}
@@ -575,7 +579,7 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 	return teams, e.
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
-		Join("INNER", "user", "`user`.id=team_user.uid").
+		Join("INNER", "`user`", "`user`.id=team_user.uid").
 		And("`team_user`.uid = ?", userID).
 		Asc("`user`.name").
 		Cols(cols...).
@@ -622,16 +626,26 @@ type accessibleReposEnv struct {
 	org     *User
 	userID  int64
 	teamIDs []int64
+	e       Engine
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
-	teamIDs, err := org.GetUserTeamIDs(userID)
+	return org.accessibleReposEnv(x, userID)
+}
+
+func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvironment, error) {
+	teamIDs, err := org.getUserTeamIDs(e, userID)
 	if err != nil {
 		return nil, err
 	}
-	return &accessibleReposEnv{org: org, userID: userID, teamIDs: teamIDs}, nil
+	return &accessibleReposEnv{
+		org:     org,
+		userID:  userID,
+		teamIDs: teamIDs,
+		e:       e,
+	}, nil
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
@@ -646,7 +660,7 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 }
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
-	repoCount, err := x.
+	repoCount, err := env.e.
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
@@ -663,7 +677,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	}
 
 	repoIDs := make([]int64, 0, pageSize)
-	return repoIDs, x.
+	return repoIDs, env.e.
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
@@ -681,18 +695,18 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
-	if len(repoIDs) <= 0 {
+	if len(repoIDs) == 0 {
 		return repos, nil
 	}
 
-	return repos, x.
+	return repos, env.e.
 		In("`repository`.id", repoIDs).
 		Find(&repos)
 }
 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	return repoIDs, x.
+	return repoIDs, env.e.
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
@@ -709,11 +723,11 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
-	if len(repoIDs) <= 0 {
+	if len(repoIDs) == 0 {
 		return repos, nil
 	}
 
-	return repos, x.
+	return repos, env.e.
 		In("`repository`.id", repoIDs).
 		Find(&repos)
 }
