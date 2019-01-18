@@ -340,6 +340,7 @@ func runCreateUser(c *cli.Context) error {
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Theme:              setting.UI.DefaultTheme,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}

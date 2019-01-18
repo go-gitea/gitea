@@ -560,7 +560,7 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 				} else {
 					cfg.TLSConfig = "false"
 				}
-			} else if vl := strings.ToLower(value); vl == "skip-verify" {
+			} else if vl := strings.ToLower(value); vl == "skip-verify" || vl == "preferred" {
 				cfg.TLSConfig = vl
 				cfg.tls = &tls.Config{InsecureSkipVerify: true}
 			} else {

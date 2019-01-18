@@ -244,6 +244,11 @@ they served:
   * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
   * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
+* 2019-01-01 ~ 2019-12-31
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://github.com/techknowlogick) <matti@mdranta.net>
+
 ## Versions
 
 Gitea has the `master` branch as a tip branch and has version branches
@@ -275,7 +280,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

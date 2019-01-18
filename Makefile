@@ -54,6 +54,10 @@ TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
+TEST_MSSQL_HOST ?= mssql:1433
+TEST_MSSQL_DBNAME ?= gitea
+TEST_MSSQL_USERNAME ?= sa
+TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
@@ -74,9 +78,9 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
-		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
-		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/mysql.ini integrations/pgsql.ini
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql \
+		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini
 
 .PHONY: fmt
 fmt:
@@ -89,7 +93,7 @@ vet:
 .PHONY: generate
 generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/jteeuwen/go-bindata/...; \
+		$(GO) get -u github.com/jteeuwen/go-bindata/go-bindata; \
 	fi
 	$(GO) generate $(PACKAGES)
 
@@ -128,10 +132,10 @@ errcheck:
 
 .PHONY: lint
 lint:
-	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u golang.org/x/lint/golint; \
+	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/mgechev/revive; \
 	fi
-	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
+	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
 
 .PHONY: misspell-check
 misspell-check:
@@ -204,6 +208,11 @@ generate-ini:
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
+	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
+		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
+		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
+		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
+			integrations/mssql.ini.tmpl > integrations/mssql.ini
 
 .PHONY: test-mysql
 test-mysql: integrations.test generate-ini
@@ -212,6 +221,10 @@ test-mysql: integrations.test generate-ini
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
+
+.PHONY: test-mssql
+test-mssql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test

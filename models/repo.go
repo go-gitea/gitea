@@ -32,6 +32,7 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"github.com/mcuadros/go-version"
 	"gopkg.in/ini.v1"
@@ -186,7 +187,7 @@ type Repository struct {
 	NumReleases         int `xorm:"-"`
 
 	IsPrivate bool `xorm:"INDEX"`
-	IsBare    bool `xorm:"INDEX"`
+	IsEmpty   bool `xorm:"INDEX"`
 
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
@@ -290,7 +291,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		FullName:      repo.FullName(),
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
-		Empty:         repo.IsBare,
+		Empty:         repo.IsEmpty,
 		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
 		Parent:        parent,
@@ -655,7 +656,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
-	return !repo.IsMirror && !repo.IsBare
+	return !repo.IsMirror && !repo.IsEmpty
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
@@ -775,7 +776,11 @@ func (repo *Repository) UpdateLocalCopyBranch(branch string) error {
 
 // PatchPath returns corresponding patch file path of repository by given issue ID.
 func (repo *Repository) PatchPath(index int64) (string, error) {
-	if err := repo.GetOwner(); err != nil {
+	return repo.patchPath(x, index)
+}
+
+func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
+	if err := repo.getOwner(e); err != nil {
 		return "", err
 	}
 
@@ -784,7 +789,11 @@ func (repo *Repository) PatchPath(index int64) (string, error) {
 
 // SavePatch saves patch data to corresponding location by given issue ID.
 func (repo *Repository) SavePatch(index int64, patch []byte) error {
-	patchPath, err := repo.PatchPath(index)
+	return repo.savePatch(x, index, patch)
+}
+
+func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
+	patchPath, err := repo.patchPath(e, index)
 	if err != nil {
 		return fmt.Errorf("PatchPath: %v", err)
 	}
@@ -945,13 +954,13 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
 	if err != nil {
 		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
-			repo.IsBare = true
+			repo.IsEmpty = true
 		} else {
-			return repo, fmt.Errorf("check bare: %v - %s", err, stderr)
+			return repo, fmt.Errorf("check empty: %v - %s", err, stderr)
 		}
 	}
 
-	if !repo.IsBare {
+	if !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
 		gitRepo, err := git.OpenRepository(repoPath)
 		if err != nil {
@@ -990,7 +999,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		repo, err = CleanUpMigrateInfo(repo)
 	}
 
-	if err != nil && !repo.IsBare {
+	if err != nil && !repo.IsEmpty {
 		UpdateRepoIndexer(repo)
 	}
 
@@ -1205,7 +1214,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return fmt.Errorf("initRepository: path already exists: %s", repoPath)
 	}
 
-	// Init bare new repository.
+	// Init git bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = createDelegateHooks(repoPath); err != nil {
@@ -1240,7 +1249,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	}
 
 	if !opts.AutoInit {
-		repo.IsBare = true
+		repo.IsEmpty = true
 	}
 
 	repo.DefaultBranch = "master"
@@ -1297,7 +1306,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1478,7 +1487,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
 		if c.ID != newOwner.ID {
-			isMember, err := newOwner.IsOrgMember(c.ID)
+			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
 			if err != nil {
 				return fmt.Errorf("IsOrgMember: %v", err)
 			} else if !isMember {
@@ -1535,12 +1544,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
-	RemoveAllWithNotice("Delete repository local copy", repo.LocalCopyPath())
+	removeAllWithNotice(sess, "Delete repository local copy", repo.LocalCopyPath())
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(owner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
+		removeAllWithNotice(sess, "Delete repository wiki local copy", repo.LocalWikiPath())
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -1770,55 +1779,56 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&RepoRedirect{RedirectRepoID: repoID},
 		&Webhook{RepoID: repoID},
 		&HookTask{RepoID: repoID},
+		&Notification{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	// Delete comments and attachments.
-	issueIDs := make([]int64, 0, 25)
-	attachmentPaths := make([]string, 0, len(issueIDs))
-	if err = sess.
-		Table("issue").
-		Cols("id").
-		Where("repo_id=?", repoID).
-		Find(&issueIDs); err != nil {
+	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
+	// Delete comments and attachments
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Comment{}); err != nil {
 		return err
 	}
 
-	if len(issueIDs) > 0 {
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Comment{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueUser{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Reaction{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&IssueWatch{}); err != nil {
-			return err
-		}
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Stopwatch{}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueUser{}); err != nil {
+		return err
+	}
 
-		attachments := make([]*Attachment, 0, 5)
-		if err = sess.
-			In("issue_id", issueIDs).
-			Find(&attachments); err != nil {
-			return err
-		}
-		for j := range attachments {
-			attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Reaction{}); err != nil {
+		return err
+	}
 
-		if _, err = sess.In("issue_id", issueIDs).Delete(&Attachment{}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueWatch{}); err != nil {
+		return err
+	}
 
-		if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
-			return err
-		}
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Stopwatch{}); err != nil {
+		return err
+	}
+
+	attachmentPaths := make([]string, 0, 20)
+	attachments := make([]*Attachment, 0, len(attachmentPaths))
+	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
+		Where("issue.repo_id = ?", repoID).
+		Find(&attachments); err != nil {
+		return err
+	}
+	for j := range attachments {
+		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Attachment{}); err != nil {
+		return err
+	}
+
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return err
 	}
 
 	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {

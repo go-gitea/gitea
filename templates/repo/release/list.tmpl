@@ -14,7 +14,7 @@
 			{{end}}
 		</h2>
 		<ul id="release-list">
-			{{range .Releases}}
+			{{range $release := .Releases}}
 				<li class="ui grid">
 					<div class="ui four wide column meta">
 						{{if .IsTag}}
@@ -75,14 +75,14 @@
 									</li>
 									{{end}}
 									{{if .Attachments}}
-									{{range .Attachments}}
-									<li>
-										<a target="_blank" rel="noopener noreferrer" href="{{AppSubUrl}}/attachments/{{.UUID}}">
-											<strong><span class="ui image octicon octicon-package" title='{{.Name}}'></span> {{.Name}}</strong>
-											<span class="ui text grey right">{{.Size | FileSize}}</span>
-										</a>
-									</li>
-									{{end}}
+										{{range $attachment := .Attachments}}
+										<li>
+											<a target="_blank" rel="noopener noreferrer" href="{{$.RepoLink}}/releases/download/{{$release.TagName}}/{{$attachment.Name}}">
+												<strong><span class="ui image octicon octicon-package" title='{{$attachment.Name}}'></span> {{$attachment.Name}}</strong>
+												<span class="ui text grey right">{{$attachment.Size | FileSize}}</span>
+											</a>
+										</li>
+										{{end}}
 									{{end}}
 								</ul>
 							</div>
