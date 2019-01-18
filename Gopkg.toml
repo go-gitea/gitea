@@ -38,7 +38,7 @@ ignored = ["google.golang.org/appengine*"]
 
 [[override]]
   name = "github.com/go-xorm/xorm"
-  revision = "1cd2662be938bfee0e34af92fe448513e0560fb1"
+  revision = "a6300f2a45e05a8f75f00a1d6188049fe7851915"
 
 [[override]]
   name = "github.com/go-xorm/builder"
@@ -46,7 +46,7 @@ ignored = ["google.golang.org/appengine*"]
 
 [[override]]
   name = "github.com/go-sql-driver/mysql"
-  revision = "d523deb1b23d913de5bdada721a6071e71283618"
+  revision = "c45f530f8e7fe40f4687eaa50d0c8c5f1b66f9e0"
 
 [[override]]
   name = "github.com/mattn/go-sqlite3"

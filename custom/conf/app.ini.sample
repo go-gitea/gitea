@@ -88,7 +88,7 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
-; All available themes
+; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
 
 [ui.admin]

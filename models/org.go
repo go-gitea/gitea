@@ -522,7 +522,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	}
 
 	// Delete member in his/her teams.
-	teams, err := getUserTeams(sess, org.ID, userID)
+	teams, err := getUserOrgTeams(sess, org.ID, userID)
 	if err != nil {
 		return err
 	}

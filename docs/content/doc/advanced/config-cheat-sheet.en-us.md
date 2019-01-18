@@ -77,6 +77,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
+- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
+  regardless of the value of `DEFAULT_THEME`.
 
 ### UI - Admin (`ui.admin`)
 
