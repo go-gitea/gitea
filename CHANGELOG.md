@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.7.0-rc3) - 2019-01-18
+* SECURITY
+  * Do not display the raw OpenID error in the UI (#5705) (#5712)
+  * When redirecting clean the path to avoid redirecting to external site (#5669) (#5679)
+* BUGFIX
+  * Fix sqlite deadlock when assigning to a PR (#5640) (#5642)
+  * Don't close issues via commits on non-default branch. (#5622) (#5643)
+  * Fix commit page showing status for current default branch (#5650) (#5653)
+  * Only count users own actions for heatmap contributions (#5647) (#5655)
+  * Update xorm to fix issue postgresql dumping issues (#5680) (#5692)
+  * Use correct value for "MSpan Structures Obtained" (#5706) (#5716)
+
 ## [1.6.4](https://github.com/go-gitea/gitea/releases/tag/v1.6.4) - 2019-01-15
 * BUGFIX
   * Fix SSH key now can be reused as public key after deleting as deploy key (#5671) (#5685)
