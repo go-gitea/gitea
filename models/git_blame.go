@@ -16,11 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 )
 
-// BlameFile represents while git blame output
-type BlameFile struct {
-	Parts []BlamePart
-}
-
 // BlamePart represents block of blame - continuous lines with one sha
 type BlamePart struct {
 	Sha   string
@@ -35,6 +30,8 @@ type BlameReader struct {
 	scanner *bufio.Scanner
 	lastSha *string
 }
+
+var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 
 // NextPart returns next part of blame (sequencial code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
@@ -132,49 +129,4 @@ func createBlameReader(dir string, command ...string) (*BlameReader, error) {
 		nil,
 	}, nil
 
-}
-
-var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
-
-func parseBlameOutput(reader io.Reader) (*BlameFile, error) {
-
-	var parts = make([]BlamePart, 0, 0)
-
-	var blamePart *BlamePart
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		lines := shaLineRegex.FindStringSubmatch(line)
-
-		if len(line) == 0 {
-		} else if lines != nil {
-
-			sha1 := lines[1]
-
-			if blamePart == nil {
-				blamePart = &BlamePart{sha1, make([]string, 0, 0)}
-			}
-
-			if blamePart.Sha != sha1 {
-				parts = append(parts, *blamePart)
-				blamePart = &BlamePart{sha1, make([]string, 0, 0)}
-			}
-
-		} else if line[0] == '\t' {
-
-			code := line[1:]
-
-			blamePart.Lines = append(blamePart.Lines, code)
-
-		}
-
-	}
-
-	if blamePart != nil {
-		parts = append(parts, *blamePart)
-	}
-
-	return &BlameFile{parts}, nil
 }
