@@ -74,5 +74,5 @@ After that, enable HTTPS by following one of these guides:
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
-Note: You connection between your reverse proxy and gitea might be unencrypted. To encrypt it too follow the [built-in server guide](#using-built-in-server) and change
+Note: Your connection between your reverse proxy and gitea might be unencrypted. To encrypt it too follow the [built-in server guide](#using-built-in-server) and change
 the proxy url to `https://[URL]`.
