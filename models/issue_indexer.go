@@ -115,8 +115,19 @@ func UpdateIssueIndexer(issue *Issue) {
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(repo *Repository) {
+	var ids []int64
+	ids, err := getIssueIDsByRepoID(x, repo.ID)
+	if err != nil {
+		log.Error(4, "getIssueIDsByRepoID failed: %v", err)
+		return
+	}
+
+	if len(ids) <= 0 {
+		return
+	}
+
 	issueIndexerUpdateQueue.Push(&issues.IndexerData{
-		RepoID:   repo.ID,
+		IDs:      ids,
 		IsDelete: true,
 	})
 }

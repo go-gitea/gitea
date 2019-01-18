@@ -1259,7 +1259,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, comment.Issue.RepoID, oldContent)
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
@@ -1292,7 +1292,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyDeleteComment(ctx.User, comment, comment.Issue.RepoID)
+	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }

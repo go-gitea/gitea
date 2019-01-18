@@ -205,6 +205,17 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 	return batch.Flush()
 }
 
+// Delete deletes indexes by ids
+func (b *BleveIndexer) Delete(ids ...int64) error {
+	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	for _, id := range ids {
+		if err := batch.Delete(indexerID(id)); err != nil {
+			return err
+		}
+	}
+	return batch.Flush()
+}
+
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *BleveIndexer) Search(keyword string, repoID int64, limit, start int) (*SearchResult, error) {

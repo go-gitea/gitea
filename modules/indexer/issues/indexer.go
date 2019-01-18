@@ -11,7 +11,8 @@ type IndexerData struct {
 	Title    string
 	Content  string
 	Comments []string
-	IsDelete bool `json:"-"`
+	IsDelete bool
+	IDs      []int64
 }
 
 // Match represents on search result
@@ -30,5 +31,6 @@ type SearchResult struct {
 type Indexer interface {
 	Init() (bool, error)
 	Index(issue []*IndexerData) error
+	Delete(ids ...int64) error
 	Search(kw string, repoID int64, limit, start int) (*SearchResult, error)
 }

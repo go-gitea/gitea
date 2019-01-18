@@ -284,7 +284,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, ctx.Repo.Repository.ID, oldContent)
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, comment.APIFormat())
 }
@@ -375,7 +375,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	notification.NotifyDeleteComment(ctx.User, comment, ctx.Repo.Repository.ID)
+	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(204)
 }

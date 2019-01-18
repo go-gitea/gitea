@@ -83,6 +83,20 @@ func (l *LedisLocalQueue) Run() error {
 
 		log.Trace("LedisLocalQueue: task found: %#v", data)
 
+		if data.IsDelete {
+			if data.ID > 0 {
+				if err = l.indexer.Delete(data.ID); err != nil {
+					log.Error(4, "indexer.Delete: %v", err)
+				}
+			} else if len(data.IDs) > 0 {
+				if err = l.indexer.Delete(data.IDs...); err != nil {
+					log.Error(4, "indexer.Delete: %v", err)
+				}
+			}
+			time.Sleep(time.Millisecond * 10)
+			continue
+		}
+
 		datas = append(datas, &data)
 		time.Sleep(time.Millisecond * 10)
 	}
