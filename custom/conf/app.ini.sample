@@ -244,8 +244,8 @@ ITERATE_BUFFER_SIZE = 50
 LOG_SQL = true
 ; Maximum number of DB Connect retries
 DB_RETRIES = 10
-; Backoff time per DB retry (seconds)
-DB_RETRY_BACKOFF = 3
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
 
 
 [indexer]
