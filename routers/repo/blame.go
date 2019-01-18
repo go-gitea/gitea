@@ -1,3 +1,7 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package repo
 
 import (
@@ -123,16 +127,32 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blame, err := models.GetBlame(models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := models.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
 
 	if err != nil {
-		ctx.NotFound("GetBlameCommit", err)
+		ctx.NotFound("CreateBlameReader", err)
 		return
+	}
+
+	defer blameReader.Close()
+
+	blameParts := make([]models.BlamePart, 0)
+
+	for {
+		blamePart, err := blameReader.NextPart()
+		if err != nil {
+			ctx.NotFound("NextPart", err)
+			return
+		}
+		if blamePart == nil {
+			break
+		}
+		blameParts = append(blameParts, *blamePart)
 	}
 
 	commitNames := make(map[string]string)
 
-	for _, part := range blame.Parts {
+	for _, part := range blameParts {
 		sha := part.Sha
 
 		commit, err := ctx.Repo.GitRepo.GetCommit(sha)
@@ -149,18 +169,18 @@ func RefBlame(ctx *context.Context) {
 
 	}
 
-	renderBlame(ctx, blame, commitNames)
+	renderBlame(ctx, blameParts, commitNames)
 
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blame *models.BlameFile, commitNames map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]string) {
 
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0, 0)
 
-	for _, part := range blame.Parts {
+	for _, part := range blameParts {
 		for _, line := range part.Lines {
 			lines = append(lines, line)
 		}
@@ -170,7 +190,7 @@ func renderBlame(ctx *context.Context, blame *models.BlameFile, commitNames map[
 
 	var i = 0
 
-	for _, part := range blame.Parts {
+	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
 			line = gotemplate.HTMLEscapeString(line)
@@ -189,7 +209,7 @@ func renderBlame(ctx *context.Context, blame *models.BlameFile, commitNames map[
 
 	output.Reset()
 
-	for _, part := range blame.Parts {
+	for _, part := range blameParts {
 
 		for index := range part.Lines {
 			if index == 0 {
@@ -215,7 +235,7 @@ func renderBlame(ctx *context.Context, blame *models.BlameFile, commitNames map[
 
 	i = 0
 
-	for _, part := range blame.Parts {
+	for _, part := range blameParts {
 		for index := range part.Lines {
 			i++
 			if index == len(part.Lines)-1 {
