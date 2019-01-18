@@ -186,66 +186,53 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 		}
 	}
 
-	var output bytes.Buffer
+	var commitInfo bytes.Buffer
+	var lineNumbers bytes.Buffer
+	var codeLines bytes.Buffer
 
 	var i = 0
 
 	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
+
+			//Commit info
+			if index == 0 {
+				if index == len(part.Lines)-1 {
+					commitInfo.WriteString(fmt.Sprintf(`<span class="bottom-line"><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
+				} else {
+					commitInfo.WriteString(fmt.Sprintf(`<span><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
+				}
+			} else {
+				if index == len(part.Lines)-1 {
+					commitInfo.WriteString(`<span class="bottom-line"><a>&#8203;</a></span>`)
+				} else {
+					commitInfo.WriteString(`<span><a>&#8203;</a></span>`)
+				}
+			}
+
+			//Line number
+			if index == len(part.Lines)-1 {
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
+			} else {
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
+			}
+
+			//Code line
 			line = gotemplate.HTMLEscapeString(line)
 			if i != len(lines) {
 				line += "\n"
 			}
 			if index == len(part.Lines)-1 {
-				output.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
+				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {
-				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, i, i, line))
+				codeLines.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, i, i, line))
 			}
 		}
 	}
 
-	ctx.Data["BlameContent"] = gotemplate.HTML(output.String())
-
-	output.Reset()
-
-	for _, part := range blameParts {
-
-		for index := range part.Lines {
-			if index == 0 {
-				if index == len(part.Lines)-1 {
-					output.WriteString(fmt.Sprintf(`<span class="bottom-line"><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
-				} else {
-					output.WriteString(fmt.Sprintf(`<span><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
-				}
-			} else {
-				if index == len(part.Lines)-1 {
-					output.WriteString(`<span class="bottom-line"><a>&#8203;</a></span>`)
-				} else {
-					output.WriteString(`<span><a>&#8203;</a></span>`)
-				}
-			}
-		}
-
-	}
-
-	ctx.Data["BlameCommitInfo"] = gotemplate.HTML(output.String())
-
-	output.Reset()
-
-	i = 0
-
-	for _, part := range blameParts {
-		for index := range part.Lines {
-			i++
-			if index == len(part.Lines)-1 {
-				output.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
-			} else {
-				output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
-			}
-		}
-	}
-
-	ctx.Data["BlameLineNums"] = gotemplate.HTML(output.String())
+	ctx.Data["BlameContent"] = gotemplate.HTML(codeLines.String())
+	ctx.Data["BlameCommitInfo"] = gotemplate.HTML(commitInfo.String())
+	ctx.Data["BlameLineNums"] = gotemplate.HTML(lineNumbers.String())
 
 }
