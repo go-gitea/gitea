@@ -242,6 +242,11 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; Maximum number of DB Connect retries
+DB_RETRIES = 10
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
+
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
