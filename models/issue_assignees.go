@@ -44,7 +44,11 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
-	err = issue.loadAssignees(x)
+	return getAssigneesByIssue(x, issue)
+}
+
+func getAssigneesByIssue(e Engine, issue *Issue) (assignees []*User, err error) {
+	err = issue.loadAssignees(e)
 	if err != nil {
 		return assignees, err
 	}
@@ -159,21 +163,22 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
-	// if issue/pull is in the middle of creation - don't call webhook
+	// if pull request is in the middle of creation - don't call webhook
 	if isCreate {
 		return nil
 	}
 
-	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
 	if issue.IsPull {
+		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypePullRequests)
+
 		if err = issue.loadPullRequest(sess); err != nil {
 			return fmt.Errorf("loadPullRequest: %v", err)
 		}
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
+			PullRequest: issue.PullRequest.apiFormat(sess),
+			Repository:  issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:      doer.APIFormat(),
 		}
 		if removed {
@@ -186,10 +191,12 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 			return nil
 		}
 	} else {
+		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypeIssues)
+
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
+			Issue:      issue.apiFormat(sess),
+			Repository: issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:     doer.APIFormat(),
 		}
 		if removed {

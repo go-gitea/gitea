@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -33,7 +34,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
-	ctx.Data["IsWriter"] = ctx.Repo.IsWriter()
+	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
@@ -125,7 +126,19 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		return err
 	}
 
-	// Don't return error here
+	// Don't return error below this
+	if err := models.PushUpdate(branchName, models.PushUpdateOptions{
+		RefFullName:  git.BranchPrefix + branchName,
+		OldCommitID:  commit.ID.String(),
+		NewCommitID:  git.EmptySHA,
+		PusherID:     ctx.User.ID,
+		PusherName:   ctx.User.Name,
+		RepoUserName: ctx.Repo.Owner.Name,
+		RepoName:     ctx.Repo.Repository.Name,
+	}); err != nil {
+		log.Error(4, "Update: %v", err)
+	}
+
 	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID.String(), ctx.User.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
@@ -161,7 +174,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 		}
 	}
 
-	if ctx.Repo.IsWriter() {
+	if ctx.Repo.CanWrite(models.UnitTypeCode) {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
 			ctx.ServerError("getDeletedBranches", err)

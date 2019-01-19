@@ -177,7 +177,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		return fmt.Errorf("getTeamUsersByTeamID: %v", err)
 	}
 	for _, teamUser := range teamUsers {
-		has, err := hasAccess(e, teamUser.UID, repo, AccessModeRead)
+		has, err := hasAccess(e, teamUser.UID, repo)
 		if err != nil {
 			return err
 		} else if has {
@@ -434,7 +434,7 @@ func DeleteTeam(t *Team) error {
 
 		// Remove watches from all users and now unaccessible repos
 		for _, user := range t.Members {
-			has, err := hasAccess(sess, user.ID, repo, AccessModeRead)
+			has, err := hasAccess(sess, user.ID, repo)
 			if err != nil {
 				return err
 			} else if has {
@@ -543,7 +543,14 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 	return getTeamMembers(x, teamID)
 }
 
-func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
+func getUserTeams(e Engine, userID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Where("team_user.uid=?", userID).
+		Find(&teams)
+}
+
+func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 	return teams, e.
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
@@ -561,9 +568,14 @@ func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err
 		Find(&teams)
 }
 
-// GetUserTeams returns all teams that user belongs to in given organization.
-func GetUserTeams(orgID, userID int64) ([]*Team, error) {
-	return getUserTeams(x, orgID, userID)
+// GetUserOrgTeams returns all teams that user belongs to in given organization.
+func GetUserOrgTeams(orgID, userID int64) ([]*Team, error) {
+	return getUserOrgTeams(x, orgID, userID)
+}
+
+// GetUserTeams returns all teams that user belongs across all organizations.
+func GetUserTeams(userID int64) ([]*Team, error) {
+	return getUserTeams(x, userID)
 }
 
 // AddTeamMember adds new membership of given team to given organization,
@@ -652,7 +664,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		}
 
 		// Remove watches from now unaccessible
-		has, err := hasAccess(e, userID, repo, AccessModeRead)
+		has, err := hasAccess(e, userID, repo)
 		if err != nil {
 			return err
 		} else if has {
@@ -698,6 +710,14 @@ func RemoveTeamMember(team *Team, userID int64) error {
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
 	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+}
+
+// UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
+	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+		return 0, err
+	}
+	return
 }
 
 // ___________                  __________

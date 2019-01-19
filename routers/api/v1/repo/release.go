@@ -122,10 +122,6 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
-	if ctx.Repo.AccessMode < models.AccessModeWrite {
-		ctx.Status(403)
-		return
-	}
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
@@ -209,10 +205,6 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
-	if ctx.Repo.AccessMode < models.AccessModeWrite {
-		ctx.Status(403)
-		return
-	}
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
 	if err != nil && !models.IsErrReleaseNotExist(err) {
@@ -285,10 +277,6 @@ func DeleteRelease(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if ctx.Repo.AccessMode < models.AccessModeWrite {
-		ctx.Status(403)
-		return
-	}
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
 	if err != nil && !models.IsErrReleaseNotExist(err) {

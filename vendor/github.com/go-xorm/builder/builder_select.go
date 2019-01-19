@@ -5,13 +5,24 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 )
 
+// Select creates a select Builder
+func Select(cols ...string) *Builder {
+	builder := &Builder{cond: NewCond()}
+	return builder.Select(cols...)
+}
+
 func (b *Builder) selectWriteTo(w Writer) error {
-	if len(b.tableName) <= 0 {
-		return errors.New("no table indicated")
+	if len(b.from) <= 0 && !b.isNested {
+		return ErrNoTableName
+	}
+
+	// perform limit before writing to writer when b.dialect between ORACLE and MSSQL
+	// this avoid a duplicate writing problem in simple limit query
+	if b.limitation != nil && (b.dialect == ORACLE || b.dialect == MSSQL) {
+		return b.limitWriteTo(w)
 	}
 
 	if _, err := fmt.Fprint(w, "SELECT "); err != nil {
@@ -34,8 +45,38 @@ func (b *Builder) selectWriteTo(w Writer) error {
 		}
 	}
 
-	if _, err := fmt.Fprint(w, " FROM ", b.tableName); err != nil {
-		return err
+	if b.subQuery == nil {
+		if _, err := fmt.Fprint(w, " FROM ", b.from); err != nil {
+			return err
+		}
+	} else {
+		if b.cond.IsValid() && len(b.from) <= 0 {
+			return ErrUnnamedDerivedTable
+		}
+		if b.subQuery.dialect != "" && b.dialect != b.subQuery.dialect {
+			return ErrInconsistentDialect
+		}
+
+		// dialect of sub-query will inherit from the main one (if not set up)
+		if b.dialect != "" && b.subQuery.dialect == "" {
+			b.subQuery.dialect = b.dialect
+		}
+
+		switch b.subQuery.optype {
+		case selectType, unionType:
+			fmt.Fprint(w, " FROM (")
+			if err := b.subQuery.WriteTo(w); err != nil {
+				return err
+			}
+
+			if len(b.from) == 0 {
+				fmt.Fprintf(w, ")")
+			} else {
+				fmt.Fprintf(w, ") %v", b.from)
+			}
+		default:
+			return ErrUnexpectedSubQuery
+		}
 	}
 
 	for _, v := range b.joins {
@@ -72,6 +113,12 @@ func (b *Builder) selectWriteTo(w Writer) error {
 
 	if len(b.orderBy) > 0 {
 		if _, err := fmt.Fprint(w, " ORDER BY ", b.orderBy); err != nil {
+			return err
+		}
+	}
+
+	if b.limitation != nil {
+		if err := b.limitWriteTo(w); err != nil {
 			return err
 		}
 	}
