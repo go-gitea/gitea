@@ -145,6 +145,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
+- `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
+- `DB_RETRY_BACKOFF`: **3s*: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
