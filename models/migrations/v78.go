@@ -6,10 +6,11 @@ package migrations
 
 import (
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 )
 
@@ -25,18 +26,37 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
+
 	var err error
-	if models.DbCfg.Type == "mssql" {
-		_, err = sess.Query("EXEC sp_rename 'repository.is_bare', 'is_empty', 'COLUMN'")
+	if models.DbCfg.Type == core.POSTGRES || models.DbCfg.Type == core.SQLITE {
+		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare")
 	} else {
-		_, err = sess.Query("ALTER TABLE \"repository\" RENAME COLUMN \"is_bare\" TO \"is_empty\";")
+		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
 	}
 	if err != nil {
-		if strings.Contains(err.Error(), "no such column") {
-			return nil
-		}
-		return fmt.Errorf("select repositories: %v", err)
+		return fmt.Errorf("Drop index failed: %v", err)
 	}
 
-	return sess.Commit()
+	if err := sess.Sync2(new(Repository)); err != nil {
+		return err
+	}
+	if _, err := sess.Exec("UPDATE repository SET is_empty = is_bare;"); err != nil {
+		return err
+	}
+
+	if models.DbCfg.Type != core.SQLITE {
+		_, err = sess.Exec("ALTER TABLE repository DROP COLUMN is_bare")
+		if err != nil {
+			return fmt.Errorf("Drop column failed: %v", err)
+		}
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	if models.DbCfg.Type == core.SQLITE {
+		log.Warn("TABLE repository's COLUMN is_bare should be DROP but sqlite is not supported, you could manually do that.")
+	}
+	return nil
 }
