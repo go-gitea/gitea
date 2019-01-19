@@ -206,6 +206,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
+- `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 
 ## Webhook (`webhook`)
 
