@@ -124,7 +124,11 @@
 					</a>
 					<span class="text grey">
 						<a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a>
-						{{$.i18n.Tr "repo.issues.remove_assignee_at" $createdStr | Safe}}
+						{{ if eq .Poster.ID .Assignee.ID }}
+							{{$.i18n.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
+						{{ else }}
+							{{$.i18n.Tr "repo.issues.remove_assignee_at" .Poster.Name $createdStr | Safe}}
+						{{ end }}
 					</span>
 				{{else}}
 					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
