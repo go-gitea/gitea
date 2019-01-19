@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -38,6 +39,41 @@ func ListTeams(ctx *context.APIContext) {
 	apiTeams := make([]*api.Team, len(org.Teams))
 	for i := range org.Teams {
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
+	}
+	ctx.JSON(200, apiTeams)
+}
+
+// ListUserTeams list all the teams a user belongs to
+func ListUserTeams(ctx *context.APIContext) {
+	// swagger:operation GET /user/teams user userListTeams
+	// ---
+	// summary: List all the teams a user belongs to
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TeamList"
+	teams, err := models.GetUserTeams(ctx.User.ID)
+	if err != nil {
+		ctx.Error(500, "GetUserTeams", err)
+		return
+	}
+
+	cache := make(map[int64]*api.Organization)
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		apiOrg, ok := cache[teams[i].OrgID]
+		if !ok {
+			org, err := models.GetUserByID(teams[i].OrgID)
+			if err != nil {
+				ctx.Error(500, "GetUserByID", err)
+				return
+			}
+			apiOrg = convert.ToOrganization(org)
+			cache[teams[i].OrgID] = apiOrg
+		}
+		apiTeams[i] = convert.ToTeam(teams[i])
+		apiTeams[i].Organization = apiOrg
 	}
 	ctx.JSON(200, apiTeams)
 }
@@ -219,6 +255,35 @@ func GetTeamMembers(ctx *context.APIContext) {
 		members[i] = member.APIFormat()
 	}
 	ctx.JSON(200, members)
+}
+
+// GetTeamMember api for get a particular member of team
+func GetTeamMember(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/members/{username} organization orgListTeamMember
+	// ---
+	// summary: List a particular member of team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the member to list
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/User"
+	u := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.JSON(200, u.APIFormat())
 }
 
 // AddTeamMember api for add a member to a team
