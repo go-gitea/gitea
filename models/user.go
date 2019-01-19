@@ -416,7 +416,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 // NewGitSig generates and returns the signature of given user.
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
-		Name:  u.DisplayName(),
+		Name:  u.GitName(),
 		Email: u.getEmail(),
 		When:  time.Now(),
 	}
@@ -629,8 +629,18 @@ func (u *User) GetOrganizations(all bool) error {
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
-	if len(u.FullName) > 0 {
-		return u.FullName
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 {
+		return trimmed
+	}
+	return u.Name
+}
+
+// GitName returns a git safe name
+func (u *User) GitName() string {
+	gitName := strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(u.FullName))
+	if len(gitName) > 0 {
+		return gitName
 	}
 	return u.Name
 }
