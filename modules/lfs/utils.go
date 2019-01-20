@@ -16,36 +16,48 @@ import (
 
 // ReadLFSPointerFile will return a partially filled LFSMetaObject if the provided reader is a pointer file
 func ReadLFSPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
+	if !setting.LFS.StartServer {
+		return nil, nil
+	}
+
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
 	buf = buf[:n]
 
-	isTextFile := base.IsTextFile(buf)
-	if isTextFile && setting.LFS.StartServer {
-		return IsLFSPointerFile(&buf), &buf
+	if isTextFile := base.IsTextFile(buf); !isTextFile {
+		return nil, nil
 	}
 
-	return nil, &buf
+	return IsLFSPointerFile(&buf), &buf
 }
 
 // IsLFSPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
 func IsLFSPointerFile(buf *[]byte) *models.LFSMetaObject {
-	if setting.LFS.StartServer {
-		headString := string(*buf)
-		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
-			splitLines := strings.Split(headString, "\n")
-			if len(splitLines) >= 3 {
-				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
-				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-				if len(oid) == 64 && err == nil {
-					contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
-					meta := &models.LFSMetaObject{Oid: oid, Size: size}
-					if contentStore.Exists(meta) {
-						return meta
-					}
-				}
-			}
-		}
+	if !setting.LFS.StartServer {
+		return nil
 	}
-	return nil
+
+	headString := string(*buf)
+	if !strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
+		return nil
+	}
+
+	splitLines := strings.Split(headString, "\n")
+	if len(splitLines) < 3 {
+		return nil
+	}
+
+	oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
+	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+	if len(oid) != 64 || err != nil {
+		return nil
+	}
+
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	meta := &models.LFSMetaObject{Oid: oid, Size: size}
+	if !contentStore.Exists(meta) {
+		return nil
+	}
+
+	return meta
 }
