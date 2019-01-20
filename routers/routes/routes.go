@@ -52,9 +52,9 @@ func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 
 		l.Log(fmt.Sprintf("[Macaron] Started %s %s for %s", ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr()))
 
-		rw := ctx.Resp.(macaron.ResponseWriter)
 		ctx.Next()
 
+		rw := ctx.Resp.(macaron.ResponseWriter)
 		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
 	}
 }
