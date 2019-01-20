@@ -246,6 +246,11 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; Maximum number of DB Connect retries
+DB_RETRIES = 10
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
+
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
@@ -365,6 +370,8 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 NO_REPLY_ADDRESS = noreply.example.org
+; Show Registration button
+SHOW_REGISTRATION_BUTTON = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging

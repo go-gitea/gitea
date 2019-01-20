@@ -148,6 +148,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
+- `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
+- `DB_RETRY_BACKOFF`: **3s*: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
@@ -207,6 +209,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
+- `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 
 ## Webhook (`webhook`)
 

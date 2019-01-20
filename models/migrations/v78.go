@@ -21,6 +21,7 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		IsEmpty bool `xorm:"INDEX"`
 	}
 
+	// First remove the index
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -35,6 +36,17 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	}
 	if err != nil {
 		return fmt.Errorf("Drop index failed: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	// Then reset the values
+	sess = x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
 	if err := sess.Sync2(new(Repository)); err != nil {

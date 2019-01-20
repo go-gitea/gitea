@@ -135,9 +135,9 @@ func listen(config *ssh.ServerConfig, host string, port int) {
 			sConn, chans, reqs, err := ssh.NewServerConn(conn, config)
 			if err != nil {
 				if err == io.EOF {
-					log.Warn("SSH: Handshaking was terminated: %v", err)
+					log.Warn("SSH: Handshaking with %s was terminated: %v", conn.RemoteAddr(), err)
 				} else {
-					log.Error(3, "SSH: Error on handshaking: %v", err)
+					log.Error(3, "SSH: Error on handshaking with %s: %v", conn.RemoteAddr(), err)
 				}
 				return
 			}
