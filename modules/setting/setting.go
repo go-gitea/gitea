@@ -300,7 +300,7 @@ var (
 		Issue: struct {
 			LockReasons []string
 		}{
-			LockReasons: strings.Split("Too heated,Off-topic,Resolved", ","),
+			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 		},
 	}
 	RepoRootPath string
