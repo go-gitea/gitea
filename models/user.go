@@ -636,13 +636,24 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+func gitSafeName(name string) string {
+	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
+}
+
 // GitName returns a git safe name
 func (u *User) GitName() string {
-	gitName := strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(u.FullName))
+	gitName := gitSafeName(u.FullName)
 	if len(gitName) > 0 {
 		return gitName
 	}
-	return u.Name
+	// Although u.Name should be safe if created in our system
+	// LDAP users may have bad names
+	gitName = gitSafeName(u.Name)
+	if len(gitName) > 0 {
+		return gitName
+	}
+	// Totally pathological name so it's got to be:
+	return fmt.Sprintf("user-%d", u.ID)
 }
 
 // ShortName ellipses username to length
