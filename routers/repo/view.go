@@ -30,10 +30,10 @@ import (
 )
 
 const (
-	tplRepoBARE base.TplName = "repo/bare"
-	tplRepoHome base.TplName = "repo/home"
-	tplWatchers base.TplName = "repo/watchers"
-	tplForks    base.TplName = "repo/forks"
+	tplRepoEMPTY base.TplName = "repo/empty"
+	tplRepoHome  base.TplName = "repo/home"
+	tplWatchers  base.TplName = "repo/watchers"
+	tplForks     base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -321,8 +321,8 @@ func Home(ctx *context.Context) {
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
-	if ctx.Repo.Repository.IsBare {
-		ctx.HTML(200, tplRepoBARE)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.HTML(200, tplRepoEMPTY)
 		return
 	}
 

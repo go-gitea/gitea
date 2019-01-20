@@ -124,7 +124,7 @@ func APIContexter() macaron.Handler {
 func ReferencesGitRepo() macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsBare {
+		if ctx.Repo.Repository.IsEmpty {
 			return
 		}
 

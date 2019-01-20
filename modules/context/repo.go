@@ -243,7 +243,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
-	ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
+	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
 // RepoIDAssignment returns a macaron handler which assigns the repo to the context.
@@ -379,8 +379,8 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
-		// repo is bare and display enable
-		if ctx.Repo.Repository.IsBare {
+		// repo is empty and display enable
+		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
@@ -529,7 +529,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 func RepoRefByType(refType RepoRefType) macaron.Handler {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsBare {
+		if ctx.Repo.Repository.IsEmpty {
 			return
 		}
 
@@ -558,7 +558,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					ctx.ServerError("GetBranches", err)
 					return
 				} else if len(brs) == 0 {
-					err = fmt.Errorf("No branches in non-bare repository %s",
+					err = fmt.Errorf("No branches in non-empty repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.ServerError("GetBranches", err)
 					return
