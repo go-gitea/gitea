@@ -44,24 +44,21 @@ func NewServices() {
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
-func initDBEngine() (err error, terminal bool) {
+func initDBEngine() (err error) {
 	log.Info("Beginning ORM engine initialization.")
-	var im_err error
 	for i := 0; i < setting.DBConnectRetries; i++ {
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.DBConnectRetries)
 		if err = models.NewEngine(migrations.Migrate); err == nil {
 			break
 		} else if i == setting.DBConnectRetries-1 {
-			return err, true
+			return err
 		}
-		im_err = err
 		log.Debug("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
 		log.Info("Backing off for %d seconds", int64(setting.DBConnectBackoff/time.Second))
 		time.Sleep(setting.DBConnectBackoff)
 	}
 	models.HasEngine = true
-	err = im_err
-	return
+	return nil
 }
 
 // GlobalInit is for global configuration reload-able.
@@ -78,13 +75,10 @@ func GlobalInit() {
 	if setting.InstallLock {
 		highlight.NewContext()
 		markup.Init()
-		if err, terminal := initDBEngine(); err != nil && terminal == true {
-			log.Fatal(4, "ORM engine initialization failed: %v", err)
-		} else {
+		if err := initDBEngine(); err == nil {
 			log.Info("ORM engine initialization successful!")
-			if err != nil {
-				log.Info("ORM engine had intermediate failure(s): %v", err)
-			}
+		} else {
+			log.Fatal(4, "ORM engine initialization failed: %v", err)
 		}
 
 		if err := models.InitOAuth2(); err != nil {
