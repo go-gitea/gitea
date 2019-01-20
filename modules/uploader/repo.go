@@ -206,15 +206,16 @@ func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(doer *models.User, treeHash string, message string) (string, error) {
 	commitTimeStr := time.Now().Format(time.UnixDate)
+	sig := doer.NewGitSig()
 
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+doer.DisplayName(),
-		"GIT_AUTHOR_EMAIL="+doer.Email,
+		"GIT_AUTHOR_NAME="+sig.Name,
+		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+doer.DisplayName(),
-		"GIT_COMMITTER_EMAIL="+doer.Email,
+		"GIT_COMMITTER_NAME="+sig.Name,
+		"GIT_COMMITTER_EMAIL="+sig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
@@ -235,13 +236,15 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 		isWiki = "true"
 	}
 
+	sig := doer.NewGitSig()
+
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because calls hooks we need to pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+doer.DisplayName(),
-		"GIT_AUTHOR_EMAIL="+doer.Email,
-		"GIT_COMMITTER_NAME="+doer.DisplayName(),
-		"GIT_COMMITTER_EMAIL="+doer.Email,
+		"GIT_AUTHOR_NAME="+sig.Name,
+		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+sig.Name,
+		"GIT_COMMITTER_EMAIL="+sig.Email,
 		models.EnvRepoName+"="+t.repo.Name,
 		models.EnvRepoUsername+"="+t.repo.OwnerName,
 		models.EnvRepoIsWiki+"="+isWiki,
