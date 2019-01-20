@@ -49,8 +49,7 @@ func initDBEngine() (err error, terminal bool) {
 	var im_err error
 	for i := 0; i < setting.DBConnectRetries; i++ {
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.DBConnectRetries)
-		err := models.NewEngine(migrations.Migrate)
-		if err == nil {
+		if err = models.NewEngine(migrations.Migrate); err == nil {
 			break
 		} else if i == setting.DBConnectRetries-1 {
 			return err, true
