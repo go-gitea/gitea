@@ -12,7 +12,6 @@ import (
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
@@ -182,26 +181,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
-	if isTextFile && setting.LFS.StartServer {
-		headString := string(buf)
-		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
-			splitLines := strings.Split(headString, "\n")
-			if len(splitLines) >= 3 {
-				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
-				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-				if len(oid) == 64 && err == nil {
-					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-					meta := &models.LFSMetaObject{Oid: oid}
-					if contentStore.Exists(meta) {
-						ctx.Data["IsTextFile"] = false
-						isTextFile = false
-						ctx.Data["IsLFSFile"] = true
-						ctx.Data["FileSize"] = size
-						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
-					}
-				}
-			}
+	if isTextFile {
+		if meta := lfs.IsLFSPointerFile(&buf); meta != nil {
+			ctx.Data["IsTextFile"] = false
+			isTextFile = false
+			ctx.Data["IsLFSFile"] = true
+			ctx.Data["FileSize"] = meta.Size
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
 

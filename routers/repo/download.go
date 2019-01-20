@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"path"
@@ -15,6 +16,8 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // ServeData download file from io.Reader
@@ -55,6 +58,23 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
 
+// ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
+func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return err
+	}
+	defer dataRc.Close()
+
+	if meta, _ := lfs.ReadLFSPointerFile(dataRc); meta != nil {
+		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+		ctx.Redirect(fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64))
+		return nil
+	}
+
+	return ServeBlob(ctx, blob)
+}
+
 // SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
@@ -71,6 +91,22 @@ func SingleDownload(ctx *context.Context) {
 	}
 }
 
+// SingleDownloadOrLFS download a file by repos path redirecting to LFS if necessary
+func SingleDownloadOrLFS(ctx *context.Context) {
+	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetBlobByPath", nil)
+		} else {
+			ctx.ServerError("GetBlobByPath", err)
+		}
+		return
+	}
+	if err = ServeBlobOrLFS(ctx, blob); err != nil {
+		ctx.ServerError("ServeBlobOrLFS", err)
+	}
+}
+
 // DownloadByID download a file by sha1 ID
 func DownloadByID(ctx *context.Context) {
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
@@ -83,6 +119,22 @@ func DownloadByID(ctx *context.Context) {
 		return
 	}
 	if err = ServeBlob(ctx, blob); err != nil {
+		ctx.ServerError("ServeBlob", err)
+	}
+}
+
+// DownloadByIDOrLFS download a file by sha1 ID taking account of LFS
+func DownloadByIDOrLFS(ctx *context.Context) {
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params("sha"))
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetBlob", nil)
+		} else {
+			ctx.ServerError("GetBlob", err)
+		}
+		return
+	}
+	if err = ServeBlobOrLFS(ctx, blob); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
