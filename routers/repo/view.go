@@ -178,15 +178,31 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	buf = buf[:n]
 
 	isTextFile := base.IsTextFile(buf)
+	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
 	if isTextFile {
 		if meta := lfs.IsLFSPointerFile(&buf); meta != nil {
 			if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
-				ctx.Data["IsTextFile"] = false
-				isTextFile = false
 				ctx.Data["IsLFSFile"] = true
+				isLFSFile = true
+
+				// OK read the lfs object
+				dataRc, err := lfs.ReadLFSMetaObject(meta)
+				if err != nil {
+					ctx.ServerError("ReadLFSMetaObject", err)
+					return
+				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, _ = dataRc.Read(buf)
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				ctx.Data["IsTextFile"] = isTextFile
+
 				ctx.Data["FileSize"] = meta.Size
 				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
@@ -195,7 +211,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	// Assume file is not editable first.
-	if !isTextFile {
+	if isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else if !isTextFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
@@ -252,14 +270,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}
-
-		if ctx.Repo.CanEnableEditor() {
-			ctx.Data["CanEditFile"] = true
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-		} else if !ctx.Repo.IsViewBranch {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		if !isLFSFile {
+			if ctx.Repo.CanEnableEditor() {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			} else if !ctx.Repo.IsViewBranch {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+			}
 		}
 
 	case base.IsPDFFile(buf):
