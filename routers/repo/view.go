@@ -183,12 +183,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	//Check for LFS meta file
 	if isTextFile {
 		if meta := lfs.IsLFSPointerFile(&buf); meta != nil {
-			ctx.Data["IsTextFile"] = false
-			isTextFile = false
-			ctx.Data["IsLFSFile"] = true
-			ctx.Data["FileSize"] = meta.Size
-			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+			if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
+				ctx.Data["IsTextFile"] = false
+				isTextFile = false
+				ctx.Data["IsLFSFile"] = true
+				ctx.Data["FileSize"] = meta.Size
+				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+			}
 		}
 	}
 
