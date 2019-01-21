@@ -117,9 +117,7 @@ func updateNeededCols(cols []string) bool {
 // UpdateIssueIndexerCols update an issue in the issue indexer, given changes
 // to the specified columns
 func UpdateIssueIndexerCols(issueID int64, cols ...string) {
-	if updateNeededCols(cols) {
-		UpdateIssueIndexer(issueID)
-	}
+	updateNeededCols(cols)
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer

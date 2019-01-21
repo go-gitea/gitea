@@ -14,7 +14,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="default_branch">
-				{{if not .Repository.IsBare}}
+				{{if not .Repository.IsEmpty}}
 				<div class="required inline field">
 					<div class="ui dropdown selection" tabindex="0">
 						<select name="branch">
