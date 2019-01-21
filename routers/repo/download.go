@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"path"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // ServeData download file from io.Reader
@@ -67,9 +65,15 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	defer dataRc.Close()
 
 	if meta, _ := lfs.ReadLFSPointerFile(dataRc); meta != nil {
-		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-		ctx.Redirect(fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64))
-		return nil
+		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+		if meta == nil {
+			return ServeBlob(ctx, blob)
+		}
+		lfsDataRc, err := lfs.ReadLFSMetaObject(meta)
+		if err != nil {
+			return err
+		}
+		return ServeData(ctx, ctx.Repo.TreePath, lfsDataRc)
 	}
 
 	return ServeBlob(ctx, blob)
