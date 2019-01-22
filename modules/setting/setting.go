@@ -615,6 +615,7 @@ func DateLang(lang string) string {
 	return "en"
 }
 
+// ExtractKeysFromMapString provides a slice of keys from map
 func ExtractKeysFromMapString(in map[string]int) (keys []string) {
 	for k := range in {
 		keys = append(keys, k)
