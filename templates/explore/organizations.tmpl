@@ -6,7 +6,7 @@
 
 		<div class="ui user list">
 			{{range .Users}}
-				{{if (or (eq .Visibility 1) (and ($.SignedUser) (or (eq .Visibility 2) (and (.IsUserOrgPartOf $.SignedUserID) (eq .Visibility 3)) ($.IsAdmin))))}}
+				{{if (or (eq .Visibility 1) (and ($.SignedUser) (or (eq .Visibility 2) (and (.IsUserPartOfOrg $.SignedUserID) (eq .Visibility 3)) ($.IsAdmin))))}}
 				<div class="item">
 				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
 				  <div class="content">

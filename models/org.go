@@ -389,7 +389,7 @@ func HasOrgVisible(orgs []*User, user *User) bool {
 	for _, org := range orgs {
 		switch org.Visibility {
 		case VisibleTypePrivate:
-			if org.IsUserOrgPartOf(user.ID) {
+			if org.IsUserPartOfOrg(user.ID) {
 				return true
 			}
 		default:
