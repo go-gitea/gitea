@@ -1368,7 +1368,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
-		cond = cond.And(builder.Eq{"visibility": 1})
+		cond = cond.And(builder.In("visibility", 0, 1))
 	}
 
 	if opts.OwnerID > 0 {
