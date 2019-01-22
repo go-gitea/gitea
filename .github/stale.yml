@@ -42,6 +42,7 @@ limitPerRun: 1
 # Optionally, specify configuration settings that are specific to just 'issues' or 'pulls':
 pulls:
   daysUntilStale: 60
+  daysUntilClose: 60
   markComment: >
     This pull request has been automatically marked as stale because it has not had
     recent activity. It will be closed if no further activity occurs during the next 2 months. Thank you

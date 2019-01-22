@@ -355,7 +355,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 	}
 }
 
-// NewIssue render createing issue page
+// NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
@@ -491,6 +491,11 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplIssueNew)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplIssueNew, form)
 		return
 	}
 
@@ -1232,6 +1237,8 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 	})
@@ -1262,6 +1269,8 @@ func DeleteComment(ctx *context.Context) {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
+
+	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }

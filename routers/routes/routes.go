@@ -42,7 +42,7 @@ import (
 	"github.com/go-macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // NewMacaron initializes Macaron instance.
@@ -243,6 +243,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
+			m.Post("/theme", bindIgnErr(auth.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
 			m.Get("", userSetting.Security)
@@ -292,6 +293,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
+		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
 	m.Group("/user", func() {
@@ -475,6 +477,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
 
+	// ***** Release Attachment Download without Signin
+	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
+
 	m.Group("/:username/:reponame", func() {
 		m.Group("/settings", func() {
 			m.Combo("").Get(repo.Settings).
@@ -488,7 +493,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(auth.ProtectBranchForm{}), repo.SettingsProtectedBranchPost)
-			}, repo.MustBeNotBare)
+			}, repo.MustBeNotEmpty)
 
 			m.Group("/hooks", func() {
 				m.Get("", repo.Webhooks)
@@ -602,7 +607,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(auth.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, reqRepoCodeWriter, repo.MustBeNotBare)
+		}, reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
 			m.Group("/_new/", func() {
@@ -612,24 +617,24 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}, bindIgnErr(auth.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
-		}, reqRepoCodeWriter, repo.MustBeNotBare)
+		}, reqRepoCodeWriter, repo.MustBeNotEmpty)
 
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes())
 
 	// Releases
 	m.Group("/:username/:reponame", func() {
 		m.Group("/releases", func() {
-			m.Get("/", repo.MustBeNotBare, repo.Releases)
-		}, repo.MustBeNotBare, context.RepoRef())
+			m.Get("/", repo.MustBeNotEmpty, repo.Releases)
+		}, repo.MustBeNotEmpty, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
-		}, reqSignIn, repo.MustBeNotBare, reqRepoReleaseWriter, context.RepoRef())
+		}, reqSignIn, repo.MustBeNotEmpty, reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
-		}, reqSignIn, repo.MustBeNotBare, reqRepoReleaseWriter, func(ctx *context.Context) {
+		}, reqSignIn, repo.MustBeNotEmpty, reqRepoReleaseWriter, func(ctx *context.Context) {
 			var err error
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
@@ -677,13 +682,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/:period", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotBare, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
-		m.Get("/archive/*", repo.MustBeNotBare, reqRepoCodeReader, repo.Download)
+		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
-		}, repo.MustBeNotBare, context.RepoRef(), reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/pulls/:index", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -707,7 +712,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/blob/:sha", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
-		}, repo.MustBeNotBare, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/commits", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
@@ -715,12 +720,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
-		}, repo.MustBeNotBare, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
-		}, repo.MustBeNotBare, context.RepoRef(), reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
@@ -734,10 +739,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
-			repo.MustBeNotBare, reqRepoCodeReader, repo.RawDiff)
+			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
-			repo.SetDiffViewStyle, repo.MustBeNotBare, reqRepoCodeReader, repo.CompareDiff)
+			repo.SetDiffViewStyle, repo.MustBeNotEmpty, reqRepoCodeReader, repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)

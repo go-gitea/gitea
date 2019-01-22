@@ -30,10 +30,10 @@ import (
 )
 
 const (
-	tplRepoBARE base.TplName = "repo/bare"
-	tplRepoHome base.TplName = "repo/home"
-	tplWatchers base.TplName = "repo/watchers"
-	tplForks    base.TplName = "repo/forks"
+	tplRepoEMPTY base.TplName = "repo/empty"
+	tplRepoHome  base.TplName = "repo/home"
+	tplWatchers  base.TplName = "repo/watchers"
+	tplForks     base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -56,18 +56,31 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	var readmeFile *git.Blob
+	// 3 for the extensions in exts[] in order
+	// the last one is for a readme that doesn't
+	// strictly match an extension
+	var readmeFiles [4]*git.Blob
+	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 
-		if !markup.IsReadmeFile(entry.Name()) {
-			continue
+		for i, ext := range exts {
+			if markup.IsReadmeFile(entry.Name(), ext) {
+				readmeFiles[i] = entry.Blob()
+			}
 		}
 
-		readmeFile = entry.Blob()
-		if markup.Type(entry.Name()) != "" {
+		if markup.IsReadmeFile(entry.Name()) {
+			readmeFiles[3] = entry.Blob()
+		}
+	}
+
+	var readmeFile *git.Blob
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
 			break
 		}
 	}
@@ -314,8 +327,8 @@ func Home(ctx *context.Context) {
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
-	if ctx.Repo.Repository.IsBare {
-		ctx.HTML(200, tplRepoBARE)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.HTML(200, tplRepoEMPTY)
 		return
 	}
 
