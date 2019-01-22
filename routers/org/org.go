@@ -47,9 +47,10 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 	}
 
 	org := &models.User{
-		Name:     form.OrgName,
-		IsActive: true,
-		Type:     models.UserTypeOrganization,
+		Name:       form.OrgName,
+		IsActive:   true,
+		Type:       models.UserTypeOrganization,
+		Visibility: form.Visibility,
 	}
 
 	if err := models.CreateOrganization(org, ctx.User); err != nil {

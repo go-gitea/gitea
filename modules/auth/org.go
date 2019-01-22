@@ -21,7 +21,8 @@ import (
 
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
-	OrgName string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
+	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
+	Visibility models.VisibleType
 }
 
 // Validate validates the fields

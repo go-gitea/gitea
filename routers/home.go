@@ -230,6 +230,7 @@ func ExploreUsers(ctx *context.Context) {
 		Type:     models.UserTypeIndividual,
 		PageSize: setting.UI.ExplorePagingNum,
 		IsActive: util.OptionalBoolTrue,
+		Private:  true,
 	}, tplExploreUsers)
 }
 
