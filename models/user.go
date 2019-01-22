@@ -1371,7 +1371,6 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"visibility": 1})
 	}
 
-	// TODO: Get user ID, and return all repos that have visi 1 & 2, then do a union on visi 3 and user access
 	if opts.OwnerID > 0 {
 		var accessCond = builder.NewCond()
 		accessCond.Or(
