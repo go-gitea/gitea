@@ -615,6 +615,13 @@ func DateLang(lang string) string {
 	return "en"
 }
 
+func ExtractKeysFromMapString(in map[string]int) (keys []string) {
+	for k := range in {
+		keys = append(keys, k)
+	}
+	return
+}
+
 func getAppPath() (string, error) {
 	var appPath string
 	var err error
@@ -1287,7 +1294,7 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
-	Service.DefaultVisibility = sec.Key("DEFAULT_VISIBILITY").In("public", []string{"public", "limited", "private"})
+	Service.DefaultVisibility = sec.Key("DEFAULT_VISIBILITY").In("public", ExtractKeysFromMapString(visibilityModes))
 	Service.DefaultVisibilityMode = visibilityModes[Service.DefaultVisibility]
 
 	sec = Cfg.Section("openid")
