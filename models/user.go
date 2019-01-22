@@ -1344,7 +1344,9 @@ type SearchUserOptions struct {
 	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
-	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
+	Private       bool  // Include private orgs in search
+	OwnerID       int64 // id of user for visibility calculation
+	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
 	SearchByEmail bool // Search by email as well as username/full name
 }
@@ -1362,6 +1364,20 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 
 		cond = cond.And(keywordCond)
+	}
+
+	if !opts.Private {
+		// user not logged in and so they won't be allowed to see non-public orgs
+		cond = cond.And(builder.Eq{"visibility": 1})
+	}
+
+	// TODO: Get user ID, and return all repos that have visi 1 & 2, then do a union on visi 3 and user access
+	if opts.OwnerID > 0 {
+		var accessCond = builder.NewCond()
+		accessCond.Or(
+			builder.In("id", builder.Select("org_id").From("org_user").Join("LEFT", "user", "`org_user`.org_id=`user`.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": 1}))),
+			builder.In("visibility", 1, 2))
+		cond = cond.And(accessCond)
 	}
 
 	if opts.UID > 0 {

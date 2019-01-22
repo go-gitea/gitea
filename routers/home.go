@@ -240,9 +240,16 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
+	var ownerID int64
+	if ctx.User != nil && !ctx.User.IsAdmin {
+		ownerID = ctx.User.ID
+	}
+
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.ExplorePagingNum,
+		Private:  ctx.User != nil,
+		OwnerID:  ownerID,
 	}, tplExploreOrganizations)
 }
 
