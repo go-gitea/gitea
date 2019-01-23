@@ -80,9 +80,10 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	users, _, err := models.SearchUsersAPI(&models.SearchUserOptions{
+	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:    models.UserTypeOrganization,
 		OrderBy: models.SearchOrderByAlphabetically,
+		PageSize: -1,
 	})
 	if err != nil {
 		ctx.Error(500, "SearchOrganizations", err)
