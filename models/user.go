@@ -1359,7 +1359,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if opts.PageSize <= 0 || opts.PageSize > setting.UI.ExplorePagingNum {
+	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
 		opts.PageSize = setting.UI.ExplorePagingNum
 	}
 	if opts.Page <= 0 {
@@ -1369,23 +1369,13 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	users = make([]*User, 0, opts.PageSize)
-	return users, count, x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy.String()).
-		Find(&users)
-}
-
-//SearchUsersAPI takes options i.e keyword and part of user name to search
-//it returns all the results found and the number of total results.
-func SearchUsersAPI(opts *SearchUserOptions) ([]*User, int64, error) {
-	cond := opts.toConds()
-	count, err := x.Where(cond).Count(new(User))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+	sess := x.Where(cond)
+	if opts.PageSize > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
-	users := make([]*User, 0, count)
-	return users, count, x.Where(cond).OrderBy(opts.OrderBy.String()).Find(&users)
+
+	users = make([]*User, 0, opts.PageSize)
+	return users, count, sess.Where(cond).OrderBy(opts.OrderBy.String()).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
