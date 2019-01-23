@@ -1006,12 +1006,12 @@
   version = "v1.31.1"
 
 [[projects]]
-  digest = "1:01f4ac37c52bda6f7e1bd73680a99f88733c0408aaa159ecb1ba53a1ade9423c"
+  digest = "1:7e1c00b9959544fa1ccca7cf0407a5b29ac6d5201059c4fac6f599cb99bfd24d"
   name = "gopkg.in/ldap.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d0a5ced67b4dc310b9158d63a2c6f9c5ec13f105"
-  version = "v2.4.1"
+  revision = "bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9"
+  version = "v2.5.1"
 
 [[projects]]
   digest = "1:cfe1730a152ff033ad7d9c115d22e36b19eec6d5928c06146b9119be45d39dc0"
@@ -1174,6 +1174,7 @@
     "github.com/keybase/go-crypto/openpgp",
     "github.com/keybase/go-crypto/openpgp/armor",
     "github.com/keybase/go-crypto/openpgp/packet",
+    "github.com/klauspost/compress/gzip",
     "github.com/lafriks/xormstore",
     "github.com/lib/pq",
     "github.com/lunny/dingtalk_webhook",
