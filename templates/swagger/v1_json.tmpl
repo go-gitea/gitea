@@ -505,6 +505,30 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete an organization",
+        "operationId": "orgDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "organization that is to be deleted",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -1981,7 +2005,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Create an issue",
+        "summary": "Create an issue. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueCreateIssue",
         "parameters": [
           {
@@ -2285,7 +2309,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Edit an issue",
+        "summary": "Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueEditIssue",
         "parameters": [
           {
@@ -2535,7 +2559,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Set an issue deadline. If set to null, the deadline is deleted.",
+        "summary": "Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueEditIssueDeadline",
         "parameters": [
           {
@@ -4643,6 +4667,38 @@
       }
     },
     "/teams/{id}/members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a particular member of team",
+        "operationId": "orgListTeamMember",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the member to list",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          }
+        }
+      },
       "put": {
         "produces": [
           "application/json"
@@ -5428,6 +5484,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          }
+        }
+      }
+    },
+    "/user/teams": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List all the teams a user belongs to",
+        "operationId": "userListTeams",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TeamList"
           }
         }
       }
@@ -7955,6 +8028,9 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "organization": {
+          "$ref": "#/definitions/Organization"
         },
         "permission": {
           "type": "string",

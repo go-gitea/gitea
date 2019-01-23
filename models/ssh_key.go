@@ -451,11 +451,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
-// and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+func searchPublicKeyByContentWithEngine(e Engine, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.
+	has, err := e.
 		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
@@ -464,6 +462,12 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 		return nil, ErrKeyNotExist{}
 	}
 	return key, nil
+}
+
+// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentWithEngine(x, content)
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -838,6 +842,11 @@ func DeleteDeployKey(doer *User, id int64) error {
 		return err
 	} else if !has {
 		if err = deletePublicKeys(sess, key.KeyID); err != nil {
+			return err
+		}
+
+		// after deleted the public keys, should rewrite the public keys file
+		if err = rewriteAllPublicKeys(sess); err != nil {
 			return err
 		}
 	}

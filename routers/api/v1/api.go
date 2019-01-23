@@ -463,6 +463,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/times", repo.ListMyTrackedTimes)
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
+
+			m.Get("/teams", org.ListUserTeams)
 		}, reqToken())
 
 		// Repositories
@@ -622,7 +624,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/orgs/:orgname", func() {
 			m.Get("/repos", user.ListOrgRepos)
 			m.Combo("").Get(org.Get).
-				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit)
+				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
+				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Group("/members", func() {
 				m.Get("", org.ListMembers)
 				m.Combo("/:username").Get(org.IsMember).
@@ -651,6 +654,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/members", func() {
 				m.Get("", org.GetTeamMembers)
 				m.Combo("/:username").
+					Get(org.GetTeamMember).
 					Put(reqOrgOwnership(), org.AddTeamMember).
 					Delete(reqOrgOwnership(), org.RemoveTeamMember)
 			})

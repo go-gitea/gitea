@@ -227,9 +227,36 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits))
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	AssertExistsAndLoadBean(t, commentBean)
 	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	CheckConsistencyFor(t, &Action{})
+
+	// Test that push to a non-default branch closes no issue.
+	pushCommits = []*PushCommit{
+		{
+			Sha1:           "abcdef1",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user4@example.com",
+			AuthorName:     "User Four",
+			Message:        "close #1",
+		},
+	}
+	repo = AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	commentBean = &Comment{
+		Type:      CommentTypeCommitRef,
+		CommitSHA: "abcdef1",
+		PosterID:  user.ID,
+		IssueID:   6,
+	}
+	issueBean = &Issue{RepoID: repo.ID, Index: 1}
+
+	AssertNotExistsBean(t, commentBean)
+	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
+	AssertExistsAndLoadBean(t, commentBean)
+	AssertNotExistsBean(t, issueBean, "is_closed=1")
 	CheckConsistencyFor(t, &Action{})
 }
 

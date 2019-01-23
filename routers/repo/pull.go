@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -63,7 +64,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if forkRepo.IsBare || !perm.CanRead(models.UnitTypeCode) {
+	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -552,6 +553,9 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
+		if models.MergeStyle(form.Do) == models.MergeStyleRebaseMerge {
+			message = pr.GetDefaultMergeMessage()
+		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
 			message = pr.GetDefaultSquashMessage()
 		}
@@ -719,8 +723,9 @@ func PrepareCompareDiff(
 	baseBranch, headBranch string) bool {
 
 	var (
-		repo = ctx.Repo.Repository
-		err  error
+		repo  = ctx.Repo.Repository
+		err   error
+		title string
 	)
 
 	// Get diff information.
@@ -759,6 +764,20 @@ func PrepareCompareDiff(
 	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+
+	if prInfo.Commits.Len() == 1 {
+		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+		title = strings.TrimSpace(c.UserCommit.Summary())
+
+		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		if len(body) > 1 {
+			ctx.Data["content"] = strings.Join(body[1:], "\n")
+		}
+	} else {
+		title = headBranch
+	}
+
+	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
@@ -854,6 +873,16 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		}
 
 		ctx.HTML(200, tplComparePull)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
+		if ctx.Written() {
+			return
+		}
+
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplComparePull, form)
 		return
 	}
 
