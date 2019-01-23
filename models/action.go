@@ -194,6 +194,10 @@ func (a *Action) GetRepoLink() string {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(x)
+}
+
+func (a *Action) getCommentLink(e Engine) string {
 	if a == nil {
 		return "#"
 	}
@@ -213,8 +217,12 @@ func (a *Action) GetCommentLink() string {
 		return "#"
 	}
 
-	issue, err := GetIssueByID(issueID)
+	issue, err := getIssueByID(e, issueID)
 	if err != nil {
+		return "#"
+	}
+
+	if err = issue.loadRepo(e); err != nil {
 		return "#"
 	}
 
@@ -330,13 +338,15 @@ type PushCommits struct {
 	Commits    []*PushCommit
 	CompareURL string
 
-	avatars map[string]string
+	avatars    map[string]string
+	emailUsers map[string]*User
 }
 
 // NewPushCommits creates a new PushCommits object.
 func NewPushCommits() *PushCommits {
 	return &PushCommits{
-		avatars: make(map[string]string),
+		avatars:    make(map[string]string),
+		emailUsers: make(map[string]*User),
 	}
 }
 
@@ -344,16 +354,34 @@ func NewPushCommits() *PushCommits {
 // api.PayloadCommit format.
 func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
+
+	if pc.emailUsers == nil {
+		pc.emailUsers = make(map[string]*User)
+	}
+	var err error
 	for i, commit := range pc.Commits {
 		authorUsername := ""
-		author, err := GetUserByEmail(commit.AuthorEmail)
-		if err == nil {
+		author, ok := pc.emailUsers[commit.AuthorEmail]
+		if !ok {
+			author, err = GetUserByEmail(commit.AuthorEmail)
+			if err == nil {
+				authorUsername = author.Name
+				pc.emailUsers[commit.AuthorEmail] = author
+			}
+		} else {
 			authorUsername = author.Name
 		}
+
 		committerUsername := ""
-		committer, err := GetUserByEmail(commit.CommitterEmail)
-		if err == nil {
-			// TODO: check errors other than email not found.
+		committer, ok := pc.emailUsers[commit.CommitterEmail]
+		if !ok {
+			committer, err = GetUserByEmail(commit.CommitterEmail)
+			if err == nil {
+				// TODO: check errors other than email not found.
+				committerUsername = committer.Name
+				pc.emailUsers[commit.CommitterEmail] = committer
+			}
+		} else {
 			committerUsername = committer.Name
 		}
 		commits[i] = &api.PayloadCommit{
@@ -379,17 +407,27 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 // AvatarLink tries to match user in database with e-mail
 // in order to show custom avatar, and falls back to general avatar link.
 func (pc *PushCommits) AvatarLink(email string) string {
-	_, ok := pc.avatars[email]
+	avatar, ok := pc.avatars[email]
+	if ok {
+		return avatar
+	}
+
+	u, ok := pc.emailUsers[email]
 	if !ok {
-		u, err := GetUserByEmail(email)
+		var err error
+		u, err = GetUserByEmail(email)
 		if err != nil {
 			pc.avatars[email] = base.AvatarLink(email)
 			if !IsErrUserNotExist(err) {
 				log.Error(4, "GetUserByEmail: %v", err)
+				return ""
 			}
 		} else {
-			pc.avatars[email] = u.RelAvatarLink()
+			pc.emailUsers[email] = u
 		}
+	}
+	if u != nil {
+		pc.avatars[email] = u.RelAvatarLink()
 	}
 
 	return pc.avatars[email]
@@ -438,8 +476,34 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 	return issue, nil
 }
 
+func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[int64]bool, status bool) error {
+	issue, err := getIssueFromRef(repo, ref)
+	if err != nil {
+		return err
+	}
+
+	if issue == nil || refMarked[issue.ID] {
+		return nil
+	}
+	refMarked[issue.ID] = true
+
+	if issue.RepoID != repo.ID || issue.IsClosed == status {
+		return nil
+	}
+
+	issue.Repo = repo
+	if err = issue.ChangeStatus(doer, status); err != nil {
+		// Don't return an error when dependencies are open as this would let the push fail
+		if IsErrDependenciesLeft(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
+func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -462,49 +526,21 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 			}
 		}
 
+		// Change issue status only if the commit has been pushed to the default branch.
+		if repo.DefaultBranch != branchName {
+			continue
+		}
+
 		refMarked = make(map[int64]bool)
-		// FIXME: can merge this one and next one to a common function.
 		for _, ref := range issueCloseKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
-			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || issue.IsClosed {
-				continue
-			}
-
-			if err = issue.ChangeStatus(doer, repo, true); err != nil {
-				// Don't return an error when dependencies are open as this would let the push fail
-				if IsErrDependenciesLeft(err) {
-					return nil
-				}
+			if err := changeIssueStatus(repo, doer, ref, refMarked, true); err != nil {
 				return err
 			}
 		}
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
 		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
-			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || !issue.IsClosed {
-				continue
-			}
-
-			if err = issue.ChangeStatus(doer, repo, false); err != nil {
+			if err := changeIssueStatus(repo, doer, ref, refMarked, false); err != nil {
 				return err
 			}
 		}
@@ -538,13 +574,13 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	refName := git.RefEndName(opts.RefFullName)
 
-	// Change default branch and bare status only if pushed ref is non-empty branch.
-	if repo.IsBare && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
+	// Change default branch and empty status only if pushed ref is non-empty branch.
+	if repo.IsEmpty && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
 		repo.DefaultBranch = refName
-		repo.IsBare = false
+		repo.IsEmpty = false
 	}
 
-	// Change repository bare status and update last updated time.
+	// Change repository empty status and update last updated time.
 	if err = UpdateRepository(repo, false); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
 	}
@@ -569,7 +605,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 		}
 
-		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits); err != nil {
+		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
 			log.Error(4, "updateIssuesCommit: %v", err)
 		}
 	}

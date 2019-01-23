@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -57,7 +58,13 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if !forkRepo.CanBeForked() || !forkRepo.HasAccess(ctx.User) {
+	perm, err := models.GetUserRepoPermission(forkRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil
+	}
+
+	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -217,11 +224,20 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		}
 		return nil
 	}
+	if err = issue.LoadPoster(); err != nil {
+		ctx.ServerError("LoadPoster", err)
+		return nil
+	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 	ctx.Data["Issue"] = issue
 
 	if !issue.IsPull {
 		ctx.NotFound("ViewPullCommits", nil)
+		return nil
+	}
+
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
 		return nil
 	}
 
@@ -513,16 +529,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
-		}
-		return
-	}
-	pr.Issue = issue
+	pr := issue.PullRequest
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
@@ -544,6 +551,9 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
 		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+			message = pr.GetDefaultMergeMessage()
+		}
+		if models.MergeStyle(form.Do) == models.MergeStyleRebaseMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
@@ -671,7 +681,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
+	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
@@ -710,8 +725,9 @@ func PrepareCompareDiff(
 	baseBranch, headBranch string) bool {
 
 	var (
-		repo = ctx.Repo.Repository
-		err  error
+		repo  = ctx.Repo.Repository
+		err   error
+		title string
 	)
 
 	// Get diff information.
@@ -750,6 +766,20 @@ func PrepareCompareDiff(
 	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+
+	if prInfo.Commits.Len() == 1 {
+		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+		title = strings.TrimSpace(c.UserCommit.Summary())
+
+		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		if len(body) > 1 {
+			ctx.Data["content"] = strings.Join(body[1:], "\n")
+		}
+	} else {
+		title = headBranch
+	}
+
+	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
@@ -825,7 +855,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
 		return
 	}
@@ -845,6 +875,16 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		}
 
 		ctx.HTML(200, tplComparePull)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
+		if ctx.Written() {
+			return
+		}
+
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplComparePull, form)
 		return
 	}
 
@@ -940,15 +980,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
-		}
-		return
-	}
+	pr := issue.PullRequest
 
 	// Allow cleanup only for merged PR
 	if !pr.HasMerged {
@@ -956,7 +988,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err = pr.GetHeadRepo(); err != nil {
+	if err := pr.GetHeadRepo(); err != nil {
 		ctx.ServerError("GetHeadRepo", err)
 		return
 	} else if pr.HeadRepo == nil {
@@ -971,7 +1003,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.User.IsWriterOfRepo(pr.HeadRepo) {
+	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1063,8 +1100,12 @@ func DownloadPullDiff(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetBaseRepo(); err != nil {
 		ctx.ServerError("GetBaseRepo", err)
 		return
@@ -1097,8 +1138,12 @@ func DownloadPullPatch(ctx *context.Context) {
 		return
 	}
 
-	pr := issue.PullRequest
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
 
+	pr := issue.PullRequest
 	if err = pr.GetHeadRepo(); err != nil {
 		ctx.ServerError("GetHeadRepo", err)
 		return

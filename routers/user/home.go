@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -138,6 +139,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 	})
+
 	if ctx.Written() {
 		return
 	}
@@ -255,7 +257,16 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
-	opts.Labels = ctx.Query("labels")
+	var labelIDs []int64
+	selectLabels := ctx.Query("labels")
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
+	opts.LabelIDs = labelIDs
 
 	issues, err := models.Issues(opts)
 	if err != nil {
@@ -286,7 +297,12 @@ func Issues(ctx *context.Context) {
 		repo := showReposMap[repoID]
 
 		// Check if user has access to given repository.
-		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			return
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
 			ctx.Status(404)
 			return
 		}

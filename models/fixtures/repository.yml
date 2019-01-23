@@ -175,7 +175,7 @@
   owner_id: 2
   lower_name: repo15
   name: repo15
-  is_bare: true
+  is_empty: true
 
 -
   id: 16
@@ -391,7 +391,7 @@
   is_mirror: false
 
 -
-  id: 32
+  id: 32 # org public repo
   owner_id: 3
   lower_name: repo21
   name: repo21

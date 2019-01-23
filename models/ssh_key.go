@@ -451,11 +451,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
-// and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+func searchPublicKeyByContentWithEngine(e Engine, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.
+	has, err := e.
 		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
@@ -464,6 +462,12 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 		return nil, ErrKeyNotExist{}
 	}
 	return key, nil
+}
+
+// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentWithEngine(x, content)
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -549,6 +553,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	return RewriteAllPublicKeys()
 }
@@ -557,8 +562,12 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
+	return rewriteAllPublicKeys(x)
+}
+
+func rewriteAllPublicKeys(e Engine) error {
 	//Don't rewrite key if internal server
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -583,7 +592,7 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	err = e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
@@ -807,10 +816,10 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		yes, err := HasAccess(doer.ID, repo, AccessModeAdmin)
+		has, err := IsUserRepoAdmin(repo, doer)
 		if err != nil {
-			return fmt.Errorf("HasAccess: %v", err)
-		} else if !yes {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
 			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
 		}
 	}
@@ -833,6 +842,11 @@ func DeleteDeployKey(doer *User, id int64) error {
 		return err
 	} else if !has {
 		if err = deletePublicKeys(sess, key.KeyID); err != nil {
+			return err
+		}
+
+		// after deleted the public keys, should rewrite the public keys file
+		if err = rewriteAllPublicKeys(sess); err != nil {
 			return err
 		}
 	}
