@@ -283,6 +283,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
+
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, comment.APIFormat())
 }
 
@@ -371,5 +374,8 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
+
+	notification.NotifyDeleteComment(ctx.User, comment)
+
 	ctx.Status(204)
 }

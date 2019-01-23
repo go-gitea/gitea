@@ -28,10 +28,10 @@ const (
 	tplMigrate base.TplName = "repo/migrate"
 )
 
-// MustBeNotBare render when a repo is a bare git dir
-func MustBeNotBare(ctx *context.Context) {
-	if ctx.Repo.Repository.IsBare {
-		ctx.NotFound("MustBeNotBare", nil)
+// MustBeNotEmpty render when a repo is a empty git dir
+func MustBeNotEmpty(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound("MustBeNotEmpty", nil)
 	}
 }
 
