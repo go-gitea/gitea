@@ -85,6 +85,7 @@
 										<a :href="suburl + '/' + repo.full_name">
 											<i :class="repoClass(repo)"></i>
 											<strong class="text truncate item-name">${repo.full_name}</strong>
+											<i v-if="repo.archived" class="archive icon archived-icon"></i>
 											<span class="ui right text light grey">
 												${repo.stars_count} <i class="octicon octicon-star rear"></i>
 											</span>

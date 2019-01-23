@@ -50,6 +50,11 @@
 			<span id="count_prompt">{{.i18n.Tr "repo.topic.count_prompt"}}</span>
 			<span id="format_prompt">{{.i18n.Tr "repo.topic.format_prompt"}}</span>
 		</div>
+		{{if .Repository.IsArchived}}
+			<div class="ui warning message">
+				{{.i18n.Tr "repo.archive.title"}}
+			</div>
+		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
