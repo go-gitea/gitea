@@ -112,8 +112,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	repo := ctx.Repo.Repository
+	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
-
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
 	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
@@ -176,7 +183,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
-			Labels:      selectLabels,
+			LabelIDs:    labelIDs,
 			SortType:    sortType,
 			IssueIDs:    issueIDs,
 		})
@@ -210,7 +217,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs)
+	}
 	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
 
 	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
