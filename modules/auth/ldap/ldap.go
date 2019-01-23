@@ -164,7 +164,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 		if err != nil {
 			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
 		} else if len(sr.Entries) < 1 {
-			log.Error(4, "LDAP Admin Search failed")
+			log.Trace("LDAP Admin Search found no matching entries.")
 		} else {
 			return true
 		}
@@ -259,9 +259,9 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	} else if len(sr.Entries) < 1 {
 		if directBind {
-			log.Error(4, "User filter inhibited user login.")
+			log.Trace("User filter inhibited user login.")
 		} else {
-			log.Error(4, "LDAP Search failed unexpectedly! (0 entries)")
+			log.Trace("LDAP Search found no matching entries.")
 		}
 
 		return nil
