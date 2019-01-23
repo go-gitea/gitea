@@ -1,4 +1,4 @@
-{{if $.root.SignedUserID}}
+{{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
 	{{if $.hidden}}
 		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> {{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
 	{{end}}
