@@ -21,6 +21,7 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		IsEmpty bool `xorm:"INDEX"`
 	}
 
+	// First remove the index
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -30,11 +31,21 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	var err error
 	if models.DbCfg.Type == core.POSTGRES || models.DbCfg.Type == core.SQLITE {
 		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare")
+	} else if models.DbCfg.Type == core.MSSQL {
+		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare ON repository")
 	} else {
 		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
 	}
 	if err != nil {
 		return fmt.Errorf("Drop index failed: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
 	if err := sess.Sync2(new(Repository)); err != nil {

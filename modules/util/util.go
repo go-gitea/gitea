@@ -98,3 +98,8 @@ func Min(a, b int) int {
 	}
 	return a
 }
+
+// IsEmptyString checks if the provided string is empty
+func IsEmptyString(s string) bool {
+	return len(strings.TrimSpace(s)) == 0
+}

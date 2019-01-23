@@ -193,11 +193,19 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				Labels:   "1,2",
+				LabelIDs: []int64{1},
 				Page:     1,
 				PageSize: 4,
 			},
-			[]int64{5, 2, 1},
+			[]int64{2, 1},
+		},
+		{
+			IssuesOptions{
+				LabelIDs: []int64{1, 2},
+				Page:     1,
+				PageSize: 4,
+			},
+			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},
 	} {
 		issues, err := Issues(&test.Opts)
