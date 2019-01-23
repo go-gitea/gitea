@@ -1375,7 +1375,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	}
 
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.Where(cond).OrderBy(opts.OrderBy.String()).Find(&users)
+	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
