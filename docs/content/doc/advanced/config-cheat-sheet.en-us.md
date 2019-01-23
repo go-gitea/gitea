@@ -323,7 +323,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 
 ## i18n (`i18n`)
