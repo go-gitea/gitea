@@ -81,8 +81,8 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:    models.UserTypeOrganization,
-		OrderBy: models.SearchOrderByAlphabetically,
+		Type:     models.UserTypeOrganization,
+		OrderBy:  models.SearchOrderByAlphabetically,
 		PageSize: -1,
 	})
 	if err != nil {
