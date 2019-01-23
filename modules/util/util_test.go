@@ -77,3 +77,20 @@ func TestIsExternalURL(t *testing.T) {
 		assert.Equal(t, test.Expected, IsExternalURL(test.RawURL))
 	}
 }
+
+func TestIsEmptyString(t *testing.T) {
+
+	cases := []struct {
+		s        string
+		expected bool
+	}{
+		{"", true},
+		{" ", true},
+		{"   ", true},
+		{"  a", false},
+	}
+
+	for _, v := range cases {
+		assert.Equal(t, v.expected, IsEmptyString(v.s))
+	}
+}
