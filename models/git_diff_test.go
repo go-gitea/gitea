@@ -162,12 +162,12 @@ index 74436ffe9..ff316cec3 100644
 @@ -5,13 +5,13 @@
 package integrations
 import (
-+       "fmt"
+-       "fmt"
 		"net/http"
 		"testing"
 		"code.gitea.io/gitea/models"
 		api "code.gitea.io/sdk/gitea"
--       "fmt"
++       "fmt"
 		"github.com/stretchr/testify/assert"
 )
 `)
@@ -189,12 +189,12 @@ index 74436ffe9..ff316cec3 100644
 @@ -5,13 +5,13 @@
  package integrations
  import (
-+       "fmt"
+-       "fmt"
         "net/http"
         "testing"
         "code.gitea.io/gitea/models"
         api "code.gitea.io/sdk/gitea"
--       "fmt"
++       "fmt"
         "github.com/stretchr/testify/assert"
  )
 `},
