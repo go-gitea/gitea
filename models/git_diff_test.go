@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/log"
+
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
