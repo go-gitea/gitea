@@ -7,6 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -55,6 +56,18 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(200, release.APIFormat())
 }
 
+func getPagesInfo(ctx *context.APIContext) (int, int) {
+	page := ctx.QueryInt("page")
+	if page == 0 {
+		page = 1
+	}
+	perPage := ctx.QueryInt("per_page")
+	if perPage == 0 {
+		perPage = setting.API.DefaultPagingNum
+	}
+	return page, perPage
+}
+
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases
@@ -76,10 +89,11 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	page, limit := getPagesInfo(ctx)
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
-	}, 1, 2147483647)
+	}, page, limit)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return

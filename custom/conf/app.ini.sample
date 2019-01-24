@@ -622,6 +622,8 @@ MIN_INTERVAL = 10m
 ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
+; Default paging number of api
+DEFAULT_PAGING_NUM = 30
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
