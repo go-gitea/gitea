@@ -447,7 +447,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("getDiffTree: %v", err)
 	}
 
-	sparseCheckoutListPath := filepath.Join(tmpBasePath, ".git", "info", "sparse-checkout")
+	infoPath := filepath.Join(tmpBasePath, ".git", "info")
+	if err := os.MkdirAll(infoPath, 0700); err != nil {
+		return fmt.Errorf("creating directory failed [%s]: %v", infoPath, err)
+	}
+	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
 	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
