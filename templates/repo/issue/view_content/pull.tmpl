@@ -1,9 +1,45 @@
+{{if gt (len .PullReviewersWithType) 0}}
+	<div class="comment box">
+		<div class="content">
+			<div class="ui segment">
+				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
+				{{range .PullReviewersWithType}}
+					{{ $createdStr:= TimeSinceUnix .ReviewUpdatedUnix $.Lang }}
+					<div class="ui divider"></div>
+					<div class="review-item">
+						<span class="type-icon text {{if eq .Type 1}}green
+							{{else if eq .Type 2}}grey
+							{{else if eq .Type 3}}red
+							{{else}}grey{{end}}">
+							<span class="octicon octicon-{{.Type.Icon}}"></span>
+						</span>
+						<a class="ui avatar image" href="{{.HomeLink}}">
+							<img src="{{.RelAvatarLink}}">
+						</a>
+						<span class="text grey"><a href="{{.HomeLink}}">{{.Name}}</a>
+							{{if eq .Type 1}}
+								{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+							{{else if eq .Type 2}}
+								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{else if eq .Type 3}}
+								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{else}}
+								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{end}}
+						</span>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+{{end}}
 <div class="comment merge box">
 	<a class="avatar text
 	{{if .Issue.PullRequest.HasMerged}}purple
 	{{else if .Issue.IsClosed}}grey
 	{{else if .IsPullWorkInProgress}}grey
 	{{else if .IsPullRequestBroken}}red
+	{{else if .IsBlockedByApprovals}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
 	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
@@ -33,6 +69,11 @@
 					<span class="octicon octicon-x"></span>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
+			{{else if .IsBlockedByApprovals}}
+				<div class="item text red">
+					<span class="octicon octicon-x"></span>
+				{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
+				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
 					<span class="octicon octicon-sync"></span>
@@ -45,7 +86,7 @@
 				</div>
 				{{if .AllowMerge}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowSquash}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 						<div class="ui divider"></div>
 						{{if $prUnit.PullRequestsConfig.AllowMerge}}
 						<div class="ui form merge-fields" style="display: none">
@@ -72,6 +113,25 @@
 								{{.CsrfTokenHtml}}
 								<button class="ui green button" type="submit" name="do" value="rebase">
 									{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
+								</button>
+								<button class="ui button merge-cancel">
+									{{$.i18n.Tr "cancel"}}
+								</button>
+							</form>
+						</div>
+						{{end}}
+						{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+						<div class="ui form rebase-merge-fields" style="display: none">
+							<form action="{{.Link}}/merge" method="post">
+								{{.CsrfTokenHtml}}
+								<div class="field">
+									<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
+								</div>
+								<div class="field">
+									<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}"></textarea>
+								</div>
+								<button class="ui green button" type="submit" name="do" value="rebase-merge">
+									{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
 								</button>
 								<button class="ui button merge-cancel">
 									{{$.i18n.Tr "cancel"}}
@@ -108,6 +168,9 @@
 								{{if eq .MergeStyle "rebase"}}
 									{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
 								{{end}}
+								{{if eq .MergeStyle "rebase-merge"}}
+									{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
+								{{end}}
 								{{if eq .MergeStyle "squash"}}
 									{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
 								{{end}}
@@ -121,6 +184,9 @@
 									{{end}}
 									{{if $prUnit.PullRequestsConfig.AllowRebase}}
 									<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+									{{end}}
+									{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+									<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
 									{{end}}
 									{{if $prUnit.PullRequestsConfig.AllowSquash}}
 									<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>

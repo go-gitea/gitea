@@ -19,8 +19,8 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-This reference setup guides users through the setup based on `docker-compose`, the installation
-of `docker-compose` is out of scope of this documentation. To install `docker-compose` follow
+This reference setup guides users through the setup based on `docker-compose`, but the installation
+of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
 ## Basics
@@ -267,3 +267,80 @@ be placed in `/data/gitea` directory. If using host volumes it's quite easy to a
 files; for named volumes this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
+
+# Upgrading
+
+:exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:**
+
+To upgrade your installation to the latest release:
+```
+# Edit `docker-compose.yml` to update the version, if you have one specified
+# Pull new images
+docker-compose pull
+# Start a new container, automatically removes old one
+docker-compose up -d
+```
+
+# SSH Container Passthrough
+
+Since SSH is running inside the container, you'll have to pass SSH from the host to the
+container if you wish to use SSH support. If you wish to do this without running the container
+SSH on a non-standard port (or move your host port to a non-standard port) you can forward
+SSH connections destined for the container with a little extra setup.
+
+This guide assumes that you have created a user on the host called `git` which shares the same 
+UID/GID as the container values `USER_UID`/`USER_GID`. You should also create the directory
+`/var/lib/gitea` on the host, owned by the `git` user and mounted in the container, e.g.
+
+```
+  services:
+    server:
+      image: gitea/gitea:latest
+      environment:
+        - USER_UID=1000
+        - USER_GID=1000
+      restart: always
+      networks:
+        - gitea
+      volumes:
+        - /var/lib/gitea:/data
+      ports:
+        - "3000:3000"
+        - "127.0.0.1:2222:22"
+```
+
+You can see that we're also exposing the container SSH port to port 2222 on the host, and binding this
+to 127.0.0.1 to prevent it being accessible external to the host machine itself.
+
+On the **host**, you should create the file `/app/gitea/gitea` with the following contents and
+make it executable (`chmod +x /app/gitea/gitea`):
+
+```
+#!/bin/sh
+ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
+```
+
+Your `git` user needs to have an SSH key generated:
+
+```
+sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
+```
+
+Still on the host, symlink the container `.ssh/authorized_keys` file to your git user `.ssh/authorized_keys`.
+This can be done on the host as the `/var/lib/gitea` directory is mounted inside the container under `/data`:
+
+```
+ln -s /var/lib/gitea/git/.ssh/authorized_keys /home/git/.ssh/authorized_keys
+```
+
+Then echo the `git` user SSH key into the authorized_keys file so the host can talk to the container over SSH:
+
+```
+echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /home/git/.ssh/id_rsa.pub)" >> /var/lib/gitea/git/.ssh/authorized_keys
+```
+
+Now you should be able to use Git over SSH to your container without disrupting SSH access to the host.
+
+Please note: SSH container passthrough will work only if using opensshd in container, and will not work if
+`AuthorizedKeysCommand` is used in combination with setting `SSH_CREATE_AUTHORIZED_KEYS_FILE=false` to disable
+authorized files key generation.

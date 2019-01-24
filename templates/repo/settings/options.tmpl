@@ -229,6 +229,12 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge_commit"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
 								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
 							</div>
@@ -266,7 +272,7 @@
 		</div>
 		{{end}}
 
-		{{if .IsRepositoryOwner}}
+		{{if .Permission.IsOwner}}
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
 		</h4>
@@ -294,7 +300,7 @@
 				</div>
 			</div>
 
-			{{if .Repository.UnitEnabled $.UnitTypeWiki}}
+			{{if .Permission.CanRead $.UnitTypeWiki}}
 				<div class="ui divider"></div>
 
 				<div class="item">
@@ -319,12 +325,37 @@
 					<p>{{.i18n.Tr "repo.settings.delete_desc"}}</p>
 				</div>
 			</div>
+
+			{{if not .Repository.IsMirror}}
+				<div class="ui divider"></div>
+
+				<div class="item">
+					<div class="ui right">
+						<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
+							{{if .Repository.IsArchived}}
+								{{.i18n.Tr "repo.settings.unarchive.button"}}
+							{{else}}
+								{{.i18n.Tr "repo.settings.archive.button"}}
+							{{end}}
+						</button>
+					</div>
+					<div>
+						{{if .Repository.IsArchived}}
+							<h5>{{.i18n.Tr "repo.settings.unarchive.header"}}</h5>
+							<p>{{.i18n.Tr "repo.settings.unarchive.text"}}</p>
+						{{else}}
+							<h5>{{.i18n.Tr "repo.settings.archive.header"}}</h5>
+							<p>{{.i18n.Tr "repo.settings.archive.text"}}</p>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
 		</div>
 		{{end}}
 	</div>
 </div>
 
-{{if .IsRepositoryOwner}}
+{{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
 	<div class="ui small modal" id="convert-repo-modal">
 		<div class="header">
@@ -457,6 +488,36 @@
 			</form>
 		</div>
 	</div>
+	{{end}}
+
+	{{if not .Repository.IsMirror}}
+		<div class="ui basic modal" id="archive-repo-modal">
+			<div class="ui icon header">
+				{{if .Repository.IsArchived}}
+					{{.i18n.Tr "repo.settings.unarchive.header"}}
+				{{else}}
+					{{.i18n.Tr "repo.settings.archive.header"}}
+				{{end}}
+			</div>
+			<div class="content center">
+				<p>
+					{{if .Repository.IsArchived}}
+						{{.i18n.Tr "repo.settings.unarchive.text"}}
+					{{else}}
+						{{.i18n.Tr "repo.settings.archive.text"}}
+					{{end}}
+				</p>
+			</div>
+			<form action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
+				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
+				<div class="center actions">
+					<div class="ui basic cancel inverted button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui basic inverted yellow button">{{.i18n.Tr "modal.yes"}}</button>
+				</div>
+			</form>
+		</div>
 	{{end}}
 {{end}}
 

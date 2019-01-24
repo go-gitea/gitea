@@ -9,9 +9,11 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/go-xorm/xorm"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -38,12 +40,11 @@ func (rt ReviewType) Icon() string {
 		return "eye"
 	case ReviewTypeReject:
 		return "x"
+	case ReviewTypeComment, ReviewTypeUnknown:
+		return "comment"
 	default:
-	case ReviewTypeComment:
-	case ReviewTypeUnknown:
 		return "comment"
 	}
-	return "comment"
 }
 
 // Review represents collection of code comments giving feedback for a PR
@@ -161,6 +162,23 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
+func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
+	reviews = make([]*Review, 0)
+	if err := e.
+		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
+		OrderBy("updated_unix").
+		GroupBy("reviewer_id").
+		Find(&reviews); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
+func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
+	return getUniqueApprovalsByPullRequestID(x, prID)
+}
+
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	Type       ReviewType
@@ -216,6 +234,43 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
 	}
+
+	var reviewHookType HookEventType
+
+	switch opts.Type {
+	case ReviewTypeApprove:
+		reviewHookType = HookEventPullRequestApproved
+	case ReviewTypeComment:
+		reviewHookType = HookEventPullRequestComment
+	case ReviewTypeReject:
+		reviewHookType = HookEventPullRequestRejected
+	default:
+		// unsupported review webhook type here
+		return review, nil
+	}
+
+	pr := opts.Issue.PullRequest
+
+	if err := pr.LoadIssue(); err != nil {
+		return nil, err
+	}
+
+	mode, err := AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       opts.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  opts.Issue.Repo.APIFormat(mode),
+		Sender:      opts.Reviewer.APIFormat(),
+	}); err != nil {
+		return nil, err
+	}
+	go HookQueue.Add(opts.Issue.Repo.ID)
+
 	return review, nil
 }
 
@@ -239,6 +294,8 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	if len(reviews) == 0 {
 		return nil, ErrReviewNotExist{}
 	}
+	reviews[0].Reviewer = reviewer
+	reviews[0].Issue = issue
 	return reviews[0], nil
 }
 
@@ -253,4 +310,48 @@ func UpdateReview(r *Review) error {
 		return err
 	}
 	return nil
+}
+
+// PullReviewersWithType represents the type used to display a review overview
+type PullReviewersWithType struct {
+	User              `xorm:"extends"`
+	Type              ReviewType
+	ReviewUpdatedUnix util.TimeStamp `xorm:"review_updated_unix"`
+}
+
+// GetReviewersByPullID gets all reviewers for a pull request with the statuses
+func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
+	irs := []*PullReviewersWithType{}
+	if x.Dialect().DBType() == core.MSSQL {
+		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM
+(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix
+FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
+GROUP BY review.id, review.type, review.reviewer_id) as review
+INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
+			pullID, ReviewTypeApprove, ReviewTypeReject).
+			Find(&irs)
+	} else {
+		err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
+			Table("review").
+			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
+			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
+				pullID, ReviewTypeApprove, ReviewTypeReject).
+			GroupBy("`user`.id, review.type").
+			OrderBy("review_updated_unix DESC").
+			Find(&irs)
+	}
+
+	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
+	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
+	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
+	issueReviewers = []*PullReviewersWithType{}
+	usersInArray := make(map[int64]bool)
+	for _, ir := range irs {
+		if !usersInArray[ir.ID] {
+			issueReviewers = append(issueReviewers, ir)
+			usersInArray[ir.ID] = true
+		}
+	}
+
+	return
 }
