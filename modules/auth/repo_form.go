@@ -295,7 +295,7 @@ type CreateCommentForm struct {
 // EditPriorityForm form for updating priority
 type EditPriorityForm struct {
 	// required:true
-	Priority int `binding:"Required;Range(1,5)"`
+	Priority int64 `binding:"Required;Range(1,5)"`
 }
 
 // Validate validates the fields
