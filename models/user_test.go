@@ -169,7 +169,7 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 	accessibleRepos, err := user2.GetOrgRepositoryIDs()
 	assert.NoError(t, err)
 	// User 2's team has access to private repos 3, 5, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 5, 32}, accessibleRepos)
+	assert.Equal(t, []int64{3, 5, 23, 24, 32}, accessibleRepos)
 
 	accessibleRepos, err = user4.GetOrgRepositoryIDs()
 	assert.NoError(t, err)

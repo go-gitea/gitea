@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -228,6 +229,10 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   description: username of the user
 	//   type: string
 	//   required: true
+	// - name: key
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PublicKey"
@@ -259,6 +264,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the key to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -285,4 +291,28 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	log.Trace("Key deleted by admin(%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Status(204)
+}
+
+//GetAllUsers API for getting information of all the users
+func GetAllUsers(ctx *context.APIContext) {
+	// swagger:operation GET /admin/users admin adminGetAllUsers
+	// ---
+	// summary: List all users
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	users, _, err := models.SearchUsers(&models.SearchUserOptions{
+		Type:     models.UserTypeIndividual,
+		OrderBy:  models.SearchOrderByAlphabetically,
+		PageSize: -1,
+	})
+	if err != nil {
+		ctx.Error(500, "SearchUsers", err)
+		return
+	}
+	ctx.JSON(200, &users)
 }

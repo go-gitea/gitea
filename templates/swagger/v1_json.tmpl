@@ -23,7 +23,45 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all organizations",
+        "operationId": "adminGetAllOrgs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all users",
+        "operationId": "adminGetAllUsers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -150,6 +188,13 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "key",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateKeyOption"
+            }
           }
         ],
         "responses": {
@@ -185,6 +230,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to delete",
             "name": "id",
             "in": "path",
@@ -224,6 +270,14 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
           }
         ],
         "responses": {
@@ -259,6 +313,14 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "repository",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateRepoOption"
+            }
           }
         ],
         "responses": {
@@ -382,6 +444,42 @@
         }
       }
     },
+    "/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create an organization",
+        "operationId": "orgCreate",
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrgOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}": {
       "get": {
         "produces": [
@@ -404,6 +502,30 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Organization"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete an organization",
+        "operationId": "orgDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "organization that is to be deleted",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       },
@@ -488,6 +610,14 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateHookOption"
+            }
           }
         ],
         "responses": {
@@ -517,6 +647,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to get",
             "name": "id",
             "in": "path",
@@ -548,6 +679,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to delete",
             "name": "id",
             "in": "path",
@@ -582,10 +714,18 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to update",
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditHookOption"
+            }
           }
         ],
         "responses": {
@@ -646,16 +786,10 @@
         ],
         "responses": {
           "204": {
-            "description": "user is a member",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "user is a member"
           },
           "404": {
-            "description": "user is not a member",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "user is not a member"
           }
         }
       },
@@ -686,10 +820,7 @@
         ],
         "responses": {
           "204": {
-            "description": "member removed",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "member removed"
           }
         }
       }
@@ -745,16 +876,10 @@
         ],
         "responses": {
           "204": {
-            "description": "user is a public member",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "user is a public member"
           },
           "404": {
-            "description": "user is not a public member",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "user is not a public member"
           }
         }
       },
@@ -785,10 +910,7 @@
         ],
         "responses": {
           "204": {
-            "description": "membership publicized",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "membership publicized"
           }
         }
       },
@@ -958,6 +1080,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id owns or contributes to",
             "name": "uid",
             "in": "query"
@@ -1499,6 +1622,85 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/refs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get specified ref or filtered repository's refs",
+        "operationId": "repoListAllGitRefs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReferenceList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/refs/{ref}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get specified ref or filtered repository's refs",
+        "operationId": "repoListGitRefs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "part or full name of the ref",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReferenceList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks": {
       "get": {
         "produces": [
@@ -1600,6 +1802,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to get",
             "name": "id",
             "in": "path",
@@ -1638,6 +1841,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to delete",
             "name": "id",
             "in": "path",
@@ -1679,6 +1883,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the hook",
             "name": "id",
             "in": "path",
@@ -1726,6 +1931,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the hook to test",
             "name": "id",
             "in": "path",
@@ -1799,7 +2005,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Create an issue",
+        "summary": "Create an issue. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueCreateIssue",
         "parameters": [
           {
@@ -1894,6 +2100,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of comment to delete",
             "name": "id",
             "in": "path",
@@ -1935,6 +2142,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the comment to edit",
             "name": "id",
             "in": "path",
@@ -1982,6 +2190,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "id",
             "in": "path",
@@ -2023,6 +2232,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to add tracked time to",
             "name": "id",
             "in": "path",
@@ -2076,6 +2286,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to get",
             "name": "index",
             "in": "path",
@@ -2098,7 +2309,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Edit an issue",
+        "summary": "Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueEditIssue",
         "parameters": [
           {
@@ -2117,6 +2328,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to edit",
             "name": "index",
             "in": "path",
@@ -2164,6 +2376,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2211,6 +2424,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2263,6 +2477,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of comment to delete",
             "name": "id",
             "in": "path",
@@ -2312,6 +2527,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the comment to edit",
             "name": "id",
             "in": "path",
@@ -2343,7 +2559,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Set an issue deadline. If set to null, the deadline is deleted.",
+        "summary": "Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueEditIssueDeadline",
         "parameters": [
           {
@@ -2362,6 +2578,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue to create or update a deadline on",
             "name": "index",
             "in": "path",
@@ -2380,16 +2597,10 @@
             "$ref": "#/responses/IssueDeadline"
           },
           "403": {
-            "description": "Not repo writer",
-            "schema": {
-              "$ref": "#/responses/forbidden"
-            }
+            "description": "Not repo writer"
           },
           "404": {
-            "description": "Issue not found",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "Issue not found"
           }
         }
       }
@@ -2421,6 +2632,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2465,6 +2677,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2513,6 +2726,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2558,6 +2772,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2598,6 +2813,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the issue",
             "name": "index",
             "in": "path",
@@ -2605,6 +2821,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to remove",
             "name": "id",
             "in": "path",
@@ -2642,6 +2859,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "the key_id to search for",
+            "name": "key_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2719,6 +2948,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to get",
             "name": "id",
             "in": "path",
@@ -2754,6 +2984,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the key to delete",
             "name": "id",
             "in": "path",
@@ -2868,6 +3099,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to get",
             "name": "id",
             "in": "path",
@@ -2903,6 +3135,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to delete",
             "name": "id",
             "in": "path",
@@ -2944,6 +3177,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the label to edit",
             "name": "id",
             "in": "path",
@@ -2972,7 +3206,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get all of a repository's milestones",
+        "summary": "Get all of a repository's opened milestones",
         "operationId": "issueGetMilestonesList",
         "parameters": [
           {
@@ -3065,6 +3299,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone",
             "name": "id",
             "in": "path",
@@ -3100,6 +3335,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone to delete",
             "name": "id",
             "in": "path",
@@ -3141,6 +3377,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the milestone",
             "name": "id",
             "in": "path",
@@ -3218,6 +3455,55 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "Page number",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "closed",
+              "open",
+              "all"
+            ],
+            "type": "string",
+            "description": "State of pull request: open or closed (optional)",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "mostcomment",
+              "leastcomment",
+              "priority"
+            ],
+            "type": "string",
+            "description": "Type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the milestone",
+            "name": "milestone",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "collectionFormat": "multi",
+            "description": "Label IDs",
+            "name": "labels",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3295,6 +3581,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to get",
             "name": "index",
             "in": "path",
@@ -3336,6 +3623,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to edit",
             "name": "index",
             "in": "path",
@@ -3383,6 +3671,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request",
             "name": "index",
             "in": "path",
@@ -3391,16 +3680,10 @@
         ],
         "responses": {
           "204": {
-            "description": "pull request has been merged",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "pull request has been merged"
           },
           "404": {
-            "description": "pull request has not been merged",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "pull request has not been merged"
           }
         }
       },
@@ -3430,6 +3713,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "index of the pull request to merge",
             "name": "index",
             "in": "path",
@@ -3587,6 +3871,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to get",
             "name": "id",
             "in": "path",
@@ -3622,6 +3907,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to delete",
             "name": "id",
             "in": "path",
@@ -3663,6 +3949,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release to edit",
             "name": "id",
             "in": "path",
@@ -3710,6 +3997,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3751,6 +4039,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3804,6 +4093,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3811,6 +4101,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to get",
             "name": "attachment_id",
             "in": "path",
@@ -3849,6 +4140,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3856,6 +4148,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to delete",
             "name": "attachment_id",
             "in": "path",
@@ -3897,6 +4190,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the release",
             "name": "id",
             "in": "path",
@@ -3904,6 +4198,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to edit",
             "name": "attachment_id",
             "in": "path",
@@ -4247,6 +4542,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the repo to get",
             "name": "id",
             "in": "path",
@@ -4273,6 +4569,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team to get",
             "name": "id",
             "in": "path",
@@ -4294,6 +4591,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team to delete",
             "name": "id",
             "in": "path",
@@ -4302,10 +4600,7 @@
         ],
         "responses": {
           "204": {
-            "description": "team deleted",
-            "schema": {
-              "$ref": "#/responses/empty"
-            }
+            "description": "team deleted"
           }
         }
       },
@@ -4357,6 +4652,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4371,6 +4667,38 @@
       }
     },
     "/teams/{id}/members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a particular member of team",
+        "operationId": "orgListTeamMember",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the member to list",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          }
+        }
+      },
       "put": {
         "produces": [
           "application/json"
@@ -4383,6 +4711,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4414,6 +4743,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4447,6 +4777,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4473,6 +4804,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4512,6 +4844,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of the team",
             "name": "id",
             "in": "path",
@@ -4809,6 +5142,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to get",
             "name": "id",
             "in": "path",
@@ -4836,6 +5170,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to delete",
             "name": "id",
             "in": "path",
@@ -4862,6 +5197,14 @@
         ],
         "summary": "List the authenticated user's public keys",
         "operationId": "userCurrentListKeys",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
@@ -4912,6 +5255,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to get",
             "name": "id",
             "in": "path",
@@ -4939,6 +5283,7 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
             "description": "id of key to delete",
             "name": "id",
             "in": "path",
@@ -5143,6 +5488,23 @@
         }
       }
     },
+    "/user/teams": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List all the teams a user belongs to",
+        "operationId": "userListTeams",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TeamList"
+          }
+        }
+      }
+    },
     "/user/times": {
       "get": {
         "produces": [
@@ -5156,32 +5518,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
-          }
-        }
-      }
-    },
-    "/user/{username}/orgs": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "List a user's organizations",
-        "operationId": "orgListUserOrgs",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/OrganizationList"
           }
         }
       }
@@ -5201,6 +5537,13 @@
             "type": "string",
             "description": "keyword",
             "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the user to search for",
+            "name": "uid",
             "in": "query"
           },
           {
@@ -5371,6 +5714,35 @@
         }
       }
     },
+    "/users/{username}/heatmap": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a user's heatmap",
+        "operationId": "userGetHeatmapData",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/keys": {
       "get": {
         "produces": [
@@ -5388,11 +5760,43 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "fingerprint of the key",
+            "name": "fingerprint",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
+          }
+        }
+      }
+    },
+    "/users/{username}/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a user's organizations",
+        "operationId": "orgListUserOrgs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
           }
         }
       }
@@ -5520,6 +5924,21 @@
             "name": "username",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "accessToken",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -5549,6 +5968,7 @@
           },
           {
             "type": "integer",
+            "format": "int64",
             "description": "token to be deleted",
             "name": "token",
             "in": "path",
@@ -6128,6 +6548,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6198,6 +6634,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "fingerprint": {
+          "type": "string",
+          "x-go-name": "Fingerprint"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -6207,9 +6647,17 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "KeyID"
+        },
         "read_only": {
           "type": "boolean",
           "x-go-name": "ReadOnly"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
         },
         "title": {
           "type": "string",
@@ -6491,6 +6939,22 @@
             "admin"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6659,6 +7123,25 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitObject": {
+      "type": "object",
+      "title": "GitObject represents a Git object.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7092,6 +7575,14 @@
           "type": "string",
           "x-go-name": "Key"
         },
+        "key_type": {
+          "type": "string",
+          "x-go-name": "KeyType"
+        },
+        "read_only": {
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -7099,6 +7590,9 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7241,6 +7735,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Reference": {
+      "type": "object",
+      "title": "Reference represents a Git reference.",
+      "properties": {
+        "object": {
+          "$ref": "#/definitions/GitObject"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Release": {
       "description": "Release represents a repository release",
       "type": "object",
@@ -7313,6 +7825,10 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "archived": {
+          "type": "boolean",
+          "x-go-name": "Archived"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
@@ -7513,6 +8029,9 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "organization": {
+          "$ref": "#/definitions/Organization"
+        },
         "permission": {
           "type": "string",
           "enum": [
@@ -7523,9 +8042,31 @@
             "owner"
           ],
           "x-go-name": "Permission"
+        },
+        "units": {
+          "type": "array",
+          "enum": [
+            "repo.code",
+            "repo.issues",
+            "repo.ext_issues",
+            "repo.wiki",
+            "repo.pulls",
+            "repo.releases",
+            "repo.ext_wiki"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "TimeStamp": {
+      "description": "TimeStamp defines a timestamp",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/util"
     },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
@@ -7597,6 +8138,21 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData represents the data needed to create a heatmap",
+      "type": "object",
+      "properties": {
+        "contributions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/TimeStamp"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/models"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
@@ -7851,6 +8407,21 @@
         }
       }
     },
+    "Reference": {
+      "description": "Reference",
+      "schema": {
+        "$ref": "#/definitions/Reference"
+      }
+    },
+    "ReferenceList": {
+      "description": "ReferenceList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Reference"
+        }
+      }
+    },
     "Release": {
       "description": "Release",
       "schema": {
@@ -7942,6 +8513,15 @@
       "description": "User",
       "schema": {
         "$ref": "#/definitions/User"
+      }
+    },
+    "UserHeatmapData": {
+      "description": "UserHeatmapData",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/UserHeatmapData"
+        }
       }
     },
     "UserList": {

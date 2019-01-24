@@ -37,9 +37,12 @@ func (c *Command) String() string {
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 func NewCommand(args ...string) *Command {
+	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
 	return &Command{
 		name: "git",
-		args: append(GlobalCommandArgs, args...),
+		args: append(cargs, args...),
 	}
 }
 

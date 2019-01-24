@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -53,6 +54,7 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
+	//   format: int64
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -182,11 +184,6 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
-	var userID int64
-	if ctx.IsSigned {
-		userID = ctx.User.ID
-	}
-
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
@@ -196,7 +193,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(userID, repo)
+		accessMode, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
 			ctx.JSON(500, api.SearchError{
 				OK:    false,
@@ -453,6 +450,7 @@ func GetByID(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the repo to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -467,15 +465,15 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := models.AccessLevel(ctx.User.ID, repo)
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeRead {
+	} else if !perm.HasAccess() {
 		ctx.Status(404)
 		return
 	}
-	ctx.JSON(200, repo.APIFormat(access))
+	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
 }
 
 // Delete one repository
@@ -501,14 +499,10 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	if !ctx.Repo.IsAdmin() {
-		ctx.Error(403, "", "Must have admin rights")
-		return
-	}
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	if owner.IsOrganization() {
+	if owner.IsOrganization() && !ctx.User.IsAdmin {
 		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
 		if err != nil {
 			ctx.Error(500, "IsOwnedBy", err)
@@ -551,7 +545,7 @@ func MirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	repo := ctx.Repo.Repository
 
-	if !ctx.Repo.IsWriter() {
+	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 

@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -68,6 +70,13 @@ func removeStaleWatches(x *xorm.Engine) error {
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
+	}
+
+	var issueWatch IssueWatch
+	if exist, err := sess.IsTableExist(&issueWatch); err != nil {
+		return fmt.Errorf("IsExist IssueWatch: %v", err)
+	} else if !exist {
+		return nil
 	}
 
 	repoCache := make(map[int64]*Repository)

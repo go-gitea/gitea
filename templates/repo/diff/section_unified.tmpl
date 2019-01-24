@@ -32,7 +32,7 @@
 						{{ template "repo/diff/comments" dict "root" $.root "comments" $line.Comments}}
 						</ui>
 					</div>
-					{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $.root "comment" (index $line.Comments 0)}}
+					{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $line.Comments 0).ReviewID "root" $.root "comment" (index $line.Comments 0)}}
 				</div>
 			</td>
 		</tr>
