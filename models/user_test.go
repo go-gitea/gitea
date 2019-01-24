@@ -6,6 +6,7 @@ package models
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -180,4 +181,35 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 	assert.NoError(t, err)
 	// User 5's team has no access to any repo
 	assert.Len(t, accessibleRepos, 0)
+}
+
+func TestNewGitSig(t *testing.T) {
+	users := make([]*User, 0, 20)
+	sess := x.NewSession()
+	defer sess.Close()
+	sess.Find(&users)
+
+	for _, user := range users {
+		sig := user.NewGitSig()
+		assert.NotContains(t, sig.Name, "<")
+		assert.NotContains(t, sig.Name, ">")
+		assert.NotContains(t, sig.Name, "\n")
+		assert.NotEqual(t, len(strings.TrimSpace(sig.Name)), 0)
+	}
+}
+
+func TestDisplayName(t *testing.T) {
+	users := make([]*User, 0, 20)
+	sess := x.NewSession()
+	defer sess.Close()
+	sess.Find(&users)
+
+	for _, user := range users {
+		displayName := user.DisplayName()
+		assert.Equal(t, strings.TrimSpace(displayName), displayName)
+		if len(strings.TrimSpace(user.FullName)) == 0 {
+			assert.Equal(t, user.Name, displayName)
+		}
+		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
+	}
 }
