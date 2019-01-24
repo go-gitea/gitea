@@ -36,7 +36,7 @@ func PinIssue(issue *Issue, doer *User) error {
 		return err
 	}
 
-	if has, err := HasAccess(doer.ID, issue.Repo, AccessModeWrite); err != nil {
+	if has, err := HasAccess(doer.ID, issue.Repo); err != nil {
 		return err
 	} else if !has {
 		return ErrUserDoesNotHaveAccessToRepo{UserID: doer.ID, RepoName: issue.Repo.Name}
