@@ -448,7 +448,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}
 
 	infoPath := filepath.Join(tmpBasePath, ".git", "info")
-	if err := os.MkdirAll(infoPath, 0600); err != nil {
+	if err := os.MkdirAll(infoPath, 0700); err != nil {
 		return fmt.Errorf("creating directory failed [%s]: %v", infoPath, err)
 	}
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
