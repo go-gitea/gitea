@@ -60,9 +60,7 @@ func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 func (p *Permission) CanAnonymousAccess(unitType UnitType) bool {
 	for _, u := range p.Units {
 		if u.Type == unitType {
-			if u.AllowAnonymous {
-				return true
-			}
+			return u.AllowAnonymous
 		}
 	}
 	return false
