@@ -652,7 +652,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Group("/:username/:reponame", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoMustNotBeArchived(), context.RepoAssignment(), reqRepoAdmin)
+	}, context.RepoAssignment(), context.RepoMustNotBeArchived(), reqRepoAdmin)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
