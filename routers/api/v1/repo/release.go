@@ -64,6 +64,8 @@ func getPagesInfo(ctx *context.APIContext) (int, int) {
 	perPage := ctx.QueryInt("per_page")
 	if perPage == 0 {
 		perPage = setting.API.DefaultPagingNum
+	} else if perPage > setting.API.MaxResponseItems {
+		perPage = setting.API.MaxResponseItems
 	}
 	return page, perPage
 }
