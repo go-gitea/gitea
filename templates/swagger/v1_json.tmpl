@@ -1701,6 +1701,46 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/trees/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tree of a repository.",
+        "operationId": "GetTree",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitTreeResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks": {
       "get": {
         "produces": [
@@ -7127,6 +7167,38 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "GitEntry": {
+      "description": "GitEntry represents a git tree",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "x-go-name": "Mode"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "GitObject": {
       "type": "object",
       "title": "GitObject represents a Git object.",
@@ -7138,6 +7210,32 @@
         "type": {
           "type": "string",
           "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse returns a git tree",
+      "type": "object",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GitEntry"
+          },
+          "x-go-name": "Entries"
+        },
+        "truncated": {
+          "type": "boolean",
+          "x-go-name": "Truncated"
         },
         "url": {
           "type": "string",
@@ -8288,6 +8386,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse",
+      "schema": {
+        "$ref": "#/definitions/GitTreeResponse"
       }
     },
     "Hook": {
