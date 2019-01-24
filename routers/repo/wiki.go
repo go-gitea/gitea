@@ -295,6 +295,7 @@ func WikiRaw(ctx *context.Context) {
 			return
 		}
 	}
+
 	providedPath := ctx.Params("*")
 
 	var entry *git.TreeEntry
@@ -304,33 +305,31 @@ func WikiRaw(ctx *context.Context) {
 		if err != nil {
 			ctx.ServerError("findFile", err)
 			return
-		} else if entry != nil {
-			if err = ServeBlob(ctx, entry.Blob()); err != nil {
-				ctx.ServerError("ServeBlob", err)
-			}
-			return
 		}
 
-		// Try to find a wiki page with that name
-		if strings.HasSuffix(providedPath, ".md") {
-			providedPath = providedPath[:len(providedPath)-3]
-		}
-
-		wikiPath := models.WikiNameToFilename(providedPath)
-		entry, err = findEntryForFile(commit, wikiPath)
-		if err != nil {
-			ctx.ServerError("findFile", err)
-			return
-		} else if entry != nil {
-			if err = ServeBlob(ctx, entry.Blob()); err != nil {
-				ctx.ServerError("ServeBlob", err)
+		if entry == nil {
+			// Try to find a wiki page with that name
+			if strings.HasSuffix(providedPath, ".md") {
+				providedPath = providedPath[:len(providedPath)-3]
 			}
-			return
+
+			wikiPath := models.WikiNameToFilename(providedPath)
+			entry, err = findEntryForFile(commit, wikiPath)
+			if err != nil {
+				ctx.ServerError("findFile", err)
+				return
+			}
 		}
 	}
 
+	if entry != nil {
+		if err = ServeBlob(ctx, entry.Blob()); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	}
+
 	ctx.NotFound("findEntryForFile", nil)
-	return
 }
 
 // NewWiki render wiki create page
