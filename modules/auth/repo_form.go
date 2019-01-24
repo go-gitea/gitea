@@ -117,6 +117,8 @@ type RepoSettingForm struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
+	AllowAnonymousIssues             bool
+	AllowAnonymousWiki               bool
 	IsArchived                       bool
 
 	// Admin settings

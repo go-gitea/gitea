@@ -23,23 +23,49 @@ func (p *Permission) IsAdmin() bool {
 
 // HasAccess returns true if the current user has at least read access to any unit of this repository
 func (p *Permission) HasAccess() bool {
+	for _, u := range p.Units {
+		if u.AllowAnonymous {
+			return true
+		}
+	}
+
 	if p.UnitsMode == nil {
 		return p.AccessMode >= AccessModeRead
 	}
 	return len(p.UnitsMode) > 0
 }
 
-// UnitAccessMode returns current user accessmode to the specify unit of the repository
+// UnitAccessMode returns the unit's minial accessmode to be accessed
 func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
-	if p.UnitsMode == nil {
-		for _, u := range p.Units {
-			if u.Type == unitType {
-				return p.AccessMode
+	var found bool
+	for _, u := range p.Units {
+		if u.Type == unitType {
+			if u.AllowAnonymous {
+				return AccessModeRead
 			}
+			found = true
+		}
+	}
+
+	if p.UnitsMode == nil {
+		if found {
+			return p.AccessMode
 		}
 		return AccessModeNone
 	}
 	return p.UnitsMode[unitType]
+}
+
+// CanAnonymousAccess returns true if anonymous access is enabled
+func (p *Permission) CanAnonymousAccess(unitType UnitType) bool {
+	for _, u := range p.Units {
+		if u.Type == unitType {
+			if u.AllowAnonymous {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // CanAccess returns true if user has mode access to the unit of the repository
@@ -96,22 +122,19 @@ func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 }
 
 func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
-	// anonymous user visit private repo.
-	// TODO: anonymous user visit public unit of private repo???
-	if user == nil && repo.IsPrivate {
-		perm.AccessMode = AccessModeNone
-		return
-	}
-
+	// always load repo unit so that we can read unit's allow_anonymous
 	if err = repo.getUnits(e); err != nil {
 		return
 	}
-
 	perm.Units = repo.Units
 
-	// anonymous visit public repo
+	// for anonymous user
 	if user == nil {
-		perm.AccessMode = AccessModeRead
+		if repo.IsPrivate {
+			perm.AccessMode = AccessModeNone
+		} else {
+			perm.AccessMode = AccessModeRead
+		}
 		return
 	}
 

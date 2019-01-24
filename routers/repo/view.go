@@ -299,12 +299,15 @@ func Home(ctx *context.Context) {
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
-				renderCode(ctx)
-				return
+				if ctx.Repo.CanRead(models.UnitTypeCode) {
+					renderCode(ctx)
+					return
+				}
+				continue
 			}
 
 			unit, ok := models.Units[repoUnit.Type]
-			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
+			if ok && ctx.Repo.CanRead(repoUnit.Type) && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
 		}
