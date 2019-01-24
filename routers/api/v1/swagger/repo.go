@@ -137,5 +137,6 @@ type swaggerResponseAttachment struct {
 // GitTreeResponse
 // swagger:response GitTreeResponse
 type swaggerGitTreeResponse struct {
+	//in: body
 	Body api.GitTreeResponse `json:"body"`
 }
