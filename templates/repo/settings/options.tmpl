@@ -325,6 +325,31 @@
 					<p>{{.i18n.Tr "repo.settings.delete_desc"}}</p>
 				</div>
 			</div>
+
+			{{if not .Repository.IsMirror}}
+				<div class="ui divider"></div>
+
+				<div class="item">
+					<div class="ui right">
+						<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
+							{{if .Repository.IsArchived}}
+								{{.i18n.Tr "repo.settings.unarchive.button"}}
+							{{else}}
+								{{.i18n.Tr "repo.settings.archive.button"}}
+							{{end}}
+						</button>
+					</div>
+					<div>
+						{{if .Repository.IsArchived}}
+							<h5>{{.i18n.Tr "repo.settings.unarchive.header"}}</h5>
+							<p>{{.i18n.Tr "repo.settings.unarchive.text"}}</p>
+						{{else}}
+							<h5>{{.i18n.Tr "repo.settings.archive.header"}}</h5>
+							<p>{{.i18n.Tr "repo.settings.archive.text"}}</p>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
 		</div>
 		{{end}}
 	</div>
@@ -463,6 +488,36 @@
 			</form>
 		</div>
 	</div>
+	{{end}}
+
+	{{if not .Repository.IsMirror}}
+		<div class="ui basic modal" id="archive-repo-modal">
+			<div class="ui icon header">
+				{{if .Repository.IsArchived}}
+					{{.i18n.Tr "repo.settings.unarchive.header"}}
+				{{else}}
+					{{.i18n.Tr "repo.settings.archive.header"}}
+				{{end}}
+			</div>
+			<div class="content center">
+				<p>
+					{{if .Repository.IsArchived}}
+						{{.i18n.Tr "repo.settings.unarchive.text"}}
+					{{else}}
+						{{.i18n.Tr "repo.settings.archive.text"}}
+					{{end}}
+				</p>
+			</div>
+			<form action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
+				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
+				<div class="center actions">
+					<div class="ui basic cancel inverted button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui basic inverted yellow button">{{.i18n.Tr "modal.yes"}}</button>
+				</div>
+			</form>
+		</div>
 	{{end}}
 {{end}}
 

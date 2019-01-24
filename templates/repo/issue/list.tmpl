@@ -9,13 +9,15 @@
 			<div class="column center aligned">
 				{{template "repo/issue/search" .}}
 			</div>
-			<div class="column right aligned">
-				{{if .PageIsIssueList}}
-					<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
-				{{else}}
-					<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
-				{{end}}
-			</div>
+			{{if not .Repository.IsArchived}}
+				<div class="column right aligned">
+					{{if .PageIsIssueList}}
+						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
+					{{else}}
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+					{{end}}
+				</div>
+			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">

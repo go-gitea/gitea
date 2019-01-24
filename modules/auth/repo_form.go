@@ -117,6 +117,7 @@ type RepoSettingForm struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
+	IsArchived                       bool
 
 	// Admin settings
 	EnableHealthCheck bool
