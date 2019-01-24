@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -1358,7 +1359,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if opts.PageSize <= 0 || opts.PageSize > setting.UI.ExplorePagingNum {
+	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
 		opts.PageSize = setting.UI.ExplorePagingNum
 	}
 	if opts.Page <= 0 {
@@ -1368,11 +1369,13 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
+	sess := x.Where(cond)
+	if opts.PageSize > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy.String()).
-		Find(&users)
+	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
