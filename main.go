@@ -8,8 +8,8 @@ package main // import "code.gitea.io/gitea"
 
 import (
 	"os"
-	"strings"
 	"runtime"
+	"strings"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
