@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -36,7 +37,7 @@ type Issue struct {
 	Labels          []*Label     `xorm:"-"`
 	MilestoneID     int64        `xorm:"INDEX"`
 	Milestone       *Milestone   `xorm:"-"`
-	Priority        int          `xorm:"priority"` // Indicates priority in list display
+	Priority        int64        `xorm:"priority"` // Indicates priority in list display
 	AssigneeID      int64        `xorm:"-"`
 	Assignee        *User        `xorm:"-"`
 	IsClosed        bool         `xorm:"INDEX"`
