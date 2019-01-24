@@ -97,6 +97,13 @@ var LDAPResultCodeMap = map[uint8]string{
 	LDAPResultObjectClassModsProhibited:    "Object Class Mods Prohibited",
 	LDAPResultAffectsMultipleDSAs:          "Affects Multiple DSAs",
 	LDAPResultOther:                        "Other",
+
+	ErrorNetwork:            "Network Error",
+	ErrorFilterCompile:      "Filter Compile Error",
+	ErrorFilterDecompile:    "Filter Decompile Error",
+	ErrorDebugging:          "Debugging Error",
+	ErrorUnexpectedMessage:  "Unexpected Message",
+	ErrorUnexpectedResponse: "Unexpected Response",
 }
 
 func getLDAPResultCode(packet *ber.Packet) (code uint8, description string) {

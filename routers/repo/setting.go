@@ -354,6 +354,47 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "archive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(true); err != nil {
+			log.Error(4, "Tried to archive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+
+		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	case "unarchive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(false); err != nil {
+			log.Error(4, "Tried to unarchive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+
+		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	default:
 		ctx.NotFound("", nil)
 	}

@@ -10,26 +10,28 @@
 			<div class="content">
 				<div class="ui top attached header">
 					<span class="text grey"><a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span>
-					<div class="ui right actions">
-						{{if gt .ShowTag 0}}
-							<div class="item tag">
-								{{if eq .ShowTag 1}}
-									{{$.i18n.Tr "repo.issues.poster"}}
-								{{else if eq .ShowTag 2}}
-									{{$.i18n.Tr "repo.issues.collaborator"}}
-								{{else if eq .ShowTag 3}}
-									{{$.i18n.Tr "repo.issues.owner"}}
-								{{end}}
-							</div>
-						{{end}}
-						{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) }}
-						{{if or $.Permission.IsAdmin (eq .Poster.ID $.SignedUserID)}}
-							<div class="item action">
-								<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
-								<a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
-							</div>
-						{{end}}
-					</div>
+                    {{if not $.Repository.IsArchived}}
+                        <div class="ui right actions">
+                            {{if gt .ShowTag 0}}
+                                <div class="item tag">
+                                    {{if eq .ShowTag 1}}
+                                        {{$.i18n.Tr "repo.issues.poster"}}
+                                    {{else if eq .ShowTag 2}}
+                                        {{$.i18n.Tr "repo.issues.collaborator"}}
+                                    {{else if eq .ShowTag 3}}
+                                        {{$.i18n.Tr "repo.issues.owner"}}
+                                    {{end}}
+                                </div>
+                            {{end}}
+                            {{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) }}
+                            {{if or $.Permission.IsAdmin (eq .Poster.ID $.SignedUserID)}}
+                                <div class="item action">
+                                    <a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+                                    <a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
+                                </div>
+                            {{end}}
+                        </div>
+                    {{end}}
 				</div>
 				<div class="ui attached segment">
 					<div class="render-content markdown has-emoji">

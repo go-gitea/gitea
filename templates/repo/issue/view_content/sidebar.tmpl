@@ -2,7 +2,7 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-label dropdown">
+		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -27,7 +27,7 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-milestone dropdown">
+		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -68,7 +68,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsIssueWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
+		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -119,7 +119,7 @@
 			</div>
 		</div>
 
-		{{if $.IssueWatch}}
+		{{if and $.IssueWatch (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 
 			<div class="ui watching">
@@ -142,7 +142,7 @@
 			</div>
 		{{end}}
 		{{if .Repository.IsTimetrackerEnabled }}
-			{{if .CanUseTimetracker }}
+			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
 					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
@@ -223,7 +223,7 @@
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 					{{end}}
-					{{if .IsIssueWriter}}
+					{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 						<br/>
 						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
 						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
@@ -233,7 +233,7 @@
 				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
 			{{end}}
 
-			{{if .IsIssueWriter}}
+			{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
 					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="setDeadline();return false;">
 						{{$.CsrfTokenHtml}}
@@ -278,7 +278,7 @@
 								<div class="ui black label">#{{.Index}}</div>
 								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 								<div class="ui transparent label right floated">
-									{{if $.CanCreateIssueDependencies}}
+									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');"
 										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red"></i>
@@ -304,7 +304,7 @@
 								<div class="ui black label">#{{.Index}}</div>
 								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 								<div class="ui transparent label right floated">
-									{{if $.CanCreateIssueDependencies}}
+									{{if and $.CanCreateIssueDependencies (not $.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');"
 										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red"></i>
@@ -316,7 +316,7 @@
 					</div>
 				{{end}}
 
-				{{if .CanCreateIssueDependencies}}
+				{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 					<div>
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
 							{{$.CsrfTokenHtml}}
@@ -337,7 +337,7 @@
 			</div>
 	</div>
 </div>
-{{if .CanCreateIssueDependencies}}
+{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
 	<!-- I know, there is probably a better way to do this -->
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>

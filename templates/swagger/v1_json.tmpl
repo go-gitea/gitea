@@ -23,7 +23,45 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all organizations",
+        "operationId": "adminGetAllOrgs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all users",
+        "operationId": "adminGetAllUsers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
