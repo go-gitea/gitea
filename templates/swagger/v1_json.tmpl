@@ -1663,6 +1663,46 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/trees/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tree of a repository.",
+        "operationId": "GetTree",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitTreeResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks": {
       "get": {
         "produces": [
