@@ -1,3 +1,7 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -5,19 +9,20 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 )
 
-// RepoStatus determines the current state of a transfer
-type RepoStatus uint8
+// TransferStatus determines the current state of a transfer
+type TransferStatus uint8
 
 const (
-	// Rejected is a status for transfers that get cancelled by either the
-	// recipient or the user who initiated the transfer
-	Rejected RepoStatus = iota
 	// Pending is the default repo transfer state. All initiated transfers
 	// automatically get this status.
-	Pending
+	Pending TransferStatus = iota
+	// Rejected is a status for transfers that get cancelled by either the
+	// recipient or the user who initiated the transfer
+	Rejected
 	// Accepted is a repo transfer state for repository transfers that have
 	// been acknowledged by the recipient
 	Accepted
@@ -31,7 +36,7 @@ type RepoTransfer struct {
 	RepoID      int64
 	CreatedUnix util.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX NOT NULL updated"`
-	Status      RepoStatus
+	Status      TransferStatus
 }
 
 // LoadRecipient fetches the transfer recipient from the database
