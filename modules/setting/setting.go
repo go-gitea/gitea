@@ -1247,7 +1247,7 @@ var Service struct {
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
-	AutoWatchNewRepos						bool
+	AutoWatchNewRepos                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool

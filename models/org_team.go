@@ -135,7 +135,7 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -627,7 +627,7 @@ func AddTeamMember(team *Team, userID int64) error {
 			if err = watchRepo(sess, userID, repo.ID, true); err != nil {
 				return err
 			}
-		}		
+		}
 	}
 
 	return sess.Commit()
