@@ -89,7 +89,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 				repo = &Repository{
 					ID: watch.RepoID,
 				}
-				if _, err := x.Get(repo); err != nil {
+				if _, err := sess.Get(repo); err != nil {
 					return err
 				}
 				repoCache[watch.RepoID] = repo
