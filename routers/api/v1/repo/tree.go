@@ -117,10 +117,7 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	} else {
 		tree.Entries = make([]gitea.GitEntry, rangeEnd - rangeStart)
 	}
-	for e := range entries {
-		if e < rangeStart || e >= rangeEnd {
-			continue
-		}
+	for e := rangeStart; e < rangeEnd; e++ {
 		var i = e - rangeStart
 		tree.Entries[i].Path = entries[e].Name()
 		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
