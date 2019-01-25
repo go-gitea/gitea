@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
+const defaultPerPage int = 1000
+
 // GetTree get the tree of a repository.
 func GetTree(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/trees/{sha} repository GetTree
@@ -44,7 +46,12 @@ func GetTree(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: page
 	//   in: query
-	//   description: Page index, starts at 0 (default), results are paged by 1000. The 'truncated' field in the response will be true if there are still more items after this page, false if the last page.
+	//   description: Page index, starts at 0 (default). The 'truncated' field in the response will be true if there are still more items after this page, false if the last page.
+	//   required: false
+	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: Number of items per page. Default is 1000
 	//   required: false
 	//   type: integer
 	// responses:
@@ -98,16 +105,20 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	copyPos := len(treeURL) - 40
 
 	var page = ctx.QueryInt("page")
+	var perPage = ctx.QueryInt("per_page")
+	if perPage <= 0 {
+		perPage = defaultPerPage
+	}
 	if page < 0 {
 		page = 0
 	}
-	var rangeStart = 1000 * page
+	var rangeStart = perPage * page
 	if rangeStart >= len(entries) {
 		return tree
 	}
 	var rangeEnd int
-	if rangeStart + 1000 < len(entries) {
-		rangeEnd = rangeStart + 1000
+	if rangeStart + perPage < len(entries) {
+		rangeEnd = rangeStart + perPage
 		tree.Truncated = true
 	} else {
 		rangeEnd = len(entries)
