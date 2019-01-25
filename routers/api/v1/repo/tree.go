@@ -37,6 +37,16 @@ func GetTree(ctx *context.APIContext) {
 	//   description: sha of the commit
 	//   type: string
 	//   required: true
+	// - name: recursive
+	//   in: query
+	//   description: show all directories and files
+	//   required: false
+	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: Page index, starts at 0 (default), results are paged by 1000. The 'truncated' field in the response will be true if there are still more items after this page, false if the last page.
+	//   required: false
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
@@ -87,29 +97,39 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	// 40 is the size of the sha1 hash in hexadecimal format.
 	copyPos := len(treeURL) - 40
 
-	if len(entries) > 1000 {
+	var rangeStart = 1000 * ctx.QueryInt("page")
+	if rangeStart >= len(entries) {
+		return tree
+	}
+	var rangeEnd int
+	if rangeStart + 1000 < len(entries) {
+		rangeEnd = rangeStart + 1000
+		tree.Truncated = true
+	} else {
+		rangeEnd = len(entries)
+	}
+	if rangeEnd > len(entries) {
 		tree.Entries = make([]gitea.GitEntry, 1000)
 	} else {
-		tree.Entries = make([]gitea.GitEntry, len(entries))
+		tree.Entries = make([]gitea.GitEntry, rangeEnd - rangeStart)
 	}
 	for e := range entries {
-		if e > 1000 {
-			tree.Truncated = true
-			break
+		if e < rangeStart || e >= rangeEnd {
+			continue
 		}
-
-		tree.Entries[e].Path = entries[e].Name()
-		tree.Entries[e].Mode = fmt.Sprintf("%06x", entries[e].Mode())
-		tree.Entries[e].Type = string(entries[e].Type)
-		tree.Entries[e].Size = entries[e].Size()
-		tree.Entries[e].SHA = entries[e].ID.String()
+		var i = e - rangeStart
+		tree.Entries[i].Path = entries[e].Name()
+		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
+		tree.Entries[i].Type = string(entries[e].Type)
+		tree.Entries[i].Size = entries[e].Size()
+		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[e].URL = string(treeURL[:])
+			tree.Entries[i].URL = string(treeURL[:])
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[e].URL = string(blobURL[:])
+			tree.Entries[i].URL = string(blobURL[:])
 		}
 	}
 	return tree
