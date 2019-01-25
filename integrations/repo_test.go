@@ -99,3 +99,27 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	assert.Equal(t, items[3], "link_hi: octicon octicon-file-symlink-file")
 	assert.Equal(t, items[4], "link_link: octicon octicon-file-symlink-file")
 }
+
+// TestViewAsRepoAdmin tests PR #2167
+func TestViewAsRepoAdmin(t *testing.T) {
+	for user, expectedNoDescription := range map[string]int{
+		"user2": 1,
+		"user3": 0,
+	} {
+		prepareTestEnv(t)
+
+		session := loginUser(t, user)
+
+		req := NewRequest(t, "GET", "/user2/repo1.git")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+
+		if expectedNoDescription == 0 {
+			assert.False(t, noDescription.HasClass("no-description"))
+		} else {
+			assert.True(t, noDescription.HasClass("no-description"))
+		}
+	}
+}
