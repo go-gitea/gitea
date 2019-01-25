@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-const defaultPerPage int = 1000
-
 // GetTree get the tree of a repository.
 func GetTree(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/trees/{sha} repository GetTree
@@ -104,28 +102,28 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	// 40 is the size of the sha1 hash in hexadecimal format.
 	copyPos := len(treeURL) - 40
 
-	var page = ctx.QueryInt("page")
-	var perPage = ctx.QueryInt("per_page")
+	page := ctx.QueryInt("page")
+	perPage := ctx.QueryInt("per_page")
 	if perPage <= 0 {
-		perPage = defaultPerPage
+		perPage = setting.API.DefaultGitTreesPerPage
 	}
 	if page < 0 {
 		page = 0
 	}
-	var rangeStart = perPage * page
+	rangeStart := perPage * page
 	if rangeStart >= len(entries) {
 		return tree
 	}
 	var rangeEnd int
-	if rangeStart + perPage < len(entries) {
+	if rangeStart+perPage < len(entries) {
 		rangeEnd = rangeStart + perPage
 		tree.Truncated = true
 	} else {
 		rangeEnd = len(entries)
 	}
-	tree.Entries = make([]gitea.GitEntry, rangeEnd - rangeStart)
+	tree.Entries = make([]gitea.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
-		var i = e - rangeStart
+		i := e - rangeStart
 		tree.Entries[i].Path = entries[e].Name()
 		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
 		tree.Entries[i].Type = string(entries[e].Type)
