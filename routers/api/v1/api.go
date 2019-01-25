@@ -506,9 +506,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				}, reqRepoReader(models.UnitTypeCode))
-				m.Group("/commits", func() {
-					m.Get("/:sha", repo.GetSingleCommit)
-				})
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -613,6 +610,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
+					m.Group("/commits", func() {
+						m.Get("/:sha", repo.GetSingleCommit)
+					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
 					m.Combo("/trees/:sha", context.RepoRef()).Get(repo.GetTree)

@@ -17,15 +17,42 @@ import (
 )
 
 // GetSingleCommit get a commit via
-func GetSingleCommit(c *context.APIContext) {
-	gitRepo, err := git.OpenRepository(c.Repo.Repository.RepoPath())
+func GetSingleCommit(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
+	// ---
+	// summary: Get a single commit from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: the commit hash
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Commit"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
-		c.ServerError("OpenRepository", err)
+		ctx.ServerError("OpenRepository", err)
 		return
 	}
-	commit, err := gitRepo.GetCommit(c.Params(":sha"))
+	commit, err := gitRepo.GetCommit(ctx.Params(":sha"))
 	if err != nil {
-		c.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
+		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 		return
 	}
 
@@ -33,7 +60,7 @@ func GetSingleCommit(c *context.APIContext) {
 	var apiAuthor, apiCommitter *api.User
 	author, err := models.GetUserByEmail(commit.Author.Email)
 	if err != nil && !models.IsErrUserNotExist(err) {
-		c.ServerError("Get user by author email", err)
+		ctx.ServerError("Get user by author email", err)
 		return
 	} else if err == nil {
 		apiAuthor = author.APIFormat()
@@ -44,7 +71,7 @@ func GetSingleCommit(c *context.APIContext) {
 	} else {
 		committer, err := models.GetUserByEmail(commit.Committer.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
-			c.ServerError("Get user by committer email", err)
+			ctx.ServerError("Get user by committer email", err)
 			return
 		} else if err == nil {
 			apiCommitter = committer.APIFormat()
@@ -56,19 +83,19 @@ func GetSingleCommit(c *context.APIContext) {
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, _ := commit.ParentID(i)
 		apiParents[i] = &api.CommitMeta{
-			URL: c.BaseURL + "/repos/" + c.Repo.Repository.FullName() + "/commits/" + sha.String(),
+			URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + sha.String(),
 			SHA: sha.String(),
 		}
 	}
 
-	c.JSON(200, &api.Commit{
+	ctx.JSON(200, &api.Commit{
 		CommitMeta: &api.CommitMeta{
-			URL: setting.AppURL + c.Link[1:],
+			URL: setting.AppURL + ctx.Link[1:],
 			SHA: commit.ID.String(),
 		},
-		HTMLURL: c.Repo.Repository.HTMLURL() + "/commits/" + commit.ID.String(),
+		HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commits/" + commit.ID.String(),
 		RepoCommit: &api.RepoCommit{
-			URL: setting.AppURL + c.Link[1:],
+			URL: setting.AppURL + ctx.Link[1:],
 			Author: &api.CommitUser{
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
@@ -81,7 +108,7 @@ func GetSingleCommit(c *context.APIContext) {
 			},
 			Message: commit.Summary(),
 			Tree: &api.CommitMeta{
-				URL: c.BaseURL + "/repos/" + c.Repo.Repository.FullName() + "/tree/" + commit.ID.String(),
+				URL: ctx.Repo.Repository.APIURL() + "/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),
 			},
 		},

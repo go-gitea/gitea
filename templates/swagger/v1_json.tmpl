@@ -1622,6 +1622,49 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the commit hash",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -7570,6 +7613,13 @@
       "description": "PayloadCommit represents a commit",
       "type": "object",
       "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Added"
+        },
         "author": {
           "$ref": "#/definitions/PayloadUser"
         },
@@ -7584,6 +7634,20 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Modified"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Removed"
         },
         "timestamp": {
           "type": "string",
