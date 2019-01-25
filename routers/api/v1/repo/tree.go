@@ -97,7 +97,11 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	// 40 is the size of the sha1 hash in hexadecimal format.
 	copyPos := len(treeURL) - 40
 
-	var rangeStart = 1000 * ctx.QueryInt("page")
+	var page = ctx.QueryInt("page")
+	if page < 0 {
+		page = 0
+	}
+	var rangeStart = 1000 * page
 	if rangeStart >= len(entries) {
 		return tree
 	}
