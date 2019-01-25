@@ -88,6 +88,14 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page wants to load
+	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: items count every page wants to load
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
