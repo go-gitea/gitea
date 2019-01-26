@@ -396,7 +396,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	defer os.RemoveAll(path.Dir(tmpBasePath))
+	defer os.RemoveAll(tmpBasePath)
 
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
