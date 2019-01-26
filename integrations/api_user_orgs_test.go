@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,14 +25,16 @@ func TestUserOrgs(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
+
 	DecodeJSON(t, resp, &orgs)
 
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          3,
-			UserName:    "user3",
-			FullName:    "User Three",
-			AvatarURL:   "https://secure.gravatar.com/avatar/97d6d9441ff85fdc730e02a6068d267b?d=identicon",
+			UserName:    user3.Name,
+			FullName:    user3.FullName,
+			AvatarURL:   user3.AvatarLink(),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -48,13 +52,14 @@ func TestMyOrgs(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
 
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          3,
-			UserName:    "user3",
-			FullName:    "User Three",
-			AvatarURL:   "https://secure.gravatar.com/avatar/97d6d9441ff85fdc730e02a6068d267b?d=identicon",
+			UserName:    user3.Name,
+			FullName:    user3.FullName,
+			AvatarURL:   user3.AvatarLink(),
 			Description: "",
 			Website:     "",
 			Location:    "",

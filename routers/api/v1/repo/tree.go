@@ -16,6 +16,30 @@ import (
 
 // GetTree get the tree of a repository.
 func GetTree(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/trees/{sha} repository GetTree
+	// ---
+	// summary: Gets the tree of a repository.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: sha of the commit
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GitTreeResponse"
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "sha not provided", nil)
