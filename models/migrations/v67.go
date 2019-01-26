@@ -60,7 +60,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 		}
 
 		a := &Access{UserID: userID, RepoID: repo.ID}
-		if has, err := x.Get(a); !has || err != nil {
+		if has, err := sess.Get(a); !has || err != nil {
 			return mode, err
 		}
 		return a.Mode, nil
@@ -130,7 +130,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 					repo = &Repository{
 						ID: watch.RepoID,
 					}
-					if _, err := x.Get(repo); err != nil {
+					if _, err := sess.Get(repo); err != nil {
 						return err
 					}
 					repoCache[watch.RepoID] = repo
