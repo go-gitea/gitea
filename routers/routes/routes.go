@@ -406,7 +406,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 
-	reqRepoWriter := func(ctx *context.Context) {
+	reqRepoIssueWriter := func(ctx *context.Context) {
 		if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 			ctx.Error(403)
 			return
@@ -564,8 +564,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Post("/lock", reqRepoWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
-				m.Post("/unlock", reqRepoWriter, repo.UnlockIssue)
+				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
+				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
 			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)

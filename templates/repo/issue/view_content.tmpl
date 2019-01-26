@@ -70,7 +70,7 @@
 				{{ template "repo/issue/view_content/pull". }}
 			{{end}}
 			{{if .IsSigned}}
-				{{ if or .IsRepoAdmin .IsRepoWriter (or (not .Issue.IsLocked)) }}
+				{{ if or .IsRepoAdmin .IsRepoIssuesWriter (or (not .Issue.IsLocked)) }}
 				<div class="comment form">
 					<a class="avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
