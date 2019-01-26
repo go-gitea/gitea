@@ -407,7 +407,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 
 	reqRepoWriter := func(ctx *context.Context) {
-		if !ctx.Repo.IsWriter() {
+		if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 			ctx.Error(403)
 			return
 		}

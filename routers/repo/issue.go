@@ -67,7 +67,7 @@ func MustAllowUserComment(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.IsWriter() && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 		return
@@ -914,9 +914,9 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && ctx.Repo.IsAdmin() && ctx.User.IsAdmin
-	ctx.Data["IsWriter"] = ctx.IsSigned && ctx.Repo.IsWriter() && ctx.User.IsAdmin
+	ctx.Data["IsWriter"] = ctx.IsSigned && ctx.Repo.CanWrite(models.UnitTypeIssues) && ctx.User.IsAdmin
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
-	ctx.Data["IsRepoWriter"] = ctx.IsSigned && (ctx.Repo.IsWriter() || ctx.User.IsAdmin)
+	ctx.Data["IsRepoWriter"] = ctx.IsSigned && (ctx.Repo.CanWrite(models.UnitTypeIssues) || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.HTML(200, tplIssueView)
 }
@@ -1140,7 +1140,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		ctx.Error(403)
 	}
 
-	if issue.IsLocked && !ctx.Repo.IsWriter() && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 		return

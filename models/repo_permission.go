@@ -16,12 +16,6 @@ func (p *Permission) IsOwner() bool {
 	return p.AccessMode >= AccessModeOwner
 }
 
-// IsWriter checks if the current user has write or higher access to the
-// repository.
-func (p *Permission) IsWriter() bool {
-	return p.AccessMode >= AccessModeWrite
-}
-
 // IsAdmin returns true if current user has admin or higher access of repository.
 func (p *Permission) IsAdmin() bool {
 	return p.AccessMode >= AccessModeAdmin
