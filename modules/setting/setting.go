@@ -569,9 +569,11 @@ var (
 	API = struct {
 		EnableSwagger    bool
 		MaxResponseItems int
+		DefaultPagingNum int
 	}{
 		EnableSwagger:    true,
 		MaxResponseItems: 50,
+		DefaultPagingNum: 30,
 	}
 
 	U2F = struct {
