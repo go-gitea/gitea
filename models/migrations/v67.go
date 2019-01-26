@@ -60,7 +60,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 		}
 
 		a := &Access{UserID: userID, RepoID: repo.ID}
-		if has, err := sess.Get(a); !has || err != nil {
+		if has, err := x.Get(a); !has || err != nil {
 			return mode, err
 		}
 		return a.Mode, nil
