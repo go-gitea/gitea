@@ -95,8 +95,8 @@ func testGit(t *testing.T, u *url.URL) {
 			assert.Equal(t, littleSize, resp.Body.Len())
 
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Body.Len())
+			nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, nilResp.Length)
 
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
@@ -114,20 +114,20 @@ func testGit(t *testing.T, u *url.URL) {
 
 			// Request media paths
 			req := NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", little))
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, littleSize, resp.Body.Len())
+			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
 
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Body.Len())
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
 
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", littleLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, littleSize, resp.Body.Len())
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
 
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Body.Len())
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
 		})
 
 	})
