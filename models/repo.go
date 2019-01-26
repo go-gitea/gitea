@@ -186,8 +186,9 @@ type Repository struct {
 	NumOpenMilestones   int `xorm:"-"`
 	NumReleases         int `xorm:"-"`
 
-	IsPrivate bool `xorm:"INDEX"`
-	IsEmpty   bool `xorm:"INDEX"`
+	IsPrivate  bool `xorm:"INDEX"`
+	IsEmpty    bool `xorm:"INDEX"`
+	IsArchived bool `xorm:"INDEX"`
 
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
@@ -292,6 +293,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
 		Empty:         repo.IsEmpty,
+		Archived:      repo.IsArchived,
 		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
 		Parent:        parent,
@@ -1367,12 +1369,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	repo := &Repository{
-		OwnerID:     u.ID,
-		Owner:       u,
-		Name:        opts.Name,
-		LowerName:   strings.ToLower(opts.Name),
-		Description: opts.Description,
-		IsPrivate:   opts.IsPrivate,
+		OwnerID:       u.ID,
+		Owner:         u,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.IsPrivate,
+		IsFsckEnabled: true,
 	}
 
 	sess := x.NewSession()
@@ -2339,6 +2342,13 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+}
+
+// SetArchiveRepoState sets if a repo is archived
+func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
+	repo.IsArchived = isArchived
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+	return
 }
 
 // ___________           __

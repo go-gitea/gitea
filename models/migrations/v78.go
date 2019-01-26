@@ -31,6 +31,8 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	var err error
 	if models.DbCfg.Type == core.POSTGRES || models.DbCfg.Type == core.SQLITE {
 		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare")
+	} else if models.DbCfg.Type == core.MSSQL {
+		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare ON repository")
 	} else {
 		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
 	}
@@ -42,9 +44,6 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		return err
 	}
 
-	// Then reset the values
-	sess = x.NewSession()
-	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
