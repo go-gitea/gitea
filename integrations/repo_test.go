@@ -102,9 +102,9 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 
 // TestViewAsRepoAdmin tests PR #2167
 func TestViewAsRepoAdmin(t *testing.T) {
-	for user, expectedNoDescription := range map[string]int{
-		"user2": 1,
-		"user3": 0,
+	for user, expectedNoDescription := range map[string]bool{
+		"user2": true,
+		"user3": false,
 	} {
 		prepareTestEnv(t)
 
@@ -116,10 +116,6 @@ func TestViewAsRepoAdmin(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
 
-		if expectedNoDescription == 0 {
-			assert.False(t, noDescription.HasClass("no-description"))
-		} else {
-			assert.True(t, noDescription.HasClass("no-description"))
-		}
+		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
 	}
 }
