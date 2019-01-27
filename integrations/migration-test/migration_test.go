@@ -12,6 +12,8 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
+	"sort"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -49,7 +51,47 @@ func initMigrationTest() {
 	setting.NewContext()
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
+}
 
+func getDialect() string {
+	dialect := "sqlite"
+	switch {
+	case setting.UseSQLite3:
+		dialect = "sqlite"
+	case setting.UseMySQL:
+		dialect = "mysql"
+	case setting.UsePostgreSQL:
+		dialect = "pgsql"
+	case setting.UseMSSQL:
+		dialect = "mssql"
+	}
+	return dialect
+}
+
+func availableVersions(dialect string) ([]string, error) {
+	migrationsDir, err := os.Open("integrations/migration-test")
+	if err != nil {
+		return nil, err
+	}
+	defer migrationsDir.Close()
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(dialect) + "\\.sql.gz")
+	if err != nil {
+		return nil, err
+	}
+
+	filenames, err := migrationsDir.Readdirnames(-1)
+	if err != nil {
+		return nil, err
+	}
+	versions := []string{}
+	for _, filename := range filenames {
+		if versionRE.MatchString(filename) {
+			substrings := versionRE.FindStringSubmatch(filename)
+			versions = append(versions, substrings[1])
+		}
+	}
+	sort.Strings(versions)
+	return versions, nil
 }
 
 func readSQLFromFile(dialect, version string) (string, error) {
@@ -79,20 +121,7 @@ func readSQLFromFile(dialect, version string) (string, error) {
 	return string(bytes), nil
 }
 
-func restoreOldDB(t *testing.T, version string) bool {
-	dialect := "sqlite"
-	switch {
-	case setting.UseSQLite3:
-		dialect = "sqlite"
-	case setting.UseMySQL:
-		dialect = "mysql"
-	case setting.UsePostgreSQL:
-		dialect = "pgsql"
-	case setting.UseMSSQL:
-		dialect = "mssql"
-	}
-	log.Printf("Attempting to restore old DB for %s version: %s\n", dialect, version)
-
+func restoreOldDB(t *testing.T, dialect, version string) bool {
 	data, err := readSQLFromFile(dialect, version)
 	assert.NoError(t, err)
 	if len(data) == 0 {
@@ -177,14 +206,14 @@ func restoreOldDB(t *testing.T, version string) bool {
 	return true
 }
 
-func doMigrate(x *xorm.Engine) error {
+func wrappedMigrate(x *xorm.Engine) error {
 	currentEngine = x
 	return migrations.Migrate(x)
 }
 
-func doMigrationTest(t *testing.T, version string) {
-	initMigrationTest()
-	if !restoreOldDB(t, version) {
+func doMigrationTest(t *testing.T, dialect, version string) {
+	log.Printf("Performing migration test for %s version: %s", dialect, version)
+	if !restoreOldDB(t, dialect, version) {
 		return
 	}
 
@@ -192,19 +221,25 @@ func doMigrationTest(t *testing.T, version string) {
 	err := models.SetEngine()
 	assert.NoError(t, err)
 
-	err = models.NewEngine(doMigrate)
+	err = models.NewEngine(wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 }
 
-func TestMigrationV1_5_3(t *testing.T) {
-	doMigrationTest(t, "1.5.3")
-}
+func TestMigrations(t *testing.T) {
+	initMigrationTest()
 
-func TestMigrationV1_6_4(t *testing.T) {
-	doMigrationTest(t, "1.6.4")
-}
+	dialect := getDialect()
+	versions, err := availableVersions(dialect)
+	assert.NoError(t, err)
 
-func TestMigrationV1_7_0(t *testing.T) {
-	doMigrationTest(t, "1.7.0")
+	if len(versions) == 0 {
+		log.Printf("No old database versions available to migration test for %s\n", dialect)
+		return
+	}
+
+	log.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
+	for _, version := range versions {
+		doMigrationTest(t, dialect, version)
+	}
 }
