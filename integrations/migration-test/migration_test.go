@@ -68,13 +68,13 @@ func getDialect() string {
 	return dialect
 }
 
-func availableVersions(dialect string) ([]string, error) {
+func availableVersions() ([]string, error) {
 	migrationsDir, err := os.Open("integrations/migration-test")
 	if err != nil {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(dialect) + "\\.sql.gz")
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(models.DbCfg.Type) + "\\.sql.gz")
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func availableVersions(dialect string) ([]string, error) {
 	return versions, nil
 }
 
-func readSQLFromFile(dialect, version string) (string, error) {
-	filename := fmt.Sprintf("integrations/migration-test/gitea-v%s.%s.sql.gz", version, dialect)
+func readSQLFromFile(version string) (string, error) {
+	filename := fmt.Sprintf("integrations/migration-test/gitea-v%s.%s.sql.gz", version, models.DbCfg.Type)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return "", nil
@@ -121,11 +121,11 @@ func readSQLFromFile(dialect, version string) (string, error) {
 	return string(bytes), nil
 }
 
-func restoreOldDB(t *testing.T, dialect, version string) bool {
-	data, err := readSQLFromFile(dialect, version)
+func restoreOldDB(t *testing.T, version string) bool {
+	data, err := readSQLFromFile(version)
 	assert.NoError(t, err)
 	if len(data) == 0 {
-		log.Printf("No db found to restore for %s version: %s\n", dialect, version)
+		log.Printf("No db found to restore for %s version: %s\n", models.DbCfg.Type, version)
 		return false
 	}
 
@@ -211,9 +211,9 @@ func wrappedMigrate(x *xorm.Engine) error {
 	return migrations.Migrate(x)
 }
 
-func doMigrationTest(t *testing.T, dialect, version string) {
-	log.Printf("Performing migration test for %s version: %s", dialect, version)
-	if !restoreOldDB(t, dialect, version) {
+func doMigrationTest(t *testing.T, version string) {
+	log.Printf("Performing migration test for %s version: %s", models.DbCfg.Type, version)
+	if !restoreOldDB(t, version) {
 		return
 	}
 
@@ -229,8 +229,8 @@ func doMigrationTest(t *testing.T, dialect, version string) {
 func TestMigrations(t *testing.T) {
 	initMigrationTest()
 
-	dialect := getDialect()
-	versions, err := availableVersions(dialect)
+	dialect := models.DbCfg.Type
+	versions, err := availableVersions()
 	assert.NoError(t, err)
 
 	if len(versions) == 0 {
@@ -240,6 +240,6 @@ func TestMigrations(t *testing.T) {
 
 	log.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
 	for _, version := range versions {
-		doMigrationTest(t, dialect, version)
+		doMigrationTest(t, version)
 	}
 }
