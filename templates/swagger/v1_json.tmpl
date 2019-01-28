@@ -4681,6 +4681,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/tags": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's tags",
+        "operationId": "repoListTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/times": {
       "get": {
         "produces": [
