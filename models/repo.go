@@ -34,8 +34,8 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -1353,9 +1353,12 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		}
 	}
 
-	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
-		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = newRepoAction(e, u, repo); err != nil {
+	if setting.Service.AutoWatchNewRepos {
+		if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
+			return fmt.Errorf("watchRepo: %v", err)
+		}
+	}
+	if err = newRepoAction(e, u, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
