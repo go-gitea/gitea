@@ -207,6 +207,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
+- `AUTO_WATCH_NEW_REPOS`: **true** Enable this to let all organisation users watch new repos when they are created
 
 ## Webhook (`webhook`)
 
@@ -323,8 +324,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
+- `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 
 ## i18n (`i18n`)
 

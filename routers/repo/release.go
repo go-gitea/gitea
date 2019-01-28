@@ -67,7 +67,7 @@ func Releases(ctx *context.Context) {
 	}
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
-	ctx.Data["CanCreateRelease"] = writeAccess
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
 		IncludeDrafts: writeAccess,
