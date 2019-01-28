@@ -340,26 +340,37 @@ func WikiMedia(ctx *context.Context) {
 			return
 		}
 	}
+
 	providedPath := ctx.Params("*")
-	if strings.HasSuffix(providedPath, ".md") {
-		providedPath = providedPath[:len(providedPath)-3]
-	}
-	wikiPath := models.WikiNameToFilename(providedPath)
+
 	var entry *git.TreeEntry
 	if commit != nil {
-		entry, err = findEntryForFile(commit, wikiPath)
-	}
-	if err != nil {
-		ctx.ServerError("findFile", err)
-		return
-	} else if entry == nil {
-		ctx.NotFound("findEntryForFile", nil)
-		return
+		entry, err = findEntryForFile(commit, providedPath)
+		if err != nil {
+			ctx.ServerError("findFile", err)
+		}
+
+		if entry == nil {
+			// Try to find a wiki page with that name
+			if strings.HasSuffix(providedPath, ".md") {
+				providedPath = providedPath[:len(providedPath)-3]
+			}
+
+			wikiPath := models.WikiNameToFilename(providedPath)
+			entry, err = findEntryForFile(commit, wikiPath)
+			if err != nil {
+				ctx.ServerError("findFile", err)
+				return
+			}
+		}
 	}
 
-	if err = ServeBlobOrLFS(ctx, entry.Blob()); err != nil {
-		ctx.ServerError("ServeBlob", err)
+	if entry != nil {
+		if err = ServeBlobOrLFS(ctx, entry.Blob()); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
 	}
+	ctx.NotFound("findEntryForFile", nil)
 }
 
 // NewWiki render wiki create page
