@@ -17,11 +17,11 @@ menu:
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
 embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea), copy
+the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.5.0/gitea-1.5.0-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.7.0/gitea-1.7.0-linux-amd64
 chmod +x gitea
 ```
 
@@ -30,7 +30,7 @@ Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vind
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
-gpg --verify gitea-1.5.0-linux-amd64.asc gitea-1.5.0-linux-amd64
+gpg --verify gitea-1.7.0-linux-amd64.asc gitea-1.7.0-linux-amd64
 ```
 
 ## Test
