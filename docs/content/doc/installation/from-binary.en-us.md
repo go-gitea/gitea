@@ -17,7 +17,7 @@ menu:
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
 embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea), copy
+the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
 the URL and replace the URL within the commands below:
 
 ```sh
