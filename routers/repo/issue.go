@@ -1140,7 +1140,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 		return
 	}
 
