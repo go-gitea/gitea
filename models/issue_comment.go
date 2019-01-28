@@ -749,6 +749,9 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
 
 	// Make two comments, one in each issue
 	_, err = createComment(e, &CreateCommentOptions{

@@ -374,6 +374,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	body := ctx.Query("body")
+	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
 	milestone, err := models.GetMilestoneByID(milestoneID)
