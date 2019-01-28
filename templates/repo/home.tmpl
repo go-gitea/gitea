@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
-				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
@@ -25,9 +25,9 @@
 		</div>
 		<div class="ui repo-topic" id="repo-topic">
 		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-		{{if .Permission.IsAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
-		{{if .Permission.IsAdmin}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
 				<div class="field">
@@ -50,6 +50,11 @@
 			<span id="count_prompt">{{.i18n.Tr "repo.topic.count_prompt"}}</span>
 			<span id="format_prompt">{{.i18n.Tr "repo.topic.format_prompt"}}</span>
 		</div>
+		{{if .Repository.IsArchived}}
+			<div class="ui warning message">
+				{{.i18n.Tr "repo.archive.title"}}
+			</div>
+		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}

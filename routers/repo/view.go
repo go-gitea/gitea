@@ -151,8 +151,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = true
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
+		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
+		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 }
 

@@ -373,6 +373,10 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 NO_REPLY_ADDRESS = noreply.example.org
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
+; Default value for AutoWatchNewRepos
+; When adding a repo to a team or creating a new repo all team members will watch the 
+; repo automatically if enabled 
+AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -627,6 +631,8 @@ MIN_INTERVAL = 10m
 ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
+; Default paging number of api
+DEFAULT_PAGING_NUM = 30
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
