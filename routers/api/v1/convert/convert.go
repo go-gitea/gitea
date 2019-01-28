@@ -42,7 +42,7 @@ func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 			SHA string `json:"sha"`
 			URL string `json:"url"`
 		}{
-			SHA: t.Object,
+			SHA: t.ID.String(),
 			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
 		},
 		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
