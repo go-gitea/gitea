@@ -374,6 +374,7 @@ func mustEnableUserHeatmap(ctx *context.Context) {
 func mustNotBeArchived(ctx *context.Context) {
 	if ctx.Repo.Repository.IsArchived {
 		ctx.Status(404)
+		return
 	}
 }
 
