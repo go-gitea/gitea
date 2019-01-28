@@ -62,7 +62,7 @@ func IsLFSPointerFile(buf *[]byte) *models.LFSMetaObject {
 	return meta
 }
 
-// ReadLFSMetaObject will read an LFS meta object and return a reader
+// ReadLFSMetaObject will read an LFS object and return a reader
 func ReadLFSMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	return contentStore.Get(meta, 0)
