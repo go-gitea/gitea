@@ -229,7 +229,7 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(user))
 }
 
-func TestCreateUser_Issue5886(t *testing.T) {
+func TestCreateUser_Issue5882(t *testing.T) {
 
 	// Init settings
 	_ = setting.Admin
