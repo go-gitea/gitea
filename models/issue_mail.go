@@ -39,11 +39,11 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 	// In case the issue poster is not watching the repository and is active,
 	// even if we have duplicated in watchers, can be safely filtered out.
-	poster, err := getUserByID(e, issue.PosterID)
+	err = issue.loadPoster(e)
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
 	}
-	if issue.PosterID != doer.ID && poster.IsActive && !poster.ProhibitLogin {
+	if issue.PosterID != doer.ID && issue.Poster.IsActive && !issue.Poster.ProhibitLogin {
 		participants = append(participants, issue.Poster)
 	}
 
