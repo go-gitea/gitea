@@ -115,7 +115,7 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 	app = new(OAuth2Application)
 	has, err := e.Where("client_id = ?", clientID).Get(app)
 	if !has {
-		return app, ErrOAuthClientIDInvalid{ClientID: clientID}
+		return nil, ErrOAuthClientIDInvalid{ClientID: clientID}
 	}
 	return
 }
