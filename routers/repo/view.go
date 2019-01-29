@@ -30,10 +30,10 @@ import (
 )
 
 const (
-	tplRepoBARE base.TplName = "repo/bare"
-	tplRepoHome base.TplName = "repo/home"
-	tplWatchers base.TplName = "repo/watchers"
-	tplForks    base.TplName = "repo/forks"
+	tplRepoEMPTY base.TplName = "repo/empty"
+	tplRepoHome  base.TplName = "repo/home"
+	tplWatchers  base.TplName = "repo/watchers"
+	tplForks     base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -151,8 +151,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = true
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
+		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
+		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 }
 
@@ -321,8 +321,8 @@ func Home(ctx *context.Context) {
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
-	if ctx.Repo.Repository.IsBare {
-		ctx.HTML(200, tplRepoBARE)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.HTML(200, tplRepoEMPTY)
 		return
 	}
 

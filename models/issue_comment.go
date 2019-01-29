@@ -749,6 +749,9 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
 
 	// Make two comments, one in each issue
 	_, err = createComment(e, &CreateCommentOptions{
@@ -818,9 +821,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	if opts.Type == CommentTypeComment {
-		UpdateIssueIndexer(opts.Issue.ID)
-	}
 	return comment, nil
 }
 
@@ -1022,8 +1022,6 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
-	} else if c.Type == CommentTypeComment {
-		UpdateIssueIndexer(c.IssueID)
 	}
 
 	if err := c.LoadPoster(); err != nil {
@@ -1082,8 +1080,6 @@ func DeleteComment(doer *User, comment *Comment) error {
 
 	if err := sess.Commit(); err != nil {
 		return err
-	} else if comment.Type == CommentTypeComment {
-		UpdateIssueIndexer(comment.IssueID)
 	}
 
 	if err := comment.LoadPoster(); err != nil {

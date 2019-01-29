@@ -34,8 +34,8 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -186,8 +186,9 @@ type Repository struct {
 	NumOpenMilestones   int `xorm:"-"`
 	NumReleases         int `xorm:"-"`
 
-	IsPrivate bool `xorm:"INDEX"`
-	IsBare    bool `xorm:"INDEX"`
+	IsPrivate  bool `xorm:"INDEX"`
+	IsEmpty    bool `xorm:"INDEX"`
+	IsArchived bool `xorm:"INDEX"`
 
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
@@ -291,7 +292,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		FullName:      repo.FullName(),
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
-		Empty:         repo.IsBare,
+		Empty:         repo.IsEmpty,
+		Archived:      repo.IsArchived,
 		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
 		Parent:        parent,
@@ -656,7 +658,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
-	return !repo.IsMirror && !repo.IsBare
+	return !repo.IsMirror && !repo.IsEmpty
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
@@ -954,13 +956,13 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
 	if err != nil {
 		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
-			repo.IsBare = true
+			repo.IsEmpty = true
 		} else {
-			return repo, fmt.Errorf("check bare: %v - %s", err, stderr)
+			return repo, fmt.Errorf("check empty: %v - %s", err, stderr)
 		}
 	}
 
-	if !repo.IsBare {
+	if !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
 		gitRepo, err := git.OpenRepository(repoPath)
 		if err != nil {
@@ -999,7 +1001,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		repo, err = CleanUpMigrateInfo(repo)
 	}
 
-	if err != nil && !repo.IsBare {
+	if err != nil && !repo.IsEmpty {
 		UpdateRepoIndexer(repo)
 	}
 
@@ -1214,7 +1216,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return fmt.Errorf("initRepository: path already exists: %s", repoPath)
 	}
 
-	// Init bare new repository.
+	// Init git bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = createDelegateHooks(repoPath); err != nil {
@@ -1249,7 +1251,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	}
 
 	if !opts.AutoInit {
-		repo.IsBare = true
+		repo.IsEmpty = true
 	}
 
 	repo.DefaultBranch = "master"
@@ -1351,9 +1353,12 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		}
 	}
 
-	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
-		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = newRepoAction(e, u, repo); err != nil {
+	if setting.Service.AutoWatchNewRepos {
+		if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
+			return fmt.Errorf("watchRepo: %v", err)
+		}
+	}
+	if err = newRepoAction(e, u, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
@@ -1367,12 +1372,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	repo := &Repository{
-		OwnerID:     u.ID,
-		Owner:       u,
-		Name:        opts.Name,
-		LowerName:   strings.ToLower(opts.Name),
-		Description: opts.Description,
-		IsPrivate:   opts.IsPrivate,
+		OwnerID:       u.ID,
+		Owner:         u,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.IsPrivate,
+		IsFsckEnabled: true,
 	}
 
 	sess := x.NewSession()
@@ -2339,6 +2345,13 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+}
+
+// SetArchiveRepoState sets if a repo is archived
+func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
+	repo.IsArchived = isArchived
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+	return
 }
 
 // ___________           __

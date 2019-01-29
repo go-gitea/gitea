@@ -23,7 +23,45 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all organizations",
+        "operationId": "adminGetAllOrgs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all users",
+        "operationId": "adminGetAllUsers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -1659,6 +1697,46 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/trees/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tree of a repository.",
+        "operationId": "GetTree",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitTreeResponse"
           }
         }
       }
@@ -3756,6 +3834,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page wants to load",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "items count every page wants to load",
+            "name": "per_page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4629,6 +4719,38 @@
       }
     },
     "/teams/{id}/members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a particular member of team",
+        "operationId": "orgListTeamMember",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the member to list",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          }
+        }
+      },
       "put": {
         "produces": [
           "application/json"
@@ -5414,6 +5536,23 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          }
+        }
+      }
+    },
+    "/user/teams": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List all the teams a user belongs to",
+        "operationId": "userListTeams",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TeamList"
           }
         }
       }
@@ -7040,6 +7179,38 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "GitEntry": {
+      "description": "GitEntry represents a git tree",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "x-go-name": "Mode"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "GitObject": {
       "type": "object",
       "title": "GitObject represents a Git object.",
@@ -7051,6 +7222,32 @@
         "type": {
           "type": "string",
           "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse returns a git tree",
+      "type": "object",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GitEntry"
+          },
+          "x-go-name": "Entries"
+        },
+        "truncated": {
+          "type": "boolean",
+          "x-go-name": "Truncated"
         },
         "url": {
           "type": "string",
@@ -7942,6 +8139,9 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "organization": {
+          "$ref": "#/definitions/Organization"
+        },
         "permission": {
           "type": "string",
           "enum": [
@@ -8198,6 +8398,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse",
+      "schema": {
+        "$ref": "#/definitions/GitTreeResponse"
       }
     },
     "Hook": {
