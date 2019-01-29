@@ -52,7 +52,7 @@ Example:
 
 ```docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf "name=<NAME_OF_DOCKER_CONTAINER>") bash -c '/app/gitea/gitea dump -c </path/to/app.ini>'```
 
-*Note: `--tempdir` refers to the temporary directory of the docker enviroment used by gitea.*
+*Note: `--tempdir` refers to the temporary directory of the docker enviroment used by gitea; if you have not specified a custom `--tempdir`, then gitea uses `/tmp` or the `TMPDIR` enviromental variable of the docker container. For `--tempdir` adjust your `docker exec` command options accordingly.
 
 The result should be a file, stored in the `--tempdir` specified, along the lines of: `gitea-dump-1482906742.zip`
 
