@@ -332,47 +332,6 @@ func WikiRaw(ctx *context.Context) {
 	ctx.NotFound("findEntryForFile", nil)
 }
 
-// WikiMedia outputs either the raw blob or its LFS blob as requested by the user (images for example)
-func WikiMedia(ctx *context.Context) {
-	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if err != nil {
-		if wikiRepo != nil {
-			return
-		}
-	}
-
-	providedPath := ctx.Params("*")
-
-	var entry *git.TreeEntry
-	if commit != nil {
-		entry, err = findEntryForFile(commit, providedPath)
-		if err != nil {
-			ctx.ServerError("findFile", err)
-		}
-
-		if entry == nil {
-			// Try to find a wiki page with that name
-			if strings.HasSuffix(providedPath, ".md") {
-				providedPath = providedPath[:len(providedPath)-3]
-			}
-
-			wikiPath := models.WikiNameToFilename(providedPath)
-			entry, err = findEntryForFile(commit, wikiPath)
-			if err != nil {
-				ctx.ServerError("findFile", err)
-				return
-			}
-		}
-	}
-
-	if entry != nil {
-		if err = ServeBlobOrLFS(ctx, entry.Blob()); err != nil {
-			ctx.ServerError("ServeBlob", err)
-		}
-	}
-	ctx.NotFound("findEntryForFile", nil)
-}
-
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")

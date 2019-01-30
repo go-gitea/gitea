@@ -703,7 +703,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
-			m.Get("/media/*", repo.WikiMedia)
 		}, repo.MustEnableWiki)
 
 		m.Group("/activity", func() {
