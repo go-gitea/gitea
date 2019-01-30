@@ -136,7 +136,7 @@ func (ctx *Context) ServerError(title string, err error) {
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(404, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
