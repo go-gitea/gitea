@@ -439,14 +439,13 @@ pre, code {
 }
 
 footer {
-    height: @footer-margin;
+    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
     clear: both;
     width: 100%;
     color: #888888;
     .container {
-        padding-top: 10px;
         .fa {
             width: 16px;
             text-align: center;
@@ -466,6 +465,12 @@ footer {
         max-height: 500px;
         overflow-y: auto;
         margin-bottom: 7px;
+    }
+
+    .ui {
+        &.left, &.right {
+            line-height: 40px;
+        }
     }
 }
 
