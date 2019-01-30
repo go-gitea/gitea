@@ -152,6 +152,10 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			ctx.ServerError("GetRelease", err)
 			return
 		}
+		// If target is not provided use default branch
+		if len(form.Target) == 0 {
+			form.Target = ctx.Repo.Repository.DefaultBranch
+		}
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
