@@ -561,7 +561,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -690,7 +690,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $('#content');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -2073,7 +2073,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
@@ -2812,14 +2812,19 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     var repolink = $('#repolink').val();
-    $('.new-dependency-drop-list')
+    $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
                 url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
+                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
+                        // Don't list current issue in the dependency list.
+                        if(issue.id === currIssueId) {
+                            return;
+                        }
                         filteredResponse.results.push({
                             'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
@@ -2827,6 +2832,7 @@ function initIssueList() {
                     });
                     return filteredResponse;
                 },
+                cache: false,
             },
 
             fullTextSearch: true

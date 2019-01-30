@@ -127,6 +127,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
+      - make test-sqlite-migration
       - make test-sqlite
     when:
       event: [ push, tag, pull_request ]
@@ -141,6 +142,7 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - make test-mysql-migration
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
@@ -157,6 +159,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-mysql-migration
       - make test-mysql
     when:
       event: [ tag ]
@@ -172,6 +175,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-pgsql-migration
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
@@ -186,6 +190,7 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - make test-mssql-migration
       - make test-mssql
     when:
       event: [ push, tag, pull_request ]

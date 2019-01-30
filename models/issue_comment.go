@@ -361,7 +361,11 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
-func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
+func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
+	return c.mailParticipants(x, opType, issue)
+}
+
+func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
 	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
@@ -555,7 +559,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.LoadReview(); err != nil {
+				if err := comment.loadReview(e); err != nil {
 					return err
 				}
 			}
@@ -632,9 +636,6 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if err = notifyWatchers(e, act); err != nil {
 			log.Error(4, "notifyWatchers: %v", err)
 		}
-		if err = comment.MailParticipants(e, act.OpType, opts.Issue); err != nil {
-			log.Error(4, "MailParticipants: %v", err)
-		}
 	}
 	return nil
 }
@@ -708,7 +709,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
 
@@ -747,6 +748,9 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
+	}
+	if err = issue.loadRepo(e); err != nil {
+		return
 	}
 
 	// Make two comments, one in each issue
@@ -817,9 +821,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	if opts.Type == CommentTypeComment {
-		UpdateIssueIndexer(opts.Issue.ID)
-	}
 	return comment, nil
 }
 
@@ -1021,8 +1022,6 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
-	} else if c.Type == CommentTypeComment {
-		UpdateIssueIndexer(c.IssueID)
 	}
 
 	if err := c.LoadPoster(); err != nil {
@@ -1081,8 +1080,6 @@ func DeleteComment(doer *User, comment *Comment) error {
 
 	if err := sess.Commit(); err != nil {
 		return err
-	} else if comment.Type == CommentTypeComment {
-		UpdateIssueIndexer(comment.IssueID)
 	}
 
 	if err := comment.LoadPoster(); err != nil {
