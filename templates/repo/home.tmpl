@@ -57,7 +57,7 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
+			{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
 				<div class="fitted item">
 					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{ if .Repository.IsFork }}{{.Repository.Owner.Name}}{{ else }}{{ .SignedUserName }}{{ end }}:{{.BranchName | EscapePound}}">
 					<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
