@@ -53,7 +53,7 @@ func (c *Client) GetRelease(user, repo string, id int64) (*Release, error) {
 type CreateReleaseOption struct {
 	// required: true
 	TagName      string `json:"tag_name" binding:"Required"`
-	Target       string `json:"target_commitish"`
+	Target       string `json:"target_commitish" binding:"Required"`
 	Title        string `json:"name"`
 	Note         string `json:"body"`
 	IsDraft      bool   `json:"draft"`

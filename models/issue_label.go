@@ -69,6 +69,8 @@ type Label struct {
 	NumClosedIssues int
 	NumOpenIssues   int  `xorm:"-"`
 	IsChecked       bool `xorm:"-"`
+	QueryString     string
+	IsSelected      bool
 }
 
 // APIFormat converts a Label to the api.Label format
@@ -83,6 +85,25 @@ func (label *Label) APIFormat() *api.Label {
 // CalOpenIssues calculates the open issues of label.
 func (label *Label) CalOpenIssues() {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
+}
+
+// LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
+func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) {
+	var labelQuerySlice []string
+	labelSelected := false
+	labelID := strconv.FormatInt(label.ID, 10)
+	for _, s := range currentSelectedLabels {
+		if s == label.ID {
+			labelSelected = true
+		} else if s > 0 {
+			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+		}
+	}
+	if !labelSelected {
+		labelQuerySlice = append(labelQuerySlice, labelID)
+	}
+	label.IsSelected = labelSelected
+	label.QueryString = strings.Join(labelQuerySlice, ",")
 }
 
 // ForegroundColor calculates the text color for labels based

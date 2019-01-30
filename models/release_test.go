@@ -94,3 +94,58 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        true,
 	}, nil))
 }
+
+func TestRelease_MirrorDelete(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repoPath := RepoPath(user.Name, repo.Name)
+	migrationOptions := MigrateRepoOptions{
+		Name:        "test_mirror",
+		Description: "Test mirror",
+		IsPrivate:   false,
+		IsMirror:    true,
+		RemoteAddr:  repoPath,
+	}
+	mirror, err := MigrateRepository(user, user, migrationOptions)
+	assert.NoError(t, err)
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	assert.NoError(t, err)
+
+	findOptions := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
+	initCount, err := GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
+
+	assert.NoError(t, CreateRelease(gitRepo, &Release{
+		RepoID:       repo.ID,
+		PublisherID:  user.ID,
+		TagName:      "v0.2",
+		Target:       "master",
+		Title:        "v0.2 is released",
+		Note:         "v0.2 is released",
+		IsDraft:      false,
+		IsPrerelease: false,
+		IsTag:        true,
+	}, nil))
+
+	err = mirror.GetMirror()
+	assert.NoError(t, err)
+
+	_, ok := mirror.Mirror.runSync()
+	assert.True(t, ok)
+
+	count, err := GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.EqualValues(t, initCount+1, count)
+
+	release, err := GetRelease(repo.ID, "v0.2")
+	assert.NoError(t, err)
+	assert.NoError(t, DeleteReleaseByID(release.ID, user, true))
+
+	_, ok = mirror.Mirror.runSync()
+	assert.True(t, ok)
+
+	count, err = GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.EqualValues(t, initCount, count)
+}

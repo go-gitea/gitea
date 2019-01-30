@@ -27,6 +27,30 @@ import (
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
+	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
+		allowedOrigin := setting.Repository.AccessControlAllowOrigin
+		// Set CORS headers for browser-based git clients
+		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
+
+		// Handle preflight OPTIONS request
+		if ctx.Req.Method == "OPTIONS" {
+			if allowedOrigin == "*" {
+				ctx.Status(http.StatusOK)
+			} else if allowedOrigin == "null" {
+				ctx.Status(http.StatusForbidden)
+			} else {
+				origin := ctx.Req.Header.Get("Origin")
+				if len(origin) > 0 && origin == allowedOrigin {
+					ctx.Status(http.StatusOK)
+				} else {
+					ctx.Status(http.StatusForbidden)
+				}
+			}
+			return
+		}
+	}
+
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
@@ -68,6 +92,12 @@ func HTTP(ctx *context.Context) {
 	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
+		return
+	}
+
+	// Don't allow pushing if the repo is archived
+	if repo.IsArchived && !isPull {
+		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return
 	}
 

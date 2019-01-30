@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/urfave/cli"
 )
 
@@ -21,6 +23,10 @@ func argsSet(c *cli.Context, args ...string) error {
 	for _, a := range args {
 		if !c.IsSet(a) {
 			return errors.New(a + " is not set")
+		}
+
+		if util.IsEmptyString(a) {
+			return errors.New(a + " is required")
 		}
 	}
 	return nil

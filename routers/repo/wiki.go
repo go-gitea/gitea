@@ -74,7 +74,6 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
 		return wikiRepo, nil, err
 	}
 	return wikiRepo, commit, nil
@@ -112,6 +111,9 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
+		if !git.IsErrNotExist(err) {
+			ctx.ServerError("GetBranchCommit", err)
+		}
 		return nil, nil
 	}
 
@@ -201,7 +203,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki)
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -244,7 +246,7 @@ func WikiPages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki)
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -336,6 +338,11 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplWikiNew)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
 		return
 	}
 
