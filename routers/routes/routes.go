@@ -136,6 +136,9 @@ func NewMacaron() *macaron.Macaron {
 		DisableDebug: !setting.EnablePprof,
 	}))
 	m.Use(context.Contexter())
+	// OK we are now set-up enough to allow us to create a nicer recovery than
+	// the default macaron recovery
+	m.Use(context.Recovery())
 	m.SetAutoHead(true)
 	return m
 }
