@@ -353,7 +353,7 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Limited is for signed user only
 ; Private is only for member of the organization
 ; Public is for everyone
-DEFAULT_VISIBILITY = public
+DEFAULT_ORG_VISIBILITY = public
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
