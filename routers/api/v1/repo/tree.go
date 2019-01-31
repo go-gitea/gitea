@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"code.gitea.io/git"
@@ -110,14 +111,19 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	if page < 0 {
 		page = 0
 	}
+	tree.Page = page
+	tree.TotalCount = len(entries)
+	tree.TotalPages = int(math.Ceil(float64(len(entries)) / float64(perPage)))
 	rangeStart := perPage * page
 	if rangeStart >= len(entries) {
 		return tree
 	}
 	var rangeEnd int
+	if len(entries) > perPage {
+		tree.Truncated = true
+	}
 	if rangeStart+perPage < len(entries) {
 		rangeEnd = rangeStart + perPage
-		tree.Truncated = true
 	} else {
 		rangeEnd = len(entries)
 	}
