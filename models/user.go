@@ -1390,14 +1390,14 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
-		cond = cond.And(builder.In("visibility", 0, 1))
+		cond = cond.And(builder.In("visibility", 0, VisibleTypePublic))
 	}
 
 	if opts.OwnerID > 0 {
 		var accessCond = builder.NewCond()
 		accessCond.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").Join("LEFT", "user", "`org_user`.org_id=`user`.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": 1}))),
-			builder.In("visibility", 1, 2))
+			builder.In("id", builder.Select("org_id").From("org_user").Join("LEFT", "user", "`org_user`.org_id=`user`.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
+			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}
 
