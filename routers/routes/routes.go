@@ -106,7 +106,7 @@ func NewMacaron() *macaron.Macaron {
 		Langs:       setting.Langs,
 		Names:       setting.Names,
 		DefaultLang: "en-US",
-		Redirect:    true,
+		Redirect:    false,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
