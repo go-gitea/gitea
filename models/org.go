@@ -367,7 +367,7 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Find(&orgs)
 }
 
-// HasOrgVisible tell if the given user can see one or more of the given orgs
+// HasOrgVisible tells if the given user can see one or more of the given orgs
 func HasOrgVisible(orgs []*User, user *User) bool {
 	if len(orgs) == 0 {
 		return false
