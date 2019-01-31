@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8a559f110defa54f847a3efa2734297571d960b476699579f2008e4a37b62a1a"
+  digest = "1:8df1f0527f30a02b76d0ac397118d71c0e9093c7dfa59723762a88fce6ac1170"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "140e9fcba7583e1c6f22eb57676bb00794ef14a8"
+  revision = "d5a42771e7e851e8a89c5c6ffa0f5b075342f9df"
 
 [[projects]]
   digest = "1:3fcef06a1a6561955c94af6c7757a6fa37605eb653f0d06ab960e5bb80092195"
@@ -339,14 +339,6 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "503617c6b37257a55dff6293ec28556506c3a9a8"
-
-[[projects]]
-  branch = "master"
-  digest = "1:6326b27f8e0c8e135c8674ddbc619fae879664ac832e8e6fa6a23ce0d279ed4d"
-  name = "github.com/go-macaron/gzip"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "cad1c6580a07c56f5f6bc52d66002a05985c5854"
 
 [[projects]]
   branch = "master"
@@ -1155,7 +1147,6 @@
     "github.com/go-macaron/cache/redis",
     "github.com/go-macaron/captcha",
     "github.com/go-macaron/csrf",
-    "github.com/go-macaron/gzip",
     "github.com/go-macaron/i18n",
     "github.com/go-macaron/inject",
     "github.com/go-macaron/session",
