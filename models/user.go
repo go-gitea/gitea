@@ -839,6 +839,7 @@ func CreateUser(u *User) (err error) {
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
+	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
