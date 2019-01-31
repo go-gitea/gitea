@@ -4,6 +4,27 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.1](https://github.com/go-gitea/gitea/releases/tag/v1.7.1) - 2019-01-31
+* SECURITY
+  * Disable redirect for i18n (#5910) (#5916)
+  * Only allow local login if password is non-empty (#5906) (#5908)
+  * Fix go-get URL generation (#5905) (#5907)
+* BUGFIXES
+  * Fix TLS errors when using acme/autocert for local connections (#5820) (#5826)
+  * Request for public keys only if LDAP attribute is set (#5816) (#5819)
+  * Fix delete correct temp directory (#5840) (#5839)
+  * Fix an error while adding a dependency via UI (#5862) (#5876)
+  * Fix null pointer in attempt to Sudo if not logged in (#5872) (#5884)
+  * When creating new repository fsck option should be enabled (#5817) (#5885)
+  * Prevent nil dereference in mailIssueCommentToParticipants (#5891) (#5895) (#5894)
+  * Fix bug when read public repo lfs file (#5913) (#5912)
+  * Respect value of REQUIRE_SIGNIN_VIEW (#5901) (#5915)
+  * Fix compare button on upstream repo leading to 404 (#5877) (#5914)
+* DOCS
+  * Added docs for the tree api (#5835)
+* MISC
+  * Include Go toolchain to --version (#5832) (#5830)
+
 ## [1.7.0](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-22
 * SECURITY
   * Do not display the raw OpenID error in the UI (#5705) (#5712)
