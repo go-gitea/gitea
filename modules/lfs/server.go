@@ -497,6 +497,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := models.GetUserRepoPermission(repository, ctx.User)
 	if err != nil {
 		return false
