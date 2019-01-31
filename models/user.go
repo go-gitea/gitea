@@ -76,7 +76,7 @@ var (
 	ErrUnsupportedLoginType = errors.New("Login source is unknown")
 )
 
-// VisibleType define the visibility (Organization only)
+// VisibleType defines the visibility (Organization only)
 type VisibleType int
 
 const (
