@@ -45,12 +45,12 @@ func GetTree(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: page
 	//   in: query
-	//   description: Page index, starts at 0 (default). The 'truncated' field in the response will be true if there are still more items after this page, false if the last page.
+	//   description: page number; the 'truncated' field in the response will be true if there are still more items after this page, false if the last page
 	//   required: false
 	//   type: integer
 	// - name: per_page
 	//   in: query
-	//   description: Number of items per page. Default is 1000
+	//   description: number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE
 	//   required: false
 	//   type: integer
 	// responses:
@@ -105,16 +105,16 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 
 	page := ctx.QueryInt("page")
 	perPage := ctx.QueryInt("per_page")
-	if perPage <= 0 {
+	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage
 	}
-	if page < 0 {
-		page = 0
+	if page <= 0 {
+		page = 1
 	}
 	tree.Page = page
 	tree.TotalCount = len(entries)
 	tree.TotalPages = int(math.Ceil(float64(len(entries)) / float64(perPage)))
-	rangeStart := perPage * page
+	rangeStart := perPage * (page - 1)
 	if rangeStart >= len(entries) {
 		return tree
 	}

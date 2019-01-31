@@ -213,3 +213,47 @@ func TestDisplayName(t *testing.T) {
 		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
 	}
 }
+
+func TestCreateUser(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	assert.NoError(t, CreateUser(user))
+
+	assert.NoError(t, DeleteUser(user))
+}
+
+func TestCreateUser_Issue5882(t *testing.T) {
+
+	// Init settings
+	_ = setting.Admin
+
+	passwd := ".//.;1;;//.,-=_"
+
+	tt := []struct {
+		user               *User
+		disableOrgCreation bool
+	}{
+		{&User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
+		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
+	}
+
+	for _, v := range tt {
+		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
+
+		assert.NoError(t, CreateUser(v.user))
+
+		u, err := GetUserByEmail(v.user.Email)
+		assert.NoError(t, err)
+
+		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
+
+		assert.NoError(t, DeleteUser(v.user))
+	}
+}

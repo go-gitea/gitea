@@ -88,6 +88,14 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page wants to load
+	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: items count every page wants to load
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
@@ -143,6 +151,10 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		if !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
 			return
+		}
+		// If target is not provided use default branch
+		if len(form.Target) == 0 {
+			form.Target = ctx.Repo.Repository.DefaultBranch
 		}
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
