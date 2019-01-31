@@ -16,31 +16,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPICreateRelease(t *testing.T) {
-	prepareTestEnv(t)
-
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
-	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session)
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	assert.NoError(t, err)
-
-	err = gitRepo.CreateTag("v0.0.1", "master")
-	assert.NoError(t, err)
-
-	commitID, err := gitRepo.GetTagCommitID("v0.0.1")
-	assert.NoError(t, err)
-
+func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *models.User, repo *models.Repository, name, target, title, desc string) *api.Release {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases?token=%s",
 		owner.Name, repo.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
-		TagName:      "v0.0.1",
-		Title:        "v0.0.1",
-		Note:         "test",
+		TagName:      name,
+		Title:        title,
+		Note:         desc,
 		IsDraft:      false,
 		IsPrerelease: false,
-		Target:       commitID,
+		Target:       target,
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
@@ -53,10 +38,32 @@ func TestAPICreateRelease(t *testing.T) {
 		Note:    newRelease.Note,
 	})
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
+	return &newRelease
+}
+
+func TestAPICreateAndUpdateRelease(t *testing.T) {
+	prepareTestEnv(t)
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	assert.NoError(t, err)
+
+	err = gitRepo.CreateTag("v0.0.1", "master")
+	assert.NoError(t, err)
+
+	target, err := gitRepo.GetTagCommitID("v0.0.1")
+	assert.NoError(t, err)
+
+	newRelease := createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", target, "v0.0.1", "test")
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
 		owner.Name, repo.Name, newRelease.ID, token)
-	req = NewRequest(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var release api.Release
 	DecodeJSON(t, resp, &release)
@@ -82,4 +89,32 @@ func TestAPICreateRelease(t *testing.T) {
 		Title:   newRelease.Title,
 		Note:    newRelease.Note,
 	})
+}
+
+func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
+	prepareTestEnv(t)
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
+}
+
+func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
+	prepareTestEnv(t)
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	assert.NoError(t, err)
+
+	err = gitRepo.CreateTag("v0.0.1", "master")
+	assert.NoError(t, err)
+
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
