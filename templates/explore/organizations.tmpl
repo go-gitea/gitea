@@ -6,7 +6,6 @@
 
 		<div class="ui user list">
 			{{range .Users}}
-				{{if (or (eq .Visibility 1) (and ($.SignedUser) (or (eq .Visibility 2) (and (.IsUserPartOfOrg $.SignedUserID) (eq .Visibility 3)) ($.IsAdmin))))}}
 				<div class="item">
 				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
 				  <div class="content">
@@ -28,7 +27,6 @@
 					</div>
 				  </div>
 				</div>
-				{{end}}
 			{{else}}
 				<div>{{$.i18n.Tr "explore.org_no_results"}}</div>
 			{{end}}
