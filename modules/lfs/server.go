@@ -501,8 +501,10 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	if err != nil {
 		return false
 	}
-	if ctx.IsSigned {
-		return perm.CanAccess(accessMode, models.UnitTypeCode)
+
+	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	if canRead {
+		return true
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
