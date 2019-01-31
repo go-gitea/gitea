@@ -4,35 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.7.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.7.0-rc3) - 2019-01-18
+## [1.7.0](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-22
 * SECURITY
   * Do not display the raw OpenID error in the UI (#5705) (#5712)
   * When redirecting clean the path to avoid redirecting to external site (#5669) (#5679)
-* BUGFIX
-  * Fix sqlite deadlock when assigning to a PR (#5640) (#5642)
-  * Don't close issues via commits on non-default branch. (#5622) (#5643)
-  * Fix commit page showing status for current default branch (#5650) (#5653)
-  * Only count users own actions for heatmap contributions (#5647) (#5655)
-  * Update xorm to fix issue postgresql dumping issues (#5680) (#5692)
-  * Use correct value for "MSpan Structures Obtained" (#5706) (#5716)
-
-## [1.6.4](https://github.com/go-gitea/gitea/releases/tag/v1.6.4) - 2019-01-15
-* BUGFIX
-  * Fix SSH key now can be reused as public key after deleting as deploy key (#5671) (#5685)
-  * When redirecting clean the path to avoid redirecting to external site (#5669) (#5703)
-  * Fix to use correct value for "MSpan Structures Obtained" (#5706) (#5715)
-
-## [1.7.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.7.0-rc2) - 2019-01-04
-* SECURITY
   * Prevent DeleteFilePost doing arbitrary deletion (#5631)
-
-## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
-* SECURITY
-  * Prevent DeleteFilePost doing arbitrary deletion (#5631)
-* BUGFIX
-  * Fix wrong text getting saved on editing second comment on an issue (#5608)
-
-## [1.7.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) - 2019-01-02
 * BREAKING
   * Restrict permission check on repositories and fix some problems (#5314)
   * Show only opened milestones on issues page milestone filter (#5051)
@@ -51,6 +27,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Give user a link to create PR after push (#4716)
   * Add rebase with merge commit merge style (#3844) (#4052)
 * BUGFIXES
+  * Disallow empty titles (#5785) (#5794) 
+  * Fix sqlite deadlock when assigning to a PR (#5640) (#5642)
+  * Don't close issues via commits on non-default branch. (#5622) (#5643)
+  * Fix commit page showing status for current default branch (#5650) (#5653)
+  * Only count users own actions for heatmap contributions (#5647) (#5655)
+  * Update xorm to fix issue postgresql dumping issues (#5680) (#5692)
+  * Use correct value for "MSpan Structures Obtained" (#5706) (#5716)
   * Fix bug on modifying sshd username (#5624)
   * Delete tags in mirror which are removed for original repo. (#5609)
   * Fix wrong text getting saved on editing second comment on an issue. (#5608)
@@ -176,6 +159,18 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade alpine to 3.8 (#5423)
   * Git-Trees API (#5403)
   * Only chown directories during docker setup if necessary. Fix #4425 (#5064)
+
+## [1.6.4](https://github.com/go-gitea/gitea/releases/tag/v1.6.4) - 2019-01-15
+* BUGFIX
+  * Fix SSH key now can be reused as public key after deleting as deploy key (#5671) (#5685)
+  * When redirecting clean the path to avoid redirecting to external site (#5669) (#5703)
+  * Fix to use correct value for "MSpan Structures Obtained" (#5706) (#5715)
+
+## [1.6.3](https://github.com/go-gitea/gitea/releases/tag/v1.6.3) - 2019-01-04
+* SECURITY
+  * Prevent DeleteFilePost doing arbitrary deletion (#5631)
+* BUGFIX
+  * Fix wrong text getting saved on editing second comment on an issue (#5608)
 
 ## [1.6.2](https://github.com/go-gitea/gitea/releases/tag/v1.6.2) - 2018-12-21
 * SECURITY

@@ -85,7 +85,7 @@ func sudo() macaron.Handler {
 		}
 
 		if len(sudo) > 0 {
-			if ctx.User.IsAdmin {
+			if ctx.IsSigned && ctx.User.IsAdmin {
 				user, err := models.GetUserByName(sudo)
 				if err != nil {
 					if models.IsErrUserNotExist(err) {

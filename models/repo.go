@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -824,7 +825,7 @@ type CloneLink struct {
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
 func ComposeHTTPSCloneURL(owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
+	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.QueryEscape(owner), url.QueryEscape(repo))
 }
 
 func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
@@ -1359,12 +1360,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	repo := &Repository{
-		OwnerID:     u.ID,
-		Owner:       u,
-		Name:        opts.Name,
-		LowerName:   strings.ToLower(opts.Name),
-		Description: opts.Description,
-		IsPrivate:   opts.IsPrivate,
+		OwnerID:       u.ID,
+		Owner:         u,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.IsPrivate,
+		IsFsckEnabled: true,
 	}
 
 	sess := x.NewSession()
