@@ -371,10 +371,8 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 func HasOrgVisible(org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		for _, org := range orgs {
-			if org.Visibility == VisibleTypePublic {
-				return true
-			}
+		if org.Visibility == VisibleTypePublic {
+			return true
 		}
 		return false
 	}
