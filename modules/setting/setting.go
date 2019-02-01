@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/structs"
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
@@ -1266,12 +1267,6 @@ var Service struct {
 	OpenIDBlacklist    []*regexp.Regexp
 }
 
-var visibilityModes = map[string]int{
-	"public":  1,
-	"limited": 2,
-	"private": 3,
-}
-
 func newService() {
 	sec := Cfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
@@ -1298,8 +1293,8 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
-	Service.DefaultVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(visibilityModes))
-	Service.DefaultVisibilityMode = visibilityModes[Service.DefaultVisibility]
+	Service.DefaultVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(structs.visibilityModes))
+	Service.DefaultVisibilityMode = structs.visibilityModes[Service.DefaultVisibility]
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")
