@@ -47,8 +47,8 @@
 				{{end}}
 				<div class="item">
 					<!-- TODO add regenerate secret functionality */ -->
-					{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}} <button type="button" class="tiny button">
-						{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</button>
+					{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
+					<a onclick="alert('Not yet implemented.')">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
 				</div>
 				<div class="field {{if .Err_AppName}}error{{end}}">
 					<label for="application-name">{{.i18n.Tr "settings.oauth2_application_name"}}</label>
