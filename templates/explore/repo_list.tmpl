@@ -24,9 +24,6 @@
 					</div>
 				</div>
 				{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
-				<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
-			</div>
-			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
 			{{if .Topics }}
 				<div>
 				{{range .Topics}}
@@ -34,7 +31,7 @@
 				{{end}}
 				</div>
 			{{end}}
-			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
+      <p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
 		</div>
 	{{else}}
 	<div>
