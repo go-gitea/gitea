@@ -88,6 +88,10 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, participants[i].Name)
 	}
 
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+
 	for _, to := range tos {
 		SendIssueCommentMail(issue, doer, content, comment, []string{to})
 	}
