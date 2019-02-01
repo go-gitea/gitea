@@ -55,7 +55,7 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
-// ApplicationsPost response for add user's access token
+// OAuthApplicationsPost response for add user's access token
 func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true

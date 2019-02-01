@@ -5,10 +5,12 @@ import (
 	"encoding/base64"
 )
 
+// New creats a new secret
 func New() (string, error) {
 	return NewWithLength(32)
 }
 
+// NewWithLength creates a new secret for a given length
 func NewWithLength(length int64) (string, error) {
 	return randomString(length)
 }
