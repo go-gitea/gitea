@@ -58,7 +58,6 @@ Comme nous regroupons déjà toutes les bibliothèques requises pour compiler Gi
 
 * `bindata`: Intègre toutes les ressources nécessaires à l'exécution d'une instance de Gitea, ce qui rend un déploiement facile car il n'est pas nécessaire de se préoccuper des fichiers supplémentaires.
 * `sqlite sqlite_unlock_notify`: Active la prise en charge d'une base de données [SQLite3](https://sqlite.org/), ceci n'est recommandé que pour les petites installations de Gitea.
-* `tidb`: Active la prise en charge d'une base de données [TiDB](https://github.com/pingcap/tidb), c'est une base de données simplet et basée sur des fichiers. Elle est comparable à SQLite.
 * `pam`: Active la prise en charge de PAM (mLinux Pluggable Authentication Modules), très utile si vos utilisateurs doivent être authentifiés avec les comptes du système.
 
 Il est temps de compiler le binaire, nous suggérons d'intégrer les ressources avec l'option de compilation `bindata`. Pour inclure les ressources, vous devrez également exécuter la tâche Make `generate`. Dans le cas échéant, les ressources ne pourront pas être intégrées:

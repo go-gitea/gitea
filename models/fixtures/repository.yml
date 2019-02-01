@@ -175,7 +175,7 @@
   owner_id: 2
   lower_name: repo15
   name: repo15
-  is_bare: true
+  is_empty: true
 
 -
   id: 16

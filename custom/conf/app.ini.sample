@@ -31,6 +31,9 @@ PULL_REQUEST_QUEUE_LENGTH = 1000
 PREFERRED_LICENSES = Apache License 2.0,MIT License
 ; Disable the ability to interact with repositories using the HTTP protocol
 DISABLE_HTTP_GIT = false
+; Value for Access-Control-Allow-Origin header, default is not to present
+; WARNING: This maybe harmful to you website if you do not give it a right value.
+ACCESS_CONTROL_ALLOW_ORIGIN = 
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 
@@ -85,6 +88,8 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
+; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
+THEMES = gitea,arc-green
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -237,6 +242,11 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; Maximum number of DB Connect retries
+DB_RETRIES = 10
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
+
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
@@ -356,6 +366,12 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 NO_REPLY_ADDRESS = noreply.example.org
+; Show Registration button
+SHOW_REGISTRATION_BUTTON = true
+; Default value for AutoWatchNewRepos
+; When adding a repo to a team or creating a new repo all team members will watch the 
+; repo automatically if enabled 
+AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -610,6 +626,8 @@ MIN_INTERVAL = 10m
 ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
+; Default paging number of api
+DEFAULT_PAGING_NUM = 30
 
 [oauth2]
 ; Enables OAuth2 provider

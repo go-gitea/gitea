@@ -62,6 +62,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
+- `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
+   default is not to present. **WARNING**: This maybe harmful to you website if you do not
+   give it a right value.
 
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
@@ -74,6 +77,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
+- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
+  regardless of the value of `DEFAULT_THEME`.
 
 ### UI - Admin (`ui.admin`)
 
@@ -122,9 +127,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
-- `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
-   on another (https) port.
-- `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
+- `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
+- `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
    By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
@@ -141,6 +145,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
+- `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
+- `DB_RETRY_BACKOFF`: **3s*: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
@@ -200,6 +206,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
+- `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
+- `AUTO_WATCH_NEW_REPOS`: **true** Enable this to let all organisation users watch new repos when they are created
 
 ## Webhook (`webhook`)
 
@@ -316,8 +324,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
+- `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 
 ## OAuth2 (`oauth2`)
 

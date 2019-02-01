@@ -33,9 +33,9 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
-	"github.com/kballard/go-shellquote"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
+	shellquote "github.com/kballard/go-shellquote"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -169,12 +169,14 @@ var (
 	DisableGitHooks       bool
 
 	// Database settings
-	UseSQLite3    bool
-	UseMySQL      bool
-	UseMSSQL      bool
-	UsePostgreSQL bool
-	UseTiDB       bool
-	LogSQL        bool
+	UseSQLite3       bool
+	UseMySQL         bool
+	UseMSSQL         bool
+	UsePostgreSQL    bool
+	UseTiDB          bool
+	LogSQL           bool
+	DBConnectRetries int
+	DBConnectBackoff time.Duration
 
 	// Indexer settings
 	Indexer struct {
@@ -201,15 +203,16 @@ var (
 
 	// Repository settings
 	Repository = struct {
-		AnsiCharset            string
-		ForcePrivate           bool
-		DefaultPrivate         string
-		MaxCreationLimit       int
-		MirrorQueueLength      int
-		PullRequestQueueLength int
-		PreferredLicenses      []string
-		DisableHTTPGit         bool
-		UseCompatSSHURI        bool
+		AnsiCharset              string
+		ForcePrivate             bool
+		DefaultPrivate           string
+		MaxCreationLimit         int
+		MirrorQueueLength        int
+		PullRequestQueueLength   int
+		PreferredLicenses        []string
+		DisableHTTPGit           bool
+		AccessControlAllowOrigin string
+		UseCompatSSHURI          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -237,15 +240,16 @@ var (
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
 	}{
-		AnsiCharset:            "",
-		ForcePrivate:           false,
-		DefaultPrivate:         RepoCreatingLastUserVisibility,
-		MaxCreationLimit:       -1,
-		MirrorQueueLength:      1000,
-		PullRequestQueueLength: 1000,
-		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
-		DisableHTTPGit:         false,
-		UseCompatSSHURI:        false,
+		AnsiCharset:              "",
+		ForcePrivate:             false,
+		DefaultPrivate:           RepoCreatingLastUserVisibility,
+		MaxCreationLimit:         -1,
+		MirrorQueueLength:        1000,
+		PullRequestQueueLength:   1000,
+		PreferredLicenses:        []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:           false,
+		AccessControlAllowOrigin: "",
+		UseCompatSSHURI:          false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -284,7 +288,7 @@ var (
 		PullRequest: struct {
 			WorkInProgressPrefixes []string
 		}{
-			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 		},
 	}
 	RepoRootPath string
@@ -303,6 +307,7 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
+		Themes              []string
 
 		Admin struct {
 			UserPagingNum   int
@@ -329,6 +334,7 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
+		Themes:              []string{`gitea`, `arc-green`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -551,9 +557,11 @@ var (
 	API = struct {
 		EnableSwagger    bool
 		MaxResponseItems int
+		DefaultPagingNum int
 	}{
 		EnableSwagger:    true,
 		MaxResponseItems: 50,
+		DefaultPagingNum: 30,
 	}
 
 	OAuth2 = struct {
@@ -1029,6 +1037,8 @@ func NewContext() {
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
+	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
+	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -1184,11 +1194,17 @@ func NewContext() {
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
-		Langs = defaultLangs
+		Langs = []string{
+			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
+			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pl-PL", "bg-BG", "it-IT",
+			"fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
-		Names = defaultLangNames
+		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
+			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
+			"español", "português do Brasil", "polski", "български", "italiano",
+			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
 	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
@@ -1278,6 +1294,7 @@ var Service struct {
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
+	AutoWatchNewRepos                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1312,6 +1329,7 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
+	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

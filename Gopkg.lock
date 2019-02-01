@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:aed2bc1c4026233af8ad43cab9d9464a0e3b906d3d058d2d6e814f3e1ddfa528"
+  digest = "1:8df1f0527f30a02b76d0ac397118d71c0e9093c7dfa59723762a88fce6ac1170"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "d95a6e0392218961d1bdd18020290a20bd61b063"
+  revision = "d5a42771e7e851e8a89c5c6ffa0f5b075342f9df"
 
 [[projects]]
   digest = "1:3fcef06a1a6561955c94af6c7757a6fa37605eb653f0d06ab960e5bb80092195"
@@ -342,14 +342,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6326b27f8e0c8e135c8674ddbc619fae879664ac832e8e6fa6a23ce0d279ed4d"
-  name = "github.com/go-macaron/gzip"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "cad1c6580a07c56f5f6bc52d66002a05985c5854"
-
-[[projects]]
-  branch = "master"
   digest = "1:d09d3c94e1bd444464c221be961ba4005e119308f1bcd57aa5f49046fb6affd2"
   name = "github.com/go-macaron/i18n"
   packages = ["."]
@@ -383,11 +375,11 @@
   revision = "a77f45a7ce909c0ff14b28279fa1a2b674acb70f"
 
 [[projects]]
-  digest = "1:747c1fcb10f8f6734551465ab73c6ed9c551aa6e66250fb6683d1624f554546a"
+  digest = "1:dce58f88343bd78f4d32dd9601aab4fa5d9994fd2cafa185c51bbd858851cdf9"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d523deb1b23d913de5bdada721a6071e71283618"
+  revision = "c45f530f8e7fe40f4687eaa50d0c8c5f1b66f9e0"
 
 [[projects]]
   digest = "1:06d21295033f211588d0ad7ff391cc1b27e72b60cb6d4b7db0d70cffae4cf228"
@@ -406,11 +398,11 @@
   version = "v0.6.0"
 
 [[projects]]
-  digest = "1:931a62a1aacc37a5e4c309a111642ec4da47b4dc453cd4ba5481b12eedb04a5d"
+  digest = "1:f3015325cb2a17a6ff838358574921a343a0295059b7eb5bec07187131befc0b"
   name = "github.com/go-xorm/xorm"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "401f4ee8ff8cbc40a4754cb12192fbe4f02f3979"
+  revision = "a6300f2a45e05a8f75f00a1d6188049fe7851915"
 
 [[projects]]
   branch = "master"
@@ -588,12 +580,13 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
-  digest = "1:4b992ec853d0ea9bac3dcf09a64af61de1a392e6cb0eef2204c0c92f4ae6b911"
+  digest = "1:aa7dcd6a0db70d514821f8739d0a22e7df33b499d8d399cf15b2858d44f8319e"
   name = "github.com/markbates/goth"
   packages = [
     ".",
     "gothic",
     "providers/bitbucket",
+    "providers/discord",
     "providers/dropbox",
     "providers/facebook",
     "providers/github",
@@ -603,8 +596,8 @@
     "providers/twitter",
   ]
   pruneopts = "NUT"
-  revision = "bc6d8ddf751a745f37ca5567dbbfc4157bbf5da9"
-  version = "v1.47.2"
+  revision = "157987f620ff2fc5e1f6a1427a3685219fbf6ff4"
+  version = "v1.49.0"
 
 [[projects]]
   digest = "1:c9724c929d27a14475a45b17a267dbc60671c0bc2c5c05ed21f011f7b5bc9fb5"
@@ -1007,12 +1000,12 @@
   version = "v1.31.1"
 
 [[projects]]
-  digest = "1:01f4ac37c52bda6f7e1bd73680a99f88733c0408aaa159ecb1ba53a1ade9423c"
+  digest = "1:7e1c00b9959544fa1ccca7cf0407a5b29ac6d5201059c4fac6f599cb99bfd24d"
   name = "gopkg.in/ldap.v2"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "d0a5ced67b4dc310b9158d63a2c6f9c5ec13f105"
-  version = "v2.4.1"
+  revision = "bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9"
+  version = "v2.5.1"
 
 [[projects]]
   digest = "1:cfe1730a152ff033ad7d9c115d22e36b19eec6d5928c06146b9119be45d39dc0"
@@ -1156,7 +1149,6 @@
     "github.com/go-macaron/cache/redis",
     "github.com/go-macaron/captcha",
     "github.com/go-macaron/csrf",
-    "github.com/go-macaron/gzip",
     "github.com/go-macaron/i18n",
     "github.com/go-macaron/inject",
     "github.com/go-macaron/session",
@@ -1175,12 +1167,14 @@
     "github.com/keybase/go-crypto/openpgp",
     "github.com/keybase/go-crypto/openpgp/armor",
     "github.com/keybase/go-crypto/openpgp/packet",
+    "github.com/klauspost/compress/gzip",
     "github.com/lafriks/xormstore",
     "github.com/lib/pq",
     "github.com/lunny/dingtalk_webhook",
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",
+    "github.com/markbates/goth/providers/discord",
     "github.com/markbates/goth/providers/dropbox",
     "github.com/markbates/goth/providers/facebook",
     "github.com/markbates/goth/providers/github",

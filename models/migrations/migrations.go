@@ -18,7 +18,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
@@ -206,6 +206,10 @@ var migrations = []Migration{
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
+	// v77 -> v78
+	NewMigration("add theme to users", addUserDefaultTheme),
+	// v78 -> v79
+	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
 }
 
 // Migrate database to current version

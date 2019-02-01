@@ -109,7 +109,7 @@ type AccessTokenResponse struct {
 func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
 	if err := grant.IncreaseCounter(); err != nil {
 		return nil, &AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "cannot increase the grant counter",
 		}
 	}
@@ -197,6 +197,38 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 		return
 	}
 
+	// pkce support
+	switch form.CodeChallengeMethod {
+	case "S256":
+	case "plain":
+		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallengeMethod); err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				ErrorCode:        ErrorCodeServerError,
+				ErrorDescription: "cannot set code challenge method",
+				State:            form.State,
+			}, form.RedirectURI)
+			return
+		}
+		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallenge); err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				ErrorCode:        ErrorCodeServerError,
+				ErrorDescription: "cannot set code challenge",
+				State:            form.State,
+			}, form.RedirectURI)
+			return
+		}
+		break
+	case "":
+		break
+	default:
+		handleAuthorizeError(ctx, AuthorizeError{
+			ErrorCode:        ErrorCodeInvalidRequest,
+			ErrorDescription: "unsupported code challenge method",
+			State:            form.State,
+		}, form.RedirectURI)
+		return
+	}
+
 	grant, err := app.GetGrantByUserID(ctx.User.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
@@ -205,7 +237,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 
 	// Redirect if user already granted access
 	if grant != nil {
-		code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI)
+		code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
@@ -251,7 +283,12 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 		}, form.RedirectURI)
 		return
 	}
-	code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI)
+
+	var codeChallenge, codeChallengeMethod string
+	codeChallenge, _ = ctx.Session.Get("CodeChallenge").(string)
+	codeChallengeMethod, _ = ctx.Session.Get("CodeChallengeMethod").(string)
+
+	code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI, codeChallenge, codeChallengeMethod)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -274,7 +311,7 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 		return
 	default:
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnsupportedGrantType,
+			ErrorCode:        AccessTokenErrorCodeUnsupportedGrantType,
 			ErrorDescription: "Only refresh_token or authorization_code grant type is supported",
 		})
 	}
@@ -284,7 +321,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	token, err := models.ParseOAuth2Token(form.RefreshToken)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "client is not authorized",
 		})
 		return
@@ -293,7 +330,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	grant, err := models.GetOAuth2GrantByID(token.GrantID)
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
+			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "grant does not exist",
 		})
 		return
@@ -302,33 +339,13 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	// check if token got already used
 	if grant.Counter != token.Counter || token.Counter == 0 {
 		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
 		})
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-
-	// increase counter
-	if err := grant.IncreaseCounter(); err != nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
-		})
-		return
-	}
-	// refresh fields
-	grant, err = models.GetOAuth2GrantByID(token.GrantID)
-	if err != nil || grant == nil {
-		handleAccessTokenError(ctx, AccessTokenError{
-			ErrorCode: AccessTokenErrorCodeInvalidGrant,
-			ErrorDescription: "grant does not exist",
-		})
-		return
-	}
-	accessToken, tokenErr := newAccessTokenResponse(grant.ID, grant.Counter)
-	// FIXME if this fails, the client can't use his refresh token again due to the increasemnet of the counter
-	// but this error can only occur if the signing fails => minor chance of failing
+	accessToken, tokenErr := newAccessTokenResponse(grant)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -360,6 +377,14 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
+	// check if code verifier authorizes the client, PKCE support
+	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
 	// check if granted for this application
 	if authorizationCode.Grant.ApplicationID != app.ID {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -375,7 +400,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.GrantID, authorizationCode.Grant.Counter)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return

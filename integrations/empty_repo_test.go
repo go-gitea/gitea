@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 )
 
-func TestBareRepo(t *testing.T) {
+func TestEmptyRepo(t *testing.T) {
 	prepareTestEnv(t)
 	subpaths := []string{
 		"commits/master",
@@ -19,10 +19,10 @@ func TestBareRepo(t *testing.T) {
 		"commit/1ae57b34ccf7e18373",
 		"graph",
 	}
-	bareRepo := models.AssertExistsAndLoadBean(t, &models.Repository{}, models.Cond("is_bare = ?", true)).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: bareRepo.OwnerID}).(*models.User)
+	emptyRepo := models.AssertExistsAndLoadBean(t, &models.Repository{}, models.Cond("is_empty = ?", true)).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: emptyRepo.OwnerID}).(*models.User)
 	for _, subpath := range subpaths {
-		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, bareRepo.Name, subpath)
+		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subpath)
 		MakeRequest(t, req, http.StatusNotFound)
 	}
 }

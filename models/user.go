@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -140,6 +141,7 @@ type User struct {
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
+	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -165,6 +167,13 @@ func (u *User) BeforeUpdate() {
 	u.Description = base.TruncateString(u.Description, 255)
 }
 
+// AfterLoad is invoked from XORM after filling all the fields of this object.
+func (u *User) AfterLoad() {
+	if u.Theme == "" {
+		u.Theme = setting.UI.DefaultTheme
+	}
+}
+
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
 	u.LastLoginUnix = util.TimeStampNow()
@@ -174,6 +183,12 @@ func (u *User) SetLastLogin() {
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(u, "diff_view_style")
+}
+
+// UpdateTheme updates a users' theme irrespective of the site wide theme
+func (u *User) UpdateTheme(themeName string) error {
+	u.Theme = themeName
+	return UpdateUserCols(u, "theme")
 }
 
 // getEmail returns an noreply email, if the user has set to keep his
@@ -402,7 +417,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 // NewGitSig generates and returns the signature of given user.
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
-		Name:  u.DisplayName(),
+		Name:  u.GitName(),
 		Email: u.getEmail(),
 		When:  time.Now(),
 	}
@@ -615,10 +630,31 @@ func (u *User) GetOrganizations(all bool) error {
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
-	if len(u.FullName) > 0 {
-		return u.FullName
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 {
+		return trimmed
 	}
 	return u.Name
+}
+
+func gitSafeName(name string) string {
+	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
+}
+
+// GitName returns a git safe name
+func (u *User) GitName() string {
+	gitName := gitSafeName(u.FullName)
+	if len(gitName) > 0 {
+		return gitName
+	}
+	// Although u.Name should be safe if created in our system
+	// LDAP users may have bad names
+	gitName = gitSafeName(u.Name)
+	if len(gitName) > 0 {
+		return gitName
+	}
+	// Totally pathological name so it's got to be:
+	return fmt.Sprintf("user-%d", u.ID)
 }
 
 // ShortName ellipses username to length
@@ -777,6 +813,8 @@ func CreateUser(u *User) (err error) {
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
+	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -1343,7 +1381,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if opts.PageSize <= 0 || opts.PageSize > setting.UI.ExplorePagingNum {
+	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
 		opts.PageSize = setting.UI.ExplorePagingNum
 	}
 	if opts.Page <= 0 {
@@ -1353,11 +1391,13 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
+	sess := x.Where(cond)
+	if opts.PageSize > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy.String()).
-		Find(&users)
+	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
