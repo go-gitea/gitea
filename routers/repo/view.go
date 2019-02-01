@@ -295,7 +295,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	canSeeOrg := models.HasOrgVisible([]*models.User{ctx.Repo.Repository.Owner}, ctx.User)
+	canSeeOrg := models.HasOrgVisible(ctx.Repo.Repository.Owner, ctx.User)
 	if !canSeeOrg {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
