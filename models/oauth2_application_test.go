@@ -60,7 +60,7 @@ func TestCreateOAuth2Application(t *testing.T) {
 	app, err := CreateOAuth2Application("newapp", 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "newapp", app.Name)
-	assert.Len(t, app.ClientID, 36) // uuidv4 has 36 characters
+	assert.Len(t, app.ClientID, 36)
 	AssertExistsAndLoadBean(t, &OAuth2Application{Name: "newapp"})
 }
 
@@ -124,7 +124,7 @@ func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
 	code, err := grant.GenerateNewAuthorizationCode("https://example2.com/callback", "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg", "S256")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
-	assert.Len(t, code.Code, 36) // secret length == 36
+	assert.True(t, len(code.Code) > 32) // secret length > 32
 }
 
 func TestOAuth2Grant_TableName(t *testing.T) {

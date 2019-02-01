@@ -8,15 +8,16 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/satori/go.uuid"
 	"net/url"
 	"time"
 
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
-	gouuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -57,8 +58,11 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
-	secret := gouuid.NewV4().String()
-	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+	clientSecret, err := secret.New()
+	if err != nil {
+		return "", err
+	}
+	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +70,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 	if _, err := x.ID(app.ID).Cols("client_secret").Update(app); err != nil {
 		return "", err
 	}
-	return secret, nil
+	return clientSecret, nil
 }
 
 // ValidateClientSecret validates the given secret by the hash saved in database
@@ -126,7 +130,7 @@ func CreateOAuth2Application(name string, userID int64) (*OAuth2Application, err
 }
 
 func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Application, error) {
-	clientID := gouuid.NewV4().String()
+	clientID := uuid.NewV4().String()
 	app := &OAuth2Application{
 		UID:          userID,
 		Name:         name,
@@ -247,13 +251,16 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChalleng
 	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
 
-func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
-	secret := gouuid.NewV4().String()
-	code := &OAuth2AuthorizationCode{
+func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
+	var codeSecret string
+	if codeSecret, err = secret.New(); err != nil {
+		return &OAuth2AuthorizationCode{}, err
+	}
+	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
 		GrantID:             grant.ID,
 		RedirectURI:         redirectURI,
-		Code:                secret,
+		Code:                codeSecret,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
 	}
