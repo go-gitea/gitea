@@ -21,13 +21,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type OAuth2ApplicationType string
-
-const (
-	ApplicationTypeWeb    OAuth2ApplicationType = "web"
-	ApplicationTypeNative OAuth2ApplicationType = "native"
-)
-
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
 	ID   int64 `xorm:"pk autoincr"`
@@ -35,7 +28,6 @@ type OAuth2Application struct {
 	User *User `xorm:"-"`
 
 	Name string
-	Type OAuth2ApplicationType
 
 	ClientID     string `xorm:"INDEX unique"`
 	ClientSecret string
@@ -154,7 +146,6 @@ func getOAuth2ApplicationsByUserID(e Engine, userID int64) (apps []*OAuth2Applic
 type CreateOAuth2ApplicationOptions struct {
 	Name         string
 	UserID       int64
-	Type         OAuth2ApplicationType
 	RedirectURIs []string
 }
 
@@ -168,7 +159,6 @@ func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OA
 	app := &OAuth2Application{
 		UID:          opts.UserID,
 		Name:         opts.Name,
-		Type:         opts.Type,
 		ClientID:     clientID,
 		RedirectURIs: opts.RedirectURIs,
 	}

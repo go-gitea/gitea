@@ -32,21 +32,6 @@
 			<label for="application-name">{{.i18n.Tr "settings.oauth2_application_name"}}</label>
 			<input id="application-name" name="application_name" value="{{.application_name}}" required>
 		</div>
-		<div class="grouped fields">
-			<label>{{.i18n.Tr "settings.oauth2_select_type"}}</label>
-			<div class="field">
-				<div class="ui radio checkbox">
-					<input type="radio" id="webapp" value="web" name="application_type" checked="checked">
-					<label for="webapp">{{.i18n.Tr "settings.oauth2_type_web"}}</label>
-				</div>
-			</div>
-			<div class="field">
-				<div class="ui radio checkbox">
-					<input type="radio" id="nativeapp" value="native" name="application_type">
-					<label for="nativeapp">{{.i18n.Tr "settings.oauth2_type_native"}}</label>
-				</div>
-			</div>
-		</div>
 		<div class="field {{if .Err_RedirectURI}}error{{end}}">
 			<label for="redirect-uri">{{.i18n.Tr "settings.oauth2_redirect_uri"}}</label>
 			<input type="url" name="redirect_uri" id="redirect-uri">

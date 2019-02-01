@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsApplications      base.TplName = "user/settings/applications"
 	tplSettingsOAuthApplications base.TplName = "user/settings/applications_oauth2_edit"
 )
 
@@ -67,20 +67,13 @@ func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationF
 		return
 	}
 	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
-		Name: form.Name,
-		Type: models.OAuth2ApplicationType(form.Type),
+		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
-		UserID: ctx.User.ID,
+		UserID:       ctx.User.ID,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
 		return
-	}
-	if app.Type == models.ApplicationTypeWeb {
-		if ctx.Data["ClientSecret"], err = app.GenerateClientSecret(); err != nil {
-			ctx.ServerError("GenearteClientSecret", err)
-			return
-		}
 	}
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"))
 	ctx.Data["App"] = app
