@@ -1293,8 +1293,8 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
-	Service.DefaultVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(structs.visibilityModes))
-	Service.DefaultVisibilityMode = structs.visibilityModes[Service.DefaultVisibility]
+	Service.DefaultVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(structs.VisibilityModes))
+	Service.DefaultVisibilityMode = structs.VisibilityModes[Service.DefaultVisibility]
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")

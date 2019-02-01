@@ -4,7 +4,8 @@
 
 package structs
 
-var visibilityModes = map[string]int{
+// VisibilityModes is a map of org Visibility types
+var VisibilityModes = map[string]int{
 	"public":  1,
 	"limited": 2,
 	"private": 3,
