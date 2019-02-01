@@ -7,49 +7,33 @@
 			{{.i18n.Tr "settings.edit_oauth2_application"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui key list">
-				<div class="item">
-					{{.i18n.Tr "settings.oauth2_applications_desc"}}
+			<p>{{.i18n.Tr "settings.oauth2_applications_desc"}}</p>
+		</div>
+		<div class="ui attached segment form ignore-dirty">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label for="client-id">{{.i18n.Tr "settings.oauth2_client_id"}}</label>
+				<input id="client-id" readonly value="{{.App.ClientID}}">
+			</div>
+			{{if .ClientSecret}}
+				<div class="field">
+					<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
+					<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
 				</div>
-				{{range $app := .Applications}}
-					<div class="item">
-						<div class="right floated content">
-							<button class="ui red tiny button delete-button" id="delete-oauth2-application"
-									data-url="{{AppSubUrl}}/user/settings/security/oauth2/applications"
-									data-id="{{$app.ID}}">
-								{{$.i18n.Tr "settings.delete_key"}}
-							</button>
-						</div>
-						<div class="content">
-							<strong>{{$app.Name}}</strong>
-						</div>
-					</div>
-				{{end}}
+			{{else}}
+				<div class="field">
+					<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
+					<input id="client-secret" type="password" readonly value="averysecuresecret">
+				</div>
+			{{end}}
+			<div class="item">
+				<!-- TODO add regenerate secret functionality */ -->
+				{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
+				<a onclick="alert('Not yet implemented.')">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
 			</div>
 		</div>
 		<div class="ui attached bottom segment">
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="field">
-					<label for="client-id">{{.i18n.Tr "settings.oauth2_client_id"}}</label>
-					<input id="client-id" readonly value="{{.App.ClientID}}">
-				</div>
-				{{if .ClientSecret}}
-					<div class="field">
-						<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
-						<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
-					</div>
-				{{else}}
-					<div class="field">
-						<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
-						<input id="client-secret" type="password" readonly value="averysecuresecret">
-					</div>
-				{{end}}
-				<div class="item">
-					<!-- TODO add regenerate secret functionality */ -->
-					{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
-					<a onclick="alert('Not yet implemented.')">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
-				</div>
 				<div class="field {{if .Err_AppName}}error{{end}}">
 					<label for="application-name">{{.i18n.Tr "settings.oauth2_application_name"}}</label>
 					<input id="application-name" value="{{.App.Name}}" name="application_name" required>
