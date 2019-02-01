@@ -189,17 +189,16 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				if !opts.Private {
 					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
 				}
+
+				accessCond = accessCond.Or(collaborateCond)
 			}
 
 			if opts.AllPublic {
-				accessCond = accessCond.Or(builder.Eq{"is_private": false}).And(builder.NotIn("owner_id", builder.Select("id").From("user").Where(builder.Or(builder.Eq{"visibility": VisibleTypePrivate}, builder.Eq{"visibility": VisibleTypeLimited}))))
+				accessCond = accessCond.Or(builder.Eq{"is_private": false})
 			}
 
 			cond = cond.And(accessCond)
 		}
-		// cond = cond.And() // TODO: NotIn list of orgs that user doesn't belong to
-	} else {
-		cond = cond.And(builder.NotIn("owner_id", builder.Select("id").From("user").Where(builder.Or(builder.Eq{"visibility": VisibleTypePrivate}, builder.Eq{"visibility": VisibleTypeLimited}))))
 	}
 
 	if opts.Keyword != "" {

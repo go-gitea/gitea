@@ -840,6 +840,7 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
+	u.Visibility = VisibleTypePublic
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -1374,7 +1375,10 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"type": opts.Type}
+
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"type": opts.Type})
+
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1388,14 +1392,14 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
-	if !opts.Private && opts.Type == UserTypeOrganization {
+	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
 		cond = cond.And(builder.In("visibility", VisibleTypePublic))
 	}
 
-	if opts.OwnerID > 0 && opts.Type == UserTypeOrganization {
+	if opts.OwnerID > 0 {
 		var accessCond = builder.NewCond()
-		accessCond.Or(
+		accessCond = builder.Or(
 			builder.In("id", builder.Select("org_id").From("org_user").Join("LEFT", "user", "`org_user`.org_id=`user`.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
 		cond = cond.And(accessCond)
