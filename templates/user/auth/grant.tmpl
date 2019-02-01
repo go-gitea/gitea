@@ -1,18 +1,19 @@
 {{template "base/head" .}}
-<div class="user signin">
-	<div class="ui middle centered very relaxed page grid">
-		<div class="column">
+<div class="ui one column stackable center aligned page grid oauth2-authorize-application-box">
+	<div class="column seven wide">
+		<div class="ui middle centered raised segments">
 			<h3 class="ui top attached header">
-			{{.i18n.Tr "auth.authorize_application"}}
+				{{.i18n.Tr "auth.authorize_title" .Application.Name}}
 			</h3>
 			<div class="ui attached segment">
-				<i class="huge key icon"></i>
-				<h3>{{.Application.Name}}</h3>
 				{{template "base/alert" .}}
-				<p>{{.i18n.Tr "auth.authorize_application_description" .Application.Name .Application.User.Name}}</p>
+				<p>
+					<b>{{.i18n.Tr "auth.authorize_application_description"}}</b><br/>
+					{{.i18n.Tr "auth.authorize_application_created_by" .ApplicationUserLink | Str2html}}
+				</p>
 			</div>
 			<div class="ui attached segment">
-				<p>{{.i18n.Tr "auth.authroize_redirect_notice" .RedirectURI}}</p>
+				<p>{{.i18n.Tr "auth.authroize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
 			</div>
 			<div class="ui attached segment">
 				<form method="post" action="{{.AppSubUrl}}/login/oauth/grant">
@@ -20,7 +21,8 @@
 					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 					<input type="hidden" name="state" value="{{.State}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<input type="submit" id="authorize-app" value="{{.i18n.Tr "auth.authorize_application"}}" class="ui large green button">
+					<input type="submit" id="authorize-app" value="{{.i18n.Tr "auth.authorize_application"}}" class="ui red inline button"/>
+					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
 				</form>
 			</div>
 		</div>
