@@ -24,7 +24,7 @@ import (
 type OAuth2ApplicationType string
 
 const (
-	ApplicationTypeWeb OAuth2ApplicationType = "web"
+	ApplicationTypeWeb    OAuth2ApplicationType = "web"
 	ApplicationTypeNative OAuth2ApplicationType = "native"
 )
 
@@ -152,9 +152,9 @@ func getOAuth2ApplicationsByUserID(e Engine, userID int64) (apps []*OAuth2Applic
 }
 
 type CreateOAuth2ApplicationOptions struct {
-	Name string
-	UserID int64
-	Type OAuth2ApplicationType
+	Name         string
+	UserID       int64
+	Type         OAuth2ApplicationType
 	RedirectURIs []string
 }
 
@@ -163,12 +163,12 @@ func CreateOAuth2Application(opts CreateOAuth2ApplicationOptions) (*OAuth2Applic
 	return createOAuth2Application(x, opts)
 }
 
-func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Application, error) {
+func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
 	clientID := uuid.NewV4().String()
 	app := &OAuth2Application{
 		UID:          opts.UserID,
 		Name:         opts.Name,
-		Type:	      opts.Type,
+		Type:         opts.Type,
 		ClientID:     clientID,
 		RedirectURIs: opts.RedirectURIs,
 	}
