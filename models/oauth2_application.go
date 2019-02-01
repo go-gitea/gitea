@@ -21,6 +21,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type OAuth2ApplicationType string
+
+const (
+	ApplicationTypeWeb OAuth2ApplicationType = "web"
+	ApplicationTypeNative OAuth2ApplicationType = "native"
+)
+
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
 	ID   int64 `xorm:"pk autoincr"`
@@ -28,6 +35,7 @@ type OAuth2Application struct {
 	User *User `xorm:"-"`
 
 	Name string
+	Type OAuth2ApplicationType
 
 	ClientID     string `xorm:"INDEX unique"`
 	ClientSecret string
@@ -41,6 +49,14 @@ type OAuth2Application struct {
 // TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"
+}
+
+// PrimaryRedirectURI returns the first redirect uri or an empty string if empty
+func (app *OAuth2Application) PrimaryRedirectURI() string {
+	if len(app.RedirectURIs) == 0 {
+		return ""
+	}
+	return app.RedirectURIs[0]
 }
 
 // LoadUser will load User by UID
@@ -124,18 +140,37 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 	return
 }
 
+// GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
+func GetOAuth2ApplicationsByUserID(userID int64) (apps []*OAuth2Application, err error) {
+	return getOAuth2ApplicationsByUserID(x, userID)
+}
+
+func getOAuth2ApplicationsByUserID(e Engine, userID int64) (apps []*OAuth2Application, err error) {
+	apps = make([]*OAuth2Application, 0)
+	err = e.Where("uid = ?", userID).Find(&apps)
+	return
+}
+
+type CreateOAuth2ApplicationOptions struct {
+	Name string
+	UserID int64
+	Type OAuth2ApplicationType
+	RedirectURIs []string
+}
+
 // CreateOAuth2Application inserts a new oauth2 application
-func CreateOAuth2Application(name string, userID int64) (*OAuth2Application, error) {
-	return createOAuth2Application(x, name, userID)
+func CreateOAuth2Application(opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
+	return createOAuth2Application(x, opts)
 }
 
 func createOAuth2Application(e Engine, name string, userID int64) (*OAuth2Application, error) {
 	clientID := uuid.NewV4().String()
 	app := &OAuth2Application{
-		UID:          userID,
-		Name:         name,
+		UID:          opts.UserID,
+		Name:         opts.Name,
+		Type:	      opts.Type,
 		ClientID:     clientID,
-		RedirectURIs: []string{},
+		RedirectURIs: opts.RedirectURIs,
 	}
 	if _, err := e.Insert(app); err != nil {
 		return nil, err

@@ -306,6 +306,18 @@ func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors)
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewOAuth2ApplicationForm form for creating oauth2 applications
+type NewOAuth2ApplicationForm struct {
+	Name string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURI string `binding:"Required" form:"redirect_uri"`
+	Type string `binding:"Required;In(web,native)" form:"application_type"`
+}
+
+// Validate valideates the fields
+func (f *NewOAuth2ApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // TwoFactorAuthForm for logging in with 2FA token.
 type TwoFactorAuthForm struct {
 	Passcode string `binding:"Required"`

@@ -6,10 +6,9 @@ package user
 
 import (
 	"fmt"
-	"net/url"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-macaron/binding"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -255,6 +254,8 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.LocalURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
+	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
 	// TODO document SESSION <=> FORM
 	ctx.Session.Set("client_id", app.ClientID)
 	ctx.Session.Set("redirect_uri", form.RedirectURI)

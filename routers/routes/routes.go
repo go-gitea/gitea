@@ -278,6 +278,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 		m.Combo("/applications").Get(userSetting.Applications).
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.ApplicationsPost)
+		m.Combo("/applications/oauth2").Post(bindIgnErr(auth.NewOAuth2ApplicationForm{}), userSetting.OAuthApplicationsPost)
 		m.Post("/applications/delete", userSetting.DeleteApplication)
 		m.Combo("/keys").Get(userSetting.Keys).
 			Post(bindIgnErr(auth.AddKeyForm{}), userSetting.KeysPost)
