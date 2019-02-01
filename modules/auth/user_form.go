@@ -308,9 +308,8 @@ func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors)
 
 // NewOAuth2ApplicationForm form for creating oauth2 applications
 type NewOAuth2ApplicationForm struct {
-	Name string `binding:"Required;MaxSize(255)" form:"application_name"`
+	Name        string `binding:"Required;MaxSize(255)" form:"application_name"`
 	RedirectURI string `binding:"Required" form:"redirect_uri"`
-	Type string `binding:"Required;In(web,native)" form:"application_type"`
 }
 
 // Validate valideates the fields
