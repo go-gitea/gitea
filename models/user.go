@@ -1403,13 +1403,13 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		if DbCfg.Type == core.MYSQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
 		} else if DbCfg.Type == core.MSSQL {
-			exprCond = builder.Expr("org_user.org_id = user.id")
+			exprCond = builder.Expr("org_user.org_id = [user].id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
 		var accessCond = builder.NewCond()
 		accessCond = builder.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("user", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
+			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}
