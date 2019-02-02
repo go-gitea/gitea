@@ -350,7 +350,6 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 func checkKeyFingerprint(e Engine, fingerprint string) error {
 	has, err := e.Get(&PublicKey{
 		Fingerprint: fingerprint,
-		Type:        KeyTypeUser,
 	})
 	if err != nil {
 		return err
@@ -401,24 +400,24 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	if err := checkKeyFingerprint(x, fingerprint); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
 		return nil, err
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := x.
+	has, err := sess.
 		Where("owner_id = ? AND name = ?", ownerID, name).
 		Get(new(PublicKey))
 	if err != nil {
 		return nil, err
 	} else if has {
 		return nil, ErrKeyNameAlreadyUsed{ownerID, name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
 	}
 
 	key := &PublicKey{
@@ -728,24 +727,28 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = AccessModeWrite
 	}
 
-	pkey := &PublicKey{
-		Fingerprint: fingerprint,
-		Mode:        accessMode,
-		Type:        KeyTypeDeploy,
-	}
-	has, err := x.Get(pkey)
-	if err != nil {
-		return nil, err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	// First time use this deploy key.
-	if !has {
+	pkey := &PublicKey{
+		Fingerprint: fingerprint,
+	}
+	has, err := sess.Get(pkey)
+	if err != nil {
+		return nil, err
+	}
+
+	if has {
+		if pkey.Type != KeyTypeDeploy {
+			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+		}
+	} else {
+		// First time use this deploy key.
+		pkey.Mode = accessMode
+		pkey.Type = KeyTypeDeploy
 		pkey.Content = content
 		pkey.Name = name
 		if err = addKey(sess, pkey); err != nil {
