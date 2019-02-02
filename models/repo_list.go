@@ -200,7 +200,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 			var visibilityCond = builder.NewCond()
 			visibilityCond = builder.Or(
-				builder.In("owner_id", builder.Select("org_id").From("org_user").JOIN("INNER", "user","org_user.org_id = user.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
+				builder.In("owner_id", builder.Select("org_id").From("org_user").JOIN("INNER", "user", "org_user.org_id = user.id").Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 				builder.In("owner_id", builder.Select("id").From("user").Where(builder.Or(builder.Eq{"visibility": VisibleTypePublic}, builder.Eq{"visibility": VisibleTypeLimited}))),
 				builder.NotIn("owner_id", builder.Select("id").From("user").Where(builder.Eq{"type": UserTypeOrganization})),
 			)
