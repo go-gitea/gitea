@@ -195,6 +195,19 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  test-tidb:
+    image: golang:1.11
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      TEST_LDAP: "1"
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - make test-tidb-migration
+      - make test-tidb
+
   generate-coverage:
     image: golang:1.11
     pull: true
@@ -375,6 +388,10 @@ services:
     when:
       event: [ push, tag, pull_request ]
 
+  tidb:
+    image: pingcap/tidb:v2.1.3
+    when:
+      event: [ push, tag, pull_request ]
   ldap:
     image: gitea/test-openldap:latest
     when:

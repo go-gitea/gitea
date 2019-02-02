@@ -58,6 +58,10 @@ TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
+TEST_TIDB_HOST ?= tidb:4000
+TEST_TIDB_DBNAME ?= testgitea
+TEST_TIDB_USERNAME ?= root
+TEST_TIDB_PASSWORD ?=
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
@@ -78,9 +82,9 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
-		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ \
-		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql \
-		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ integrations/gitea-integration-tidb/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql integrations/indexers-tidb \
+		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini integrations/tidb.ini
 
 .PHONY: fmt
 fmt:
@@ -217,6 +221,11 @@ generate-ini:
 		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
 		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
 			integrations/mssql.ini.tmpl > integrations/mssql.ini
+	sed -e 's|{{TEST_TIDB_HOST}}|${TEST_TIDB_HOST}|g' \
+		-e 's|{{TEST_TIDB_DBNAME}}|${TEST_TIDB_DBNAME}|g' \
+		-e 's|{{TEST_TIDB_USERNAME}}|${TEST_TIDB_USERNAME}|g' \
+		-e 's|{{TEST_TIDB_PASSWORD}}|${TEST_TIDB_PASSWORD}|g' \
+			integrations/tidb.ini.tmpl > integrations/tidb.ini
 
 .PHONY: test-mysql
 test-mysql: integrations.test generate-ini
@@ -243,6 +252,13 @@ test-mssql: integrations.test generate-ini
 test-mssql-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.test
 
+.PHONY: test-tidb
+test-tidb: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/tidb.ini ./integrations.test
+
+.PHONY: test-tidb-migration
+test-tidb-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/tidb.ini ./migrations.test
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
