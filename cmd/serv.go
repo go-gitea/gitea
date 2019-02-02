@@ -251,6 +251,9 @@ func runServ(c *cli.Context) error {
 			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
+
+			os.Setenv(models.EnvPusherName, username)
+			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
 		} else {
 			user, err = private.GetUserByKeyID(key.ID)
 			if err != nil {
