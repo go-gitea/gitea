@@ -77,6 +77,11 @@ func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationF
 	}
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"))
 	ctx.Data["App"] = app
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	if err != nil {
+		ctx.ServerError("GenerateClientSecret", err)
+		return
+	}
 	ctx.HTML(200, tplSettingsOAuthApplications)
 }
 
