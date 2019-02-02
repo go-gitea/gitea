@@ -370,6 +370,13 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 		})
 		return
 	}
+	if form.RedirectURI != "" && !app.ContainsRedirectURI(form.RedirectURI) {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
+			ErrorDescription: "client is not authorized",
+		})
+		return
+	}
 	authorizationCode, err := models.GetOAuth2AuthorizationByCode(form.Code)
 	if err != nil || authorizationCode == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
