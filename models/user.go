@@ -82,7 +82,7 @@ type VisibleType int
 
 const (
 	// VisibleTypePublic Visible for everyone
-	VisibleTypePublic VisibleType = iota + 1
+	VisibleTypePublic VisibleType = iota
 
 	// VisibleTypeLimited Visible for every connected user
 	VisibleTypeLimited
@@ -153,7 +153,7 @@ type User struct {
 	NumMembers  int
 	Teams       []*Team     `xorm:"-"`
 	Members     []*User     `xorm:"-"`
-	Visibility  VisibleType `xorm:"NOT NULL DEFAULT 1"`
+	Visibility  VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
