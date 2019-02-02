@@ -6,7 +6,7 @@ package structs
 
 // VisibilityModes is a map of org Visibility types
 var VisibilityModes = map[string]int{
-	"public":  1,
-	"limited": 2,
-	"private": 3,
+	"public":  0,
+	"limited": 1,
+	"private": 2,
 }
