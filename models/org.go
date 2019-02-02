@@ -380,15 +380,13 @@ func HasOrgVisible(org *User, user *User) bool {
 	if user.IsAdmin {
 		return true
 	}
-	switch org.Visibility {
-	case VisibleTypePrivate:
+	if org.Visibility == VisibleTypePrivate {
 		if org.IsUserPartOfOrg(user.ID) {
 			return true
 		}
-	default:
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided
