@@ -1562,7 +1562,7 @@ func newMailService() {
 		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
-		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "log"}),
+		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
 		Host:           sec.Key("HOST").String(),
 		User:           sec.Key("USER").String(),

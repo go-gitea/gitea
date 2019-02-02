@@ -239,11 +239,11 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 }
 
 // Sender sendmail mail sender
-type logSender struct {
+type dummySender struct {
 }
 
 // Send send email
-func (s *logSender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 	buf := bytes.Buffer{}
 	if _, err := msg.WriteTo(&buf); err != nil {
 		return err
@@ -285,8 +285,8 @@ func NewContext() {
 		Sender = &smtpSender{}
 	case "sendmail":
 		Sender = &sendmailSender{}
-	case "log":
-		Sender = &logSender{}
+	case "dummy":
+		Sender = &dummySender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
