@@ -51,7 +51,7 @@ type PublicKey struct {
 	ID            int64      `xorm:"pk autoincr"`
 	OwnerID       int64      `xorm:"INDEX NOT NULL"`
 	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"NOT NULL"`
+	Fingerprint   string     `xorm:"INDEX NOT NULL"`
 	Content       string     `xorm:"TEXT NOT NULL"`
 	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
