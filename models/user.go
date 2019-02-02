@@ -1407,7 +1407,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 		var accessCond = builder.NewCond()
 		accessCond = builder.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
+			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("user", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}

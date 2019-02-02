@@ -200,11 +200,12 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			}
 
 			var exprCond builder.Cond
-			if DbCfg.Type == core.MYSQL {
-				exprCond = builder.Expr("org_user.org_id = user.id")
+			if DbCfg.Type == core.POSTGRES {
+				exprCond = builder.Expr("org_user.org_id = \"user\".id")
 			} else {
-				builder.Expr("org_user.org_id = \"user\".id")
+				exprCond = builder.Eq{"org_user.org_id": "user.id"}
 			}
+
 			var visibilityCond = builder.NewCond()
 			visibilityCond = builder.Or(
 				builder.In("owner_id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
