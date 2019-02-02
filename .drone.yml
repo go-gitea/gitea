@@ -392,6 +392,7 @@ services:
     image: pingcap/tidb:v2.1.3
     when:
       event: [ push, tag, pull_request ]
+
   ldap:
     image: gitea/test-openldap:latest
     when:
