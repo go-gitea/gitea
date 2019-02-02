@@ -198,7 +198,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				accessCond = accessCond.Or(collaborateCond)
 			}
 
-			// TODO: filter down to only repos that belong to a user, or can be seen by the current user
 			var visibilityCond = builder.NewCond()
 			visibilityCond = builder.Or(
 				builder.In("owner_id", builder.Select("org_id").From("org_user").LeftJoin("user", builder.Eq{"org_user.org_id": "user.id"}).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
