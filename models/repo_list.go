@@ -202,6 +202,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			var exprCond builder.Cond
 			if DbCfg.Type == core.POSTGRES {
 				exprCond = builder.Expr("org_user.org_id = \"user\".id")
+			} else if DbCfg.Type == core.MSSQL {
+				exprCond = builder.Expr("org_user.org_id = user.id")
 			} else {
 				exprCond = builder.Eq{"org_user.org_id": "user.id"}
 			}

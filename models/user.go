@@ -1402,6 +1402,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		var exprCond builder.Cond
 		if DbCfg.Type == core.MYSQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
+		} else if DbCfg.Type == core.MSSQL {
+			exprCond = builder.Expr("org_user.org_id = user.id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
