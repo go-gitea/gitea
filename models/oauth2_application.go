@@ -143,6 +143,7 @@ func getOAuth2ApplicationsByUserID(e Engine, userID int64) (apps []*OAuth2Applic
 	return
 }
 
+// CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
 	Name         string
 	UserID       int64

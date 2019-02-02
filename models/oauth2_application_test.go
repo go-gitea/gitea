@@ -57,7 +57,7 @@ func TestGetOAuth2ApplicationByClientID(t *testing.T) {
 
 func TestCreateOAuth2Application(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	app, err := CreateOAuth2Application("newapp", 1)
+	app, err := CreateOAuth2Application(CreateOAuth2ApplicationOptions{Name: "newapp", UserID: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, "newapp", app.Name)
 	assert.Len(t, app.ClientID, 36)

@@ -55,7 +55,7 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
-// ApplicationsPost response for add user's access token
+// OAuthApplicationsPost response for add user's access token
 func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
@@ -77,6 +77,11 @@ func OAuthApplicationsPost(ctx *context.Context, form auth.NewOAuth2ApplicationF
 	}
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"))
 	ctx.Data["App"] = app
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	if err != nil {
+		ctx.ServerError("GenerateClientSecret", err)
+		return
+	}
 	ctx.HTML(200, tplSettingsOAuthApplications)
 }
 
