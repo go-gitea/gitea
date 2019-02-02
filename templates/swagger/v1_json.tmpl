@@ -7570,6 +7570,13 @@
       "description": "PayloadCommit represents a commit",
       "type": "object",
       "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Added"
+        },
         "author": {
           "$ref": "#/definitions/PayloadUser"
         },
@@ -7584,6 +7591,20 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Modified"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Removed"
         },
         "timestamp": {
           "type": "string",
