@@ -543,8 +543,8 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 }
 
 // IsUserPartOfOrg returns true if user is part of the organization
-func (u *User) IsUserPartOfOrg(userID int64) bool {
-	isMember, err := IsOrganizationMember(u.ID, userID)
+func (org *User) IsUserPartOfOrg(userID int64) bool {
+	isMember, err := IsOrganizationMember(org.ID, userID)
 	if err != nil {
 		log.Error(4, "IsOrganizationMember: %v", err)
 		return false
