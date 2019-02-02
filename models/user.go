@@ -27,6 +27,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
@@ -1398,9 +1399,15 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	}
 
 	if opts.OwnerID > 0 {
+		var exprCond builder.Cond
+		if DbCfg.Type == core.MYSQL {
+			exprCond = builder.Expr("org_user.org_id = user.id")
+		} else {
+			exprCond = builder.Expr("org_user.org_id = \"user\".id")
+		}
 		var accessCond = builder.NewCond()
 		accessCond = builder.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", builder.Expr("org_user.org_id = id")).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
+			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}
