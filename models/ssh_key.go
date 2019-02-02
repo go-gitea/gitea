@@ -518,7 +518,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 }
 
 // deletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
+func deletePublicKeys(e Engine, keyIDs ...int64) error {
 	if len(keyIDs) == 0 {
 		return nil
 	}
@@ -766,8 +766,12 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(id int64) (*DeployKey, error) {
+	return getDeployKeyByID(x, id)
+}
+
+func getDeployKeyByID(e Engine, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := x.ID(id).Get(key)
+	has, err := e.ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -778,11 +782,15 @@ func GetDeployKeyByID(id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
+	return getDeployKeyByRepo(x, keyID, repoID)
+}
+
+func getDeployKeyByRepo(e Engine, keyID, repoID int64) (*DeployKey, error) {
 	key := &DeployKey{
 		KeyID:  keyID,
 		RepoID: repoID,
 	}
-	has, err := x.Get(key)
+	has, err := e.Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -805,7 +813,19 @@ func UpdateDeployKey(key *DeployKey) error {
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 func DeleteDeployKey(doer *User, id int64) error {
-	key, err := GetDeployKeyByID(id)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := deleteDeployKey(sess, doer, id); err != nil {
+		return err
+	}
+	return sess.Commit()
+}
+
+func deleteDeployKey(sess Engine, doer *User, id int64) error {
+	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {
 			return nil
@@ -815,22 +835,16 @@ func DeleteDeployKey(doer *User, id int64) error {
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := GetRepositoryByID(key.RepoID)
+		repo, err := getRepositoryByID(sess, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := IsUserRepoAdmin(repo, doer)
+		has, err := isUserRepoAdmin(sess, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {
 			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
 		}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
 	}
 
 	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
@@ -854,13 +868,17 @@ func DeleteDeployKey(doer *User, id int64) error {
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
 func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID)
+}
+
+func listDeployKeys(e Engine, repoID int64) ([]*DeployKey, error) {
 	keys := make([]*DeployKey, 0, 5)
-	return keys, x.
+	return keys, e.
 		Where("repo_id = ?", repoID).
 		Find(&keys)
 }
