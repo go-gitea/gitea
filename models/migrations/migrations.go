@@ -211,8 +211,6 @@ var migrations = []Migration{
 	NewMigration("add theme to users", addUserDefaultTheme),
 	// v78 -> v79
 	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
-	// v79 -> v80
-	NewMigration("add visibility for user and org", addVisibilityForUserAndOrg),
 }
 
 // Migrate database to current version
