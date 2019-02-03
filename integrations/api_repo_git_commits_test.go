@@ -27,6 +27,6 @@ func TestAPIReposGitCommits(t *testing.T) {
 	}
 
 	// Test getting non-existent refs
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/unknown?token="+token, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/aaaaaaa?token="+token, user.Name)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
