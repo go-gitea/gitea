@@ -29,13 +29,12 @@ func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
 	}
 }
 
-// RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix string, parentPath string) string {
-	if sf.refURL == "" {
+func getRefURL(refURL, urlPrefix, parentPath string) string {
+	if refURL == "" {
 		return ""
 	}
 
-	url := strings.TrimSuffix(sf.refURL, ".git")
+	url := strings.TrimSuffix(refURL, ".git")
 
 	// git://xxx/user/repo
 	if strings.HasPrefix(url, "git://") {
@@ -67,10 +66,19 @@ func (sf *SubModuleFile) RefURL(urlPrefix string, parentPath string) string {
 		if strings.Contains(urlPrefix, url[i+1:j]) {
 			return urlPrefix + url[j+1:]
 		}
+		if strings.HasPrefix(url, "ssh://") || strings.HasPrefix(url, "git+ssh://") {
+			k := strings.Index(url[j+1:], "/")
+			return "http://" + url[i+1:j] + "/" + url[j+1:][k+1:]
+		}
 		return "http://" + url[i+1:j] + "/" + url[j+1:]
 	}
 
 	return url
+}
+
+// RefURL guesses and returns reference URL.
+func (sf *SubModuleFile) RefURL(urlPrefix string, parentPath string) string {
+	return getRefURL(sf.refURL, urlPrefix, parentPath)
 }
 
 // RefID returns reference ID.
