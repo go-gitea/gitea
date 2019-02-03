@@ -2605,7 +2605,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
