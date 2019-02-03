@@ -103,12 +103,23 @@ func checkRepositoryEmptyStatus(username, reponame string, isEmpty bool) func(*t
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", username, reponame, token)
 
 		req := NewRequest(t, "GET", urlStr)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
 
 		assert.Equal(t, isEmpty, repository.Empty)
+	}
+}
+
+func deleteRepository(username, reponame string) func(*testing.T) {
+	return func(t *testing.T) {
+		session := loginUser(t, username)
+		token := getTokenForLoggedInUser(t, session)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", username, reponame, token)
+
+		req := NewRequest(t, "DELETE", urlStr)
+		session.MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
@@ -144,4 +155,6 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 
 	log.Println("Done Push")
 	t.Run("CheckIsNotEmpty", checkRepositoryEmptyStatus(username, reponame, false))
+
+	t.Run("DeleteRepository", deleteRepository(username, reponame))
 }
