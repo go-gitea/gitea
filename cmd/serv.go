@@ -70,6 +70,7 @@ func checkLFSVersion() {
 }
 
 func setup(logPath string) {
+	log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
