@@ -205,7 +205,7 @@ func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
 
 // GetLabelsInRepoByNames returns a list of labels by names in a given
 // repository.
-// it silently ignores label IDs that do not belong to the repository.
+// it silently ignores label names that do not belong to the repository.
 func GetLabelsInRepoByNames(repoID int64, labelNames []string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelNames))
 	return labels, x.
