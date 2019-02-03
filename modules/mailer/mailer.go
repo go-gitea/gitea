@@ -6,6 +6,7 @@
 package mailer
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -237,6 +238,20 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
+// Sender sendmail mail sender
+type dummySender struct {
+}
+
+// Send send email
+func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
+	buf := bytes.Buffer{}
+	if _, err := msg.WriteTo(&buf); err != nil {
+		return err
+	}
+	log.Info("Mail From: %s To: %v Body: %s", from, to, buf.String())
+	return nil
+}
+
 func processMailQueue() {
 	for {
 		select {
@@ -265,10 +280,13 @@ func NewContext() {
 		return
 	}
 
-	if setting.MailService.UseSendmail {
-		Sender = &sendmailSender{}
-	} else {
+	switch setting.MailService.MailerType {
+	case "smtp":
 		Sender = &smtpSender{}
+	case "sendmail":
+		Sender = &sendmailSender{}
+	case "dummy":
+		Sender = &dummySender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)

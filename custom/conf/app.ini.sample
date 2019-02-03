@@ -368,6 +368,10 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 NO_REPLY_ADDRESS = noreply.example.org
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
+; Default value for AutoWatchNewRepos
+; When adding a repo to a team or creating a new repo all team members will watch the 
+; repo automatically if enabled 
+AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -410,8 +414,8 @@ USER =
 PASSWD =
 ; Send mails as plain text
 SEND_AS_PLAIN_TEXT = false
-; Enable sendmail (override SMTP)
-USE_SENDMAIL = false
+; Set Mailer Type (either SMTP, sendmail or dummy to just send to the log)
+MAILER_TYPE = smtp
 ; Specify an alternative sendmail binary
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
