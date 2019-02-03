@@ -1359,14 +1359,14 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = newRepoAction(e, u, repo); err != nil {
+	if err = newRepoAction(e, doer, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
 	return nil
 }
 
-// CreateRepository creates a repository for the user/organization u.
+// CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
