@@ -245,7 +245,7 @@ func runServ(c *cli.Context) error {
 			}
 
 			if deployKey.Mode < requestedMode {
-				fail("Key permission denied", "Cannot push with deployment key: %d to repo_id: %d", key.ID, repo.ID)
+				fail("Key permission denied", "Cannot push with read-only deployment key: %d to repo_id: %d", key.ID, repo.ID)
 			}
 
 			// Update deploy key activity.
