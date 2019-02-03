@@ -43,6 +43,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: whether issue is open or closed
 	//   type: string
+	// - name: labels
+	//   in: query
+	//   description: comma seperated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of requested issues
@@ -71,20 +75,35 @@ func ListIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 	var issueIDs []int64
+	var labelsID []int64
 	var err error
 	if len(keyword) > 0 {
 		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
 	}
 
+	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
+		labels, err := models.GetLabelsInRepoByNames(ctx.Repo.Repository.ID, splitted)
+		if err != nil {
+			ctx.Error(500, "GetLabelsInRepoByNames", err)
+			return
+		}
+
+		labelsID = make([]int64, 0, len(labels))
+		for i := range labels {
+			labelsID = append(labelsID, labels[i].ID)
+		}
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 {
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelsID) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoIDs:  []int64{ctx.Repo.Repository.ID},
 			Page:     ctx.QueryInt("page"),
 			PageSize: setting.UI.IssuePagingNum,
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
+			LabelIDs: labelsID,
 		})
 	}
 
