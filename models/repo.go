@@ -896,115 +896,198 @@ func wikiRemoteURL(remote string) string {
 }
 
 // MigrateRepository migrates a existing repository from other project hosting.
-func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
+func MigrateRepository(doer, u *User, opts MigrateRepoOptions, messageConverter func(error) string) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
 		IsMirror:    opts.IsMirror,
+		NoWatchers:  true,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	repoPath := RepoPath(u.Name, opts.Name)
-	wikiPath := WikiPath(u.Name, opts.Name)
-
-	if u.IsOrganization() {
-		t, err := u.GetOwnerTeam()
-		if err != nil {
-			return nil, err
+	env, ok := os.LookupEnv("GIT_TERMINAL_PROMPT=0")
+	os.Setenv("GIT_TERMINAL_PROMPT", "0")
+	if _, err = git.NewCommand("ls-remote", "-h", opts.RemoteAddr).RunTimeout(1 * time.Minute); err != nil {
+		if ok {
+			os.Setenv("GIT_TERMINAL_PROMPT", env)
+		} else {
+			os.Unsetenv("GIT_TERMINAL_PROMPT")
 		}
-		repo.NumWatches = t.NumMembers
-	} else {
-		repo.NumWatches = 1
-	}
-
-	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
-
-	if err := os.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
-	}
-
-	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
-	}); err != nil {
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
+	if ok {
+		os.Setenv("GIT_TERMINAL_PROMPT", env)
+	} else {
+		os.Unsetenv("GIT_TERMINAL_PROMPT")
+	}
 
-	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
-	if len(wikiRemotePath) > 0 {
-		if err := os.RemoveAll(wikiPath); err != nil {
-			return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+	// OK if we succeeded above then we know that the clone should start...
+	go func() {
+		repoPath := RepoPath(u.Name, opts.Name)
+		wikiPath := WikiPath(u.Name, opts.Name)
+
+		failedMigration := func(err error) {
+			NotifyWatchers(&Action{
+				ActUserID: doer.ID,
+				ActUser:   doer,
+				OpType:    ActionMigrationFailure,
+				RepoID:    repo.ID,
+				Repo:      repo,
+				IsPrivate: repo.IsPrivate,
+				Content:   messageConverter(err),
+			})
+
+			if repo != nil {
+				if errDelete := DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
+					log.Error(4, "DeleteRepository: %v", errDelete)
+				}
+			}
+
+		}
+		NotifyWatchers(&Action{
+			ActUserID: doer.ID,
+			ActUser:   doer,
+			OpType:    ActionMigrationStarted,
+			RepoID:    repo.ID,
+			Repo:      repo,
+			Content:   util.SanitizeURLCredentials(opts.RemoteAddr, true),
+			IsPrivate: repo.IsPrivate,
+		})
+		repo.IsArchived = true
+		if _, err := x.ID(repo.ID).AllCols().Update(repo); err != nil {
+			failedMigration(err)
+			return
 		}
 
-		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+		if u.IsOrganization() {
+			t, err := u.GetOwnerTeam()
+			if err != nil {
+				failedMigration(err)
+				return
+			}
+			repo.NumWatches = t.NumMembers
+		} else {
+			repo.NumWatches = 1
+		}
+
+		migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
+
+		if err := os.RemoveAll(repoPath); err != nil {
+			failedMigration(fmt.Errorf("Failed to remove %s: %v", repoPath, err))
+			return
+		}
+
+		if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
 			Mirror:  true,
 			Quiet:   true,
 			Timeout: migrateTimeout,
-			Branch:  "master",
 		}); err != nil {
-			log.Warn("Clone wiki: %v", err)
+			failedMigration(fmt.Errorf("Clone: %v", err))
+			return
+
+		}
+
+		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				failedMigration(fmt.Errorf("Failed to remove %s: %v", wikiPath, err))
+				return
+			}
+
+			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:  true,
+				Quiet:   true,
+				Timeout: migrateTimeout,
+				Branch:  "master",
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := os.RemoveAll(wikiPath); err != nil {
+					failedMigration(fmt.Errorf("Failed to remove %s: %v", wikiPath, err))
+					return
+				}
 			}
 		}
-	}
 
-	// Check if repository is empty.
-	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
-	if err != nil {
-		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
-			repo.IsEmpty = true
+		// Check if repository is empty.
+		_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
+		if err != nil {
+			if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
+				repo.IsEmpty = true
+			} else {
+				failedMigration(fmt.Errorf("check empty: %v - %s", err, stderr))
+				return
+			}
+		}
+
+		if !repo.IsEmpty {
+			// Try to get HEAD branch and set it as default branch.
+			gitRepo, err := git.OpenRepository(repoPath)
+			if err != nil {
+				failedMigration(fmt.Errorf("OpenRepository: %v", err))
+				return
+			}
+			headBranch, err := gitRepo.GetHEADBranch()
+			if err != nil {
+				failedMigration(fmt.Errorf("GetHEADBranch: %v", err))
+				return
+			}
+			if headBranch != nil {
+				repo.DefaultBranch = headBranch.Name
+			}
+
+			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
+			}
+		}
+
+		if err = repo.UpdateSize(); err != nil {
+			log.Error(4, "Failed to update size for repository: %v", err)
+		}
+
+		if opts.IsMirror {
+			if _, err = x.InsertOne(&Mirror{
+				RepoID:         repo.ID,
+				Interval:       setting.Mirror.DefaultInterval,
+				EnablePrune:    true,
+				NextUpdateUnix: util.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			}); err != nil {
+				failedMigration(fmt.Errorf("InsertOne: %v", err))
+				return
+			}
+
+			repo.IsMirror = true
+			err = UpdateRepository(repo, false)
 		} else {
-			return repo, fmt.Errorf("check empty: %v - %s", err, stderr)
+			repo, err = CleanUpMigrateInfo(repo)
 		}
-	}
 
-	if !repo.IsEmpty {
-		// Try to get HEAD branch and set it as default branch.
-		gitRepo, err := git.OpenRepository(repoPath)
 		if err != nil {
-			return repo, fmt.Errorf("OpenRepository: %v", err)
-		}
-		headBranch, err := gitRepo.GetHEADBranch()
-		if err != nil {
-			return repo, fmt.Errorf("GetHEADBranch: %v", err)
-		}
-		if headBranch != nil {
-			repo.DefaultBranch = headBranch.Name
+			if !repo.IsEmpty {
+				UpdateRepoIndexer(repo)
+			}
+			failedMigration(err)
+			return
 		}
 
-		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
-		}
-	}
-
-	if err = repo.UpdateSize(); err != nil {
-		log.Error(4, "Failed to update size for repository: %v", err)
-	}
-
-	if opts.IsMirror {
-		if _, err = x.InsertOne(&Mirror{
-			RepoID:         repo.ID,
-			Interval:       setting.Mirror.DefaultInterval,
-			EnablePrune:    true,
-			NextUpdateUnix: util.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-		}); err != nil {
-			return repo, fmt.Errorf("InsertOne: %v", err)
+		repo.IsArchived = false
+		if _, err := x.ID(repo.ID).AllCols().Update(repo); err != nil {
+			failedMigration(err)
+			return
 		}
 
-		repo.IsMirror = true
-		err = UpdateRepository(repo, false)
-	} else {
-		repo, err = CleanUpMigrateInfo(repo)
-	}
-
-	if err != nil && !repo.IsEmpty {
-		UpdateRepoIndexer(repo)
-	}
+		NotifyWatchers(&Action{
+			ActUserID: doer.ID,
+			ActUser:   doer,
+			OpType:    ActionMigrationSuccessful,
+			RepoID:    repo.ID,
+			Repo:      repo,
+			IsPrivate: repo.IsPrivate,
+			Content:   util.SanitizeURLCredentials(opts.RemoteAddr, true),
+		})
+	}()
 
 	return repo, err
 }
@@ -1120,6 +1203,7 @@ type CreateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	AutoInit    bool
+	NoWatchers  bool
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1273,7 +1357,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
+func createRepository(e *xorm.Session, doer, u *User, repo *Repository, noWatchers bool) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1359,10 +1443,12 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = newRepoAction(e, doer, repo); err != nil {
-		return fmt.Errorf("newRepoAction: %v", err)
-	}
 
+	if !noWatchers {
+		if err = newRepoAction(e, doer, repo); err != nil {
+			return fmt.Errorf("newRepoAction: %v", err)
+		}
+	}
 	return nil
 }
 
@@ -1388,7 +1474,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		return nil, err
 	}
 
-	if err = createRepository(sess, doer, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo, opts.NoWatchers); err != nil {
 		return nil, err
 	}
 
@@ -2420,7 +2506,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	if err = createRepository(sess, doer, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo, true); err != nil {
 		return nil, err
 	}
 

@@ -398,6 +398,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
 		IsMirror:    form.Mirror,
 		RemoteAddr:  remoteAddr,
+	}, func(err error) string {
+		return util.URLSanitizedError(err, remoteAddr).Error()
 	})
 	if err != nil {
 		err = util.URLSanitizedError(err, remoteAddr)
@@ -410,7 +412,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	log.Trace("Repository migration started: %s/%s", ctxUser.Name, form.RepoName)
 	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 

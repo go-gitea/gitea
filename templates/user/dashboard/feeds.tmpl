@@ -57,6 +57,12 @@
 							{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 20}}
 							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 21}}
+							{{$.i18n.Tr "action.migration_started" .GetContent .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 22}}
+							{{$.i18n.Tr "action.migration_successful" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 23}}
+							{{$.i18n.Tr "action.migration_failure" .ShortRepoPath .GetContent | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}

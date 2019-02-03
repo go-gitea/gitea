@@ -30,26 +30,29 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo        ActionType = iota + 1 // 1
-	ActionRenameRepo                              // 2
-	ActionStarRepo                                // 3
-	ActionWatchRepo                               // 4
-	ActionCommitRepo                              // 5
-	ActionCreateIssue                             // 6
-	ActionCreatePullRequest                       // 7
-	ActionTransferRepo                            // 8
-	ActionPushTag                                 // 9
-	ActionCommentIssue                            // 10
-	ActionMergePullRequest                        // 11
-	ActionCloseIssue                              // 12
-	ActionReopenIssue                             // 13
-	ActionClosePullRequest                        // 14
-	ActionReopenPullRequest                       // 15
-	ActionDeleteTag                               // 16
-	ActionDeleteBranch                            // 17
-	ActionMirrorSyncPush                          // 18
-	ActionMirrorSyncCreate                        // 19
-	ActionMirrorSyncDelete                        // 20
+	ActionCreateRepo          ActionType = iota + 1 // 1
+	ActionRenameRepo                                // 2
+	ActionStarRepo                                  // 3
+	ActionWatchRepo                                 // 4
+	ActionCommitRepo                                // 5
+	ActionCreateIssue                               // 6
+	ActionCreatePullRequest                         // 7
+	ActionTransferRepo                              // 8
+	ActionPushTag                                   // 9
+	ActionCommentIssue                              // 10
+	ActionMergePullRequest                          // 11
+	ActionCloseIssue                                // 12
+	ActionReopenIssue                               // 13
+	ActionClosePullRequest                          // 14
+	ActionReopenPullRequest                         // 15
+	ActionDeleteTag                                 // 16
+	ActionDeleteBranch                              // 17
+	ActionMirrorSyncPush                            // 18
+	ActionMirrorSyncCreate                          // 19
+	ActionMirrorSyncDelete                          // 20
+	ActionMigrationStarted                          // 21
+	ActionMigrationSuccessful                       // 22
+	ActionMigrationFailure                          // 23
 )
 
 var (

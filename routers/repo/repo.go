@@ -249,10 +249,20 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
 		IsMirror:    form.Mirror,
 		RemoteAddr:  remoteAddr,
+	}, func(err error) string {
+		err = util.URLSanitizedError(err, remoteAddr)
+
+		if strings.Contains(err.Error(), "Authentication failed") ||
+			strings.Contains(err.Error(), "could not read Username") {
+			return ctx.Tr("form.auth_failed", err.Error())
+		} else if strings.Contains(err.Error(), "fatal:") {
+			return ctx.Tr("repo.migrate.failed", err.Error())
+		}
+		return err.Error()
 	})
 	if err == nil {
-		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
+		log.Trace("Repository migration started [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
+		ctx.Redirect(setting.AppURL)
 		return
 	}
 
