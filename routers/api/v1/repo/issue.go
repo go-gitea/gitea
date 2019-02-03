@@ -45,7 +45,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: string
 	// - name: labels
 	//   in: query
-	//   description: comma seperated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
 	// - name: page
 	//   in: query

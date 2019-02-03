@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
     "/admin/orgs": {
       "get": {
@@ -2061,7 +2061,7 @@
           },
           {
             "type": "string",
-            "description": "comma seperated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
             "name": "labels",
             "in": "query"
           },
