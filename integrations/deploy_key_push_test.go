@@ -91,7 +91,7 @@ func pushTestRepository(dstPath, username, reponame string, u url.URL, keyFile s
 		assert.NoError(t, err)
 
 		log.Printf("Pushing to: %s\n", u.String())
-		_, err = git.NewCommand("push").RunInDir(dstPath)
+		_, err = git.NewCommand("push", "-u", "origin", "master").RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
