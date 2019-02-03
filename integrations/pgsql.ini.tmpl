@@ -36,7 +36,9 @@ LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
 
 [mailer]
-ENABLED = false
+ENABLED = true
+MAILER_TYPE = dummy
+FROM = pgsql-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
@@ -47,6 +49,7 @@ REQUIRE_SIGNIN_VIEW               = false
 DEFAULT_KEEP_EMAIL_PRIVATE        = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
+ENABLE_NOTIFY_MAIL                = true
 
 [picture]
 DISABLE_GRAVATAR        = false

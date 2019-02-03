@@ -1622,6 +1622,49 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the commit hash",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -6174,6 +6217,75 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Commit": {
+      "type": "object",
+      "title": "Commit contains information generated from a Git commit.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/User"
+        },
+        "commit": {
+          "$ref": "#/definitions/RepoCommit"
+        },
+        "committer": {
+          "$ref": "#/definitions/User"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitMeta"
+          },
+          "x-go-name": "Parents"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitMeta": {
+      "type": "object",
+      "title": "CommitMeta contains meta information of a commit in terms of API.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitUser": {
+      "type": "object",
+      "title": "CommitUser contains information of a user in the context of a commit.",
+      "properties": {
+        "date": {
+          "type": "string",
+          "x-go-name": "Date"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -7952,6 +8064,30 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "RepoCommit": {
+      "type": "object",
+      "title": "RepoCommit contains information of a commit in the context of a repository.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "committer": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "tree": {
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Repository": {
       "description": "Repository represents a repository",
       "type": "object",
@@ -8380,6 +8516,12 @@
         "items": {
           "$ref": "#/definitions/Comment"
         }
+      }
+    },
+    "Commit": {
+      "description": "Commit",
+      "schema": {
+        "$ref": "#/definitions/Commit"
       }
     },
     "DeployKey": {
