@@ -27,26 +27,15 @@ pre, code {
         line-height: 1.5;
         overflow: auto;
     }
-    &.wrap {
-        white-space: pre-wrap;       /* CSS 3 */
-//      white-space: -moz-normal;    /* Mozilla, since 1999 */
-//      white-space: -normal;        /* Opera 4-6 */
-//      white-space: -o-normal;      /* Opera 7 */
-
-        -ms-word-break: break-all;
-        word-break: break-all;
-
-        /* These are technically the same, but use both */
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-    }
+}
+/* Wrap long lines of code. This will also apply to Markdown code boxes. */
+pre > code {
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+        overflow-wrap: break-word !important;
 }
 .dont-break-out {
-    /* These are technically the same, but use both */
     overflow-wrap: break-word;
-    word-wrap: break-word;
-
-    -ms-word-break: break-all;
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
