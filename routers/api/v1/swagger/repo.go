@@ -140,3 +140,10 @@ type swaggerGitTreeResponse struct {
 	//in: body
 	Body api.GitTreeResponse `json:"body"`
 }
+
+// Commit
+// swagger:response Commit
+type swaggerCommit struct {
+	//in: body
+	Body api.Commit `json:"body"`
+}
