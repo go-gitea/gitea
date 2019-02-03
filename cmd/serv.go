@@ -252,6 +252,9 @@ func runServ(c *cli.Context) error {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
 
+			// FIXME: Deploy keys aren't really the owner of the repo pushing changes
+			// however we don't have good way of representing deploy keys in hook.go
+			// so for now use the owner
 			os.Setenv(models.EnvPusherName, username)
 			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
 		} else {
