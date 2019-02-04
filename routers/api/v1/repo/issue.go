@@ -85,7 +85,7 @@ func ListIssues(ctx *context.APIContext) {
 		var err error
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
-			ctx.Error(500, "GetLabelsInRepoByNames", err)
+			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
 			return
 		}
 	}
