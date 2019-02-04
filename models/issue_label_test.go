@@ -83,25 +83,26 @@ func TestGetLabelInRepoByName(t *testing.T) {
 
 func TestGetLabelInRepoByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	labels, err := GetLabelsInRepoByNames(1, []string{"label1", "label2"})
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2"})
 	assert.NoError(t, err)
 
-	assert.Len(t, labels, 2)
+	assert.Len(t, labelIDs, 2)
 
-	assert.Equal(t, "label1", labels[0].Name)
-	assert.Equal(t, "label2", labels[1].Name)
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
 }
 
 func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	// label3 doesn't exists.. See labels.yml
-	labels, err := GetLabelsInRepoByNames(1, []string{"label1", "label2", "label3"})
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2", "label3"})
 	assert.NoError(t, err)
 
-	assert.Len(t, labels, 2)
+	assert.Len(t, labelIDs, 2)
 
-	assert.Equal(t, "label1", labels[0].Name)
-	assert.Equal(t, "label2", labels[1].Name)
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
+	assert.NoError(t, err)
 }
 
 func TestGetLabelInRepoByID(t *testing.T) {
