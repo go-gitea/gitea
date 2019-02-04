@@ -1389,3 +1389,19 @@ func IsErrOauthClientIDInvalid(err error) bool {
 func (err ErrOAuthClientIDInvalid) Error() string {
 	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
 }
+
+// ErrOAuthApplicationNotFound will be thrown if id cannot be found
+type ErrOAuthApplicationNotFound struct {
+	ID int64
+}
+
+// IsErrOAuthApplicationNotFound checks if an error is a ErrReviewNotExist.
+func IsErrOAuthApplicationNotFound(err error) bool {
+	_, ok := err.(ErrOAuthApplicationNotFound)
+	return ok
+}
+
+// Error returns the error message
+func (err ErrOAuthApplicationNotFound) Error() string {
+	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
+}

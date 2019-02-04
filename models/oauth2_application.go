@@ -133,6 +133,20 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 	return
 }
 
+// GetOAuth2ApplicationByID returns the oauth2 application with the given id. Returns an error if not found.
+func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
+	return getOAuth2ApplicationByID(x, id)
+}
+
+func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err error) {
+	app = new(OAuth2Application)
+	has, err := e.ID(id).Get(app)
+	if !has {
+		return nil, ErrOAuthApplicationNotFound{ID: id}
+	}
+	return app, nil
+}
+
 // GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
 func GetOAuth2ApplicationsByUserID(userID int64) (apps []*OAuth2Application, err error) {
 	return getOAuth2ApplicationsByUserID(x, userID)
@@ -168,6 +182,32 @@ func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OA
 		return nil, err
 	}
 	return app, nil
+}
+
+// UpdateOAuth2ApplicationOptions holds options to update an oauth2 application
+type UpdateOAuth2ApplicationOptions struct {
+	ID           int64
+	Name         string
+	UserID       int64
+	RedirectURIs []string
+}
+
+// UpdateOAuth2Application updates an oauth2 application
+func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) error {
+	return updateOAuth2Application(x, opts)
+}
+
+func updateOAuth2Application(e Engine, opts UpdateOAuth2ApplicationOptions) error {
+	app := &OAuth2Application{
+		ID:           opts.ID,
+		UID:          opts.UserID,
+		Name:         opts.Name,
+		RedirectURIs: opts.RedirectURIs,
+	}
+	if _, err := e.ID(opts.ID).Update(app); err != nil {
+		return err
+	}
+	return nil
 }
 
 func deleteOAuth2Application(e Engine, id, userid int64) error {
