@@ -7,9 +7,10 @@ package gitea
 
 // Team represents a team in an organization
 type Team struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID           int64         `json:"id"`
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	Organization *Organization `json:"organization"`
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
 	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki

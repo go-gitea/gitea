@@ -314,7 +314,11 @@ func IsOrganizationOwner(orgID, uid int64) (bool, error) {
 
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(orgID, uid int64) (bool, error) {
-	return x.
+	return isOrganizationMember(x, orgID, uid)
+}
+
+func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
+	return e.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Table("org_user").
@@ -518,7 +522,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	}
 
 	// Delete member in his/her teams.
-	teams, err := getUserTeams(sess, org.ID, userID)
+	teams, err := getUserOrgTeams(sess, org.ID, userID)
 	if err != nil {
 		return err
 	}

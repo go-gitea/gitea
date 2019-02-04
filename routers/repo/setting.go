@@ -117,7 +117,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil && (interval != 0 || interval < setting.Mirror.MinInterval) {
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
@@ -354,6 +354,47 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "archive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(true); err != nil {
+			log.Error(4, "Tried to archive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+
+		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	case "unarchive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(false); err != nil {
+			log.Error(4, "Tried to unarchive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+
+		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	default:
 		ctx.NotFound("", nil)
 	}
@@ -581,6 +622,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case models.IsErrKeyAlreadyExist(err):
+			ctx.Data["Err_Content"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
