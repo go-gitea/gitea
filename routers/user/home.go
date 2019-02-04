@@ -387,8 +387,7 @@ func showOrgProfile(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	canSeeOrg := models.HasOrgVisible(org, ctx.User)
-	if !canSeeOrg {
+	if !models.HasOrgVisible(org, ctx.User) {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
 	}
