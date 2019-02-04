@@ -7,19 +7,14 @@
 package public
 
 import (
-	"github.com/go-macaron/bindata"
+	"github.com/gobuffalo/packr/v2"
 	"gopkg.in/macaron.v1"
 )
 
 // Static implements the macaron static handler for serving assets.
 func Static(opts *Options) macaron.Handler {
-	opts.FileSystem = bindata.Static(bindata.Options{
-		Asset:      Asset,
-		AssetDir:   AssetDir,
-		AssetInfo:  AssetInfo,
-		AssetNames: AssetNames,
-		Prefix:     "",
-	})
+	box := packr.New("public", "../../public")
+	opts.FileSystem = box
 	// we don't need to pass the directory, because the directory var is only
 	// used when in the options there is no FileSystem.
 	return opts.staticHandler("")

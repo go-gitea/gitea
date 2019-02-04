@@ -17,7 +17,9 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
+	"github.com/gobuffalo/packr/v2"
 	"gopkg.in/macaron.v1"
 )
 
@@ -47,7 +49,9 @@ func NewTemplateFileSystem() templateFileSystem {
 	fs := templateFileSystem{}
 	fs.files = make([]macaron.TemplateFile, 0, 10)
 
-	for _, assetPath := range AssetNames() {
+	box := packr.New("templates", "../../templates")
+
+	for _, assetPath := range box.List() {
 		if strings.HasPrefix(assetPath, "mail/") {
 			continue
 		}
@@ -56,7 +60,7 @@ func NewTemplateFileSystem() templateFileSystem {
 			continue
 		}
 
-		content, err := Asset(assetPath)
+		content, err := box.Find(assetPath)
 
 		if err != nil {
 			log.Warn("Failed to read embedded %s template. %v", assetPath, err)
@@ -144,7 +148,9 @@ func Mailer() *template.Template {
 		templates.Funcs(funcs)
 	}
 
-	for _, assetPath := range AssetNames() {
+	box := packr.New("templates", "../../templates")
+
+	for _, assetPath := range box.List() {
 		if !strings.HasPrefix(assetPath, "mail/") {
 			continue
 		}
@@ -153,7 +159,7 @@ func Mailer() *template.Template {
 			continue
 		}
 
-		content, err := Asset(assetPath)
+		content, err := box.Find(assetPath)
 
 		if err != nil {
 			log.Warn("Failed to read embedded %s template. %v", assetPath, err)

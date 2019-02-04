@@ -10,9 +10,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
+	"github.com/gobuffalo/packr/v2"
 )
 
 var (
@@ -27,6 +30,7 @@ func Dir(name string) ([]string, error) {
 
 	var (
 		result []string
+		files  []string
 	)
 
 	customDir := path.Join(setting.CustomPath, "options", name)
@@ -41,11 +45,18 @@ func Dir(name string) ([]string, error) {
 		result = append(result, files...)
 	}
 
-	files, err := AssetDir(path.Join("..", "..", "options", name))
+	box := packr.New("options", "../../options")
 
-	if err != nil {
-		return []string{}, fmt.Errorf("Failed to read embedded directory. %v", err)
-	}
+	box.WalkPrefix(name, func(path string, info packr.File) error {
+		if info == nil {
+			return nil
+		}
+		finfo, _ := info.FileInfo()
+		if !finfo.IsDir() {
+			files = append(files, strings.TrimPrefix(path, name+"/"))
+		}
+		return nil
+	})
 
 	result = append(result, files...)
 
@@ -85,5 +96,7 @@ func fileFromDir(name string) ([]byte, error) {
 		return ioutil.ReadFile(customPath)
 	}
 
-	return Asset(name)
+	box := packr.New("options", "../../options")
+
+	return box.Find(name)
 }

@@ -32,9 +32,10 @@ _testmain.go
 *coverage.out
 coverage.all
 
-/modules/options/bindata.go
-/modules/public/bindata.go
-/modules/templates/bindata.go
+/modules/templates/templates-packr.go
+/modules/options/options-packr.go
+/modules/public/public-packr.go
+/packrd/*
 
 *.db
 *.log
