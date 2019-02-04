@@ -947,6 +947,16 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions, messageConverter 
 			}
 
 		}
+
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error(3, "PANIC: Migration failed with panic: %v", err)
+
+				// fail the migration
+				failedMigration(fmt.Errorf("Migration failed: %v", err))
+			}
+		}()
+
 		NotifyWatchers(&Action{
 			ActUserID: doer.ID,
 			ActUser:   doer,
