@@ -32,7 +32,6 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
-	_ "github.com/go-macaron/session/ledis"     // ledis plugin for session store
 	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
 	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
 	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
@@ -1512,7 +1511,7 @@ func newCacheService() {
 
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
-		[]string{"memory", "file", "redis", "mysql", "postgres", "ledis", "couchbase", "memcache", "nodb"})
+		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "nodb"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)

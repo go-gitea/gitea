@@ -396,12 +396,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8d322b03fdb82ca78e19c2f90f8eb4ad88b53e3b71cbd01d0b3a1d73beb1abb2"
+  digest = "1:a26b7b56aece087165b8db87afb05db8495252449553ca20d15f5a24202f36bc"
   name = "github.com/go-macaron/session"
   packages = [
     ".",
     "couchbase",
-    "ledis",
     "memcache",
     "mysql",
     "nodb",
@@ -851,46 +850,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:81cd039986aace9719c68a9794fa8c9dd1007cffa1ff8995631e8ed35aacf6fe"
-  name = "github.com/siddontang/go"
-  packages = [
-    "filelock",
-    "hack",
-    "ioutil2",
-    "log",
-    "num",
-    "snappy",
-    "sync2",
-  ]
-  pruneopts = "NUT"
-  revision = "bdc77568d726a8702315ec4eafda030b6abc4f43"
-
-[[projects]]
-  branch = "master"
   digest = "1:dbda803f21e60c38de7d9f884390f2ebbe234ce0c3d139b65bbb36b03a99d266"
   name = "github.com/siddontang/go-snappy"
   packages = ["snappy"]
   pruneopts = "NUT"
   revision = "d8f7bb82a96d89c1254e5a6c967134e1433c9ee2"
-
-[[projects]]
-  digest = "1:b8d24bf8620181e3232d6fa1638201ba6d808b4f2dc9b620863554cf9b383748"
-  name = "github.com/siddontang/ledisdb"
-  packages = [
-    "config",
-    "ledis",
-    "rpl",
-    "store",
-    "store/boltdb",
-    "store/driver",
-    "store/goleveldb",
-    "store/leveldb",
-    "store/mdb",
-    "store/rocksdb",
-  ]
-  pruneopts = "NUT"
-  revision = "af217791d176389b9d9f2d41c414ca2f1de005cf"
-  version = "v0.4"
 
 [[projects]]
   digest = "1:89fd77d603a74a6540d60067debad9397865bf040955d907362c95d364baeba6"
@@ -941,14 +905,6 @@
   ]
   pruneopts = "NUT"
   revision = "2f17a3356c6616cbfc4ae4c38147dc062a68fb0e"
-
-[[projects]]
-  branch = "master"
-  digest = "1:e94c19da512584d4069db25d449150d8849d49a696e6281685b68932d3ba64a5"
-  name = "github.com/szferi/gomdb"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "9f9ffa97e793fb4d06a56e65a5e6b72cb3b32f1c"
 
 [[projects]]
   branch = "master"
@@ -1297,7 +1253,6 @@
     "github.com/go-macaron/inject",
     "github.com/go-macaron/session",
     "github.com/go-macaron/session/couchbase",
-    "github.com/go-macaron/session/ledis",
     "github.com/go-macaron/session/memcache",
     "github.com/go-macaron/session/mysql",
     "github.com/go-macaron/session/nodb",
