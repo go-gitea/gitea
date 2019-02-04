@@ -853,19 +853,26 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
 				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
-				fmt.Println(stderr)
+				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
-				if patchConflicts[i] == "error:" {
-					pr.ConflictedFiles = make([]string, 0, 5)
-					scanner := bufio.NewScanner(strings.NewReader(stderr))
-					for scanner.Scan() {
-						line := scanner.Text()
-						const prefix = "error: patch failed:"
-						if strings.HasPrefix(line, prefix) {
-							pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
-						}
+				pr.ConflictedFiles = make([]string, 0, 5)
+				scanner := bufio.NewScanner(strings.NewReader(stderr))
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					if strings.HasPrefix(line, prefix) {
+						pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+					}
+					// only list 10 conflicted files
+					if len(pr.ConflictedFiles) >= 10 {
+						break
 					}
 				}
+
+				if len(pr.ConflictedFiles) > 0 {
+					log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+				}
+
 				return nil
 			}
 		}
@@ -1388,7 +1395,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 
 	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -1407,6 +1414,11 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 		}
 	}
 	return false
+}
+
+// IsFilesConflicted determine if the  Pull Request has files conflicted.
+func (pr *PullRequest) IsFilesConflicted() bool {
+	return len(pr.ConflictedFiles) > 0
 }
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
