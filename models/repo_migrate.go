@@ -47,7 +47,7 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, messageConverter func(error) string) {
+func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callback func(error) string) {
 	repoPath := RepoPath(u.Name, opts.Name)
 	wikiPath := WikiPath(u.Name, opts.Name)
 
@@ -59,9 +59,8 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, messa
 			RepoID:    repo.ID,
 			Repo:      repo,
 			IsPrivate: repo.IsPrivate,
-			Content:   messageConverter(err),
+			Content:   callback(err),
 		})
-		// Will no longer delete because the repository is archived
 	}
 
 	defer func() {
@@ -211,7 +210,7 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, messa
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   util.SanitizeURLCredentials(opts.RemoteAddr, true),
+		Content:   callback(nil),
 	})
 }
 

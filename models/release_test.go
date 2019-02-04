@@ -108,10 +108,23 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		IsMirror:    true,
 		RemoteAddr:  repoPath,
 	}
+
+	out := make(chan bool)
+	defer close(out)
+
 	mirror, err := MigrateRepository(user, user, migrationOptions, func(err error) string {
-		return err.Error()
+		if err != nil {
+			out <- false
+			return err.Error()
+		}
+		out <- true
+		return repoPath
 	})
 	assert.NoError(t, err)
+
+	// Now we have to wait til the migration is reported.
+	success := <-out
+	assert.True(t, success)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)

@@ -399,7 +399,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		IsMirror:    form.Mirror,
 		RemoteAddr:  remoteAddr,
 	}, func(err error) string {
-		return util.URLSanitizedError(err, remoteAddr).Error()
+		if err != nil {
+			return util.URLSanitizedError(err, remoteAddr).Error()
+		}
+		return util.SanitizeURLCredentials(remoteAddr, true)
 	})
 	if err != nil {
 		err = util.URLSanitizedError(err, remoteAddr)
