@@ -83,7 +83,8 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
-	return util.TimeStampNow() >= issue.DeadlineUnix
+	var deadLine = issue.DeadlineUnix.Add(86400)
+	return util.TimeStampNow() > deadLine
 }
 
 // LoadRepo loads issue's repository
@@ -383,7 +384,6 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	if issue.DeadlineUnix != 0 {
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
-
 	return apiIssue
 }
 

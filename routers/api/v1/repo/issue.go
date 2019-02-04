@@ -414,7 +414,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, form.Deadline.Location())
+			0, 0, 0, 0, setting.UILocation)
 		deadlineUnix = util.TimeStamp(deadline.Unix())
 	}
 
