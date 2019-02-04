@@ -30,12 +30,9 @@
 							<strong>{{.Commit.Author.Name}}</strong>
 						{{end}}
 						<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
-
 					</div>
-
 					<div class="seven wide right aligned column">
 						<div class="ui horizontal list">
-
 							{{if .Parents}}
 								<div class="item">
 									{{.i18n.Tr "repo.diff.parent"}}

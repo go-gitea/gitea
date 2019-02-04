@@ -684,8 +684,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
-		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
+	if !perm.CanReadIssuesOrPulls(true) {
+		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
