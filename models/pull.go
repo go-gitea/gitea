@@ -844,6 +844,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		args = append(args, "--ignore-whitespace")
 	}
 	args = append(args, patchPath)
+	pr.ConflictedFiles = []string{}
 
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
