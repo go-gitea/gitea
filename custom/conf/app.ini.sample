@@ -414,8 +414,8 @@ USER =
 PASSWD =
 ; Send mails as plain text
 SEND_AS_PLAIN_TEXT = false
-; Enable sendmail (override SMTP)
-USE_SENDMAIL = false
+; Set Mailer Type (either SMTP, sendmail or dummy to just send to the log)
+MAILER_TYPE = smtp
 ; Specify an alternative sendmail binary
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
