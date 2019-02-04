@@ -274,6 +274,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", userSetting.DeleteOpenID)
 				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
+			m.Group("/oauth2/applications", func() {
+				m.Post("/delete", userSetting.DeleteOAuth2Application)
+			})
 			m.Post("/account_link", userSetting.DeleteAccountLink)
 		})
 		m.Combo("/applications").Get(userSetting.Applications).

@@ -8,9 +8,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/satori/go.uuid"
 	"net/url"
 	"time"
+
+	"github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -167,6 +168,38 @@ func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OA
 		return nil, err
 	}
 	return app, nil
+}
+
+func deleteOAuth2Application(e Engine, id, userid int64) error {
+	if deleted, err := e.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
+		return err
+	} else if deleted == 0 {
+		return fmt.Errorf("cannot find oauth2 application")
+	}
+	codes := make([]*OAuth2AuthorizationCode, 0)
+	// delete correlating auth codes
+	if err := e.Join("INNER", "oauth2_grant",
+		"oauth2_authorization_code.grant_id = oauth2_grant.id AND oauth2_grant.application_id = ?", id).Find(&codes); err != nil {
+		return err
+	}
+	codeIDs := make([]int64, 0)
+	for _, grant := range codes {
+		codeIDs = append(codeIDs, grant.ID)
+	}
+
+	if _, err := e.In("id", codeIDs).Delete(new(OAuth2AuthorizationCode)); err != nil {
+		return err
+	}
+
+	if _, err := e.Where("application_id = ?", id).Delete(new(OAuth2Grant)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
+func DeleteOAuth2Application(id, userid int64) error {
+	return deleteOAuth2Application(x, id, userid)
 }
 
 //////////////////////////////////////////////////////
