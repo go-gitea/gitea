@@ -82,7 +82,6 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
-		var err error
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
