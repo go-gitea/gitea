@@ -38,19 +38,19 @@
 							<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}/>
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 1}}checked{{end}}/>
 									<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}/>
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 2}}checked{{end}}/>
 									<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="3" {{if eq .CurrentVisibility 3}}checked{{end}}/>
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 3}}checked{{end}}/>
 									<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
 								</div>
 							</div>
