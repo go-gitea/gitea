@@ -102,7 +102,7 @@ packr:
 	@hash packr2 > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/gobuffalo/packr/v2/packr2; \
 	fi
-	packr2 -v
+	packr2
 	# Add buildtag to all packr files
 	echo "// +build bindata" | cat - packrd/packed-packr.go > packrd/packed-packr.go.bak && mv packrd/packed-packr.go.bak packrd/packed-packr.go
 	echo "// +build bindata" | cat - modules/templates/templates-packr.go > modules/templates/templates-packr.go.bak && mv modules/templates/templates-packr.go.bak modules/templates/templates-packr.go
