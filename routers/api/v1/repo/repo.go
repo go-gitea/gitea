@@ -302,8 +302,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
-	canSeeOrg := models.HasOrgVisible(org, ctx.User)
-	if !canSeeOrg {
+	if !models.HasOrgVisible(org, ctx.User) {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
 	}
