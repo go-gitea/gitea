@@ -129,8 +129,7 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-	canSeeOrg := models.HasOrgVisible(ctx.Org.Organization, ctx.User)
-	if !canSeeOrg {
+	if !models.HasOrgVisible(ctx.Org.Organization, ctx.User) {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
 	}
