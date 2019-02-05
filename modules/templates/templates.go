@@ -6,6 +6,7 @@ package templates
 
 //go:generate packr2
 //go:generate sh -c "echo '// +build bindata' | cat - packrd/packed-packr.go > packrd/packed-packr.go.bak"
+//go:generate sh -c "echo 'package packrd' > packrd/packr.go"
 //go:generate sh -c "echo '// +build bindata' | cat - templates-packr.go > templates-packr.go.bak"
 //go:generate sh -c "mv packrd/packed-packr.go.bak packrd/packed-packr.go"
 //go:generate sh -c "mv templates-packr.go.bak templates-packr.go"
