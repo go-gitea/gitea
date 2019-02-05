@@ -35,7 +35,9 @@ coverage.all
 /modules/templates/templates-packr.go
 /modules/options/options-packr.go
 /modules/public/public-packr.go
-/packrd/*
+/modules/public/packrd/*
+/modules/options/packrd/*
+/modules/templates/packrd/*
 
 *.db
 *.log

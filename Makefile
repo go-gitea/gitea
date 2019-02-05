@@ -14,7 +14,7 @@ else
 	endif
 endif
 
-BINDATA := modules/{options,public,templates}/*-packr.go packrd/*
+BINDATA := modules/{options,public,templates}/*-packr.go modules/{options,public,templates}/packrd/*
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/*-packr.go")
 GOFMT ?= gofmt -s
 
@@ -91,23 +91,11 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate: bindata
-	$(GO) generate $(PACKAGES)
-
-.PHONY: bindata
-bindata: packr
-
-.PHONY: packr
-packr:
+generate:
 	@hash packr2 > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/gobuffalo/packr/v2/packr2; \
 	fi
-	packr2 -v
-	# Add buildtag to all packr files
-	echo "// +build bindata" | cat - packrd/packed-packr.go > packrd/packed-packr.go.bak && mv packrd/packed-packr.go.bak packrd/packed-packr.go
-	echo "// +build bindata" | cat - modules/templates/templates-packr.go > modules/templates/templates-packr.go.bak && mv modules/templates/templates-packr.go.bak modules/templates/templates-packr.go
-	echo "// +build bindata" | cat - modules/options/options-packr.go > modules/options/options-packr.go.bak && mv modules/options/options-packr.go.bak modules/options/options-packr.go
-	echo "// +build bindata" | cat - modules/public/public-packr.go > modules/public/public-packr.go.bak && mv modules/public/public-packr.go.bak modules/public/public-packr.go
+	$(GO) generate $(PACKAGES)
 
 .PHONY: packr-clean
 packr-clean:

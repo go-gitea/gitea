@@ -4,6 +4,13 @@
 
 package public
 
+//go:generate packr2
+//go:generate sh -c "echo '// +build bindata' | cat - packrd/packed-packr.go > packrd/packed-packr.go.bak"
+//go:generate sh -c "echo '// +build bindata' | cat - public-packr.go > public-packr.go.bak"
+//go:generate sh -c "mv packrd/packed-packr.go.bak packrd/packed-packr.go"
+//go:generate sh -c "mv public-packr.go.bak public-packr.go"
+
+
 import (
 	"encoding/base64"
 	"log"
