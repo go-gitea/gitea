@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/admin/orgs": {
       "get": {
@@ -7370,9 +7370,19 @@
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
       "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Page"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         },
         "tree": {
           "type": "array",
