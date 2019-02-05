@@ -4,10 +4,6 @@
 
 package git
 
-import (
-	"fmt"
-)
-
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	treePath := filepathFromSHA1(repo.Path, id.String())
 	if isFile(treePath) {
@@ -22,8 +18,6 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	fmt.Printf("HERE: %s\n", idStr)
-	fmt.Printf("HERE2: %s\n", repo.Path)
 	if len(idStr) != 40 {
 		res, err := NewCommand("rev-parse", idStr).RunInDir(repo.Path)
 		if err != nil {

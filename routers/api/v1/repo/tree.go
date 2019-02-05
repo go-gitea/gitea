@@ -70,9 +70,7 @@ func GetTree(ctx *context.APIContext) {
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
-	fmt.Printf("HEREEEEER1\n")
 	gitTree, err := ctx.Repo.GitRepo.GetTree(sha)
-	fmt.Printf("Error: %v\n\n", err)
 	if err != nil || gitTree == nil {
 		return nil
 	}
@@ -86,8 +84,6 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	} else {
 		entries, err = gitTree.ListEntries()
 	}
-	fmt.Printf("Error: %v", err)
-	fmt.Printf("HEREEEEE: %v\n", tree)
 	if err != nil {
 		return tree
 	}
@@ -146,7 +142,5 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 			tree.Entries[i].URL = string(blobURL[:])
 		}
 	}
-	fmt.Printf("HEREEEEE:\n")
-	fmt.Printf("%v\n", tree)
 	return tree
 }
