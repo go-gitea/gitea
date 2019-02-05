@@ -47,11 +47,30 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
+func sanitizeRepoPath(path string) string {
+	return strings.TrimPrefix(path, setting.RepoRootPath)
+}
+
 func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callback func(error) string) {
 	repoPath := RepoPath(u.Name, opts.Name)
 	wikiPath := WikiPath(u.Name, opts.Name)
 
+	repoPathTmp := repoPath + ".migration"
+	wikiPathTmp := wikiPath + ".migration"
+
 	failedMigration := func(err error) {
+		if err := os.RemoveAll(wikiPathTmp); err != nil {
+			log.Error(3, "Failed to remove %s: %v", wikiPathTmp, err)
+		}
+		if err := os.RemoveAll(repoPathTmp); err != nil {
+			log.Error(3, "Failed to remove %s: %v", repoPathTmp, err)
+		}
+
+		repo.IsEmpty = true
+		if _, err := x.ID(repo.ID).AllCols().Update(repo); err != nil {
+			log.Error(3, "Couldn't set repo to bare:", err)
+		}
+
 		NotifyWatchers(&Action{
 			ActUserID: doer.ID,
 			ActUser:   doer,
@@ -81,6 +100,7 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 		Content:   util.SanitizeURLCredentials(opts.RemoteAddr, true),
 		IsPrivate: repo.IsPrivate,
 	})
+	repo.IsEmpty = true
 	repo.IsArchived = true
 	if _, err := x.ID(repo.ID).AllCols().Update(repo); err != nil {
 		failedMigration(err)
@@ -100,12 +120,7 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	if err := os.RemoveAll(repoPath); err != nil {
-		failedMigration(fmt.Errorf("Failed to remove %s: %v", repoPath, err))
-		return
-	}
-
-	if err := git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
+	if err := git.Clone(opts.RemoteAddr, repoPathTmp, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -115,28 +130,49 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 
 	}
 
+	if err := os.RemoveAll(repoPath); err != nil {
+		log.Error(2, "Migration Failed: unable remove temporary repo %s: %v", repoPath, err)
+		failedMigration(fmt.Errorf("Failed to remove %s", sanitizeRepoPath(repoPath)))
+		return
+	}
+
+	if err := os.Rename(repoPathTmp, repoPath); err != nil {
+		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", repoPathTmp, repoPath, err)
+		failedMigration(fmt.Errorf("Failed to rename %s to %s", sanitizeRepoPath(repoPathTmp), sanitizeRepoPath(repoPath)))
+		return
+	}
+
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 	if len(wikiRemotePath) > 0 {
-		if err := os.RemoveAll(wikiPath); err != nil {
-			failedMigration(fmt.Errorf("Failed to remove %s: %v", wikiPath, err))
-			return
-		}
-
-		if err := git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+		if err := git.Clone(wikiRemotePath, wikiPathTmp, git.CloneRepoOptions{
 			Mirror:  true,
 			Quiet:   true,
 			Timeout: migrateTimeout,
 			Branch:  "master",
 		}); err != nil {
 			log.Warn("Clone wiki: %v", err)
+			if err := os.RemoveAll(wikiPathTmp); err != nil {
+				log.Error(2, "Migration Failed: unable remove migrated empty wiki repo %s: %v", wikiPathTmp, err)
+				failedMigration(fmt.Errorf("Failed to remove migrated empty wiki repo %s", sanitizeRepoPath(wikiPathTmp)))
+				return
+			}
+		} else {
 			if err := os.RemoveAll(wikiPath); err != nil {
-				failedMigration(fmt.Errorf("Failed to remove %s: %v", wikiPath, err))
+				log.Error(2, "Migration Failed: unable remove placeholder repo %s: %v", wikiPath, err)
+				failedMigration(fmt.Errorf("Failed to remove placeholder repo %s", sanitizeRepoPath(wikiPath)))
+				return
+			}
+
+			if err := os.Rename(wikiPathTmp, wikiPath); err != nil {
+				log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
+				failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
 				return
 			}
 		}
 	}
 
 	// Check if repository is empty.
+	repo.IsEmpty = false
 	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
 	if err != nil {
 		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
