@@ -375,7 +375,7 @@ func (grant *OAuth2Grant) IncreaseCounter() error {
 }
 
 func (grant *OAuth2Grant) increaseCount(e Engine) error {
-	_, err := e.ID(grant.ID).Incr("counter").Update(grant)
+	_, err := e.ID(grant.ID).Incr("counter").Update(new(OAuth2Grant))
 	if err != nil {
 		return err
 	}
