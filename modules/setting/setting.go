@@ -557,9 +557,11 @@ var (
 	API = struct {
 		EnableSwagger    bool
 		MaxResponseItems int
+		DefaultPagingNum int
 	}{
 		EnableSwagger:    true,
 		MaxResponseItems: 50,
+		DefaultPagingNum: 30,
 	}
 
 	U2F = struct {
@@ -1245,6 +1247,7 @@ var Service struct {
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
+	AutoWatchNewRepos                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1279,6 +1282,7 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
+	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
@@ -1525,6 +1529,7 @@ type Mailer struct {
 	FromName        string
 	FromEmail       string
 	SendAsPlainText bool
+	MailerType      string
 
 	// SMTP sender
 	Host              string
@@ -1537,7 +1542,6 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	UseSendmail  bool
 	SendmailPath string
 	SendmailArgs []string
 }
@@ -1558,6 +1562,7 @@ func newMailService() {
 		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
+		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
 		Host:           sec.Key("HOST").String(),
 		User:           sec.Key("USER").String(),
@@ -1570,7 +1575,6 @@ func newMailService() {
 		KeyFile:        sec.Key("KEY_FILE").String(),
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
-		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
@@ -1580,6 +1584,13 @@ func newMailService() {
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
+	if sec.HasKey("USE_SENDMAIL") {
+		log.Warn("USE_SENDMAIL is deprecated, use MAILER_TYPE=sendmail")
+		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
+			MailService.MailerType = "sendmail"
+		}
+	}
+
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
@@ -1587,7 +1598,11 @@ func newMailService() {
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
-	if MailService.UseSendmail {
+	if MailService.MailerType == "" {
+		MailService.MailerType = "smtp"
+	}
+
+	if MailService.MailerType == "sendmail" {
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
 			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)

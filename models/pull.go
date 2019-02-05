@@ -5,6 +5,8 @@
 package models
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -52,9 +54,10 @@ const (
 
 // PullRequest represents relation between pull request and repositories.
 type PullRequest struct {
-	ID     int64 `xorm:"pk autoincr"`
-	Type   PullRequestType
-	Status PullRequestStatus
+	ID              int64 `xorm:"pk autoincr"`
+	Type            PullRequestType
+	Status          PullRequestStatus
+	ConflictedFiles []string `xorm:"TEXT JSON"`
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -328,6 +331,34 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 	return nil
 }
 
+func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
+	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
+		var stdout, stderr string
+		// Compute the diff-tree for sparse-checkout
+		// The branch argument must be enclosed with double-quotes ("") in case it contains slashes (e.g "feature/test")
+		stdout, stderr, err := process.GetManager().ExecDir(-1, repoPath,
+			fmt.Sprintf("PullRequest.Merge (git diff-tree): %s", repoPath),
+			"git", "diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch)
+		if err != nil {
+			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, stderr)
+		}
+		return stdout, nil
+	}
+
+	list, err := getDiffTreeFromBranch(repoPath, baseBranch, headBranch)
+	if err != nil {
+		return "", err
+	}
+
+	// Prefixing '/' for each entry, otherwise all files with the same name in subdirectories would be matched.
+	out := bytes.Buffer{}
+	scanner := bufio.NewScanner(strings.NewReader(list))
+	for scanner.Scan() {
+		fmt.Fprintf(&out, "/%s\n", scanner.Text())
+	}
+	return out.String(), nil
+}
+
 // Merge merges pull request to base repository.
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle, message string) (err error) {
@@ -366,41 +397,85 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	defer os.RemoveAll(path.Dir(tmpBasePath))
+	defer os.RemoveAll(tmpBasePath)
 
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
 		fmt.Sprintf("PullRequest.Merge (git clone): %s", tmpBasePath),
-		"git", "clone", baseGitRepo.Path, tmpBasePath); err != nil {
+		"git", "clone", "-s", "--no-checkout", "-b", pr.BaseBranch, baseGitRepo.Path, tmpBasePath); err != nil {
 		return fmt.Errorf("git clone: %s", stderr)
 	}
 
-	// Check out base branch.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-		"git", "checkout", pr.BaseBranch); err != nil {
-		return fmt.Errorf("git checkout: %s", stderr)
-	}
+	remoteRepoName := "head_repo"
 
 	// Add head repo remote.
+	addCacheRepo := func(staging, cache string) error {
+		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		data := filepath.Join(cache, "objects")
+		if _, err := fmt.Fprintln(f, data); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
+	}
 	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git remote add): %s", tmpBasePath),
-		"git", "remote", "add", "head_repo", headRepoPath); err != nil {
+		"git", "remote", "add", remoteRepoName, headRepoPath); err != nil {
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 	}
 
-	// Merge commits.
+	// Fetch head branch
 	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git fetch): %s", tmpBasePath),
-		"git", "fetch", "head_repo"); err != nil {
+		"git", "fetch", remoteRepoName); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 	}
 
+	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
+	stagingBranch := fmt.Sprintf("%s_%s", remoteRepoName, pr.HeadBranch)
+
+	// Enable sparse-checkout
+	sparseCheckoutList, err := getDiffTree(tmpBasePath, pr.BaseBranch, trackingBranch)
+	if err != nil {
+		return fmt.Errorf("getDiffTree: %v", err)
+	}
+
+	infoPath := filepath.Join(tmpBasePath, ".git", "info")
+	if err := os.MkdirAll(infoPath, 0700); err != nil {
+		return fmt.Errorf("creating directory failed [%s]: %v", infoPath, err)
+	}
+	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
+	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
+		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
+	}
+
+	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+		fmt.Sprintf("PullRequest.Merge (git config): %s", tmpBasePath),
+		"git", "config", "--local", "core.sparseCheckout", "true"); err != nil {
+		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", stderr)
+	}
+
+	// Read base branch index
+	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", tmpBasePath),
+		"git", "read-tree", "HEAD"); err != nil {
+		return fmt.Errorf("git read-tree HEAD: %s", stderr)
+	}
+
+	// Merge commits.
 	switch mergeStyle {
 	case MergeStyleMerge:
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git merge --no-ff --no-commit): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "--no-commit", "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "merge", "--no-ff", "--no-commit", trackingBranch); err != nil {
 			return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, stderr)
 		}
 
@@ -415,7 +490,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Checkout head branch
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", "-b", "head_repo_"+pr.HeadBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "checkout", "-b", stagingBranch, trackingBranch); err != nil {
 			return fmt.Errorf("git checkout: %s", stderr)
 		}
 		// Rebase before merging
@@ -433,14 +508,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Merge fast forward
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "merge", "--ff-only", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			"git", "merge", "--ff-only", "-q", stagingBranch); err != nil {
 			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 	case MergeStyleRebaseMerge:
 		// Checkout head branch
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", "-b", "head_repo_"+pr.HeadBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "checkout", "-b", stagingBranch, trackingBranch); err != nil {
 			return fmt.Errorf("git checkout: %s", stderr)
 		}
 		// Rebase before merging
@@ -458,7 +533,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Prepare merge with commit
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "--no-commit", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			"git", "merge", "--no-ff", "--no-commit", "-q", stagingBranch); err != nil {
 			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 
@@ -475,7 +550,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		// Merge with squash
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git squash): %s", tmpBasePath),
-			"git", "merge", "-q", "--squash", "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "merge", "-q", "--squash", trackingBranch); err != nil {
 			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 		sig := pr.Issue.Poster.NewGitSig()
@@ -769,6 +844,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		args = append(args, "--ignore-whitespace")
 	}
 	args = append(args, patchPath)
+	pr.ConflictedFiles = []string{}
 
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
@@ -777,8 +853,26 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
 				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
-				fmt.Println(stderr)
+				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
+				pr.ConflictedFiles = make([]string, 0, 5)
+				scanner := bufio.NewScanner(strings.NewReader(stderr))
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					if strings.HasPrefix(line, prefix) {
+						pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+					}
+					// only list 10 conflicted files
+					if len(pr.ConflictedFiles) >= 10 {
+						break
+					}
+				}
+
+				if len(pr.ConflictedFiles) > 0 {
+					log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+				}
+
 				return nil
 			}
 		}
@@ -1301,7 +1395,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 
 	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -1320,6 +1414,11 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 		}
 	}
 	return false
+}
+
+// IsFilesConflicted determines if the  Pull Request has changes conflicting with the target branch.
+func (pr *PullRequest) IsFilesConflicted() bool {
+	return len(pr.ConflictedFiles) > 0
 }
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.

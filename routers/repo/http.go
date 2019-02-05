@@ -95,6 +95,12 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
+	// Don't allow pushing if the repo is archived
+	if repo.IsArchived && !isPull {
+		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
+		return
+	}
+
 	// Only public pull don't need auth.
 	isPublicPull := !repo.IsPrivate && isPull
 	var (
