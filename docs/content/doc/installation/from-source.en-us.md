@@ -65,7 +65,9 @@ provided to keep the build process as simple as possible.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>See here how to get Make</a>.
 Depending on requirements, the following build tags can be included.
 
-* `bindata`: Build a single monolithic binary, with all assets included.
+* `bindata`: Build a single monolithic binary, with all assets included. This uses
+  [packr2](https://github.com/gobuffalo/packr) to embed static assets from options, templates, and public directory
+  in the golang binary. Note: `make generate` must be first used before building to embed assets.
 * `sqlite sqlite_unlock_notify`: Enable support for a [SQLite3](https://sqlite.org/) database. Suggested only
   for tiny installations.
 * `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can be used to
