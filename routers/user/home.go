@@ -1,4 +1,4 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -387,6 +387,29 @@ func showOrgProfile(ctx *context.Context) {
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.DisplayName()
 
+	var orderBy models.SearchOrderBy
+	ctx.Data["SortType"] = ctx.Query("sort")
+	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
+	case "oldest":
+		orderBy = models.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = models.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = models.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = models.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = models.SearchOrderByAlphabetically
+	default:
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
+	}
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	ctx.Data["Keyword"] = keyword
+
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
@@ -403,6 +426,9 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
+		if len(keyword) != 0 {
+			env.AddKeyword(keyword)
+		}
 		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
 		if err != nil {
 			ctx.ServerError("env.Repos", err)
@@ -416,13 +442,33 @@ func showOrgProfile(ctx *context.Context) {
 		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
-		if err != nil {
-			ctx.ServerError("GetRepositories", err)
-			return
+		if len(keyword) == 0 {
+			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			if err != nil {
+				ctx.ServerError("GetRepositories", err)
+				return
+			}
+			ctx.Data["Repos"] = repos
+			count = models.CountUserRepositories(org.ID, showPrivate)
+			ctx.Data["Total"] = count
+		} else {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:   keyword,
+				OwnerID:   org.ID,
+				OrderBy:   orderBy,
+				Private:   showPrivate,
+				Page:      page,
+				IsProfile: true,
+				PageSize:  setting.UI.User.RepoPagingNum,
+			})
+			if err != nil {
+				ctx.ServerError("SearchRepositoryByName", err)
+				return
+			}
+
+			ctx.Data["Repos"] = repos
+			ctx.Data["Total"] = count
 		}
-		ctx.Data["Repos"] = repos
-		count = models.CountUserRepositories(org.ID, showPrivate)
 	}
 	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
