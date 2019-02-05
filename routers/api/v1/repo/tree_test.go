@@ -29,7 +29,7 @@ func TestGetTreeBySHA(t *testing.T) {
 	expectedTree := &gitea.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Entries: []gitea.GitEntry {
+		Entries: []gitea.GitEntry{
 			{
 				Path: "README.md",
 				Mode: "100644",
@@ -39,9 +39,9 @@ func TestGetTreeBySHA(t *testing.T) {
 				URL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 			},
 		},
-		Truncated: false,
-		Page: 1,
-		TotalCount:1,
+		Truncated:  false,
+		Page:       1,
+		TotalCount: 1,
 	}
 
 	assert.EqualValues(t, tree, expectedTree)
