@@ -26,7 +26,6 @@ type GitTreeResponse struct {
 	Truncated  bool       `json:"truncated"`
 	Page       int        `json:"page"`
 	TotalCount int        `json:"total_count"`
-	TotalPages int        `json:"total_pages"`
 }
 
 // GetTrees downloads a file of repository, ref can be branch/tag/commit.
