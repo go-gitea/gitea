@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mcuadros/go-version"
+	version "github.com/mcuadros/go-version"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -129,6 +129,14 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	}
 	commit.repo = repo
 	commit.ID = id
+
+	data, err = NewCommand("name-rev", id.String()).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	// name-rev commitID ouput will be "COMMIT_ID master" or "COMMIT_ID master~12"
+	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
 
 	repo.commitCache.Set(id.String(), commit)
 	return commit, nil
