@@ -628,7 +628,7 @@ ENABLE_SWAGGER = true
 MAX_RESPONSE_ITEMS = 50
 ; Default paging number of api
 DEFAULT_PAGING_NUM = 30
-; Default number of items per page for git trees api
+; Default and maximum number of items per page for git trees api
 DEFAULT_GIT_TREES_PER_PAGE = 1000
 
 [i18n]
