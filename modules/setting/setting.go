@@ -1531,6 +1531,7 @@ type Mailer struct {
 	FromName        string
 	FromEmail       string
 	SendAsPlainText bool
+	MailerType      string
 
 	// SMTP sender
 	Host              string
@@ -1543,7 +1544,6 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	UseSendmail  bool
 	SendmailPath string
 	SendmailArgs []string
 }
@@ -1564,6 +1564,7 @@ func newMailService() {
 		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
+		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
 		Host:           sec.Key("HOST").String(),
 		User:           sec.Key("USER").String(),
@@ -1576,7 +1577,6 @@ func newMailService() {
 		KeyFile:        sec.Key("KEY_FILE").String(),
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
-		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
@@ -1586,6 +1586,13 @@ func newMailService() {
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
+	if sec.HasKey("USE_SENDMAIL") {
+		log.Warn("USE_SENDMAIL is deprecated, use MAILER_TYPE=sendmail")
+		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
+			MailService.MailerType = "sendmail"
+		}
+	}
+
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
@@ -1593,7 +1600,11 @@ func newMailService() {
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
-	if MailService.UseSendmail {
+	if MailService.MailerType == "" {
+		MailService.MailerType = "smtp"
+	}
+
+	if MailService.MailerType == "sendmail" {
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
 			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)

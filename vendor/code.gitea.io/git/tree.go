@@ -18,6 +18,9 @@ type Tree struct {
 
 	entries       Entries
 	entriesParsed bool
+
+	entriesRecursive 	Entries
+	entriesRecursiveParsed 	bool
 }
 
 // NewTree create a new tree according the repository and commit id
@@ -67,20 +70,29 @@ func (t *Tree) ListEntries() (Entries, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	t.entries, err = parseTreeEntries(stdout, t)
+	if err == nil {
+		t.entriesParsed = true
+	}
+
 	return t.entries, err
 }
 
 // ListEntriesRecursive returns all entries of current tree recursively including all subtrees
 func (t *Tree) ListEntriesRecursive() (Entries, error) {
-	if t.entriesParsed {
-		return t.entries, nil
+	if t.entriesRecursiveParsed {
+		return t.entriesRecursive, nil
 	}
 	stdout, err := NewCommand("ls-tree", "-t", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
-
 	if err != nil {
 		return nil, err
 	}
-	t.entries, err = parseTreeEntries(stdout, t)
-	return t.entries, err
+
+	t.entriesRecursive, err = parseTreeEntries(stdout, t)
+	if err == nil {
+		t.entriesRecursiveParsed = true
+	}
+
+	return t.entriesRecursive, err
 }
