@@ -18,6 +18,14 @@
   revision = "d5a42771e7e851e8a89c5c6ffa0f5b075342f9df"
 
 [[projects]]
+  digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
+  version = "v0.3.1"
+
+[[projects]]
   digest = "1:3fcef06a1a6561955c94af6c7757a6fa37605eb653f0d06ab960e5bb80092195"
   name = "github.com/PuerkitoBio/goquery"
   packages = ["."]
@@ -187,6 +195,28 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:eb205556fe75307c6d2b58d4159e7c2da23e2666481d352c66d4055bebf45a3c"
+  name = "github.com/couchbase/gomemcached"
+  packages = [
+    ".",
+    "client",
+  ]
+  pruneopts = "NUT"
+  revision = "5125a94a666c83cb9b7a60907833cd320b84c20f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:ea03e12e246f7708a7b7ab3ad04e96d21ce73f48bb56258bc2bffeed474212e6"
+  name = "github.com/couchbase/goutils"
+  packages = [
+    "logging",
+    "scramsha",
+  ]
+  pruneopts = "NUT"
+  revision = "e865a1461c8ac0032bd37e2d4dab3289faea3873"
+
+[[projects]]
+  branch = "master"
   digest = "1:82e1ad11d777f7bff9a1fc678a8a534a318f85e5026a8a4d6f4a94a6b0678bb6"
   name = "github.com/couchbase/vellum"
   packages = [
@@ -196,6 +226,14 @@
   ]
   pruneopts = "NUT"
   revision = "eb6ae3743b3f300f2136f83ca78c08cc071edbd4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:df592f4b82b993fcac270862376c34210776b8b0334a0f59f4d9d80467713ffa"
+  name = "github.com/couchbaselabs/go-couchbase"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "d904413d884d1fb849e2ad8834619f661761ef57"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -358,14 +396,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8fea5718d84af17762195beb6fe92a0d6c1048452a1dbc464d227f12e0cff0cc"
+  digest = "1:a26b7b56aece087165b8db87afb05db8495252449553ca20d15f5a24202f36bc"
   name = "github.com/go-macaron/session"
   packages = [
     ".",
+    "couchbase",
+    "memcache",
+    "mysql",
+    "nodb",
+    "postgres",
     "redis",
   ]
   pruneopts = "NUT"
-  revision = "330e4e4d8beb7b00111ac34539561f46f94c4458"
+  revision = "0a0a789bf1934e55fde19629869caa015a40c525"
 
 [[projects]]
   digest = "1:758d2371fcdee6d02565901b348729053c636055e67ef6e17aa466c7ff6cc57c"
@@ -580,6 +623,28 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
+  digest = "1:1e6a29ed1f189354030e3371f63ec58aacbc2bf232fd104c6e0d41174ac5af48"
+  name = "github.com/lunny/log"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "7887c61bf0de75586961948b286be6f7d05d9f58"
+  version = "v0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:683d835728cb95d176d423b522420eb5e4ec859b276bca18466476b82b3ebc4c"
+  name = "github.com/lunny/nodb"
+  packages = [
+    ".",
+    "config",
+    "store",
+    "store/driver",
+    "store/goleveldb",
+  ]
+  pruneopts = "NUT"
+  revision = "fc1ef06ad4af0da31cdb87e3fa5ec084c67e6597"
+
+[[projects]]
   digest = "1:aa7dcd6a0db70d514821f8739d0a22e7df33b499d8d399cf15b2858d44f8319e"
   name = "github.com/markbates/goth"
   packages = [
@@ -683,6 +748,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -776,6 +849,14 @@
   revision = "1dba4b3954bc059efc3991ec364f9f9a35f597d2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:dbda803f21e60c38de7d9f884390f2ebbe234ce0c3d139b65bbb36b03a99d266"
+  name = "github.com/siddontang/go-snappy"
+  packages = ["snappy"]
+  pruneopts = "NUT"
+  revision = "d8f7bb82a96d89c1254e5a6c967134e1433c9ee2"
+
+[[projects]]
   digest = "1:89fd77d603a74a6540d60067debad9397865bf040955d907362c95d364baeba6"
   name = "github.com/src-d/gcfg"
   packages = [
@@ -803,6 +884,27 @@
   pruneopts = "NUT"
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:685fdfea42d825ebd39ee0994354b46c374cf2c2b2d97a41a8dee1807c6a9b62"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util",
+  ]
+  pruneopts = "NUT"
+  revision = "2f17a3356c6616cbfc4ae4c38147dc062a68fb0e"
 
 [[projects]]
   branch = "master"
@@ -1150,6 +1252,11 @@
     "github.com/go-macaron/i18n",
     "github.com/go-macaron/inject",
     "github.com/go-macaron/session",
+    "github.com/go-macaron/session/couchbase",
+    "github.com/go-macaron/session/memcache",
+    "github.com/go-macaron/session/mysql",
+    "github.com/go-macaron/session/nodb",
+    "github.com/go-macaron/session/postgres",
     "github.com/go-macaron/session/redis",
     "github.com/go-macaron/toolbox",
     "github.com/go-sql-driver/mysql",
