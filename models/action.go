@@ -491,15 +491,27 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 		return nil
 	}
 
+	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
+
+		if StopwatchExists(doer.ID, issue.ID) {
+			if err := CreateOrStopIssueStopwatch(doer, issue); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	issue.Repo = repo
 	if err = issue.ChangeStatus(doer, status); err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if IsErrDependenciesLeft(err) {
-			return nil
+			return stopTimerIfAvailable(doer, issue)
 		}
 		return err
 	}
-	return nil
+
+	return stopTimerIfAvailable(doer, issue)
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
