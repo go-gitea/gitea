@@ -345,6 +345,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
 	}
 
+	if pull.IsFilesConflicted() {
+		ctx.Data["IsPullFilesConflicted"] = true
+		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -590,10 +595,26 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
+	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		return
+	}
+
 	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+}
+
+func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+
+	if models.StopwatchExists(user.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing pull request
