@@ -2924,6 +2924,56 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/toggle": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Toggle stopwatch on an issue.",
+        "operationId": "issueToggleStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to create or stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer or user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys": {
       "get": {
         "produces": [

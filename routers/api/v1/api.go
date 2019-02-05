@@ -557,6 +557,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Post("/stopwatch/toggle", reqToken(), repo.ToggleIssueStopwatch)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
