@@ -440,11 +440,11 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	ctx.JSON(201, api.IssueDeadline{Deadline: &deadline})
 }
 
-// ToggleIssueStopwatch creates or stops a stopwatch for the given issue.
-func ToggleIssueStopwatch(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/stopwatch/toggle issue issueToggleStopWatch
+// StartIssueStopwatch creates or stops a stopwatch for the given issue.
+func StartIssueStopwatch(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/stopwatch/start issue issueStartStopWatch
 	// ---
-	// summary: Toggle stopwatch on an issue.
+	// summary: Start stopwatch on an issue.
 	// consumes:
 	// - application/json
 	// produces:
@@ -470,7 +470,7 @@ func ToggleIssueStopwatch(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "403":
-	//     description: Not repo writer or user does not have rights to toggle stopwatch
+	//     description: Not repo writer, user does not have rights to toggle stopwatch or trying to start a stopwatch again if it already exists
 	//   "404":
 	//     description: Issue not found
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -494,8 +494,80 @@ func ToggleIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
+	if models.StopwatchExists(ctx.User.ID, issue.ID) {
+		ctx.Error(403, "StopwatchExists", "a stopwatch has already been started for this issue")
+		return
+	}
+
 	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		ctx.Error(500, "CreateOrStopIssueStopwatch", err)
+		return
+	}
+
+	ctx.Status(201)
+}
+
+// StopIssueStopwatch creates or stops a stopwatch for the given issue.
+func StopIssueStopwatch(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/stopwatch/stop issue issueStopWatch
+	// ---
+	// summary: Stop an issue's existing stopwatch.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to create or stop the stopwatch on
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     description: Not repo writer, user does not have rights to toggle stopwatch or trying to stop a non existent stopwatch
+	//   "404":
+	//     description: Issue not found
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+		ctx.Status(403)
+		return
+	}
+
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		ctx.Status(403)
+		return
+	}
+
+	if !models.StopwatchExists(ctx.User.ID, issue.ID) {
+		ctx.Error(403, "StopwatchExists", "cannot stop a non existent stopwatch")
+		return
+	}
+
+	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+		ctx.Error(500, "CreateOrStopIssueStopwatch", err)
 		return
 	}
 

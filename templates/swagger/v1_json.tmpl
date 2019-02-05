@@ -2924,7 +2924,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issues/{index}/stopwatch/toggle": {
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/start": {
       "post": {
         "consumes": [
           "application/json"
@@ -2935,8 +2935,8 @@
         "tags": [
           "issue"
         ],
-        "summary": "Toggle stopwatch on an issue.",
-        "operationId": "issueToggleStopWatch",
+        "summary": "Start stopwatch on an issue.",
+        "operationId": "issueStartStopWatch",
         "parameters": [
           {
             "type": "string",
@@ -2966,7 +2966,57 @@
             "$ref": "#/responses/empty"
           },
           "403": {
-            "description": "Not repo writer or user does not have rights to toggle stopwatch"
+            "description": "Not repo writer, user does not have rights to toggle stopwatch or trying to start a stopwatch again if it already exists"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/stop": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Stop an issue's existing stopwatch.",
+        "operationId": "issueStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to create or stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch or trying to stop a non existent stopwatch"
           },
           "404": {
             "description": "Issue not found"
