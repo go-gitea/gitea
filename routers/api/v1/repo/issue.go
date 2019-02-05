@@ -440,7 +440,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	ctx.JSON(201, api.IssueDeadline{Deadline: &deadline})
 }
 
-// StartIssueStopwatch creates or stops a stopwatch for the given issue.
+// StartIssueStopwatch creates a stopwatch for the given issue.
 func StartIssueStopwatch(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/stopwatch/start issue issueStartStopWatch
 	// ---
@@ -507,7 +507,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	ctx.Status(201)
 }
 
-// StopIssueStopwatch creates or stops a stopwatch for the given issue.
+// StopIssueStopwatch stops a stopwatch for the given issue.
 func StopIssueStopwatch(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/stopwatch/stop issue issueStopWatch
 	// ---
