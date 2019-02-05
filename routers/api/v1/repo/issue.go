@@ -462,7 +462,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: index of the issue to create or stop the stopwatch on
+	//   description: index of the issue to create the stopwatch on
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -529,7 +529,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: index of the issue to create or stop the stopwatch on
+	//   description: index of the issue to stop the stopwatch on
 	//   type: integer
 	//   format: int64
 	//   required: true
