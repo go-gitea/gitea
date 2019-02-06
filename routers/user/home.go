@@ -402,6 +402,14 @@ func showOrgProfile(ctx *context.Context) {
 		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
 		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = models.SearchOrderByRecentUpdated
