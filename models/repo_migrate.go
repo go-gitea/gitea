@@ -71,10 +71,13 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 		var checkRepo Repository
 		has, err := x.ID(repo.ID).Get(&checkRepo)
 		if err != nil {
-			log.Error(3, "Repository is missing, can't notify", err)
+			log.Error(3, "Migration Failed: Repository is missing, can't notify: %v", err)
+			callback(fmt.Errorf("Migration Failed: Target repository is missing, can't notify: %v", err))
+			return
 		}
 		if !has {
 			log.Warn("Migration Failed: Target repository is missing, can't notify.")
+			callback(fmt.Errorf("Migration Failed: Target repository is missing, can't notify"))
 			return
 		}
 
@@ -185,24 +188,24 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 		failedMigration(fmt.Errorf("Clone completed but repository missing"))
 	}
 
-	if err := os.Rename(repoPath, repoPathToRemove); err != nil {
-		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
-		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+	if err := os.Rename(repoPath, repoPathToRemove); err != nil && !os.IsNotExist(err) {
+		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", repoPath, repoPathToRemove, err)
+		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(repoPath), sanitizeRepoPath(repoPathToRemove)))
 		return
 	}
 
 	if err := os.Rename(repoPathTmp, repoPath); err != nil {
-		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
-		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", repoPathTmp, repoPath, err)
+		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(repoPathTmp), sanitizeRepoPath(repoPath)))
 		return
 	}
 
-	RemoveAllWithNotice("Unable to remove placeholder repository", wikiPathToRemove)
+	RemoveAllWithNotice("Unable to remove placeholder repository", repoPathToRemove)
 
 	if wikiAvailable {
-		if err := os.Rename(wikiPath, wikiPathToRemove); err != nil {
-			log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
-			failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+		if err := os.Rename(wikiPath, wikiPathToRemove); err != nil && !os.IsNotExist(err) {
+			log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPath, wikiPathToRemove, err)
+			failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPath), sanitizeRepoPath(wikiPathToRemove)))
 			return
 		}
 

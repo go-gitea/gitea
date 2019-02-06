@@ -5,6 +5,7 @@
 package models
 
 import (
+	"log"
 	"testing"
 
 	"code.gitea.io/git"
@@ -120,10 +121,12 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		out <- true
 		return repoPath
 	})
+
 	assert.NoError(t, err)
 
 	// Now we have to wait til the migration is reported.
 	success := <-out
+	log.Println("Should have migrated")
 	assert.True(t, success)
 
 	gitRepo, err := git.OpenRepository(repoPath)
