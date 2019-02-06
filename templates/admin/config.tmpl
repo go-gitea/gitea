@@ -149,7 +149,7 @@
 					<dd><i class="fa fa{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}-check{{end}}-square-o"></i></dd>
 				{{end}}
 				<dt>{{.i18n.Tr "admin.config.default_visibility_organization"}}</dt>
-				<dd>{{.Service.DefaultVisibility}}</dd>
+				<dd>{{.Service.DefaultOrgVisibility}}</dd>
 
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>

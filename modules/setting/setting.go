@@ -1239,8 +1239,8 @@ func NewContext() {
 
 // Service settings
 var Service struct {
-	DefaultVisibility                       string
-	DefaultVisibilityMode                   structs.VisibleType
+	DefaultOrgVisibility                    string
+	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -1300,8 +1300,8 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
-	Service.DefaultVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(structs.VisibilityModes))
-	Service.DefaultVisibilityMode = structs.VisibilityModes[Service.DefaultVisibility]
+	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", ExtractKeysFromMapString(structs.VisibilityModes))
+	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")
