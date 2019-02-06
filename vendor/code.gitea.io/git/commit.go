@@ -18,6 +18,7 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
+	Branch string // Branch this commit belongs to
 	Tree
 	ID            SHA1 // The ID of this commit object
 	Author        *Signature
