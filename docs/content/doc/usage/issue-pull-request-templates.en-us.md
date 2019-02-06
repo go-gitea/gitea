@@ -19,7 +19,7 @@ For some projects there are a standard list of questions that users need to be a
 for creating an issue, or adding a pull request. Gitea supports adding templates to the
 main branch of the repository so that they can autopopulate the form when users are 
 creating issues, and pull requests. This will cut down on the initial back and forth
-of getting some clarifiying details.
+of getting some clarifying details.
 
 Possible file names for issue templates:
 
@@ -39,3 +39,6 @@ Possible file names for PR templates:
 * .gitea/pull_request_template.md
 * .github/PULL_REQUEST_TEMPLATE.md
 * .github/pull_request_template.md
+
+
+Additionally, the New Issue page URL can be suffixed with `?body=Issue+Text` and the form will be populated with that string. This string will be used instead of the template if there is one.

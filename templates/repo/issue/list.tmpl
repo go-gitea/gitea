@@ -9,13 +9,15 @@
 			<div class="column center aligned">
 				{{template "repo/issue/search" .}}
 			</div>
-			<div class="column right aligned">
-				{{if .PageIsIssueList}}
-					<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
-				{{else}}
-					<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
-				{{end}}
-			</div>
+			{{if not .Repository.IsArchived}}
+				<div class="column right aligned">
+					{{if .PageIsIssueList}}
+						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
+					{{else}}
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+					{{end}}
+				</div>
+			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
@@ -32,7 +34,7 @@
 				</div>
 			</div>
 			<div class="ten wide right aligned column">
-				<div class="ui secondary filter stackable menu">
+				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
 						<span class="text">
@@ -42,7 +44,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>

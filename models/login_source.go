@@ -644,7 +644,7 @@ func UserSignIn(username, password string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.ValidatePassword(password) {
+			if user.IsPasswordSet() && user.ValidatePassword(password) {
 				return user, nil
 			}
 

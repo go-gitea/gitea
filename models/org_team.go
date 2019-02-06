@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -123,14 +125,18 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
-	if err = t.getMembers(e); err != nil {
-		return fmt.Errorf("getMembers: %v", err)
-	}
-	for _, u := range t.Members {
-		if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
-			return fmt.Errorf("watchRepo: %v", err)
+	// Make all team members watch this repo if enabled in global settings
+	if setting.Service.AutoWatchNewRepos {
+		if err = t.getMembers(e); err != nil {
+			return fmt.Errorf("getMembers: %v", err)
+		}
+		for _, u := range t.Members {
+			if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
+				return fmt.Errorf("watchRepo: %v", err)
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -618,9 +624,10 @@ func AddTeamMember(team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
 			return err
 		}
-
-		if err = watchRepo(sess, userID, repo.ID, true); err != nil {
-			return err
+		if setting.Service.AutoWatchNewRepos {
+			if err = watchRepo(sess, userID, repo.ID, true); err != nil {
+				return err
+			}
 		}
 	}
 

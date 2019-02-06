@@ -8,6 +8,7 @@ package context
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -56,12 +57,21 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
 	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanCreateBranch()
+}
+
+// RepoMustNotBeArchived checks if a repo is archived
+func RepoMustNotBeArchived() macaron.Handler {
+	return func(ctx *Context) {
+		if ctx.Repo.Repository.IsArchived {
+			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+		}
+	}
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
@@ -162,7 +172,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
+	return path.Join(setting.Domain, setting.AppSubURL, url.QueryEscape(owner), url.QueryEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
