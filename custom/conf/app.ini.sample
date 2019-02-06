@@ -497,6 +497,7 @@ MODE = console
 BUFFER_LEN = 10000
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
 LEVEL = Trace
+REDIRECT_MACARON_LOG = false
 
 ; For "console" mode only
 [log.console]

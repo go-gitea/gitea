@@ -279,6 +279,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
 - `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to the Gitea logger.
 
 ## Cron (`cron`)
 

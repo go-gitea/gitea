@@ -48,7 +48,6 @@
         display: flex;
         justify-content: space-between;
         .ui.label {
-            margin-top: -2px;
             margin-left: 7px;
             padding: 3px 5px;
         }
@@ -1836,15 +1835,40 @@ tbody.commit-list {
 }
 
 #topic_edit {
-    margin-top:5px;
-}
-
-#repo-topic {
     margin-top: 5px;
 }
 
-.new-dependency-drop-list {
-	@media only screen and (max-width: 768px) {
-		width: 100%;
-	}
+#repo-topics {
+    margin-top: 5px;
+}
+
+.repo-topic {
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 768px) {
+    .new-dependency-drop-list {
+        width: 100%;
+    }
+}
+
+#manage_topic {
+    font-size: 12px;
+}
+
+.label + #manage_topic {
+    margin-left: 5px;
+}
+
+.repo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.repo-header .repo-title,
+.repo-header .repo-buttons {
+    display: flex;
+    align-items: center;
 }
