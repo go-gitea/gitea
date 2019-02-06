@@ -23,6 +23,8 @@ func TestCleanUploadName(t *testing.T) {
 		"../../../acd":     "acd",
 		"../../.git/abc":   "",
 		"..\\..\\.git/abc": "..\\..\\.git/abc",
+		"..\\../.git/abc":  "",
+		"..\\../.git":      "",
 		"abc/../def":       "def",
 	}
 	for k, v := range kases {
