@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -30,7 +31,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.Data["CurrentVisibility"] = models.VisibleType(ctx.Org.Organization.Visibility)
+	ctx.Data["CurrentVisibility"] = structs.VisibleType(ctx.Org.Organization.Visibility)
 	ctx.HTML(200, tplSettingsOptions)
 }
 

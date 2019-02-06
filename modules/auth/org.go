@@ -7,6 +7,7 @@ package auth
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -22,7 +23,7 @@ import (
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
 	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
-	Visibility models.VisibleType
+	Visibility structs.VisibleType
 }
 
 // Validate validates the fields
@@ -37,7 +38,7 @@ type UpdateOrgSettingForm struct {
 	Description     string `binding:"MaxSize(255)"`
 	Website         string `binding:"ValidUrl;MaxSize(255)"`
 	Location        string `binding:"MaxSize(50)"`
-	Visibility      models.VisibleType
+	Visibility      structs.VisibleType
 	MaxRepoCreation int
 }
 

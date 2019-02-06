@@ -19,9 +19,20 @@ const (
 )
 
 // VisibilityModes is a map of org Visibility types
-var VisibilityModes = map[string]int{
+var VisibilityModes = map[string]VisibleType{
 	"public":  VisibleTypePublic,
 	"limited": VisibleTypeLimited,
 	"private": VisibleTypePrivate,
 }
 
+func (vt VisibleType) IsPublic() bool {
+	return vt == VisibleTypePublic
+}
+
+func (vt VisibleType) IsLimited() bool {
+	return vt == VisibleTypeLimited
+}
+
+func (vt VisibleType) IsPrivate() bool {
+	return vt == VisibleTypePrivate
+}

@@ -26,14 +26,14 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -137,8 +137,8 @@ type User struct {
 	Description string
 	NumTeams    int
 	NumMembers  int
-	Teams       []*Team     `xorm:"-"`
-	Members     []*User     `xorm:"-"`
+	Teams       []*Team             `xorm:"-"`
+	Members     []*User             `xorm:"-"`
 	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences

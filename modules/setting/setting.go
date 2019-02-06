@@ -624,7 +624,7 @@ func DateLang(lang string) string {
 }
 
 // ExtractKeysFromMapString provides a slice of keys from map
-func ExtractKeysFromMapString(in map[string]int) (keys []string) {
+func ExtractKeysFromMapString(in map[string]structs.VisibleType) (keys []string) {
 	for k := range in {
 		keys = append(keys, k)
 	}
@@ -1238,7 +1238,7 @@ func NewContext() {
 // Service settings
 var Service struct {
 	DefaultVisibility                       string
-	DefaultVisibilityMode                   int
+	DefaultVisibilityMode                   structs.VisibleType
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool

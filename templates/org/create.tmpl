@@ -19,19 +19,19 @@
 						<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
 						<div class="field">
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .DefaultVisibilityMode 0}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultVisibilityMode.IsPublic()}}checked{{end}}/>
 								<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .DefaultVisibilityMode 1}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .DefaultVisibilityMode.IsLimited()}}checked{{end}}/>
 								<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .DefaultVisibilityMode 2}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .DefaultVisibilityMode.IsPrivate()}}checked{{end}}/>
 								<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
 							</div>
 						</div>
