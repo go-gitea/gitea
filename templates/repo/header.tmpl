@@ -1,30 +1,27 @@
 <div class="header-wrapper">
 {{with .Repository}}
 	<div class="ui container">
-		<div class="ui stackable grid header-grid">
-			<div class="nine wide column">
-				<div class="ui huge breadcrumb">
-					<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
-					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
-					<div class="divider"> / </div>
-					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
-					{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
-					{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
-				</div>
+		<div class="repo-header">
+			<div class="ui huge breadcrumb repo-title">
+				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
+				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+				<div class="divider"> / </div>
+				<a href="{{$.RepoLink}}">{{.Name}}</a>
+				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
+				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
+				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
-
-			<div class="ui seven wide right aligned column">
-				<div class="ui compact labeled button" tabindex="0">
-					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
+			<div class="repo-buttons">
+				<div class="ui labeled button" tabindex="0">
+					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
 					</a>
 					<a class="ui basic label" href="{{.Link}}/watchers">
 						{{.NumWatches}}
 					</a>
 				</div>
-				<div class="ui compact labeled button" tabindex="0">
-					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
+				<div class="ui labeled button" tabindex="0">
+					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 						<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
 					</a>
 					<a class="ui basic label" href="{{.Link}}/stars">
@@ -32,8 +29,8 @@
 					</a>
 				</div>
 				{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-					<div class="ui compact labeled button" tabindex="0">
-						<a class="ui compact button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
+					<div class="ui labeled button" tabindex="0">
+						<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 						</a>
 						<a class="ui basic label" href="{{.Link}}/forks">
