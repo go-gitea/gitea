@@ -109,20 +109,11 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 		if len(tagName) == 0 {
 			continue
 		}
-		commitID, err := NewCommand("rev-parse", tagName).RunInDir(repo.Path)
+		tag, err := repo.GetTag(tagName)
 		if err != nil {
 			return nil, err
 		}
-		commit, err := repo.GetCommit(commitID)
-		if err != nil {
-			return nil, err
-		}
-		tags = append(tags, &Tag{
-			Name:    tagName,
-			Message: commit.Message(),
-			Object:  commit.ID,
-			Tagger:  commit.Author,
-		})
+		tags = append(tags, tag)
 	}
 	sortTagsByTime(tags)
 	return tags, nil

@@ -4,7 +4,9 @@
 
 package models
 
-import "code.gitea.io/git"
+import (
+	"code.gitea.io/git"
+)
 
 // GetTagsByPath returns repo tags by it's path
 func GetTagsByPath(path string) ([]*git.Tag, error) {
