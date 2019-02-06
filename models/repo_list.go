@@ -172,8 +172,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
-		var accessCond = builder.NewCond()
-		accessCond = builder.Or(
+		accessCond := builder.Or(
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": VisibleTypeLimited}, builder.Eq{"visibility": VisibleTypePrivate}))),
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})))
 		cond = cond.And(accessCond)
@@ -208,8 +207,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				exprCond = builder.Eq{"org_user.org_id": "user.id"}
 			}
 
-			var visibilityCond = builder.NewCond()
-			visibilityCond = builder.Or(
+			visibilityCond := builder.Or(
 				builder.In("owner_id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
 				builder.In("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": VisibleTypePublic}, builder.Eq{"visibility": VisibleTypeLimited}))),
 				builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
