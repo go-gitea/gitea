@@ -2966,10 +2966,13 @@
             "$ref": "#/responses/empty"
           },
           "403": {
-            "description": "Not repo writer, user does not have rights to toggle stopwatch or trying to start a stopwatch again if it already exists"
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
           },
           "404": {
             "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot start a stopwatch again if it already exists"
           }
         }
       }
@@ -3016,10 +3019,13 @@
             "$ref": "#/responses/empty"
           },
           "403": {
-            "description": "Not repo writer, user does not have rights to toggle stopwatch or trying to stop a non existent stopwatch"
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
           },
           "404": {
             "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot stop a non existent stopwatch"
           }
         }
       }

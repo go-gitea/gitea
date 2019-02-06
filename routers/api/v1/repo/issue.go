@@ -470,9 +470,11 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch or trying to start a stopwatch again if it already exists
+	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
 	//     description: Issue not found
+	//   "409":
+	//     description: Cannot start a stopwatch again if it already exists
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -495,7 +497,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if models.StopwatchExists(ctx.User.ID, issue.ID) {
-		ctx.Error(403, "StopwatchExists", "a stopwatch has already been started for this issue")
+		ctx.Error(409, "StopwatchExists", "a stopwatch has already been started for this issue")
 		return
 	}
 
@@ -537,9 +539,11 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "403":
-	//     description: Not repo writer, user does not have rights to toggle stopwatch or trying to stop a non existent stopwatch
+	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
 	//     description: Issue not found
+	//   "409":
+	//     description:  Cannot stop a non existent stopwatch
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -562,7 +566,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if !models.StopwatchExists(ctx.User.ID, issue.ID) {
-		ctx.Error(403, "StopwatchExists", "cannot stop a non existent stopwatch")
+		ctx.Error(409, "StopwatchExists", "cannot stop a non existent stopwatch")
 		return
 	}
 
