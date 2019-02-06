@@ -31,7 +31,12 @@ import (
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
-	_ "github.com/go-macaron/session/redis" // redis plugin for store session
+	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
+	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
+	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
+	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
+	_ "github.com/go-macaron/session/postgres"  // postgres plugin for session store
+	_ "github.com/go-macaron/session/redis"     // redis plugin for store session
 	"github.com/go-xorm/core"
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
@@ -388,10 +393,11 @@ var (
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
-	LogLevel    string
-	LogRootPath string
-	LogModes    []string
-	LogConfigs  []string
+	LogLevel           string
+	LogRootPath        string
+	LogModes           []string
+	LogConfigs         []string
+	RedirectMacaronLog bool
 
 	// Attachment settings
 	AttachmentPath         string
@@ -762,6 +768,7 @@ func NewContext() {
 	LogLevel = getLogLevel("log", "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
+	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -1506,7 +1513,7 @@ func newCacheService() {
 
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
-		[]string{"memory", "file", "redis", "mysql"})
+		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "nodb"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
