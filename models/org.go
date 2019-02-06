@@ -620,7 +620,7 @@ type AccessibleReposEnvironment interface {
 	RepoIDs(page, pageSize int) ([]int64, error)
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
-	AddKeyword(keyword string) ()
+	AddKeyword(keyword string)
 }
 
 type accessibleReposEnv struct {
@@ -628,7 +628,7 @@ type accessibleReposEnv struct {
 	userID  int64
 	teamIDs []int64
 	e       Engine
-	keyword	string
+	keyword string
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
@@ -737,6 +737,6 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 		Find(&repos)
 }
 
-func (env *accessibleReposEnv) AddKeyword(keyword string) () {
+func (env *accessibleReposEnv) AddKeyword(keyword string) {
 	env.keyword = keyword
 }
