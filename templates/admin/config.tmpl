@@ -184,7 +184,7 @@
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					{{if not .Mailer.MailerType == "sendmail"}}
+					{{if ne .Mailer.MailerType "sendmail"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
 						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
