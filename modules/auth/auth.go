@@ -45,7 +45,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			auHead := ctx.Req.Header.Get("Authorization")
 			if len(auHead) > 0 {
 				auths := strings.Fields(auHead)
-				if len(auths) == 2 && (auths[0] == "token" || auths[0] == "bearer") {
+				if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
 					tokenSHA = auths[1]
 				}
 			}
