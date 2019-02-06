@@ -393,10 +393,11 @@ var (
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
-	LogLevel    string
-	LogRootPath string
-	LogModes    []string
-	LogConfigs  []string
+	LogLevel           string
+	LogRootPath        string
+	LogModes           []string
+	LogConfigs         []string
+	RedirectMacaronLog bool
 
 	// Attachment settings
 	AttachmentPath         string
@@ -560,13 +561,15 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwagger    bool
-		MaxResponseItems int
-		DefaultPagingNum int
+		EnableSwagger          bool
+		MaxResponseItems       int
+		DefaultPagingNum       int
+		DefaultGitTreesPerPage int
 	}{
-		EnableSwagger:    true,
-		MaxResponseItems: 50,
-		DefaultPagingNum: 30,
+		EnableSwagger:          true,
+		MaxResponseItems:       50,
+		DefaultPagingNum:       30,
+		DefaultGitTreesPerPage: 1000,
 	}
 
 	U2F = struct {
@@ -767,6 +770,7 @@ func NewContext() {
 	LogLevel = getLogLevel("log", "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
+	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
