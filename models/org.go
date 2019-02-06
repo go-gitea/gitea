@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -371,7 +372,7 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 func HasOrgVisible(org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		if org.Visibility == VisibleTypePublic {
+		if org.Visibility == structs.VisibleTypePublic {
 			return true
 		}
 		return false
@@ -380,10 +381,8 @@ func HasOrgVisible(org *User, user *User) bool {
 	if user.IsAdmin {
 		return true
 	}
-	if org.Visibility == VisibleTypePrivate {
-		if org.IsUserPartOfOrg(user.ID) {
-			return true
-		}
+
+	if org.Visibility == structs.VisibleTypePrivate && !org.IsUserPartOfOrg(user.ID) {
 		return false
 	}
 	return true
