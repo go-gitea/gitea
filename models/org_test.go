@@ -7,6 +7,8 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -554,7 +556,7 @@ func TestHasOrgVisibleTypePublic(t *testing.T) {
 	const newOrgName = "test-org-public"
 	org := &User{
 		Name:       newOrgName,
-		Visibility: VisibleTypePublic,
+		Visibility: structs.VisibleTypePublic,
 	}
 
 	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
@@ -577,7 +579,7 @@ func TestHasOrgVisibleTypeLimited(t *testing.T) {
 	const newOrgName = "test-org-limited"
 	org := &User{
 		Name:       newOrgName,
-		Visibility: VisibleTypeLimited,
+		Visibility: structs.VisibleTypeLimited,
 	}
 
 	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
@@ -600,7 +602,7 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	const newOrgName = "test-org-private"
 	org := &User{
 		Name:       newOrgName,
-		Visibility: VisibleTypePrivate,
+		Visibility: structs.VisibleTypePrivate,
 	}
 
 	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
