@@ -1108,12 +1108,12 @@
   version = "v2.5.1"
 
 [[projects]]
-  digest = "1:cfe1730a152ff033ad7d9c115d22e36b19eec6d5928c06146b9119be45d39dc0"
+  digest = "1:de2e7294c9bd0b7d07ada8e98ad02cbbaabacff90eedebe7454ebdbab50d0d19"
   name = "gopkg.in/macaron.v1"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "75f2e9b42e99652f0d82b28ccb73648f44615faa"
-  version = "v1.2.4"
+  revision = "dfcb80ca86e8534962c62812efd93209c7e600e7"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:00126f697efdcab42f07c89ac8bf0095fb2328aef6464e070055154088cea859"
