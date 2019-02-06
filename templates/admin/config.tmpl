@@ -184,12 +184,12 @@
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					{{if not .Mailer.UseSendmail}}
+					{{if eq .Mailer.MailerType "smtp"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
 						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
 						<dd>{{.Mailer.Host}}</dd>
-					{{else}}
+					{{else if eq .Mailer.MailerType "sendmail"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
 						<dd><i class="fa fa-check-square-o"></i></dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>
