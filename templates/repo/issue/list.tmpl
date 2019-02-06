@@ -184,7 +184,7 @@
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
-					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
+					<div class="ui {{if .IsRead}}blue{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
 					{{if .Ref}}
