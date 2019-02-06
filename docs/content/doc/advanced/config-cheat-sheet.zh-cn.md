@@ -194,7 +194,14 @@ menu:
 - `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
 - `GC`: **60**: git仓库GC的超时时间，单位秒
 
-## markup (`markup`)
+## API (`api`)
+
+- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
+- `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
+- `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认和最大项数.
+
+## Markup (`markup`)
 
 外部渲染工具支持，你可以用你熟悉的文档渲染工具. 比如一下将新增一个名字为 `asciidoc` 的渲染工具which is followed `markup.` ini section. And there are some config items below.
 

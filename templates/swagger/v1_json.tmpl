@@ -23,7 +23,45 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all organizations",
+        "operationId": "adminGetAllOrgs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/users": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all users",
+        "operationId": "adminGetAllUsers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -1584,6 +1622,49 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the commit hash",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -1659,6 +1740,64 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/trees/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tree of a repository.",
+        "operationId": "GetTree",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "show all directories and files",
+            "name": "recursive",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number; the 'truncated' field in the response will be true if there are still more items after this page, false if the last page",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE",
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitTreeResponse"
           }
         }
       }
@@ -1936,6 +2075,12 @@
             "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "name": "labels",
             "in": "query"
           },
           {
@@ -3756,6 +3901,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page wants to load",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "items count every page wants to load",
+            "name": "per_page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6084,6 +6241,75 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Commit": {
+      "type": "object",
+      "title": "Commit contains information generated from a Git commit.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/User"
+        },
+        "commit": {
+          "$ref": "#/definitions/RepoCommit"
+        },
+        "committer": {
+          "$ref": "#/definitions/User"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitMeta"
+          },
+          "x-go-name": "Parents"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitMeta": {
+      "type": "object",
+      "title": "CommitMeta contains meta information of a commit in terms of API.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitUser": {
+      "type": "object",
+      "title": "CommitUser contains information of a user in the context of a commit.",
+      "properties": {
+        "date": {
+          "type": "string",
+          "x-go-name": "Date"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -7089,6 +7315,38 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "GitEntry": {
+      "description": "GitEntry represents a git tree",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "x-go-name": "Mode"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "GitObject": {
       "type": "object",
       "title": "GitObject represents a Git object.",
@@ -7100,6 +7358,42 @@
         "type": {
           "type": "string",
           "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse returns a git tree",
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Page"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "tree": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GitEntry"
+          },
+          "x-go-name": "Entries"
+        },
+        "truncated": {
+          "type": "boolean",
+          "x-go-name": "Truncated"
         },
         "url": {
           "type": "string",
@@ -7422,6 +7716,13 @@
       "description": "PayloadCommit represents a commit",
       "type": "object",
       "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Added"
+        },
         "author": {
           "$ref": "#/definitions/PayloadUser"
         },
@@ -7436,6 +7737,20 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Modified"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Removed"
         },
         "timestamp": {
           "type": "string",
@@ -7779,6 +8094,30 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "RepoCommit": {
+      "type": "object",
+      "title": "RepoCommit contains information of a commit in the context of a repository.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "committer": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "tree": {
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -8213,6 +8552,12 @@
         }
       }
     },
+    "Commit": {
+      "description": "Commit",
+      "schema": {
+        "$ref": "#/definitions/Commit"
+      }
+    },
     "DeployKey": {
       "description": "DeployKey",
       "schema": {
@@ -8250,6 +8595,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GitTreeResponse": {
+      "description": "GitTreeResponse",
+      "schema": {
+        "$ref": "#/definitions/GitTreeResponse"
       }
     },
     "Hook": {
