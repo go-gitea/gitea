@@ -54,16 +54,28 @@ func sanitizeRepoPath(path string) string {
 func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callback func(error) string) {
 	repoPath := RepoPath(u.Name, opts.Name)
 	wikiPath := WikiPath(u.Name, opts.Name)
+	timeNow := time.Now().Unix()
+	repoPathTmp := fmt.Sprintf("%s.migration-%d", repoPath, timeNow)
+	wikiPathTmp := fmt.Sprintf("%s.migration-%d", wikiPath, timeNow)
+	repoPathToRemove := fmt.Sprintf("%s.toremove-%d", wikiPath, timeNow)
+	wikiPathToRemove := fmt.Sprintf("%s.toremove-%d", wikiPath, timeNow)
 
-	repoPathTmp := repoPath + ".migration"
-	wikiPathTmp := wikiPath + ".migration"
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	failedMigration := func(err error) {
-		if err := os.RemoveAll(wikiPathTmp); err != nil {
-			log.Error(3, "Failed to remove %s: %v", wikiPathTmp, err)
+		RemoveAllWithNotice("Unable to remove temporary wiki path in clean-up for migration", wikiPathTmp)
+
+		RemoveAllWithNotice("Unable to remove temporary repo path in clean-up for migration", repoPathTmp)
+
+		var checkRepo Repository
+		has, err := x.ID(repo.ID).Get(&checkRepo)
+		if err != nil {
+			log.Error(3, "Repository is missing, can't notify", err)
 		}
-		if err := os.RemoveAll(repoPathTmp); err != nil {
-			log.Error(3, "Failed to remove %s: %v", repoPathTmp, err)
+		if !has {
+			log.Warn("Migration Failed: Target repository is missing, can't notify.")
+			return
 		}
 
 		repo.IsEmpty = true
@@ -130,50 +142,29 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 
 	}
 
-	if err := os.RemoveAll(repoPath); err != nil {
-		log.Error(2, "Migration Failed: unable remove temporary repo %s: %v", repoPath, err)
-		failedMigration(fmt.Errorf("Failed to remove %s", sanitizeRepoPath(repoPath)))
-		return
-	}
-
-	if err := os.Rename(repoPathTmp, repoPath); err != nil {
-		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", repoPathTmp, repoPath, err)
-		failedMigration(fmt.Errorf("Failed to rename %s to %s", sanitizeRepoPath(repoPathTmp), sanitizeRepoPath(repoPath)))
-		return
-	}
-
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+	wikiAvailable := false
 	if len(wikiRemotePath) > 0 {
+		wikiAvailable = true
 		if err := git.Clone(wikiRemotePath, wikiPathTmp, git.CloneRepoOptions{
 			Mirror:  true,
 			Quiet:   true,
 			Timeout: migrateTimeout,
 			Branch:  "master",
 		}); err != nil {
+			wikiAvailable = false
 			log.Warn("Clone wiki: %v", err)
 			if err := os.RemoveAll(wikiPathTmp); err != nil {
 				log.Error(2, "Migration Failed: unable remove migrated empty wiki repo %s: %v", wikiPathTmp, err)
 				failedMigration(fmt.Errorf("Failed to remove migrated empty wiki repo %s", sanitizeRepoPath(wikiPathTmp)))
 				return
 			}
-		} else {
-			if err := os.RemoveAll(wikiPath); err != nil {
-				log.Error(2, "Migration Failed: unable remove placeholder repo %s: %v", wikiPath, err)
-				failedMigration(fmt.Errorf("Failed to remove placeholder repo %s", sanitizeRepoPath(wikiPath)))
-				return
-			}
-
-			if err := os.Rename(wikiPathTmp, wikiPath); err != nil {
-				log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
-				failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
-				return
-			}
 		}
 	}
 
-	// Check if repository is empty.
+	// Check if repository should be empty.
 	repo.IsEmpty = false
-	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
+	_, stderr, err := com.ExecCmdDir(repoPathTmp, "git", "log", "-1")
 	if err != nil {
 		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
 			repo.IsEmpty = true
@@ -181,6 +172,46 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 			failedMigration(fmt.Errorf("check empty: %v - %s", err, stderr))
 			return
 		}
+	}
+
+	// OK now we're ready to actually begin
+	// We need to check if the repo still exists
+	refreshedRepo := Repository{ID: repo.ID}
+	has, err := x.Get(&refreshedRepo)
+	if err != nil {
+		failedMigration(err)
+	}
+	if !has {
+		failedMigration(fmt.Errorf("Clone completed but repository missing"))
+	}
+
+	if err := os.Rename(repoPath, repoPathToRemove); err != nil {
+		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
+		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+		return
+	}
+
+	if err := os.Rename(repoPathTmp, repoPath); err != nil {
+		log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
+		failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+		return
+	}
+
+	RemoveAllWithNotice("Unable to remove placeholder repository", wikiPathToRemove)
+
+	if wikiAvailable {
+		if err := os.Rename(wikiPath, wikiPathToRemove); err != nil {
+			log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
+			failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+			return
+		}
+
+		if err := os.Rename(wikiPathTmp, wikiPath); err != nil {
+			log.Error(2, "Migration Failed: unable rename temporary migrated repo %s to %s: %v", wikiPathTmp, wikiPath, err)
+			failedMigration(fmt.Errorf("Failed to rename temporary migrated repo %s to %s", sanitizeRepoPath(wikiPathTmp), sanitizeRepoPath(wikiPath)))
+			return
+		}
+		RemoveAllWithNotice("Unable to remove placeholder wiki repository", wikiPathToRemove)
 	}
 
 	if !repo.IsEmpty {
@@ -247,6 +278,15 @@ func doMigration(doer, u *User, repo *Repository, opts MigrateRepoOptions, callb
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 		Content:   callback(nil),
+	})
+
+	NotifyWatchers(&Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	})
 }
 

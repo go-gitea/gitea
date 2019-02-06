@@ -58,7 +58,7 @@
 						{{else if eq .GetOpType 20}}
 							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 21}}
-							{{$.i18n.Tr "action.migration_started" .GetContent .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.migration_started" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 22}}
 							{{$.i18n.Tr "action.migration_successful" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 23}}
