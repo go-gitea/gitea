@@ -250,7 +250,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
@@ -279,6 +279,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
 - `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to the Gitea logger.
 
 ## Cron (`cron`)
 
