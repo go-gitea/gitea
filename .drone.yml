@@ -127,6 +127,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
+      - make test-sqlite-migration
       - make test-sqlite
     when:
       event: [ push, tag, pull_request ]
@@ -141,6 +142,7 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - make test-mysql-migration
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
@@ -157,6 +159,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-mysql-migration
       - make test-mysql
     when:
       event: [ tag ]
@@ -172,7 +175,23 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-pgsql-migration
       - make test-pgsql
+    when:
+      event: [ push, tag, pull_request ]
+
+  test-mssql:
+    image: golang:1.11
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      TEST_LDAP: "1"
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - make test-mssql-migration
+      - make test-mssql
     when:
       event: [ push, tag, pull_request ]
 
@@ -344,6 +363,15 @@ services:
     image: postgres:9.5
     environment:
       - POSTGRES_DB=test
+    when:
+      event: [ push, tag, pull_request ]
+
+  mssql:
+    image: microsoft/mssql-server-linux:latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MwantsaSecurePassword1
+      - MSSQL_PID=Standard
     when:
       event: [ push, tag, pull_request ]
 

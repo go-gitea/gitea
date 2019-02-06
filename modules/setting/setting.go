@@ -31,11 +31,16 @@ import (
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
-	_ "github.com/go-macaron/session/redis" // redis plugin for store session
+	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
+	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
+	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
+	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
+	_ "github.com/go-macaron/session/postgres"  // postgres plugin for session store
+	_ "github.com/go-macaron/session/redis"     // redis plugin for store session
 	"github.com/go-xorm/core"
-	"github.com/kballard/go-shellquote"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
+	shellquote "github.com/kballard/go-shellquote"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -157,23 +162,26 @@ var (
 	}
 
 	// Security settings
-	InstallLock          bool
-	SecretKey            string
-	LogInRememberDays    int
-	CookieUserName       string
-	CookieRememberName   string
-	ReverseProxyAuthUser string
-	MinPasswordLength    int
-	ImportLocalPaths     bool
-	DisableGitHooks      bool
+	InstallLock           bool
+	SecretKey             string
+	LogInRememberDays     int
+	CookieUserName        string
+	CookieRememberName    string
+	ReverseProxyAuthUser  string
+	ReverseProxyAuthEmail string
+	MinPasswordLength     int
+	ImportLocalPaths      bool
+	DisableGitHooks       bool
 
 	// Database settings
-	UseSQLite3    bool
-	UseMySQL      bool
-	UseMSSQL      bool
-	UsePostgreSQL bool
-	UseTiDB       bool
-	LogSQL        bool
+	UseSQLite3       bool
+	UseMySQL         bool
+	UseMSSQL         bool
+	UsePostgreSQL    bool
+	UseTiDB          bool
+	LogSQL           bool
+	DBConnectRetries int
+	DBConnectBackoff time.Duration
 
 	// Indexer settings
 	Indexer struct {
@@ -200,15 +208,16 @@ var (
 
 	// Repository settings
 	Repository = struct {
-		AnsiCharset            string
-		ForcePrivate           bool
-		DefaultPrivate         string
-		MaxCreationLimit       int
-		MirrorQueueLength      int
-		PullRequestQueueLength int
-		PreferredLicenses      []string
-		DisableHTTPGit         bool
-		UseCompatSSHURI        bool
+		AnsiCharset              string
+		ForcePrivate             bool
+		DefaultPrivate           string
+		MaxCreationLimit         int
+		MirrorQueueLength        int
+		PullRequestQueueLength   int
+		PreferredLicenses        []string
+		DisableHTTPGit           bool
+		AccessControlAllowOrigin string
+		UseCompatSSHURI          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -236,15 +245,16 @@ var (
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
 	}{
-		AnsiCharset:            "",
-		ForcePrivate:           false,
-		DefaultPrivate:         RepoCreatingLastUserVisibility,
-		MaxCreationLimit:       -1,
-		MirrorQueueLength:      1000,
-		PullRequestQueueLength: 1000,
-		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
-		DisableHTTPGit:         false,
-		UseCompatSSHURI:        false,
+		AnsiCharset:              "",
+		ForcePrivate:             false,
+		DefaultPrivate:           RepoCreatingLastUserVisibility,
+		MaxCreationLimit:         -1,
+		MirrorQueueLength:        1000,
+		PullRequestQueueLength:   1000,
+		PreferredLicenses:        []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:           false,
+		AccessControlAllowOrigin: "",
+		UseCompatSSHURI:          false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -283,7 +293,7 @@ var (
 		PullRequest: struct {
 			WorkInProgressPrefixes []string
 		}{
-			WorkInProgressPrefixes: defaultPullRequestWorkInProgressPrefixes,
+			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 		},
 	}
 	RepoRootPath string
@@ -302,6 +312,7 @@ var (
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
 		DefaultTheme        string
+		Themes              []string
 
 		Admin struct {
 			UserPagingNum   int
@@ -328,6 +339,7 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
+		Themes:              []string{`gitea`, `arc-green`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -381,10 +393,11 @@ var (
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
-	LogLevel    string
-	LogRootPath string
-	LogModes    []string
-	LogConfigs  []string
+	LogLevel           string
+	LogRootPath        string
+	LogModes           []string
+	LogConfigs         []string
+	RedirectMacaronLog bool
 
 	// Attachment settings
 	AttachmentPath         string
@@ -550,9 +563,11 @@ var (
 	API = struct {
 		EnableSwagger    bool
 		MaxResponseItems int
+		DefaultPagingNum int
 	}{
 		EnableSwagger:    true,
 		MaxResponseItems: 50,
+		DefaultPagingNum: 30,
 	}
 
 	U2F = struct {
@@ -692,6 +707,27 @@ func createPIDFile(pidPath string) {
 	}
 }
 
+// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
+func CheckLFSVersion() {
+	if LFS.StartServer {
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal(4, "Error retrieving git version: %v", err)
+		}
+
+		if !version.Compare(binVersion, "2.1.2", ">=") {
+			LFS.StartServer = false
+			log.Error(4, "LFS server support needs at least Git v2.1.2")
+		} else {
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+		}
+	}
+}
+
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
 func NewContext() {
@@ -732,6 +768,7 @@ func NewContext() {
 	LogLevel = getLogLevel("log", "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
+	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -887,7 +924,6 @@ func NewContext() {
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
-
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
 			log.Fatal(4, "Failed to create '%s': %v", LFS.ContentPath, err)
 		}
@@ -921,26 +957,6 @@ func NewContext() {
 				return
 			}
 		}
-
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			log.Fatal(4, "Error retrieving git version: %v", err)
-		}
-
-		if !version.Compare(binVersion, "2.1.2", ">=") {
-
-			LFS.StartServer = false
-			log.Error(4, "LFS server support needs at least Git v2.1.2")
-
-		} else {
-
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-
-		}
 	}
 
 	sec = Cfg.Section("security")
@@ -950,6 +966,7 @@ func NewContext() {
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
+	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
@@ -980,6 +997,8 @@ func NewContext() {
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
+	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
+	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -1135,11 +1154,17 @@ func NewContext() {
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
-		Langs = defaultLangs
+		Langs = []string{
+			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
+			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pl-PL", "bg-BG", "it-IT",
+			"fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
-		Names = defaultLangNames
+		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
+			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
+			"español", "português do Brasil", "polski", "български", "italiano",
+			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
 	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
@@ -1216,6 +1241,7 @@ var Service struct {
 	EnableNotifyMail                        bool
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
+	EnableReverseProxyEmail                 bool
 	EnableCaptcha                           bool
 	CaptchaType                             string
 	RecaptchaSecret                         string
@@ -1228,6 +1254,7 @@ var Service struct {
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
+	AutoWatchNewRepos                       bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1247,6 +1274,7 @@ func newService() {
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
+	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
@@ -1261,6 +1289,7 @@ func newService() {
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
+	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
@@ -1484,7 +1513,7 @@ func newCacheService() {
 
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
-		[]string{"memory", "file", "redis", "mysql"})
+		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "nodb"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
@@ -1507,6 +1536,7 @@ type Mailer struct {
 	FromName        string
 	FromEmail       string
 	SendAsPlainText bool
+	MailerType      string
 
 	// SMTP sender
 	Host              string
@@ -1519,7 +1549,6 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	UseSendmail  bool
 	SendmailPath string
 	SendmailArgs []string
 }
@@ -1540,6 +1569,7 @@ func newMailService() {
 		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
+		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
 		Host:           sec.Key("HOST").String(),
 		User:           sec.Key("USER").String(),
@@ -1552,7 +1582,6 @@ func newMailService() {
 		KeyFile:        sec.Key("KEY_FILE").String(),
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 
-		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
@@ -1562,6 +1591,13 @@ func newMailService() {
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
+	if sec.HasKey("USE_SENDMAIL") {
+		log.Warn("USE_SENDMAIL is deprecated, use MAILER_TYPE=sendmail")
+		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
+			MailService.MailerType = "sendmail"
+		}
+	}
+
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
@@ -1569,7 +1605,11 @@ func newMailService() {
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
-	if MailService.UseSendmail {
+	if MailService.MailerType == "" {
+		MailService.MailerType = "smtp"
+	}
+
+	if MailService.MailerType == "sendmail" {
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
 			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)

@@ -393,7 +393,13 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		return nil, ErrUserNotExist{0, login, 0}
 	}
 
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+
 	if !autoRegister {
+		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+			RewriteAllPublicKeys()
+		}
+
 		return user, nil
 	}
 
@@ -421,7 +427,14 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		IsActive:    true,
 		IsAdmin:     sr.IsAdmin,
 	}
-	return user, CreateUser(user)
+
+	err := CreateUser(user)
+
+	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+		RewriteAllPublicKeys()
+	}
+
+	return user, err
 }
 
 //   _________   __________________________
@@ -631,7 +644,7 @@ func UserSignIn(username, password string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.ValidatePassword(password) {
+			if user.IsPasswordSet() && user.ValidatePassword(password) {
 				return user, nil
 			}
 

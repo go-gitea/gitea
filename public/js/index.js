@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -394,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -557,7 +561,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -686,7 +690,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $('#content');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -1411,13 +1415,15 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1538,7 +1544,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -2065,7 +2071,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
@@ -2599,7 +2605,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
@@ -2629,16 +2635,15 @@ function initTopicbar() {
         }, function(data, textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length === 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
+                if (topics.length) {
+                    var topicArray = topics.split(",");
 
-                var last = viewDiv.children("a").last();
-                for (var i=0; i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
                 }
-                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                editDiv.css('display', 'none');
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2692,7 +2697,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2804,21 +2809,27 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     var repolink = $('#repolink').val();
-    $('.new-dependency-drop-list')
+    $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
                 url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
+                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
+                        // Don't list current issue in the dependency list.
+                        if(issue.id === currIssueId) {
+                            return;
+                        }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
                     return filteredResponse;
                 },
+                cache: false,
             },
 
             fullTextSearch: true

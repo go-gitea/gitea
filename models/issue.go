@@ -86,6 +86,11 @@ func (issue *Issue) IsOverdue() bool {
 	return util.TimeStampNow() >= issue.DeadlineUnix
 }
 
+// LoadRepo loads issue's repository
+func (issue *Issue) LoadRepo() error {
+	return issue.loadRepo(x)
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -98,7 +103,11 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled() bool {
-	if err := issue.loadRepo(x); err != nil {
+	return issue.isTimetrackerEnabled(x)
+}
+
+func (issue *Issue) isTimetrackerEnabled(e Engine) bool {
+	if err := issue.loadRepo(e); err != nil {
 		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
@@ -129,6 +138,11 @@ func (issue *Issue) loadLabels(e Engine) (err error) {
 	return nil
 }
 
+// LoadPoster loads poster
+func (issue *Issue) LoadPoster() error {
+	return issue.loadPoster(x)
+}
+
 func (issue *Issue) loadPoster(e Engine) (err error) {
 	if issue.Poster == nil {
 		issue.Poster, err = getUserByID(e, issue.PosterID)
@@ -154,8 +168,14 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 			}
 			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
 		}
+		issue.PullRequest.Issue = issue
 	}
 	return nil
+}
+
+// LoadPullRequest loads pull request info
+func (issue *Issue) LoadPullRequest() error {
+	return issue.loadPullRequest(x)
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
@@ -180,7 +200,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+	if _, err := ReactionList(reactions).loadUsers(e); err != nil {
 		return err
 	}
 
@@ -239,7 +259,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
-	if issue.IsTimetrackerEnabled() {
+	if issue.isTimetrackerEnabled(e) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
@@ -310,11 +330,18 @@ func (issue *Issue) State() api.StateType {
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func (issue *Issue) APIFormat() *api.Issue {
+	return issue.apiFormat(x)
+}
+
+func (issue *Issue) apiFormat(e Engine) *api.Issue {
+	issue.loadLabels(e)
 	apiLabels := make([]*api.Label, len(issue.Labels))
 	for i := range issue.Labels {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
 
+	issue.loadPoster(e)
+	issue.loadRepo(e)
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
@@ -329,9 +356,15 @@ func (issue *Issue) APIFormat() *api.Issue {
 		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
+	if issue.ClosedUnix != 0 {
+		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
+	}
+
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
+	issue.loadAssignees(e)
+
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
@@ -339,6 +372,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
+		issue.loadPullRequest(e)
 		apiIssue.PullRequest = &api.PullRequestMeta{
 			HasMerged: issue.PullRequest.HasMerged,
 		}
@@ -652,7 +686,7 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 	return updateIssueCols(x, issue, cols...)
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Nothing should be performed if current status is same as target status
 	if issue.IsClosed == isClosed {
 		return nil
@@ -703,7 +737,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, repo, issue); err != nil {
+	if _, err = createStatusComment(e, doer, issue); err != nil {
 		return err
 	}
 
@@ -711,14 +745,21 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (err error) {
+func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.changeStatus(sess, doer, repo, isClosed); err != nil {
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+	if err = issue.loadPoster(sess); err != nil {
+		return err
+	}
+
+	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
 		return err
 	}
 
@@ -729,12 +770,14 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
+		if err = issue.loadPullRequest(sess); err != nil {
+			return err
+		}
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
-		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(mode),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -742,12 +785,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
+		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
-			Repository: repo.APIFormat(mode),
+			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		}
 		if isClosed {
@@ -755,12 +798,12 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		} else {
 			apiIssue.Action = api.HookIssueReOpened
 		}
-		err = PrepareWebhooks(repo, HookEventIssues, apiIssue)
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
-		go HookQueue.Add(repo.ID)
+		go HookQueue.Add(issue.Repo.ID)
 	}
 
 	return nil
@@ -781,6 +824,10 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
 	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
@@ -791,6 +838,9 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
+		if err = issue.loadPullRequest(sess); err != nil {
+			return fmt.Errorf("loadPullRequest: %v", err)
+		}
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
@@ -1062,8 +1112,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	UpdateIssueIndexer(issue.ID)
-
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
@@ -1074,9 +1122,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
-	}
-	if err = issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
@@ -1095,8 +1140,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	return nil
 }
 
-// GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.
-func GetRawIssueByIndex(repoID, index int64) (*Issue, error) {
+// GetIssueByIndex returns raw issue without loading attributes by index in a repository.
+func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	issue := &Issue{
 		RepoID: repoID,
 		Index:  index,
@@ -1110,9 +1155,9 @@ func GetRawIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueByIndex returns issue by index in a repository.
-func GetIssueByIndex(repoID, index int64) (*Issue, error) {
-	issue, err := GetRawIssueByIndex(repoID, index)
+// GetIssueWithAttrsByIndex returns issue by index in a repository.
+func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(repoID, index)
 	if err != nil {
 		return nil, err
 	}
@@ -1127,7 +1172,16 @@ func getIssueByID(e Engine, id int64) (*Issue, error) {
 	} else if !has {
 		return nil, ErrIssueNotExist{id, 0, 0}
 	}
-	return issue, issue.loadAttributes(e)
+	return issue, nil
+}
+
+// GetIssueWithAttrsByID returns an issue with attributes by given ID.
+func GetIssueWithAttrsByID(id int64) (*Issue, error) {
+	issue, err := getIssueByID(x, id)
+	if err != nil {
+		return nil, err
+	}
+	return issue, issue.loadAttributes(x)
 }
 
 // GetIssueByID returns an issue by given ID.
@@ -1156,7 +1210,7 @@ type IssuesOptions struct {
 	PageSize    int
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
-	Labels      string
+	LabelIDs    []int64
 	SortType    string
 	IssueIDs    []int64
 }
@@ -1235,15 +1289,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 		sess.And("issue.is_pull=?", false)
 	}
 
-	if len(opts.Labels) > 0 && opts.Labels != "0" {
-		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-		if err != nil {
-			return err
-		}
-		if len(labelIDs) > 0 {
-			sess.
-				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-				In("issue_label.label_id", labelIDs)
+	if opts.LabelIDs != nil {
+		for i, labelID := range opts.LabelIDs {
+			sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
 	return nil
@@ -1347,7 +1396,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		}
 
 		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := GetOrgUsersByOrgID(user.ID)
+		orgUsers, err := getOrgUsersByOrgID(e, user.ID)
 		if err != nil {
 			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
 		}
@@ -1421,9 +1470,11 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
-			} else if len(labelIDs) > 0 {
-				sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-					In("issue_label.label_id", labelIDs)
+			} else {
+				for i, labelID := range labelIDs {
+					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				}
 			}
 		}
 
@@ -1596,7 +1647,6 @@ func updateIssue(e Engine, issue *Issue) error {
 	if err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 
