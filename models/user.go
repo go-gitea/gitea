@@ -25,6 +25,16 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"code.gitea.io/git"
+	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
@@ -32,16 +42,6 @@ import (
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
-
-	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // UserType defines the user type
@@ -75,20 +75,6 @@ var (
 
 	// ErrUnsupportedLoginType login source is unknown error
 	ErrUnsupportedLoginType = errors.New("Login source is unknown")
-)
-
-// VisibleType defines the visibility (Organization only)
-type VisibleType int
-
-const (
-	// VisibleTypePublic Visible for everyone
-	VisibleTypePublic VisibleType = iota
-
-	// VisibleTypeLimited Visible for every connected user
-	VisibleTypeLimited
-
-	// VisibleTypePrivate Visible only for organization's members
-	VisibleTypePrivate
 )
 
 // User represents the object of individual and member of organization.
@@ -153,7 +139,7 @@ type User struct {
 	NumMembers  int
 	Teams       []*Team     `xorm:"-"`
 	Members     []*User     `xorm:"-"`
-	Visibility  VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -841,7 +827,6 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
-	u.Visibility = VisibleTypePublic
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -1395,7 +1380,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
-		cond = cond.And(builder.In("visibility", VisibleTypePublic))
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.OwnerID > 0 {
@@ -1409,8 +1394,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 		var accessCond = builder.NewCond()
 		accessCond = builder.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": VisibleTypePrivate}))),
-			builder.In("visibility", VisibleTypePublic, VisibleTypeLimited))
+			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}
 
