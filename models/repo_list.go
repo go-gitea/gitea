@@ -215,13 +215,15 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 						Where(
 							builder.And(
 								builder.Eq{"uid": opts.OwnerID},
-								builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+								builder.Eq{"visibility": structs.VisibleTypePrivate})),
+				),
 				builder.In("owner_id",
 					builder.Select("id").From("`user`").
 						Where(
 							builder.Or(
 								builder.Eq{"visibility": structs.VisibleTypePublic},
-								builder.Eq{"visibility": structs.VisibleTypeLimited}))),
+								builder.Eq{"visibility": structs.VisibleTypeLimited})),
+				),
 				builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
 			)
 			cond = cond.And(visibilityCond)
