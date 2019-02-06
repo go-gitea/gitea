@@ -1775,6 +1775,24 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "show all directories and files",
+            "name": "recursive",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number; the 'truncated' field in the response will be true if there are still more items after this page, false if the last page",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE",
+            "name": "per_page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7352,9 +7370,19 @@
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
       "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Page"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         },
         "tree": {
           "type": "array",
