@@ -203,7 +203,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki)
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -246,7 +246,7 @@ func WikiPages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki)
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -295,26 +295,41 @@ func WikiRaw(ctx *context.Context) {
 			return
 		}
 	}
+
 	providedPath := ctx.Params("*")
-	if strings.HasSuffix(providedPath, ".md") {
-		providedPath = providedPath[:len(providedPath)-3]
-	}
-	wikiPath := models.WikiNameToFilename(providedPath)
+
 	var entry *git.TreeEntry
 	if commit != nil {
-		entry, err = findEntryForFile(commit, wikiPath)
+		// Try to find a file with that name
+		entry, err = findEntryForFile(commit, providedPath)
+		if err != nil {
+			ctx.ServerError("findFile", err)
+			return
+		}
+
+		if entry == nil {
+			// Try to find a wiki page with that name
+			if strings.HasSuffix(providedPath, ".md") {
+				providedPath = providedPath[:len(providedPath)-3]
+			}
+
+			wikiPath := models.WikiNameToFilename(providedPath)
+			entry, err = findEntryForFile(commit, wikiPath)
+			if err != nil {
+				ctx.ServerError("findFile", err)
+				return
+			}
+		}
 	}
-	if err != nil {
-		ctx.ServerError("findFile", err)
-		return
-	} else if entry == nil {
-		ctx.NotFound("findEntryForFile", nil)
+
+	if entry != nil {
+		if err = ServeBlob(ctx, entry.Blob()); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
 		return
 	}
 
-	if err = ServeBlob(ctx, entry.Blob()); err != nil {
-		ctx.ServerError("ServeBlob", err)
-	}
+	ctx.NotFound("findEntryForFile", nil)
 }
 
 // NewWiki render wiki create page

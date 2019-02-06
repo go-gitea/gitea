@@ -160,6 +160,10 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 		text = fmt.Sprintf("[%s] Issue labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueSynchronized:
 		text = fmt.Sprintf("[%s] Issue synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueMilestoned:
+		text = fmt.Sprintf("[%s] Issue milestoned: #%s %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueDemilestoned:
+		text = fmt.Sprintf("[%s] Issue milestone cleared: #%s %s", p.Repository.FullName, titleLink, senderLink)
 	}
 
 	return &SlackPayload{
@@ -312,6 +316,10 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueSynchronized:
 		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueMilestoned:
+		text = fmt.Sprintf("[%s] Pull request milestoned: #%s %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueDemilestoned:
+		text = fmt.Sprintf("[%s] Pull request milestone cleared: #%s %s", p.Repository.FullName, titleLink, senderLink)
 	}
 
 	return &SlackPayload{

@@ -12,6 +12,9 @@ img {
 table {
     border-collapse: collapse;
 }
+a {
+    cursor: pointer;
+}
 .rounded {
     border-radius: .28571429rem !important;
 }
@@ -27,26 +30,15 @@ pre, code {
         line-height: 1.5;
         overflow: auto;
     }
-    &.wrap {
-        white-space: pre-wrap;       /* CSS 3 */
-//      white-space: -moz-normal;    /* Mozilla, since 1999 */
-//      white-space: -normal;        /* Opera 4-6 */
-//      white-space: -o-normal;      /* Opera 7 */
-
-        -ms-word-break: break-all;
-        word-break: break-all;
-
-        /* These are technically the same, but use both */
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-    }
+}
+/* Wrap long lines of code. This will also apply to Markdown code boxes. */
+pre > code {
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+        overflow-wrap: break-word !important;
 }
 .dont-break-out {
-    /* These are technically the same, but use both */
     overflow-wrap: break-word;
-    word-wrap: break-word;
-
-    -ms-word-break: break-all;
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
@@ -275,6 +267,18 @@ pre, code {
         text-align: center;
     }
 
+    &.bottom.attached.message {
+        font-weight: bold;
+        text-align: left;
+        color: black;
+        .pull-right {
+            color: black;
+        }
+        &>span, .pull-right>span{
+            color:#21ba45;
+        }
+    }
+
     .header > i + .content {
         padding-left: 0.75rem;
         vertical-align: middle;
@@ -427,14 +431,13 @@ pre, code {
 }
 
 footer {
-    height: @footer-margin;
+    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
     clear: both;
     width: 100%;
     color: #888888;
     .container {
-        padding-top: 10px;
         .fa {
             width: 16px;
             text-align: center;
@@ -454,6 +457,12 @@ footer {
         max-height: 500px;
         overflow-y: auto;
         margin-bottom: 7px;
+    }
+
+    .ui {
+        &.left, &.right {
+            line-height: 40px;
+        }
     }
 }
 
@@ -628,4 +637,12 @@ footer {
 
 .heatmap-color-5 {
     background-color: #2f6b1b;
+}
+
+.archived-icon{
+    color: lighten(#000, 70%) !important;
+}
+
+.archived-icon{
+    color: lighten(#000, 70%) !important;
 }

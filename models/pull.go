@@ -54,9 +54,10 @@ const (
 
 // PullRequest represents relation between pull request and repositories.
 type PullRequest struct {
-	ID     int64 `xorm:"pk autoincr"`
-	Type   PullRequestType
-	Status PullRequestStatus
+	ID              int64 `xorm:"pk autoincr"`
+	Type            PullRequestType
+	Status          PullRequestStatus
+	ConflictedFiles []string `xorm:"TEXT JSON"`
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -396,7 +397,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
 	}
 
-	defer os.RemoveAll(path.Dir(tmpBasePath))
+	defer os.RemoveAll(tmpBasePath)
 
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
@@ -447,7 +448,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("getDiffTree: %v", err)
 	}
 
-	sparseCheckoutListPath := filepath.Join(tmpBasePath, ".git", "info", "sparse-checkout")
+	infoPath := filepath.Join(tmpBasePath, ".git", "info")
+	if err := os.MkdirAll(infoPath, 0700); err != nil {
+		return fmt.Errorf("creating directory failed [%s]: %v", infoPath, err)
+	}
+	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
 	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
@@ -839,6 +844,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		args = append(args, "--ignore-whitespace")
 	}
 	args = append(args, patchPath)
+	pr.ConflictedFiles = []string{}
 
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
@@ -847,8 +853,26 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
 				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
-				fmt.Println(stderr)
+				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
+				pr.ConflictedFiles = make([]string, 0, 5)
+				scanner := bufio.NewScanner(strings.NewReader(stderr))
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					if strings.HasPrefix(line, prefix) {
+						pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+					}
+					// only list 10 conflicted files
+					if len(pr.ConflictedFiles) >= 10 {
+						break
+					}
+				}
+
+				if len(pr.ConflictedFiles) > 0 {
+					log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+				}
+
 				return nil
 			}
 		}
@@ -1371,7 +1395,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 
 	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -1390,6 +1414,11 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 		}
 	}
 	return false
+}
+
+// IsFilesConflicted determines if the  Pull Request has changes conflicting with the target branch.
+func (pr *PullRequest) IsFilesConflicted() bool {
+	return len(pr.ConflictedFiles) > 0
 }
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
