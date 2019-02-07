@@ -1501,9 +1501,12 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
 	for _, v := range SSHPublicKeys {
-		ldapKey := strings.Join(strings.Split(v, " ")[:2], " ")
-		if !util.ExistsInSlice(ldapKey, ldapKeys) {
-			ldapKeys = append(ldapKeys, ldapKey)
+		sshKeySplit := strings.Split(v, " ")
+		if len(sshKeySplit) > 1 {
+			ldapKey := strings.Join(sshKeySplit[:2], " ")
+			if !util.ExistsInSlice(ldapKey, ldapKeys) {
+				ldapKeys = append(ldapKeys, ldapKey)
+			}
 		}
 	}
 
