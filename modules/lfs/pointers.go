@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// ReadLFSPointerFile will return a partially filled LFSMetaObject if the provided reader is a pointer file
-func ReadLFSPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
+// ReadPointerFile will return a partially filled LFSMetaObject if the provided reader is a pointer file
+func ReadPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
 	if !setting.LFS.StartServer {
 		return nil, nil
 	}
@@ -28,11 +28,11 @@ func ReadLFSPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
 		return nil, nil
 	}
 
-	return IsLFSPointerFile(&buf), &buf
+	return IsPointerFile(&buf), &buf
 }
 
-// IsLFSPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
-func IsLFSPointerFile(buf *[]byte) *models.LFSMetaObject {
+// IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
+func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 	if !setting.LFS.StartServer {
 		return nil
 	}
@@ -62,8 +62,8 @@ func IsLFSPointerFile(buf *[]byte) *models.LFSMetaObject {
 	return meta
 }
 
-// ReadLFSMetaObject will read an LFS object and return a reader
-func ReadLFSMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
+// ReadMetaObject will read a models.LFSMetaObject and return a reader
+func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	return contentStore.Get(meta, 0)
 }

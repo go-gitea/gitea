@@ -64,12 +64,12 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	}
 	defer dataRc.Close()
 
-	if meta, _ := lfs.ReadLFSPointerFile(dataRc); meta != nil {
+	if meta, _ := lfs.ReadPointerFile(dataRc); meta != nil {
 		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
 		if meta == nil {
 			return ServeBlob(ctx, blob)
 		}
-		lfsDataRc, err := lfs.ReadLFSMetaObject(meta)
+		lfsDataRc, err := lfs.ReadMetaObject(meta)
 		if err != nil {
 			return err
 		}

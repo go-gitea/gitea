@@ -183,15 +183,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	//Check for LFS meta file
 	if isTextFile {
-		if meta := lfs.IsLFSPointerFile(&buf); meta != nil {
+		if meta := lfs.IsPointerFile(&buf); meta != nil {
 			if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
 				ctx.Data["IsLFSFile"] = true
 				isLFSFile = true
 
 				// OK read the lfs object
-				dataRc, err := lfs.ReadLFSMetaObject(meta)
+				dataRc, err := lfs.ReadMetaObject(meta)
 				if err != nil {
-					ctx.ServerError("ReadLFSMetaObject", err)
+					ctx.ServerError("ReadMetaObject", err)
 					return
 				}
 				defer dataRc.Close()
