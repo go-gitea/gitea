@@ -165,6 +165,7 @@ ROOT_PATH = ./log
 	}()
 
 	run("./"+bin, "web")
+	//TODO better use https://github.com/go-gitea/gitea/blob/6759237eda5b7ddfe9284c81900cc9deed1f6bf9/models/unit_tests.go#L39
 
 	log.Printf("Moving back to gitea repo at '%s' ...\n", curDir)
 	os.Chdir(curDir)
