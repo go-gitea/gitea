@@ -156,6 +156,14 @@ ROOT_PATH = ./log
 	log.Printf("Pass: gitea\n")
 	log.Printf("Mail: gitea@localhost\n")
 	log.Printf("End the execution by doing $> pkill gitea\n")
+
+	//Prepare setup
+	go func() {
+		time.Sleep(5 * time.Second)
+		log.Printf("Starting gitea setup...\n")
+		run("./"+bin, "admin", "create-user", "--admin", "--name", "gitea", "--password", "gitea", "--email", "gitea@localhost")
+	}()
+
 	run("./"+bin, "web")
 
 	log.Printf("Moving back to gitea repo at '%s' ...\n", curDir)
