@@ -159,6 +159,8 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 // HandleAddKeyError handle add key error
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
+	case models.IsErrDeployKeyAlreadyExist(err):
+		ctx.Error(422, "", "This key has already been added to this repository")
 	case models.IsErrKeyAlreadyExist(err):
 		ctx.Error(422, "", "Key content has been used as non-deploy key")
 	case models.IsErrKeyNameAlreadyUsed(err):
