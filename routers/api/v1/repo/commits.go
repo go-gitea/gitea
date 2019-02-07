@@ -8,7 +8,7 @@ package repo
 import (
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"

@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/repo"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 )
 
 // GetRawFile get a file by path on a repository

@@ -2,4 +2,4 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package git // import "code.gitea.io/git"
+package git // import "code.gitea.io/gitea/modules/git"

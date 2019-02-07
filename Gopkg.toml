@@ -8,10 +8,6 @@ ignored = ["google.golang.org/appengine*"]
 
 [[constraint]]
   branch = "master"
-  name = "code.gitea.io/git"
-
-[[constraint]]
-  branch = "master"
   name = "code.gitea.io/sdk"
 
 [[constraint]]
