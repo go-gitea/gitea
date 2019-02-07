@@ -561,13 +561,15 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwagger    bool
-		MaxResponseItems int
-		DefaultPagingNum int
+		EnableSwagger          bool
+		MaxResponseItems       int
+		DefaultPagingNum       int
+		DefaultGitTreesPerPage int
 	}{
-		EnableSwagger:    true,
-		MaxResponseItems: 50,
-		DefaultPagingNum: 30,
+		EnableSwagger:          true,
+		MaxResponseItems:       50,
+		DefaultPagingNum:       30,
+		DefaultGitTreesPerPage: 1000,
 	}
 
 	U2F = struct {
