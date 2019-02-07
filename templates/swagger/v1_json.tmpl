@@ -4681,6 +4681,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/tags": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's tags",
+        "operationId": "repoListTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/times": {
       "get": {
         "produces": [
@@ -8419,6 +8452,39 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Tag": {
+      "description": "Tag represents a repository tag",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "object",
+          "properties": {
+            "sha": {
+              "type": "string",
+              "x-go-name": "SHA"
+            },
+            "url": {
+              "type": "string",
+              "x-go-name": "URL"
+            }
+          },
+          "x-go-name": "Commit"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "tarball_url": {
+          "type": "string",
+          "x-go-name": "TarballURL"
+        },
+        "zipball_url": {
+          "type": "string",
+          "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Team": {
       "description": "Team represents a team in an organization",
       "type": "object",
@@ -8895,6 +8961,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Status"
+        }
+      }
+    },
+    "TagList": {
+      "description": "TagList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Tag"
         }
       }
     },
