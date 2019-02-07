@@ -539,7 +539,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		}
 
 		// Change issue status only if the commit has been pushed to the default branch.
-		if repo.DefaultBranch != branchName {
+		if repo.DefaultBranch != branchName && !setting.Repository.CloseIssuesViaCommitsInAnyBranch {
 			continue
 		}
 
