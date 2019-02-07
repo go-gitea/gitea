@@ -116,3 +116,7 @@ ignored = ["google.golang.org/appengine*"]
 [[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "0.9.0"
+
+[[constraint]]
+  name = "gopkg.in/src-d/go-git.v4"
+  version = "4.7.1"

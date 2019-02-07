@@ -95,6 +95,9 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/jteeuwen/go-bindata/go-bindata; \
 	fi
+	@which mockery > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/vektra/mockery/...; \
+	fi
 	$(GO) generate $(PACKAGES)
 
 .PHONY: generate-swagger
