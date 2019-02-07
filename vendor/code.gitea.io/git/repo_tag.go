@@ -103,12 +103,13 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 	}
 
 	tagNames := strings.Split(stdout, "\n")
-	var tags []*Tag
+	var tags = make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
 		if len(tagName) == 0 {
 			continue
 		}
+
 		tag, err := repo.GetTag(tagName)
 		if err != nil {
 			return nil, err
