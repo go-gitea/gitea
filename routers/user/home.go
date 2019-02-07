@@ -448,7 +448,6 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("env.CountRepos", err)
 			return
 		}
-		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
 		if len(keyword) == 0 {
@@ -457,9 +456,7 @@ func showOrgProfile(ctx *context.Context) {
 				ctx.ServerError("GetRepositories", err)
 				return
 			}
-			ctx.Data["Repos"] = repos
 			count = models.CountUserRepositories(org.ID, showPrivate)
-			ctx.Data["Total"] = count
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 				Keyword:   keyword,
@@ -474,19 +471,18 @@ func showOrgProfile(ctx *context.Context) {
 				ctx.ServerError("SearchRepositoryByName", err)
 				return
 			}
-
-			ctx.Data["Repos"] = repos
-			ctx.Data["Total"] = count
 		}
 	}
-	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
 	if err := org.GetMembers(); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.Data["Members"] = org.Members
 
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = count
+	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	ctx.Data["Members"] = org.Members
 	ctx.Data["Teams"] = org.Teams
 
 	ctx.HTML(200, tplOrgHome)
