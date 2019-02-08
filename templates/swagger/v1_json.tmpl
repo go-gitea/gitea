@@ -3931,6 +3931,13 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MergePullRequestOption"
+            }
           }
         ],
         "responses": {
@@ -7699,6 +7706,32 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "MergePullRequestOption": {
+      "description": "MergePullRequestForm form for merging Pull Request",
+      "type": "object",
+      "required": [
+        "Do"
+      ],
+      "properties": {
+        "Do": {
+          "type": "string",
+          "enum": [
+            "merge",
+            " rebase",
+            " rebase-merge",
+            " squash"
+          ]
+        },
+        "MergeMessageField": {
+          "type": "string"
+        },
+        "MergeTitleField": {
+          "type": "string"
+        }
+      },
+      "x-go-name": "MergePullRequestForm",
+      "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository",
