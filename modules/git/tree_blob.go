@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// GetTreeEntryByPath get the tree entries accroding the sub dir
+// GetTreeEntryByPath get the tree entries according the sub dir
 func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
@@ -44,7 +44,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	return nil, ErrNotExist{"", relpath}
 }
 
-// GetBlobByPath get the blob object accroding the path
+// GetBlobByPath get the blob object according the path
 func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
 	entry, err := t.GetTreeEntryByPath(relpath)
 	if err != nil {
