@@ -211,7 +211,7 @@
 						{{ else if and .IsClosed .IsPull  }}
 							{{ $timeStr = TimeSinceUnix .ClosedUnix $.Lang }}
 							{{ if .PullRequest.HasMerged }}
-								{{ $textToTranslate = "repo.issues.merged_by"}}
+								{{ $textToTranslate = "repo.pulls.merged_by"}}
 							{{ else }}
 								{{ $textToTranslate = "repo.issues.closed_by"}}
 							{{ end }}
