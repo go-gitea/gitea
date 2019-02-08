@@ -3,14 +3,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:537ed734fb4869453583d9ce24d93bf68c88287082778efe55ae749970a1012a"
-  name = "code.gitea.io/git"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "fbe468c7a634991285eaa1f93e73431e3edfc471"
-
-[[projects]]
-  branch = "master"
   digest = "1:17c6c3f4af27f721e3176aceeb2ee30621547a44c81ada0ce733170b9bdfee19"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
@@ -878,9 +870,12 @@
   revision = "0abe01ef9be25c4aedc174758ec2d917314d6d70"
 
 [[projects]]
-  digest = "1:a852b1ad03ca063d2c57866d9f94dcb1cb2e111415c5902ce0586fc2d207221b"
+  digest = "1:0d3d375df794ab11a192668f4eacdb116ccd99aa574fe357185a2d463e07f2fb"
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = [
+    "assert",
+    "require",
+  ]
   pruneopts = "NUT"
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
@@ -1220,7 +1215,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "code.gitea.io/git",
     "code.gitea.io/sdk/gitea",
     "github.com/PuerkitoBio/goquery",
     "github.com/Unknwon/cae/zip",
@@ -1300,6 +1294,7 @@
     "github.com/satori/go.uuid",
     "github.com/sergi/go-diff/diffmatchpatch",
     "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
     "github.com/tstranex/u2f",
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
@@ -1317,6 +1312,8 @@
     "gopkg.in/ini.v1",
     "gopkg.in/ldap.v2",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]
