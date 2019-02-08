@@ -620,6 +620,7 @@ type AccessibleReposEnvironment interface {
 	RepoIDs(page, pageSize int) ([]int64, error)
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
+	AddKeyword(keyword string)
 }
 
 type accessibleReposEnv struct {
@@ -627,6 +628,7 @@ type accessibleReposEnv struct {
 	userID  int64
 	teamIDs []int64
 	e       Engine
+	keyword string
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
@@ -655,6 +657,9 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 	}
 	if len(env.teamIDs) > 0 {
 		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	}
+	if env.keyword != "" {
+		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})
 	}
 	return cond
 }
@@ -730,4 +735,8 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 	return repos, env.e.
 		In("`repository`.id", repoIDs).
 		Find(&repos)
+}
+
+func (env *accessibleReposEnv) AddKeyword(keyword string) {
+	env.keyword = keyword
 }
