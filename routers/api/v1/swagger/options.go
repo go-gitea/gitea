@@ -68,6 +68,8 @@ type swaggerParameterBodies struct {
 	CreatePullRequestOption api.CreatePullRequestOption
 	// in:body
 	EditPullRequestOption api.EditPullRequestOption
+	// in:body
+	MergePullRequestOption auth.MergePullRequestForm
 
 	// in:body
 	CreateReleaseOption api.CreateReleaseOption
