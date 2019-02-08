@@ -518,6 +518,10 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     $ref: "#/definitions/MergePullRequestOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
