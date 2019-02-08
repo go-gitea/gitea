@@ -662,11 +662,12 @@ sv-SE = sv
 ko-KR = ko
 
 [U2F]
+; NOTE: THE DEFAULT VALUES HERE WILL NEED TO BE CHANGED
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+;APP_ID = http://localhost:3000/
+; Comma seperated list of trusted facets
+;TRUSTED_FACETS = http://localhost:3000/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini
