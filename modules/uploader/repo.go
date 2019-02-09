@@ -242,6 +242,7 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because calls hooks we need to pass in the environment
 	env := append(os.Environ(),
+		"SSH_ORIGINAL_COMMAND=internal",
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_COMMITTER_NAME="+sig.Name,
