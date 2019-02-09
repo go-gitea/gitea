@@ -1374,13 +1374,14 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	repo := &Repository{
-		OwnerID:       u.ID,
-		Owner:         u,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		IsPrivate:     opts.IsPrivate,
-		IsFsckEnabled: true,
+		OwnerID:                         u.ID,
+		Owner:                           u,
+		Name:                            opts.Name,
+		LowerName:                       strings.ToLower(opts.Name),
+		Description:                     opts.Description,
+		IsPrivate:                       opts.IsPrivate,
+		IsFsckEnabled:                   true,
+		CloseIssuesViaCommitInAnyBranch: setting.Repository.CloseIssuesViaCommitsInAnyBranch,
 	}
 
 	sess := x.NewSession()
