@@ -296,15 +296,36 @@ func Action(ctx *context.Context) {
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
-	case "desc": // FIXME: this is not used
-		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+	case "acknowledge_transfer":
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		}
+
+		if repoTransfer.RecipientID != ctx.User.ID {
+			ctx.Status(404)
 			return
 		}
 
-		ctx.Repo.Repository.Description = ctx.Query("desc")
-		ctx.Repo.Repository.Website = ctx.Query("site")
-		err = models.UpdateRepository(ctx.Repo.Repository, false)
+		if err := repoTransfer.LoadAttributes(); err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		if err := models.TransferOwnership(repoTransfer.User, repoTransfer.Recipient, ctx.Repo.Repository); err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		repo, err := models.GetRepositoryByID(ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+		ctx.Redirect(repo.HTMLURL())
+		return
 	}
 
 	if err != nil {

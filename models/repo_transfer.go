@@ -31,6 +31,8 @@ const (
 // RepoTransfer is used to manage repository transfers
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64
+	User        *User `xorm:"-"`
 	RecipientID int64
 	Recipient   *User `xorm:"-"`
 	RepoID      int64
@@ -39,18 +41,30 @@ type RepoTransfer struct {
 	Status      TransferStatus
 }
 
-// LoadRecipient fetches the transfer recipient from the database
-func (r *RepoTransfer) LoadRecipient() error {
-	if r.Recipient != nil {
+// LoadAttributes fetches the transfer recipient from the database
+func (r *RepoTransfer) LoadAttributes() error {
+	if r.Recipient != nil && r.User != nil {
 		return nil
 	}
 
-	u, err := GetUserByID(r.RecipientID)
-	if err != nil {
-		return err
+	if r.Recipient == nil {
+		u, err := GetUserByID(r.RecipientID)
+		if err != nil {
+			return err
+		}
+
+		r.Recipient = u
 	}
 
-	r.Recipient = u
+	if r.User == nil {
+		u, err := GetUserByID(r.UserID)
+		if err != nil {
+			return err
+		}
+
+		r.User = u
+	}
+
 	return nil
 }
 
@@ -59,18 +73,24 @@ func (r *RepoTransfer) LoadRecipient() error {
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	var transfer = new(RepoTransfer)
 
-	_, err := x.Where("status = ? AND repo_id = ? ", Pending, repo.ID).
+	has, err := x.Where("status = ? AND repo_id = ? ", Pending, repo.ID).
 		Get(transfer)
-
 	if err != nil {
 		return nil, err
 	}
 
-	if transfer.ID == 0 {
+	if transfer.ID == 0 || !has {
 		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID}
 	}
 
 	return transfer, nil
+}
+
+func acceptRepositoryTransfer(repo *Repository) error {
+	_, err := x.Where("repo_id = ?", repo.ID).Cols("status").Update(&RepoTransfer{
+		Status: Accepted,
+	})
+	return err
 }
 
 // CancelRepositoryTransfer makes sure to set the transfer process as
@@ -85,15 +105,12 @@ func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 
 // StartRepositoryTransfer marks the repository transfer as "pending". It
 // doesn't actually transfer the repository until the user acks the transfer.
-func StartRepositoryTransfer(newOwnerName string, repo *Repository) error {
+func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) error {
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
-	// It has to be cancelled for a new transfer to occur
-
-	n, err := x.Count(&RepoTransfer{
-		RepoID: repo.ID,
-		Status: Pending,
-	})
+	// It has to be cancelled for a new one to occur
+	n, err := x.Where("status = ? AND repo_id = ?", Pending, repo.ID).
+		Count(new(RepoTransfer))
 	if err != nil {
 		return err
 	}
@@ -121,25 +138,23 @@ func StartRepositoryTransfer(newOwnerName string, repo *Repository) error {
 		Status:      Pending,
 		CreatedUnix: util.TimeStampNow(),
 		UpdatedUnix: util.TimeStampNow(),
+		UserID:      doer.ID,
 	}
 
 	_, err = x.Insert(transfer)
 	return err
 }
 
-// TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
-	newOwner, err := GetUserByName(newOwnerName)
-	if err != nil {
-		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
-	}
+// TransferOwnership transfers all corresponding setting from one user to
+// another.
+func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 
 	// Check if new owner has repository with same name.
 	has, err := IsRepositoryExist(newOwner, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
+		return ErrRepoAlreadyExist{newOwner.Name, repo.Name}
 	}
 
 	sess := x.NewSession()
@@ -158,6 +173,10 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Update repository.
 	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
 		return fmt.Errorf("update owner: %v", err)
+	}
+
+	if err := acceptRepositoryTransfer(repo); err != nil {
+		return err
 	}
 
 	// Remove redundant collaborators.
