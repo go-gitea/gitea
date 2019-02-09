@@ -7,6 +7,7 @@
 			{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
 			<div class="ui right">
 				<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+				<a class="ui blue small button" href="{{.RepoLink}}/wiki/_upload">{{.i18n.Tr "repo.wiki.upload_files_button"}}</a>
 			</div>
 			{{end}}
 		</div>

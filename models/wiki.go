@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
+	reservedWikiNames = []string{"_pages", "_new", "_edit", "_upload", "raw"}
 	wikiWorkingPool   = sync.NewExclusivePool()
 )
 
@@ -241,4 +241,78 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 	}
 
 	return nil
+}
+
+// UploadWikiFiles uploads files to wiki's repo
+func (repo *Repository) UploadWikiFiles(doer *User, message string, files []string) (err error) {
+	if len(files) == 0 {
+		return nil
+	}
+
+	uploads, err := GetUploadsByUUIDs(files)
+	if err != nil {
+		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", files, err)
+	}
+
+	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
+
+	if err = repo.InitWiki(); err != nil {
+		return fmt.Errorf("InitWiki: %v", err)
+	}
+
+	localPath := repo.LocalWikiPath()
+
+	if err = discardLocalWikiChanges(localPath); err != nil {
+		return fmt.Errorf("discardLocalWikiChanges: %v", err)
+	} else if err = repo.updateLocalWiki(); err != nil {
+		return fmt.Errorf("UpdateLocalWiki: %v", err)
+	}
+
+	// Copy uploaded files into repository.
+	for _, upload := range uploads {
+		tmpPath := upload.LocalPath()
+		targetPath := path.Join(localPath, upload.Name)
+
+		if !com.IsFile(tmpPath) {
+			continue
+		}
+
+		if com.IsExist(targetPath) {
+			return ErrWikiAlreadyExist{targetPath}
+		}
+
+		// SECURITY: if new file is a symlink to non-exist critical file,
+		// attack content can be written to the target file (e.g. authorized_keys2)
+		// as a new page operation.
+		// So we want to make sure the symlink is removed before write anything.
+		// The new file we created will be in normal text format.
+		if err = os.RemoveAll(targetPath); err != nil {
+			return err
+		}
+
+		if err = com.Copy(tmpPath, targetPath); err != nil {
+			return fmt.Errorf("Copy: %v", err)
+		}
+	}
+
+	if len(message) == 0 {
+		message = "Upload files"
+	}
+
+	if err = git.AddChanges(localPath, true); err != nil {
+		return fmt.Errorf("AddChanges: %v", err)
+	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
+		Committer: doer.NewGitSig(),
+		Message:   message,
+	}); err != nil {
+		return fmt.Errorf("CommitChanges: %v", err)
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: "master",
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return DeleteUploads(uploads...)
 }

@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	tplWikiStart base.TplName = "repo/wiki/start"
-	tplWikiView  base.TplName = "repo/wiki/view"
-	tplWikiNew   base.TplName = "repo/wiki/new"
-	tplWikiPages base.TplName = "repo/wiki/pages"
+	tplWikiStart  base.TplName = "repo/wiki/start"
+	tplWikiView   base.TplName = "repo/wiki/view"
+	tplWikiNew    base.TplName = "repo/wiki/new"
+	tplWikiPages  base.TplName = "repo/wiki/pages"
+	tplWikiUpload base.TplName = "repo/wiki/upload"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
@@ -434,4 +435,44 @@ func DeleteWikiPagePost(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",
 	})
+}
+
+// UploadWikiFile render wiki upload page
+func UploadWikiFile(ctx *context.Context) {
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["PageIsUpload"] = true
+	renderUploadSettings(ctx)
+
+	if !ctx.Repo.Repository.HasWiki() {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
+		return
+	}
+
+	renderWikiPage(ctx, false)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.HTML(200, tplWikiUpload)
+}
+
+// UploadWikiFilePost response for wiki upload request
+func UploadWikiFilePost(ctx *context.Context, form auth.UploadWikiFileForm) {
+	fmt.Println("UploadWikiFilePost")
+
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["PageIsUpload"] = true
+	renderUploadSettings(ctx)
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplWikiUpload)
+		return
+	}
+
+	if err := ctx.Repo.Repository.UploadWikiFiles(ctx.User, strings.TrimSpace(form.Message), form.Files); err != nil {
+		ctx.ServerError("DeleteWikiPage", err)
+		return
+	}
+
+	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/")
 }
