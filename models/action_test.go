@@ -281,6 +281,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 		Type:      CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
 		PosterID:  user.ID,
+		IssueID:   7,
 	}
 
 	issueBean := &Issue{RepoID: repo.ID, Index: 2, ID: 7}

@@ -211,7 +211,7 @@ var migrations = []Migration{
 	// v78 -> v79
 	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
 	// v79 -> v80
-	NewMigration("add ca close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
 }
 
 // Migrate database to current version
