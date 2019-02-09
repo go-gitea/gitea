@@ -135,7 +135,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 		return nil, err
 	}
 
-	// name-rev commitID ouput will be "COMMIT_ID master" or "COMMIT_ID master~12"
+	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
 	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
 
 	repo.commitCache.Set(id.String(), commit)
