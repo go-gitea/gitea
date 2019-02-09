@@ -233,6 +233,20 @@ Migration from several recent versions of gitea will also be tested.
 Please submit your PR with additional tests and integration tests as
 appropriate.
 
+## Documentation for the website
+
+Documentation for the website is found in `docs/`. If you change this you
+can test your changes to ensure that they pass continuous integration using:
+
+```bash
+cd "$GOPATH"/src/code.gitea.io/gitea/docs
+make trans-copy clean build
+```
+
+You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
+note this may generate a number of untracked git objects which will need to
+be cleaned up.
+
 ## Visual Studio Code
 
 A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
