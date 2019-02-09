@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/modules/markup/external"
@@ -65,7 +64,7 @@ func runPR() {
 	os.RemoveAll(setting.RepoRootPath)
 	os.RemoveAll(models.LocalCopyPath())
 	os.RemoveAll(models.LocalWikiPath())
-	com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	setting.CheckLFSVersion()
