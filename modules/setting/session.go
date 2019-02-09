@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	// Session settings
+	// SessionConfig difines Session settings
 	SessionConfig session.Options
 )
 
