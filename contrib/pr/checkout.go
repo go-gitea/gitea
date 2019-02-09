@@ -7,12 +7,14 @@ Checkout a PR and load the tests data into sqlite database
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/modules/markup/external"
@@ -27,6 +29,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+var codeFilePath = "contrib/pr/checkout.go"
 
 func runPR() {
 	log.Printf("[PR] Starting gitea ...\n")
@@ -123,18 +127,36 @@ func main() {
 	}
 	pr := os.Args[1]
 
+	//Copy this file if it will not exist in the PR branch
+	dat, err := ioutil.ReadFile(codeFilePath)
+	if err != nil {
+		log.Fatalf("Failed to cache this code file : %v", err)
+	}
+
 	branch := fmt.Sprintf("pr-%s-%d", pr, time.Now().Unix())
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	runCmd("git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", pr, branch))
-	err := git.Checkout(".", git.CheckoutOptions{
+	err = git.Checkout(".", git.CheckoutOptions{
 		Branch: branch,
 	})
 	if err != nil {
 		log.Fatalf("Failed to checkout pr-%s : %v", pr, err)
 	}
 
+	//Copy this file if not exist
+	if _, err := os.Stat(codeFilePath); os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(codeFilePath), 0755)
+		if err != nil {
+			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
+		}
+		err = ioutil.WriteFile(codeFilePath, dat, 0644)
+		if err != nil {
+			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
+		}
+	}
+
 	//Start with integration test
-	runCmd("go", "run", "-tags='sqlite sqlite_unlock_notify'", "contrib/pr/checkout.go", "-run")
+	runCmd("go", "run", "-tags='sqlite sqlite_unlock_notify'", codeFilePath, "-run")
 }
 func runCmd(cmd ...string) {
 	log.Printf("Executing : %s ...\n", cmd)
