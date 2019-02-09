@@ -15,7 +15,6 @@ menu:
 
 # Installation from source
 
-
 You should [install go](https://golang.org/doc/install) and set up your go
 environment correctly. In particular, it is recommended to set the `$GOPATH`
 environment variable and to add the go bin directory or directories
