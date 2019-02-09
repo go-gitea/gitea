@@ -1176,7 +1176,7 @@ func ResetPasswd(ctx *context.Context) {
 	if u := models.VerifyUserActiveCode(code); u != nil {
 		ctx.Data["IsResetForm"] = true
 	}
-	
+
 	ctx.HTML(200, tplResetPassword)
 }
 
