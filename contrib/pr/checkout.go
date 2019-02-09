@@ -195,7 +195,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 	//Start with integration test
-	runCmd("go", "run", "-tags='sqlite sqlite_unlock_notify'", codeFilePath, "-run")
+	runCmd("go", "run", "-tags", "sqlite sqlite_unlock_notify", codeFilePath, "-run")
 }
 func runCmd(cmd ...string) {
 	log.Printf("Executing : %s ...\n", cmd)
