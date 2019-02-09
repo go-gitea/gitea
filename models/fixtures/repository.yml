@@ -22,6 +22,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  close_issues_via_commit_in_any_branch: true
 
 -
   id: 3
