@@ -23,6 +23,9 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
+You will also need make.
+<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
+
 **Note**: Whilst building, Gitea will download and build several packages
 necessary to build itself. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
@@ -158,9 +161,15 @@ PRs.
 
 When creating new API routes or modifying existing API routes you **MUST**
 update and/or create [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/)
-documentation for these. You should be careful not to break the API for
-downstream users which depend on a stable API. In general this means additions
-are acceptable, but deletions or fundamental changes of API will be rejected.
+documentation for these using [go-swagger](https://goswagger.io/) comments.
+The structure of these comments is described in the [specification](https://goswagger.io/use/spec.html#annotation-syntax).
+If you want more information about the Swagger structure you can look at the
+[Swagger 2.0 Documentation](https://swagger.io/docs/specification/2-0/basic-structure/)
+or compare with a previous PR adding a new API endpoint e.g. [PR #5483](https://github.com/go-gitea/gitea/pull/5843/files#diff-2e0a7b644cf31e1c8ef7d76b444fe3aaR20)
+
+You should be careful not to break the API for downstream users which depend
+on a stable API. In general this means additions are acceptable, but deletions
+or fundamental changes of API will be rejected.
 
 Once you have created or changed an API endpoint, please regenerate the Swagger
 documentation using:
@@ -181,6 +190,17 @@ server will check that this has been done using:
 ```bash
 make swagger-check
 ```
+
+**Note**: Please note you should use the Swagger 2.0 documentation, not the
+OpenAPI 3 documentation.
+
+### Creating new configuration options
+
+When creating new configuration options, it is not enough to add them to the
+`modules/setting` files. You should add information to `custom/conf/app.ini`
+and to the
+<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo
 
