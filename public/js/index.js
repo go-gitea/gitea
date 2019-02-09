@@ -1931,11 +1931,9 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('#issue-filters').hide();
-            $('#issue-actions').show();
+            $('#issue-actions').removeClass("hide");
         } else {
-            $('#issue-filters').show();
-            $('#issue-actions').hide();
+            $('#issue-actions').addClass("hide");
         }
     });
 
