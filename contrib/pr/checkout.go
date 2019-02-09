@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/routers/routes"
 	"github.com/Unknwon/com"
 	"github.com/facebookgo/grace/gracehttp"
+	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
 	"gopkg.in/testfixtures.v2"
 
@@ -34,8 +36,27 @@ var codeFilePath = "contrib/pr/checkout.go"
 
 func runPR() {
 	log.Printf("[PR] Starting gitea ...\n")
+	curDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	setting.NewContext()
-	models.MainTestSetup(".")
+
+	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	if err != nil {
+		log.Fatalf("TempDir: %v\n", err)
+	}
+	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	if err != nil {
+		log.Fatalf("TempDir: %v\n", err)
+	}
+	setting.AppWorkPath = curDir
+	setting.StaticRootPath = curDir
+	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
+	if err != nil {
+		log.Fatalf("url.Parse: %v\n", err)
+	}
+
 	setting.AppURL = "http://localhost:8080/"
 	setting.HTTPPort = "8080"
 	setting.SSH.Domain = "localhost"
@@ -48,14 +69,29 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.RunUser = curUser.Username
-	curDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	log.Printf("[PR] Loading fixtures data ...\n")
+	setting.CheckLFSVersion()
+	//models.LoadConfigs()
+	/*
+		models.DbCfg.Type = "sqlite3"
+		models.DbCfg.Path = ":memory:"
+		models.DbCfg.Timeout = 500
+	*/
+	db := setting.Cfg.Section("database")
+	db.NewKey("DB_TYPE", "sqlite3")
+	db.NewKey("PATH", ":memory:")
+	setting.LogSQL = true
+	models.LoadConfigs()
+	routers.NewServices()
+	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+
 	var helper testfixtures.Helper
 	helper = &testfixtures.SQLite{}
+	models.NewEngine(func(_ *xorm.Engine) error {
+		return nil
+	})
+	//x.ShowSQL(true)
 	err = models.InitFixtures(
 		helper,
 		path.Join(curDir, "models/fixtures/"),
@@ -71,10 +107,7 @@ func runPR() {
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
-	setting.CheckLFSVersion()
-	models.LoadConfigs()
 	//routers.GlobalInit()
-	routers.NewServices()
 	external.RegisterParsers()
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
@@ -99,18 +132,24 @@ func runPR() {
 		Addr:    ":8080",
 		Handler: context2.ClearHandler(m),
 	})
-	//time.Sleep(5 * time.Minute) //TODO wait for input
 
 	log.Printf("[PR] Cleaning up ...\n")
-	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("os.RemoveAll: %v\n", err)
-		os.Exit(1)
+	/*
+		if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
+			fmt.Printf("os.RemoveAll: %v\n", err)
+			os.Exit(1)
+		}
+		if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+			fmt.Printf("Unable to remove repo indexer: %v\n", err)
+			os.Exit(1)
+		}
+	*/
+	if err = os.RemoveAll(setting.RepoRootPath); err != nil {
+		log.Fatalf("os.RemoveAll: %v\n", err)
 	}
-	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		fmt.Printf("Unable to remove repo indexer: %v\n", err)
-		os.Exit(1)
+	if err = os.RemoveAll(setting.AppDataPath); err != nil {
+		log.Fatalf("os.RemoveAll: %v\n", err)
 	}
-	models.MainTestCleanup(0)
 }
 
 func main() {

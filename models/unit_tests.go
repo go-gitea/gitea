@@ -37,24 +37,6 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string) {
-	MainTestSetup(pathToGiteaRoot)
-	MainTestCleanup(m.Run())
-}
-
-//MainTestCleanup Clean up folder after testing
-func MainTestCleanup(exitStatus int) {
-	var err error
-	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
-	}
-	if err = removeAllWithRetry(setting.AppDataPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
-	}
-	os.Exit(exitStatus)
-}
-
-//MainTestSetup Setup setting and folder for testing
-func MainTestSetup(pathToGiteaRoot string) {
 	var err error
 	giteaRoot = pathToGiteaRoot
 	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
@@ -81,6 +63,15 @@ func MainTestSetup(pathToGiteaRoot string) {
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
 	}
+
+	exitStatus := m.Run()
+	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	if err = removeAllWithRetry(setting.AppDataPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	os.Exit(exitStatus)
 }
 
 func createTestEngine(fixturesDir string) error {
