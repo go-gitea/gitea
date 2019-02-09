@@ -610,6 +610,7 @@ GC_ARGS =
 
 ; Operation timeout in seconds
 [git.timeout]
+DEFAULT = 360
 MIGRATE = 600
 MIRROR = 300
 CLONE = 300

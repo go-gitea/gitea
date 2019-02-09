@@ -506,6 +506,7 @@ var (
 		MaxGitDiffFiles          int
 		GCArgs                   []string `delim:" "`
 		Timeout                  struct {
+			Default int
 			Migrate int
 			Mirror  int
 			Clone   int
@@ -519,12 +520,14 @@ var (
 		MaxGitDiffFiles:          100,
 		GCArgs:                   []string{},
 		Timeout: struct {
+			Default int
 			Migrate int
 			Mirror  int
 			Clone   int
 			Pull    int
 			GC      int `ini:"GC"`
 		}{
+			Default: int(git.DefaultCommandExecutionTimeout / time.Second),
 			Migrate: 600,
 			Mirror:  300,
 			Clone:   300,
@@ -1121,6 +1124,8 @@ func NewContext() {
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
+
+	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
 	sec = Cfg.Section("mirror")
 	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
