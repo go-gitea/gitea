@@ -193,7 +193,7 @@ func main() {
 			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
 		}
 	}
-
+	time.Sleep(5 * time.Second)
 	//Start with integration test
 	runCmd("go", "run", "-tags='sqlite sqlite_unlock_notify'", codeFilePath, "-run")
 }
