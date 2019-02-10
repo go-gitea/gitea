@@ -1380,7 +1380,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
 		IsPrivate:                       opts.IsPrivate,
-		IsFsckEnabled:                   true,
+		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.CloseIssuesViaCommitsInAnyBranch,
 	}
 

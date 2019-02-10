@@ -49,7 +49,7 @@ pre > code {
 }
 .full.height {
     padding: 0;
-    margin: 0 0 -@footer-margin 0;
+    margin: 0 0 calc(-@footer-margin - 2px) 0;
     min-height: 100%;
 }
 .following.bar {
@@ -100,9 +100,10 @@ pre > code {
     }
     #navbar {
         width: 100vw;
+        padding: 0 .5rem;
     }
     #navbar .brand {
-        margin: 0 0 0 .5rem;
+        margin: 0;
     }
     @media only screen and (max-width: 767px) {
         #navbar:not(.shown) > *:not(:first-child) {
@@ -444,6 +445,8 @@ footer {
     width: 100%;
     color: #888888;
     .container {
+        width: 100vw !important;
+        padding: 0 .5rem;
         .fa {
             width: 16px;
             text-align: center;
