@@ -42,9 +42,6 @@ pre > code {
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
 .full.height {
@@ -118,10 +115,7 @@ pre > code {
     // no, stackable won't work on right menus.
     margin-left: auto;
     display: flex;
-    display: -ms-flexbox;
-    -ms-flex-align: inherit;
     align-items: inherit;
-    -ms-flex-direction: inherit;
     flex-direction: inherit;
 }
 
@@ -134,9 +128,6 @@ pre > code {
     }
 
     &.button, &.menu .item {
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        -webkit-user-select: auto;
         user-select: auto;
     }
 
