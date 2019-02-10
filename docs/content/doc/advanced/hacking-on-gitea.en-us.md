@@ -26,11 +26,10 @@ environment variable and to add the go bin directory or directories
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
 
-**Note**: When executing make tasks that require external tools,
-like `make misspell-check`, Gitea will automatically download
-and build these as necessary. To be able to use these you must have
-the `"$GOPATH"/bin` directory on the executable path. 
-If you don't add the go bin directory to the
+**Note**: When executing make tasks that require external tools, like
+`make misspell-check`, Gitea will automatically download and build these as
+necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
+on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
 **Note 2**: Go version 1.8 or higher is required, however it is important

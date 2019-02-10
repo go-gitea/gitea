@@ -21,9 +21,11 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
-**Note**: Whilst building, Gitea will download and build several packages
-necessary to build itself. If you don't add the go bin directory to executable
-path you will have to manage this yourself.
+**Note**: When executing make tasks that require external tools, like
+`make misspell-check`, Gitea will automatically download and build these as
+necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
+on the executable path. If you don't add the go bin directory to the
+executable path you will have to manage this yourself.
 
 **Note 2**: Go version 1.8 or higher is required, however it is recommended to
 obtain the same version as our continuous integration, see the advice given in
