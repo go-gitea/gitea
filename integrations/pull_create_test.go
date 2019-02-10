@@ -18,7 +18,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
+	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("button.ui.small.compact.button").Parent().Attr("href")
 	assert.True(t, exists, "The template has changed")
