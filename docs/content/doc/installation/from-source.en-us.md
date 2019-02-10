@@ -23,7 +23,7 @@ environment variable and to add the go bin directory or directories
 
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
-necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
+necessary. To be able to use these you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
@@ -42,7 +42,7 @@ problems - the fixing of which is out of scope for this document.
 
 ```bash
 go get -d -u code.gitea.io/gitea
-cd "$GOPATH"/src/code.gitea.io/gitea
+cd "$GOPATH/src/code.gitea.io/gitea"
 ```
 
 Decide which version of Gitea to build and install. Currently, there are
