@@ -513,6 +513,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/tags", func() {
+					m.Get("", repo.ListTags)
+				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -557,6 +560,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Group("/stopwatch", func() {
+							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
+							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
+						})
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

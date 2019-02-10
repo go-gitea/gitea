@@ -205,7 +205,23 @@
 					{{end}}
 
 					<p class="desc">
-						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{ $textToTranslate := "repo.issues.opened_by" }}
+						{{ if not .IsClosed }}
+							{{ $timeStr = TimeSinceUnix .CreatedUnix $.Lang }}
+						{{ else if and .IsClosed .IsPull  }}
+							{{ $timeStr = TimeSinceUnix .ClosedUnix $.Lang }}
+							{{ if .PullRequest.HasMerged }}
+								{{ $textToTranslate = "repo.pulls.merged_by"}}
+							{{ else }}
+								{{ $textToTranslate = "repo.issues.closed_by"}}
+							{{ end }}
+						{{ else }}
+							{{ $timeStr = TimeSinceUnix .ClosedUnix $.Lang }}
+							{{ $textToTranslate = "repo.issues.closed_by"}}
+						{{ end }}
+
+						{{$.i18n.Tr $textToTranslate $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}

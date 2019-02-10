@@ -1602,9 +1602,9 @@ function initCodeView() {
                 $("html, body").scrollTop($first.offset().top - 200);
                 return;
             }
-            m = window.location.hash.match(/^#(L\d+)$/);
+            m = window.location.hash.match(/^#(L|n)(\d+)$/);
             if (m) {
-                $first = $list.filter('.' + m[1]);
+                $first = $list.filter('.L' + m[2]);
                 selectRange($list, $first);
                 $("html, body").scrollTop($first.offset().top - 200);
             }
@@ -2605,7 +2605,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
@@ -2635,16 +2635,15 @@ function initTopicbar() {
         }, function(data, textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length === 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
+                if (topics.length) {
+                    var topicArray = topics.split(",");
 
-                var last = viewDiv.children("a").last();
-                for (var i=0; i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
                 }
-                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                editDiv.css('display', 'none');
                 viewDiv.show();
             }
         }).fail(function(xhr){
