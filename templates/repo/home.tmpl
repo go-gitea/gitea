@@ -65,7 +65,7 @@
 				{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
 					<div class="fitted item">
 						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
-							<button class="ui small compact button">{{.i18n.Tr "repo.pulls.compare_changes"}}</button>
+							<button class="ui small compact basic button">{{.i18n.Tr "repo.pulls.compare_changes"}}</button>
 						</a>
 					</div>
 				{{end}}
