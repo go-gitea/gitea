@@ -41,7 +41,7 @@ func (vt VisibleType) IsPrivate() bool {
 }
 
 // ExtractKeysFromMapString provides a slice of keys from map
-func ExtractKeysFromMapString(in map[string]structs.VisibleType) (keys []string) {
+func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	for k := range in {
 		keys = append(keys, k)
 	}
