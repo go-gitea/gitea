@@ -22,6 +22,6 @@ func addCanCloseIssuesViaCommitInAnyBranch(x *xorm.Engine) error {
 	}
 
 	_, err := x.Exec("UPDATE repository SET close_issues_via_commit_in_any_branch = ?",
-		setting.Repository.CloseIssuesViaCommitsInAnyBranch)
+		setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch)
 	return err
 }
