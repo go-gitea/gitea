@@ -320,21 +320,29 @@ function initCommentForm() {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    labels[$(this).data('id')] = {
-                        "update-url": $listMenu.data('update-url'),
-                        "action": "detach",
-                        "issue-id": $listMenu.data('issue-id'),
-                    };
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "detach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')]
+                    }
                 }
             } else {
                 $(this).addClass('checked');
                 $(this).find('.octicon').addClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    labels[$(this).data('id')] = {
-                        "update-url": $listMenu.data('update-url'),
-                        "action": "attach",
-                        "issue-id": $listMenu.data('issue-id'),
-                    };
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "attach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')]
+                    }
                 }
             }
 
