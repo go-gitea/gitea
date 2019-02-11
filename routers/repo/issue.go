@@ -391,6 +391,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	body := ctx.Query("body")
+	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
 	milestone, err := models.GetMilestoneByID(milestoneID)
@@ -1204,6 +1206,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 						return
 					}
 				} else {
+
+					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+						ctx.ServerError("CreateOrStopIssueStopwatch", err)
+						return
+					}
+
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
 					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)

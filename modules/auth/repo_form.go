@@ -15,7 +15,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -121,7 +121,8 @@ type RepoSettingForm struct {
 	IsArchived                       bool
 
 	// Admin settings
-	EnableHealthCheck bool
+	EnableHealthCheck                     bool
+	EnableCloseIssuesViaCommitInAnyBranch bool
 }
 
 // Validate validates the fields
@@ -391,7 +392,10 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 //                                     \/     \/   |__|           \/     \/
 
 // MergePullRequestForm form for merging Pull Request
+// swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
+	// required: true
+	// enum: merge,rebase,rebase-merge,squash
 	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string

@@ -250,12 +250,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-			if err := models.UpdateRepository(repo, false); err != nil {
-				ctx.ServerError("UpdateRepository", err)
-				return
-			}
-			log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+		}
+
+		if err := models.UpdateRepository(repo, false); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -622,6 +628,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case models.IsErrKeyAlreadyExist(err):
+			ctx.Data["Err_Content"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)

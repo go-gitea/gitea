@@ -23,9 +23,9 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui repo-topic" id="repo-topic">
-		{{range .Topics}}<a class="ui green basic label topic" style="cursor:pointer;" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		<div class="ui" id="repo-topics">
+		{{range .Topics}}<a class="ui repo-topic green basic label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
@@ -41,7 +41,7 @@
 				</div>
 			</div>
 			<div class="two wide column">
-				<a class="ui compact button primary" href="javascript:;" id="save_topic"
+				<a class="ui button primary" href="javascript:;" id="save_topic"
 				data-link="{{.RepoLink}}/topics">{{.i18n.Tr "repo.topic.done"}}</a>
 			</div>
 		</div>
@@ -57,10 +57,10 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
+			{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{.Repository.Owner.Name}}:{{.BranchName | EscapePound}}">
-						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
+					<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
 			{{end}}

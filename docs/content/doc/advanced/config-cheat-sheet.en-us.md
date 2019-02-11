@@ -65,6 +65,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
    default is not to present. **WARNING**: This maybe harmful to you website if you do not
    give it a right value.
+- `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
@@ -231,10 +232,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
-- `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP.
+- `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
+   - **smtp** Use SMTP to send mail
+   - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
    This is common on linux systems.
+   - **dummy** Send email messages to the log as a testing phase.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM` and `SENDMAIL_PATH`.
+   - Enabling dummy will ignore all settings except `ENABLED` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
@@ -249,7 +254,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
@@ -278,6 +283,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
 - `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to the Gitea logger.
 
 ## Cron (`cron`)
 
@@ -314,6 +320,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 
 ## Git - Timeout settings (`git.timeout`)
+- `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -330,6 +337,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
 
 ## i18n (`i18n`)
 

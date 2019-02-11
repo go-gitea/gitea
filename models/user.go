@@ -814,6 +814,7 @@ func CreateUser(u *User) (err error) {
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
+	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -1500,9 +1501,12 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
 	for _, v := range SSHPublicKeys {
-		ldapKey := strings.Join(strings.Split(v, " ")[:2], " ")
-		if !util.ExistsInSlice(ldapKey, ldapKeys) {
-			ldapKeys = append(ldapKeys, ldapKey)
+		sshKeySplit := strings.Split(v, " ")
+		if len(sshKeySplit) > 1 {
+			ldapKey := strings.Join(sshKeySplit[:2], " ")
+			if !util.ExistsInSlice(ldapKey, ldapKeys) {
+				ldapKeys = append(ldapKeys, ldapKey)
+			}
 		}
 	}
 

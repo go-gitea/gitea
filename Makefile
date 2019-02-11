@@ -35,7 +35,7 @@ endif
 
 LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
@@ -197,6 +197,10 @@ test-vendor: vendor
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
+.PHONY: test-sqlite-migration
+test-sqlite-migration:  migrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
+
 generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
@@ -218,13 +222,27 @@ generate-ini:
 test-mysql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
+.PHONY: test-mysql-migration
+test-mysql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.test
+
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
+.PHONY: test-pgsql-migration
+test-pgsql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.test
+
+
 .PHONY: test-mssql
 test-mssql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test
+
+.PHONY: test-mssql-migration
+test-mssql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.test
+
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
@@ -251,6 +269,14 @@ integrations.sqlite.test: $(SOURCES)
 
 integrations.cover.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+
+.PHONY: migrations.test
+migrations.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.test
+
+.PHONY: migrations.sqlite.test
+migrations.sqlite.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
@@ -335,8 +361,10 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
+	$(eval BROWSERS := "> 2%, last 2 firefox versions, last 2 safari versions")
 	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	$(foreach file, $(wildcard public/css/*),node_modules/.bin/postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
 
 .PHONY: swagger-ui
 swagger-ui:

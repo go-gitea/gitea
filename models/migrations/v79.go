@@ -5,15 +5,23 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
 )
 
-func addIsLockedToIssues(x *xorm.Engine) error {
-	// Issue see models/issue.go
-	type Issue struct {
-		ID       int64 `xorm:"pk autoincr"`
-		IsLocked bool  `xorm:"NOT NULL DEFAULT false"`
+func addCanCloseIssuesViaCommitInAnyBranch(x *xorm.Engine) error {
+
+	type Repository struct {
+		ID                              int64 `xorm:"pk autoincr"`
+		CloseIssuesViaCommitInAnyBranch bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(Issue))
+	if err := x.Sync2(new(Repository)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE repository SET close_issues_via_commit_in_any_branch = ?",
+		setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch)
+	return err
 }
