@@ -36,6 +36,8 @@ DISABLE_HTTP_GIT = false
 ACCESS_CONTROL_ALLOW_ORIGIN = 
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
+; Close issues as long as a commit on any branch marks it as fixed
+DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
