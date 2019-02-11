@@ -275,7 +275,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 2,
 				AssignCount:           0,
 				CreateCount:           2,
-				OpenCount:             1,
+				OpenCount:             2,
 				ClosedCount:           2,
 			},
 		},

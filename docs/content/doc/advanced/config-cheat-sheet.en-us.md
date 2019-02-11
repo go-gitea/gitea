@@ -65,6 +65,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
    default is not to present. **WARNING**: This maybe harmful to you website if you do not
    give it a right value.
+- `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
@@ -316,6 +317,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 
 ## Git - Timeout settings (`git.timeout`)
+- `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
