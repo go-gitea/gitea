@@ -271,10 +271,22 @@ function initCommentForm() {
         var $noSelect = $list.find('.no-select');
         var $listMenu = $('.' + selector + ' .menu');
         var hasLabelUpdateAction = $listMenu.data('action') == 'update';
+        var labels = {};
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                for (var elementId in labels) {
+                    if (labels.hasOwnProperty(elementId)) {
+                        var label = labels[elementId];
+                        updateIssuesMeta(
+                            label["update-url"],
+                            label["action"],
+                            label["issue-id"],
+                            elementId
+                        );
+                    }
+                }
                 location.reload();
             }
         });
@@ -308,23 +320,21 @@ function initCommentForm() {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "detach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    labels[$(this).data('id')] = {
+                        "update-url": $listMenu.data('update-url'),
+                        "action": "detach",
+                        "issue-id": $listMenu.data('issue-id'),
+                    };
                 }
             } else {
                 $(this).addClass('checked');
                 $(this).find('.octicon').addClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "attach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    labels[$(this).data('id')] = {
+                        "update-url": $listMenu.data('update-url'),
+                        "action": "attach",
+                        "issue-id": $listMenu.data('issue-id'),
+                    };
                 }
             }
 
@@ -1602,9 +1612,9 @@ function initCodeView() {
                 $("html, body").scrollTop($first.offset().top - 200);
                 return;
             }
-            m = window.location.hash.match(/^#(L\d+)$/);
+            m = window.location.hash.match(/^#(L|n)(\d+)$/);
             if (m) {
-                $first = $list.filter('.' + m[1]);
+                $first = $list.filter('.L' + m[2]);
                 selectRange($list, $first);
                 $("html, body").scrollTop($first.offset().top - 200);
             }
@@ -1931,11 +1941,9 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('#issue-filters').hide();
-            $('#issue-actions').show();
+            $('#issue-actions').removeClass("hide");
         } else {
-            $('#issue-filters').show();
-            $('#issue-actions').hide();
+            $('#issue-actions').addClass("hide");
         }
     });
 
@@ -2605,7 +2613,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
@@ -2635,16 +2643,15 @@ function initTopicbar() {
         }, function(data, textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length === 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
+                if (topics.length) {
+                    var topicArray = topics.split(",");
 
-                var last = viewDiv.children("a").last();
-                for (var i=0; i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
                 }
-                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                editDiv.css('display', 'none');
                 viewDiv.show();
             }
         }).fail(function(xhr){

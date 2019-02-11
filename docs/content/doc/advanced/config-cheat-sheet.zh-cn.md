@@ -188,6 +188,8 @@ menu:
 - `GC_ARGS`: 执行 `git gc` 命令的参数, 比如： `--aggressive --auto`。
 
 ## Git - 超时设置 (`git.timeout`)
+
+- `DEFAUlT`: **360**: Git操作默认超时时间，单位秒
 - `MIGRATE`: **600**: 迁移外部仓库时的超时时间，单位秒
 - `MIRROR`: **300**: 镜像外部仓库的超时时间，单位秒
 - `CLONE`: **300**: 内部仓库间克隆的超时时间，单位秒
@@ -199,6 +201,7 @@ menu:
 - `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认和最大项数.
 
 ## Markup (`markup`)
 
