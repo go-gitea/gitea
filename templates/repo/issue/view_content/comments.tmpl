@@ -6,7 +6,7 @@
 	 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
 	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
-	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_LOCKED -->
+	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -367,13 +367,8 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 
-			{{ $formatting := "" }}
-			{{ if .Content }}
-				{{ $formatting = "as " }}
-			{{ end }}
-
 	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-				{{$.i18n.Tr "repo.issues.lock_comment" $formatting .Content $createdStr | Safe}}
+				{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
 	    		</span>
 		</div>
 	{{else if eq .Type 24}}
