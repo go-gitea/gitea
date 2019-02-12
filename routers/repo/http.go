@@ -143,24 +143,24 @@ func HTTP(ctx *context.Context) {
 				return
 			}
 
-			authUser, err = models.UserSignIn(authUsername, authPasswd)
-			if err != nil {
-				if !models.IsErrUserNotExist(err) {
-					ctx.ServerError("UserSignIn error: %v", err)
-					return
-				}
+			// Check if username or password is a token
+			isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
+			// Assume username is token
+			authToken := authUsername
+			if !isUsernameToken {
+				// Assume password is token
+				authToken = authPasswd
 			}
-
-			if authUser == nil {
-				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
-
-				// Assume username is token
-				authToken := authUsername
-
-				if !isUsernameToken {
-					// Assume password is token
-					authToken = authPasswd
-
+			// Assume password is a token.
+			token, err := models.GetAccessTokenBySHA(authToken)
+			if err == nil {
+				if isUsernameToken {
+					authUser, err = models.GetUserByID(token.UID)
+					if err != nil {
+						ctx.ServerError("GetUserByID", err)
+						return
+					}
+				} else {
 					authUser, err = models.GetUserByName(authUsername)
 					if err != nil {
 						if models.IsErrUserNotExist(err) {
@@ -170,37 +170,37 @@ func HTTP(ctx *context.Context) {
 						}
 						return
 					}
-				}
-
-				// Assume password is a token.
-				token, err := models.GetAccessTokenBySHA(authToken)
-				if err != nil {
-					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+					if authUser.ID != token.UID {
 						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					} else {
-						ctx.ServerError("GetAccessTokenBySha", err)
-					}
-					return
-				}
-
-				if isUsernameToken {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.ServerError("GetUserByID", err)
 						return
 					}
-				} else if authUser.ID != token.UID {
-					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					return
 				}
-
 				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
 			} else {
-				_, err = models.GetTwoFactorByUID(authUser.ID)
+				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+					log.Error(4, "GetAccessTokenBySha: %v", err)
+				}
+			}
 
+			if authUser == nil {
+				// Check username and password
+				authUser, err = models.UserSignIn(authUsername, authPasswd)
+				if err != nil {
+					if !models.IsErrUserNotExist(err) {
+						ctx.ServerError("UserSignIn error: %v", err)
+						return
+					}
+				}
+
+				if authUser == nil {
+					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					return
+				}
+
+				_, err = models.GetTwoFactorByUID(authUser.ID)
 				if err == nil {
 					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
