@@ -2,9 +2,11 @@
 package dropbox
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -25,6 +27,7 @@ type Provider struct {
 	ClientKey    string
 	Secret       string
 	CallbackURL  string
+	AccountURL   string
 	HTTPClient   *http.Client
 	config       *oauth2.Config
 	providerName string
@@ -44,6 +47,7 @@ func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 		ClientKey:    clientKey,
 		Secret:       secret,
 		CallbackURL:  callbackURL,
+		AccountURL:   accountURL,
 		providerName: "dropbox",
 	}
 	p.config = newConfig(p, scopes)
@@ -87,7 +91,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
 	}
 
-	req, err := http.NewRequest("POST", accountURL, nil)
+	req, err := http.NewRequest("POST", p.AccountURL, nil)
 	if err != nil {
 		return user, err
 	}
@@ -102,7 +106,17 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s responded with a %d trying to fetch user information", p.providerName, resp.StatusCode)
 	}
 
-	err = userFromReader(resp.Body, &user)
+	bits, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return user, err
+	}
+
+	err = json.NewDecoder(bytes.NewReader(bits)).Decode(&user.RawData)
+	if err != nil {
+		return user, err
+	}
+
+	err = userFromReader(bytes.NewReader(bits), &user)
 	return user, err
 }
 
@@ -162,22 +176,29 @@ func newConfig(p *Provider, scopes []string) *oauth2.Config {
 
 func userFromReader(r io.Reader, user *goth.User) error {
 	u := struct {
-		Name        string `json:"display_name"`
-		NameDetails struct {
-			NickName string `json:"familiar_name"`
-		} `json:"name_details"`
-		Location string `json:"country"`
-		Email    string `json:"email"`
+		AccountID string `json:"account_id"`
+		Name      struct {
+			GivenName   string `json:"given_name"`
+			Surname     string `json:"surname"`
+			DisplayName string `json:"display_name"`
+		} `json:"name"`
+		Country         string `json:"country"`
+		Email           string `json:"email"`
+		ProfilePhotoURL string `json:"profile_photo_url"`
 	}{}
 	err := json.NewDecoder(r).Decode(&u)
 	if err != nil {
 		return err
 	}
+	user.UserID = u.AccountID // The user's unique Dropbox ID.
+	user.FirstName = u.Name.GivenName
+	user.LastName = u.Name.Surname
+	user.Name = strings.TrimSpace(fmt.Sprintf("%s %s", u.Name.GivenName, u.Name.Surname))
+	user.Description = u.Name.DisplayName // Full name plus parenthetical team naem
 	user.Email = u.Email
-	user.Name = u.Name
-	user.NickName = u.NameDetails.NickName
-	user.UserID = u.Email // Dropbox doesn't provide a separate user ID
-	user.Location = u.Location
+	user.NickName = u.Email // Email is the dropbox username
+	user.Location = u.Country
+	user.AvatarURL = u.ProfilePhotoURL // May be blank
 	return nil
 }
 

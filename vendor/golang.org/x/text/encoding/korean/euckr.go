@@ -5,7 +5,6 @@
 package korean
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -26,8 +25,6 @@ var eucKR = internal.Encoding{
 	identifier.EUCKR,
 }
 
-var errInvalidEUCKR = errors.New("korean: invalid EUC-KR encoding")
-
 type eucKRDecoder struct{ transform.NopResetter }
 
 func (eucKRDecoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err error) {
@@ -40,10 +37,15 @@ loop:
 
 		case 0x81 <= c0 && c0 < 0xff:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				break
 			}
 			c1 := src[nSrc+1]
+			size = 2
 			if c0 < 0xc7 {
 				r = 178 * rune(c0-0x81)
 				switch {
@@ -54,38 +56,35 @@ loop:
 				case 0x81 <= c1 && c1 < 0xff:
 					r += rune(c1) - (0x81 - 2*26)
 				default:
-					err = errInvalidEUCKR
-					break loop
+					goto decError
 				}
 			} else if 0xa1 <= c1 && c1 < 0xff {
 				r = 178*(0xc7-0x81) + rune(c0-0xc7)*94 + rune(c1-0xa1)
 			} else {
-				err = errInvalidEUCKR
-				break loop
+				goto decError
 			}
 			if int(r) < len(decode) {
 				r = rune(decode[r])
-				if r == 0 {
-					r = '\ufffd'
+				if r != 0 {
+					break
 				}
-			} else {
-				r = '\ufffd'
 			}
-			size = 2
+		decError:
+			r = utf8.RuneError
+			if c1 < utf8.RuneSelf {
+				size = 1
+			}
 
 		default:
-			err = errInvalidEUCKR
-			break loop
+			r, size = utf8.RuneError, 1
+			break
 		}
 
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
-			break loop
+			break
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidEUCKR
 	}
 	return nDst, nSrc, err
 }

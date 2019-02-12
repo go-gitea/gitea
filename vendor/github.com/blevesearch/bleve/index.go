@@ -15,11 +15,12 @@
 package bleve
 
 import (
+	"context"
+
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/mapping"
-	"golang.org/x/net/context"
 )
 
 // A Batch groups together multiple Index and Delete
@@ -76,7 +77,7 @@ func (b *Batch) SetInternal(key, val []byte) {
 	b.internal.SetInternal(key, val)
 }
 
-// SetInternal adds the specified delete internal
+// DeleteInternal adds the specified delete internal
 // operation to the batch. NOTE: the bleve Index is
 // not updated until the batch is executed.
 func (b *Batch) DeleteInternal(key []byte) {

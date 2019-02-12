@@ -7,12 +7,17 @@
 package leveldb
 
 import (
+	"errors"
 	"sync/atomic"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
+)
+
+var (
+	errHasFrozenMem = errors.New("has frozen mem")
 )
 
 type memDB struct {
@@ -67,12 +72,11 @@ func (db *DB) sampleSeek(ikey internalKey) {
 }
 
 func (db *DB) mpoolPut(mem *memdb.DB) {
-	defer func() {
-		recover()
-	}()
-	select {
-	case db.memPool <- mem:
-	default:
+	if !db.isClosed() {
+		select {
+		case db.memPool <- mem:
+		default:
+		}
 	}
 }
 
@@ -100,7 +104,13 @@ func (db *DB) mpoolDrain() {
 			case <-db.memPool:
 			default:
 			}
-		case _, _ = <-db.closeC:
+		case <-db.closeC:
+			ticker.Stop()
+			// Make sure the pool is drained.
+			select {
+			case <-db.memPool:
+			case <-time.After(time.Second):
+			}
 			close(db.memPool)
 			return
 		}
@@ -121,7 +131,7 @@ func (db *DB) newMem(n int) (mem *memDB, err error) {
 	defer db.memMu.Unlock()
 
 	if db.frozenMem != nil {
-		panic("still has frozen mem")
+		return nil, errHasFrozenMem
 	}
 
 	if db.journal == nil {
@@ -148,24 +158,26 @@ func (db *DB) newMem(n int) (mem *memDB, err error) {
 func (db *DB) getMems() (e, f *memDB) {
 	db.memMu.RLock()
 	defer db.memMu.RUnlock()
-	if db.mem == nil {
+	if db.mem != nil {
+		db.mem.incref()
+	} else if !db.isClosed() {
 		panic("nil effective mem")
 	}
-	db.mem.incref()
 	if db.frozenMem != nil {
 		db.frozenMem.incref()
 	}
 	return db.mem, db.frozenMem
 }
 
-// Get frozen memdb.
+// Get effective memdb.
 func (db *DB) getEffectiveMem() *memDB {
 	db.memMu.RLock()
 	defer db.memMu.RUnlock()
-	if db.mem == nil {
+	if db.mem != nil {
+		db.mem.incref()
+	} else if !db.isClosed() {
 		panic("nil effective mem")
 	}
-	db.mem.incref()
 	return db.mem
 }
 
@@ -196,6 +208,14 @@ func (db *DB) dropFrozenMem() {
 	}
 	db.frozenJournalFd = storage.FileDesc{}
 	db.frozenMem.decref()
+	db.frozenMem = nil
+	db.memMu.Unlock()
+}
+
+// Clear mems ptr; used by DB.Close().
+func (db *DB) clearMems() {
+	db.memMu.Lock()
+	db.mem = nil
 	db.frozenMem = nil
 	db.memMu.Unlock()
 }

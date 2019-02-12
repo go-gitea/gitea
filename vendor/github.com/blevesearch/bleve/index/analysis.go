@@ -14,7 +14,10 @@
 
 package index
 
-import "github.com/blevesearch/bleve/document"
+import (
+	"github.com/blevesearch/bleve/analysis"
+	"github.com/blevesearch/bleve/document"
+)
 
 type IndexRow interface {
 	KeySize() int
@@ -29,6 +32,11 @@ type IndexRow interface {
 type AnalysisResult struct {
 	DocID string
 	Rows  []IndexRow
+
+	// scorch
+	Document *document.Document
+	Analyzed []analysis.TokenFrequencies
+	Length   []int
 }
 
 type AnalysisWork struct {

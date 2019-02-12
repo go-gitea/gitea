@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -65,8 +66,11 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+
 	opts := models.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.IsWriter(),
+		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
 	}
 
@@ -197,7 +201,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -276,7 +280,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}

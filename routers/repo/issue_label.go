@@ -42,9 +42,10 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 	labels := make([]*models.Label, len(list))
 	for i := 0; i < len(list); i++ {
 		labels[i] = &models.Label{
-			RepoID: ctx.Repo.Repository.ID,
-			Name:   list[i][0],
-			Color:  list[i][1],
+			RepoID:      ctx.Repo.Repository.ID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
 		}
 	}
 	if err := models.NewLabels(labels...); err != nil {
@@ -81,9 +82,10 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	}
 
 	l := &models.Label{
-		RepoID: ctx.Repo.Repository.ID,
-		Name:   form.Title,
-		Color:  form.Color,
+		RepoID:      ctx.Repo.Repository.ID,
+		Name:        form.Title,
+		Description: form.Description,
+		Color:       form.Color,
 	}
 	if err := models.NewLabel(l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -106,6 +108,7 @@ func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	}
 
 	l.Name = form.Title
+	l.Description = form.Description
 	l.Color = form.Color
 	if err := models.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)

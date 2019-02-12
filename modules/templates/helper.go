@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -10,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"mime"
 	"net/url"
@@ -27,7 +29,6 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"html"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -75,6 +76,7 @@ func NewFuncMap() []template.FuncMap {
 		"RawTimeSince":  base.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
+		"EntryIcon":     base.EntryIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -102,12 +104,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":    base.EllipsisString,
-		"DiffTypeToStr":     DiffTypeToStr,
-		"DiffLineTypeToStr": DiffLineTypeToStr,
-		"Sha1":              Sha1,
-		"ShortSha":          base.ShortSha,
-		"MD5":               base.EncodeMD5,
+		"EllipsisString":        base.EllipsisString,
+		"DiffTypeToStr":         DiffTypeToStr,
+		"DiffLineTypeToStr":     DiffLineTypeToStr,
+		"Sha1":                  Sha1,
+		"ShortSha":              base.ShortSha,
+		"MD5":                   base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -164,6 +166,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"DisableImportLocal": func() bool {
+			return !setting.ImportLocalPaths
+		},
 		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
@@ -179,8 +184,41 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
-		"Printf": fmt.Sprintf,
-		"Escape": Escape,
+		"Printf":   fmt.Sprintf,
+		"Escape":   Escape,
+		"Sec2Time": models.SecToTime,
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
+		"DefaultTheme": func() string {
+			return setting.UI.DefaultTheme
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				switch key := values[i].(type) {
+				case string:
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				case map[string]interface{}:
+					m := values[i].(map[string]interface{})
+					for i, v := range m {
+						dict[i] = v
+					}
+				default:
+					return nil, errors.New("dict values must be maps")
+				}
+			}
+			return dict, nil
+		},
 	}}
 }
 
@@ -238,13 +276,35 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	}
 
 	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't loose data.
+	// original left over. This way we won't lose data.
 	result, n, err := transform.String(encoding.NewDecoder(), string(content))
 	if err != nil {
 		result = result + string(content[n:])
 	}
 
 	return result, err
+}
+
+// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
+func ToUTF8WithFallback(content []byte) []byte {
+	charsetLabel, err := base.DetectEncoding(content)
+	if err != nil || charsetLabel == "UTF-8" {
+		return content
+	}
+
+	encoding, _ := charset.Lookup(charsetLabel)
+	if encoding == nil {
+		return content
+	}
+
+	// If there is an error, we concatenate the nicely decoded part and the
+	// original left over. This way we won't lose data.
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
+	if err != nil {
+		return append(result, content[n:]...)
+	}
+
+	return result
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error
@@ -280,26 +340,21 @@ func ReplaceLeft(s, old, new string) string {
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	})
+	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
-func RenderCommitMessageLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
-	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
-		DefaultURL: urlDefault,
-		URLPrefix:  urlPrefix,
-		Metas:      metas,
-	})
-}
-
-func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
+func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -308,16 +363,13 @@ func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions)
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	})
-}
-
-func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	body := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
+	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(body) == 0 {
 		return template.HTML("")
 	}
@@ -326,7 +378,7 @@ func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) te
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
 func IsMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") > 1
+	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action
@@ -362,6 +414,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-closed"
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
+	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+		return "repo-clone"
 	default:
 		return "invalid type"
 	}

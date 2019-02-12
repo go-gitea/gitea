@@ -293,7 +293,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 }
 
 func (udc *UpsideDownCouch) Open() (err error) {
-	//acquire the write mutex for the duratin of Open()
+	// acquire the write mutex for the duration of Open()
 	udc.writeMutex.Lock()
 	defer udc.writeMutex.Unlock()
 
@@ -837,6 +837,11 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			docBackIndexRowErr = err
 			return
 		}
+		defer func() {
+			if cerr := kvreader.Close(); err == nil && cerr != nil {
+				docBackIndexRowErr = cerr
+			}
+		}()
 
 		for docID, doc := range batch.IndexOps {
 			backIndexRow, err := backIndexRowForDoc(kvreader, index.IndexInternalID(docID))
@@ -846,12 +851,6 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			}
 
 			docBackIndexRowCh <- &docBackIndexRow{docID, doc, backIndexRow}
-		}
-
-		err = kvreader.Close()
-		if err != nil {
-			docBackIndexRowErr = err
-			return
 		}
 	}()
 

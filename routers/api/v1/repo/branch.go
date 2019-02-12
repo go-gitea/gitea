@@ -5,18 +5,18 @@
 package repo
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetBranch get a branch of a repository
 func GetBranch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
 	// ---
-	// summary: List a repository's branches
+	// summary: Retrieve a specific branch from a repository
 	// produces:
 	// - application/json
 	// parameters:

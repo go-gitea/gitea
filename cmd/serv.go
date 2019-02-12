@@ -14,14 +14,16 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
 )
 
@@ -42,23 +44,36 @@ var CmdServ = cli.Command{
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.BoolFlag{
+			Name: "enable-pprof",
+		},
 	},
 }
 
-func setup(logPath string) error {
-	setting.NewContext()
-	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-	models.LoadConfigs()
+func checkLFSVersion() {
+	if setting.LFS.StartServer {
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			fail(fmt.Sprintf("Error retrieving git version: %v", err), fmt.Sprintf("Error retrieving git version: %v", err))
+		}
 
-	if setting.UseSQLite3 || setting.UseTiDB {
-		workPath := setting.AppWorkPath
-		if err := os.Chdir(workPath); err != nil {
-			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workPath, err)
+		if !version.Compare(binVersion, "2.1.2", ">=") {
+			setting.LFS.StartServer = false
+			println("LFS server support needs at least Git v2.1.2, disabled")
+		} else {
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 		}
 	}
+}
 
-	setting.NewXORMLogService(true)
-	return models.SetEngine()
+func setup(logPath string) {
+	log.DelLogger("console")
+	setting.NewContext()
+	checkLFSVersion()
+	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -97,10 +112,7 @@ func runServ(c *cli.Context) error {
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
 	}
-
-	if err := setup("serv.log"); err != nil {
-		fail("System init failed", fmt.Sprintf("setup: %v", err))
-	}
+	setup("serv.log")
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
@@ -143,11 +155,27 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
-	isWiki := false
-	unitType := models.UnitTypeCode
+	if setting.EnablePprof || c.Bool("enable-pprof") {
+		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
+			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+		}
+
+		stopCPUProfiler := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		defer func() {
+			stopCPUProfiler()
+			pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
+		}()
+	}
+
+	var (
+		isWiki   bool
+		unitType = models.UnitTypeCode
+		unitName = "code"
+	)
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = models.UnitTypeWiki
+		unitName = "wiki"
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -159,9 +187,9 @@ func runServ(c *cli.Context) error {
 	}
 	os.Setenv(models.EnvRepoName, reponame)
 
-	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	repo, err := private.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if strings.Contains(err.Error(), "Failed to get repository: repository does not exist") {
 			fail(accessDenied, "Repository does not exist: %s/%s", username, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
@@ -192,13 +220,13 @@ func runServ(c *cli.Context) error {
 		keyID int64
 		user  *models.User
 	)
-	if requestedMode == models.AccessModeWrite || repo.IsPrivate {
+	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
 		keys := strings.Split(c.Args()[0], "-")
 		if len(keys) != 2 {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
 		}
 
-		key, err := models.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
+		key, err := private.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
 		if err != nil {
 			fail("Invalid key ID", "Invalid key ID[%s]: %v", c.Args()[0], err)
 		}
@@ -206,47 +234,53 @@ func runServ(c *cli.Context) error {
 
 		// Check deploy key or user key.
 		if key.Type == models.KeyTypeDeploy {
-			if key.Mode < requestedMode {
-				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
+			// Now we have to get the deploy key for this repo
+			deployKey, err := private.GetDeployKey(key.ID, repo.ID)
+			if err != nil {
+				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
-			// Check if this deploy key belongs to current repository.
-			if !models.HasDeployKey(key.ID, repo.ID) {
+
+			if deployKey == nil {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
 
-			// Update deploy key activity.
-			deployKey, err := models.GetDeployKeyByRepo(key.ID, repo.ID)
-			if err != nil {
-				fail("Internal error", "GetDeployKey: %v", err)
+			if deployKey.Mode < requestedMode {
+				fail("Key permission denied", "Cannot push with read-only deployment key: %d to repo_id: %d", key.ID, repo.ID)
 			}
 
-			deployKey.UpdatedUnix = util.TimeStampNow()
-			if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+			// Update deploy key activity.
+			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
+
+			// FIXME: Deploy keys aren't really the owner of the repo pushing changes
+			// however we don't have good way of representing deploy keys in hook.go
+			// so for now use the owner
+			os.Setenv(models.EnvPusherName, username)
+			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
 		} else {
-			user, err = models.GetUserByKeyID(key.ID)
+			user, err = private.GetUserByKeyID(key.ID)
 			if err != nil {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
-			mode, err := models.AccessLevel(user.ID, repo)
+			if !user.IsActive || user.ProhibitLogin {
+				fail("Your account is not active or has been disabled by Administrator",
+					"User %s is disabled and have no access to repository %s",
+					user.Name, repoPath)
+			}
+
+			mode, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
-			} else if mode < requestedMode {
+			} else if *mode < requestedMode {
 				clientMessage := accessDenied
-				if mode >= models.AccessModeRead {
+				if *mode >= models.AccessModeRead {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
-					"User %s does not have level %v access to repository %s",
+					"User %s does not have level %v access to repository %s's "+unitName,
 					user.Name, requestedMode, repoPath)
-			}
-
-			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
-				fail("You do not have allowed for this action",
-					"User %s does not have allowed access to repository %s 's code",
-					user.Name, repoPath)
 			}
 
 			os.Setenv(models.EnvPusherName, user.Name)
@@ -262,7 +296,7 @@ func runServ(c *cli.Context) error {
 		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
-			"exp":  now.Add(5 * time.Minute).Unix(),
+			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
 		if user != nil {
@@ -303,9 +337,8 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
-
 	if isWiki {
-		if err = repo.InitWiki(); err != nil {
+		if err = private.InitWiki(repo.ID); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)
 		}
 	}

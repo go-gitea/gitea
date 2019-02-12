@@ -10,7 +10,7 @@
 			</div>
 			{{if .RepoSearchEnabled}}
 				<div class="ui repo-search">
-					<form class="ui form" action="{{.RepoLink}}/search" method="get">
+					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="field">
 							<div class="ui action input">
 								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
@@ -23,12 +23,44 @@
 				</div>
 			{{end}}
 		</div>
+		<div class="ui" id="repo-topics">
+		{{range .Topics}}<a class="ui repo-topic green basic label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		</div>
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
+		<div class="ui repo-topic-edit grid form segment error" id="topic_edit" style="display:none">
+			<div class="fourteen wide column">
+				<div class="field">
+					<div class="ui fluid multiple search selection dropdown">
+						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
+						{{range .Topics}}
+						<div class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
+						{{end}}
+						<div class="text"></div>
+					</div>
+				</div>
+			</div>
+			<div class="two wide column">
+				<a class="ui button primary" href="javascript:;" id="save_topic"
+				data-link="{{.RepoLink}}/topics">{{.i18n.Tr "repo.topic.done"}}</a>
+			</div>
+		</div>
+		{{end}}
+		<div class="hide" id="validate_prompt">
+			<span id="count_prompt">{{.i18n.Tr "repo.topic.count_prompt"}}</span>
+			<span id="format_prompt">{{.i18n.Tr "repo.topic.format_prompt"}}</span>
+		</div>
+		{{if .Repository.IsArchived}}
+			<div class="ui warning message">
+				{{.i18n.Tr "repo.archive.title"}}
+			</div>
+		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
+			{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Repository.Owner.Name}}:{{.BranchName}}">
-						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
+					<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
 			{{end}}
@@ -37,8 +69,8 @@
 			{{ $l := Subtract $n 1}}
 			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			<div class="right fitted item" id="file-buttons">
-				{{if .Repository.CanEnableEditor}}
-					<div class="ui tiny blue buttons">
+				<div class="ui tiny blue buttons">
+					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
 								{{.i18n.Tr "repo.editor.new_file"}}
@@ -49,8 +81,13 @@
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
-					</div>
-				{{end}}
+					{{end}}
+					{{if and (ne $n 0) (not .IsViewFile)}}
+						<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui button">
+							{{.i18n.Tr "repo.file_history"}}
+						</a>
+					{{end}}
+				</div>
 
 			</div>
 			<div class="fitted item">
@@ -73,7 +110,7 @@
 						{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
 						{{end}}
-						{{if or ((not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)))}}
+						{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
 								<i class="octicon octicon-clippy"></i>
 							</button>

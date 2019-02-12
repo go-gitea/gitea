@@ -1,0 +1,55 @@
+{{template "base/head" .}}
+<div class="explore users">
+	{{template "explore/navbar" .}}
+	<div class="ui container">
+		<form class="ui form ignore-dirty" style="max-width: 100%">
+            <div class="ui fluid action input">
+                <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+                <input type="hidden" name="tab" value="{{$.TabName}}">
+                <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+            </div>
+        </form>
+        <div class="ui divider"></div>
+
+		<div class="ui user list">
+			{{if .SearchResults}}
+                <h3>
+                    {{.i18n.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
+                </h3>
+                <div class="repository search">
+                    {{range $result := .SearchResults}}
+                        {{$repo := (index $.RepoMaps .RepoID)}}
+                        <div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
+                            <h4 class="ui top attached normal header">
+                                <span class="file"><a rel="nofollow" href="{{EscapePound $repo.HTMLURL}}">{{$repo.FullName}}</a> - {{.Filename}}</span>
+                                <a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $repo.HTMLURL}}/src/branch/{{$repo.DefaultBranch}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+                            </h4>
+                            <div class="ui attached table segment">
+                                <div class="file-body file-code code-view">
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td class="lines-num">
+                                                    {{range .LineNumbers}}
+                                                        <a href="{{EscapePound $repo.HTMLURL}}/src/branch/{{$repo.DefaultBranch}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+                                                    {{end}}
+                                                </td>
+                                                <td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FormattedLines}}</ol></code></pre></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {{end}}
+                </div>
+			{{else}}
+				<div>{{$.i18n.Tr "explore.code_no_results"}}</div>
+			{{end}}
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+{{template "base/footer" .}}
+

@@ -1,15 +1,16 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package repo
 
 import (
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/repo"
+
+	"code.gitea.io/git"
 )
 
 // GetRawFile get a file by path on a repository
@@ -36,13 +37,9 @@ func GetRawFile(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
-	if !ctx.Repo.HasAccess() {
-		ctx.Status(404)
-		return
-	}
-
-	if ctx.Repo.Repository.IsBare {
+	//   200:
+	//     description: success
+	if ctx.Repo.Repository.IsEmpty {
 		ctx.Status(404)
 		return
 	}
@@ -63,7 +60,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 // GetArchive get archive of a repository
 func GetArchive(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/archive/{filepath} repository repoGetArchive
+	// swagger:operation GET /repos/{owner}/{repo}/archive/{archive} repository repoGetArchive
 	// ---
 	// summary: Get an archive of a repository
 	// produces:
@@ -85,7 +82,8 @@ func GetArchive(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
+	//   200:
+	//     description: success
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -121,7 +119,8 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
+	//   200:
+	//     description: success
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {

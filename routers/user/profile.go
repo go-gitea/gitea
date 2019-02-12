@@ -87,6 +87,8 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	ctx.Data["HeatmapUser"] = ctxUser.Name
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
@@ -104,6 +106,8 @@ func Profile(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+
+	topicOnly := ctx.QueryBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -125,6 +129,14 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
 		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = models.SearchOrderByRecentUpdated
@@ -166,6 +178,7 @@ func Profile(ctx *context.Context) {
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Starred:     true,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -202,12 +215,15 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:  keyword,
-				OwnerID:  ctxUser.ID,
-				OrderBy:  orderBy,
-				Private:  showPrivate,
-				Page:     page,
-				PageSize: setting.UI.User.RepoPagingNum,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				IsProfile:   true,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -271,9 +287,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
-	if len(redirectTo) == 0 {
-		redirectTo = u.HomeLink()
-	}
-	ctx.Redirect(redirectTo)
+	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
 }

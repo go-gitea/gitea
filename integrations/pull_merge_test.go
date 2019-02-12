@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 
+	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,6 +77,19 @@ func TestPullRebase(t *testing.T) {
 	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
 }
 
+func TestPullRebaseMerge(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+
+	elem := strings.Split(test.RedirectURL(resp), "/")
+	assert.EqualValues(t, "pulls", elem[3])
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+}
+
 func TestPullSquash(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
@@ -121,5 +135,25 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
-	assert.EqualValues(t, "user1/feature/test has been deleted.", resultMsg)
+	assert.EqualValues(t, "Branch 'user1/feature/test' has been deleted.", resultMsg)
+}
+
+func TestCantMergeWorkInProgress(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+	resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
+
+	req := NewRequest(t, "GET", resp.Header().Get("Location"))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	text := strings.TrimSpace(htmlDoc.doc.Find(".merge.segment > .text.grey").Text())
+	assert.NotEmpty(t, text, "Can't find WIP text")
+
+	// remove <strong /> from lang
+	expected := i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress", "[wip]")
+	replacer := strings.NewReplacer("<strong>", "", "</strong>", "")
+	assert.Equal(t, replacer.Replace(expected), text, "Unable to find WIP text")
 }

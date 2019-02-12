@@ -3,23 +3,23 @@ Package gothic wraps common behaviour when using Goth. This makes it quick, and 
 and running with Goth. Of course, if you want complete control over how things flow, in regards
 to the authentication process, feel free and use Goth directly.
 
-See https://github.com/markbates/goth/examples/main.go to see this in action.
+See https://github.com/markbates/goth/blob/master/examples/main.go to see this in action.
 */
 package gothic
 
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -35,8 +35,6 @@ var defaultStore sessions.Store
 
 var keySet = false
 
-var gothicRand *rand.Rand
-
 func init() {
 	key := []byte(os.Getenv("SESSION_SECRET"))
 	keySet = len(key) != 0
@@ -45,7 +43,6 @@ func init() {
 	cookieStore.Options.HttpOnly = true
 	Store = cookieStore
 	defaultStore = Store
-	gothicRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 /*
@@ -85,8 +82,9 @@ var SetState = func(req *http.Request) string {
 	//
 	// https://auth0.com/docs/protocols/oauth2/oauth-state#keep-reading
 	nonceBytes := make([]byte, 64)
-	for i := 0; i < 64; i++ {
-		nonceBytes[i] = byte(gothicRand.Int63() % 256)
+	_, err := io.ReadFull(rand.Reader, nonceBytes)
+	if err != nil {
+		panic("gothic: source of randomness unavailable: " + err.Error())
 	}
 	return base64.URLEncoding.EncodeToString(nonceBytes)
 }
@@ -132,7 +130,7 @@ func GetAuthURL(res http.ResponseWriter, req *http.Request) (string, error) {
 		return "", err
 	}
 
-	err = storeInSession(providerName, sess.Marshal(), req, res)
+	err = StoreInSession(providerName, sess.Marshal(), req, res)
 
 	if err != nil {
 		return "", err
@@ -166,7 +164,7 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return goth.User{}, err
 	}
 
-	value, err := getFromSession(providerName, req)
+	value, err := GetFromSession(providerName, req)
 	if err != nil {
 		return goth.User{}, err
 	}
@@ -193,7 +191,7 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return goth.User{}, err
 	}
 
-	err = storeInSession(providerName, sess.Marshal(), req, res)
+	err = StoreInSession(providerName, sess.Marshal(), req, res)
 
 	if err != nil {
 		return goth.User{}, err
@@ -284,8 +282,9 @@ func getProviderName(req *http.Request) (string, error) {
 	return "", errors.New("you must select a provider")
 }
 
-func storeInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
-	session, _ := Store.Get(req, SessionName)
+// StoreInSession stores a specified key/value pair in the session.
+func StoreInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
+	session, _ := Store.New(req, SessionName)
 
 	if err := updateSessionValue(session, key, value); err != nil {
 		return err
@@ -294,7 +293,9 @@ func storeInSession(key string, value string, req *http.Request, res http.Respon
 	return session.Save(req, res)
 }
 
-func getFromSession(key string, req *http.Request) (string, error) {
+// GetFromSession retrieves a previously-stored value from the session.
+// If no value has previously been stored at the specified key, it will return an error.
+func GetFromSession(key string, req *http.Request) (string, error) {
 	session, _ := Store.Get(req, SessionName)
 	value, err := getSessionValue(session, key)
 	if err != nil {

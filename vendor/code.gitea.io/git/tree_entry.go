@@ -5,6 +5,7 @@
 package git
 
 import (
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,15 +18,15 @@ type EntryMode int
 // one of these.
 const (
 	// EntryModeBlob
-	EntryModeBlob EntryMode = 0100644
+	EntryModeBlob EntryMode = 0x0100644
 	// EntryModeExec
-	EntryModeExec EntryMode = 0100755
+	EntryModeExec EntryMode = 0x0100755
 	// EntryModeSymlink
-	EntryModeSymlink EntryMode = 0120000
+	EntryModeSymlink EntryMode = 0x0120000
 	// EntryModeCommit
-	EntryModeCommit EntryMode = 0160000
+	EntryModeCommit EntryMode = 0x0160000
 	// EntryModeTree
-	EntryModeTree EntryMode = 0040000
+	EntryModeTree EntryMode = 0x0040000
 )
 
 // TreeEntry the leaf in the git tree
@@ -47,6 +48,11 @@ type TreeEntry struct {
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
 	return te.name
+}
+
+// Mode returns the mode of the entry
+func (te *TreeEntry) Mode() EntryMode {
+	return te.mode
 }
 
 // Size returns the size of the entry
@@ -88,6 +94,45 @@ func (te *TreeEntry) Blob() *Blob {
 		repo:      te.ptree.repo,
 		TreeEntry: te,
 	}
+}
+
+// FollowLink returns the entry pointed to by a symlink
+func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
+	if !te.IsLink() {
+		return nil, ErrBadLink{te.Name(), "not a symlink"}
+	}
+
+	// read the link
+	r, err := te.Blob().Data()
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, te.Size())
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	lnk := string(buf)
+	t := te.ptree
+
+	// traverse up directories
+	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {
+		t = t.ptree
+	}
+
+	if t == nil {
+		return nil, ErrBadLink{te.Name(), "points outside of repo"}
+	}
+
+	target, err := t.GetTreeEntryByPath(lnk)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return nil, ErrBadLink{te.Name(), "broken link"}
+		}
+		return nil, err
+	}
+	return target, nil
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/captcha"
@@ -44,18 +45,14 @@ func SignInOpenID(ctx *context.Context) {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL)
+		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
 		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
 	}
 
 	if isSucceed {
-		if len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-			ctx.Redirect(redirectTo)
-		} else {
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		ctx.RedirectToFirst(redirectTo)
 		return
 	}
 
@@ -118,7 +115,8 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+		log.Error(1, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
+		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
 		return
 	}
 
@@ -312,6 +310,8 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -337,12 +337,24 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
 		return
+	}
+
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
+		ctx.Req.ParseForm()
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+		if !valid {
+			ctx.Data["Err_Captcha"] = true
+			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
+			return
+		}
 	}
 
 	len := setting.MinPasswordLength

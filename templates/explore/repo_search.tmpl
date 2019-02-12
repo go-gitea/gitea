@@ -1,0 +1,30 @@
+<div class="ui right floated secondary filter menu">
+    <!-- Sort -->
+    <div class="ui right dropdown type jump item">
+		<span class="text">
+			{{.i18n.Tr "repo.issues.filter_sort"}}
+                <i class="dropdown icon"></i>
+		</span>
+        <div class="menu">
+            <a class="{{if eq .SortType "newest"}}active{{end}} item" href="{{$.Link}}?sort=newest&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+            <a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?sort=oldest&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+            <a class="{{if eq .SortType "alphabetically"}}active{{end}} item" href="{{$.Link}}?sort=alphabetically&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.label.filter_sort.alphabetically"}}</a>
+            <a class="{{if eq .SortType "reversealphabetically"}}active{{end}} item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
+            <a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+            <a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+            <a class="{{if eq .SortType "moststars"}}active{{end}} item" href="{{$.Link}}?sort=moststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.moststars"}}</a>
+            <a class="{{if eq .SortType "feweststars"}}active{{end}} item" href="{{$.Link}}?sort=feweststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.feweststars"}}</a>
+            <a class="{{if eq .SortType "mostforks"}}active{{end}} item" href="{{$.Link}}?sort=mostforks&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.mostforks"}}</a>
+            <a class="{{if eq .SortType "fewestforks"}}active{{end}} item" href="{{$.Link}}?sort=fewestforks&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.fewestforks"}}</a>
+        </div>
+    </div>
+</div>
+<form class="ui form ignore-dirty" style="max-width: 90%">
+    <div class="ui fluid action input">
+        <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+        <input type="hidden" name="tab" value="{{$.TabName}}">
+        <input type="hidden" name="sort" value="{{$.SortType}}">
+        <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+    </div>
+</form>
+<div class="ui divider"></div>

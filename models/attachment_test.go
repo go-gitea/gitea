@@ -58,3 +58,32 @@ func TestDeleteAttachments(t *testing.T) {
 	assert.True(t, IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)
 }
+
+func TestGetAttachmentByID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	attach, err := GetAttachmentByID(1)
+	assert.NoError(t, err)
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
+}
+
+func TestAttachment_DownloadURL(t *testing.T) {
+	attach := &Attachment{
+		UUID: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+		ID:   1,
+	}
+	assert.Equal(t, "https://try.gitea.io/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.DownloadURL())
+}
+
+func TestUpdateAttachment(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	attach, err := GetAttachmentByID(1)
+	assert.NoError(t, err)
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
+
+	attach.Name = "new_name"
+	assert.NoError(t, UpdateAttachment(attach))
+
+	AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+}

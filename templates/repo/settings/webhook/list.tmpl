@@ -1,0 +1,51 @@
+{{template "base/alert" .}}
+<h4 class="ui top attached header">
+	{{.i18n.Tr "repo.settings.hooks"}}
+	<div class="ui right">
+		<div class="ui floating1 jump dropdown">
+			<div class="ui blue tiny button">{{.i18n.Tr "repo.settings.add_webhook"}}</div>
+			<div class="menu">
+				<a class="item" href="{{.BaseLink}}/settings/hooks/gitea/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/gitea-sm.png">Gitea
+				</a>
+				<a class="item" href="{{.BaseLink}}/settings/hooks/gogs/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/gogs.ico">Gogs
+				</a>
+				<a class="item" href="{{.BaseLink}}/settings/hooks/slack/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/slack.png">Slack
+				</a>
+				<a class="item" href="{{.BaseLink}}/settings/hooks/discord/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/discord.png">Discord
+				</a>
+				<a class="item" href="{{.BaseLink}}/settings/hooks/dingtalk/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/dingtalk.ico">Dingtalk
+				</a>
+			</div>
+		</div>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<div class="ui list">
+		<div class="item">
+			{{.Description | Str2html}}
+		</div>
+		{{range .Webhooks}}
+			<div class="item">
+				{{if eq .LastStatus 1}}
+					<span class="text green"><i class="octicon octicon-check"></i></span>
+				{{else if eq .LastStatus 2}}
+					<span class="text red"><i class="octicon octicon-alert"></i></span>
+				{{else}}
+					<span class="text grey"><i class="octicon octicon-primitive-dot"></i></span>
+				{{end}}
+				<a class="dont-break-out" href="{{$.BaseLink}}/settings/hooks/{{.ID}}">{{.URL}}</a>
+				<div class="ui right">
+					<span class="text blue"><a href="{{$.BaseLink}}/settings/hooks/{{.ID}}"><i class="fa fa-pencil"></i></a></span>
+					<span class="text red"><a class="delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}"><i class="fa fa-times"></i></a></span>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+
+{{template "repo/settings/webhook/delete_modal" .}}

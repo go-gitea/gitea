@@ -8,24 +8,28 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// Organization
 // swagger:response Organization
 type swaggerResponseOrganization struct {
 	// in:body
 	Body api.Organization `json:"body"`
 }
 
+// OrganizationList
 // swagger:response OrganizationList
 type swaggerResponseOrganizationList struct {
 	// in:body
 	Body []api.Organization `json:"body"`
 }
 
+// Team
 // swagger:response Team
 type swaggerResponseTeam struct {
 	// in:body
 	Body api.Team `json:"body"`
 }
 
+// TeamList
 // swagger:response TeamList
 type swaggerResponseTeamList struct {
 	// in:body

@@ -28,32 +28,35 @@ const (
 
 // Source Basic LDAP authentication service
 type Source struct {
-	Name              string // canonical name (ie. corporate.ad)
-	Host              string // LDAP host
-	Port              int    // port number
-	SecurityProtocol  SecurityProtocol
-	SkipVerify        bool
-	BindDN            string // DN to bind with
-	BindPassword      string // Bind DN password
-	UserBase          string // Base search path for users
-	UserDN            string // Template for the DN of the user for simple auth
-	AttributeUsername string // Username attribute
-	AttributeName     string // First name attribute
-	AttributeSurname  string // Surname attribute
-	AttributeMail     string // E-mail attribute
-	AttributesInBind  bool   // fetch attributes in bind context (not user)
-	Filter            string // Query filter to validate entry
-	AdminFilter       string // Query filter to check if user is admin
-	Enabled           bool   // if this source is disabled
+	Name                  string // canonical name (ie. corporate.ad)
+	Host                  string // LDAP host
+	Port                  int    // port number
+	SecurityProtocol      SecurityProtocol
+	SkipVerify            bool
+	BindDN                string // DN to bind with
+	BindPassword          string // Bind DN password
+	UserBase              string // Base search path for users
+	UserDN                string // Template for the DN of the user for simple auth
+	AttributeUsername     string // Username attribute
+	AttributeName         string // First name attribute
+	AttributeSurname      string // Surname attribute
+	AttributeMail         string // E-mail attribute
+	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	SearchPageSize        uint32 // Search with paging page size
+	Filter                string // Query filter to validate entry
+	AdminFilter           string // Query filter to check if user is admin
+	Enabled               bool   // if this source is disabled
 }
 
 // SearchResult : user data
 type SearchResult struct {
-	Username string // Username
-	Name     string // Name
-	Surname  string // Surname
-	Mail     string // E-mail address
-	IsAdmin  bool   // if user is administrator
+	Username     string   // Username
+	Name         string   // Name
+	Surname      string   // Surname
+	Mail         string   // E-mail address
+	SSHPublicKey []string // SSH Public Key
+	IsAdmin      bool     // if user is administrator
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -80,16 +83,6 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	log.Trace("Search for LDAP user: %s", name)
-	if ls.BindDN != "" && ls.BindPassword != "" {
-		err := l.Bind(ls.BindDN, ls.BindPassword)
-		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
-			return "", false
-		}
-		log.Trace("Bound as BindDN %s", ls.BindDN)
-	} else {
-		log.Trace("Proceeding with anonymous LDAP search.")
-	}
 
 	// A search for the user.
 	userFilter, ok := ls.sanitizedUserQuery(name)
@@ -171,7 +164,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 		if err != nil {
 			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
 		} else if len(sr.Entries) < 1 {
-			log.Error(4, "LDAP Admin Search failed")
+			log.Trace("LDAP Admin Search found no matching entries.")
 		} else {
 			return true
 		}
@@ -200,20 +193,48 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		var ok bool
 		userDN, ok = ls.sanitizedUserDN(name)
+
 		if !ok {
 			return nil
+		}
+
+		err = bindUser(l, userDN, passwd)
+		if err != nil {
+			return nil
+		}
+
+		if ls.UserBase != "" {
+			// not everyone has a CN compatible with input name so we need to find
+			// the real userDN in that case
+
+			userDN, ok = ls.findUserDN(l, name)
+			if !ok {
+				return nil
+			}
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
 
 		var found bool
+
+		if ls.BindDN != "" && ls.BindPassword != "" {
+			err := l.Bind(ls.BindDN, ls.BindPassword)
+			if err != nil {
+				log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+				return nil
+			}
+			log.Trace("Bound as BindDN %s", ls.BindDN)
+		} else {
+			log.Trace("Proceeding with anonymous LDAP search.")
+		}
+
 		userDN, found = ls.findUserDN(l, name)
 		if !found {
 			return nil
 		}
 	}
 
-	if directBind || !ls.AttributesInBind {
+	if !ls.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
@@ -226,11 +247,17 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, userDN)
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+
+	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if isAttributeSSHPublicKeySet {
+		attribs = append(attribs, ls.AttributeSSHPublicKey)
+	}
+
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
-		nil)
+		attribs, nil)
 
 	sr, err := l.Search(search)
 	if err != nil {
@@ -238,18 +265,23 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	} else if len(sr.Entries) < 1 {
 		if directBind {
-			log.Error(4, "User filter inhibited user login.")
+			log.Trace("User filter inhibited user login.")
 		} else {
-			log.Error(4, "LDAP Search failed unexpectedly! (0 entries)")
+			log.Trace("LDAP Search found no matching entries.")
 		}
 
 		return nil
 	}
 
+	var sshPublicKey []string
+
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
+	if isAttributeSSHPublicKeySet {
+		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
+	}
 	isAdmin := checkAdmin(l, ls, userDN)
 
 	if !directBind && ls.AttributesInBind {
@@ -261,12 +293,18 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	return &SearchResult{
-		Username: username,
-		Name:     firstname,
-		Surname:  surname,
-		Mail:     mail,
-		IsAdmin:  isAdmin,
+		Username:     username,
+		Name:         firstname,
+		Surname:      surname,
+		Mail:         mail,
+		SSHPublicKey: sshPublicKey,
+		IsAdmin:      isAdmin,
 	}
+}
+
+// UsePagedSearch returns if need to use paged search
+func (ls *Source) UsePagedSearch() bool {
+	return ls.SearchPageSize > 0
 }
 
 // SearchEntries : search an LDAP source for all users matching userFilter
@@ -292,13 +330,24 @@ func (ls *Source) SearchEntries() []*SearchResult {
 
 	userFilter := fmt.Sprintf(ls.Filter, "*")
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, ls.UserBase)
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+
+	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if isAttributeSSHPublicKeySet {
+		attribs = append(attribs, ls.AttributeSSHPublicKey)
+	}
+
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
-		nil)
+		attribs, nil)
 
-	sr, err := l.Search(search)
+	var sr *ldap.SearchResult
+	if ls.UsePagedSearch() {
+		sr, err = l.SearchWithPaging(search, ls.SearchPageSize)
+	} else {
+		sr, err = l.Search(search)
+	}
 	if err != nil {
 		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
 		return nil
@@ -313,6 +362,9 @@ func (ls *Source) SearchEntries() []*SearchResult {
 			Surname:  v.GetAttributeValue(ls.AttributeSurname),
 			Mail:     v.GetAttributeValue(ls.AttributeMail),
 			IsAdmin:  checkAdmin(l, ls, v.DN),
+		}
+		if isAttributeSSHPublicKeySet {
+			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
 	}
 

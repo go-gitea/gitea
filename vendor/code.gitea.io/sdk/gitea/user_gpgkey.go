@@ -24,9 +24,9 @@ type GPGKey struct {
 	CanEncryptStorage bool           `json:"can_encrypt_storage"`
 	CanCertify        bool           `json:"can_certify"`
 	// swagger:strfmt date-time
-	Created           time.Time      `json:"created_at,omitempty"`
+	Created time.Time `json:"created_at,omitempty"`
 	// swagger:strfmt date-time
-	Expires           time.Time      `json:"expires_at,omitempty"`
+	Expires time.Time `json:"expires_at,omitempty"`
 }
 
 // GPGKeyEmail an email attached to a GPGKey

@@ -16,6 +16,7 @@
   - [Maintainers](#maintainers)
   - [Owners](#owners)
   - [Versions](#versions)
+  - [Releasing Gitea](#releasing-gitea)
   - [Copyright](#copyright)
 
 ## Introduction
@@ -68,15 +69,15 @@ whole tree to make sure the changes don't break other usage
 and keep the compatibility on upgrade. To make sure you are
 running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
-we are using the server for continous testing, following [these
-instructions](http://readme.drone.io/usage/getting-started-cli). After that,
-you can simply call `drone exec` within your working directory and it will try
-to run the test suite locally.
+we are using the server for continuous testing, following [these
+instructions](http://docs.drone.io/cli-installation/). After that,
+you can simply call `drone exec --local --build-event "pull_request"` within
+your working directory and it will try to run the test suite locally.
 
 ## Vendoring
 
 We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [govendor](http://github.com/kardianos/govendor).
+managing updates via [dep](https://github.com/golang/dep).
 
 Pull requests should only include `vendor/` updates if they are part of
 the same change, be it a bugfix or a feature addition.
@@ -85,12 +86,14 @@ The `vendor/` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
 
+You can find more information on how to get started with it on the [dep project website](https://golang.github.io/dep/docs/introduction.html).
+
 ## Translation
 
 We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
 The only translation that is maintained in this git repository is
 [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
-and is synced regularily to Crowdin. Once a translation has reached
+and is synced regularly to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
 included in the next released version.
 
@@ -112,7 +115,7 @@ pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
 to ensure every PR is reviewed by at least 2 maintainers.
 
 Please try to make your pull request easy to review for us. And, please read
-the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/pull-requests.md#best-practices-for-faster-reviews)* guide;
+the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;
 it has lots of useful tips for any project you may want to contribute.
 Some of the key points:
 
@@ -199,6 +202,10 @@ an advisor has time to code review, we will gladly welcome them back
 to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
+For security reasons, Maintainers should use 2FA for their accounts and
+if possible provide gpg signed commits. 
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+https://help.github.com/articles/signing-commits-with-gpg/
 
 ## Owners
 
@@ -209,6 +216,9 @@ be the main owner, and the other two the assistant owners. When the new
 owners have been elected, the old owners will give up ownership to the
 newly elected owners. If an owner is unable to do so, the other owners
 will assist in ceding ownership to the newly elected owners.
+For security reasons, Owners or any account with write access (like a bot)
+must use 2FA.
+https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
 After the election, the new owners should proactively agree
 with our [CONTRIBUTING](CONTRIBUTING.md) requirements in the
@@ -234,6 +244,11 @@ they served:
   * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
   * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
+* 2019-01-01 ~ 2019-12-31
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://github.com/techknowlogick) <matti@mdranta.net>
+
 ## Versions
 
 Gitea has the `master` branch as a tip branch and has version branches
@@ -247,12 +262,25 @@ in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
 
+## Releasing Gitea
+
+* Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
+* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
+  * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
+  * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
+* If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
+* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`. 
+* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
+* If needed send PR for changelog on branch `master`.
+* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
+
 ## Copyright
 
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

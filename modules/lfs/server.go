@@ -83,9 +83,14 @@ type link struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
+var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
+
+func isOidValid(oid string) bool {
+	return oidRegExp.MatchString(oid)
+}
+
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -108,6 +113,11 @@ func ObjectOidHandler(ctx *context.Context) {
 }
 
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+	if !isOidValid(rv.Oid) {
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
+
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
@@ -217,6 +227,12 @@ func PostHandler(ctx *context.Context) {
 
 	if !authenticate(ctx, repository, rv.Authorization, true) {
 		requireAuth(ctx)
+		return
+	}
+
+	if !isOidValid(rv.Oid) {
+		writeStatus(ctx, 404)
+		return
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
@@ -241,7 +257,6 @@ func PostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -258,6 +273,10 @@ func BatchHandler(ctx *context.Context) {
 
 	// Create a response object
 	for _, object := range bv.Objects {
+		if !isOidValid(object.Oid) {
+			continue
+		}
+
 		repository, err := models.GetRepositoryByOwnerAndName(object.User, object.Repo)
 
 		if err != nil {
@@ -478,12 +497,15 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
-	if !repository.IsPrivate && !requireWrite {
-		return true
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	perm, err := models.GetUserRepoPermission(repository, ctx.User)
+	if err != nil {
+		return false
 	}
-	if ctx.IsSigned {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+
+	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	if canRead {
+		return true
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
@@ -492,8 +514,11 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 	ctx.User = user
 	if opStr == "basic" {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+		perm, err = models.GetUserRepoPermission(repository, ctx.User)
+		if err != nil {
+			return false
+		}
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 	if repository.ID == repo.ID {
 		if requireWrite && opStr != "upload" {
@@ -560,7 +585,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		if err != nil {
 			return nil, nil, "basic", err
 		}
-		if !u.ValidatePassword(password) {
+		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
 			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
 		}
 		return u, nil, "basic", nil

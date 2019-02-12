@@ -36,7 +36,7 @@ type Comparer interface {
 	// by any users of this package.
 	Name() string
 
-	// Bellow are advanced functions used used to reduce the space requirements
+	// Bellow are advanced functions used to reduce the space requirements
 	// for internal data structures such as index blocks.
 
 	// Separator appends a sequence of bytes x to dst such that a <= x && x < b,

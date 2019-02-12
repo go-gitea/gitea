@@ -1,0 +1,224 @@
+-
+  id: 1
+  team_id: 1
+  type: 1
+
+-
+  id: 2
+  team_id: 1
+  type: 2
+
+-
+  id: 3
+  team_id: 1
+  type: 3
+
+-
+  id: 4
+  team_id: 1
+  type: 4
+
+-
+  id: 5
+  team_id: 1
+  type: 5
+
+-
+  id: 6
+  team_id: 1
+  type: 6
+
+-
+  id: 7
+  team_id: 1
+  type: 7
+
+-
+  id: 8
+  team_id: 2
+  type: 1
+
+-
+  id: 9
+  team_id: 2
+  type: 2
+
+-
+  id: 10
+  team_id: 2
+  type: 3
+
+-
+  id: 11
+  team_id: 2
+  type: 4
+
+-
+  id: 12
+  team_id: 2
+  type: 5
+
+-
+  id: 13
+  team_id: 2
+  type: 6
+
+-
+  id: 14
+  team_id: 2
+  type: 7
+
+-
+  id: 15
+  team_id: 3
+  type: 1
+
+-
+  id: 16
+  team_id: 3
+  type: 2
+
+-
+  id: 17
+  team_id: 3
+  type: 3
+
+-
+  id: 18
+  team_id: 3
+  type: 4
+
+-
+  id: 19
+  team_id: 3
+  type: 5
+
+-
+  id: 20
+  team_id: 3
+  type: 6
+
+-
+  id: 21
+  team_id: 3
+  type: 7
+
+-
+  id: 22
+  team_id: 4
+  type: 1
+
+-
+  id: 23
+  team_id: 4
+  type: 2
+
+-
+  id: 24
+  team_id: 4
+  type: 3
+
+-
+  id: 25
+  team_id: 4
+  type: 4
+
+-
+  id: 26
+  team_id: 4
+  type: 5
+
+-
+  id: 27
+  team_id: 4
+  type: 6
+
+-
+  id: 28
+  team_id: 4
+  type: 7
+
+-
+  id: 29
+  team_id: 5
+  type: 1
+
+-
+  id: 30
+  team_id: 5
+  type: 2
+
+-
+  id: 31
+  team_id: 5
+  type: 3
+
+-
+  id: 32
+  team_id: 5
+  type: 4
+
+-
+  id: 33
+  team_id: 5
+  type: 5
+
+-
+  id: 34
+  team_id: 5
+  type: 6
+
+-
+  id: 35
+  team_id: 5
+  type: 7
+
+-
+  id: 36
+  team_id: 6
+  type: 1
+
+-
+  id: 37
+  team_id: 6
+  type: 2
+
+-
+  id: 38
+  team_id: 6
+  type: 3
+
+-
+  id: 39
+  team_id: 6
+  type: 4
+
+-
+  id: 40
+  team_id: 6
+  type: 5
+
+-
+  id: 41
+  team_id: 6
+  type: 6
+
+-
+  id: 42
+  team_id: 6
+  type: 7
+
+-
+  id: 43
+  team_id: 7
+  type: 2 # issues
+
+-
+  id: 44
+  team_id: 8
+  type: 2 # issues
+
+-
+  id: 45
+  team_id: 9
+  type: 1 # code

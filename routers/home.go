@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
@@ -27,6 +28,8 @@ const (
 	tplExploreUsers base.TplName = "explore/users"
 	// tplExploreOrganizations explore organizations page template
 	tplExploreOrganizations base.TplName = "explore/organizations"
+	// tplExploreCode explore code page template
+	tplExploreCode base.TplName = "explore/code"
 )
 
 // Home render home page
@@ -39,6 +42,10 @@ func Home(ctx *context.Context) {
 			user.Dashboard(ctx)
 		}
 		return
+		// Check non-logged users landing page.
+	} else if setting.LandingPageURL != setting.LandingPageHome {
+		ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
+		return
 	}
 
 	// Check auto-login.
@@ -49,6 +56,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsHome"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.HTML(200, tplHome)
 }
 
@@ -100,12 +108,21 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderBySizeReverse
 	case "size":
 		orderBy = models.SearchOrderBySize
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
+	topicOnly := ctx.QueryBool("topic")
 
 	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 		Page:      page,
@@ -115,6 +132,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Keyword:   keyword,
 		OwnerID:   opts.OwnerID,
 		AllPublic: true,
+		TopicOnly: topicOnly,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByName", err)
@@ -124,6 +142,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["Total"] = count
 	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
 	ctx.Data["Repos"] = repos
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	ctx.HTML(200, opts.TplName)
 }
@@ -133,6 +152,7 @@ func ExploreRepos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	var ownerID int64
 	if ctx.User != nil && !ctx.User.IsAdmin {
@@ -158,26 +178,26 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		users   []*models.User
 		count   int64
 		err     error
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
-		orderBy = "id DESC"
+		orderBy = models.SearchOrderByIDReverse
 	case "oldest":
-		orderBy = "id ASC"
+		orderBy = models.SearchOrderByID
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	default:
 		ctx.Data["SortType"] = "alphabetically"
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	}
 
 	opts.Keyword = strings.Trim(ctx.Query("q"), " ")
@@ -194,6 +214,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Users"] = users
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	ctx.HTML(200, tplName)
 }
@@ -203,6 +224,7 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeIndividual,
@@ -216,11 +238,119 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.ExplorePagingNum,
 	}, tplExploreOrganizations)
+}
+
+// ExploreCode render explore code page
+func ExploreCode(ctx *context.Context) {
+	if !setting.Indexer.RepoIndexerEnabled {
+		ctx.Redirect("/explore", 302)
+		return
+	}
+
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["Title"] = ctx.Tr("explore")
+	ctx.Data["PageIsExplore"] = true
+	ctx.Data["PageIsExploreCode"] = true
+
+	keyword := strings.TrimSpace(ctx.Query("q"))
+	page := ctx.QueryInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	var (
+		repoIDs []int64
+		err     error
+		isAdmin bool
+		userID  int64
+	)
+	if ctx.User != nil {
+		userID = ctx.User.ID
+		isAdmin = ctx.User.IsAdmin
+	}
+
+	// guest user or non-admin user
+	if ctx.User == nil || !isAdmin {
+		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+	}
+
+	var (
+		total         int
+		searchResults []*search.Result
+	)
+
+	// if non-admin login user, we need check UnitTypeCode at first
+	if ctx.User != nil && len(repoIDs) > 0 {
+		repoMaps, err := models.GetRepositoriesMapByIDs(repoIDs)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+
+		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
+		repoIDs = make([]int64, 0, len(repoMaps))
+		for id, repo := range repoMaps {
+			if repo.CheckUnitUser(userID, isAdmin, models.UnitTypeCode) {
+				rightRepoMap[id] = repo
+				repoIDs = append(repoIDs, id)
+			}
+		}
+
+		ctx.Data["RepoMaps"] = rightRepoMap
+
+		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+		// if non-login user or isAdmin, no need to check UnitTypeCode
+	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
+		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+
+		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		for _, result := range searchResults {
+			var find bool
+			for _, id := range loadRepoIDs {
+				if id == result.RepoID {
+					find = true
+					break
+				}
+			}
+			if !find {
+				loadRepoIDs = append(loadRepoIDs, result.RepoID)
+			}
+		}
+
+		repoMaps, err := models.GetRepositoriesMapByIDs(loadRepoIDs)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+
+		ctx.Data["RepoMaps"] = repoMaps
+	}
+
+	ctx.Data["Keyword"] = keyword
+	pager := paginater.New(total, setting.UI.RepoSearchPagingNum, page, 5)
+	ctx.Data["Page"] = pager
+	ctx.Data["SearchResults"] = searchResults
+	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["PageIsViewCode"] = true
+	ctx.HTML(200, tplExploreCode)
 }
 
 // NotFound render 404 page

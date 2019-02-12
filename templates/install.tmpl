@@ -99,7 +99,7 @@
 						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gitea.io" required>
 						<span class="help">{{.i18n.Tr "install.domain_helper"}}</span>
 					</div>
-					<div class="inline required field">
+					<div class="inline field">
 						<label for="ssh_port">{{.i18n.Tr "install.ssh_port"}}</label>
 						<input id="ssh_port" name="ssh_port" value="{{.ssh_port}}">
 						<span class="help">{{.i18n.Tr "install.ssh_port_helper"}}</span>
@@ -198,6 +198,12 @@
 								<div class="ui checkbox" id="disable-registration">
 									<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
 									<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox" id="allow-only-external-registration">
+									<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
+									<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
 								</div>
 							</div>
 							<div class="inline field">

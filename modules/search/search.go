@@ -17,6 +17,7 @@ import (
 
 // Result a search result to display
 type Result struct {
+	RepoID         int64
 	Filename       string
 	HighlightClass string
 	LineNumbers    []int
@@ -98,6 +99,7 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 		index += len(line)
 	}
 	return &Result{
+		RepoID:         result.RepoID,
 		Filename:       result.Filename,
 		HighlightClass: highlight.FileNameToHighlightClass(result.Filename),
 		LineNumbers:    lineNumbers,
@@ -106,12 +108,12 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(repoID int64, keyword string, page, pageSize int) (int, []*Result, error) {
+func PerformSearch(repoIDs []int64, keyword string, page, pageSize int) (int, []*Result, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil
 	}
 
-	total, results, err := indexer.SearchRepoByKeyword(repoID, keyword, page, pageSize)
+	total, results, err := indexer.SearchRepoByKeyword(repoIDs, keyword, page, pageSize)
 	if err != nil {
 		return 0, nil, err
 	}

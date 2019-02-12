@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,6 +10,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +18,7 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
+	Branch string // Branch this commit belongs to
 	Tree
 	ID            SHA1 // The ID of this commit object
 	Author        *Signature
@@ -34,14 +37,18 @@ type CommitGPGSignature struct {
 }
 
 // similar to https://github.com/git/git/blob/3bc53220cb2dcf709f7a027a3f526befd021d858/commit.c#L1128
-func newGPGSignatureFromCommitline(data []byte, signatureStart int) (*CommitGPGSignature, error) {
+func newGPGSignatureFromCommitline(data []byte, signatureStart int, tag bool) (*CommitGPGSignature, error) {
 	sig := new(CommitGPGSignature)
 	signatureEnd := bytes.LastIndex(data, []byte("-----END PGP SIGNATURE-----"))
 	if signatureEnd == -1 {
 		return nil, fmt.Errorf("end of commit signature not found")
 	}
 	sig.Signature = strings.Replace(string(data[signatureStart:signatureEnd+27]), "\n ", "\n", -1)
-	sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	if tag {
+		sig.Payload = string(data[:signatureStart-1])
+	} else {
+		sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+	}
 	return sig, nil
 }
 
@@ -273,4 +280,70 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		}
 	}
 	return nil, nil
+}
+
+// CommitFileStatus represents status of files in a commit.
+type CommitFileStatus struct {
+	Added    []string
+	Removed  []string
+	Modified []string
+}
+
+// NewCommitFileStatus creates a CommitFileStatus
+func NewCommitFileStatus() *CommitFileStatus {
+	return &CommitFileStatus{
+		[]string{}, []string{}, []string{},
+	}
+}
+
+// GetCommitFileStatus returns file status of commit in given repository.
+func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+	stdout, w := io.Pipe()
+	done := make(chan struct{})
+	fileStatus := NewCommitFileStatus()
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			fields := strings.Fields(scanner.Text())
+			if len(fields) < 2 {
+				continue
+			}
+
+			switch fields[0][0] {
+			case 'A':
+				fileStatus.Added = append(fileStatus.Added, fields[1])
+			case 'D':
+				fileStatus.Removed = append(fileStatus.Removed, fields[1])
+			case 'M':
+				fileStatus.Modified = append(fileStatus.Modified, fields[1])
+			}
+		}
+		done <- struct{}{}
+	}()
+
+	stderr := new(bytes.Buffer)
+	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
+	w.Close() // Close writer to exit parsing goroutine
+	if err != nil {
+		return nil, concatenateError(err, stderr.String())
+	}
+
+	<-done
+	return fileStatus, nil
+}
+
+// GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
+func GetFullCommitID(repoPath, shortID string) (string, error) {
+	if len(shortID) >= 40 {
+		return shortID, nil
+	}
+
+	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "exit status 128") {
+			return "", ErrNotExist{shortID, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(commitID), nil
 }

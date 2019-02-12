@@ -59,3 +59,8 @@ func (ts TimeStamp) FormatLong() string {
 func (ts TimeStamp) FormatShort() string {
 	return ts.Format("Jan 02, 2006")
 }
+
+// IsZero is zero time
+func (ts TimeStamp) IsZero() bool {
+	return ts.AsTime().IsZero()
+}

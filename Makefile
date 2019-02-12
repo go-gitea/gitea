@@ -21,14 +21,30 @@ GOFMT ?= gofmt -s
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
+ifneq ($(DRONE_TAG),)
+	VERSION ?= $(subst v,,$(DRONE_TAG))
+	GITEA_VERSION := $(VERSION)
+else
+	ifneq ($(DRONE_BRANCH),)
+		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	else
+		VERSION ?= master
+	endif
+	GITEA_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+endif
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
+LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
+
+SWAGGER_SPEC := templates/swagger/v1_json.tmpl
+SWAGGER_SPEC_S_TMPL := s|"basePath":\s*"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
+SWAGGER_SPEC_S_JSON := s|"basePath":\s*"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -38,6 +54,10 @@ TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
+TEST_MSSQL_HOST ?= mssql:1433
+TEST_MSSQL_DBNAME ?= gitea
+TEST_MSSQL_USERNAME ?= sa
+TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
@@ -45,15 +65,8 @@ else
 	EXECUTABLE := gitea
 endif
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
-else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
-	else
-		VERSION ?= master
-	endif
-endif
+# $(call strip-suffix,filename)
+strip-suffix = $(firstword $(subst ., ,$(1)))
 
 .PHONY: all
 all: build
@@ -65,9 +78,9 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
-		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
-		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/mysql.ini integrations/pgsql.ini
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql \
+		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini
 
 .PHONY: fmt
 fmt:
@@ -80,7 +93,7 @@ vet:
 .PHONY: generate
 generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/jteeuwen/go-bindata/...; \
+		$(GO) get -u github.com/jteeuwen/go-bindata/go-bindata; \
 	fi
 	$(GO) generate $(PACKAGES)
 
@@ -89,7 +102,26 @@ generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger generate spec -o ./public/swagger.v1.json
+	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+
+.PHONY: swagger-check
+swagger-check: generate-swagger
+	@diff=$$(git diff '$(SWAGGER_SPEC)'); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make generate-swagger' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
+.PHONY: swagger-validate
+swagger-validate:
+	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+	fi
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	swagger validate './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:
@@ -100,10 +132,10 @@ errcheck:
 
 .PHONY: lint
 lint:
-	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/golang/lint/golint; \
+	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/mgechev/revive; \
 	fi
-	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
+	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
 
 .PHONY: misspell-check
 misspell-check:
@@ -131,7 +163,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test -tags=sqlite $(PACKAGES)
+	$(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -142,24 +174,32 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	for PKG in $(PACKAGES); do $(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+
+.PHONY: vendor
+vendor:
+	@hash dep > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/golang/dep/cmd/dep; \
+	fi
+	dep ensure -vendor-only
 
 .PHONY: test-vendor
-test-vendor:
-	@hash govendor > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kardianos/govendor; \
-	fi
-	govendor list +unused | tee "$(TMPDIR)/wc-gitea-unused"
-	[ $$(cat "$(TMPDIR)/wc-gitea-unused" | wc -l) -eq 0 ] || echo "Warning: /!\\ Some vendor are not used /!\\"
-
-	govendor list +outside | tee "$(TMPDIR)/wc-gitea-outside"
-	[ $$(cat "$(TMPDIR)/wc-gitea-outside" | wc -l) -eq 0 ] || exit 1
-
-	govendor status || exit 1
+test-vendor: vendor
+	@diff=$$(git diff vendor/); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make vendor' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+#TODO add dep status -missing when implemented
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
+
+.PHONY: test-sqlite-migration
+test-sqlite-migration:  migrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
 
 generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -172,14 +212,37 @@ generate-ini:
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
+	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
+		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
+		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
+		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
+			integrations/mssql.ini.tmpl > integrations/mssql.ini
 
 .PHONY: test-mysql
 test-mysql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
+.PHONY: test-mysql-migration
+test-mysql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.test
+
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
+
+.PHONY: test-pgsql-migration
+test-pgsql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.test
+
+
+.PHONY: test-mssql
+test-mssql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test
+
+.PHONY: test-mssql-migration
+test-mssql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.test
+
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
@@ -188,6 +251,10 @@ bench-sqlite: integrations.sqlite.test
 .PHONY: bench-mysql
 bench-mysql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+
+.PHONY: bench-mssql
+bench-mssql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-pgsql
 bench-pgsql: integrations.test generate-ini
@@ -202,10 +269,18 @@ integrations.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+
+.PHONY: migrations.test
+migrations.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.test
+
+.PHONY: migrations.sqlite.test
+migrations.sqlite.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
@@ -221,7 +296,7 @@ $(EXECUTABLE): $(SOURCES)
 	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-check
+release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -265,6 +340,13 @@ release-copy:
 release-check:
 	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/release/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
 
+.PHONY: release-compress
+release-compress:
+	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
+	fi
+	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),gxz -k -9 $(notdir $(file));)
+
 .PHONY: javascripts
 javascripts: public/js/index.js
 
@@ -274,7 +356,7 @@ public/js/index.js: $(JAVASCRIPTS)
 
 .PHONY: stylesheets-check
 stylesheets-check: generate-stylesheets
-	@diff=$$(git diff public/css/index.css); \
+	@diff=$$(git diff public/css/*); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
@@ -283,12 +365,15 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
-	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
+	$(eval BROWSERS := "> 2%, last 2 firefox versions, last 2 safari versions")
+	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	$(foreach file, $(wildcard public/css/*),node_modules/.bin/postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
 
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.3.2 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
 	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
@@ -307,6 +392,8 @@ update-translations:
 generate-images:
 	mkdir -p $(TMPDIR)/images
 	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
+	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png
+	inkscape -f $(PWD)/assets/logo.svg -w 192 -h 192 -e $(PWD)/public/img/gitea-192.png
 	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
 	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
 	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png

@@ -29,7 +29,7 @@ func (bytesComparer) Separator(dst, a, b []byte) []byte {
 		// Do not shorten if one string is a prefix of the other
 	} else if c := a[i]; c < 0xff && c+1 < b[i] {
 		dst = append(dst, a[:i+1]...)
-		dst[i]++
+		dst[len(dst)-1]++
 		return dst
 	}
 	return nil
@@ -39,7 +39,7 @@ func (bytesComparer) Successor(dst, b []byte) []byte {
 	for i, c := range b {
 		if c != 0xff {
 			dst = append(dst, b[:i+1]...)
-			dst[i]++
+			dst[len(dst)-1]++
 			return dst
 		}
 	}

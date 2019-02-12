@@ -360,7 +360,7 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 
 // ParseCommitWithSignature check if signature is good against keystore.
 func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
-	if c.Signature != nil {
+	if c.Signature != nil && c.Committer != nil {
 		//Parsing signature
 		sig, err := extractSignature(c.Signature.Signature)
 		if err != nil { //Skipping failed to extract sign
@@ -374,7 +374,11 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		//Find Committer account
 		committer, err := GetUserByEmail(c.Committer.Email) //This find the user by primary email or activated email so commit will not be valid if email is not
 		if err != nil {                                     //Skipping not user for commiter
-			log.Error(3, "NoCommitterAccount: %v", err)
+			// We can expect this to often be an ErrUserNotExist. in the case
+			// it is not, however, it is important to log it.
+			if !IsErrUserNotExist(err) {
+				log.Error(3, "GetUserByEmail: %v", err)
+			}
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.no_committer_account",

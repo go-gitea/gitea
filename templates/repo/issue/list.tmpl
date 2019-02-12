@@ -9,13 +9,15 @@
 			<div class="column center aligned">
 				{{template "repo/issue/search" .}}
 			</div>
-			<div class="column right aligned">
-				{{if .PageIsIssueList}}
-					<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
-				{{else}}
-					<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
-				{{end}}
-			</div>
+			{{if not .Repository.IsArchived}}
+				<div class="column right aligned">
+					{{if .PageIsIssueList}}
+						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
+					{{else}}
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+					{{end}}
+				</div>
+			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
@@ -32,7 +34,7 @@
 				</div>
 			</div>
 			<div class="ten wide right aligned column">
-				<div class="ui secondary filter stackable menu">
+				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
 						<span class="text">
@@ -42,7 +44,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -156,7 +158,7 @@
 						</div>
 					</div>
 
-					<!-- Assignee -->
+					<!-- Assignees -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.action_assignee"}}
@@ -191,15 +193,35 @@
 						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
 					{{end}}
 					{{range .Labels}}
-						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
 
 					{{if .NumComments}}
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
+					{{if .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+					{{end}}
+
 					<p class="desc">
-						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{ $textToTranslate := "repo.issues.opened_by" }}
+						{{ if not .IsClosed }}
+							{{ $timeStr = TimeSinceUnix .CreatedUnix $.Lang }}
+						{{ else if and .IsClosed .IsPull  }}
+							{{ $timeStr = TimeSinceUnix .ClosedUnix $.Lang }}
+							{{ if .PullRequest.HasMerged }}
+								{{ $textToTranslate = "repo.pulls.merged_by"}}
+							{{ else }}
+								{{ $textToTranslate = "repo.issues.closed_by"}}
+							{{ end }}
+						{{ else }}
+							{{ $timeStr = TimeSinceUnix .ClosedUnix $.Lang }}
+							{{ $textToTranslate = "repo.issues.closed_by"}}
+						{{ end }}
+
+						{{$.i18n.Tr $textToTranslate $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
@@ -212,9 +234,13 @@
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 							</a>
 						{{end}}
-						{{if .Assignee}}
-							<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
-								<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+						{{if ne .DeadlineUnix 0}}
+							<span class="octicon octicon-calendar"></span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+						{{end}}
+						{{range .Assignees}}
+							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
 						{{end}}
 					</p>

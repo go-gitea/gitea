@@ -42,11 +42,11 @@ func (c *Client) GetOrg(orgname string) (*Organization, error) {
 // CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
 	// required: true
-	UserName string `json:"username" binding:"Required"`
-	FullName string `json:"full_name"`
+	UserName    string `json:"username" binding:"Required"`
+	FullName    string `json:"full_name"`
 	Description string `json:"description"`
-	Website string `json:"website"`
-	Location string `json:"location"`
+	Website     string `json:"website"`
+	Location    string `json:"location"`
 }
 
 // EditOrgOption options for editing an organization

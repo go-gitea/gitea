@@ -7,23 +7,34 @@ package repo
 import (
 	"time"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
-// ListMilestones list all the milestones for a repository
+// ListMilestones list all the opened milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/milestones/{id} issue issueGetMilestone
+	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
-	// summary: Get a milestone
+	// summary: Get all of a repository's opened milestones
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Milestone"
+	//     "$ref": "#/responses/MilestoneList"
 	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(500, "GetMilestonesByRepoID", err)
@@ -39,9 +50,9 @@ func ListMilestones(ctx *context.APIContext) {
 
 // GetMilestone get a milestone for a repository
 func GetMilestone(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestones
+	// swagger:operation GET /repos/{owner}/{repo}/milestones/{id} issue issueGetMilestone
 	// ---
-	// summary: Get all of a repository's milestones
+	// summary: Get a milestone
 	// produces:
 	// - application/json
 	// parameters:
@@ -55,25 +66,15 @@ func GetMilestone(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the milestone to get
+	//   description: id of the milestone
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/MilestoneList"
+	//     "$ref": "#/responses/Milestone"
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
@@ -152,6 +153,12 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the milestone
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
@@ -202,10 +209,11 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: body
+	// - name: id
 	//   in: path
 	//   description: id of the milestone to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":

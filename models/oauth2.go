@@ -43,6 +43,7 @@ var OAuth2Providers = map[string]OAuth2Provider{
 	"gplus":         {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
 	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.png"},
 	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
+	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
 }
 
 // OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls
@@ -97,14 +98,17 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 }
 
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
-func InitOAuth2() {
-	oauth2.Init()
+func InitOAuth2() error {
+	if err := oauth2.Init(x); err != nil {
+		return err
+	}
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
 		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 	}
+	return nil
 }
 
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2

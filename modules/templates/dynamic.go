@@ -22,14 +22,38 @@ var (
 	templates = template.New("")
 )
 
-// Renderer implements the macaron handler for serving the templates.
-func Renderer() macaron.Handler {
+// HTMLRenderer implements the macaron handler for serving HTML templates.
+func HTMLRenderer() macaron.Handler {
 	return macaron.Renderer(macaron.RenderOptions{
 		Funcs:     NewFuncMap(),
 		Directory: path.Join(setting.StaticRootPath, "templates"),
 		AppendDirectories: []string{
 			path.Join(setting.CustomPath, "templates"),
 		},
+	})
+}
+
+// JSONRenderer implements the macaron handler for serving JSON templates.
+func JSONRenderer() macaron.Handler {
+	return macaron.Renderer(macaron.RenderOptions{
+		Funcs:     NewFuncMap(),
+		Directory: path.Join(setting.StaticRootPath, "templates"),
+		AppendDirectories: []string{
+			path.Join(setting.CustomPath, "templates"),
+		},
+		HTMLContentType: "application/json",
+	})
+}
+
+// JSRenderer implements the macaron handler for serving JS templates.
+func JSRenderer() macaron.Handler {
+	return macaron.Renderer(macaron.RenderOptions{
+		Funcs:     NewFuncMap(),
+		Directory: path.Join(setting.StaticRootPath, "templates"),
+		AppendDirectories: []string{
+			path.Join(setting.CustomPath, "templates"),
+		},
+		HTMLContentType: "application/javascript",
 	})
 }
 

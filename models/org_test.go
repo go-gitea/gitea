@@ -84,9 +84,10 @@ func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.NoError(t, org.GetTeams())
-	if assert.Len(t, org.Teams, 2) {
+	if assert.Len(t, org.Teams, 3) {
 		assert.Equal(t, int64(1), org.Teams[0].ID)
 		assert.Equal(t, int64(2), org.Teams[1].ID)
+		assert.Equal(t, int64(7), org.Teams[2].ID)
 	}
 }
 
@@ -489,8 +490,8 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, expectedCount, count)
 	}
-	testSuccess(2, 2)
-	testSuccess(4, 1)
+	testSuccess(2, 3)
+	testSuccess(4, 2)
 }
 
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
@@ -503,8 +504,8 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRepoIDs, repoIDs)
 	}
-	testSuccess(2, 1, 100, []int64{3, 5})
-	testSuccess(4, 0, 100, []int64{3})
+	testSuccess(2, 1, 100, []int64{3, 5, 32})
+	testSuccess(4, 0, 100, []int64{3, 32})
 }
 
 func TestAccessibleReposEnv_Repos(t *testing.T) {
@@ -522,8 +523,8 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 		}
 		assert.Equal(t, expectedRepos, repos)
 	}
-	testSuccess(2, []int64{3, 5})
-	testSuccess(4, []int64{3})
+	testSuccess(2, []int64{3, 5, 32})
+	testSuccess(4, []int64{3, 32})
 }
 
 func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {

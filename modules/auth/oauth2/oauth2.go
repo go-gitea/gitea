@@ -7,16 +7,16 @@ package oauth2
 import (
 	"math"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gorilla/sessions"
+	"github.com/go-xorm/xorm"
+	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/bitbucket"
+	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/github"
@@ -41,13 +41,14 @@ type CustomURLMapping struct {
 }
 
 // Init initialize the setup of the OAuth2 library
-func Init() {
-	sessionDir := filepath.Join(setting.AppDataPath, "sessions", "oauth2")
-	if err := os.MkdirAll(sessionDir, 0700); err != nil {
-		log.Fatal(4, "Fail to create dir %s: %v", sessionDir, err)
-	}
+func Init(x *xorm.Engine) error {
+	store, err := xormstore.NewOptions(x, xormstore.Options{
+		TableName: "oauth2_session",
+	}, []byte(sessionUsersStoreKey))
 
-	store := sessions.NewFilesystemStore(sessionDir, []byte(sessionUsersStoreKey))
+	if err != nil {
+		return err
+	}
 	// according to the Goth lib:
 	// set the maxLength of the cookies stored on the disk to a larger number to prevent issues with:
 	// securecookie: the value is too long
@@ -65,6 +66,7 @@ func Init() {
 		return req.Header.Get(providerHeaderKey), nil
 	}
 
+	return nil
 }
 
 // Auth OAuth2 auth service
@@ -162,7 +164,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 				profileURL = customURLMapping.ProfileURL
 			}
 		}
-		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	case "openidConnect":
@@ -171,6 +173,8 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		}
 	case "twitter":
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
+	case "discord":
+		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider

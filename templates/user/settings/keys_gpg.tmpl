@@ -26,7 +26,7 @@
 					<div class="activity meta">
 						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
 						-
-						<i>{{if .ExpiredUnix}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>

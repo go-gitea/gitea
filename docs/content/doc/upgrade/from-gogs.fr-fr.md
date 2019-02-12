@@ -19,7 +19,7 @@ menu:
 
 Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécutent en tant que l'utilisateur utilisé pour votre installation de Gogs :
 
-* Crééer une sauvegarde de Gogs avec la commande `gogs dump`. Le fichier nouvellement créé `gogs-dump-[timestamp].zip` contient toutes les données de votre instance de Gogs. 
+* Crééer une sauvegarde de Gogs avec la commande `gogs dump`. Le fichier nouvellement créé `gogs-dump-[timestamp].zip` contient toutes les données de votre instance de Gogs.
 * Téléchargez le fichier correspondant à votre plateforme à partir de la [page de téléchargements](https://dl.gitea.io/gitea).
 * Mettez la binaire dans le répertoire d'installation souhaité.
 * Copiez le fichier `gogs/custom/conf/app.ini` vers `gitea/custom/conf/app.ini`.
@@ -27,45 +27,48 @@ Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécute
 * Si vous avez d'autres répertoires personnalisés comme `gitignore, label, license, locale, readme` dans `gogs/custom/conf` copiez-les vers `gitea/custom/options`.
 * Copiez le répertoire `gogs/data/` vers `gitea/data/`.
 * Vérifiez votre installation en exécutant Gitea avec la commande `gitea web`.
+* Lancez le binaire de version majeure en version majeure ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) afin de récupérer les migrations de base de données.
 * Connectez vous au panel d'administration de Gitea et exécutez l'action `Rewrite '.ssh/authorized_keys' file`, puis l'action `Rewrite all update hook of repositories` (obligatoire si le chemin menant à votre configuration personnalisée à changé).
 
-### Modifier les informations spécifiques de gogs
+## Modifier les informations spécifiques de gogs
 
 * Renommez `gogs-repositories/` vers `gitea-repositories/`
 * Renommez `gogs-data/` to `gitea-data/`
 * Dans votre fichier `gitea/custom/conf/app.ini`, modifiez les éléments suivants:
 
-DE :
-```
-[database]
-PATH = /home/:USER/gogs/data/:DATABASE.db
-[attachment]
-PATH = /home/:USER/gogs-data/attachments
-[picture]
-AVATAR_UPLOAD_PATH = /home/:USER/gogs-data/avatars
-[log]
-ROOT_PATH = /home/:USER/gogs/log
-```
+  DE :
 
-VERS :
-```
-[database]
-PATH = /home/:USER/gitea/data/:DATABASE.db
-[attachment]
-PATH = /home/:USER/gitea-data/attachments
-[picture]
-AVATAR_UPLOAD_PATH = /home/:USER/gitea-data/avatars
-[log]
-ROOT_PATH = /home/:USER/gitea/log
-```
+  ```ini
+  [database]
+  PATH = /home/:USER/gogs/data/:DATABASE.db
+  [attachment]
+  PATH = /home/:USER/gogs-data/attachments
+  [picture]
+  AVATAR_UPLOAD_PATH = /home/:USER/gogs-data/avatars
+  [log]
+  ROOT_PATH = /home/:USER/gogs/log
+  ```
+
+  VERS :
+
+  ```ini
+  [database]
+  PATH = /home/:USER/gitea/data/:DATABASE.db
+  [attachment]
+  PATH = /home/:USER/gitea-data/attachments
+  [picture]
+  AVATAR_UPLOAD_PATH = /home/:USER/gitea-data/avatars
+  [log]
+  ROOT_PATH = /home/:USER/gitea/log
+  ```
 
 * Vérifiez votre installation en exécutant Gitea avec la commande `gitea web`.
 
-### Dépannage
+## Dépannage
 
 * Si vous rencontrez des erreurs relatives à des modèles personnalisés dans le dossier `gitea/custom/templates`, essayez de déplacer un par un les modèles provoquant les erreurs. Il est possible qu'ils ne soient pas compatibles avec Gitea.
 
-### Démarrer automatiquement Gitea (Unix)
+## Démarrer automatiquement Gitea (Unix)
 
 Distributions utilisant systemd:
 

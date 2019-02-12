@@ -23,14 +23,14 @@
 					</div>
 				</h4>
 				<div class="ui attached segment">
-					{{template "repo/settings/hook_gitea" .}}
-					{{template "repo/settings/hook_gogs" .}}
-					{{template "repo/settings/hook_slack" .}}
-					{{template "repo/settings/hook_discord" .}}
-					{{template "repo/settings/hook_dingtalk" .}}
+					{{template "repo/settings/webhook/gitea" .}}
+					{{template "repo/settings/webhook/gogs" .}}
+					{{template "repo/settings/webhook/slack" .}}
+					{{template "repo/settings/webhook/discord" .}}
+					{{template "repo/settings/webhook/dingtalk" .}}
 				</div>
 
-				{{template "repo/settings/hook_history" .}}
+				{{template "repo/settings/webhook/history" .}}
 			</div>
 		</div>
 	</div>

@@ -1,0 +1,134 @@
+<div class="ui container" id="navbar">
+	<div class="item brand" style="justify-content: space-between;">
+		<a href="{{AppSubUrl}}/">
+			<img class="ui mini image" src="{{AppSubUrl}}/img/gitea-sm.png">
+		</a>
+		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
+			<i class="sidebar icon"></i>
+		</div>
+	</div>
+
+	{{if .IsSigned}}
+		<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
+		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
+		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+	{{else if .IsLandingPageHome}}
+		<a class="item {{if .PageIsHome}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+	{{else if .IsLandingPageExplore}}
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "home"}}</a>
+	{{else if .IsLandingPageOrganizations}}
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "home"}}</a>
+	{{end}}
+
+	{{template "custom/extra_links" .}}
+
+	{{/*
+		<div class="item">
+		<div class="ui icon input">
+		<input class="searchbox" type="text" placeholder="{{.i18n.Tr "search_project"}}">
+		<i class="search icon"></i>
+		</div>
+		</div>
+	*/}}
+
+	{{if .IsSigned}}
+		<div class="right stackable menu">
+			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
+				<span class="text">
+					<i class="fitted octicon octicon-bell"></i>
+					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
+
+					{{if .NotificationUnreadCount}}
+						<span class="ui red label">
+							{{.NotificationUnreadCount}}
+						</span>
+					{{end}}
+				</span>
+			</a>
+
+			<div class="ui dropdown jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
+				<span class="text">
+					<i class="fitted octicon octicon-plus"></i>
+					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
+					<i class="fitted octicon octicon-triangle-down not-mobile"></i>
+				</span>
+				<div class="menu">
+					<a class="item" href="{{AppSubUrl}}/repo/create">
+						<i class="octicon octicon-plus"></i> {{.i18n.Tr "new_repo"}}
+					</a>
+					<a class="item" href="{{AppSubUrl}}/repo/migrate">
+						<i class="octicon octicon-repo-clone"></i> {{.i18n.Tr "new_migrate"}}
+					</a>
+					{{if .SignedUser.CanCreateOrganization}}
+					<a class="item" href="{{AppSubUrl}}/org/create">
+						<i class="octicon octicon-organization"></i> {{.i18n.Tr "new_org"}}
+					</a>
+					{{end}}
+				</div><!-- end content create new menu -->
+			</div><!-- end dropdown menu create new -->
+
+			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
+				<span class="text">
+					<img class="ui tiny avatar image" src="{{.SignedUser.RelAvatarLink}}">
+					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
+					<span class="mobile-only">{{.SignedUser.Name}}</span>
+					<i class="fitted octicon octicon-triangle-down not-mobile" tabindex="-1"></i>
+				</span>
+				<div class="menu user-menu" tabindex="-1">
+					<div class="ui header">
+						{{.i18n.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+					</div>
+
+					<div class="divider"></div>
+					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
+						<i class="octicon octicon-person"></i>
+						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
+					</a>
+					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+						<i class="octicon octicon-star"></i>
+						{{.i18n.Tr "your_starred"}}
+					</a>
+					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
+						<i class="octicon octicon-settings"></i>
+						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
+					</a>
+					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
+						<i class="octicon octicon-question"></i>
+						{{.i18n.Tr "help"}}<!-- Help -->
+					</a>
+					{{if .IsAdmin}}
+						<div class="divider"></div>
+
+						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
+							<i class="icon settings"></i>
+							{{.i18n.Tr "admin_panel"}}<!-- Admin Panel -->
+						</a>
+					{{end}}
+
+					<div class="divider"></div>
+					<a class="item" href="{{AppSubUrl}}/user/logout">
+						<i class="octicon octicon-sign-out"></i>
+						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
+					</a>
+				</div><!-- end content avatar menu -->
+			</div><!-- end dropdown avatar menu -->
+		</div><!-- end signed user right menu -->
+
+	{{else}}
+
+		<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.i18n.Tr "help"}}</a>
+		<div class="right stackable menu">
+			{{if .ShowRegistrationButton}}
+				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
+					<i class="octicon octicon-person"></i> {{.i18n.Tr "register"}}
+				</a>
+			{{end}}
+			<a class="item{{if .PageIsSignIn}} active{{end}}" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
+				<i class="octicon octicon-sign-in"></i> {{.i18n.Tr "sign_in"}}
+			</a>
+		</div><!-- end anonymous right menu -->
+
+	{{end}}
+</div>

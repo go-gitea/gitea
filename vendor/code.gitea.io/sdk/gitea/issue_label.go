@@ -13,8 +13,8 @@ import (
 // Label a label to an issue or a pr
 // swagger:model
 type Label struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 	// example: 00aabb
 	Color string `json:"color"`
 	URL   string `json:"url"`
@@ -36,7 +36,7 @@ func (c *Client) GetRepoLabel(owner, repo string, id int64) (*Label, error) {
 // CreateLabelOption options for creating a label
 type CreateLabelOption struct {
 	// required:true
-	Name  string `json:"name" binding:"Required"`
+	Name string `json:"name" binding:"Required"`
 	// required:true
 	// example: #00aabb
 	Color string `json:"color" binding:"Required;Size(7)"`

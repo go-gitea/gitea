@@ -38,9 +38,9 @@ type Status struct {
 	Context     string      `json:"context"`
 	Creator     *User       `json:"creator"`
 	// swagger:strfmt date-time
-	Created     time.Time   `json:"created_at"`
+	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated     time.Time   `json:"updated_at"`
+	Updated time.Time `json:"updated_at"`
 }
 
 // CombinedStatus holds the combined state of several statuses for a single commit

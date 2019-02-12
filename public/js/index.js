@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -171,6 +175,87 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function initImagePaste(target) {
+    target.each(function(i, field) {
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,82 +263,117 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
-    // Labels
-    var $list = $('.ui.labels.list');
-    var $noSelect = $list.find('.no-select');
-    var $labelMenu = $('.select-label .menu');
-    var hasLabelUpdateAction = $labelMenu.data('action') == 'update';
+    // Listsubmit
+    function initListSubmits(selector, outerSelector) {
+        var $list = $('.ui.' + outerSelector + '.list');
+        var $noSelect = $list.find('.no-select');
+        var $listMenu = $('.' + selector + ' .menu');
+        var hasLabelUpdateAction = $listMenu.data('action') == 'update';
 
-    $('.select-label').dropdown('setting', 'onHide', function(){
-        if (hasLabelUpdateAction) {
-            location.reload();
-        }
-    });
-
-    $labelMenu.find('.item:not(.no-select)').click(function () {
-        if ($(this).hasClass('checked')) {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
+        $('.' + selector).dropdown('setting', 'onHide', function(){
+            hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                location.reload();
+            }
+        });
+
+        $listMenu.find('.item:not(.no-select)').click(function () {
+
+            // we don't need the action attribute when updating assignees
+            if (selector == 'select-assignees-modify') {
+
+                // UI magic. We need to do this here, otherwise it would destroy the functionality of
+                // adding/removing labels
+                if ($(this).hasClass('checked')) {
+                    $(this).removeClass('checked');
+                    $(this).find('.octicon').removeClass('octicon-check');
+                } else {
+                    $(this).addClass('checked');
+                    $(this).find('.octicon').addClass('octicon-check');
+                }
+
                 updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "detach",
-                    $labelMenu.data('issue-id'),
+                    $listMenu.data('update-url'),
+                    "",
+                    $listMenu.data('issue-id'),
                     $(this).data('id')
                 );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                return false;
             }
-        } else {
-            $(this).addClass('checked');
-            $(this).find('.octicon').addClass('octicon-check');
-            if (hasLabelUpdateAction) {
-                updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "attach",
-                    $labelMenu.data('issue-id'),
-                    $(this).data('id')
-                );
-            }
-        }
 
-        var labelIds = [];
-        $(this).parent().find('.item').each(function () {
             if ($(this).hasClass('checked')) {
-                labelIds.push($(this).data('id'));
-                $($(this).data('id-selector')).removeClass('hide');
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "detach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             } else {
-                $($(this).data('id-selector')).addClass('hide');
+                $(this).addClass('checked');
+                $(this).find('.octicon').addClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "attach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             }
+
+            var listIds = [];
+            $(this).parent().find('.item').each(function () {
+                if ($(this).hasClass('checked')) {
+                    listIds.push($(this).data('id'));
+                    $($(this).data('id-selector')).removeClass('hide');
+                } else {
+                    $($(this).data('id-selector')).addClass('hide');
+                }
+            });
+            if (listIds.length == 0) {
+                $noSelect.removeClass('hide');
+            } else {
+                $noSelect.addClass('hide');
+            }
+            $($(this).parent().data('id')).val(listIds.join(","));
+            return false;
         });
-        if (labelIds.length == 0) {
+        $listMenu.find('.no-select.item').click(function () {
+            if (hasLabelUpdateAction || selector == 'select-assignees-modify') {
+                updateIssuesMeta(
+                    $listMenu.data('update-url'),
+                    "clear",
+                    $listMenu.data('issue-id'),
+                    ""
+                );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+            }
+
+            $(this).parent().find('.item').each(function () {
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+            });
+
+            $list.find('.item').each(function () {
+                $(this).addClass('hide');
+            });
             $noSelect.removeClass('hide');
-        } else {
-            $noSelect.addClass('hide');
-        }
-        $($(this).parent().data('id')).val(labelIds.join(","));
-        return false;
-    });
-    $labelMenu.find('.no-select.item').click(function () {
-        if (hasLabelUpdateAction) {
-            updateIssuesMeta(
-                $labelMenu.data('update-url'),
-                "clear",
-                $labelMenu.data('issue-id'),
-                ""
-            );
-        }
+            $($(this).parent().data('id')).val('');
 
-        $(this).parent().find('.item').each(function () {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
         });
+    }
 
-        $list.find('.item').each(function () {
-            $(this).addClass('hide');
-        });
-        $noSelect.removeClass('hide');
-        $($(this).parent().data('id')).val('');
-    });
+    // Init labels and assignees
+    initListSubmits('select-label', 'labels');
+    initListSubmits('select-assignees', 'assignees');
+    initListSubmits('select-assignees-modify', 'assignees');
 
     function selectItem(select_id, input_id) {
         var $menu = $(select_id + ' .menu');
@@ -278,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -441,7 +561,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -491,6 +611,7 @@ function initRepository() {
         $('.edit-label-button').click(function () {
             $('#label-modal-id').val($(this).data('id'));
             $('.edit-label .new-label-input').val($(this).data('title'));
+            $('.edit-label .new-label-desc-input').val($(this).data('description'));
             $('.edit-label .color-picker').val($(this).data('color'));
             $('.minicolors-swatch-color').css("background-color", $(this).data('color'));
             $('.edit-label.modal').modal({
@@ -569,7 +690,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $segment.find('textarea');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -726,9 +847,103 @@ function initRepository() {
     }
 }
 
-function initRepositoryCollaboration() {
-    console.log('initRepositoryCollaboration');
+function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
 
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
+
+    $('button.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var path = $(this).data('path');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+            assingMenuAttributes(commentCloud.find('.menu'));
+
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
+        }
+        commentCloud.find('textarea').focus();
+    });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
+    menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
+    initCommentPreviewTab(menu.parent(".form"));
+    return id;
+}
+
+function initRepositoryCollaboration() {
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
         var $menu = $(this).parent();
@@ -755,7 +970,7 @@ function initTeamSettings() {
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        new SimpleMDE({
+        var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -771,7 +986,6 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
-                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -791,6 +1005,7 @@ function initWikiForm() {
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
         })
+        $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
 
@@ -820,7 +1035,6 @@ String.prototype.endsWith = function (pattern) {
         return pos;
     }
 })(jQuery);
-
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1055,8 +1269,6 @@ function initOrganization() {
 }
 
 function initUserSettings() {
-    console.log('initUserSettings');
-
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
@@ -1138,6 +1350,16 @@ function initAdmin() {
         }
     }
 
+    function onUsePagedSearchChange() {
+        if ($('#use_paged_search').prop('checked')) {
+            $('.search-page-size').show()
+                .find('input').attr('required', 'required');
+        } else {
+            $('.search-page-size').hide()
+                .find('input').removeAttr('required');
+        }
+    }
+
     function onOAuth2Change() {
         $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
         $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
@@ -1191,15 +1413,17 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1223,9 +1447,13 @@ function initAdmin() {
             if (authType == '2' || authType == '5') {
                 onSecurityProtocolChange()
             }
+            if (authType == '2') {
+                onUsePagedSearchChange();
+            }
         });
         $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange);
+        $('#use_paged_search').change(onUsePagedSearchChange);
         $('#oauth2_provider').change(onOAuth2Change);
         $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
     }
@@ -1234,6 +1462,9 @@ function initAdmin() {
         var authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
+            if (authType == '2') {
+                $('#use_paged_search').change(onUsePagedSearchChange);
+            }
         } else if (authType == '6') {
             $('#oauth2_provider').change(onOAuth2Change);
             $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
@@ -1313,7 +1544,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -1371,14 +1602,156 @@ function initCodeView() {
                 $("html, body").scrollTop($first.offset().top - 200);
                 return;
             }
-            m = window.location.hash.match(/^#(L\d+)$/);
+            m = window.location.hash.match(/^#(L|n)(\d+)$/);
             if (m) {
-                $first = $list.filter('.' + m[1]);
+                $first = $list.filter('.L' + m[2]);
                 selectRange($list, $first);
                 $("html, body").scrollTop($first.offset().top - 200);
             }
         }).trigger('hashchange');
     }
+}
+
+function initU2FAuth() {
+    if($('#wait-for-key').length === 0) {
+        return
+    }
+    u2fApi.ensureSupport()
+        .then(function () {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
+                u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
+                    .then(u2fSigned)
+                    .catch(function (err) {
+                        if(err === undefined) {
+                            u2fError(1);
+                            return
+                        }
+                        u2fError(err.metaData.code);
+                    });
+            });
+        }).catch(function () {
+            // Fallback in case browser do not support U2F
+            window.location.href = suburl + "/user/two_factor"
+        })
+}
+function u2fSigned(resp) {
+    $.ajax({
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType: "application/json; charset=utf-8",
+    }).done(function(res){
+        window.location.replace(res);
+    }).fail(function (xhr, textStatus) {
+        u2fError(1);
+    });
+}
+
+function u2fRegistered(resp) {
+    if (checkError(resp)) {
+        return;
+    }
+    $.ajax({
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType: "application/json; charset=utf-8",
+        success: function(){
+            window.location.reload();
+        },
+        fail: function (xhr, textStatus) {
+            u2fError(1);
+        }
+    });
+}
+
+function checkError(resp) {
+    if (!('errorCode' in resp)) {
+        return false;
+    }
+    if (resp.errorCode === 0) {
+        return false;
+    }
+    u2fError(resp.errorCode);
+    return true;
+}
+
+
+function u2fError(errorType) {
+    var u2fErrors = {
+        'browser': $('#unsupported-browser'),
+        1: $('#u2f-error-1'),
+        2: $('#u2f-error-2'),
+        3: $('#u2f-error-3'),
+        4: $('#u2f-error-4'),
+        5: $('.u2f-error-5')
+    };
+    u2fErrors[errorType].removeClass('hide');
+    for(var type in u2fErrors){
+        if(type != errorType){
+            u2fErrors[type].addClass('hide');
+        }
+    }
+    $('#u2f-error').modal('show');
+}
+
+function initU2FRegister() {
+    $('#register-device').modal({allowMultiple: false});
+    $('#u2f-error').modal({allowMultiple: false});
+    $('#register-security-key').on('click', function(e) {
+        e.preventDefault();
+        u2fApi.ensureSupport()
+            .then(u2fRegisterRequest)
+            .catch(function() {
+                u2fError('browser');
+            })
+    })
+}
+
+function u2fRegisterRequest() {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
+        "_csrf": csrf,
+        "name": $('#nickname').val()
+    }).success(function(req) {
+        $("#nickname").closest("div.field").removeClass("error");
+        $('#register-device').modal('show');
+        if(req.registeredKeys === null) {
+            req.registeredKeys = []
+        }
+        u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
+            .then(u2fRegistered)
+            .catch(function (reason) {
+                if(reason === undefined) {
+                    u2fError(1);
+                    return
+                }
+                u2fError(reason.metaData.code);
+            });
+    }).fail(function(xhr, status, error) {
+        if(xhr.status === 409) {
+            $("#nickname").closest("div.field").addClass("error");
+        }
+    });
+}
+
+function initWipTitle() {
+    $(".title_wip_desc > a").click(function (e) {
+        e.preventDefault();
+
+        var $issueTitle = $("#issue_title");
+        $issueTitle.focus();
+        var value = $issueTitle.val().trim().toUpperCase();
+
+        for (var i in wipPrefixes) {
+            if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+                return;
+            }
+        }
+
+        $issueTitle.val(wipPrefixes[0] + " " + $issueTitle.val());
+    });
 }
 
 $(document).ready(function () {
@@ -1481,6 +1854,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1549,7 +1927,6 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
-    $('.markdown').autolink();
 
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
@@ -1592,6 +1969,12 @@ $(document).ready(function () {
     initTeamSettings();
     initCtrlEnterSubmit();
     initNavbarContentToggle();
+    initTopicbar();
+    initU2FAuth();
+    initU2FRegister();
+    initIssueList();
+    initWipTitle();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1664,8 +2047,11 @@ function selectRange($list, $select, $from) {
 }
 
 $(function () {
-    if ($('.user.signin').length > 0) return;
-    $('form').areYouSure();
+    // Warn users that try to leave a page after entering data into a form.
+    // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
+    if ($('.user.signin').length === 0) {
+      $('form:not(.ignore-dirty)').areYouSure();
+    }
 
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
@@ -1685,7 +2071,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
@@ -1913,6 +2299,101 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function initHeatmap(appElementId, heatmapUser, locale) {
+    var el = document.getElementById(appElementId);
+    if (!el) {
+        return;
+    }
+
+    locale = locale || {};
+
+    locale.contributions = locale.contributions || 'contributions';
+    locale.no_contributions = locale.no_contributions || 'No contributions';
+
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('activity-heatmap', {
+        delimiters: vueDelimeters,
+
+        props: {
+            user: {
+                type: String,
+                required: true
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            locale: {
+                type: Object,
+                required: true
+            }
+        },
+
+        data: function () {
+            return {
+                isLoading: true,
+                colorRange: [],
+                endDate: null,
+                values: []
+            };
+        },
+
+        mounted: function() {
+            this.colorRange = [
+                this.getColor(0),
+                this.getColor(1),
+                this.getColor(2),
+                this.getColor(3),
+                this.getColor(4),
+                this.getColor(5)
+            ];
+            console.log(this.colorRange);
+            this.endDate = new Date();
+            this.loadHeatmap(this.user);
+        },
+
+        methods: {
+            loadHeatmap: function(userName) {
+                var self = this;
+                $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
+                    var chartData = [];
+                    for (var i = 0; i < chartRawData.length; i++) {
+                        chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+                    }
+                    self.values = chartData;
+                    self.isLoading = false;
+                });
+            },
+
+            getColor: function(idx) {
+                var el = document.createElement('div');
+                el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
+
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
+            }
+        },
+
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+    });
+
+    new Vue({
+        delimiters: vueDelimeters,
+        el: el,
+
+        data: {
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            heatmapUser: heatmapUser,
+            locale: locale
+        },
+    });
+}
+
 function initFilterBranchTagDropdown(selector) {
     $(selector).each(function() {
         var $dropdown = $(this);
@@ -2119,4 +2600,248 @@ function initNavbarContentToggle() {
             toggle.removeClass('active');
         }
     });
+}
+
+function initTopicbar() {
+    var mgrBtn = $("#manage_topic"),
+        editDiv = $("#topic_edit"),
+        viewDiv = $("#repo-topics"),
+        saveBtn = $("#save_topic"),
+        topicDropdown = $('#topic_edit .dropdown'),
+        topicForm = $('#topic_edit.ui.form'),
+        topicPrompts;
+
+    mgrBtn.click(function() {
+        viewDiv.hide();
+        editDiv.css('display', ''); // show Semantic UI Grid
+    });
+
+    function getPrompts() {
+        var hidePrompt = $("div.hide#validate_prompt"),
+            prompts = {
+                countPrompt: hidePrompt.children('#count_prompt').text(),
+                formatPrompt: hidePrompt.children('#format_prompt').text()
+            };
+        hidePrompt.remove();
+        return prompts;
+    }
+
+    saveBtn.click(function() {
+        var topics = $("input[name=topics]").val();
+
+        $.post(saveBtn.data('link'), {
+            "_csrf": csrf,
+            "topics": topics
+        }, function(data, textStatus, xhr){
+            if (xhr.responseJSON.status === 'ok') {
+                viewDiv.children(".topic").remove();
+                if (topics.length) {
+                    var topicArray = topics.split(",");
+
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
+                }
+                editDiv.css('display', 'none');
+                viewDiv.show();
+            }
+        }).fail(function(xhr){
+            if (xhr.status === 422) {
+                if (xhr.responseJSON.invalidTopics.length > 0) {
+                    topicPrompts.formatPrompt = xhr.responseJSON.message;
+
+                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                        topicLables = topicDropdown.children('a.ui.label');
+
+                    topics.split(',').forEach(function(value, index) {
+                        for (var i=0; i < invalidTopics.length; i++) {
+                            if (invalidTopics[i] === value) {
+                                topicLables.eq(index).removeClass("green").addClass("red");
+                            }
+                        }
+                    });
+                } else {
+                    topicPrompts.countPrompt = xhr.responseJSON.message;
+                }
+            }
+        }).always(function() {
+            topicForm.form('validate form');
+        });
+    });
+
+    topicDropdown.dropdown({
+        allowAdditions: true,
+        fields: { name: "description", value: "data-value" },
+        saveRemoteData: false,
+        label: {
+            transition : 'horizontal flip',
+            duration   : 200,
+            variation  : false,
+            blue : true,
+            basic: true,
+        },
+        className: {
+            label: 'ui green basic label'
+        },
+        apiSettings: {
+            url: suburl + '/api/v1/topics/search?q={query}',
+            throttle: 500,
+            cache: false,
+            onResponse: function(res) {
+                var formattedResponse = {
+                    success: false,
+                    results: [],
+                };
+
+                if (res.topics) {
+                    formattedResponse.success = true;
+                    for (var i=0;i < res.topics.length;i++) {
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
+                    }
+                }
+
+                return formattedResponse;
+            },
+        },
+        onLabelCreate: function(value) {
+            value = value.toLowerCase().trim();
+            this.attr("data-value", value).contents().first().replaceWith(value);
+            return $(this);
+        },
+        onAdd: function(addedValue, addedText, $addedChoice) {
+            addedValue = addedValue.toLowerCase().trim();
+            $($addedChoice).attr('data-value', addedValue);
+            $($addedChoice).attr('data-text', addedValue);
+        }
+    });
+
+    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+        var topics = topicDropdown.children('a.ui.label'),
+            status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
+        if (!status) {
+            topics.last().removeClass("green").addClass("red");
+        }
+        return status && topicDropdown.children('a.ui.label.red').length === 0;
+    };
+
+    topicPrompts = getPrompts();
+    topicForm.form({
+            on: 'change',
+            inline : true,
+            fields: {
+                topics: {
+                    identifier: 'topics',
+                    rules: [
+                        {
+                            type: 'validateTopic',
+                            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+                            prompt: topicPrompts.formatPrompt
+                        },
+                        {
+                            type: 'maxCount[25]',
+                            prompt: topicPrompts.countPrompt
+                        }
+                    ]
+                },
+            }
+        });
+}
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
+}
+
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+
+        var newDate = Date.parse(deadlineString)
+
+        if (isNaN(newDate)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
+        realDeadline = new Date(newDate);
+    }
+
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+        }
+    });
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function initIssueList() {
+    var repolink = $('#repolink').val();
+    $('#new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        // Don't list current issue in the dependency list.
+                        if(issue.id === currIssueId) {
+                            return;
+                        }
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+                cache: false,
+            },
+
+            fullTextSearch: true
+        })
+    ;
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('button.comment-form-reply').show();
+    } else {
+        form.closest('.comment-code-cloud').remove()
+    }
 }

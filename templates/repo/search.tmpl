@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui repo-search">
-			<form class="ui form" method="get">
+			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
 					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
 					<button class="ui button" type="submit">

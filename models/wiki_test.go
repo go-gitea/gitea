@@ -153,6 +153,7 @@ func TestRepository_LocalWikiPath(t *testing.T) {
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
@@ -161,23 +162,30 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		"Another page",
 		"Here's a <tag> and a/slash",
 	} {
-		PrepareTestEnv(t)
-		assert.NoError(t, repo.AddWikiPage(doer, wikiName, wikiContent, commitMsg))
-		expectedPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(wikiName))
-		assert.True(t, com.IsExist(expectedPath))
+		wikiName := wikiName
+		t.Run("test wiki exist: "+wikiName, func(t *testing.T) {
+			t.Parallel()
+			assert.NoError(t, repo.AddWikiPage(doer, wikiName, wikiContent, commitMsg))
+			expectedPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(wikiName))
+			assert.True(t, com.IsExist(expectedPath))
+		})
 	}
 
-	// test for already-existing wiki name
-	PrepareTestEnv(t)
-	err := repo.AddWikiPage(doer, "Home", wikiContent, commitMsg)
-	assert.Error(t, err)
-	assert.True(t, IsErrWikiAlreadyExist(err))
+	t.Run("check wiki already exist", func(t *testing.T) {
+		t.Parallel()
+		// test for already-existing wiki name
+		err := repo.AddWikiPage(doer, "Home", wikiContent, commitMsg)
+		assert.Error(t, err)
+		assert.True(t, IsErrWikiAlreadyExist(err))
+	})
 
-	// test for reserved wiki name
-	PrepareTestEnv(t)
-	err = repo.AddWikiPage(doer, "_edit", wikiContent, commitMsg)
-	assert.Error(t, err)
-	assert.True(t, IsErrWikiReservedName(err))
+	t.Run("check wiki reserved name", func(t *testing.T) {
+		t.Parallel()
+		// test for reserved wiki name
+		err := repo.AddWikiPage(doer, "_edit", wikiContent, commitMsg)
+		assert.Error(t, err)
+		assert.True(t, IsErrWikiReservedName(err))
+	})
 }
 
 func TestRepository_EditWikiPage(t *testing.T) {

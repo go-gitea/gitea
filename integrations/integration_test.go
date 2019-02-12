@@ -47,6 +47,8 @@ func TestMain(m *testing.M) {
 		helper = &testfixtures.PostgreSQL{}
 	} else if setting.UseSQLite3 {
 		helper = &testfixtures.SQLite{}
+	} else if setting.UseMSSQL {
+		helper = &testfixtures.SQLServer{}
 	} else {
 		fmt.Println("Unsupported RDBMS for integration tests")
 		os.Exit(1)
@@ -97,6 +99,7 @@ func initIntegrationTest() {
 	}
 
 	setting.NewContext()
+	setting.CheckLFSVersion()
 	models.LoadConfigs()
 
 	switch {
@@ -130,6 +133,17 @@ func initIntegrationTest() {
 		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
+	case setting.UseMSSQL:
+		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
+		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
+		}
+		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
+			log.Fatalf("db.Exec: %v", err)
+		}
+		defer db.Close()
 	}
 	routers.GlobalInit()
 }
@@ -223,6 +237,22 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+	req := NewRequest(t, "GET", "/user/settings/applications")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
+		"_csrf": doc.GetCSRF(),
+		"name":  "api-testing-token",
+	})
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	req = NewRequest(t, "GET", "/user/settings/applications")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	token := htmlDoc.doc.Find(".ui.info p").Text()
+	return token
+}
+
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
@@ -253,6 +283,11 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
+	return request
+}
+
+func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
+	request.SetBasicAuth(username, userPassword)
 	return request
 }
 

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,9 +7,12 @@ package auth
 
 import (
 	"mime/multipart"
+	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // InstallForm form for installation page
@@ -44,6 +48,7 @@ type InstallForm struct {
 	EnableOpenIDSignIn             bool
 	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
+	AllowOnlyExternalRegistration  bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
@@ -71,14 +76,52 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName string `binding:"Required;AlphaDashDot;MaxSize(35)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	Password           string `binding:"Required;MaxSize(255)"`
+	Retype             string
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
+}
+
+// Validate valideates the fields
+func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsEmailDomainWhitelisted validates that the email address
+// provided by the user matches what has been configured .
+// If the domain whitelist from the config is empty, it marks the
+// email as whitelisted
+func (f RegisterForm) IsEmailDomainWhitelisted() bool {
+	if len(setting.Service.EmailDomainWhitelist) == 0 {
+		return true
+	}
+
+	n := strings.LastIndex(f.Email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := strings.ToLower(f.Email[n+1:])
+
+	for _, v := range setting.Service.EmailDomainWhitelist {
+		if strings.ToLower(v) == domain {
+			return true
+		}
+	}
+
+	return false
+}
+
+// MustChangePasswordForm form for updating your password after account creation
+// by an admin
+type MustChangePasswordForm struct {
 	Password string `binding:"Required;MaxSize(255)"`
 	Retype   string
 }
 
 // Validate valideates the fields
-func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -109,6 +152,7 @@ type UpdateProfileForm struct {
 	KeepEmailPrivate bool
 	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
+	Language         string `binding:"Size(5)"`
 }
 
 // Validate validates the fields
@@ -143,6 +187,30 @@ type AddEmailForm struct {
 // Validate validates the fields
 func (f *AddEmailForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// UpdateThemeForm form for updating a users' theme
+type UpdateThemeForm struct {
+	Theme string `binding:"Required;MaxSize(30)"`
+}
+
+// Validate validates the field
+func (f *UpdateThemeForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsThemeExists checks if the theme is a theme available in the config.
+func (f UpdateThemeForm) IsThemeExists() bool {
+	var exists bool
+
+	for _, v := range setting.UI.Themes {
+		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+			exists = true
+			break
+		}
+	}
+
+	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -182,7 +250,7 @@ func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate valideates the fields
@@ -207,5 +275,25 @@ type TwoFactorScratchAuthForm struct {
 
 // Validate valideates the fields
 func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// U2FRegistrationForm for reserving an U2F name
+type U2FRegistrationForm struct {
+	Name string `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FRegistrationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// U2FDeleteForm for deleting U2F keys
+type U2FDeleteForm struct {
+	ID int64 `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

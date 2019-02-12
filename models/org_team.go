@@ -1,3 +1,4 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -10,6 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/go-xorm/xorm"
 )
 
 const ownerTeamName = "Owners"
@@ -26,15 +30,24 @@ type Team struct {
 	Members     []*User       `xorm:"-"`
 	NumRepos    int
 	NumMembers  int
-	UnitTypes   []UnitType `xorm:"json"`
+	Units       []*TeamUnit `xorm:"-"`
 }
 
-// GetUnitTypes returns unit types the team owned, empty means all the unit types
-func (t *Team) GetUnitTypes() []UnitType {
-	if len(t.UnitTypes) == 0 {
-		return allRepUnitTypes
+func (t *Team) getUnits(e Engine) (err error) {
+	if t.Units != nil {
+		return nil
 	}
-	return t.UnitTypes
+
+	t.Units, err = getUnitsByTeamID(e, t.ID)
+	return err
+}
+
+// GetUnitNames returns the team units names
+func (t *Team) GetUnitNames() (res []string) {
+	for _, u := range t.Units {
+		res = append(res, Units[u.Type].NameKey)
+	}
+	return
 }
 
 // HasWriteAccess returns true if team has at least write level access mode.
@@ -112,14 +125,18 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
-	if err = t.getMembers(e); err != nil {
-		return fmt.Errorf("getMembers: %v", err)
-	}
-	for _, u := range t.Members {
-		if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
-			return fmt.Errorf("watchRepo: %v", err)
+	// Make all team members watch this repo if enabled in global settings
+	if setting.Service.AutoWatchNewRepos {
+		if err = t.getMembers(e); err != nil {
+			return fmt.Errorf("getMembers: %v", err)
+		}
+		for _, u := range t.Members {
+			if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
+				return fmt.Errorf("watchRepo: %v", err)
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -166,7 +183,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		return fmt.Errorf("getTeamUsersByTeamID: %v", err)
 	}
 	for _, teamUser := range teamUsers {
-		has, err := hasAccess(e, teamUser.UID, repo, AccessModeRead)
+		has, err := hasAccess(e, teamUser.UID, repo)
 		if err != nil {
 			return err
 		} else if has {
@@ -174,6 +191,11 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		}
 
 		if err = watchRepo(e, teamUser.UID, repo.ID, false); err != nil {
+			return err
+		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -207,11 +229,16 @@ func (t *Team) RemoveRepository(repoID int64) error {
 
 // UnitEnabled returns if the team has the given unit type enabled
 func (t *Team) UnitEnabled(tp UnitType) bool {
-	if len(t.UnitTypes) == 0 {
-		return true
+	return t.unitEnabled(x, tp)
+}
+
+func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
+	if err := t.getUnits(e); err != nil {
+		log.Warn("Error loading repository (ID: %d) units: %s", t.ID, err.Error())
 	}
-	for _, u := range t.UnitTypes {
-		if u == tp {
+
+	for _, unit := range t.Units {
+		if unit.Type == tp {
 			return true
 		}
 	}
@@ -266,6 +293,17 @@ func NewTeam(t *Team) (err error) {
 	if _, err = sess.Insert(t); err != nil {
 		sess.Rollback()
 		return err
+	}
+
+	// insert units for team
+	if len(t.Units) > 0 {
+		for _, unit := range t.Units {
+			unit.TeamID = t.ID
+		}
+		if _, err = sess.Insert(&t.Units); err != nil {
+			sess.Rollback()
+			return err
+		}
 	}
 
 	// Update organization number of teams.
@@ -343,6 +381,24 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		return fmt.Errorf("update: %v", err)
 	}
 
+	// update units for team
+	if len(t.Units) > 0 {
+		for _, unit := range t.Units {
+			unit.TeamID = t.ID
+		}
+		// Delete team-unit.
+		if _, err := sess.
+			Where("team_id=?", t.ID).
+			Delete(new(TeamUnit)); err != nil {
+			return err
+		}
+
+		if _, err = sess.Insert(&t.Units); err != nil {
+			sess.Rollback()
+			return err
+		}
+	}
+
 	// Update access for team members if needed.
 	if authChanged {
 		if err = t.getRepositories(sess); err != nil {
@@ -372,10 +428,33 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
+	if err := t.getMembers(sess); err != nil {
+		return err
+	}
+
 	// Delete all accesses.
 	for _, repo := range t.Repos {
 		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
 			return err
+		}
+
+		// Remove watches from all users and now unaccessible repos
+		for _, user := range t.Members {
+			has, err := hasAccess(sess, user.ID, repo)
+			if err != nil {
+				return err
+			} else if has {
+				continue
+			}
+
+			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
+				return err
+			}
+
+			// Remove all IssueWatches a user has subscribed to in the repositories
+			if err = removeIssueWatchersByRepoID(sess, user.ID, repo.ID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -391,6 +470,13 @@ func DeleteTeam(t *Team) error {
 		Where("org_id=?", t.OrgID).
 		Where("team_id=?", t.ID).
 		Delete(new(TeamUser)); err != nil {
+		return err
+	}
+
+	// Delete team-unit.
+	if _, err := sess.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamUnit)); err != nil {
 		return err
 	}
 
@@ -463,7 +549,14 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 	return getTeamMembers(x, teamID)
 }
 
-func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
+func getUserTeams(e Engine, userID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Where("team_user.uid=?", userID).
+		Find(&teams)
+}
+
+func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 	return teams, e.
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
@@ -471,9 +564,24 @@ func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 		Find(&teams)
 }
 
-// GetUserTeams returns all teams that user belongs to in given organization.
-func GetUserTeams(orgID, userID int64) ([]*Team, error) {
-	return getUserTeams(x, orgID, userID)
+func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Where("team.org_id = ?", orgID).
+		And("team_user.uid=?", userID).
+		And("team_repo.repo_id=?", repoID).
+		Find(&teams)
+}
+
+// GetUserOrgTeams returns all teams that user belongs to in given organization.
+func GetUserOrgTeams(orgID, userID int64) ([]*Team, error) {
+	return getUserOrgTeams(x, orgID, userID)
+}
+
+// GetUserTeams returns all teams that user belongs across all organizations.
+func GetUserTeams(userID int64) ([]*Team, error) {
+	return getUserTeams(x, userID)
 }
 
 // AddTeamMember adds new membership of given team to given organization,
@@ -516,12 +624,17 @@ func AddTeamMember(team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
 			return err
 		}
+		if setting.Service.AutoWatchNewRepos {
+			if err = watchRepo(sess, userID, repo.ID, true); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()
 }
 
-func removeTeamMember(e Engine, team *Team, userID int64) error {
+func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	isMember, err := isTeamMember(e, team.OrgID, team.ID, userID)
 	if err != nil || !isMember {
 		return err
@@ -556,6 +669,33 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
 			return err
 		}
+
+		// Remove watches from now unaccessible
+		has, err := hasAccess(e, userID, repo)
+		if err != nil {
+			return err
+		} else if has {
+			continue
+		}
+
+		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+			return err
+		}
+
+		// Remove all IssueWatches a user has subscribed to in the repositories
+		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
+			return err
+		}
+	}
+
+	// Check if the user is a member of any team in the organization.
+	if count, err := e.Count(&TeamUser{
+		UID:   userID,
+		OrgID: team.OrgID,
+	}); err != nil {
+		return err
+	} else if count == 0 {
+		return removeOrgUser(e, team.OrgID, userID)
 	}
 
 	return nil
@@ -577,6 +717,14 @@ func RemoveTeamMember(team *Team, userID int64) error {
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
 	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+}
+
+// UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
+	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+		return 0, err
+	}
+	return
 }
 
 // ___________                  __________
@@ -633,4 +781,48 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, er
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
 		Find(&teams)
+}
+
+// ___________                    ____ ___      .__  __
+// \__    ___/___ _____    _____ |    |   \____ |__|/  |_
+//   |    |_/ __ \\__  \  /     \|    |   /    \|  \   __\
+//   |    |\  ___/ / __ \|  Y Y  \    |  /   |  \  ||  |
+//   |____| \___  >____  /__|_|  /______/|___|  /__||__|
+//              \/     \/      \/             \/
+
+// TeamUnit describes all units of a repository
+type TeamUnit struct {
+	ID     int64    `xorm:"pk autoincr"`
+	OrgID  int64    `xorm:"INDEX"`
+	TeamID int64    `xorm:"UNIQUE(s)"`
+	Type   UnitType `xorm:"UNIQUE(s)"`
+}
+
+// Unit returns Unit
+func (t *TeamUnit) Unit() Unit {
+	return Units[t.Type]
+}
+
+func getUnitsByTeamID(e Engine, teamID int64) (units []*TeamUnit, err error) {
+	return units, e.Where("team_id = ?", teamID).Find(&units)
+}
+
+// UpdateTeamUnits updates a teams's units
+func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
+		return err
+	}
+
+	if _, err = sess.Insert(units); err != nil {
+		sess.Rollback()
+		return err
+	}
+
+	return sess.Commit()
 }

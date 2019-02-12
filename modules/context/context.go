@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -75,6 +76,26 @@ func (ctx *Context) HasValue(name string) bool {
 	return ok
 }
 
+// RedirectToFirst redirects to first not empty URL
+func (ctx *Context) RedirectToFirst(location ...string) {
+	for _, loc := range location {
+		if len(loc) == 0 {
+			continue
+		}
+
+		u, err := url.Parse(loc)
+		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+			continue
+		}
+
+		ctx.Redirect(loc)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
+	return
+}
+
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
@@ -115,7 +136,7 @@ func (ctx *Context) ServerError(title string, err error) {
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(404, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -188,7 +209,7 @@ func Contexter() macaron.Handler {
 			if err == nil && len(repo.DefaultBranch) > 0 {
 				branchName = repo.DefaultBranch
 			}
-			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
+			prefix := setting.AppURL + path.Join(url.QueryEscape(ownerName), url.QueryEscape(repoName), "src", "branch", branchName)
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
 			c.Write([]byte(com.Expand(`<!doctype html>
@@ -240,10 +261,15 @@ func Contexter() macaron.Handler {
 		log.Debug("Session ID: %s", sess.ID())
 		log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+		ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
+		ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
+		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
+
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
-		ctx.Data["EnableSwaggerEndpoint"] = setting.API.EnableSwaggerEndpoint
+
+		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
 		c.Map(ctx)
