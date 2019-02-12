@@ -14,7 +14,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -120,7 +120,8 @@ type RepoSettingForm struct {
 	IsArchived                       bool
 
 	// Admin settings
-	EnableHealthCheck bool
+	EnableHealthCheck                     bool
+	EnableCloseIssuesViaCommitInAnyBranch bool
 }
 
 // Validate validates the fields
