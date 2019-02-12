@@ -138,12 +138,12 @@ make vet lint misspell-check
 
 ### Updating the stylesheets
 
-At present we use [less](http://lesscss.org/) to generate our stylesheets. Do
+At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
 **not** edit the files in `public/css/` directly as they are generated from
 `lessc` from the files in `public/less/`.
 
 If you wish to work on the stylesheets you will need to install `lessc` the
-less compiler. The recommended way to do this is using `npm install`:
+less compiler and `postcss`. The recommended way to do this is using `npm install`:
 
 ```bash
 cd "$GOPATH/src/code.gitea.io/gitea"
