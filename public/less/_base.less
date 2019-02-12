@@ -12,6 +12,9 @@ img {
 table {
     border-collapse: collapse;
 }
+a {
+    cursor: pointer;
+}
 .rounded {
     border-radius: .28571429rem !important;
 }
@@ -27,37 +30,23 @@ pre, code {
         line-height: 1.5;
         overflow: auto;
     }
-    &.wrap {
-        white-space: pre-wrap;       /* CSS 3 */
-//      white-space: -moz-normal;    /* Mozilla, since 1999 */
-//      white-space: -normal;        /* Opera 4-6 */
-//      white-space: -o-normal;      /* Opera 7 */
-
-        -ms-word-break: break-all;
-        word-break: break-all;
-
-        /* These are technically the same, but use both */
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-    }
+}
+/* Wrap long lines of code. This will also apply to Markdown code boxes. */
+pre > code {
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+        overflow-wrap: break-word !important;
 }
 .dont-break-out {
-    /* These are technically the same, but use both */
     overflow-wrap: break-word;
-    word-wrap: break-word;
-
-    -ms-word-break: break-all;
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
 .full.height {
     padding: 0;
-    margin: 0 0 -@footer-margin 0;
+    margin: 0 0 calc(-@footer-margin - 2px) 0;
     min-height: 100%;
 }
 .following.bar {
@@ -106,6 +95,13 @@ pre, code {
         width: 16px;
         text-align: center;
     }
+    #navbar {
+        width: 100vw;
+        padding: 0 .5rem;
+    }
+    #navbar .brand {
+        margin: 0;
+    }
     @media only screen and (max-width: 767px) {
         #navbar:not(.shown) > *:not(:first-child) {
             display: none;
@@ -119,10 +115,7 @@ pre, code {
     // no, stackable won't work on right menus.
     margin-left: auto;
     display: flex;
-    display: -ms-flexbox;
-    -ms-flex-align: inherit;
     align-items: inherit;
-    -ms-flex-direction: inherit;
     flex-direction: inherit;
 }
 
@@ -135,9 +128,6 @@ pre, code {
     }
 
     &.button, &.menu .item {
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        -webkit-user-select: auto;
         user-select: auto;
     }
 
@@ -273,6 +263,18 @@ pre, code {
 
     .message {
         text-align: center;
+    }
+
+    &.bottom.attached.message {
+        font-weight: bold;
+        text-align: left;
+        color: black;
+        .pull-right {
+            color: black;
+        }
+        &>span, .pull-right>span{
+            color:#21ba45;
+        }
     }
 
     .header > i + .content {
@@ -427,14 +429,15 @@ pre, code {
 }
 
 footer {
-    height: @footer-margin;
+    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
     clear: both;
     width: 100%;
     color: #888888;
     .container {
-        padding-top: 10px;
+        width: 100vw !important;
+        padding: 0 .5rem;
         .fa {
             width: 16px;
             text-align: center;
@@ -454,6 +457,12 @@ footer {
         max-height: 500px;
         overflow-y: auto;
         margin-bottom: 7px;
+    }
+
+    .ui {
+        &.left, &.right {
+            line-height: 40px;
+        }
     }
 }
 
@@ -589,10 +598,9 @@ footer {
     margin-bottom: 2px !important;
 }
 
-#user-heatmap{
+#user-heatmap {
     width: 107%; // Fixes newest contributions not showing
     text-align: center;
-    margin: 40px 0 30px;
 
     svg:not(:root) {
         overflow: inherit;

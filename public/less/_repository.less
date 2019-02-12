@@ -4,9 +4,7 @@
     padding-top: 15px;
     padding-bottom: @footer-margin * 2;
 
-    .header-grid {
-        padding-top: 5px;
-        padding-bottom: 5px;
+    .repo-header {
         .ui.compact.menu {
             margin-left: 1rem;
         }
@@ -19,10 +17,10 @@
         }
         .ui.huge.breadcrumb {
             font-weight: 400;
-            font-size: 1.7rem;
+            font-size: 1.5rem;
         }
         .fork-flag {
-            margin-left: @mega-octicon-width + 8px;
+            margin-left: @mega-octicon-width + 6px;
             margin-top: 3px;
             display: block;
             font-size: 12px;
@@ -48,7 +46,6 @@
         display: flex;
         justify-content: space-between;
         .ui.label {
-            margin-top: -2px;
             margin-left: 7px;
             padding: 3px 5px;
         }
@@ -347,9 +344,6 @@
                     color: #999;
                     background: #f5f5f5;
                     width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
                     user-select: none;
 
                     span {
@@ -370,12 +364,9 @@
                         padding: 0 !important;
                         li {
                             display: block;
-                            width: 100%;
+                            padding: 0 .25em;
                             &.active {
                                 background: #ffffdd;
-                            }
-                            &:before {
-                                content: ' ';
                             }
                         }
                     }
@@ -1060,9 +1051,6 @@
                 color: #A7A7A7;
                 background: #fafafa;
                 width: 1%;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                -webkit-user-select: none;
                 user-select: none;
                 vertical-align: top;
 
@@ -1801,7 +1789,6 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
     .tab-size-@{i} {
         tab-size: @i !important;
-        -moz-tab-size: @i !important;
     }
     .generate-tab-size(@n, (@i + 1));
 }
@@ -1839,15 +1826,39 @@ tbody.commit-list {
 }
 
 #topic_edit {
-    margin-top:5px;
-}
-
-#repo-topic {
     margin-top: 5px;
 }
 
-.new-dependency-drop-list {
-	@media only screen and (max-width: 768px) {
-		width: 100%;
-	}
+#repo-topics {
+    margin-top: 5px;
+}
+
+.repo-topic {
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 768px) {
+    .new-dependency-drop-list {
+        width: 100%;
+    }
+}
+
+#manage_topic {
+    font-size: 12px;
+}
+
+.label + #manage_topic {
+    margin-left: 5px;
+}
+
+.repo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.repo-header .repo-buttons {
+    display: flex;
+    align-items: center;
 }
