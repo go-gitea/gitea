@@ -20,9 +20,9 @@ func NewContext() error {
 	var err error
 	switch setting.Git.LastCommitCache.Type {
 	case "memory":
-		LastCommitCache = &LastCommitMemoryCache{}
+		LastCommitCache = &MemoryCache{}
 	case "boltdb":
-		LastCommitCache, err = NewLastCommitBoltDBCache(setting.Git.LastCommitCache.DataPath)
+		LastCommitCache, err = NewBoltDBCache(setting.Git.LastCommitCache.DataPath)
 	}
 	if err == nil {
 		log.Info("Last Commit Cache %s Enabled", setting.Git.LastCommitCache.Type)

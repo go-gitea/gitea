@@ -14,18 +14,18 @@ import (
 )
 
 var (
-	_ git.LastCommitCache = &LastCommitBoltDBCache{}
+	_ git.LastCommitCache = &BoltDBCache{}
 )
 
-// LastCommitBoltDBCache implements git.LastCommitCache interface to save the last commits on leveldb
-type LastCommitBoltDBCache struct {
+// BoltDBCache implements git.LastCommitCache interface to save the last commits on boltdb
+type BoltDBCache struct {
 	cacheDir string
 	bucket   []byte
 	db       *bolt.DB
 }
 
-// NewLastCommitBoltDBCache creates a boltdb cache
-func NewLastCommitBoltDBCache(cacheDir string) (*LastCommitBoltDBCache, error) {
+// NewBoltDBCache creates a boltdb cache
+func NewBoltDBCache(cacheDir string) (*BoltDBCache, error) {
 	db, err := bolt.Open(cacheDir, 0600, nil)
 	if err != nil {
 		return nil, err
@@ -43,14 +43,15 @@ func NewLastCommitBoltDBCache(cacheDir string) (*LastCommitBoltDBCache, error) {
 		return nil, err
 	}
 
-	return &LastCommitBoltDBCache{
+	return &BoltDBCache{
 		cacheDir: cacheDir,
 		bucket:   bucket,
 		db:       db,
 	}, nil
 }
 
-func (c *LastCommitBoltDBCache) Get(repoPath, ref, entryPath string) (*git.Commit, error) {
+// Get implements git.LastCommitCache
+func (c *BoltDBCache) Get(repoPath, ref, entryPath string) (*git.Commit, error) {
 	var commit git.Commit
 	var found bool
 	err := c.db.View(func(tx *bolt.Tx) error {
@@ -71,7 +72,8 @@ func (c *LastCommitBoltDBCache) Get(repoPath, ref, entryPath string) (*git.Commi
 	return nil, nil
 }
 
-func (c *LastCommitBoltDBCache) Put(repoPath, ref, entryPath string, commit *git.Commit) error {
+// Put implements git.LastCommitCache
+func (c *BoltDBCache) Put(repoPath, ref, entryPath string, commit *git.Commit) error {
 	err := c.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(c.bucket)
 		v, err := json.Marshal(commit)

@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	_ git.LastCommitCache = &LastCommitMemoryCache{}
+	_ git.LastCommitCache = &MemoryCache{}
 )
 
-// LastCommitMemoryCache implements git.LastCommitCache interface to save the last commits on memory
-type LastCommitMemoryCache struct {
+// MemoryCache implements git.LastCommitCache interface to save the last commits on memory
+type MemoryCache struct {
 	commits sync.Map
 }
 
@@ -24,7 +24,8 @@ func getKey(repoPath, ref, entryPath string) string {
 	return fmt.Sprintf("%s:%s:%s", repoPath, ref, entryPath)
 }
 
-func (c *LastCommitMemoryCache) Get(repoPath, ref, entryPath string) (*git.Commit, error) {
+// Get implements git.LastCommitCache
+func (c *MemoryCache) Get(repoPath, ref, entryPath string) (*git.Commit, error) {
 	v, ok := c.commits.Load(getKey(repoPath, ref, entryPath))
 	if ok {
 		return v.(*git.Commit), nil
@@ -32,7 +33,8 @@ func (c *LastCommitMemoryCache) Get(repoPath, ref, entryPath string) (*git.Commi
 	return nil, nil
 }
 
-func (c *LastCommitMemoryCache) Put(repoPath, ref, entryPath string, commit *git.Commit) error {
+// Put implements git.LastCommitCache
+func (c *MemoryCache) Put(repoPath, ref, entryPath string, commit *git.Commit) error {
 	c.commits.Store(getKey(repoPath, ref, entryPath), commit)
 	return nil
 }
