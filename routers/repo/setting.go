@@ -117,12 +117,16 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil || interval < setting.Mirror.MinInterval {
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
-			ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			if interval != 0 {
+				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+			} else {
+				ctx.Repo.Mirror.NextUpdateUnix = 0
+			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -223,6 +227,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					IgnoreWhitespaceConflicts: form.PullsIgnoreWhitespace,
 					AllowMerge:                form.PullsAllowMerge,
 					AllowRebase:               form.PullsAllowRebase,
+					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
 				},
 			})
@@ -245,12 +250,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-			if err := models.UpdateRepository(repo, false); err != nil {
-				ctx.ServerError("UpdateRepository", err)
-				return
-			}
-			log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+		}
+
+		if err := models.UpdateRepository(repo, false); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -349,6 +360,47 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "archive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(true); err != nil {
+			log.Error(4, "Tried to archive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+
+		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	case "unarchive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(false); err != nil {
+			log.Error(4, "Tried to unarchive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+
+		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	default:
 		ctx.NotFound("", nil)
 	}
@@ -399,19 +451,6 @@ func CollaborationPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
-	}
-
-	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() {
-		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
-		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
-			return
-		} else if isMember {
-			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-			return
-		}
 	}
 
 	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {
@@ -589,6 +628,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case models.IsErrKeyAlreadyExist(err):
+			ctx.Data["Err_Content"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)

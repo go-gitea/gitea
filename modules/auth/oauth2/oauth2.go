@@ -16,6 +16,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/bitbucket"
+	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/github"
@@ -172,6 +173,8 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		}
 	case "twitter":
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
+	case "discord":
+		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider

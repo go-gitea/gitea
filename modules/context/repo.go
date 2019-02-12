@@ -8,6 +8,7 @@ package context
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -32,7 +33,7 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	AccessMode   models.AccessMode
+	models.Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
@@ -54,34 +55,23 @@ type Repository struct {
 	PullRequest *PullRequest
 }
 
-// IsOwner returns true if current user is the owner of repository.
-func (r *Repository) IsOwner() bool {
-	return r.AccessMode >= models.AccessModeOwner
-}
-
-// IsAdmin returns true if current user has admin or higher access of repository.
-func (r *Repository) IsAdmin() bool {
-	return r.AccessMode >= models.AccessModeAdmin
-}
-
-// IsWriter returns true if current user has write or higher access of repository.
-func (r *Repository) IsWriter() bool {
-	return r.AccessMode >= models.AccessModeWrite
-}
-
-// HasAccess returns true if the current user has at least read access for this repository
-func (r *Repository) HasAccess() bool {
-	return r.AccessMode >= models.AccessModeRead
-}
-
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Repository.CanEnableEditor() && r.IsViewBranch && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Repository.CanCreateBranch() && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanCreateBranch()
+}
+
+// RepoMustNotBeArchived checks if a repo is archived
+func RepoMustNotBeArchived() macaron.Handler {
+	return func(ctx *Context) {
+		if ctx.Repo.Repository.IsArchived {
+			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+		}
+	}
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
@@ -101,12 +91,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.IsWriter() || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
 func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
+	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -182,7 +172,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
+	return path.Join(setting.Domain, setting.AppSubURL, url.QueryEscape(owner), url.QueryEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -221,24 +211,15 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 }
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
-	// Admin has super access.
-	if ctx.IsSigned && ctx.User.IsAdmin {
-		ctx.Repo.AccessMode = models.AccessModeOwner
-	} else {
-		var userID int64
-		if ctx.User != nil {
-			userID = ctx.User.ID
-		}
-		mode, err := models.AccessLevel(userID, repo)
-		if err != nil {
-			ctx.ServerError("AccessLevel", err)
-			return
-		}
-		ctx.Repo.AccessMode = mode
+	var err error
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
 	}
 
 	// Check access.
-	if ctx.Repo.AccessMode == models.AccessModeNone {
+	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
 		if ctx.Query("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -247,6 +228,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 	ctx.Data["HasAccess"] = true
+	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
 		var err error
@@ -262,7 +244,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
-	ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
+	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
 // RepoIDAssignment returns a macaron handler which assigns the repo to the context.
@@ -281,10 +263,6 @@ func RepoIDAssignment() macaron.Handler {
 			return
 		}
 
-		if err = repo.GetOwner(); err != nil {
-			ctx.ServerError("GetOwner", err)
-			return
-		}
 		repoAssignment(ctx, repo)
 	}
 }
@@ -381,7 +359,9 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
-		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
+		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
+		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
+		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 			ctx.ServerError("CanUserFork", err)
@@ -400,8 +380,8 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
-		// repo is bare and display enable
-		if ctx.Repo.Repository.IsBare {
+		// repo is empty and display enable
+		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
@@ -435,7 +415,7 @@ func RepoAssignment() macaron.Handler {
 		}
 
 		// People who have push access or have forked repository can propose a new pull request.
-		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
+		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
 			// Pull request is allowed if this is a fork repository
 			// and base repository accepts pull requests.
 			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
@@ -453,9 +433,6 @@ func RepoAssignment() macaron.Handler {
 					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 				}
 			}
-
-			// Reset repo units as otherwise user specific units wont be loaded later
-			ctx.Repo.Repository.Units = nil
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
@@ -484,6 +461,8 @@ const (
 	RepoRefTag
 	// RepoRefCommit commit
 	RepoRefCommit
+	// RepoRefBlob blob
+	RepoRefBlob
 )
 
 // RepoRef handles repository reference names when the ref name is not
@@ -519,6 +498,9 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
 			return refName
 		}
+		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
+			return refName
+		}
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
@@ -531,6 +513,12 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
+	case RepoRefBlob:
+		_, err := ctx.Repo.GitRepo.GetBlob(path)
+		if err != nil {
+			return ""
+		}
+		return path
 	default:
 		log.Error(4, "Unrecognized path type: %v", path)
 	}
@@ -542,7 +530,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 func RepoRefByType(refType RepoRefType) macaron.Handler {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsBare {
+		if ctx.Repo.Repository.IsEmpty {
 			return
 		}
 
@@ -571,7 +559,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					ctx.ServerError("GetBranches", err)
 					return
 				} else if len(brs) == 0 {
-					err = fmt.Errorf("No branches in non-bare repository %s",
+					err = fmt.Errorf("No branches in non-empty repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.ServerError("GetBranches", err)
 					return
@@ -647,64 +635,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-	}
-}
-
-// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
-func RequireRepoAdmin() macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// RequireRepoWriter returns a macaron middleware for requiring repository write permission
-func RequireRepoWriter() macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// LoadRepoUnits loads repsitory's units, it should be called after repository and user loaded
-func LoadRepoUnits() macaron.Handler {
-	return func(ctx *Context) {
-		var isAdmin bool
-		if ctx.User != nil && ctx.User.IsAdmin {
-			isAdmin = true
-		}
-
-		var userID int64
-		if ctx.User != nil {
-			userID = ctx.User.ID
-		}
-		err := ctx.Repo.Repository.LoadUnitsByUserID(userID, isAdmin)
-		if err != nil {
-			ctx.ServerError("LoadUnitsByUserID", err)
-			return
-		}
-	}
-}
-
-// CheckUnit will check whether unit type is enabled
-func CheckUnit(unitType models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.Repository.UnitEnabled(unitType) {
-			ctx.NotFound("CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
-		}
-	}
-}
-
-// CheckAnyUnit will check whether any of the unit types are enabled
-func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.Repo.Repository.AnyUnitEnabled(unitTypes...) {
-			ctx.NotFound("CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
-		}
 	}
 }
 

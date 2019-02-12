@@ -1,0 +1,78 @@
+{{template "base/head" .}}
+<div class="repository quickstart">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="sixteen wide column content">
+				{{template "base/alert" .}}
+				{{if .Repository.IsArchived}}
+					<div class="ui warning message">
+						{{.i18n.Tr "repo.archive.title"}}
+					</div>
+				{{end}}
+				{{if .CanWriteCode}}
+					<h4 class="ui top attached header">
+						{{.i18n.Tr "repo.quick_guide"}}
+					</h4>
+					<div class="ui attached guide table segment">
+						<div class="item">
+							<h3>{{.i18n.Tr "repo.clone_this_repo"}} <small>{{.i18n.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository" | Str2html}}</small></h3>
+							<div class="ui action small input">
+								{{if not $.DisableHTTP}}
+									<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
+										{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+									</button>
+								{{end}}
+								{{if not $.DisableSSH}}
+									<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
+										SSH
+									</button>
+								{{end}}
+								{{if not $.DisableHTTP}}
+									<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
+								{{else}}
+									<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
+								{{end}}
+								{{if not (and $.DisableHTTP $.DisableSSH)}}
+									<button class="ui basic button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
+										<i class="octicon octicon-clippy"></i>
+									</button>
+								{{end}}
+							</div>
+						</div>
+
+						{{if not .Repository.IsArchived}}
+							<div class="ui divider"></div>
+
+							<div class="item">
+								<h3>{{.i18n.Tr "repo.create_new_repo_command"}}</h3>
+								<div class="markdown">
+									<pre><code>touch README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+git push -u origin master</code></pre>
+								</div>
+							</div>
+							<div class="ui divider"></div>
+
+							<div class="item">
+								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
+								<div class="markdown">
+									<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+git push -u origin master</code></pre>
+								</div>
+							</div>
+						{{end}}
+					{{else}}
+						<div class="ui segment center">
+							{{.i18n.Tr "repo.empty_message"}}
+						</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -1,5 +1,9 @@
 'use strict';
 
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
+
 var csrf;
 var suburl;
 
@@ -171,6 +175,87 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function initImagePaste(target) {
+    target.each(function(i, field) {
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,6 +263,7 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
@@ -312,12 +398,12 @@ function initCommentForm() {
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -475,7 +561,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -604,7 +690,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $('#content');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -1329,13 +1415,15 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1456,7 +1544,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -1514,9 +1602,9 @@ function initCodeView() {
                 $("html, body").scrollTop($first.offset().top - 200);
                 return;
             }
-            m = window.location.hash.match(/^#(L\d+)$/);
+            m = window.location.hash.match(/^#(L|n)(\d+)$/);
             if (m) {
-                $first = $list.filter('.' + m[1]);
+                $first = $list.filter('.L' + m[2]);
                 selectRange($list, $first);
                 $("html, body").scrollTop($first.offset().top - 200);
             }
@@ -1530,7 +1618,7 @@ function initU2FAuth() {
     }
     u2fApi.ensureSupport()
         .then(function () {
-            $.getJSON('/user/u2f/challenge').success(function(req) {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1543,16 +1631,16 @@ function initU2FAuth() {
             });
         }).catch(function () {
             // Fallback in case browser do not support U2F
-            window.location.href = "/user/two_factor"
+            window.location.href = suburl + "/user/two_factor"
         })
 }
 function u2fSigned(resp) {
     $.ajax({
-        url:'/user/u2f/sign',
-        type:"POST",
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
     }).fail(function (xhr, textStatus) {
@@ -1565,11 +1653,11 @@ function u2fRegistered(resp) {
         return;
     }
     $.ajax({
-        url:'/user/settings/security/u2f/register',
-        type:"POST",
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
         success: function(){
             window.location.reload();
         },
@@ -1623,7 +1711,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-    $.post("/user/settings/security/u2f/request_register", {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
         "_csrf": csrf,
         "name": $('#nickname').val()
     }).success(function(req) {
@@ -1983,7 +2071,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
@@ -2211,6 +2299,101 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function initHeatmap(appElementId, heatmapUser, locale) {
+    var el = document.getElementById(appElementId);
+    if (!el) {
+        return;
+    }
+
+    locale = locale || {};
+
+    locale.contributions = locale.contributions || 'contributions';
+    locale.no_contributions = locale.no_contributions || 'No contributions';
+
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('activity-heatmap', {
+        delimiters: vueDelimeters,
+
+        props: {
+            user: {
+                type: String,
+                required: true
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            locale: {
+                type: Object,
+                required: true
+            }
+        },
+
+        data: function () {
+            return {
+                isLoading: true,
+                colorRange: [],
+                endDate: null,
+                values: []
+            };
+        },
+
+        mounted: function() {
+            this.colorRange = [
+                this.getColor(0),
+                this.getColor(1),
+                this.getColor(2),
+                this.getColor(3),
+                this.getColor(4),
+                this.getColor(5)
+            ];
+            console.log(this.colorRange);
+            this.endDate = new Date();
+            this.loadHeatmap(this.user);
+        },
+
+        methods: {
+            loadHeatmap: function(userName) {
+                var self = this;
+                $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
+                    var chartData = [];
+                    for (var i = 0; i < chartRawData.length; i++) {
+                        chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+                    }
+                    self.values = chartData;
+                    self.isLoading = false;
+                });
+            },
+
+            getColor: function(idx) {
+                var el = document.createElement('div');
+                el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
+
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
+            }
+        },
+
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+    });
+
+    new Vue({
+        delimiters: vueDelimeters,
+        el: el,
+
+        data: {
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            heatmapUser: heatmapUser,
+            locale: locale
+        },
+    });
+}
+
 function initFilterBranchTagDropdown(selector) {
     $(selector).each(function() {
         var $dropdown = $(this);
@@ -2422,7 +2605,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
@@ -2452,16 +2635,15 @@ function initTopicbar() {
         }, function(data, textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length === 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
+                if (topics.length) {
+                    var topicArray = topics.split(",");
 
-                var last = viewDiv.children("a").last();
-                for (var i=0; i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
                 }
-                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                editDiv.css('display', 'none');
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2515,7 +2697,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2627,21 +2809,27 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     var repolink = $('#repolink').val();
-    $('.new-dependency-drop-list')
+    $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
+                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(index, issue) {
+                        // Don't list current issue in the dependency list.
+                        if(issue.id === currIssueId) {
+                            return;
+                        }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
                     return filteredResponse;
                 },
+                cache: false,
             },
 
             fullTextSearch: true

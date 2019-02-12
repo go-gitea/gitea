@@ -8,7 +8,7 @@
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
 				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
-				{{if and .PageIsPullFiles $.SignedUserID}}
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
 			</div>
@@ -27,7 +27,7 @@
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
 				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
-				{{if and .PageIsPullFiles $.SignedUserID}}
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
 			</div>
@@ -127,7 +127,7 @@
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
 																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
 															{{end}}
-															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
+															<pre><code class="{{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
 														<td class="lines-num lines-num-new">
 															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}">{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}</span>
@@ -137,7 +137,7 @@
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
-															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
+															<pre><code class="{{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
 													</tr>
 													{{if gt (len $line.Comments) 0}}
@@ -194,27 +194,29 @@
 		</div>
 	{{end}}
 
-	<div id="pull_review_add_comment" class="hide">
-		{{template "repo/diff/new_comment" dict "root" .}}
-	</div>
-	<div class="hide" id="edit-content-form">
-		<div class="ui comment form">
-			<div class="ui top attached tabular menu">
-				<a class="active write item">{{$.i18n.Tr "write"}}</a>
-				<a class="preview item" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
-			</div>
-			<div class="ui bottom attached active write tab segment">
-				<textarea tabindex="1" id="content" name="content"></textarea>
-			</div>
-			<div class="ui bottom attached tab preview segment markdown">
-			{{$.i18n.Tr "loading"}}
-			</div>
-			<div class="text right edit buttons">
-				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
-			</div>
-		</div>
-	</div>
+	{{if not $.Repository.IsArchived}}
+		<div id="pull_review_add_comment" class="hide">
+		    {{template "repo/diff/new_comment" dict "root" .}}
+        </div>
+        <div class="hide" id="edit-content-form">
+            <div class="ui comment form">
+                <div class="ui top attached tabular menu">
+                    <a class="active write item">{{$.i18n.Tr "write"}}</a>
+                    <a class="preview item" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+                </div>
+                <div class="ui bottom attached active write tab segment">
+                    <textarea tabindex="1" name="content"></textarea>
+                </div>
+                <div class="ui bottom attached tab preview segment markdown">
+                {{$.i18n.Tr "loading"}}
+                </div>
+                <div class="text right edit buttons">
+                    <div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+                    <div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+                </div>
+            </div>
+        </div>
+	 {{end}}
 
 	{{if .IsSplitStyle}}
 		<script>

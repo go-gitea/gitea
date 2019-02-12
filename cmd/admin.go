@@ -301,7 +301,8 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		password, err := generate.GetRandomString(c.Int("random-password-length"))
+		var err error
+		password, err = generate.GetRandomString(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
@@ -322,6 +323,12 @@ func runCreateUser(c *cli.Context) error {
 	// always default to true
 	var changePassword = true
 
+	// If this is the first user being created.
+	// Take it as the admin and don't force a password update.
+	if n := models.CountUsers(); n == 0 {
+		changePassword = false
+	}
+
 	if c.IsSet("must-change-password") {
 		changePassword = c.Bool("must-change-password")
 	}
@@ -333,6 +340,7 @@ func runCreateUser(c *cli.Context) error {
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Theme:              setting.UI.DefaultTheme,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}

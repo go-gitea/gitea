@@ -497,12 +497,15 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
-	if !repository.IsPrivate && !requireWrite {
-		return true
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	perm, err := models.GetUserRepoPermission(repository, ctx.User)
+	if err != nil {
+		return false
 	}
-	if ctx.IsSigned {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+
+	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	if canRead {
+		return true
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
@@ -511,8 +514,11 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 	ctx.User = user
 	if opStr == "basic" {
-		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
-		return accessCheck
+		perm, err = models.GetUserRepoPermission(repository, ctx.User)
+		if err != nil {
+			return false
+		}
+		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 	if repository.ID == repo.ID {
 		if requireWrite && opStr != "upload" {
@@ -579,7 +585,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		if err != nil {
 			return nil, nil, "basic", err
 		}
-		if !u.ValidatePassword(password) {
+		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
 			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
 		}
 		return u, nil, "basic", nil

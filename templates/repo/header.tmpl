@@ -1,38 +1,36 @@
 <div class="header-wrapper">
 {{with .Repository}}
 	<div class="ui container">
-		<div class="ui stackable grid header-grid">
-			<div class="seven wide column">
-				<div class="ui huge breadcrumb">
-					<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
-					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
-					<div class="divider"> / </div>
-					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
-					{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
-				</div>
+		<div class="repo-header">
+			<div class="ui huge breadcrumb repo-title">
+				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
+				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+				<div class="divider"> / </div>
+				<a href="{{$.RepoLink}}">{{.Name}}</a>
+				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
+				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{$.Mirror.Address}}">{{$.Mirror.Address}}</a></div>{{end}}
+				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
-
-			<div class="ui nine wide right aligned column">
-				<div class="ui compact labeled button" tabindex="0">
-					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
+			<div class="repo-buttons">
+				<div class="ui labeled button" tabindex="0">
+					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
 					</a>
 					<a class="ui basic label" href="{{.Link}}/watchers">
 						{{.NumWatches}}
 					</a>
 				</div>
-				<div class="ui compact labeled button" tabindex="0">
-					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
+				<div class="ui labeled button" tabindex="0">
+					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 						<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
 					</a>
 					<a class="ui basic label" href="{{.Link}}/stars">
 						{{.NumStars}}
 					</a>
 				</div>
-				{{if .CanBeForked}}
-					<div class="ui compact labeled button" tabindex="0">
-						<a class="ui compact button {{if not $.CanSignedUserFork}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" data-position="top center" data-variation="tiny"{{end}}>
+				{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
+					<div class="ui labeled button" tabindex="0">
+						<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 						</a>
 						<a class="ui basic label" href="{{.Link}}/forks">
@@ -47,43 +45,43 @@
 {{if not .IsDiffCompare}}
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
-			{{if .Repository.UnitEnabled $.UnitTypeCode}}
+			{{if .Permission.CanRead $.UnitTypeCode}}
 			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
 				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
 			</a>
 			{{end}}
 
-			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
+			{{if .Permission.CanRead $.UnitTypeIssues}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 				</a>
 			{{end}}
 
-			{{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}
+			{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank" rel="noopener noreferrer">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
 			{{end}}
 
-			{{if .Repository.AllowsPulls}}
+			{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 				<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
 					<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 				</a>
 			{{end}}
 
-			{{if and (.Repository.UnitEnabled $.UnitTypeReleases) (not .IsBareRepo) }}
+			{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 			<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 				<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
 			</a>
 			{{end}}
 
-			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
-				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
+			{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
+				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>
 			{{end}}
 
-			{{if and (.Repository.AnyUnitEnabled $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsBareRepo)}}
+			{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
 				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
 					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
 				</a>
@@ -91,7 +89,7 @@
 
 			{{template "custom/extra_tabs" .}}
 
-			{{if .IsRepositoryAdmin}}
+			{{if .Permission.IsAdmin}}
 				<div class="right menu">
 					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
 						<i class="octicon octicon-tools"></i> {{.i18n.Tr "repo.settings"}}

@@ -6,6 +6,7 @@
 package mailer
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -122,11 +123,10 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 	defer conn.Close()
 
-	isSecureConn := false
+	isSecureConn := opts.IsTLSEnabled || (strings.HasSuffix(port, "465"))
 	// Start TLS directly if the port ends with 465 (SMTPS protocol)
-	if strings.HasSuffix(port, "465") {
+	if isSecureConn {
 		conn = tls.Client(conn, tlsconfig)
-		isSecureConn = true
 	}
 
 	client, err := smtp.NewClient(conn, host)
@@ -238,6 +238,20 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
+// Sender sendmail mail sender
+type dummySender struct {
+}
+
+// Send send email
+func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
+	buf := bytes.Buffer{}
+	if _, err := msg.WriteTo(&buf); err != nil {
+		return err
+	}
+	log.Info("Mail From: %s To: %v Body: %s", from, to, buf.String())
+	return nil
+}
+
 func processMailQueue() {
 	for {
 		select {
@@ -266,10 +280,13 @@ func NewContext() {
 		return
 	}
 
-	if setting.MailService.UseSendmail {
-		Sender = &sendmailSender{}
-	} else {
+	switch setting.MailService.MailerType {
+	case "smtp":
 		Sender = &smtpSender{}
+	case "sendmail":
+		Sender = &sendmailSender{}
+	case "dummy":
+		Sender = &dummySender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
