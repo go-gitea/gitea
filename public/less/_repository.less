@@ -344,9 +344,6 @@
                     color: #999;
                     background: #f5f5f5;
                     width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
                     user-select: none;
 
                     span {
@@ -1054,9 +1051,6 @@
                 color: #A7A7A7;
                 background: #fafafa;
                 width: 1%;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                -webkit-user-select: none;
                 user-select: none;
                 vertical-align: top;
 
@@ -1795,7 +1789,6 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
     .tab-size-@{i} {
         tab-size: @i !important;
-        -moz-tab-size: @i !important;
     }
     .generate-tab-size(@n, (@i + 1));
 }
