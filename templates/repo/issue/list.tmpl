@@ -32,13 +32,6 @@
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
-				<div id="issue-actions" class="ui basic buttons hide">
-				{{if .IsShowClosed}}
-					<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_open"}}</div>
-				{{else}}
-					<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_close"}}</div>
-				{{end}}
-				</div>
 			</div>
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
@@ -118,7 +111,84 @@
 				</div>
 			</div>
 		</div>
+		<div id="issue-actions" class="ui stackable grid hide">
+			<div class="six wide column">
+				<div class="ui tiny basic status buttons">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-closed"></i>
+						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+					</a>
+				</div>
+			</div>
+			{{/* Ten wide does not cope well and makes the columns stack.
+				This seems to be related to jQuery's hide/show: in fact, switching
+				issue-actions and issue-filters and having this ten wide will show
+				this one correctly, but not the other one. */}}
+			<div class="nine wide right aligned right floated column">
+				<div class="ui secondary filter stackable menu">
+					<!-- Action Button -->
+					{{if .IsShowClosed}}
+						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
+					{{else}}
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_close"}}</div>
+					{{end}}
+					<!-- Labels -->
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.action_label"}}
+								<i class="dropdown icon"></i>
+							</span>
+						<div class="menu">
+							{{range .Labels}}
+								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
 
+					<!-- Milestone -->
+					<div class="ui {{if not .Milestones}}disabled{{end}} dropdown jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.action_milestone"}}
+								<i class="dropdown icon"></i>
+							</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
+								{{.i18n.Tr "repo.issues.action_milestone_no_select"}}
+							</div>
+							{{range .Milestones}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+									{{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Assignees -->
+					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.action_assignee"}}
+								<i class="dropdown icon"></i>
+							</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
+								{{.i18n.Tr "repo.issues.action_assignee_no_select"}}
+							</div>
+							{{range .Assignees}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
+									<img src="{{.RelAvatarLink}}"> {{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 		<div class="issue list">
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}

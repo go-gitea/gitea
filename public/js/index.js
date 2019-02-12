@@ -1949,8 +1949,10 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
+            $('#issue-filters').addClass("hide");
             $('#issue-actions').removeClass("hide");
         } else {
+            $('#issue-filters').removeClass("hide");
             $('#issue-actions').addClass("hide");
         }
     });
