@@ -12,7 +12,6 @@ import (
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
@@ -179,34 +178,42 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	buf = buf[:n]
 
 	isTextFile := base.IsTextFile(buf)
+	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
-	if isTextFile && setting.LFS.StartServer {
-		headString := string(buf)
-		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
-			splitLines := strings.Split(headString, "\n")
-			if len(splitLines) >= 3 {
-				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
-				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-				if len(oid) == 64 && err == nil {
-					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-					meta := &models.LFSMetaObject{Oid: oid}
-					if contentStore.Exists(meta) {
-						ctx.Data["IsTextFile"] = false
-						isTextFile = false
-						ctx.Data["IsLFSFile"] = true
-						ctx.Data["FileSize"] = size
-						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
-					}
+	if isTextFile {
+		if meta := lfs.IsPointerFile(&buf); meta != nil {
+			if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
+				ctx.Data["IsLFSFile"] = true
+				isLFSFile = true
+
+				// OK read the lfs object
+				dataRc, err := lfs.ReadMetaObject(meta)
+				if err != nil {
+					ctx.ServerError("ReadMetaObject", err)
+					return
 				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, _ = dataRc.Read(buf)
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				ctx.Data["IsTextFile"] = isTextFile
+
+				ctx.Data["FileSize"] = meta.Size
+				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 			}
 		}
 	}
 
 	// Assume file is not editable first.
-	if !isTextFile {
+	if isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else if !isTextFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
@@ -263,14 +270,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}
-
-		if ctx.Repo.CanEnableEditor() {
-			ctx.Data["CanEditFile"] = true
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-		} else if !ctx.Repo.IsViewBranch {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		if !isLFSFile {
+			if ctx.Repo.CanEnableEditor() {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			} else if !ctx.Repo.IsViewBranch {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+			}
 		}
 
 	case base.IsPDFFile(buf):
