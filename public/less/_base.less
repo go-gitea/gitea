@@ -1,19 +1,23 @@
 @footer-margin: 40px;
 
-@default-fonts: "Lato", "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif;
+@default-fonts: "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif;
 
 .override-fonts(@fonts) {
-    /* We're going to just override the semantic fonts here */
-    .ui.input>input, .ui.input input {
-        font-family: @fonts;
+    body {
+        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, @fonts;
     }
 
+    .markdown:not(code) {
+        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, @fonts;
+    }
+
+    /* We're going to just override the semantic fonts here */
     h1, h2, h3, h4, h5 {
-        font-family: @fonts;
+        font-family: "Lato", @fonts;
     }
 
     .home .hero h1, .home .hero h2 {
-        font-family: 'PT Sans Narrow', @fonts;
+        font-family: 'PT Sans Narrow', "Lato", @fonts;
     }
 
     .ui.accordion .title:not(.ui),
@@ -32,6 +36,7 @@
     .ui.search > .results .result .title,
     .ui.search > .results > .message .header,
     body,
+    .ui.input>input, .ui.input input,
     .ui.statistics .statistic > .value,
     .ui.statistic > .value,
     .ui.statistics .statistic > .label,
@@ -39,7 +44,7 @@
     .ui.steps .step .title,
     .ui.text.container
     {
-        font-family: @fonts;
+        font-family: "Lato", @fonts;
     }
 }
 
@@ -50,27 +55,27 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-@ja-fonts: "Lato", "Segoe UI", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", Roboto, Noto, "Noto Sans CJK JP", Arial, Helvetica, sans-serif;
+@ja-fonts: "Segoe UI", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", Roboto, Noto, "Noto Sans CJK JP", Arial, Helvetica, sans-serif;
 :lang(ja) {
     .override-fonts(@ja-fonts);
 }
 
-@zh-CN-fonts: "Lato", "Segoe UI", "Microsoft YaHei New", "Microsoft Yahei", "微软雅黑", "方体", "PingFang SC", "黑体", "Heiti SC", STXihei, "华文细黑", Roboto, Noto, "Noto Sans CJK SC", Arial, Helvetica, sans-serif;
+@zh-CN-fonts: "Segoe UI", "Microsoft YaHei New", "Microsoft Yahei", "微软雅黑", "方体", "PingFang SC", "黑体", "Heiti SC", STXihei, "华文细黑", Roboto, Noto, "Noto Sans CJK SC", Arial, Helvetica, sans-serif;
 :lang(zh-CN) {
     .override-fonts(@zh-CN-fonts);
 }
 
-@zh-TW-fonts: "Lato", "Segoe UI", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
+@zh-TW-fonts: "Segoe UI", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
 :lang(zh-TW) {
     .override-fonts(@zh-TW-fonts);
 }
 
-@zh-HK-fonts: "Lato", "Segoe UI", "方體", "PingFang HK", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
+@zh-HK-fonts: "Segoe UI", "方體", "PingFang HK", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
 :lang(zh-HK) {
     .override-fonts(@zh-HK-fonts);
 }
 
-@ko-fonts: "Lato", "Segoe UI", 'Apple SD Gothic Neo', 'NanumBarunGothic', '맑은 고딕', 'Malgun Gothic', '굴림', 'Gulim', '돋움', 'Dotum', "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", Roboto, Noto, "Noto Sans CJK KR", 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
+@ko-fonts: "Segoe UI", 'Apple SD Gothic Neo', 'NanumBarunGothic', '맑은 고딕', 'Malgun Gothic', '굴림', 'Gulim', '돋움', 'Dotum', "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", Roboto, Noto, "Noto Sans CJK KR", 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
 :lang(ko) {
     .override-fonts(@ko-fonts);
 }
