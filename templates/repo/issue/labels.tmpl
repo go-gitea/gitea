@@ -4,39 +4,41 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if or .CanWriteIssues .CanWritePulls}}
+			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
 					<div class="ui green new-label button">{{.i18n.Tr "repo.issues.new_label"}}</div>
 				</div>
 			{{end}}
 		</div>
-		<div class="ui new-label segment hide">
-			<form class="ui form" action="{{$.RepoLink}}/labels/new" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="ui grid">
-					<div class="three wide column">
-						<div class="ui small input">
-							<input class="new-label-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required>
+		{{if not .Repository.IsArchived}}
+			<div class="ui new-label segment hide">
+				<form class="ui form" action="{{$.RepoLink}}/labels/new" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="ui grid">
+						<div class="three wide column">
+							<div class="ui small input">
+								<input class="new-label-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required>
+							</div>
+						</div>
+						<div class="five wide column">
+							<div class="ui small fluid input">
+								<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}">
+							</div>
+						</div>
+						<div class="color picker column">
+							<input class="color-picker" name="color" value="#70c24a" required>
+						</div>
+						<div class="column precolors">
+							{{template "repo/issue/label_precolors"}}
+						</div>
+						<div class="buttons">
+							<div class="ui blue small basic cancel button">{{.i18n.Tr "repo.milestones.cancel"}}</div>
+							<button class="ui green small button">{{.i18n.Tr "repo.issues.create_label"}}</button>
 						</div>
 					</div>
-					<div class="five wide column">
-						<div class="ui small fluid input">
-							<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}">
-						</div>
-					</div>
-					<div class="color picker column">
-						<input class="color-picker" name="color" value="#70c24a" required>
-					</div>
-					<div class="column precolors">
-						{{template "repo/issue/label_precolors"}}
-					</div>
-					<div class="buttons">
-						<div class="ui blue small basic cancel button">{{.i18n.Tr "repo.milestones.cancel"}}</div>
-						<button class="ui green small button">{{.i18n.Tr "repo.issues.create_label"}}</button>
-					</div>
-				</div>
-			</form>
-		</div>
+				</form>
+			</div>
+		{{end}}
 		<div class="ui divider"></div>
 
 		<div class="ui right floated secondary filter menu">
@@ -57,7 +59,7 @@
 		{{template "base/alert" .}}
 		<div class="ui black label">{{.i18n.Tr "repo.issues.label_count" .NumLabels}}</div>
 		<div class="label list">
-			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0)}}
+			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
 				<div class="ui centered grid">
 					<div class="twelve wide column eight wide computer column">
 						<div class="ui attached left aligned segment">
@@ -105,7 +107,7 @@
 							<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 						</div>
 						<div class="three wide column">
-						{{if or $.CanWriteIssues $.CanWritePulls}}
+							{{if and (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
 							<a class="ui right delete-button" href="#" data-url="{{$.RepoLink}}/labels/delete" data-id="{{.ID}}"><i class="octicon octicon-trashcan"></i> {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 							<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 						{{end}}
@@ -117,7 +119,7 @@
 	</div>
 </div>
 
-{{if or $.CanWriteIssues $.CanWritePulls}}
+{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
 			<i class="trash icon"></i>

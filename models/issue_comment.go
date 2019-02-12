@@ -749,6 +749,9 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
 
 	// Make two comments, one in each issue
 	_, err = createComment(e, &CreateCommentOptions{
@@ -818,9 +821,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	if opts.Type == CommentTypeComment {
-		UpdateIssueIndexer(opts.Issue.ID)
-	}
 	return comment, nil
 }
 
@@ -873,10 +873,11 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	// No need for get commit for base branch changes
 	if line > 0 {
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err != nil {
+		if err == nil {
+			commitID = commit.ID.String()
+		} else if err != nil && !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
-		commitID = commit.ID.String()
 	}
 
 	// Only fetch diff if comment is review comment
@@ -1022,8 +1023,6 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
-	} else if c.Type == CommentTypeComment {
-		UpdateIssueIndexer(c.IssueID)
 	}
 
 	if err := c.LoadPoster(); err != nil {
@@ -1082,8 +1081,6 @@ func DeleteComment(doer *User, comment *Comment) error {
 
 	if err := sess.Commit(); err != nil {
 		return err
-	} else if comment.Type == CommentTypeComment {
-		UpdateIssueIndexer(comment.IssueID)
 	}
 
 	if err := comment.LoadPoster(); err != nil {

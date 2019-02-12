@@ -208,6 +208,10 @@ var migrations = []Migration{
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 	// v77 -> v78
 	NewMigration("add theme to users", addUserDefaultTheme),
+	// v78 -> v79
+	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
+	// v79 -> v80
+	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
 }
 
 // Migrate database to current version
