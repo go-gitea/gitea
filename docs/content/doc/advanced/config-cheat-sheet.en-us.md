@@ -326,12 +326,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 
 ## Git - Timeout settings (`git.timeout`)
+
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
+
+## Git - LastCommitCache settings (`git.last_commit_cache`)
+
+- `TYPE`: **none**: Cache type, could be empty, `memory` or `boltdb`.
+- `DATA_PATH`: ****: Cache dir when type is boltdb.
 
 ## Metrics (`metrics`)
 

@@ -210,6 +210,11 @@ menu:
 - `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
 - `GC`: **60**: git仓库GC的超时时间，单位秒
 
+## Git - 最后提交缓存设置 (`git.last_commit_cache`)
+
+- `TYPE`: **none**: 缓存类型，可以为空，`memory` 或 `boltdb`。
+- `DATA_PATH`: ****: 缓存目录，当类型为 `boltdb` 时有效。
+
 ## API (`api`)
 
 - `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.

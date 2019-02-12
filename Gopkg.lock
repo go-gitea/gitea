@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:5d292cdeb769d86513517759063d936acd401e090be0ea2a52ae3d493eaaf25e"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "2fa2b63334ce7c6efc35b52ffafd8e2d27cb49f9"
 
 [[projects]]
   branch = "master"
@@ -955,6 +955,14 @@
   revision = "2c050d2dae5345c417db301f11fda6fbf5ad0f0a"
 
 [[projects]]
+  digest = "1:ae8eea1a24ae43a46c2e96631b6303fcc4210ca0ac9d643e4da965029d1b511d"
+  name = "go.etcd.io/bbolt"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "63597a96ec0ad9e6d43c3fc81e809909e0237461"
+  version = "v1.3.2"
+
+[[projects]]
   digest = "1:c3d6b9e2cf3936ba9927da2e8858651aad69890b9dd3349f1316b4003b25d7a3"
   name = "golang.org/x/crypto"
   packages = [
@@ -1306,6 +1314,7 @@
     "github.com/tstranex/u2f",
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
+    "go.etcd.io/bbolt",
     "golang.org/x/crypto/acme/autocert",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ssh",

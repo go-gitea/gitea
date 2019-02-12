@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cache/lastcommit"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/highlight"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -41,7 +42,12 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
-	cache.NewContext()
+	if err := cache.NewContext(); err != nil {
+		log.Warn("cache enabled but init failed:", err)
+	}
+	if err := lastcommit.NewContext(); err != nil {
+		log.Warn("last commit cache enabled but init failed:", err)
+	}
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology

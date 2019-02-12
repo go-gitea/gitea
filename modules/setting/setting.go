@@ -502,45 +502,6 @@ var (
 		},
 	}
 
-	// Git settings
-	Git = struct {
-		Version                  string `ini:"-"`
-		DisableDiffHighlight     bool
-		MaxGitDiffLines          int
-		MaxGitDiffLineCharacters int
-		MaxGitDiffFiles          int
-		GCArgs                   []string `delim:" "`
-		Timeout                  struct {
-			Default int
-			Migrate int
-			Mirror  int
-			Clone   int
-			Pull    int
-			GC      int `ini:"GC"`
-		} `ini:"git.timeout"`
-	}{
-		DisableDiffHighlight:     false,
-		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 5000,
-		MaxGitDiffFiles:          100,
-		GCArgs:                   []string{},
-		Timeout: struct {
-			Default int
-			Migrate int
-			Mirror  int
-			Clone   int
-			Pull    int
-			GC      int `ini:"GC"`
-		}{
-			Default: int(git.DefaultCommandExecutionTimeout / time.Second),
-			Migrate: 600,
-			Mirror:  300,
-			Clone:   300,
-			Pull:    300,
-			GC:      60,
-		},
-	}
-
 	// Mirror settings
 	Mirror struct {
 		DefaultInterval time.Duration
@@ -1122,15 +1083,13 @@ func NewContext() {
 		log.Fatal(4, "Fail to map Admin settings: %v", err)
 	} else if err = Cfg.Section("cron").MapTo(&Cron); err != nil {
 		log.Fatal(4, "Failed to map Cron settings: %v", err)
-	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
-		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
 
-	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
+	newGitService()
 
 	sec = Cfg.Section("mirror")
 	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)

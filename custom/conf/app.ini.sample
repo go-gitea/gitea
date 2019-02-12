@@ -638,6 +638,12 @@ CLONE = 300
 PULL = 300
 GC = 60
 
+; Last commit cache
+[git.last_commit_cache]
+; could be empty, memory or boltdb
+TYPE = none
+DATA_PATH = 
+
 [mirror]
 ; Default interval as a duration between each check
 DEFAULT_INTERVAL = 8h
