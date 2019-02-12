@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// LastCommitCache defines gloablly last commit cache object
+	// LastCommitCache defines globally last commit cache object
 	LastCommitCache git.LastCommitCache
 )
 
