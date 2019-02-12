@@ -327,7 +327,7 @@ function initCommentForm() {
                             "issue-id": $listMenu.data('issue-id'),
                         };
                     } else {
-                        delete labels[$(this).data('id')]
+                        delete labels[$(this).data('id')];
                     }
                 }
             } else {
@@ -341,7 +341,7 @@ function initCommentForm() {
                             "issue-id": $listMenu.data('issue-id'),
                         };
                     } else {
-                        delete labels[$(this).data('id')]
+                        delete labels[$(this).data('id')];
                     }
                 }
             }
