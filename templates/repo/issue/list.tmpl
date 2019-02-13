@@ -181,7 +181,6 @@
 
 		<div class="issue list">
 			{{range .Issues}}
-				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
@@ -205,7 +204,9 @@
 					{{end}}
 
 					<p class="desc">
-						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+						{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}

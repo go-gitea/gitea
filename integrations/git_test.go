@@ -8,13 +8,16 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,6 +42,8 @@ func testGit(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		var little, big, littleLFS, bigLFS string
+
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
 		t.Run("Standard", func(t *testing.T) {
@@ -53,10 +58,10 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("PushCommit", func(t *testing.T) {
 				t.Run("Little", func(t *testing.T) {
-					commitAndPush(t, littleSize, dstPath)
+					little = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
-					commitAndPush(t, bigSize, dstPath)
+					big = commitAndPush(t, bigSize, dstPath)
 				})
 			})
 		})
@@ -71,16 +76,60 @@ func testGit(t *testing.T, u *url.URL) {
 				assert.NoError(t, err)
 
 				t.Run("Little", func(t *testing.T) {
-					commitAndPush(t, littleSize, dstPath)
+					littleLFS = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
-					commitAndPush(t, bigSize, dstPath)
+					bigLFS = commitAndPush(t, bigSize, dstPath)
 				})
 			})
 			t.Run("Locks", func(t *testing.T) {
 				lockTest(t, u.String(), dstPath)
 			})
 		})
+		t.Run("Raw", func(t *testing.T) {
+			session := loginUser(t, "user2")
+
+			// Request raw paths
+			req := NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", little))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Body.Len())
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
+			nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, nilResp.Length)
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", littleLFS))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.NotEqual(t, littleSize, resp.Body.Len())
+			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", bigLFS))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.NotEqual(t, bigSize, resp.Body.Len())
+			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+
+		})
+		t.Run("Media", func(t *testing.T) {
+			session := loginUser(t, "user2")
+
+			// Request media paths
+			req := NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", little))
+			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", littleLFS))
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
+
+			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
+		})
+
 	})
 	t.Run("SSH", func(t *testing.T) {
 		sshContext := baseAPITestContext
@@ -97,6 +146,7 @@ func testGit(t *testing.T, u *url.URL) {
 			dstPath, err := ioutil.TempDir("", sshContext.Reponame)
 			assert.NoError(t, err)
 			defer os.RemoveAll(dstPath)
+			var little, big, littleLFS, bigLFS string
 
 			t.Run("Standard", func(t *testing.T) {
 				t.Run("CreateRepo", doAPICreateRepository(sshContext, false))
@@ -107,10 +157,10 @@ func testGit(t *testing.T, u *url.URL) {
 				//time.Sleep(5 * time.Minute)
 				t.Run("PushCommit", func(t *testing.T) {
 					t.Run("Little", func(t *testing.T) {
-						commitAndPush(t, littleSize, dstPath)
+						little = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
-						commitAndPush(t, bigSize, dstPath)
+						big = commitAndPush(t, bigSize, dstPath)
 					})
 				})
 			})
@@ -125,15 +175,58 @@ func testGit(t *testing.T, u *url.URL) {
 					assert.NoError(t, err)
 
 					t.Run("Little", func(t *testing.T) {
-						commitAndPush(t, littleSize, dstPath)
+						littleLFS = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
-						commitAndPush(t, bigSize, dstPath)
+						bigLFS = commitAndPush(t, bigSize, dstPath)
 					})
 				})
 				t.Run("Locks", func(t *testing.T) {
 					lockTest(t, u.String(), dstPath)
 				})
+			})
+			t.Run("Raw", func(t *testing.T) {
+				session := loginUser(t, "user2")
+
+				// Request raw paths
+				req := NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", little))
+				resp := session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, littleSize, resp.Body.Len())
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", big))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Body.Len())
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", littleLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, littleSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, bigSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+
+			})
+			t.Run("Media", func(t *testing.T) {
+				session := loginUser(t, "user2")
+
+				// Request media paths
+				req := NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", little))
+				resp := session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, littleSize, resp.Body.Len())
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", big))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Body.Len())
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", littleLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, littleSize, resp.Body.Len())
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Body.Len())
 			})
 
 		})
@@ -162,34 +255,35 @@ func lockTest(t *testing.T, remote, repoPath string) {
 	assert.NoError(t, err)
 }
 
-func commitAndPush(t *testing.T, size int, repoPath string) {
-	err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two")
+func commitAndPush(t *testing.T, size int, repoPath string) string {
+	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two")
 	assert.NoError(t, err)
 	_, err = git.NewCommand("push").RunInDir(repoPath) //Push
 	assert.NoError(t, err)
+	return name
 }
 
-func generateCommitWithNewData(size int, repoPath, email, fullName string) error {
+func generateCommitWithNewData(size int, repoPath, email, fullName string) (string, error) {
 	//Generate random file
 	data := make([]byte, size)
 	_, err := rand.Read(data)
 	if err != nil {
-		return err
+		return "", err
 	}
 	tmpFile, err := ioutil.TempFile(repoPath, "data-file-")
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tmpFile.Close()
 	_, err = tmpFile.Write(data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	//Commit
 	err = git.AddChanges(repoPath, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = git.CommitChanges(repoPath, git.CommitChangesOptions{
 		Committer: &git.Signature{
@@ -204,5 +298,5 @@ func generateCommitWithNewData(size int, repoPath, email, fullName string) error
 		},
 		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 	})
-	return err
+	return filepath.Base(tmpFile.Name()), err
 }
