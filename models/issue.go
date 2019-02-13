@@ -953,6 +953,25 @@ func (issue *Issue) GetTasksDone() int {
 	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
+// GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
+func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+	if issue.IsClosed {
+		return issue.ClosedUnix
+	}
+	return issue.CreatedUnix
+}
+
+// GetLastEventLabel returns the localization label for the current issue.
+func (issue *Issue) GetLastEventLabel() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by"
+		}
+		return "repo.issues.closed_by"
+	}
+	return "repo.issues.opened_by"
+}
+
 // NewIssueOptions represents the options of a new issue.
 type NewIssueOptions struct {
 	Repo        *Repository

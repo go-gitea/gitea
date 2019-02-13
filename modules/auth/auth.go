@@ -135,15 +135,56 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 	if len(baHead) > 0 {
 		auths := strings.Fields(baHead)
 		if len(auths) == 2 && auths[0] == "Basic" {
+			var u *models.User
+
 			uname, passwd, _ := base.BasicAuthDecode(auths[1])
 
-			u, err := models.UserSignIn(uname, passwd)
-			if err != nil {
-				if !models.IsErrUserNotExist(err) {
-					log.Error(4, "UserSignIn: %v", err)
-				}
-				return nil, false
+			// Check if username or password is a token
+			isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+			// Assume username is token
+			authToken := uname
+			if !isUsernameToken {
+				// Assume password is token
+				authToken = passwd
 			}
+			token, err := models.GetAccessTokenBySHA(authToken)
+			if err == nil {
+				if isUsernameToken {
+					u, err = models.GetUserByID(token.UID)
+					if err != nil {
+						log.Error(4, "GetUserByID:  %v", err)
+						return nil, false
+					}
+				} else {
+					u, err = models.GetUserByName(uname)
+					if err != nil {
+						log.Error(4, "GetUserByID:  %v", err)
+						return nil, false
+					}
+					if u.ID != token.UID {
+						return nil, false
+					}
+				}
+				token.UpdatedUnix = util.TimeStampNow()
+				if err = models.UpdateAccessToken(token); err != nil {
+					log.Error(4, "UpdateAccessToken:  %v", err)
+				}
+			} else {
+				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+					log.Error(4, "GetAccessTokenBySha: %v", err)
+				}
+			}
+
+			if u == nil {
+				u, err = models.UserSignIn(uname, passwd)
+				if err != nil {
+					if !models.IsErrUserNotExist(err) {
+						log.Error(4, "UserSignIn: %v", err)
+					}
+					return nil, false
+				}
+			}
+
 			ctx.Data["IsApiToken"] = true
 			return u, true
 		}
