@@ -1116,6 +1116,7 @@ type CreateRepoOptions struct {
 	Name        string
 	Description string
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 	IsPrivate   bool
@@ -1194,6 +1195,30 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 				return fmt.Errorf("write .gitignore: %v", err)
 			}
 		}
+	}
+
+	// Issue Labels
+	if len(opts.IssueLabels) > 0 {
+		list, err := GetLabelTemplateFile(opts.IssueLabels)
+		if err != nil {
+			return fmt.Errorf("GetLabelTemplateFile: %v", err)
+		}
+
+		labels := make([]*Label, len(list))
+		for i := 0; i < len(list); i++ {
+			labels[i] = &Label{
+				RepoID:      repo.ID,
+				Name:        list[i][0],
+				Description: list[i][2],
+				Color:       list[i][1],
+			}
+		}
+		for _, label := range labels {
+			if err = newLabel(e, label); err != nil {
+				return fmt.Errorf("newLabel: %v", err)
+			}
+		}
+
 	}
 
 	// LICENSE
