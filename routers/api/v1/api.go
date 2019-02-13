@@ -631,6 +631,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/refs/*", repo.GetGitRefs)
 					m.Combo("/trees/:sha", context.RepoRef()).Get(repo.GetTree)
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/contents", func() {
+					m.Combo("/:path", reqToken(), reqOrgMembership()).
+						Post(bind(api.CreateFileOptions{}), repo.CreateFile).
+						Put(bind(api.UpdateFileOptions{}), repo.UpdateFile).
+						Delete(bind(api.DeleteFileOptions{}), repo.DeleteFile)
+				})
 			}, repoAssignment())
 		})
 

@@ -154,3 +154,17 @@ type swaggerCommit struct {
 	//in: body
 	Body api.Commit `json:"body"`
 }
+
+// FileResponse
+// swagger:response FileResponse
+type swaggerFileResponse struct {
+	//in: body
+	Body api.FileResponse `json:"body"`
+}
+
+// FileDeleteResponse
+// swagger:response FileDeleteResponse
+type swaggerFileDeleteResponse struct {
+	//in: body
+	Body api.FileDeleteResponse `json:"body"`
+}

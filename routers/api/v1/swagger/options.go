@@ -100,4 +100,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	CreateFileOptions api.CreateFileOptions
+	UpdateFileOptions api.UpdateFileOptions
+	DeleteFileOptions api.DeleteFileOptions
+	IdentityOptions   api.IdentityOptions
 }
