@@ -37,19 +37,34 @@ func GetTree(ctx *context.APIContext) {
 	//   description: sha of the commit
 	//   type: string
 	//   required: true
+	// - name: recursive
+	//   in: query
+	//   description: show all directories and files
+	//   required: false
+	//   type: boolean
+	// - name: page
+	//   in: query
+	//   description: page number; the 'truncated' field in the response will be true if there are still more items after this page, false if the last page
+	//   required: false
+	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE
+	//   required: false
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
-		ctx.Error(400, "sha not provided", nil)
+		ctx.Error(400, "", "sha not provided")
 		return
 	}
 	tree := GetTreeBySHA(ctx, sha)
 	if tree != nil {
 		ctx.JSON(200, tree)
 	} else {
-		ctx.Error(400, "sha invalid", nil)
+		ctx.Error(400, "", "sha invalid")
 	}
 }
 
@@ -87,29 +102,44 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	// 40 is the size of the sha1 hash in hexadecimal format.
 	copyPos := len(treeURL) - 40
 
-	if len(entries) > 1000 {
-		tree.Entries = make([]gitea.GitEntry, 1000)
-	} else {
-		tree.Entries = make([]gitea.GitEntry, len(entries))
+	page := ctx.QueryInt("page")
+	perPage := ctx.QueryInt("per_page")
+	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
+		perPage = setting.API.DefaultGitTreesPerPage
 	}
-	for e := range entries {
-		if e > 1000 {
-			tree.Truncated = true
-			break
-		}
-
-		tree.Entries[e].Path = entries[e].Name()
-		tree.Entries[e].Mode = fmt.Sprintf("%06x", entries[e].Mode())
-		tree.Entries[e].Type = string(entries[e].Type)
-		tree.Entries[e].Size = entries[e].Size()
-		tree.Entries[e].SHA = entries[e].ID.String()
+	if page <= 0 {
+		page = 1
+	}
+	tree.Page = page
+	tree.TotalCount = len(entries)
+	rangeStart := perPage * (page - 1)
+	if rangeStart >= len(entries) {
+		return tree
+	}
+	var rangeEnd int
+	if len(entries) > perPage {
+		tree.Truncated = true
+	}
+	if rangeStart+perPage < len(entries) {
+		rangeEnd = rangeStart + perPage
+	} else {
+		rangeEnd = len(entries)
+	}
+	tree.Entries = make([]gitea.GitEntry, rangeEnd-rangeStart)
+	for e := rangeStart; e < rangeEnd; e++ {
+		i := e - rangeStart
+		tree.Entries[i].Path = entries[e].Name()
+		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
+		tree.Entries[i].Type = string(entries[e].Type)
+		tree.Entries[i].Size = entries[e].Size()
+		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[e].URL = string(treeURL[:])
+			tree.Entries[i].URL = string(treeURL[:])
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[e].URL = string(blobURL[:])
+			tree.Entries[i].URL = string(blobURL[:])
 		}
 	}
 	return tree

@@ -12,6 +12,9 @@ img {
 table {
     border-collapse: collapse;
 }
+a {
+    cursor: pointer;
+}
 .rounded {
     border-radius: .28571429rem !important;
 }
@@ -39,14 +42,11 @@ pre > code {
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
 .full.height {
     padding: 0;
-    margin: 0 0 -@footer-margin 0;
+    margin: 0 0 calc(-@footer-margin - 2px) 0;
     min-height: 100%;
 }
 .following.bar {
@@ -95,6 +95,13 @@ pre > code {
         width: 16px;
         text-align: center;
     }
+    #navbar {
+        width: 100vw;
+        padding: 0 .5rem;
+    }
+    #navbar .brand {
+        margin: 0;
+    }
     @media only screen and (max-width: 767px) {
         #navbar:not(.shown) > *:not(:first-child) {
             display: none;
@@ -108,10 +115,7 @@ pre > code {
     // no, stackable won't work on right menus.
     margin-left: auto;
     display: flex;
-    display: -ms-flexbox;
-    -ms-flex-align: inherit;
     align-items: inherit;
-    -ms-flex-direction: inherit;
     flex-direction: inherit;
 }
 
@@ -124,9 +128,6 @@ pre > code {
     }
 
     &.button, &.menu .item {
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        -webkit-user-select: auto;
         user-select: auto;
     }
 
@@ -435,6 +436,8 @@ footer {
     width: 100%;
     color: #888888;
     .container {
+        width: 100vw !important;
+        padding: 0 .5rem;
         .fa {
             width: 16px;
             text-align: center;
@@ -595,10 +598,9 @@ footer {
     margin-bottom: 2px !important;
 }
 
-#user-heatmap{
+#user-heatmap {
     width: 107%; // Fixes newest contributions not showing
     text-align: center;
-    margin: 40px 0 30px;
 
     svg:not(:root) {
         overflow: inherit;
