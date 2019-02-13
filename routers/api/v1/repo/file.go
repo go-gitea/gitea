@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/repo"
 	api "code.gitea.io/sdk/gitea"
+	"fmt"
 )
 
 // GetRawFile get a file by path on a repository
@@ -142,7 +143,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // Create a fle in a repository
 func CreateFile(ctx *context.APIContext, form api.CreateFileOptions) {
-	// swagger:operation POST /repos/{owner}/{repo}/contents/{path} repository repoCreateFile
+	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
 	// ---
 	// summary: Create a file in a repository
 	// consumes:
@@ -160,9 +161,9 @@ func CreateFile(ctx *context.APIContext, form api.CreateFileOptions) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: path
+	// - name: filepath
 	//   in: path
-	//   description: path of file
+	//   description: path of the file to create
 	// - name: body
 	//   in: body
 	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
@@ -171,28 +172,34 @@ func CreateFile(ctx *context.APIContext, form api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.Error(404, "GetEditorconfig", err)
-		} else {
-			ctx.Error(500, "GetEditorconfig", err)
-		}
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Status(404)
 		return
 	}
 
-	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.Error(404, "GetDefinitionForFilename", err)
+	if ctx.Params("branch") != "" {
+		ctx.Repo.BranchName = ctx.Params("branch")
+	}
+
+	fmt.Printf("BRANCH: %v", ctx.Repo)
+
+	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetBlobByPath", err)
+		}
 		return
 	}
-	ctx.JSON(200, def)
+	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
+		ctx.Error(500, "ServeBlob", err)
+	}
 }
 
 // Update a fle in a repository
 func UpdateFile(ctx *context.APIContext, form api.UpdateFileOptions) {
-	// swagger:operation PUT /repos/{owner}/{repo}/contents/{path} repository repoUpdateFile
+	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
 	// ---
 	// summary: Update a file in a repository
 	// consumes:
@@ -210,9 +217,9 @@ func UpdateFile(ctx *context.APIContext, form api.UpdateFileOptions) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: path
+	// - name: filepath
 	//   in: path
-	//   description: path of file
+	//   description: path of the file to update
 	// - name: body
 	//   in: body
 	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
@@ -221,30 +228,14 @@ func UpdateFile(ctx *context.APIContext, form api.UpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.Error(404, "GetEditorconfig", err)
-		} else {
-			ctx.Error(500, "GetEditorconfig", err)
-		}
-		return
-	}
-
-	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.Error(404, "GetDefinitionForFilename", err)
-		return
-	}
-	ctx.JSON(200, def)
+	ctx.JSON(200, &api.FileResponse{})
 }
 
 // Create a fle in a repository
 func DeleteFile(ctx *context.APIContext, form api.DeleteFileOptions) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{path} repository repoDeleteFile
+	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{filepath} repository repoDeleteFile
 	// ---
-	// summary: Delete a file in a repository.
+	// summary: Delete a file in a repository
 	// consumes:
 	// - application/json
 	// produces:
@@ -260,9 +251,9 @@ func DeleteFile(ctx *context.APIContext, form api.DeleteFileOptions) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: path
+	// - name: filepath
 	//   in: path
-	//   description: path of file
+	//   description: path of the file to delete
 	// - name: body
 	//   in: body
 	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
@@ -271,21 +262,5 @@ func DeleteFile(ctx *context.APIContext, form api.DeleteFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileDeleteResponse"
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.Error(404, "GetEditorconfig", err)
-		} else {
-			ctx.Error(500, "GetEditorconfig", err)
-		}
-		return
-	}
-
-	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.Error(404, "GetDefinitionForFilename", err)
-		return
-	}
-	ctx.JSON(200, def)
+	ctx.JSON(200, &api.FileDeleteResponse{})
 }

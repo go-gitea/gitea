@@ -1511,7 +1511,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{path}": {
+    "/repos/{owner}/{repo}/contents/{filepath}": {
       "put": {
         "consumes": [
           "application/json"
@@ -1540,8 +1540,8 @@
             "required": true
           },
           {
-            "description": "path of file",
-            "name": "path",
+            "description": "path of the file to update",
+            "name": "filepath",
             "in": "path"
           },
           {
@@ -1587,8 +1587,8 @@
             "required": true
           },
           {
-            "description": "path of file",
-            "name": "path",
+            "description": "path of the file to create",
+            "name": "filepath",
             "in": "path"
           },
           {
@@ -1616,7 +1616,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete a file in a repository.",
+        "summary": "Delete a file in a repository",
         "operationId": "repoDeleteFile",
         "parameters": [
           {
@@ -1634,8 +1634,8 @@
             "required": true
           },
           {
-            "description": "path of file",
-            "name": "path",
+            "description": "path of the file to delete",
+            "name": "filepath",
             "in": "path"
           },
           {
@@ -9497,11 +9497,10 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/IdentityOptions"
+        "$ref": "#/definitions/DeleteFileOptions"
       },
       "headers": {
         "DeleteFileOptions": {},
-        "IdentityOptions": {},
         "UpdateFileOptions": {}
       }
     },

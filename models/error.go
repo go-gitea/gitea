@@ -739,6 +739,54 @@ type ErrUserDoesNotHaveAccessToRepo struct {
 	RepoName string
 }
 
+// ErrFilenameInvalid represents a "filename invalid error.
+type ErrFilenameInvalid struct {
+	Filename string
+}
+
+// IsErrFilenameInvalid checks if an error is an
+// ErrFilenameInvalid.
+func IsErrFilenameInvalid(err error) bool {
+	_, ok := err.(ErrFilenameInvalid)
+	return ok
+}
+
+func (err ErrFilenameInvalid) Error() string {
+	return fmt.Sprintf("file name is invalid: %s", err.Filename)
+}
+
+// ErrCannotCommit represents user cannot commit to repo error.
+type ErrCannotCommit struct {
+	UserName string
+}
+
+// IsErrCannotCommit checks if an error is an
+// ErrCannotCommit.
+func IsErrCannotCommit(err error) bool {
+	_, ok := err.(ErrCannotCommit)
+	return ok
+}
+
+func (err ErrCannotCommit) Error() string {
+	return fmt.Sprintf("User cannot commit to repo: %s", err.UserName)
+}
+
+// ErrWithFilePath represents a problem with the file to be edited
+type ErrWithFilePath struct {
+	Message string
+}
+
+// IsErrWithFilePath checks if an error is an
+// ErrWithFilePath.
+func IsErrWithFilePath(err error) bool {
+	_, ok := err.(ErrWithFilePath)
+	return ok
+}
+
+func (err ErrWithFilePath) Error() string {
+	return fmt.Sprintf("There is a problem with this file path: %s", err.Message)
+}
+
 // IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExist.
 func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)

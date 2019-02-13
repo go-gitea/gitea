@@ -107,5 +107,4 @@ type swaggerParameterBodies struct {
 	CreateFileOptions api.CreateFileOptions
 	UpdateFileOptions api.UpdateFileOptions
 	DeleteFileOptions api.DeleteFileOptions
-	IdentityOptions   api.IdentityOptions
 }
