@@ -5,14 +5,91 @@
 package models
 
 import (
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/uploader"
+	"code.gitea.io/gitea/routers/api/v1/repo"
+	"fmt"
 	"path"
 	"strings"
-
-	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/uploader"
 )
+
+// FileLink contains the links for a repo's file
+type FileLink struct {
+	Self    string
+	GitURL  string
+	HTMLURL string
+}
+
+// FileContent contains information about a repo's file stats and content
+type FileContent struct {
+	Name        string
+	Path        string
+	SHA         string
+	Size        int64
+	URL         string
+	HTMLURL     string
+	GitURL      string
+	DownloadURL string
+	Type        string
+	Links       []*FileLink
+}
+
+type CommitMeta struct {
+	URL string
+	SHA string
+}
+
+// CommitUser contains information of a user in the context of a commit.
+type CommitUser struct {
+	Name  string
+	Email string
+	Date  string
+}
+
+// FileCommit contains information generated from a Git commit for a repo's file.
+type FileCommit struct {
+	CommitMeta
+	HTMLURL   string
+	Author    *CommitUser
+	Committer *CommitUser
+	Parents   []*CommitMeta
+	NodeID    string
+	Message   string
+	Tree      *CommitMeta
+}
+
+// PayloadCommitVerification represents the GPG verification of a commit
+type PayloadCommitVerification struct {
+	Verified  bool
+	Reason    string
+	Signature string
+	Payload   string
+}
+
+// File contains information about a repo's file
+type File struct {
+	Content      *FileContent
+	Commit       *FileCommit
+	Verification *PayloadCommitVerification
+}
+
+// IdentityOptions for a person's identity like an author or committer
+type IdentityOptions struct {
+	Name string
+	Email string
+}
+
+// FileOptions contains options for files
+type FileOptions struct {
+	Message   string
+	Content   string
+	Branch    string
+	Path      string
+	OldPath   string
+	SHA       string
+	Author    IdentityOptions
+	Committer IdentityOptions
+}
 
 func cleanUploadFileName(name string) string {
 	// Rebase the filename
@@ -26,137 +103,93 @@ func cleanUploadFileName(name string) string {
 	return name
 }
 
-// getParentTreeFields returns list of parent tree names and corresponding tree paths
-// based on given tree path.
-func getParentTreeFields(treePath string) (treeNames []string, treePaths []string) {
+func CreateFile(doer, u *User, repo *Repository, gitRepo *git.Repository, opts FileOptions) (*File, error) {
+	branch := "master"
+	if opts.Branch != "" {
+		branch = opts.Branch
+	}
+	if protected, _ := repo.IsProtectedBranchForPush(branch, doer); protected {
+		return nil, ErrCannotCommit{UserName: doer.LowerName}
+	}
+
+	treePath := cleanUploadFileName(opts.Path)
+	oldTreePath := opts.OldPath
 	if len(treePath) == 0 {
-		return treeNames, treePaths
+		return nil, ErrFilenameInvalid{treePath}
 	}
 
-	treeNames = strings.Split(treePath, "/")
-	treePaths = make([]string, len(treeNames))
-	for i := range treeNames {
-		treePaths[i] = strings.Join(treeNames[:i+1], "/")
+	if _, err := repo.GetBranch(branch); err == nil {
+		return nil, err
 	}
-	return treeNames, treePaths
-}
 
-func renderCommitRights(ctx *context.Context) bool {
-	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
+	commit, err := gitRepo.GetBranchCommit(branch)
 	if err != nil {
-		log.Error(4, "CanCommitToBranch: %v", err)
+		return nil, err
 	}
-	ctx.Data["CanCommitToBranch"] = canCommit
-	return canCommit
-}
 
-func modifyFile(ctx *context.Context, isNewFile bool) error {
-	oldBranchName := ctx.Repo.BranchName
-	branchName := oldBranchName
-	oldTreePath := cleanUploadFileName(ctx.Repo.TreePath)
-	canCommit := renderCommitRights(ctx)
-
-	if len(oldTreePath) == 0 {
-		return ErrFilenameInvalid{oldTreePath}
-	}
-	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
-
-	if oldBranchName != branchName {
-		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
-			return err
+	if opts.SHA != "" {
+		if _, err := commit.GetTreeEntryByPath(treePath); err != nil {
+			return nil, err
 		}
-	} else if !canCommit {
-		return ErrCannotCommit{UserName: ctx.User.LowerName}
 	}
 
 	var newTreePath string
-	for index, part := range treeNames {
+	treePathParts := strings.Split(treePath, "/")
+	for index, part := range treePathParts {
 		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+
+		entry, err := commit.GetTreeEntryByPath(newTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
 				break
 			}
-			return err
+			return nil, err
 		}
-		if index != len(treeNames)-1 {
+		if index < len(treePathParts)-1 {
 			if !entry.IsDir() {
-				return ErrWithFilePath{ctx.Tr("repo.editor.directory_is_a_file", part)}
+				return nil, ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", newTreePath)}
 			}
 		} else {
 			if entry.IsLink() {
-				ctx.Tr("repo.editor.directory_is_a_file", part)
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", part), tplEditFile, &form)
-				return
-
+				return nil, ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", newTreePath)}
 			}
 			if entry.IsDir() {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", part), tplEditFile, &form)
-				return
+				return nil, ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", newTreePath)}
 			}
 		}
 	}
 
-	if !isNewFile {
-		_, err := ctx.Repo.Commit.GetTreeEntryByPath(oldTreePath)
+	if opts.SHA != "" {
+		treeEntry, err := commit.GetTreeEntryByPath(oldTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), tplEditFile, &form)
+				return nil, ErrRepoFileDoesNotExist{oldTreePath}
 			} else {
-				ctx.ServerError("GetTreeEntryByPath", err)
+				return nil, err
 			}
-			return
 		}
-		if lastCommit != ctx.Repo.CommitID {
-			files, err := ctx.Repo.Commit.GetFilesChangedSinceCommit(lastCommit)
-			if err != nil {
-				ctx.ServerError("GetFilesChangedSinceCommit", err)
-				return
-			}
-
-			for _, file := range files {
-				if file == form.TreePath {
-					ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+lastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
-					return
-				}
-			}
+		if opts.SHA != string(treeEntry.ID[:]) {
+			return nil, ErrShaDoesNotMatch{opts.SHA, string(treeEntry.ID[:])}
 		}
 	}
 
-	if oldTreePath != form.TreePath {
+	if oldTreePath != treePath {
 		// We have a new filename (rename or completely new file) so we need to make sure it doesn't already exist, can't clobber.
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath)
+		entry, err := commit.GetTreeEntryByPath(treePath)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
-				ctx.ServerError("GetTreeEntryByPath", err)
-				return
+				return nil, err
 			}
 		}
 		if entry != nil {
-			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
-			return
+			return nil, ErrRepoFileAlreadyExist{treePath}
 		}
 	}
 
-	message := strings.TrimSpace(form.CommitSummary)
-	if len(message) == 0 {
-		if isNewFile {
-			message = ctx.Tr("repo.editor.add", form.TreePath)
-		} else {
-			message = ctx.Tr("repo.editor.update", form.TreePath)
-		}
-	}
+	message := strings.TrimSpace(opts.Message)
 
-	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
-	if len(form.CommitMessage) > 0 {
-		message += "\n\n" + form.CommitMessage
-	}
-
-	if err := uploader.UpdateRepoFile(ctx.Repo.Repository, ctx.User, &uploader.UpdateRepoFileOptions{
+	if err := uploader.UpdateRepoFile(repo, doer, &uploader.UpdateRepoFileOptions{
 		LastCommitID: lastCommit,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -171,10 +204,7 @@ func modifyFile(ctx *context.Context, isNewFile bool) error {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(form.TreePath))
-}
+	file := &File{}
 
-// GetTags return repo's tags
-func (repo *Repository) GetTags() ([]*git.Tag, error) {
-	return GetTagsByPath(repo.RepoPath())
+	return file, nil
 }

@@ -4,7 +4,9 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -733,6 +735,21 @@ func (err ErrRepoFileAlreadyExist) Error() string {
 	return fmt.Sprintf("repository file already exists [file_name: %s]", err.FileName)
 }
 
+// ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
+type ErrRepoFileDoesNotExist struct {
+	FileName string
+}
+
+// IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
+func IsErrRepoFileDoesNotExist(err error) bool {
+	_, ok := err.(ErrRepoFileDoesNotExist)
+	return ok
+}
+
+func (err ErrRepoFileDoesNotExist) Error() string {
+	return fmt.Sprintf("repository file does not exist [file_name: %s]", err.FileName)
+}
+
 // ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
@@ -877,6 +894,22 @@ func IsErrTagAlreadyExists(err error) bool {
 
 func (err ErrTagAlreadyExists) Error() string {
 	return fmt.Sprintf("tag already exists [name: %s]", err.TagName)
+}
+
+// ErrShaDoesNotMatch represents a "ShaDoesNotMatch" kind of error.
+type ErrShaDoesNotMatch struct {
+	givenSHA   string
+	currentSHA string
+}
+
+// IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
+func IsErrShaDoesNotMatch(err error) bool {
+	_, ok := err.(ErrShaDoesNotMatch)
+	return ok
+}
+
+func (err ErrShaDoesNotMatch) Error() string {
+	return fmt.Sprintf("file sha does not match [%s != %s]", err.givenSHA, err.currentSHA)
 }
 
 //  __      __      ___.   .__                   __
