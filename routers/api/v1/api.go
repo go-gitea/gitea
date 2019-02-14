@@ -687,7 +687,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.JSON(404, map[string]interface{}{
 				"message":           "Not Found",
-				"documentation_url": fmt.Sprintf("%sapi/v1/swagger", setting.AppURL),
+				"documentation_url": fmt.Sprintf("%sapi/swagger", setting.AppURL),
 			})
 		})
 
