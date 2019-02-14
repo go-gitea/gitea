@@ -35,8 +35,8 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -1346,14 +1346,14 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = newRepoAction(e, u, repo); err != nil {
+	} else if err = newRepoAction(e, doer, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
 	}
 
 	return nil
 }
 
-// CreateRepository creates a repository for the user/organization u.
+// CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
@@ -1743,6 +1743,17 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return ErrRepoNotExist{repoID, uid, "", ""}
 	}
 
+	// Delete Deploy Keys
+	deployKeys, err := listDeployKeys(sess, repo.ID)
+	if err != nil {
+		return fmt.Errorf("listDeployKeys: %v", err)
+	}
+	for _, dKey := range deployKeys {
+		if err := deleteDeployKey(sess, doer, dKey.ID); err != nil {
+			return fmt.Errorf("deleteDeployKeys: %v", err)
+		}
+	}
+
 	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
@@ -1774,6 +1785,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Webhook{RepoID: repoID},
 		&HookTask{RepoID: repoID},
 		&Notification{RepoID: repoID},
+		&CommitStatus{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1884,6 +1896,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
+		if len(deployKeys) > 0 {
+			// We need to rewrite the public keys because the commit failed
+			if err2 := RewriteAllPublicKeys(); err2 != nil {
+				return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
+			}
+		}
 		return fmt.Errorf("Commit: %v", err)
 	}
 
