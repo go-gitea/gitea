@@ -252,7 +252,7 @@ pipeline:
       branch: [ master ]
 
   static:
-    image: karalabe/xgo-latest:latest
+    image: techknowlogick/xgo:latest
     pull: true
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
