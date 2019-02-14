@@ -58,6 +58,7 @@
 package v1
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -684,7 +685,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
 
 		m.Any("/*", func(ctx *context.Context) {
-			ctx.Error(404)
+			ctx.JSON(404, map[string]interface{}{
+				"message":           "Not Found",
+				"documentation_url": fmt.Sprintf("%sapi/v1/swagger", setting.AppURL),
+			})
 		})
 
 		m.Group("/admin", func() {
