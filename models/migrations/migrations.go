@@ -227,6 +227,8 @@ var migrations = []Migration{
 	NewMigration("hash application token", hashAppToken),
 	// v86 -> v87
 	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	// v87 -> v88
+	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
 }
 
 // Migrate database to current version
