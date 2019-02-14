@@ -396,7 +396,7 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 	for _, reg := range regs {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal(4, "parsing u2f registration: %v", err)
+			log.Fatal(0, "parsing u2f registration: %v", err)
 			continue
 		}
 		newCounter, authErr := r.Authenticate(signResp, *challenge, reg.Counter)
@@ -466,7 +466,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
 		if err := models.UpdateUserCols(u, "language"); err != nil {
-			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			log.Error(0, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -873,7 +873,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error(0, "Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -1011,7 +1011,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error(0, "Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -1038,7 +1038,7 @@ func Activate(ctx *context.Context) {
 				models.SendActivateAccountMail(ctx.Context, ctx.User)
 
 				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-					log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+					log.Error(0, "Set cache(MailResendLimit) fail: %v", err)
 				}
 			}
 		} else {
@@ -1154,7 +1154,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	models.SendResetPasswordMail(ctx.Context, u)
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+		log.Error(0, "Set cache(MailResendLimit) fail: %v", err)
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())

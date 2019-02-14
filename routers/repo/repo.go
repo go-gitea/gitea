@@ -183,7 +183,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error(4, "DeleteRepository: %v", errDelete)
+			log.Error(0, "DeleteRepository: %v", errDelete)
 		}
 	}
 
@@ -261,7 +261,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error(4, "DeleteRepository: %v", errDelete)
+			log.Error(0, "DeleteRepository: %v", errDelete)
 		}
 	}
 

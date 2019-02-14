@@ -364,7 +364,7 @@ func (u *User) SizedRelAvatarLink(size int) string {
 	case setting.DisableGravatar, setting.OfflineMode:
 		if !com.IsFile(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
-				log.Error(3, "GenerateRandomAvatar: %v", err)
+				log.Error(0, "GenerateRandomAvatar: %v", err)
 			}
 		}
 
@@ -520,7 +520,7 @@ func (u *User) IsOrganization() bool {
 func (u *User) IsUserOrgOwner(orgID int64) bool {
 	isOwner, err := IsOrganizationOwner(orgID, u.ID)
 	if err != nil {
-		log.Error(4, "IsOrganizationOwner: %v", err)
+		log.Error(0, "IsOrganizationOwner: %v", err)
 		return false
 	}
 	return isOwner
@@ -530,7 +530,7 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 func (u *User) IsPublicMember(orgID int64) bool {
 	isMember, err := IsPublicMembership(orgID, u.ID)
 	if err != nil {
-		log.Error(4, "IsPublicMembership: %v", err)
+		log.Error(0, "IsPublicMembership: %v", err)
 		return false
 	}
 	return isMember
@@ -847,7 +847,7 @@ func getVerifyUser(code string) (user *User) {
 		if user, err = GetUserByName(string(b)); user != nil {
 			return user
 		}
-		log.Error(4, "user.getVerifyUser: %v", err)
+		log.Error(0, "user.getVerifyUser: %v", err)
 	}
 
 	return nil
@@ -1444,11 +1444,11 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	for _, KeyToDelete := range keys {
 		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
 		if err != nil {
-			log.Error(4, "SearchPublicKeyByContent: %v", err)
+			log.Error(0, "SearchPublicKeyByContent: %v", err)
 			continue
 		}
 		if err = deletePublicKeys(sess, key.ID); err != nil {
-			log.Error(4, "deletePublicKeys: %v", err)
+			log.Error(0, "deletePublicKeys: %v", err)
 			continue
 		}
 		sshKeysNeedUpdate = true
@@ -1469,7 +1469,7 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
-				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+				log.Error(0, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
 			} else {
 				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
 				sshKeysNeedUpdate = true
@@ -1491,7 +1491,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	var giteaKeys []string
 	keys, err := ListPublicLdapSSHKeys(usr.ID, s.ID)
 	if err != nil {
-		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+		log.Error(0, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
 
 	for _, v := range keys {
@@ -1540,7 +1540,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	// Delete LDAP keys from DB that doesn't exist in LDAP
 	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
-		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
+		log.Error(0, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}
 	if needUpd {
 		sshKeysNeedUpdate = true
@@ -1560,7 +1560,7 @@ func SyncExternalUsers() {
 
 	ls, err := LoginSources()
 	if err != nil {
-		log.Error(4, "SyncExternalUsers: %v", err)
+		log.Error(0, "SyncExternalUsers: %v", err)
 		return
 	}
 
@@ -1623,7 +1623,7 @@ func SyncExternalUsers() {
 					err = CreateUser(usr)
 
 					if err != nil {
-						log.Error(4, "SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
+						log.Error(0, "SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
 					} else if isAttributeSSHPublicKeySet {
 						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
 						if addLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
@@ -1656,7 +1656,7 @@ func SyncExternalUsers() {
 
 						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
 						if err != nil {
-							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+							log.Error(0, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
 					}
 				}
@@ -1683,7 +1683,7 @@ func SyncExternalUsers() {
 						usr.IsActive = false
 						err = UpdateUserCols(&usr, "is_active")
 						if err != nil {
-							log.Error(4, "SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
+							log.Error(0, "SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
 						}
 					}
 				}

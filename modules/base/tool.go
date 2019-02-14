@@ -109,7 +109,7 @@ func GetRandomBytesAsBase64(n int) string {
 	_, err := io.ReadFull(rand.Reader, bytes)
 
 	if err != nil {
-		log.Fatal(4, "Error reading random bytes: %v", err)
+		log.Fatal(0, "Error reading random bytes: %v", err)
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
@@ -196,12 +196,12 @@ const DefaultAvatarSize = -1
 func libravatarURL(email string) (*url.URL, error) {
 	urlStr, err := setting.LibravatarService.FromEmail(email)
 	if err != nil {
-		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		log.Error(0, "LibravatarService.FromEmail(email=%s): error %v", email, err)
 		return nil, err
 	}
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		log.Error(0, "Failed to parse libravatar url(%s): error %v", urlStr, err)
 		return nil, err
 	}
 	return u, nil

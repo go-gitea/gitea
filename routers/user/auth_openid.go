@@ -115,7 +115,7 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
-		log.Error(1, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
+		log.Error(0, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
 		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
 		return
 	}
@@ -426,7 +426,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error(0, "Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}

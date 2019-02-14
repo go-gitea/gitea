@@ -103,7 +103,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if isNameChanged {
 			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error(4, "RenameRepoAction: %v", err)
+				log.Error(0, "RenameRepoAction: %v", err)
 			}
 		}
 
@@ -373,7 +373,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(true); err != nil {
-			log.Error(4, "Tried to archive a repo: %s", err)
+			log.Error(0, "Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -390,7 +390,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(false); err != nil {
-			log.Error(4, "Tried to unarchive a repo: %s", err)
+			log.Error(0, "Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -477,7 +477,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.QueryInt64("uid"),
 		models.AccessMode(ctx.QueryInt("mode"))); err != nil {
-		log.Error(4, "ChangeCollaborationAccessMode: %v", err)
+		log.Error(0, "ChangeCollaborationAccessMode: %v", err)
 	}
 }
 

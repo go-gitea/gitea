@@ -167,12 +167,12 @@ func (c *Comment) AfterDelete() {
 func (c *Comment) HTMLURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error(0, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error(0, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	if c.Type == CommentTypeCode {
@@ -196,7 +196,7 @@ func (c *Comment) HTMLURL() string {
 func (c *Comment) IssueURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error(0, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
@@ -206,7 +206,7 @@ func (c *Comment) IssueURL() string {
 
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error(0, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return c.Issue.HTMLURL()
@@ -216,13 +216,13 @@ func (c *Comment) IssueURL() string {
 func (c *Comment) PRURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error(0, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error(0, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -314,7 +314,7 @@ func (c *Comment) LoadPoster() error {
 			c.PosterID = -1
 			c.Poster = NewGhostUser()
 		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+			log.Error(0, "getUserByID[%d]: %v", c.ID, err)
 		}
 	}
 	return nil
@@ -329,7 +329,7 @@ func (c *Comment) LoadAttachments() error {
 	var err error
 	c.Attachments, err = getAttachmentsByCommentID(x, c.ID)
 	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+		log.Error(0, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return nil
 }
@@ -380,7 +380,7 @@ func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (e
 		content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
 	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
-		log.Error(4, "mailIssueCommentToParticipants: %v", err)
+		log.Error(0, "mailIssueCommentToParticipants: %v", err)
 	}
 
 	return nil
@@ -488,12 +488,12 @@ func (c *Comment) MustAsDiff() *Diff {
 func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error(0, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error(0, "loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
@@ -634,7 +634,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if act.OpType > 0 {
 		if err = notifyWatchers(e, act); err != nil {
-			log.Error(4, "notifyWatchers: %v", err)
+			log.Error(0, "notifyWatchers: %v", err)
 		}
 	}
 	return nil
@@ -846,7 +846,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Repository: repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error(0, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
 		go HookQueue.Add(repo.ID)
 	}
@@ -1048,7 +1048,7 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		Repository: c.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+		log.Error(0, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	} else {
 		go HookQueue.Add(c.Issue.Repo.ID)
 	}
@@ -1102,7 +1102,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 		Repository: comment.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error(0, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
 		go HookQueue.Add(comment.Issue.Repo.ID)
 	}

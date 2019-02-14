@@ -55,13 +55,13 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			t, err := models.GetAccessTokenBySHA(tokenSHA)
 			if err != nil {
 				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySHA: %v", err)
+					log.Error(0, "GetAccessTokenBySHA: %v", err)
 				}
 				return 0
 			}
 			t.UpdatedUnix = util.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
-				log.Error(4, "UpdateAccessToken: %v", err)
+				log.Error(0, "UpdateAccessToken: %v", err)
 			}
 			ctx.Data["IsApiToken"] = true
 			return t.UID
@@ -89,7 +89,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 		if err == nil {
 			return user, false
 		} else if !models.IsErrUserNotExist(err) {
-			log.Error(4, "GetUserById: %v", err)
+			log.Error(0, "GetUserById: %v", err)
 		}
 	}
 
@@ -99,7 +99,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			u, err := models.GetUserByName(webAuthUser)
 			if err != nil {
 				if !models.IsErrUserNotExist(err) {
-					log.Error(4, "GetUserByName: %v", err)
+					log.Error(0, "GetUserByName: %v", err)
 					return nil, false
 				}
 
@@ -120,7 +120,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 					}
 					if err = models.CreateUser(u); err != nil {
 						// FIXME: should I create a system notice?
-						log.Error(4, "CreateUser: %v", err)
+						log.Error(0, "CreateUser: %v", err)
 						return nil, false
 					}
 					return u, false
@@ -158,7 +158,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				} else {
 					u, err = models.GetUserByName(uname)
 					if err != nil {
-						log.Error(4, "GetUserByID:  %v", err)
+						log.Error(0, "GetUserByID:  %v", err)
 						return nil, false
 					}
 					if u.ID != token.UID {
@@ -167,11 +167,11 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				}
 				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
-					log.Error(4, "UpdateAccessToken:  %v", err)
+					log.Error(0, "UpdateAccessToken:  %v", err)
 				}
 			} else {
 				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
+					log.Error(0, "GetAccessTokenBySha: %v", err)
 				}
 			}
 

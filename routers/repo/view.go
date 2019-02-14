@@ -143,7 +143,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
 	if err != nil {
-		log.Error(3, "GetLatestCommitStatus: %v", err)
+		log.Error(0, "GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
@@ -242,7 +242,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			var fileContent string
 			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
-					log.Error(4, "ToUTF8WithErr: %v", err)
+					log.Error(0, "ToUTF8WithErr: %v", err)
 				}
 				fileContent = string(buf)
 			} else {

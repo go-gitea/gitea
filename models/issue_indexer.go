@@ -71,15 +71,15 @@ func processIssueIndexerUpdateQueue() {
 			// flush whatever updates we currently have, since we
 			// might have to wait a while
 			if err := batch.Flush(); err != nil {
-				log.Error(4, "IssueIndexer: %v", err)
+				log.Error(0, "IssueIndexer: %v", err)
 			}
 			issueID = <-issueIndexerUpdateQueue
 		}
 		issue, err := GetIssueByID(issueID)
 		if err != nil {
-			log.Error(4, "GetIssueByID: %v", err)
+			log.Error(0, "GetIssueByID: %v", err)
 		} else if err = issue.update().AddToFlushingBatch(batch); err != nil {
-			log.Error(4, "IssueIndexer: %v", err)
+			log.Error(0, "IssueIndexer: %v", err)
 		}
 	}
 }

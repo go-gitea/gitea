@@ -54,17 +54,17 @@ func InitIssueIndexer(populateIndexer func() error) {
 	var err error
 	issueIndexer, err = openIndexer(setting.Indexer.IssuePath, issueIndexerLatestVersion)
 	if err != nil {
-		log.Fatal(4, "InitIssueIndexer: %v", err)
+		log.Fatal(0, "InitIssueIndexer: %v", err)
 	}
 	if issueIndexer != nil {
 		return
 	}
 
 	if err = createIssueIndexer(setting.Indexer.IssuePath, issueIndexerLatestVersion); err != nil {
-		log.Fatal(4, "InitIssuesIndexer: create index, %v", err)
+		log.Fatal(0, "InitIssuesIndexer: create index, %v", err)
 	}
 	if err = populateIndexer(); err != nil {
-		log.Fatal(4, "InitIssueIndexer: populate index, %v", err)
+		log.Fatal(0, "InitIssueIndexer: populate index, %v", err)
 	}
 }
 

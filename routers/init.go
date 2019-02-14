@@ -78,11 +78,11 @@ func GlobalInit() {
 		if err := initDBEngine(); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
-			log.Fatal(4, "ORM engine initialization failed: %v", err)
+			log.Fatal(0, "ORM engine initialization failed: %v", err)
 		}
 
 		if err := models.InitOAuth2(); err != nil {
-			log.Fatal(4, "Failed to initialize OAuth2 support: %v", err)
+			log.Fatal(0, "Failed to initialize OAuth2 support: %v", err)
 		}
 
 		models.LoadRepoConfig()

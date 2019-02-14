@@ -64,7 +64,7 @@ func removeAllWithNotice(e Engine, title, path string) {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(desc)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {
-			log.Error(4, "CreateRepositoryNotice: %v", err)
+			log.Error(0, "CreateRepositoryNotice: %v", err)
 		}
 	}
 }
