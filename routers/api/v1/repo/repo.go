@@ -458,7 +458,7 @@ func GetByID(ctx *context.APIContext) {
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetRepositoryByID", err)
 		}
@@ -470,7 +470,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	ctx.JSON(200, repo.APIFormat(perm.AccessMode))

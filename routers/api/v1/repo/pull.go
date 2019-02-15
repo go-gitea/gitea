@@ -136,7 +136,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -231,7 +231,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			if models.IsErrMilestoneNotExist(err) {
-				ctx.Status(404)
+				ctx.NotFound()
 			} else {
 				ctx.Error(500, "GetMilestoneByRepoID", err)
 			}
@@ -341,7 +341,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -438,7 +438,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	pr, err = models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pr.Index)
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -481,7 +481,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -491,7 +491,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	if pr.HasMerged {
 		ctx.Status(204)
 	}
-	ctx.Status(404)
+	ctx.NotFound()
 }
 
 // MergePullRequest merges a PR given an index
@@ -554,7 +554,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if pr.Issue.IsClosed {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 
@@ -634,7 +634,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headBranch = headInfos[1]
 
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -643,7 +643,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
 	// Check if base branch is valid.
 	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.Status(404)
+		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -651,7 +651,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
 	if !has && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.Status(404)
+		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -674,13 +674,13 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 	if !perm.CanReadIssuesOrPulls(true) {
 		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
-		ctx.Status(404)
+		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
 	// Check if head branch is valid.
 	if !headGitRepo.IsBranchExist(headBranch) {
-		ctx.Status(404)
+		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 

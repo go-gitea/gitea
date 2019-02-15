@@ -262,7 +262,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}
@@ -355,7 +355,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}
