@@ -34,7 +34,8 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    tzdata
+    tzdata \
+    libcap
 
 RUN addgroup \
     -S -g 1000 \

@@ -259,6 +259,7 @@ You can configure some of Gitea's settings via environment variables:
 * `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 * `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 * `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
+* `ALLOW_PRIVILEGED_PORT`: **0**: Set to 1 to allow the gitea service to run on a port < 1024.
 
 # Customization
 
