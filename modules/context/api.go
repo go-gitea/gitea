@@ -157,14 +157,14 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	swagger, err := url.Parse(setting.AppURL)
+	u, err := url.Parse(setting.AppURL)
 	if err != nil {
 		ctx.Error(500, "Invalid AppURL", err)
 	}
-	swagger.Path = path.Join(swagger.Path, "api", "swagger")
+	u.Path = path.Join(u.Path, "api", "swagger")
 	ctx.JSON(404, map[string]interface{}{
 		"message":           message,
-		"documentation_url": swagger.String(),
+		"documentation_url": u.String(),
 		"errors":            errors,
 	})
 }
