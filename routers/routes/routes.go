@@ -5,11 +5,14 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -59,6 +62,39 @@ func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 	}
 }
 
+type ncsaLoggerOptions struct {
+	Ctx            *macaron.Context
+	Identity       *string
+	Start          *time.Time
+	ResponseWriter *macaron.ResponseWriter
+}
+
+func ncsaLogger() macaron.Handler {
+	log.NewAccessLogger(filepath.Join(setting.LogRootPath, "access.log"))
+	l := log.NewLoggerAsWriter("INFO", log.AccessLogger)
+	logTemplate, _ := template.New("log").Parse("{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format \"[02/Jan/2006:15:04:05 -0700]\" }} \"{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}\" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} \"{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}\"")
+	return func(ctx *macaron.Context) {
+		start := time.Now()
+		ctx.Next()
+		identity := "-"
+		if val, ok := ctx.Data["SignedUserName"]; ok {
+			if stringVal, ok := val.(string); ok && stringVal != "" {
+				identity = stringVal
+			}
+		}
+		rw := ctx.Resp.(macaron.ResponseWriter)
+
+		buf := bytes.NewBuffer([]byte{})
+		logTemplate.Execute(buf, ncsaLoggerOptions{
+			Ctx:            ctx,
+			Identity:       &identity,
+			Start:          &start,
+			ResponseWriter: &rw,
+		})
+		l.Log(buf.String())
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -75,6 +111,7 @@ func NewMacaron() *macaron.Macaron {
 			m.Use(macaron.Logger())
 		}
 	}
+	m.Use(ncsaLogger())
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())

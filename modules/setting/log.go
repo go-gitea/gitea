@@ -57,6 +57,26 @@ func newLogService() {
 		switch mode {
 		case "console":
 			LogConfigs[i] = fmt.Sprintf(`{"level":%s}`, level)
+		case "router":
+			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "access.log"))
+			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+				panic(err.Error())
+			}
+
+			LogConfigs[i] = fmt.Sprintf(
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d,"flags":%d,"prefix":"%s","template":"%s"}`, level,
+				logPath,
+				sec.Key("LOG_ROTATE").MustBool(true),
+				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
+				sec.Key("DAILY_ROTATE").MustBool(true),
+				sec.Key("MAX_DAYS").MustInt(7),
+				sec.Key("FLAGS").MustInt(-1),
+				sec.Key("PREFIX").MustString(""),
+				sec.Key("TEMPLATE").MustString("{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format \"[02/Jan/2006:15:04:05 -0700]\" }} \"{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}\" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} \"{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}\""))
+
+			log.NewRouterLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, LogConfigs[i])
+			log.Info("Router Log: %s", logPath)
+			continue
 		case "file":
 			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "gitea.log"))
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {

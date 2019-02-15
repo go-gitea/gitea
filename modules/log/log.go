@@ -113,6 +113,17 @@ func GetLevel() Level {
 	return level
 }
 
+//NewAccessLogger creates an access logger
+func NewAccessLogger(logPath string) {
+	path := path.Dir(logPath)
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		Fatal(4, "Failed to create dir %s: %v", path, err)
+	}
+
+	AccessLogger = newLogger(0)
+	AccessLogger.SetLogger("file", fmt.Sprintf(`{"level":0,"filename":"%s","rotate":false, "flags": -1}`, logPath))
+}
+
 // Trace records trace log
 func Trace(format string, v ...interface{}) {
 	Log(1, TRACE, format, v...)
