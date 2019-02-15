@@ -36,7 +36,8 @@ func NewLogger(bufLen int64, mode, config string) {
 		loggers = append(loggers, logger)
 	}
 	if err := logger.SetLogger(mode, config); err != nil {
-		Fatal(2, "Failed to set logger (%s): %v", mode, err)
+		Critical(1, "Failed to set logger (%s): %v", mode, err)
+		panic(fmt.Errorf("Failed to set logger (%s): %v", mode, err))
 	}
 }
 
