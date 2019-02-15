@@ -4,6 +4,22 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.2](https://github.com/go-gitea/gitea/releases/tag/v1.7.2) - 2019-02-14
+* BUGFIXES
+  * Remove all CommitStatus when a repo is deleted (#5940) (#5941)
+  * Fix notifications on pushing with deploy keys by setting hook environment variables (#5935) (#5944)
+  * Silence console logger in gitea serv (#5887) (#5943) 
+  * Handle milestone webhook events for issues and PR (#5947) (#5955)
+  * Show user who created the repository instead of the organization in action feed (#5948) (#5956)
+  * Fix ssh deploy and user key constraints (#1357) (#5939) (#5966)
+  * Fix bug when deleting a linked account will removed all (#5989) (#5990)
+  * Fix empty ssh key importing in ldap (#5984) (#6009)
+  * Fix metrics auth token detection (#6006) (#6017)
+  * Create repository on organisation by default on its dashboard (#6026) (#6048)
+  * Make sure labels are actually returned in API (#6053) (#6059)
+  * Switch to more recent build of xgo (#6070) (#6072)
+  * In basic auth check for tokens before call UserSignIn (#5725) (#6083)
+
 ## [1.7.1](https://github.com/go-gitea/gitea/releases/tag/v1.7.1) - 2019-01-31
 * SECURITY
   * Disable redirect for i18n (#5910) (#5916)
