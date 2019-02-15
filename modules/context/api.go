@@ -144,7 +144,7 @@ func ReferencesGitRepo() macaron.Handler {
 	}
 }
 
-// 404 handler for APIContext
+// NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
 	var message = "Not Found"
