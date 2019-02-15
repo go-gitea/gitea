@@ -71,12 +71,14 @@ func newLogService() {
 			}
 
 			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d,"flags":%d,"prefix":%s}`, level,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
-				sec.Key("MAX_DAYS").MustInt(7))
+				sec.Key("MAX_DAYS").MustInt(7),
+				sec.Key("FLAGS").MustInt(0),
+				sec.Key("PREFIX").MustString(""))
 		case "conn":
 			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
 				sec.Key("RECONNECT_ON_MSG").MustBool(),

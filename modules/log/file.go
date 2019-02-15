@@ -38,6 +38,10 @@ type FileLogWriter struct {
 	startLock sync.Mutex // Only one log can write to the file
 
 	Level int `json:"level"`
+
+	// Logger Flags
+	Flags  int    `json:"flags"`
+	Prefix string `json:"prefix"`
 }
 
 // MuxWriter an *os.File writer with locker.
@@ -73,8 +77,7 @@ func NewFileWriter() LoggerInterface {
 	}
 	// use MuxWriter instead direct use os.File for lock write when rotate
 	w.mw = new(MuxWriter)
-	// set MuxWriter as Logger's io.Writer
-	w.Logger = log.New(w.mw, "", log.Ldate|log.Ltime)
+
 	return w
 }
 
@@ -93,6 +96,15 @@ func (w *FileLogWriter) Init(config string) error {
 	}
 	if len(w.Filename) == 0 {
 		return errors.New("config must have filename")
+	}
+	// set MuxWriter as Logger's io.Writer
+	switch w.Flags {
+	case 0:
+		w.Logger = log.New(w.mw, w.Prefix, log.Ldate|log.Ltime)
+	case -1:
+		w.Logger = log.New(w.mw, w.Prefix, 0)
+	default:
+		w.Logger = log.New(w.mw, w.Prefix, w.Flags)
 	}
 	return w.StartLogger()
 }

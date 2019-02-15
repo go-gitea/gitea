@@ -157,12 +157,18 @@ type loggerType func() LoggerInterface
 
 // LoggerAsWriter is a io.Writer shim around the gitea log
 type LoggerAsWriter struct {
-	level int
+	ourLoggers []*Logger
+	level      int
 }
 
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
-func NewLoggerAsWriter(level string) *LoggerAsWriter {
-	l := &LoggerAsWriter{}
+func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
+	if len(ourLoggers) == 0 {
+		ourLoggers = loggers
+	}
+	l := &LoggerAsWriter{
+		ourLoggers: ourLoggers,
+	}
 	switch strings.ToUpper(level) {
 	case "TRACE":
 		l.level = TRACE
@@ -192,7 +198,7 @@ func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 
 // Log takes a given string and logs it at the set log-level
 func (l *LoggerAsWriter) Log(msg string) {
-	for _, logger := range loggers {
+	for _, logger := range l.ourLoggers {
 		logger.writerMsg(0, l.level, msg)
 	}
 }
