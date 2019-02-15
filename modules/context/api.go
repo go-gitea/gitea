@@ -160,6 +160,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	u, err := url.Parse(setting.AppURL)
 	if err != nil {
 		ctx.Error(500, "Invalid AppURL", err)
+		return
 	}
 	u.Path = path.Join(u.Path, "api", "swagger")
 	ctx.JSON(404, map[string]interface{}{
