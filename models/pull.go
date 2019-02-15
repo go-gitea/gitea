@@ -997,12 +997,12 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	countSession, err := listPullRequestStatement(baseRepoID, opts)
 	if err != nil {
-		log.Error(0, "listPullRequestStatement", err)
+		log.Error(0, "listPullRequestStatement: %v", err)
 		return nil, 0, err
 	}
 	maxResults, err := countSession.Count(new(PullRequest))
 	if err != nil {
-		log.Error(0, "Count PRs", err)
+		log.Error(0, "Count PRs: %v", err)
 		return nil, maxResults, err
 	}
 
@@ -1010,7 +1010,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType)
 	if err != nil {
-		log.Error(0, "listPullRequestStatement", err)
+		log.Error(0, "listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
 	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
@@ -1444,7 +1444,7 @@ func TestPullRequests() {
 
 	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
 	if err != nil {
-		log.Error(0, "Find Checking PRs", err)
+		log.Error(0, "Find Checking PRs: %v", err)
 		return
 	}
 
