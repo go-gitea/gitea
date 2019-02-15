@@ -364,9 +364,12 @@
                         padding: 0 !important;
                         li {
                             display: block;
-                            padding: 0 .25em;
+                            width: 100%;
                             &.active {
                                 background: #ffffdd;
+                            }
+                            &:before {
+                                content: ' ';
                             }
                         }
                     }
