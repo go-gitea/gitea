@@ -35,25 +35,25 @@ const (
 )
 
 var toString = map[Level]string{
-	TRACE:    "TRACE",
-	DEBUG:    "DEBUG",
-	INFO:     "INFO",
-	WARN:     "WARN",
-	ERROR:    "ERROR",
-	CRITICAL: "CRITICAL",
-	FATAL:    "FATAL",
-	NONE:     "NONE",
+	TRACE:    "trace",
+	DEBUG:    "debug",
+	INFO:     "info",
+	WARN:     "warn",
+	ERROR:    "error",
+	CRITICAL: "critical",
+	FATAL:    "fatal",
+	NONE:     "none",
 }
 
 var toLevel = map[string]Level{
-	"TRACE":    TRACE,
-	"DEBUG":    DEBUG,
-	"INFO":     INFO,
-	"WARN":     WARN,
-	"ERROR":    ERROR,
-	"CRITICAL": CRITICAL,
-	"FATAL":    FATAL,
-	"NONE":     NONE,
+	"trace":    TRACE,
+	"debug":    DEBUG,
+	"info":     INFO,
+	"warn":     WARN,
+	"error":    ERROR,
+	"critical": CRITICAL,
+	"fatal":    FATAL,
+	"none":     NONE,
 }
 
 // Levels returns all the possible logging levels
