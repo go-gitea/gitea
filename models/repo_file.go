@@ -83,9 +83,10 @@ type IdentityOptions struct {
 type FileOptions struct {
 	Message   string
 	Content   string
-	Branch    string
+	BranchName    string
+	NewBranchName string
 	Path      string
-	OldPath   string
+	FromPath   string
 	SHA       string
 	Author    IdentityOptions
 	Committer IdentityOptions
@@ -103,41 +104,88 @@ func cleanUploadFileName(name string) string {
 	return name
 }
 
-func CreateFile(doer, u *User, repo *Repository, gitRepo *git.Repository, opts FileOptions) (*File, error) {
-	branch := "master"
-	if opts.Branch != "" {
-		branch = opts.Branch
-	}
-	if protected, _ := repo.IsProtectedBranchForPush(branch, doer); protected {
-		return nil, ErrCannotCommit{UserName: doer.LowerName}
+func CreateOrUpdateFile(user *User, repo *Repository, gitRepo *git.Repository, opts FileOptions) (*File, error) {
+	// If no branch name is set, assume master
+	if opts.BranchName == "" {
+		opts.BranchName = "master"
 	}
 
-	treePath := cleanUploadFileName(opts.Path)
-	oldTreePath := opts.OldPath
-	if len(treePath) == 0 {
-		return nil, ErrFilenameInvalid{treePath}
-	}
-
-	if _, err := repo.GetBranch(branch); err == nil {
+	// "BranchName" must exist for this operation
+	if _, err := repo.GetBranch(opts.BranchName); err != nil {
 		return nil, err
 	}
 
-	commit, err := gitRepo.GetBranchCommit(branch)
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.SHA != "" {
-		if _, err := commit.GetTreeEntryByPath(treePath); err != nil {
+	// A NewBranchName can be specified for the file to be created/updated in a new branch
+	// Check to make sure the branch does not already exist, otherwise we can't proceed.
+	// If we aren't branching to a new branch, make sure user can commit to the given branch
+	if opts.NewBranchName != "" {
+		newBranch, err := repo.GetBranch(opts.NewBranchName)
+		if git.IsErrNotExist(err) {
 			return nil, err
+		}
+		if newBranch != nil {
+			return nil, ErrBranchAlreadyExists{opts.NewBranchName}
+		}
+	} else {
+		if protected, _ := repo.IsProtectedBranchForPush(opts.BranchName, user); protected {
+			return nil, ErrCannotCommit{UserName: user.LowerName}
 		}
 	}
 
-	var newTreePath string
-	treePathParts := strings.Split(treePath, "/")
+	// Check that the path given in opts.Path is valid (not a git path)
+	// and if an FromPath was given, to also check it
+	newTreePath := cleanUploadFileName(opts.Path)
+	if len(newTreePath) == 0 {
+		return nil, ErrFilenameInvalid{opts.Path}
+	}
+	if opts.FromPath == "" {
+		opts.FromPath = newTreePath
+	}
+	origTreePath := cleanUploadFileName(opts.FromPath)
+	if len(opts.FromPath) > 0 && len(origTreePath) == 0 {
+		return nil, ErrFilenameInvalid{opts.FromPath}
+	}
+
+	// Get the commit of the original branch
+	commit, err := gitRepo.GetBranchCommit(opts.BranchName)
+	if err != nil {
+		return nil, err // Couldn't get a commit for the branch
+	}
+
+	// Check that the given existing path exists in the HEAD of the given BranchName if
+	// SHA is given (meaning we are updating a file, not creating a new one)
+	if opts.SHA != "" {
+		if entry, err := commit.GetTreeEntryByPath(origTreePath); err != nil {
+			if git.IsErrNotExist(err) {
+				return nil, ErrRepoFileDoesNotExist{origTreePath}
+			} else {
+				return nil, err
+			}
+		} else {
+			currentSHA := string(entry.ID[:])
+			if currentSHA != opts.SHA {
+				return nil, ErrShaDoesNotMatch{opts.SHA, currentSHA}
+			}
+		}
+		// Check to see if we are needing to also move this updated file to a new file name
+		// If so, we make sure the new file name doesn't already exist (cannot clobber)
+		if origTreePath != newTreePath {
+			if entry, err := commit.GetTreeEntryByPath(newTreePath); err != nil {
+				if !git.IsErrNotExist(err) {
+					return nil, err
+				}
+ 			} else if entry != nil {
+				return nil, ErrRepoFileAlreadyExist{newTreePath}
+			}
+		}
+	}
+
+	// For the path where this file will be created/updated, we need to make
+	// sure no parts of the path are existing files or links except for the last
+	// item in the path which is the file name
+	treePathParts := strings.Split(newTreePath, "/")
 	for index, part := range treePathParts {
 		newTreePath = path.Join(newTreePath, part)
-
 		entry, err := commit.GetTreeEntryByPath(newTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
@@ -157,33 +205,6 @@ func CreateFile(doer, u *User, repo *Repository, gitRepo *git.Repository, opts F
 			if entry.IsDir() {
 				return nil, ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", newTreePath)}
 			}
-		}
-	}
-
-	if opts.SHA != "" {
-		treeEntry, err := commit.GetTreeEntryByPath(oldTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				return nil, ErrRepoFileDoesNotExist{oldTreePath}
-			} else {
-				return nil, err
-			}
-		}
-		if opts.SHA != string(treeEntry.ID[:]) {
-			return nil, ErrShaDoesNotMatch{opts.SHA, string(treeEntry.ID[:])}
-		}
-	}
-
-	if oldTreePath != treePath {
-		// We have a new filename (rename or completely new file) so we need to make sure it doesn't already exist, can't clobber.
-		entry, err := commit.GetTreeEntryByPath(treePath)
-		if err != nil {
-			if !git.IsErrNotExist(err) {
-				return nil, err
-			}
-		}
-		if entry != nil {
-			return nil, ErrRepoFileAlreadyExist{treePath}
 		}
 	}
 
