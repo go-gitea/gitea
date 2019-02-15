@@ -12,21 +12,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-xorm/core"
 )
 
-var logLevels = map[string]string{
-	"Trace":    "0",
-	"Debug":    "1",
-	"Info":     "2",
-	"Warn":     "3",
-	"Error":    "4",
-	"Critical": "5",
-}
-
 func getLogLevel(section string, key string, defaultValue string) string {
-	validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
-	return Cfg.Section(section).Key(key).In(defaultValue, validLevels)
+	return Cfg.Section(section).Key(key).In(defaultValue, log.Levels())
 }
 
 func newLogService() {
@@ -55,10 +46,12 @@ func newLogService() {
 
 		// Log level.
 		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
-		level, ok := logLevels[levelName]
-		if !ok {
-			log.Fatal(4, "Unknown log level: %s", levelName)
-		}
+		level := log.FromString(levelName)
+		expression := sec.Key("EXPRESSION").MustString("")
+		flags := sec.Key("FLAGS").MustInt(0)
+		prefix := sec.Key("PREFIX").MustString("")
+
+		baseConfig := fmt.Sprintf(`"level":"%s","expression":"%s","prefix":"%s","flags":%d`, level.String(), expression, prefix, flags)
 
 		// Generate log configuration.
 		switch mode {
@@ -71,29 +64,28 @@ func newLogService() {
 			}
 
 			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d,"flags":%d,"prefix":%s}`, level,
+				`{%s,"filename":"%s","rotate":%t,"maxsize":%d,"daily":%v,"maxdays":%d}`,
+				baseConfig,
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
-				sec.Key("MAX_DAYS").MustInt(7),
-				sec.Key("FLAGS").MustInt(0),
-				sec.Key("PREFIX").MustString(""))
+				sec.Key("MAX_DAYS").MustInt(7))
 		case "conn":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
+			LogConfigs[i] = fmt.Sprintf(`{%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, baseConfig,
 				sec.Key("RECONNECT_ON_MSG").MustBool(),
 				sec.Key("RECONNECT").MustBool(),
 				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
 				sec.Key("ADDR").MustString(":7020"))
 		case "smtp":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":["%s"],"subject":"%s"}`, level,
+			LogConfigs[i] = fmt.Sprintf(`{%s,"username":"%s","password":"%s","host":"%s","sendTos":["%s"],"subject":"%s"}`, baseConfig,
 				sec.Key("USER").MustString("example@example.com"),
 				sec.Key("PASSWD").MustString("******"),
 				sec.Key("HOST").MustString("127.0.0.1:25"),
 				strings.Replace(sec.Key("RECEIVERS").MustString("example@example.com"), ",", "\",\"", -1),
 				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
 		case "database":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
+			LogConfigs[i] = fmt.Sprintf(`{%s,"driver":"%s","conn":"%s"}`, baseConfig,
 				sec.Key("DRIVER").String(),
 				sec.Key("CONN").String())
 		}
@@ -101,6 +93,7 @@ func newLogService() {
 		log.NewLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, LogConfigs[i])
 		log.Info("Log Mode: %s(%s)", strings.Title(mode), levelName)
 	}
+
 }
 
 // NewXORMLogService initializes xorm logger service
@@ -121,15 +114,12 @@ func NewXORMLogService(disableConsole bool) {
 
 		// Log level.
 		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
-		level, ok := logLevels[levelName]
-		if !ok {
-			log.Fatal(4, "Unknown log level: %s", levelName)
-		}
+		level := log.FromString(levelName)
 
 		// Generate log configuration.
 		switch mode {
 		case "console":
-			logConfigs = fmt.Sprintf(`{"level":%s}`, level)
+			logConfigs = fmt.Sprintf(`{"level":"%s"}`, level.String())
 		case "file":
 			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "xorm.log"))
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
@@ -138,27 +128,27 @@ func NewXORMLogService(disableConsole bool) {
 			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				`{"level":"%s","filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level.String(),
 				logPath,
 				sec.Key("LOG_ROTATE").MustBool(true),
 				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
 				sec.Key("DAILY_ROTATE").MustBool(true),
 				sec.Key("MAX_DAYS").MustInt(7))
 		case "conn":
-			logConfigs = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
+			logConfigs = fmt.Sprintf(`{"level":"%s","reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level.String(),
 				sec.Key("RECONNECT_ON_MSG").MustBool(),
 				sec.Key("RECONNECT").MustBool(),
 				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
 				sec.Key("ADDR").MustString(":7020"))
 		case "smtp":
-			logConfigs = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
+			logConfigs = fmt.Sprintf(`{"level":"%s","username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level.String(),
 				sec.Key("USER").MustString("example@example.com"),
 				sec.Key("PASSWD").MustString("******"),
 				sec.Key("HOST").MustString("127.0.0.1:25"),
 				sec.Key("RECEIVERS").MustString("[]"),
 				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
 		case "database":
-			logConfigs = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
+			logConfigs = fmt.Sprintf(`{"level":"%s","driver":"%s","conn":"%s"}`, level.String(),
 				sec.Key("DRIVER").String(),
 				sec.Key("CONN").String())
 		}

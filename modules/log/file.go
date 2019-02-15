@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,10 +15,10 @@ import (
 	"time"
 )
 
-// FileLogWriter implements LoggerInterface.
+// FileLogger implements LoggerInterface.
 // It writes messages by lines limit, file size limit, or time frequency.
-type FileLogWriter struct {
-	*log.Logger
+type FileLogger struct {
+	BaseLogger
 	mw *MuxWriter
 	// The opened file
 	Filename string `json:"filename"`
@@ -36,47 +35,53 @@ type FileLogWriter struct {
 	Rotate bool `json:"rotate"`
 
 	startLock sync.Mutex // Only one log can write to the file
-
-	Level int `json:"level"`
-
-	// Logger Flags
-	Flags  int    `json:"flags"`
-	Prefix string `json:"prefix"`
 }
 
 // MuxWriter an *os.File writer with locker.
 type MuxWriter struct {
-	sync.Mutex
-	fd *os.File
+	mu    *sync.Mutex
+	fd    *os.File
+	owner *FileLogger
 }
 
 // Write writes to os.File.
-func (l *MuxWriter) Write(b []byte) (int, error) {
-	l.Lock()
-	defer l.Unlock()
-	return l.fd.Write(b)
+func (mw MuxWriter) Write(b []byte) (int, error) {
+	if mw.mu == nil {
+		mw.mu = &sync.Mutex{}
+	}
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
+	mw.owner.docheck(len(b))
+	return mw.fd.Write(b)
+}
+
+// Close the internal writer
+func (mw MuxWriter) Close() error {
+	return mw.fd.Close()
 }
 
 // SetFd sets os.File in writer.
-func (l *MuxWriter) SetFd(fd *os.File) {
-	if l.fd != nil {
-		l.fd.Close()
+func (mw *MuxWriter) SetFd(fd *os.File) {
+	if mw.fd != nil {
+		mw.fd.Close()
 	}
-	l.fd = fd
+	mw.fd = fd
 }
 
-// NewFileWriter create a FileLogWriter returning as LoggerInterface.
-func NewFileWriter() LoggerInterface {
-	w := &FileLogWriter{
+// NewFileLogger create a FileLogger returning as LoggerInterface.
+func NewFileLogger() LoggerInterface {
+	w := &FileLogger{
 		Filename: "",
 		Maxsize:  1 << 28, //256 MB
 		Daily:    true,
 		Maxdays:  7,
 		Rotate:   true,
-		Level:    TRACE,
 	}
+	w.Level = TRACE
 	// use MuxWriter instead direct use os.File for lock write when rotate
 	w.mw = new(MuxWriter)
+	w.mw.mu = &sync.Mutex{}
+	w.mw.owner = w
 
 	return w
 }
@@ -90,7 +95,7 @@ func NewFileWriter() LoggerInterface {
 //	"maxdays":15,
 //	"rotate":true
 //	}
-func (w *FileLogWriter) Init(config string) error {
+func (w *FileLogger) Init(config string) error {
 	if err := json.Unmarshal([]byte(config), w); err != nil {
 		return err
 	}
@@ -98,19 +103,12 @@ func (w *FileLogWriter) Init(config string) error {
 		return errors.New("config must have filename")
 	}
 	// set MuxWriter as Logger's io.Writer
-	switch w.Flags {
-	case 0:
-		w.Logger = log.New(w.mw, w.Prefix, log.Ldate|log.Ltime)
-	case -1:
-		w.Logger = log.New(w.mw, w.Prefix, 0)
-	default:
-		w.Logger = log.New(w.mw, w.Prefix, w.Flags)
-	}
+	w.createLogger(w.mw)
 	return w.StartLogger()
 }
 
 // StartLogger start file logger. create log file and set to locker-inside file writer.
-func (w *FileLogWriter) StartLogger() error {
+func (w *FileLogger) StartLogger() error {
 	fd, err := w.createLogFile()
 	if err != nil {
 		return err
@@ -119,36 +117,25 @@ func (w *FileLogWriter) StartLogger() error {
 	return w.initFd()
 }
 
-func (w *FileLogWriter) docheck(size int) {
+func (w *FileLogger) docheck(size int) {
 	w.startLock.Lock()
 	defer w.startLock.Unlock()
 	if w.Rotate && ((w.Maxsize > 0 && w.maxsizeCursize >= w.Maxsize) ||
 		(w.Daily && time.Now().Day() != w.dailyOpenDate)) {
 		if err := w.DoRotate(); err != nil {
-			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
+			fmt.Fprintf(os.Stderr, "FileLogger(%q): %s\n", w.Filename, err)
 			return
 		}
 	}
 	w.maxsizeCursize += size
 }
 
-// WriteMsg writes logger message into file.
-func (w *FileLogWriter) WriteMsg(msg string, skip, level int) error {
-	if level < w.Level {
-		return nil
-	}
-	n := 24 + len(msg) // 24 stand for the length "2013/06/23 21:00:22 [T] "
-	w.docheck(n)
-	w.Logger.Println(msg)
-	return nil
-}
-
-func (w *FileLogWriter) createLogFile() (*os.File, error) {
+func (w *FileLogger) createLogFile() (*os.File, error) {
 	// Open the log file
 	return os.OpenFile(w.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
 }
 
-func (w *FileLogWriter) initFd() error {
+func (w *FileLogger) initFd() error {
 	fd := w.mw.fd
 	finfo, err := fd.Stat()
 	if err != nil {
@@ -161,7 +148,7 @@ func (w *FileLogWriter) initFd() error {
 
 // DoRotate means it need to write file in new file.
 // new file name like xx.log.2013-01-01.2
-func (w *FileLogWriter) DoRotate() error {
+func (w *FileLogger) DoRotate() error {
 	_, err := os.Lstat(w.Filename)
 	if err == nil { // file exists
 		// Find the next available number
@@ -175,10 +162,6 @@ func (w *FileLogWriter) DoRotate() error {
 		if err == nil {
 			return fmt.Errorf("rotate: cannot find free log number to rename %s", w.Filename)
 		}
-
-		// block Logger's io.Writer
-		w.mw.Lock()
-		defer w.mw.Unlock()
 
 		fd := w.mw.fd
 		fd.Close()
@@ -200,7 +183,7 @@ func (w *FileLogWriter) DoRotate() error {
 	return nil
 }
 
-func (w *FileLogWriter) deleteOldLog() {
+func (w *FileLogger) deleteOldLog() {
 	dir := filepath.Dir(w.Filename)
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
@@ -221,18 +204,13 @@ func (w *FileLogWriter) deleteOldLog() {
 	})
 }
 
-// Destroy destroy file logger, close file writer.
-func (w *FileLogWriter) Destroy() {
-	w.mw.fd.Close()
-}
-
 // Flush flush file logger.
 // there are no buffering messages in file logger in memory.
 // flush file means sync file from disk.
-func (w *FileLogWriter) Flush() {
+func (w *FileLogger) Flush() {
 	w.mw.fd.Sync()
 }
 
 func init() {
-	Register("file", NewFileWriter)
+	Register("file", NewFileLogger)
 }
