@@ -29,8 +29,9 @@ var (
 			GC      int `ini:"GC"`
 		} `ini:"git.timeout"`
 		LastCommitCache struct {
-			Type     string
-			DataPath string
+			UseDefaultCache bool
+			Type            string
+			ConnStr         string
 		} `ini:"git.last_commit_cache"`
 	}{
 		DisableDiffHighlight:     false,
@@ -54,11 +55,13 @@ var (
 			GC:      60,
 		},
 		LastCommitCache: struct {
-			Type     string
-			DataPath string
+			UseDefaultCache bool
+			Type            string
+			ConnStr         string
 		}{
-			Type:     "none",
-			DataPath: "",
+			UseDefaultCache: false,
+			Type:            "none",
+			ConnStr:         "",
 		},
 	}
 )

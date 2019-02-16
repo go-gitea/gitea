@@ -13,16 +13,17 @@ import (
 	mc "github.com/go-macaron/cache"
 )
 
-var conn mc.Cache
+// Cache defines the cache provider
+var Cache mc.Cache
 
 // NewContext start cache service
 func NewContext() error {
-	if setting.CacheService == nil || conn != nil {
+	if setting.CacheService == nil || Cache != nil {
 		return nil
 	}
 
 	var err error
-	conn, err = mc.NewCacher(setting.CacheService.Adapter, mc.Options{
+	Cache, err = mc.NewCacher(setting.CacheService.Adapter, mc.Options{
 		Adapter:       setting.CacheService.Adapter,
 		AdapterConfig: setting.CacheService.Conn,
 		Interval:      setting.CacheService.Interval,
@@ -32,10 +33,10 @@ func NewContext() error {
 
 // GetInt returns key value from cache with callback when no key exists in cache
 func GetInt(key string, getFunc func() (int, error)) (int, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
+	if Cache == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-	if !conn.IsExist(key) {
+	if !Cache.IsExist(key) {
 		var (
 			value int
 			err   error
@@ -43,9 +44,9 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		Cache.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
-	switch value := conn.Get(key).(type) {
+	switch value := Cache.Get(key).(type) {
 	case int:
 		return value, nil
 	case string:
@@ -61,10 +62,10 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 
 // GetInt64 returns key value from cache with callback when no key exists in cache
 func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
+	if Cache == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-	if !conn.IsExist(key) {
+	if !Cache.IsExist(key) {
 		var (
 			value int64
 			err   error
@@ -72,9 +73,9 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		Cache.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
-	switch value := conn.Get(key).(type) {
+	switch value := Cache.Get(key).(type) {
 	case int64:
 		return value, nil
 	case string:
@@ -90,8 +91,8 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 
 // Remove key from cache
 func Remove(key string) {
-	if conn == nil {
+	if Cache == nil {
 		return
 	}
-	conn.Delete(key)
+	Cache.Delete(key)
 }

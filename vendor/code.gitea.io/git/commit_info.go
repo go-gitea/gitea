@@ -6,7 +6,9 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"path"
@@ -71,6 +73,26 @@ func (state *getCommitsInfoState) getTargetedEntryPath() string {
 	return targetedEntryPath
 }
 
+func parseSimpleCommit(output []byte) (*Commit, error) {
+	fields := bytes.SplitN(output, []byte{' '}, 3)
+	if len(fields) != 3 {
+		return nil, errors.New("The line should have 3 fields")
+	}
+
+	secs, err := strconv.ParseInt(string(fields[1]), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Commit{
+		ID:            MustID(fields[0]),
+		CommitMessage: string(fields[2]),
+		Committer: &Signature{
+			When: time.Unix(secs, 0),
+		},
+	}, nil
+}
+
 // repeatedly perform targeted searches for unpopulated entries
 func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommitCache) {
 	for {
@@ -86,22 +108,19 @@ func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommi
 				continue
 			}
 		}
-		command := NewCommand("rev-list", "-1", state.headCommit.ID.String(), "--", entryPath)
-		output, err := command.RunInDir(state.headCommit.repo.Path)
+		command := NewCommand("log", "-1", "--pretty=format:%H %ct %s", state.headCommit.ID.String(), "--", entryPath)
+		output, err := command.RunInDirBytes(state.headCommit.repo.Path)
 		if err != nil {
 			done <- err
 			return
 		}
-		id, err := NewIDFromString(strings.TrimSpace(output))
+
+		commit, err := parseSimpleCommit(output)
 		if err != nil {
 			done <- err
 			return
 		}
-		commit, err := state.headCommit.repo.getCommit(id)
-		if err != nil {
-			done <- err
-			return
-		}
+
 		state.update(entryPath, commit)
 		if cache != nil {
 			cache.Put(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath, commit)
