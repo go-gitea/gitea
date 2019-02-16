@@ -411,12 +411,12 @@ func SyncMirrors() {
 		// Get latest commit date and update to current repository updated time
 		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
 		if err != nil {
-			log.Error(0, "GetLatestCommitDate [%s]: %v", m.RepoID, err)
+			log.Error(0, "GetLatestCommitDate [%d]: %v", m.RepoID, err)
 			continue
 		}
 
 		if _, err = sess.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", commitDate.Unix(), m.RepoID); err != nil {
-			log.Error(0, "Update repository 'updated_unix' [%s]: %v", m.RepoID, err)
+			log.Error(0, "Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
 			continue
 		}
 	}

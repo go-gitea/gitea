@@ -176,7 +176,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
 	if len(passwd) == 0 {
-		log.Debug("Auth. failed for %s, password cannot be empty")
+		log.Debug("Auth. failed for %s, password cannot be empty", name)
 		return nil
 	}
 	l, err := dial(ls)

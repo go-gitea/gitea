@@ -745,7 +745,7 @@ func DeliverHooks() {
 
 		tasks = make([]*HookTask, 0, 5)
 		if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
-			log.Error(0, "Get repository [%s] hook tasks: %v", repoID, err)
+			log.Error(0, "Get repository [%d] hook tasks: %v", repoID, err)
 			continue
 		}
 		for _, t := range tasks {

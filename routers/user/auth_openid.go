@@ -125,7 +125,7 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.ns.sreg=http%3A%2F%2Fopenid.net%2Fextensions%2Fsreg%2F1.1"
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
-	log.Trace("Form-passed openid-remember: %s", form.Remember)
+	log.Trace("Form-passed openid-remember: %t", form.Remember)
 	ctx.Session.Set("openid_signin_remember", form.Remember)
 
 	ctx.Redirect(url)
@@ -164,7 +164,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	if u != nil {
 		log.Trace("User exists, logging in")
 		remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-		log.Trace("Session stored openid-remember: %s", remember)
+		log.Trace("Session stored openid-remember: %t", remember)
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -294,7 +294,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-	log.Trace("Session stored openid-remember: %s", remember)
+	log.Trace("Session stored openid-remember: %t", remember)
 	handleSignIn(ctx, u, remember)
 }
 
@@ -432,6 +432,6 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	}
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-	log.Trace("Session stored openid-remember: %s", remember)
+	log.Trace("Session stored openid-remember: %t", remember)
 	handleSignIn(ctx, u, remember)
 }
