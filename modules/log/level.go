@@ -83,7 +83,7 @@ func (l Level) MarshalJSON() ([]byte, error) {
 
 // FromString takes a level string and returns a Level
 func FromString(level string) Level {
-	temp, ok := toLevel[strings.ToUpper(level)]
+	temp, ok := toLevel[strings.ToLower(level)]
 	if !ok {
 		return INFO
 	}
