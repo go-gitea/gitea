@@ -243,9 +243,9 @@ func Config(ctx *context.Context) {
 	type logger struct {
 		Mode, Config string
 	}
-	loggers := make([]*logger, len(setting.LogModes))
-	for i := range setting.LogModes {
-		loggers[i] = &logger{setting.LogModes[i], setting.LogConfigs[i]}
+	loggers := make([]*logger, len(setting.LogDescriptions["default"].Sections))
+	for i := range setting.LogDescriptions["default"].Sections {
+		loggers[i] = &logger{setting.LogDescriptions["default"].Sections[i], setting.LogDescriptions["default"].Configs[i]}
 	}
 	ctx.Data["Loggers"] = loggers
 

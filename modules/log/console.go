@@ -58,7 +58,7 @@ func (cw *ConsoleLogger) Init(config string) error {
 	if err != nil {
 		return err
 	}
-	cw.createExpression()
+	cw.createLogger(cw.out)
 	return nil
 }
 
@@ -75,6 +75,9 @@ func (cw *ConsoleLogger) LogEvent(event *Event) error {
 		buf = append(buf, colors[event.level]...)
 	}
 	cw.createMsg(&buf, event)
+	if cw.regexp != nil && !cw.regexp.Match(buf) {
+		return nil
+	}
 	if runtime.GOOS != "windows" {
 		buf = append(buf, reset...)
 	}

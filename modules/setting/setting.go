@@ -105,7 +105,6 @@ var (
 	RedirectOtherPort    bool
 	PortToRedirect       string
 	OfflineMode          bool
-	DisableRouterLog     bool
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
@@ -379,9 +378,10 @@ var (
 	// Log settings
 	LogLevel           string
 	LogRootPath        string
-	LogModes           []string
-	LogConfigs         []string
+	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
+	DisableRouterLog   bool
+	RouterLogTemplate  string
 
 	// Attachment settings
 	AttachmentPath         string
@@ -650,7 +650,7 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
-	log.NewLogger(0, "console", `{"level": 0}`)
+	log.NewLogger(0, "console", "console", `{"level": 0}`)
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
@@ -752,7 +752,7 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
-	LogLevel = getLogLevel("log", "LEVEL", "Info")
+	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
@@ -1221,6 +1221,8 @@ func NewContext() {
 func NewServices() {
 	newService()
 	newLogService()
+	newMacaronLogService()
+	newRouterLogService()
 	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()

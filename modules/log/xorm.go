@@ -7,13 +7,13 @@ package log
 import (
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/go-xorm/core"
 )
 
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
-	loggers []*Logger
 	showSQL bool
 	level   core.LogLevel
 }
@@ -31,26 +31,26 @@ func DiscardXORMLogger() {
 }
 
 // NewXORMLogger generate logger for xorm FIXME: configable
-func NewXORMLogger(bufferlen int64, mode, config string) {
-	logger := newLogger(bufferlen)
-	logger.SetLogger(mode, config)
+func NewXORMLogger(bufferlen int64, name, adapter, config string) error {
+	err := NewNamedLogger("xorm", bufferlen, name, adapter, config)
+	if err != nil {
+		return err
+	}
 	if XORMLogger == nil {
 		XORMLogger = &XORMLogBridge{
 			showSQL: true,
 		}
 	}
-	XORMLogger.loggers = append(XORMLogger.loggers, logger)
+	return nil
 }
 
 // GetGiteaLevel returns the minimum Gitea logger level
 func (l *XORMLogBridge) GetGiteaLevel() Level {
-	level := NONE
-	for _, lg := range l.loggers {
-		if lg.GetLevel() < level {
-			level = lg.GetLevel()
-		}
+	logger := NamedLoggers["xorm"]
+	if logger != nil {
+		return logger.GetLevel()
 	}
-	return level
+	return NONE
 }
 
 // Log a message with defined skip and at logging level
@@ -71,12 +71,7 @@ func (l *XORMLogBridge) Log(skip int, level Level, format string, v ...interface
 	if len(v) > 0 {
 		msg = fmt.Sprintf(format, v...)
 	}
-	for _, lg := range l.loggers {
-		if err := lg.sendLog(level, caller, filename, line, msg); err != nil {
-			return err
-		}
-	}
-	return nil
+	return NamedLoggers["xorm"].SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
 }
 
 // Debug show debug log

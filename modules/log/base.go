@@ -5,6 +5,7 @@
 package log
 
 import (
+	"bytes"
 	"io"
 	"regexp"
 	"sync"
@@ -20,16 +21,18 @@ import (
 // The standard is:
 // 2009/01/23 01:23:23 /a/b/c/d.go:23:runtime.Caller() [I]: message
 const (
-	Ldate         = 1 << iota                                             // the date in the local time zone: 2009/01/23
-	Ltime                                                                 // the time in the local time zone: 01:23:23
-	Lmicroseconds                                                         // microsecond resolution: 01:23:23.123123.  assumes Ltime.
-	Llongfile                                                             // full file name and line number: /a/b/c/d.go:23
-	Lshortfile                                                            // final file name element and line number: d.go:23. overrides Llongfile
-	Lfuncname                                                             // function name of the caller: runtime.Caller()
-	LUTC                                                                  // if Ldate or Ltime is set, use UTC rather than the local time zone
-	Llevelinitial                                                         // Initial character of the provided level in brackets eg. [I] for info
-	Llevel                                                                // Provided level in brackets [INFO]
-	LstdFlags     = Ldate | Ltime | Llongfile | Lfuncname | Llevelinitial // initial values for the standard logger
+	Ldate         = 1 << iota // the date in the local time zone: 2009/01/23
+	Ltime                     // the time in the local time zone: 01:23:23
+	Lmicroseconds             // microsecond resolution: 01:23:23.123123.  assumes Ltime.
+	Llongfile                 // full file name and line number: /a/b/c/d.go:23
+	Lshortfile                // final file name element and line number: d.go:23. overrides Llongfile
+	Lfuncname                 // function name of the caller: runtime.Caller()
+	LUTC                      // if Ldate or Ltime is set, use UTC rather than the local time zone
+	Llevelinitial             // Initial character of the provided level in brackets eg. [I] for info
+	Llevel                    // Provided level in brackets [INFO]
+
+	// LstdFlags is the initial value for the standard logger
+	LstdFlags = Ldate | Ltime | Llongfile | Llevelinitial
 )
 
 // BaseLogger represent a basic logger for Gitea
@@ -157,10 +160,19 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 		}
 		*buf = append(*buf, "] "...)
 	}
-	*buf = append(*buf, event.msg...)
-	if len(event.msg) == 0 || event.msg[len(event.msg)-1] != '\n' {
-		*buf = append(*buf, '\n')
+	// Now we need to prevent log spoofing:
+	if len(event.msg) > 0 && event.msg[len(event.msg)-1] == '\n' {
+		event.msg = event.msg[:len(event.msg)-1]
 	}
+	lines := bytes.Split([]byte(event.msg), []byte("\n"))
+	*buf = append(*buf, lines[0]...)
+	if len(lines) > 1 {
+		for _, line := range lines[1:] {
+			*buf = append(*buf, "\n        "...)
+			*buf = append(*buf, line...)
+		}
+	}
+	*buf = append(*buf, '\n')
 }
 
 // LogEvent logs the event to the internal writer

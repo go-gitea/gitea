@@ -55,7 +55,7 @@ func baseConsoleTest(t *testing.T, logger *Logger) (chan []byte, chan bool) {
 func TestNewLoggerUnexported(t *testing.T) {
 	level := INFO
 	logger := newLogger(0)
-	err := logger.SetLogger("console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
+	err := logger.SetLogger("console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 	assert.NoError(t, err)
 	assert.Equal(t, "console", logger.adapter)
 	assert.Equal(t, INFO, logger.GetLevel())
@@ -64,7 +64,7 @@ func TestNewLoggerUnexported(t *testing.T) {
 
 func TestNewLoggger(t *testing.T) {
 	level := INFO
-	logger := NewLogger(0, "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
+	logger := NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 
 	assert.Equal(t, INFO, GetLevel())
 	assert.Equal(t, false, IsTrace())
@@ -96,11 +96,10 @@ func TestNewLoggger(t *testing.T) {
 
 func TestNewNamedLogger(t *testing.T) {
 	level := INFO
-	err := NewNamedLogger("test", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
+	err := NewNamedLogger("test", 0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 	assert.NoError(t, err)
 	logger := NamedLoggers["test"]
-
-	assert.Equal(t, INFO, logger.GetLevel())
+	assert.Equal(t, level, logger.GetLevel())
 
 	written, closed := baseConsoleTest(t, logger)
 	go DelNamedLogger("test")

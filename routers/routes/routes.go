@@ -7,11 +7,9 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"text/template"
 	"time"
 
@@ -49,7 +47,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
-func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
+/*func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 
@@ -60,19 +58,22 @@ func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
 	}
-}
+}*/
 
-type ncsaLoggerOptions struct {
+type routerLoggerOptions struct {
 	Ctx            *macaron.Context
 	Identity       *string
 	Start          *time.Time
 	ResponseWriter *macaron.ResponseWriter
 }
 
-func ncsaLogger() macaron.Handler {
-	log.NewAccessLogger(filepath.Join(setting.LogRootPath, "access.log"))
-	l := log.NewLoggerAsWriter("INFO", log.AccessLogger)
-	logTemplate, _ := template.New("log").Parse("{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format \"[02/Jan/2006:15:04:05 -0700]\" }} \"{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}\" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} \"{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}\"")
+func routerLogger() macaron.Handler {
+	logger := log.NamedLoggers["router"]
+	if logger == nil {
+		return macaron.Logger()
+	}
+
+	logTemplate, _ := template.New("log").Parse(setting.RouterLogTemplate)
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 		ctx.Next()
@@ -85,13 +86,14 @@ func ncsaLogger() macaron.Handler {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 
 		buf := bytes.NewBuffer([]byte{})
-		logTemplate.Execute(buf, ncsaLoggerOptions{
+		logTemplate.Execute(buf, routerLoggerOptions{
 			Ctx:            ctx,
 			Identity:       &identity,
 			Start:          &start,
 			ResponseWriter: &rw,
 		})
-		l.Log(buf.String())
+
+		logger.SendLog(log.INFO, "", "", 0, buf.String())
 	}
 }
 
@@ -100,10 +102,10 @@ func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
 	var m *macaron.Macaron
 	if setting.RedirectMacaronLog {
-		loggerAsWriter := log.NewLoggerAsWriter("INFO")
+		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.NamedLoggers["macaron"])
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog {
-			m.Use(giteaLogger(loggerAsWriter))
+			m.Use(routerLogger())
 		}
 	} else {
 		m = macaron.New()
@@ -111,7 +113,6 @@ func NewMacaron() *macaron.Macaron {
 			m.Use(macaron.Logger())
 		}
 	}
-	m.Use(ncsaLogger())
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())

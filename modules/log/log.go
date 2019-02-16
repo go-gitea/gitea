@@ -25,12 +25,12 @@ var (
 )
 
 // NewLogger create a logger
-func NewLogger(bufLen int64, mode, config string) *Logger {
+func NewLogger(bufLen int64, name, adapter, config string) *Logger {
 	logger := newLogger(bufLen)
 
 	isExist := false
 	for i, l := range loggers {
-		if l.adapter == mode {
+		if l.name == name {
 			isExist = true
 			loggers[i] = logger
 		}
@@ -38,20 +38,23 @@ func NewLogger(bufLen int64, mode, config string) *Logger {
 	if !isExist {
 		loggers = append(loggers, logger)
 	}
-	if err := logger.SetLogger(mode, config); err != nil {
-		Critical(1, "Failed to set logger (%s): %v", mode, err)
-		panic(fmt.Errorf("Failed to set logger (%s): %v", mode, err))
+	if err := logger.SetLogger(name, adapter, config); err != nil {
+		Critical(1, "Failed to set logger (%s): %v", name, err)
+		panic(fmt.Errorf("Failed to set logger (%s): %v", name, err))
 	}
 	return logger
 }
 
 // NewNamedLogger creates a new named logger for a given configuration
-func NewNamedLogger(name, mode, config string) error {
-	l := newLogger(0)
-	if err := l.SetLogger(mode, config); err != nil {
+func NewNamedLogger(name string, bufLen int64, subname, adapter, config string) error {
+	l, ok := NamedLoggers[name]
+	if !ok {
+		l = newLogger(bufLen)
+		NamedLoggers[name] = l
+	}
+	if err := l.SetLogger(subname, adapter, config); err != nil {
 		return err
 	}
-	NamedLoggers[name] = l
 	return nil
 }
 
@@ -65,14 +68,14 @@ func DelNamedLogger(name string) {
 }
 
 // DelLogger removes loggers that are for the given mode
-func DelLogger(mode string) error {
+func DelLogger(name string) error {
 	for _, l := range loggers {
-		if _, ok := l.outputs.Load(mode); ok {
-			return l.DelLogger(mode)
+		if _, ok := l.outputs.Load(name); ok {
+			return l.DelLogger(name)
 		}
 	}
 
-	Trace("Log adapter %s not found, no need to delete", mode)
+	Trace("Log %s not found, no need to delete", name)
 	return nil
 }
 
@@ -88,18 +91,7 @@ func NewGitLogger(logPath string) {
 	}
 
 	GitLogger = newLogger(0)
-	GitLogger.SetLogger("file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":false}`, logPath))
-}
-
-//NewAccessLogger creates an access logger
-func NewAccessLogger(logPath string) {
-	path := path.Dir(logPath)
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		Fatal(0, "Failed to create dir %s: %v", path, err)
-	}
-
-	//AccessLogger = newLogger(0)
-	//AccessLogger.SetLogger("file", fmt.Sprintf(`{"level":0,"filename":"%s","rotate":false, "flags": -1}`, logPath))
+	GitLogger.SetLogger("file", "file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":false}`, logPath))
 }
 
 // GetLevel returns the minimum logger level
@@ -211,7 +203,7 @@ func Log(skip int, level Level, format string, v ...interface{}) {
 		msg = fmt.Sprintf(format, v...)
 	}
 	for _, l := range loggers {
-		l.sendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
+		l.SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
 	}
 }
 
@@ -253,14 +245,16 @@ func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
 
 // Write implements the io.Writer interface to allow spoofing of macaron
 func (l *LoggerAsWriter) Write(p []byte) (int, error) {
-	l.Log(string(p))
+	for _, logger := range l.ourLoggers {
+		logger.Log(1, l.level, string(p))
+	}
 	return len(p), nil
 }
 
 // Log takes a given string and logs it at the set log-level
 func (l *LoggerAsWriter) Log(msg string) {
 	for _, logger := range l.ourLoggers {
-		logger.Log(2, l.level, msg)
+		logger.Log(1, l.level, msg)
 	}
 }
 
@@ -290,6 +284,7 @@ type Event struct {
 // Logger is default logger in the Gitea application.
 // it can contain several providers and log message into all providers.
 type Logger struct {
+	name    string
 	adapter string
 	level   Level
 	queue   chan *Event
@@ -309,13 +304,14 @@ func newLogger(buffer int64) *Logger {
 }
 
 // SetLogger sets new logger instance with given logger adapter and config.
-func (l *Logger) SetLogger(adapter string, config string) error {
+func (l *Logger) SetLogger(name, adapter, config string) error {
 	if log, ok := adapters[adapter]; ok {
 		lg := log()
 		if err := lg.Init(config); err != nil {
 			return err
 		}
-		l.outputs.Store(adapter, lg)
+		l.outputs.Store(name, lg)
+		l.name = name
 		l.adapter = adapter
 		if lg.GetLevel() < l.level {
 			l.level = lg.GetLevel()
@@ -344,15 +340,15 @@ func (l *Logger) GetLevel() Level {
 	return l.level
 }
 
-// DelLogger removes a logger adapter instance.
-func (l *Logger) DelLogger(adapter string) error {
-	if lg, ok := l.outputs.Load(adapter); ok {
+// DelLogger removes a logger name instance.
+func (l *Logger) DelLogger(name string) error {
+	if lg, ok := l.outputs.Load(name); ok {
 		lg.(LoggerInterface).Close()
-		l.outputs.Delete(adapter)
+		l.outputs.Delete(name)
 		// Reset the Level
 		l.ResetLevel()
 	} else {
-		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
+		panic("log: unknown name \"" + name + "\" (forgotten register?)")
 	}
 	return nil
 }
@@ -375,10 +371,11 @@ func (l *Logger) Log(skip int, level Level, format string, v ...interface{}) err
 	if len(v) > 0 {
 		msg = fmt.Sprintf(format, v...)
 	}
-	return l.sendLog(level, caller, filename, line, msg)
+	return l.SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
 }
 
-func (l *Logger) sendLog(level Level, caller, filename string, line int, msg string) error {
+// SendLog sends a log event at the provided level with the information given
+func (l *Logger) SendLog(level Level, caller, filename string, line int, msg string) error {
 	if l.level > level {
 		return nil
 	}
@@ -482,5 +479,5 @@ func (l *Logger) Fatal(skip int, format string, v ...interface{}) {
 
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "code.gitea.io/gitea/modules/log/log.go")
+	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
 }
