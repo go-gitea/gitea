@@ -14,6 +14,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// IdentityOptions for a person's identity like an author or committer
+type IdentityOptions struct {
+	Name string
+	Email string
+}
+
 // UpdateRepoFileOptions holds the repository file update options
 type UpdateRepoFileOptions struct {
 	LastCommitID string
@@ -23,11 +29,14 @@ type UpdateRepoFileOptions struct {
 	NewTreeName  string
 	Message      string
 	Content      string
+	SHA	     string
 	IsNewFile    bool
+	Author    IdentityOptions
+	Committer IdentityOptions
 }
 
 // UpdateRepoFile adds or updates a file in the given repository
-func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) error {
+func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) error {
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
 	if err != nil {
@@ -62,7 +71,6 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 				}
 			}
 		}
-
 	}
 
 	// Check there is no way this can return multiple infos
@@ -126,7 +134,7 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		return err
+		return errcd
 	}
 
 	// Simulate push event.

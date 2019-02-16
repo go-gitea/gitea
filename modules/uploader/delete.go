@@ -36,7 +36,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	filesInIndex, err := t.LsFiles(opts.TreePath)
 	if err != nil {
-		return fmt.Errorf("UpdateRepoFile: %v", err)
+		return fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
 	inFilelist := false
