@@ -52,10 +52,8 @@ func NewNamedLogger(name string, bufLen int64, subname, adapter, config string) 
 		l = newLogger(bufLen)
 		NamedLoggers[name] = l
 	}
-	if err := l.SetLogger(subname, adapter, config); err != nil {
-		return err
-	}
-	return nil
+	err := l.SetLogger(subname, adapter, config)
+	return err
 }
 
 // DelNamedLogger closes and deletes the named logger
