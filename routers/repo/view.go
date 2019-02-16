@@ -168,7 +168,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
-	ctx.Data["FileSize"] = blob.Size()
+	fileSize := blob.Size()
+	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
@@ -189,7 +190,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				isLFSFile = true
 
 				// OK read the lfs object
-				dataRc, err := lfs.ReadMetaObject(meta)
+				var err error
+				dataRc, err = lfs.ReadMetaObject(meta)
 				if err != nil {
 					ctx.ServerError("ReadMetaObject", err)
 					return
@@ -203,6 +205,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				isTextFile = base.IsTextFile(buf)
 				ctx.Data["IsTextFile"] = isTextFile
 
+				fileSize = meta.Size
 				ctx.Data["FileSize"] = meta.Size
 				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
@@ -219,7 +222,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	switch {
 	case isTextFile:
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
