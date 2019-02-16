@@ -14,30 +14,31 @@ import (
 )
 
 func TestConsoleLoggerMinimalConfig(t *testing.T) {
-	var written []byte
-	var closed bool
+	for _, level := range Levels() {
+		var written []byte
+		var closed bool
 
-	c := CallbackWriteCloser{
-		callback: func(p []byte, close bool) {
-			written = p
-			closed = close
-		},
+		c := CallbackWriteCloser{
+			callback: func(p []byte, close bool) {
+				written = p
+				closed = close
+			},
+		}
+		prefix := ""
+		flags := LstdFlags
+
+		cw := NewConsoleLogger()
+		realCW := cw.(*ConsoleLogger)
+		realCW.out = c
+
+		cw.Init(fmt.Sprintf("{\"level\":\"%s\"}", level))
+		assert.Equal(t, flags, realCW.Flags)
+		assert.Equal(t, FromString(level), realCW.Level)
+		assert.Equal(t, FromString(level), cw.GetLevel())
+		assert.Equal(t, prefix, realCW.Prefix)
+		assert.Equal(t, "", string(written))
+		assert.Equal(t, false, closed)
 	}
-	prefix := ""
-	level := INFO
-	flags := LstdFlags
-
-	cw := NewConsoleLogger()
-	realCW := cw.(*ConsoleLogger)
-	realCW.out = c
-
-	cw.Init(fmt.Sprintf("{\"level\":\"%s\"}", level.String()))
-	assert.Equal(t, flags, realCW.Flags)
-	assert.Equal(t, level, realCW.Level)
-	assert.Equal(t, level, cw.GetLevel())
-	assert.Equal(t, prefix, realCW.Prefix)
-	assert.Equal(t, "", string(written))
-	assert.Equal(t, false, closed)
 }
 
 func TestConsoleLogger(t *testing.T) {
