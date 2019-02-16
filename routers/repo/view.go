@@ -103,13 +103,54 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		isTextFile := base.IsTextFile(buf)
 		ctx.Data["FileIsText"] = isTextFile
 		ctx.Data["FileName"] = readmeFile.Name()
+		fileSize := int64(0)
+		isLFSFile := false
+		ctx.Data["IsLFSFile"] = false
+
 		// FIXME: what happens when README file is an image?
 		if isTextFile {
-			if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
+			if setting.LFS.StartServer {
+				if meta := lfs.IsPointerFile(&buf); meta != nil {
+					if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
+						ctx.Data["IsLFSFile"] = true
+						isLFSFile = true
+
+						// OK read the lfs object
+						var err error
+						dataRc, err = lfs.ReadMetaObject(meta)
+						if err != nil {
+							ctx.ServerError("ReadMetaObject", err)
+							return
+						}
+						defer dataRc.Close()
+
+						buf = make([]byte, 1024)
+						n, _ = dataRc.Read(buf)
+						buf = buf[:n]
+
+						isTextFile = base.IsTextFile(buf)
+						ctx.Data["IsTextFile"] = isTextFile
+
+						fileSize = meta.Size
+						ctx.Data["FileSize"] = meta.Size
+						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
+						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+						isLFSFile = true
+					}
+				}
+			}
+		}
+
+		if !isLFSFile {
+			fileSize = readmeFile.Size()
+		}
+
+		if isTextFile {
+			if fileSize >= setting.UI.MaxDisplayFileSize {
 				// Pretend that this is a normal text file to display 'This file is too large to be shown'
 				ctx.Data["IsFileTooLarge"] = true
 				ctx.Data["IsTextFile"] = true
-				ctx.Data["FileSize"] = readmeFile.Size()
+				ctx.Data["FileSize"] = fileSize
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
 				buf = templates.ToUTF8WithFallback(append(buf, d...))
