@@ -40,7 +40,7 @@ func TestConnLogger(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC
+	flags := LstdFlags | LUTC | Lfuncname
 
 	logger := NewConn()
 	connLogger := logger.(*ConnLogger)

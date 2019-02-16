@@ -53,7 +53,7 @@ func TestConsoleLogger(t *testing.T) {
 	}
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC
+	flags := LstdFlags | LUTC | Lfuncname
 
 	cw := NewConsoleLogger()
 	realCW := cw.(*ConsoleLogger)

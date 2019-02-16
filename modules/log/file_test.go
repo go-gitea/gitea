@@ -22,7 +22,7 @@ func TestFileLogger(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC
+	flags := LstdFlags | LUTC | Lfuncname
 	filename := filepath.Join(tmpDir, "test.log")
 
 	fileLogger := NewFileLogger()

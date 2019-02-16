@@ -40,7 +40,7 @@ func TestBaseLogger(t *testing.T) {
 	b := BaseLogger{
 		out:    c,
 		Level:  INFO,
-		Flags:  LstdFlags | LUTC,
+		Flags:  LstdFlags | LUTC | Lfuncname,
 		Prefix: prefix,
 	}
 	location, _ := time.LoadLocation("EST")
@@ -117,7 +117,7 @@ func TestBaseLoggerDated(t *testing.T) {
 	b := BaseLogger{
 		out:    c,
 		Level:  WARN,
-		Flags:  Ldate | Ltime | Lshortfile | Lfuncname | Llevel,
+		Flags:  Ldate | Ltime | Lshortfile | Llevel,
 		Prefix: prefix,
 	}
 
@@ -138,7 +138,7 @@ func TestBaseLoggerDated(t *testing.T) {
 
 	assert.Equal(t, WARN, b.GetLevel())
 
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.caller, event.level.String(), event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.level.String(), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
@@ -152,7 +152,7 @@ func TestBaseLoggerDated(t *testing.T) {
 	written = written[:0]
 
 	event.level = ERROR
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.caller, event.level.String(), event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.level.String(), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
@@ -166,7 +166,7 @@ func TestBaseLoggerDated(t *testing.T) {
 	written = written[:0]
 
 	event.level = CRITICAL
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.caller, event.level.String(), event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.level.String(), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
