@@ -68,8 +68,11 @@
 				}
 				return itemStr;
 			}
-		})
-		issuesTribute.attach(document.getElementById('content'))
+		});
+		var content = document.getElementById('content');
+		if (content != null) {
+			issuesTribute.attach(content);
+		}
 	</script>
 	<script>
 		var emojiTribute = new Tribute({
@@ -93,7 +96,7 @@
 					return item;
 				},
 				selectTemplate: function (item) {
-					if (typeof item === 'undefinied') return null;
+					if (typeof item === 'undefined') return null;
 					return ':' + item.original + ':';
 				},
 				menuItemTemplate: function (item) {
@@ -101,7 +104,14 @@
 				}
 			}]
 		});
-		emojiTribute.attach(document.getElementById('content'))
+		var emojiInputs = document.querySelectorAll('.emoji-input');
+		if (emojiInputs.length > 0) {
+			emojiTribute.attach(emojiInputs);
+		}
+		var content = document.getElementById('content');
+		if (content != null) {
+			emojiTribute.attach(document.getElementById('content'));
+		}
 	</script>
 {{end}}
 	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>
