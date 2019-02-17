@@ -21,6 +21,7 @@ var (
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer() error {
+	var populate bool
 	switch setting.Indexer.IssueType {
 	case "bleve":
 		issueIndexer = issues.NewBleveIndexer(setting.Indexer.IssuePath)
@@ -28,9 +29,7 @@ func InitIssueIndexer() error {
 		if err != nil {
 			return err
 		}
-		if !exist {
-			go populateIssueIndexer()
-		}
+		populate = !exist
 	default:
 		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
 	}
@@ -52,6 +51,10 @@ func InitIssueIndexer() error {
 	}
 
 	go issueIndexerUpdateQueue.Run()
+
+	if populate {
+		go populateIssueIndexer()
+	}
 
 	return nil
 }
