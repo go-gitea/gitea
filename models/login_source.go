@@ -600,7 +600,7 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return nil, ErrLoginSourceNotActived
 	}
 
-	if user.ProhibitLogin || !user.IsActive {
+	if user != nil && (user.ProhibitLogin || !user.IsActive) {
 		return nil, ErrUserLoginProhibited{Name: user.Email}
 	}
 
