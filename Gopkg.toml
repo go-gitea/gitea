@@ -107,11 +107,6 @@ ignored = ["google.golang.org/appengine*"]
   version = "2.0.0"
 
 [[override]]
-  name = "github.com/boltdb/bolt"
-  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
-  source = "github.com/go-gitea/bolt"
-
-[[override]]
   branch = "master"
   name = "golang.org/x/oauth2"
 
