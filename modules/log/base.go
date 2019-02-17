@@ -6,8 +6,10 @@ package log
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -21,18 +23,22 @@ import (
 // The standard is:
 // 2009/01/23 01:23:23 /a/b/c/d.go:23:runtime.Caller() [I]: message
 const (
-	Ldate         = 1 << iota // the date in the local time zone: 2009/01/23
-	Ltime                     // the time in the local time zone: 01:23:23
-	Lmicroseconds             // microsecond resolution: 01:23:23.123123.  assumes Ltime.
-	Llongfile                 // full file name and line number: /a/b/c/d.go:23
-	Lshortfile                // final file name element and line number: d.go:23. overrides Llongfile
-	Lfuncname                 // function name of the caller: runtime.Caller()
-	LUTC                      // if Ldate or Ltime is set, use UTC rather than the local time zone
-	Llevelinitial             // Initial character of the provided level in brackets eg. [I] for info
-	Llevel                    // Provided level in brackets [INFO]
+	Ldate          = 1 << iota // the date in the local time zone: 2009/01/23
+	Ltime                      // the time in the local time zone: 01:23:23
+	Lmicroseconds              // microsecond resolution: 01:23:23.123123.  assumes Ltime.
+	Llongfile                  // full file name and line number: /a/b/c/d.go:23
+	Lshortfile                 // final file name element and line number: d.go:23. overrides Llongfile
+	Lfuncname                  // function name of the caller: runtime.Caller()
+	Lshortfuncname             // last part of the function name
+	LUTC                       // if Ldate or Ltime is set, use UTC rather than the local time zone
+	Llevelinitial              // Initial character of the provided level in brackets eg. [I] for info
+	Llevel                     // Provided level in brackets [INFO]
+
+	// Last 20 characters of the filename
+	Lmedfile = Lshortfile | Llongfile
 
 	// LstdFlags is the initial value for the standard logger
-	LstdFlags = Ldate | Ltime | Llongfile | Llevelinitial
+	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial
 )
 
 // BaseLogger represent a basic logger for Gitea
@@ -127,27 +133,35 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	}
 	if b.Flags&(Lshortfile|Llongfile) != 0 {
 		file := event.filename
-		if b.Flags&Lshortfile != 0 {
-			short := file
-			for i := len(file) - 1; i > 0; i-- {
-				if file[i] == '/' {
-					short = file[i+1:]
-					break
-				}
+		if b.Flags&Lmedfile == Lmedfile {
+			startIndex := len(file) - 20
+			if startIndex > 0 {
+				file = "..." + file[startIndex:]
 			}
-			file = short
+		} else if b.Flags&Lshortfile != 0 {
+			startIndex := strings.LastIndexByte(file, '/')
+			if startIndex > 0 && startIndex < len(file) {
+				file = file[startIndex+1:]
+			}
 		}
 		*buf = append(*buf, file...)
 		*buf = append(*buf, ':')
 		itoa(buf, event.line, -1)
-		if b.Flags&Lfuncname != 0 {
+		if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
 			*buf = append(*buf, ':')
 		} else {
 			*buf = append(*buf, ' ')
 		}
 	}
-	if b.Flags&Lfuncname != 0 {
-		*buf = append(*buf, event.caller...)
+	if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
+		funcname := event.caller
+		if b.Flags&Lshortfuncname != 0 {
+			lastIndex := strings.LastIndexByte(funcname, '.')
+			if lastIndex > 0 {
+				funcname = funcname[lastIndex:]
+			}
+		}
+		*buf = append(*buf, funcname...)
 		*buf = append(*buf, ' ')
 	}
 	if b.Flags&(Llevel|Llevelinitial) != 0 {
@@ -183,11 +197,20 @@ func (b *BaseLogger) LogEvent(event *Event) error {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if b.regexp != nil {
+		matched := false
+		if b.regexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.filename, event.line, event.caller))) {
+			matched = true
+		}
+		if b.regexp.Match([]byte(event.msg)) {
+			matched = true
+		}
+		if !matched {
+			return nil
+		}
+	}
 	var buf []byte
 	b.createMsg(&buf, event)
-	if b.regexp != nil && !b.regexp.Match(buf) {
-		return nil
-	}
 	_, err := b.out.Write(buf)
 	return err
 }

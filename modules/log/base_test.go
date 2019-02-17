@@ -40,7 +40,7 @@ func TestBaseLogger(t *testing.T) {
 	b := BaseLogger{
 		out:    c,
 		Level:  INFO,
-		Flags:  LstdFlags | LUTC | Lfuncname,
+		Flags:  LstdFlags | LUTC,
 		Prefix: prefix,
 	}
 	location, _ := time.LoadLocation("EST")
@@ -117,19 +117,19 @@ func TestBaseLoggerDated(t *testing.T) {
 	b := BaseLogger{
 		out:    c,
 		Level:  WARN,
-		Flags:  Ldate | Ltime | Lshortfile | Llevel,
+		Flags:  Ldate | Ltime | Lmicroseconds | Lshortfile | Llevel,
 		Prefix: prefix,
 	}
 
 	location, _ := time.LoadLocation("EST")
 
-	date := time.Date(2019, time.January, 13, 22, 3, 30, 15, location)
+	date := time.Date(2019, time.January, 13, 22, 3, 30, 115, location)
 
-	dateString := date.Format("2006/01/02 15:04:05")
+	dateString := date.Format("2006/01/02 15:04:05.000000")
 
 	event := Event{
 		level:    WARN,
-		msg:      "TEST MESSAGE TEST",
+		msg:      "TEST MESSAGE TEST\n",
 		caller:   "CALLER",
 		filename: "FULL/FILENAME",
 		line:     1,
@@ -138,7 +138,7 @@ func TestBaseLoggerDated(t *testing.T) {
 
 	assert.Equal(t, WARN, b.GetLevel())
 
-	expected := fmt.Sprintf("%s%s %s:%d [%s] %s\n", prefix, dateString, "FILENAME", event.line, event.level.String(), event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d [%s] %s", prefix, dateString, "FILENAME", event.line, event.level.String(), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
@@ -181,4 +181,73 @@ func TestBaseLoggerDated(t *testing.T) {
 
 	b.Close()
 	assert.Equal(t, true, closed)
+}
+
+func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
+	var written []byte
+	var closed bool
+
+	c := CallbackWriteCloser{
+		callback: func(p []byte, close bool) {
+			written = p
+			closed = close
+		},
+	}
+	prefix := ""
+	b := BaseLogger{
+		Level:      DEBUG,
+		Flags:      -1,
+		Prefix:     prefix,
+		Expression: "FILENAME",
+	}
+	b.createLogger(c)
+
+	location, _ := time.LoadLocation("EST")
+
+	date := time.Date(2019, time.January, 13, 22, 3, 30, 115, location)
+
+	event := Event{
+		level:    DEBUG,
+		msg:      "TEST\nMESSAGE\nTEST",
+		caller:   "CALLER",
+		filename: "FULL/FILENAME",
+		line:     1,
+		time:     date,
+	}
+
+	assert.Equal(t, DEBUG, b.GetLevel())
+
+	expected := "TEST\n        MESSAGE\n        TEST\n"
+	b.LogEvent(&event)
+	assert.Equal(t, expected, string(written))
+	assert.Equal(t, false, closed)
+	written = written[:0]
+
+	event.filename = "ELSEWHERE"
+
+	b.LogEvent(&event)
+	assert.Equal(t, "", string(written))
+	assert.Equal(t, false, closed)
+	written = written[:0]
+
+	event.caller = "FILENAME"
+	b.LogEvent(&event)
+	assert.Equal(t, expected, string(written))
+	assert.Equal(t, false, closed)
+	written = written[:0]
+
+	event = Event{
+		level:    DEBUG,
+		msg:      "TEST\nFILENAME\nTEST",
+		caller:   "CALLER",
+		filename: "FULL/ELSEWHERE",
+		line:     1,
+		time:     date,
+	}
+	expected = "TEST\n        FILENAME\n        TEST\n"
+	b.LogEvent(&event)
+	assert.Equal(t, expected, string(written))
+	assert.Equal(t, false, closed)
+	written = written[:0]
+
 }
