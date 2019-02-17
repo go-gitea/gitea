@@ -222,17 +222,6 @@
   revision = "d904413d884d1fb849e2ad8834619f661761ef57"
 
 [[projects]]
-  digest = "1:2e39e716a20e285bb1da0c5f6d00d7b5da0e50e527a8e5dd0258d1e0fcd1b403"
-  name = "github.com/cupcake/rdb"
-  packages = [
-    ".",
-    "crc64",
-    "nopdecoder",
-  ]
-  pruneopts = "NUT"
-  revision = "43ba34106c765f2111c0dc7b74cdf8ee437411e0"
-
-[[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -628,6 +617,14 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
+  branch = "master"
+  digest = "1:3ea59a5ada4bbac04da58e6177ca63da8c377a3143b48fca584408bf415fdafb"
+  name = "github.com/lunny/levelqueue"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "02b525a4418e684a7786215296984e364746806f"
+
+[[projects]]
   digest = "1:1e6a29ed1f189354030e3371f63ec58aacbc2bf232fd104c6e0d41174ac5af48"
   name = "github.com/lunny/log"
   packages = ["."]
@@ -745,14 +742,6 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:51ea800cff51752ff68e12e04106f5887b4daec6f9356721238c28019f0b42db"
-  name = "github.com/pelletier/go-toml"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
-  version = "v1.2.0"
-
-[[projects]]
   digest = "1:44c66ad69563dbe3f8e76d7d6cad21a03626e53f1875b5ab163ded419e01ca7a"
   name = "github.com/philhofer/fwd"
   packages = ["."]
@@ -863,52 +852,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:81cd039986aace9719c68a9794fa8c9dd1007cffa1ff8995631e8ed35aacf6fe"
-  name = "github.com/siddontang/go"
-  packages = [
-    "filelock",
-    "hack",
-    "ioutil2",
-    "log",
-    "num",
-    "snappy",
-    "sync2",
-  ]
-  pruneopts = "NUT"
-  revision = "bdc77568d726a8702315ec4eafda030b6abc4f43"
-
-[[projects]]
-  branch = "master"
   digest = "1:dbda803f21e60c38de7d9f884390f2ebbe234ce0c3d139b65bbb36b03a99d266"
   name = "github.com/siddontang/go-snappy"
   packages = ["snappy"]
   pruneopts = "NUT"
   revision = "d8f7bb82a96d89c1254e5a6c967134e1433c9ee2"
-
-[[projects]]
-  digest = "1:25ac32ee449099128d3c84e4d4596749f1ba8965045bdfe4e99e1914e26b5e93"
-  name = "github.com/siddontang/ledisdb"
-  packages = [
-    "config",
-    "ledis",
-    "rpl",
-    "store",
-    "store/driver",
-    "store/goleveldb",
-    "store/leveldb",
-    "store/rocksdb",
-  ]
-  pruneopts = "NUT"
-  revision = "56900470a899883f691bcdf6bea4ac547f2a9a6f"
-  version = "v0.6"
-
-[[projects]]
-  branch = "master"
-  digest = "1:7ddaee1a4c41ddf0b35191621f7849bb96889a614137356a851c5d4da491f173"
-  name = "github.com/siddontang/rdb"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "fc89ed2e418d27e3ea76e708e54276d2b44ae9cf"
 
 [[projects]]
   digest = "1:89fd77d603a74a6540d60067debad9397865bf040955d907362c95d364baeba6"
@@ -938,26 +886,6 @@
   pruneopts = "NUT"
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
-
-[[projects]]
-  digest = "1:685fdfea42d825ebd39ee0994354b46c374cf2c2b2d97a41a8dee1807c6a9b62"
-  name = "github.com/syndtr/goleveldb"
-  packages = [
-    "leveldb",
-    "leveldb/cache",
-    "leveldb/comparer",
-    "leveldb/errors",
-    "leveldb/filter",
-    "leveldb/iterator",
-    "leveldb/journal",
-    "leveldb/memdb",
-    "leveldb/opt",
-    "leveldb/storage",
-    "leveldb/table",
-    "leveldb/util",
-  ]
-  pruneopts = "NUT"
-  revision = "cfa635847112c5dc4782e128fa7e0d05fdbfb394"
 
 [[projects]]
   branch = "master"
@@ -1350,6 +1278,7 @@
     "github.com/lafriks/xormstore",
     "github.com/lib/pq",
     "github.com/lunny/dingtalk_webhook",
+    "github.com/lunny/levelqueue",
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",
@@ -1373,8 +1302,6 @@
     "github.com/russross/blackfriday",
     "github.com/satori/go.uuid",
     "github.com/sergi/go-diff/diffmatchpatch",
-    "github.com/siddontang/ledisdb/config",
-    "github.com/siddontang/ledisdb/ledis",
     "github.com/stretchr/testify/assert",
     "github.com/tstranex/u2f",
     "github.com/urfave/cli",

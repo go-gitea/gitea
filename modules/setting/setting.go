@@ -85,8 +85,8 @@ const (
 
 // enumerates all the indexer queue types
 const (
-	LedisLocalQueueType = "ledis_local"
-	ChannelQueueType    = "channel"
+	LevelQueueType   = "levelqueue"
+	ChannelQueueType = "channel"
 )
 
 // settings
@@ -195,15 +195,13 @@ var (
 		MaxIndexerFileSize           int64
 		IssueIndexerQueueType        string
 		IssueIndexerQueueDir         string
-		IssueIndexerQueueDBIndex     int
 		IssueIndexerQueueBatchNumber int
 	}{
 		IssueType:                    "bleve",
 		IssuePath:                    "indexers/issues.bleve",
-		IssueIndexerQueueType:        LedisLocalQueueType,
+		IssueIndexerQueueType:        LevelQueueType,
 		IssueIndexerQueueDir:         "indexers/issues.queue",
 		IssueIndexerQueueBatchNumber: 20,
-		IssueIndexerQueueDBIndex:     0,
 	}
 
 	// Repository settings
@@ -1247,11 +1245,9 @@ func NewContext() {
 	}
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
-	Indexer.IssueIndexerQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LedisLocalQueueType)
+	Indexer.IssueIndexerQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
 	Indexer.IssueIndexerQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueIndexerQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
-	Indexer.IssueIndexerQueueDBIndex = sec.Key("ISSUE_INDEXER_QUEUE_DB_INDEX").MustInt(0)
-
 }
 
 // NewServices initializes the services

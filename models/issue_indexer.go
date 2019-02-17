@@ -37,11 +37,10 @@ func InitIssueIndexer() error {
 
 	var err error
 	switch setting.Indexer.IssueIndexerQueueType {
-	case setting.LedisLocalQueueType:
-		issueIndexerUpdateQueue, err = issues.NewLedisLocalQueue(
+	case setting.LevelQueueType:
+		issueIndexerUpdateQueue, err = issues.NewLevelQueue(
 			issueIndexer,
 			setting.Indexer.IssueIndexerQueueDir,
-			setting.Indexer.IssueIndexerQueueDBIndex,
 			setting.Indexer.IssueIndexerQueueBatchNumber)
 		if err != nil {
 			return err

@@ -1,4 +1,4 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,52 +9,40 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"github.com/siddontang/ledisdb/config"
-	"github.com/siddontang/ledisdb/ledis"
+	"github.com/lunny/levelqueue"
 )
 
 var (
-	_ Queue = &LedisLocalQueue{}
-
-	ledisLocalKey = []byte("ledis_local_key")
+	_ Queue = &LevelQueue{}
 )
 
-// LedisLocalQueue implements a ledis as a disk library queue
-type LedisLocalQueue struct {
+// LevelQueue implements a disk library queue
+type LevelQueue struct {
 	indexer     Indexer
-	ledis       *ledis.Ledis
-	db          *ledis.DB
+	queue       *levelqueue.Queue
 	batchNumber int
 }
 
-// NewLedisLocalQueue creates a ledis local queue
-func NewLedisLocalQueue(indexer Indexer, dataDir string, dbIdx, batchNumber int) (*LedisLocalQueue, error) {
-	ledis, err := ledis.Open(&config.Config{
-		DataDir: dataDir,
-	})
+// NewLevelQueue creates a ledis local queue
+func NewLevelQueue(indexer Indexer, dataDir string, batchNumber int) (*LevelQueue, error) {
+	queue, err := levelqueue.Open(dataDir)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := ledis.Select(dbIdx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &LedisLocalQueue{
+	return &LevelQueue{
 		indexer:     indexer,
-		ledis:       ledis,
-		db:          db,
+		queue:       queue,
 		batchNumber: batchNumber,
 	}, nil
 }
 
 // Run starts to run the queue
-func (l *LedisLocalQueue) Run() error {
+func (l *LevelQueue) Run() error {
 	var i int
 	var datas = make([]*IndexerData, 0, l.batchNumber)
 	for {
-		bs, err := l.db.RPop(ledisLocalKey)
+		bs, err := l.queue.RPop()
 		if err != nil {
 			log.Error(4, "RPop: %v", err)
 			time.Sleep(time.Millisecond * 100)
@@ -103,13 +91,13 @@ func (l *LedisLocalQueue) Run() error {
 }
 
 // Push will push the indexer data to queue
-func (l *LedisLocalQueue) Push(data *IndexerData) {
+func (l *LevelQueue) Push(data *IndexerData) {
 	bs, err := json.Marshal(data)
 	if err != nil {
 		log.Error(4, "Marshal: %v", err)
 		return
 	}
-	_, err = l.db.LPush(ledisLocalKey, bs)
+	err = l.queue.LPush(bs)
 	if err != nil {
 		log.Error(4, "LPush: %v", err)
 	}
