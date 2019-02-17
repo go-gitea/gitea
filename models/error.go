@@ -101,7 +101,7 @@ func IsErrUserLoginProhibited(err error) bool {
 	return ok
 }
 
-// formats the error message
+// Error formats the error message
 func (err ErrUserLoginProhibited) Error() string {
 	return fmt.Sprintf("user is prohibited from login [name %s]", err.Name)
 }
