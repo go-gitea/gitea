@@ -15,41 +15,280 @@ menu:
 
 # Hacking on Gitea
 
-Familiarity with the existing [installation instructions](https://golang.org/doc/install)
-is required for this section.
+## Installing go and setting the GOPATH
 
-To contribute to Gitea, fork the project and work on the `master` branch.
+You should [install go](https://golang.org/doc/install) and set up your go
+environment correctly. In particular, it is recommended to set the `$GOPATH`
+environment variable and to add the go bin directory or directories
+`${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
+[GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
-Some internal packages are referenced using their respective Github URL. This can
-become problematic. To "trick" the Go tool into thinking this is a clone from the
-official repository, download the source code using "go get" and follow these instructions.
+You will also need make.
+<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
 
-```
+**Note**: When executing make tasks that require external tools, like
+`make misspell-check`, Gitea will automatically download and build these as
+necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
+on the executable path. If you don't add the go bin directory to the
+executable path you will have to manage this yourself.
+
+**Note 2**: Go version 1.9 or higher is required, however it is important
+to note that our continuous integration will check that the formatting of the
+source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
+the results of `gofmt` can differ by the version of `go` it is therefore
+recommended to install the version of go that our continuous integration is
+running. At the time of writing this is Go version 1.11, however this can be
+checked by looking at the
+[master `.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml)
+(At the time of writing
+[line 67](https://github.com/go-gitea/gitea/blob/8917d66571a95f3da232a0c27bc1300210d10fde/.drone.yml#L67)
+is the relevant line - however this may change.)
+
+## Downloading and cloning the Gitea source code
+
+Go is quite opinionated about where it expects its source code, and simply
+cloning the Gitea repository to an arbitrary path is likely to lead to
+problems - the fixing of which is out of scope for this document. Further some
+internal packages are referenced using their respective Github URL and at
+present we use `vendor/` directories.
+
+The recommended method of obtaining the source code is by using the `go get` command:
+
+```bash
 go get -d code.gitea.io/gitea
+cd "$GOPATH/src/code.gitea.io/gitea"
 ```
 
-Fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub, it should
-then be possible to switch the source directory on the command line.
+This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
+is not set `"$HOME/go/src/code.gitea.io/gitea"`.
 
+## Forking Gitea
+
+As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
+code as above. Then fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
+and either switch the git remote origin for your fork or add your fork as another remote:
+
+```bash
+# Rename original Gitea origin to upstream
+cd "$GOPATH/src/code.gitea.io/gitea"
+git remote rename origin upstream
+git remote add origin "git@github.com:$GITHUB_USERNAME/gitea.git"
+git fetch --all --prune
 ```
-cd $GOPATH/src/code.gitea.io/gitea
+
+or:
+
+```bash
+# Add new remote for our fork
+cd "$GOPATH/src/code.gitea.io/gitea"
+git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
+git fetch --all --prune
 ```
 
 To be able to create pull requests, the forked repository should be added as a remote
 to the Gitea sources, otherwise changes can't be pushed.
 
-```
-git remote rename origin upstream
-git remote add origin git@github.com:<USERNAME>/gitea.git
-git fetch --all --prune
+## Building Gitea (Basic)
+
+Take a look at our
+<a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>instructions</a>
+for <a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>building
+from source</a>.
+
+The simplest recommended way to build from source is:
+
+```bash
+TAGS="bindata sqlite sqlite_unlock_notify" make generate build
 ```
 
-This should provide a working development environment for Gitea. Take a look at
-the `Makefile` to get an overview about the available tasks. The most common tasks
-should be `make test` which will start our test environment and `make build` which
-will build a `gitea` binary into the working directory. Writing test cases is not
-mandatory to contribute, but it is highly encouraged and helps developers sleep
-at night.
+However, there are a number of additional make tasks you should be aware of.
+These are documented below but you can look at our
+[`Makefile`](https://github.com/go-gitea/gitea/blob/master/Makefile) for more,
+and look at our
+[`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
+how our continuous integration works.
 
-That's it! You are ready to hack on Gitea. Test changes, push them to the repository,
-and open a pull request.
+### Formatting, linting, vetting and spell-check
+
+Our continous integration will reject PRs that are not properly formatted, fail
+linting, vet or spell-check.
+
+You should format your code with `go fmt` using:
+
+```bash
+make fmt
+```
+
+and can test whether your changes would match the results with:
+
+```bash
+make fmt-check # which runs make fmt internally
+```
+
+**Note**: The results of `go fmt` are dependent on the version of `go` present.
+You should run the same version of go that is on the continuous integration
+server as mentioned above. `make fmt-check` will only check if your `go` would
+format differently - this may be different from the CI server version.
+
+You should lint, vet and spell-check with:
+
+```bash
+make vet lint misspell-check
+```
+
+### Updating the stylesheets
+
+At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
+**not** edit the files in `public/css/` directly as they are generated from
+`lessc` from the files in `public/less/`.
+
+If you wish to work on the stylesheets you will need to install `lessc` the
+less compiler and `postcss`. The recommended way to do this is using `npm install`:
+
+```bash
+cd "$GOPATH/src/code.gitea.io/gitea"
+npm install
+```
+
+You can then edit the less stylesheets and regenerate the stylesheets using:
+
+```bash
+make generate-stylesheets
+```
+
+You should commit both the changes to the css and the less files when making
+PRs.
+
+### Updating the API
+
+When creating new API routes or modifying existing API routes you **MUST**
+update and/or create [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/)
+documentation for these using [go-swagger](https://goswagger.io/) comments.
+The structure of these comments is described in the [specification](https://goswagger.io/use/spec.html#annotation-syntax).
+If you want more information about the Swagger structure you can look at the
+[Swagger 2.0 Documentation](https://swagger.io/docs/specification/2-0/basic-structure/)
+or compare with a previous PR adding a new API endpoint e.g. [PR #5483](https://github.com/go-gitea/gitea/pull/5843/files#diff-2e0a7b644cf31e1c8ef7d76b444fe3aaR20)
+
+You should be careful not to break the API for downstream users which depend
+on a stable API. In general this means additions are acceptable, but deletions
+or fundamental changes of API will be rejected.
+
+Once you have created or changed an API endpoint, please regenerate the Swagger
+documentation using:
+
+```bash
+make generate-swagger
+```
+
+You should validate your generated Swagger file and spell-check it with:
+
+```bash
+make swagger-validate mispell-check
+```
+
+You should commit the changed swagger JSON file. The continous integration
+server will check that this has been done using:
+
+```bash
+make swagger-check
+```
+
+**Note**: Please note you should use the Swagger 2.0 documentation, not the
+OpenAPI 3 documentation.
+
+### Creating new configuration options
+
+When creating new configuration options, it is not enough to add them to the
+`modules/setting` files. You should add information to `custom/conf/app.ini`
+and to the
+<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
+
+### Changing the logo
+
+When changing the Gitea logo svg. You will need to run and commit the results
+of:
+
+```bash
+make generate-images
+```
+
+This will create the necessary Gitea favicon and others.
+
+### Database Migrations
+
+If you make breaking changes to any of the database persisted structs in the
+`models/` directory you will need to make a new migration. These can be found
+in `models/migrations/`. You can ensure that your migrations work for the main
+database types using:
+
+```bash
+make test-sqlite-migration # with sqlite switched for the appropriate database
+```
+
+## Testing
+
+There are two types of test run by Gitea: Unit tests and Integration Tests.
+
+```bash
+TAGS="bindata sqlite sqlite_unlock_notify" make test # Runs the unit tests
+```
+
+Unit tests will not and cannot completely test Gitea alone. Therefore we
+have written integration tests, however, these are database dependent.
+
+```bash
+TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
+```
+
+Will run the integration tests in an sqlite environment. Other database tests
+are available however may need adjustment for local environment. 
+
+Look at
+[`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
+for more information and how to run a single test.
+
+Our continuous integration will test the code passes its unit tests and that
+all supported databases will pass integration test in a docker environment.
+Migration from several recent versions of gitea will also be tested.
+
+Please submit your PR with additional tests and integration tests as
+appropriate.
+
+## Documentation for the website
+
+Documentation for the website is found in `docs/`. If you change this you
+can test your changes to ensure that they pass continuous integration using:
+
+```bash
+cd "$GOPATH/src/code.gitea.io/gitea/docs"
+make trans-copy clean build
+```
+
+You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
+note this may generate a number of untracked git objects which will need to
+be cleaned up.
+
+## Visual Studio Code
+
+A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
+Visual Studio Code. Look at
+[`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/master/contrib/ide/README.md)
+for more information.
+
+## Submitting PRs
+
+Once you're happy with your changes, push them up and open a pull request. It
+is recommended that you allow Gitea Managers and Owners to modify your PR
+branches as we will need to update it to master before merging and/or may be
+able to help fix issues directly.
+
+Any PR requires two approvals from the Gitea maintainers and needs to pass the
+continous integration. Take a look at our
+[`CONTRIBUTING.md`](https://github.com/go-gitea/gitea/blob/master/CONTRIBUTING.md)
+document.
+
+If you need more help pop on to [Discord](https://discord.gg/gitea) #Develop
+and chat there.
+
+That's it! You are ready to hack on Gitea.
