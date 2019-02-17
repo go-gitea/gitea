@@ -17,6 +17,13 @@ func IssueStopwatch(c *context.Context) {
 	if c.Written() {
 		return
 	}
+
+	var showSuccessMessage bool
+
+	if !models.StopwatchExists(c.User.ID, issue.ID) {
+		showSuccessMessage = true
+	}
+
 	if !c.Repo.CanUseTimetracker(issue, c.User) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
@@ -25,6 +32,10 @@ func IssueStopwatch(c *context.Context) {
 	if err := models.CreateOrStopIssueStopwatch(c.User, issue); err != nil {
 		c.ServerError("CreateOrStopIssueStopwatch", err)
 		return
+	}
+
+	if showSuccessMessage {
+		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 	}
 
 	url := issue.HTMLURL()
