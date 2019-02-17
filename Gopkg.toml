@@ -15,7 +15,7 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
-  branch = "master"
+  revision = "05d86ea8f6e30456949f612cf68cf4a27ce8c9c5"
   name = "github.com/blevesearch/bleve"
 
 [[constraint]]
