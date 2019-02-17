@@ -649,7 +649,7 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
-        if user.ProhibitLogin || !user.IsActive {
+				if user.ProhibitLogin || !user.IsActive {
 					return nil, ErrUserLoginProhibited{Name: user.Email}
 				}
 				return user, nil
