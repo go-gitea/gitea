@@ -29,11 +29,11 @@ type nopWriteCloser struct {
 	w io.WriteCloser
 }
 
-func (n nopWriteCloser) Write(p []byte) (int, error) {
+func (n *nopWriteCloser) Write(p []byte) (int, error) {
 	return n.w.Write(p)
 }
 
-func (n nopWriteCloser) Close() error {
+func (n *nopWriteCloser) Close() error {
 	return nil
 }
 
@@ -45,7 +45,7 @@ type ConsoleLogger struct {
 // NewConsoleLogger create ConsoleLogger returning as LoggerInterface.
 func NewConsoleLogger() LoggerInterface {
 	cw := &ConsoleLogger{}
-	cw.createLogger(nopWriteCloser{
+	cw.createLogger(&nopWriteCloser{
 		w: os.Stdout,
 	})
 	return cw
@@ -69,15 +69,15 @@ func (cw *ConsoleLogger) LogEvent(event *Event) error {
 	}
 	cw.mu.Lock()
 	defer cw.mu.Unlock()
+	if !cw.Match(event) {
+		return nil
+	}
 	var buf []byte
 	if runtime.GOOS != "windows" {
 		buf = append(buf, pre...)
 		buf = append(buf, colors[event.level]...)
 	}
 	cw.createMsg(&buf, event)
-	if cw.regexp != nil && !cw.regexp.Match(buf) {
-		return nil
-	}
 	if runtime.GOOS != "windows" {
 		buf = append(buf, reset...)
 	}

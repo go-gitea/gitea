@@ -70,7 +70,7 @@ func (l Level) String() string {
 	if ok {
 		return s
 	}
-	return "INFO"
+	return "info"
 }
 
 // MarshalJSON takes a Level and turns it into text

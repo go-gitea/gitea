@@ -70,6 +70,8 @@ func TestSMTPLogger(t *testing.T) {
 	assert.Equal(t, sendTos, envTo)
 	assert.Contains(t, string(envMsg), expected)
 
+	logger.Flush()
+
 	event.level = WARN
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
 	err = logger.LogEvent(&event)
@@ -78,4 +80,6 @@ func TestSMTPLogger(t *testing.T) {
 	assert.Equal(t, username, envFrom)
 	assert.Equal(t, sendTos, envTo)
 	assert.Contains(t, string(envMsg), expected)
+
+	logger.Close()
 }

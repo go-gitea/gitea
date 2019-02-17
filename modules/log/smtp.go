@@ -20,12 +20,12 @@ type smtpWriter struct {
 }
 
 // Write sends the message as an email
-func (s smtpWriter) Write(p []byte) (int, error) {
+func (s *smtpWriter) Write(p []byte) (int, error) {
 	return s.owner.sendMail(p)
 }
 
 // Close does nothing
-func (s smtpWriter) Close() error {
+func (s *smtpWriter) Close() error {
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (sw *SMTPLogger) Init(jsonconfig string) error {
 	if err != nil {
 		return err
 	}
-	sw.createLogger(smtpWriter{
+	sw.createLogger(&smtpWriter{
 		owner: sw,
 	})
 	sw.sendMailFn = smtp.SendMail

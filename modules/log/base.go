@@ -197,17 +197,8 @@ func (b *BaseLogger) LogEvent(event *Event) error {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.regexp != nil {
-		matched := false
-		if b.regexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.filename, event.line, event.caller))) {
-			matched = true
-		}
-		if b.regexp.Match([]byte(event.msg)) {
-			matched = true
-		}
-		if !matched {
-			return nil
-		}
+	if !b.Match(event) {
+		return nil
 	}
 	var buf []byte
 	b.createMsg(&buf, event)
@@ -215,9 +206,25 @@ func (b *BaseLogger) LogEvent(event *Event) error {
 	return err
 }
 
+// Match checks if the given event matches the logger's regexp expression
+func (b *BaseLogger) Match(event *Event) bool {
+	if b.regexp == nil {
+		return true
+	}
+	if b.regexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.filename, event.line, event.caller))) {
+		return true
+	}
+	if b.regexp.Match([]byte(event.msg)) {
+		return true
+	}
+	return false
+}
+
 // Close the base logger
 func (b *BaseLogger) Close() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.out.Close()
+	if b.out != nil {
+		b.out.Close()
+	}
 }

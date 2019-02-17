@@ -251,3 +251,24 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 	written = written[:0]
 
 }
+
+func TestBrokenRegexp(t *testing.T) {
+	var closed bool
+
+	c := CallbackWriteCloser{
+		callback: func(p []byte, close bool) {
+			closed = close
+		},
+	}
+
+	b := BaseLogger{
+		Level:      DEBUG,
+		Flags:      -1,
+		Prefix:     prefix,
+		Expression: "\\",
+	}
+	b.createLogger(c)
+	assert.Empty(t, b.regexp)
+	b.Close()
+	assert.Equal(t, true, closed)
+}

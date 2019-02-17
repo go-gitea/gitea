@@ -20,7 +20,7 @@ type connWriter struct {
 }
 
 // Close the inner writer
-func (i connWriter) Close() error {
+func (i *connWriter) Close() error {
 	if i.innerWriter != nil {
 		return i.innerWriter.Close()
 	}
@@ -28,7 +28,7 @@ func (i connWriter) Close() error {
 }
 
 // Write the data to the connection
-func (i connWriter) Write(p []byte) (int, error) {
+func (i *connWriter) Write(p []byte) (int, error) {
 	if i.neededConnectOnMsg() {
 		if err := i.connect(); err != nil {
 			return 0, err
@@ -98,7 +98,7 @@ func (cw *ConnLogger) Init(jsonconfig string) error {
 	if err != nil {
 		return err
 	}
-	cw.createLogger(connWriter{
+	cw.createLogger(&connWriter{
 		ReconnectOnMsg: cw.ReconnectOnMsg,
 		Reconnect:      cw.Reconnect,
 		Net:            cw.Net,

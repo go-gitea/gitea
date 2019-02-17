@@ -94,6 +94,44 @@ func TestNewLoggger(t *testing.T) {
 	assert.Equal(t, true, <-closed)
 }
 
+func TestNewLogggerRecreate(t *testing.T) {
+	level := INFO
+	NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
+
+	assert.Equal(t, INFO, GetLevel())
+	assert.Equal(t, false, IsTrace())
+	assert.Equal(t, false, IsDebug())
+	assert.Equal(t, true, IsInfo())
+	assert.Equal(t, true, IsWarn())
+	assert.Equal(t, true, IsError())
+
+	format := "test: %s"
+	args := []interface{}{"A"}
+
+	Log(0, INFO, format, args...)
+
+	NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
+
+	assert.Equal(t, INFO, GetLevel())
+	assert.Equal(t, false, IsTrace())
+	assert.Equal(t, false, IsDebug())
+	assert.Equal(t, true, IsInfo())
+	assert.Equal(t, true, IsWarn())
+	assert.Equal(t, true, IsError())
+
+	Log(0, INFO, format, args...)
+
+	assert.Panics(t, func() {
+		NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"`, level.String()))
+	})
+
+	go DelLogger("console")
+
+	// We should be able to redelete without a problem
+	go DelLogger("console")
+
+}
+
 func TestNewNamedLogger(t *testing.T) {
 	level := INFO
 	err := NewNamedLogger("test", 0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))

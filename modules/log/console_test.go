@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestConsoleLoggerBadConfig(t *testing.T) {
+	logger := NewConsoleLogger()
+
+	err := logger.Init("{")
+	assert.Equal(t, "unexpected end of JSON input", err.Error())
+	logger.Close()
+}
+
 func TestConsoleLoggerMinimalConfig(t *testing.T) {
 	for _, level := range Levels() {
 		var written []byte
@@ -29,15 +37,18 @@ func TestConsoleLoggerMinimalConfig(t *testing.T) {
 
 		cw := NewConsoleLogger()
 		realCW := cw.(*ConsoleLogger)
-		realCW.out = c
-
 		cw.Init(fmt.Sprintf("{\"level\":\"%s\"}", level))
+		nwc := realCW.out.(*nopWriteCloser)
+		nwc.w = c
+
 		assert.Equal(t, flags, realCW.Flags)
 		assert.Equal(t, FromString(level), realCW.Level)
 		assert.Equal(t, FromString(level), cw.GetLevel())
 		assert.Equal(t, prefix, realCW.Prefix)
 		assert.Equal(t, "", string(written))
+		cw.Close()
 		assert.Equal(t, false, closed)
+
 	}
 }
 
@@ -57,9 +68,10 @@ func TestConsoleLogger(t *testing.T) {
 
 	cw := NewConsoleLogger()
 	realCW := cw.(*ConsoleLogger)
-	realCW.out = c
+	nwc := realCW.out.(*nopWriteCloser)
+	nwc.w = c
 
-	cw.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d}", prefix, level.String(), flags))
+	cw.Init(fmt.Sprintf("{\"expression\":\"FILENAME\",\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d}", prefix, level.String(), flags))
 
 	assert.Equal(t, flags, realCW.Flags)
 	assert.Equal(t, level, realCW.Level)
@@ -101,6 +113,20 @@ func TestConsoleLogger(t *testing.T) {
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
 
+	nonMatchEvent := Event{
+		level:    INFO,
+		msg:      "TEST MSG",
+		caller:   "CALLER",
+		filename: "FULL/FI_LENAME",
+		line:     1,
+		time:     date,
+	}
+	event.level = INFO
+	expected = ""
+	cw.LogEvent(&nonMatchEvent)
+	assert.Equal(t, expected, string(written))
+	assert.Equal(t, false, closed)
+
 	event.level = WARN
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
 	if runtime.GOOS != "windows" {
@@ -112,5 +138,5 @@ func TestConsoleLogger(t *testing.T) {
 	written = written[:0]
 
 	cw.Close()
-	assert.Equal(t, true, closed)
+	assert.Equal(t, false, closed)
 }

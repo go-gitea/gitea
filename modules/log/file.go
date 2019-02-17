@@ -39,16 +39,13 @@ type FileLogger struct {
 
 // MuxWriter an *os.File writer with locker.
 type MuxWriter struct {
-	mu    *sync.Mutex
+	mu    sync.Mutex
 	fd    *os.File
 	owner *FileLogger
 }
 
 // Write writes to os.File.
-func (mw MuxWriter) Write(b []byte) (int, error) {
-	if mw.mu == nil {
-		mw.mu = &sync.Mutex{}
-	}
+func (mw *MuxWriter) Write(b []byte) (int, error) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 	mw.owner.docheck(len(b))
@@ -56,7 +53,7 @@ func (mw MuxWriter) Write(b []byte) (int, error) {
 }
 
 // Close the internal writer
-func (mw MuxWriter) Close() error {
+func (mw *MuxWriter) Close() error {
 	return mw.fd.Close()
 }
 
@@ -80,7 +77,6 @@ func NewFileLogger() LoggerInterface {
 	w.Level = TRACE
 	// use MuxWriter instead direct use os.File for lock write when rotate
 	w.mw = new(MuxWriter)
-	w.mw.mu = &sync.Mutex{}
 	w.mw.owner = w
 
 	return w
