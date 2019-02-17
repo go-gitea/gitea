@@ -314,7 +314,11 @@ func IsOrganizationOwner(orgID, uid int64) (bool, error) {
 
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(orgID, uid int64) (bool, error) {
-	return x.
+	return isOrganizationMember(x, orgID, uid)
+}
+
+func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
+	return e.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Table("org_user").
@@ -393,8 +397,12 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(orgID int64) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, orgID)
+}
+
+func getOrgUsersByOrgID(e Engine, orgID int64) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
-	err := x.
+	err := e.
 		Where("org_id=?", orgID).
 		Find(&ous)
 	return ous, err
@@ -514,7 +522,7 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	}
 
 	// Delete member in his/her teams.
-	teams, err := getUserTeams(sess, org.ID, userID)
+	teams, err := getUserOrgTeams(sess, org.ID, userID)
 	if err != nil {
 		return err
 	}
@@ -612,6 +620,7 @@ type AccessibleReposEnvironment interface {
 	RepoIDs(page, pageSize int) ([]int64, error)
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
+	AddKeyword(keyword string)
 }
 
 type accessibleReposEnv struct {
@@ -619,6 +628,7 @@ type accessibleReposEnv struct {
 	userID  int64
 	teamIDs []int64
 	e       Engine
+	keyword string
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
@@ -647,6 +657,9 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 	}
 	if len(env.teamIDs) > 0 {
 		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	}
+	if env.keyword != "" {
+		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})
 	}
 	return cond
 }
@@ -722,4 +735,8 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 	return repos, env.e.
 		In("`repository`.id", repoIDs).
 		Find(&repos)
+}
+
+func (env *accessibleReposEnv) AddKeyword(keyword string) {
+	env.keyword = keyword
 }

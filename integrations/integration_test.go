@@ -35,6 +35,23 @@ import (
 
 var mac *macaron.Macaron
 
+type NilResponseRecorder struct {
+	httptest.ResponseRecorder
+	Length int
+}
+
+func (n *NilResponseRecorder) Write(b []byte) (int, error) {
+	n.Length = n.Length + len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseRecorder() *NilResponseRecorder {
+	return &NilResponseRecorder{
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	initIntegrationTest()
 	mac = routes.NewMacaron()
@@ -47,6 +64,8 @@ func TestMain(m *testing.M) {
 		helper = &testfixtures.PostgreSQL{}
 	} else if setting.UseSQLite3 {
 		helper = &testfixtures.SQLite{}
+	} else if setting.UseMSSQL {
+		helper = &testfixtures.SQLServer{}
 	} else {
 		fmt.Println("Unsupported RDBMS for integration tests")
 		os.Exit(1)
@@ -97,6 +116,7 @@ func initIntegrationTest() {
 	}
 
 	setting.NewContext()
+	setting.CheckLFSVersion()
 	models.LoadConfigs()
 
 	switch {
@@ -130,6 +150,17 @@ func initIntegrationTest() {
 		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
+	case setting.UseMSSQL:
+		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
+		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
+		}
+		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
+			log.Fatalf("db.Exec: %v", err)
+		}
+		defer db.Close()
 	}
 	routers.GlobalInit()
 }
@@ -169,6 +200,22 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 		req.AddCookie(c)
 	}
 	resp := MakeRequest(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
+func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
@@ -286,6 +333,18 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	recorder := NewNilResponseRecorder()
+	mac.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
 	}
 	return recorder

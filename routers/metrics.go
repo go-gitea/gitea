@@ -17,7 +17,7 @@ func Metrics(ctx *context.Context) {
 		promhttp.Handler().ServeHTTP(ctx.Resp, ctx.Req.Request)
 		return
 	}
-	header := ctx.Header().Get("Authorization")
+	header := ctx.Req.Header.Get("Authorization")
 	if header == "" {
 		ctx.Error(401)
 		return

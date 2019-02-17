@@ -2,10 +2,11 @@
 Description=Gitea (Git with a cup of tea)
 After=syslog.target
 After=network.target
-#After=mysqld.service
-#After=postgresql.service
-#After=memcached.service
-#After=redis.service
+#Requires=mysql.service
+#Requires=mariadb.service
+#Requires=postgresql.service
+#Requires=memcached.service
+#Requires=redis.service
 
 [Service]
 # Modify these two values and uncomment them if you have

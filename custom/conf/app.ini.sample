@@ -31,8 +31,13 @@ PULL_REQUEST_QUEUE_LENGTH = 1000
 PREFERRED_LICENSES = Apache License 2.0,MIT License
 ; Disable the ability to interact with repositories using the HTTP protocol
 DISABLE_HTTP_GIT = false
+; Value for Access-Control-Allow-Origin header, default is not to present
+; WARNING: This maybe harmful to you website if you do not give it a right value.
+ACCESS_CONTROL_ALLOW_ORIGIN = 
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
+; Close issues as long as a commit on any branch marks it as fixed
+DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -85,6 +90,8 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
+; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
+THEMES = gitea,arc-green
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -237,6 +244,11 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; Maximum number of DB Connect retries
+DB_RETRIES = 10
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
+
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
@@ -261,6 +273,7 @@ COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
+REVERSE_PROXY_AUTHENTICATION_EMAIL = X-WEBAUTH-EMAIL
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
 ; Set to true to allow users to import local server paths
@@ -323,6 +336,7 @@ ENABLE_NOTIFY_MAIL = false
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
+ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
 ; Type of captcha you want to use. Options: image, recaptcha
@@ -354,6 +368,12 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 NO_REPLY_ADDRESS = noreply.example.org
+; Show Registration button
+SHOW_REGISTRATION_BUTTON = true
+; Default value for AutoWatchNewRepos
+; When adding a repo to a team or creating a new repo all team members will watch the 
+; repo automatically if enabled 
+AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -396,8 +416,8 @@ USER =
 PASSWD =
 ; Send mails as plain text
 SEND_AS_PLAIN_TEXT = false
-; Enable sendmail (override SMTP)
-USE_SENDMAIL = false
+; Set Mailer Type (either SMTP, sendmail or dummy to just send to the log)
+MAILER_TYPE = smtp
 ; Specify an alternative sendmail binary
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
@@ -479,6 +499,7 @@ MODE = console
 BUFFER_LEN = 10000
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
 LEVEL = Trace
+REDIRECT_MACARON_LOG = false
 
 ; For "console" mode only
 [log.console]
@@ -547,7 +568,7 @@ SCHEDULE = @every 10m
 SCHEDULE = @every 24h
 TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
-; see more on http://git-scm.com/docs/git-fsck/1.7.5
+; see more on http://git-scm.com/docs/git-fsck
 ARGS =
 
 ; Check repository statistics
@@ -586,11 +607,12 @@ MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
-; see more on http://git-scm.com/docs/git-gc/1.7.5
+; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 
 ; Operation timeout in seconds
 [git.timeout]
+DEFAULT = 360
 MIGRATE = 600
 MIRROR = 300
 CLONE = 300
@@ -608,6 +630,10 @@ MIN_INTERVAL = 10m
 ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
+; Default paging number of api
+DEFAULT_PAGING_NUM = 30
+; Default and maximum number of items per page for git trees api
+DEFAULT_GIT_TREES_PER_PAGE = 1000
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
@@ -639,11 +665,12 @@ sv-SE = sv
 ko-KR = ko
 
 [U2F]
+; NOTE: THE DEFAULT VALUES HERE WILL NEED TO BE CHANGED
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+;APP_ID = http://localhost:3000/
+; Comma seperated list of trusted facets
+;TRUSTED_FACETS = http://localhost:3000/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini

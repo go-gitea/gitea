@@ -48,7 +48,6 @@ git checkout v1.0.0
 
 * `bindata`: 这个编译选项将会把运行Gitea所需的所有外部资源都打包到可执行文件中，这样部署将非常简单因为除了可执行程序将不再需要任何其他文件。
 * `sqlite sqlite_unlock_notify`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
-* `tidb`: 这个编译选项启用tidb嵌入式数据库的支持，他跟SQLite类似但是是用纯Go编写的。
 * `pam`: 这个编译选项将会启用 PAM (Linux Pluggable Authentication Modules) 认证，如果你使用这一认证模式的话需要开启这个选项。
 
 我们支持两种方式进行编译，Make 工具 和 Go 工具。不过我们推荐使用 Make工具，因为他将会给出更多的编译选项。

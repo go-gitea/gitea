@@ -112,8 +112,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	repo := ctx.Repo.Repository
+	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
-
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
 	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
@@ -176,7 +183,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
-			Labels:      selectLabels,
+			LabelIDs:    labelIDs,
 			SortType:    sortType,
 			IssueIDs:    issueIDs,
 		})
@@ -210,7 +217,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs)
+	}
 	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
 
 	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
@@ -355,7 +366,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 	}
 }
 
-// NewIssue render createing issue page
+// NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
@@ -363,6 +374,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	body := ctx.Query("body")
+	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
 	milestone, err := models.GetMilestoneByID(milestoneID)
@@ -494,6 +507,11 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
+	if util.IsEmptyString(form.Title) {
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplIssueNew, form)
+		return
+	}
+
 	issue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -575,6 +593,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
+
+	err = issue.LoadAttributes()
+	if err != nil {
+		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
 
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
@@ -677,6 +701,10 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
+					if err = otherIssue.LoadRepo(); err != nil {
+						ctx.ServerError("LoadRepo", err)
+						return
+					}
 					// Add link to the issue of the already running stopwatch
 					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
 				}
@@ -697,7 +725,17 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		if err := comment.LoadPoster(); err != nil {
+			ctx.ServerError("LoadPoster", err)
+			return
+		}
+
 		if comment.Type == models.CommentTypeComment {
+			if err := comment.LoadAttachments(); err != nil {
+				ctx.ServerError("LoadAttachments", err)
+				return
+			}
+
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 
@@ -776,6 +814,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		pull := issue.PullRequest
+		pull.Issue = issue
 		canDelete := false
 
 		if ctx.IsSigned {
@@ -822,11 +861,22 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = models.MergeStyleMerge
 			} else if prConfig.AllowRebase {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebase
+			} else if prConfig.AllowRebaseMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				ctx.Data["MergeStyle"] = models.MergeStyleSquash
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
+		}
+		if err = pull.LoadProtectedBranch(); err != nil {
+			ctx.ServerError("LoadProtectedBranch", err)
+			return
+		}
+		if pull.ProtectedBranch != nil {
+			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+			ctx.Data["IsBlockedByApprovals"] = pull.ProtectedBranch.RequiredApprovals > 0 && cnt < pull.ProtectedBranch.RequiredApprovals
+			ctx.Data["GrantedApprovals"] = cnt
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
@@ -858,6 +908,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return nil
 	}
+	issue.Repo = ctx.Repo.Repository
 	checkIssueRights(ctx, issue)
 	if ctx.Written() {
 		return nil
@@ -1039,7 +1090,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 				if models.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -1116,7 +1167,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, isClosed); err != nil {
+				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {
@@ -1130,6 +1181,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 						return
 					}
 				} else {
+
+					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+						ctx.ServerError("CreateOrStopIssueStopwatch", err)
+						return
+					}
+
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
 					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
@@ -1199,6 +1256,8 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 	})
@@ -1230,6 +1289,8 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyDeleteComment(ctx.User, comment)
+
 	ctx.Status(200)
 }
 
@@ -1240,7 +1301,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
 		return
 	}
@@ -1319,7 +1380,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
