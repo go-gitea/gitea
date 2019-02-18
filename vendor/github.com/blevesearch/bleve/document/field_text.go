@@ -16,9 +16,18 @@ package document
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/blevesearch/bleve/analysis"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeTextField int
+
+func init() {
+	var f TextField
+	reflectStaticSizeTextField = int(reflect.TypeOf(f).Size())
+}
 
 const DefaultTextIndexingOptions = IndexField | DocValues
 
@@ -29,6 +38,13 @@ type TextField struct {
 	analyzer          *analysis.Analyzer
 	value             []byte
 	numPlainTextBytes uint64
+}
+
+func (t *TextField) Size() int {
+	return reflectStaticSizeTextField + size.SizeOfPtr +
+		len(t.name) +
+		len(t.arrayPositions)*size.SizeOfUint64 +
+		len(t.value)
 }
 
 func (t *TextField) Name() string {

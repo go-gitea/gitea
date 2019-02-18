@@ -61,10 +61,12 @@
 								</a>
 							</li>
 							*/}}
-							{{if .Orgs}}
+							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								{{range .Orgs}}
-									<a href="{{.HomeLink}}"><img class="ui mini image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
+									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.IsUserPartOfOrg $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
+										<a href="{{.HomeLink}}"><img class="ui mini image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
+									{{end}}
 								{{end}}
 							</li>
 							{{end}}
