@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,6 +40,10 @@ func Home(ctx *context.Context) {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 			ctx.HTML(200, user.TplActivate)
+		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(200, "user/auth/prohibit_login")
 		} else {
 			user.Dashboard(ctx)
 		}

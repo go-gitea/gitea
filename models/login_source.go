@@ -642,6 +642,12 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	if hasUser {
+		if !user.IsActive {
+			return nil, ErrUserInactive{user.ID, user.Name}
+		} else if user.ProhibitLogin {
+			return nil, ErrUserProhibitLogin{user.ID, user.Name}
+		}
+
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
