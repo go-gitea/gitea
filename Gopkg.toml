@@ -15,10 +15,8 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
-#  branch = "master"
-  revision = "c74e08f039e56cef576e4336382b2a2d12d9e026"
+  revision = "05d86ea8f6e30456949f612cf68cf4a27ce8c9c5"
   name = "github.com/blevesearch/bleve"
-#Not targetting v0.7.0 since standard where use only just after this tag
 
 [[constraint]]
   revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
@@ -107,11 +105,6 @@ ignored = ["google.golang.org/appengine*"]
 [[constraint]]
   name = "gopkg.in/testfixtures.v2"
   version = "2.0.0"
-
-[[override]]
-  name = "github.com/boltdb/bolt"
-  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
-  source = "github.com/go-gitea/bolt"
 
 [[override]]
   branch = "master"

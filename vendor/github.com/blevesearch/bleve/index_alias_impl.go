@@ -433,6 +433,7 @@ func createChildSearchRequest(req *SearchRequest) *SearchRequest {
 		Explain:          req.Explain,
 		Sort:             req.Sort.Copy(),
 		IncludeLocations: req.IncludeLocations,
+		Score:            req.Score,
 	}
 	return &rv
 }
