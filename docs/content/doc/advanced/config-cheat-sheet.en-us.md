@@ -71,6 +71,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
 
+### Repository - Issue (`repository.issue`)
+- `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.

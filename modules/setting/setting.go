@@ -227,6 +227,11 @@ var (
 		PullRequest struct {
 			WorkInProgressPrefixes []string
 		} `ini:"repository.pull-request"`
+
+		// Issue Setting
+		Issue struct {
+			LockReasons []string
+		} `ini:"repository.issue"`
 	}{
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
@@ -278,6 +283,13 @@ var (
 			WorkInProgressPrefixes []string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
+		},
+
+		// Issue settings
+		Issue: struct {
+			LockReasons []string
+		}{
+			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 		},
 	}
 	RepoRootPath string
