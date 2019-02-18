@@ -1151,9 +1151,9 @@ func NewContext() {
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
-			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
-			"español", "português do Brasil", "polski", "български", "italiano",
-			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"Français", "Nederlands", "Latviešu", "Pусский", "Українська", "日本語",
+			"Español", "Português do Brasil", "Polski", "български", "Italiano",
+			"Suomi", "Türkçe", "eština", "Cрпски", "Svenska", "한국어"}
 	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
