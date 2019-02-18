@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -230,6 +231,7 @@ func ExploreUsers(ctx *context.Context) {
 		Type:     models.UserTypeIndividual,
 		PageSize: setting.UI.ExplorePagingNum,
 		IsActive: util.OptionalBoolTrue,
+		Private:  true,
 	}, tplExploreUsers)
 }
 
@@ -240,9 +242,16 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
+	var ownerID int64
+	if ctx.User != nil && !ctx.User.IsAdmin {
+		ownerID = ctx.User.ID
+	}
+
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.ExplorePagingNum,
+		Private:  ctx.User != nil,
+		OwnerID:  ownerID,
 	}, tplExploreOrganizations)
 }
 

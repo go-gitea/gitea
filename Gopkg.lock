@@ -1094,12 +1094,12 @@
   version = "v1.31.1"
 
 [[projects]]
-  digest = "1:7e1c00b9959544fa1ccca7cf0407a5b29ac6d5201059c4fac6f599cb99bfd24d"
-  name = "gopkg.in/ldap.v2"
+  digest = "1:8a502dedecf5b6d56e36f0d0e6196392baf616634af2c23108b6e8bb89ec57fc"
+  name = "gopkg.in/ldap.v3"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9"
-  version = "v2.5.1"
+  revision = "214f299a0ecb2a6c6f6d2b0f13977032b207dc58"
+  version = "v3.0.1"
 
 [[projects]]
   digest = "1:de2e7294c9bd0b7d07ada8e98ad02cbbaabacff90eedebe7454ebdbab50d0d19"
@@ -1309,7 +1309,7 @@
     "gopkg.in/editorconfig/editorconfig-core-go.v1",
     "gopkg.in/gomail.v2",
     "gopkg.in/ini.v1",
-    "gopkg.in/ldap.v2",
+    "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
