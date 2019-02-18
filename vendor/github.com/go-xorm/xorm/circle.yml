@@ -1,0 +1,41 @@
+dependencies:
+  override:
+    # './...' is a relative pattern which means all subdirectories
+    - go get -t -d -v ./...
+    - go get -t -d -v github.com/go-xorm/tests
+    - go get -u github.com/go-xorm/core
+    - go get -u github.com/go-xorm/builder
+    - go build -v
+
+database:
+  override:
+    - mysql -u root -e "CREATE DATABASE xorm_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test1 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test2 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - mysql -u root -e "CREATE DATABASE xorm_test3 DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"
+    - createdb -p 5432 -e -U postgres xorm_test
+    - createdb -p 5432 -e -U postgres xorm_test1
+    - createdb -p 5432 -e -U postgres xorm_test2
+    - createdb -p 5432 -e -U postgres xorm_test3
+    - psql xorm_test postgres -c "create schema xorm"
+
+test:
+  override:
+    # './...' is a relative pattern which means all subdirectories
+    - go get -u github.com/wadey/gocovmerge
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1-1.txt -covermode=atomic
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -coverprofile=coverage2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic
+    - go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
+    - go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -coverprofile=coverage4-1.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
+    - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
+    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
+    - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./postgres.sh
+  post:
+    - bash <(curl -s https://codecov.io/bash)
