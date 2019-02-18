@@ -17,13 +17,22 @@ package scorer
 import (
 	"fmt"
 	"math"
+	"reflect"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
 
+var reflectStaticSizeTermQueryScorer int
+
+func init() {
+	var tqs TermQueryScorer
+	reflectStaticSizeTermQueryScorer = int(reflect.TypeOf(tqs).Size())
+}
+
 type TermQueryScorer struct {
-	queryTerm              []byte
+	queryTerm              string
 	queryField             string
 	queryBoost             float64
 	docTerm                uint64
@@ -36,9 +45,24 @@ type TermQueryScorer struct {
 	queryWeightExplanation *search.Explanation
 }
 
+func (s *TermQueryScorer) Size() int {
+	sizeInBytes := reflectStaticSizeTermQueryScorer + size.SizeOfPtr +
+		len(s.queryTerm) + len(s.queryField)
+
+	if s.idfExplanation != nil {
+		sizeInBytes += s.idfExplanation.Size()
+	}
+
+	if s.queryWeightExplanation != nil {
+		sizeInBytes += s.queryWeightExplanation.Size()
+	}
+
+	return sizeInBytes
+}
+
 func NewTermQueryScorer(queryTerm []byte, queryField string, queryBoost float64, docTotal, docTerm uint64, options search.SearcherOptions) *TermQueryScorer {
 	rv := TermQueryScorer{
-		queryTerm:   queryTerm,
+		queryTerm:   string(queryTerm),
 		queryField:  queryField,
 		queryBoost:  queryBoost,
 		docTerm:     docTerm,
@@ -82,7 +106,7 @@ func (s *TermQueryScorer) SetQueryNorm(qnorm float64) {
 		}
 		s.queryWeightExplanation = &search.Explanation{
 			Value:    s.queryWeight,
-			Message:  fmt.Sprintf("queryWeight(%s:%s^%f), product of:", s.queryField, string(s.queryTerm), s.queryBoost),
+			Message:  fmt.Sprintf("queryWeight(%s:%s^%f), product of:", s.queryField, s.queryTerm, s.queryBoost),
 			Children: childrenExplanations,
 		}
 	}
@@ -104,7 +128,7 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 		childrenExplanations := make([]*search.Explanation, 3)
 		childrenExplanations[0] = &search.Explanation{
 			Value:   tf,
-			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, s.queryTerm, termMatch.Freq),
 		}
 		childrenExplanations[1] = &search.Explanation{
 			Value:   termMatch.Norm,
@@ -113,7 +137,7 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 		childrenExplanations[2] = s.idfExplanation
 		scoreExplanation = &search.Explanation{
 			Value:    score,
-			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, string(s.queryTerm), termMatch.ID),
+			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, s.queryTerm, termMatch.ID),
 			Children: childrenExplanations,
 		}
 	}
@@ -127,7 +151,7 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 			childExplanations[1] = scoreExplanation
 			scoreExplanation = &search.Explanation{
 				Value:    score,
-				Message:  fmt.Sprintf("weight(%s:%s^%f in %s), product of:", s.queryField, string(s.queryTerm), s.queryBoost, termMatch.ID),
+				Message:  fmt.Sprintf("weight(%s:%s^%f in %s), product of:", s.queryField, s.queryTerm, s.queryBoost, termMatch.ID),
 				Children: childExplanations,
 			}
 		}
@@ -140,41 +164,31 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 		rv.Expl = scoreExplanation
 	}
 
-	if termMatch.Vectors != nil && len(termMatch.Vectors) > 0 {
-		locs := make([]search.Location, len(termMatch.Vectors))
-		locsUsed := 0
-
-		totalPositions := 0
-		for _, v := range termMatch.Vectors {
-			totalPositions += len(v.ArrayPositions)
+	if len(termMatch.Vectors) > 0 {
+		if cap(rv.FieldTermLocations) < len(termMatch.Vectors) {
+			rv.FieldTermLocations = make([]search.FieldTermLocation, 0, len(termMatch.Vectors))
 		}
-		positions := make(search.ArrayPositions, totalPositions)
-		positionsUsed := 0
 
-		rv.Locations = make(search.FieldTermLocationMap)
 		for _, v := range termMatch.Vectors {
-			tlm := rv.Locations[v.Field]
-			if tlm == nil {
-				tlm = make(search.TermLocationMap)
-				rv.Locations[v.Field] = tlm
-			}
-
-			loc := &locs[locsUsed]
-			locsUsed++
-
-			loc.Pos = v.Pos
-			loc.Start = v.Start
-			loc.End = v.End
-
+			var ap search.ArrayPositions
 			if len(v.ArrayPositions) > 0 {
-				loc.ArrayPositions = positions[positionsUsed : positionsUsed+len(v.ArrayPositions)]
-				for i, ap := range v.ArrayPositions {
-					loc.ArrayPositions[i] = ap
+				n := len(rv.FieldTermLocations)
+				if n < cap(rv.FieldTermLocations) { // reuse ap slice if available
+					ap = rv.FieldTermLocations[:n+1][n].Location.ArrayPositions[:0]
 				}
-				positionsUsed += len(v.ArrayPositions)
+				ap = append(ap, v.ArrayPositions...)
 			}
-
-			tlm[string(s.queryTerm)] = append(tlm[string(s.queryTerm)], loc)
+			rv.FieldTermLocations =
+				append(rv.FieldTermLocations, search.FieldTermLocation{
+					Field: v.Field,
+					Term:  s.queryTerm,
+					Location: search.Location{
+						Pos:            v.Pos,
+						Start:          v.Start,
+						End:            v.End,
+						ArrayPositions: ap,
+					},
+				})
 		}
 	}
 
