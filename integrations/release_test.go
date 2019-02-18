@@ -113,6 +113,6 @@ func TestCreateReleasePaging(t *testing.T) {
 	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", i18n.Tr("en", "repo.release.draft"), 10)
 
 	// Check that user3 does not see draft and still see 10 latest releases
-	session2 := loginUser(t, "user3")
+	session2 := loginUser(t, "user4")
 	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", i18n.Tr("en", "repo.release.stable"), 10)
 }
