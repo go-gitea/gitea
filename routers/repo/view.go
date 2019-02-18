@@ -112,7 +112,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			meta := lfs.IsPointerFile(&buf)
 			if meta != nil {
 				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
-				if err != models.ErrLFSObjectNotExist {
+				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 				}
 			}
