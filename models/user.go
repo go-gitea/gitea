@@ -134,10 +134,10 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams    int
-	NumMembers  int
-	Teams       []*Team `xorm:"-"`
-	Members     []*User `xorm:"-"`
+	NumTeams   int
+	NumMembers int
+	Teams      []*Team `xorm:"-"`
+	Members    []*User `xorm:"-"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
