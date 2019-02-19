@@ -69,6 +69,10 @@ MAX_FILES = 5
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 
+[repository.issue]
+; List of reasons why a Pull Request or Issue can be locked
+LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -166,6 +167,11 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetIssueByIndex", err)
+		return
+	}
+
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Error(403, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
 		return
 	}
 
