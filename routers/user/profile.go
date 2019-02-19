@@ -237,7 +237,7 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(200, tplProfile)
 }

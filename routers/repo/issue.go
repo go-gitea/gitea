@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
@@ -147,7 +146,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = models.SearchIssuesByKeyword(repo.ID, keyword)
+		if err != nil {
+			ctx.ServerError("issueIndexer.Search", err)
+			return
+		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true
 		}
