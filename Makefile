@@ -1,10 +1,10 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
 
-export PATH := $(go env GOPATH)/bin:$(PATH)
-
 GO ?= go
 SED_INPLACE := sed -i
+
+export PATH := $($(GO) env GOPATH)/bin:$(PATH)
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
