@@ -335,6 +335,91 @@
 					</div>
 				{{end}}
 			</div>
+
+			{{ if .IsRepoAdmin }}
+			<div class="ui divider"></div>
+			<div class="ui watching">
+				<div>
+					<button class="fluid ui  show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
+							{{if .Issue.IsLocked}}
+								<i class="octicon octicon-key"></i>
+								{{.i18n.Tr "repo.issues.unlock"}}
+							{{else}}
+								<i class="octicon octicon-lock"></i>
+								{{.i18n.Tr "repo.issues.lock"}}
+							{{end}}
+						</button>
+					</form>
+				</div>
+			</div>
+
+
+			<div class="ui tiny modal" id="lock">
+				<div class="header">
+					{{ if .Issue.IsLocked }}
+						{{.i18n.Tr "repo.issues.unlock.title"}}
+					{{ else }}
+						{{.i18n.Tr "repo.issues.lock.title"}}
+					{{ end }}
+				</div>
+			<div class="content">
+				<div class="ui warning message text left">
+					{{ if .Issue.IsLocked }}
+						{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
+						{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
+					{{ else }}
+						{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
+						{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
+						{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
+					{{ end }}
+				</div>
+
+				<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{ else }}/lock{{ end }}"
+					method="post">
+					{{.CsrfTokenHtml}}
+
+					{{ if not .Issue.IsLocked }}
+					<div class="field">
+						<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
+					</div>
+
+					<div class="field">
+						<div class="ui fluid dropdown selection" tabindex="0">
+
+							<select name="reason">
+								<option value=""> </option>
+								{{range .LockReasons}}
+									<option value="{{.}}">{{.}}</option>
+								{{end}}
+							</select>
+							<i class="dropdown icon"></i>
+
+							<div class="default text"> </div>
+
+							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+								{{range .LockReasons}}
+									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+					{{ end }}
+
+					<div class="text right actions">
+						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+						<button class="ui red button">
+							{{ if .Issue.IsLocked }}
+								{{.i18n.Tr "repo.issues.unlock_confirm"}}
+							{{ else }}
+								{{.i18n.Tr "repo.issues.lock_confirm"}}
+							{{ end }}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		{{ end }}
+
 	</div>
 </div>
 {{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}

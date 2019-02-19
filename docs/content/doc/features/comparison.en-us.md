@@ -81,7 +81,7 @@ _Symbols used in table:_
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Lock Discussion | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Batch issue handling | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Issue Boards | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |

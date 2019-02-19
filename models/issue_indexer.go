@@ -7,25 +7,60 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
-// issueIndexerUpdateQueue queue of issue ids to be updated
-var issueIndexerUpdateQueue chan int64
+var (
+	// issueIndexerUpdateQueue queue of issue ids to be updated
+	issueIndexerUpdateQueue issues.Queue
+	issueIndexer            issues.Indexer
+)
 
 // InitIssueIndexer initialize issue indexer
-func InitIssueIndexer() {
-	indexer.InitIssueIndexer(populateIssueIndexer)
-	issueIndexerUpdateQueue = make(chan int64, setting.Indexer.UpdateQueueLength)
-	go processIssueIndexerUpdateQueue()
+func InitIssueIndexer() error {
+	var populate bool
+	switch setting.Indexer.IssueType {
+	case "bleve":
+		issueIndexer = issues.NewBleveIndexer(setting.Indexer.IssuePath)
+		exist, err := issueIndexer.Init()
+		if err != nil {
+			return err
+		}
+		populate = !exist
+	default:
+		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
+	}
+
+	var err error
+	switch setting.Indexer.IssueIndexerQueueType {
+	case setting.LevelQueueType:
+		issueIndexerUpdateQueue, err = issues.NewLevelQueue(
+			issueIndexer,
+			setting.Indexer.IssueIndexerQueueDir,
+			setting.Indexer.IssueIndexerQueueBatchNumber)
+		if err != nil {
+			return err
+		}
+	case setting.ChannelQueueType:
+		issueIndexerUpdateQueue = issues.NewChannelQueue(issueIndexer, setting.Indexer.IssueIndexerQueueBatchNumber)
+	default:
+		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueIndexerQueueType)
+	}
+
+	go issueIndexerUpdateQueue.Run()
+
+	if populate {
+		go populateIssueIndexer()
+	}
+
+	return nil
 }
 
 // populateIssueIndexer populate the issue indexer with issue data
-func populateIssueIndexer() error {
-	batch := indexer.IssueIndexerBatch()
+func populateIssueIndexer() {
 	for page := 1; ; page++ {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:        page,
@@ -35,98 +70,79 @@ func populateIssueIndexer() error {
 			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
-			return fmt.Errorf("Repositories: %v", err)
+			log.Error(4, "SearchRepositoryByName: %v", err)
+			continue
 		}
 		if len(repos) == 0 {
-			return batch.Flush()
+			return
 		}
+
 		for _, repo := range repos {
-			issues, err := Issues(&IssuesOptions{
+			is, err := Issues(&IssuesOptions{
 				RepoIDs:  []int64{repo.ID},
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
 			})
 			if err != nil {
-				return err
+				log.Error(4, "Issues: %v", err)
+				continue
 			}
-			if err = IssueList(issues).LoadComments(); err != nil {
-				return err
+			if err = IssueList(is).LoadDiscussComments(); err != nil {
+				log.Error(4, "LoadComments: %v", err)
+				continue
 			}
-			for _, issue := range issues {
-				if err := issue.update().AddToFlushingBatch(batch); err != nil {
-					return err
-				}
+			for _, issue := range is {
+				UpdateIssueIndexer(issue)
 			}
 		}
 	}
 }
 
-func processIssueIndexerUpdateQueue() {
-	batch := indexer.IssueIndexerBatch()
-	for {
-		var issueID int64
-		select {
-		case issueID = <-issueIndexerUpdateQueue:
-		default:
-			// flush whatever updates we currently have, since we
-			// might have to wait a while
-			if err := batch.Flush(); err != nil {
-				log.Error(4, "IssueIndexer: %v", err)
-			}
-			issueID = <-issueIndexerUpdateQueue
-		}
-		issue, err := GetIssueByID(issueID)
-		if err != nil {
-			log.Error(4, "GetIssueByID: %v", err)
-		} else if err = issue.update().AddToFlushingBatch(batch); err != nil {
-			log.Error(4, "IssueIndexer: %v", err)
-		}
-	}
-}
-
-func (issue *Issue) update() indexer.IssueIndexerUpdate {
-	comments := make([]string, 0, 5)
+// UpdateIssueIndexer add/update an issue to the issue indexer
+func UpdateIssueIndexer(issue *Issue) {
+	var comments []string
 	for _, comment := range issue.Comments {
 		if comment.Type == CommentTypeComment {
 			comments = append(comments, comment.Content)
 		}
 	}
-	return indexer.IssueIndexerUpdate{
-		IssueID: issue.ID,
-		Data: &indexer.IssueIndexerData{
-			RepoID:   issue.RepoID,
-			Title:    issue.Title,
-			Content:  issue.Content,
-			Comments: comments,
-		},
-	}
+	issueIndexerUpdateQueue.Push(&issues.IndexerData{
+		ID:       issue.ID,
+		RepoID:   issue.RepoID,
+		Title:    issue.Title,
+		Content:  issue.Content,
+		Comments: comments,
+	})
 }
 
-// updateNeededCols whether a change to the specified columns requires updating
-// the issue indexer
-func updateNeededCols(cols []string) bool {
-	for _, col := range cols {
-		switch col {
-		case "name", "content":
-			return true
-		}
+// DeleteRepoIssueIndexer deletes repo's all issues indexes
+func DeleteRepoIssueIndexer(repo *Repository) {
+	var ids []int64
+	ids, err := getIssueIDsByRepoID(x, repo.ID)
+	if err != nil {
+		log.Error(4, "getIssueIDsByRepoID failed: %v", err)
+		return
 	}
-	return false
+
+	if len(ids) <= 0 {
+		return
+	}
+
+	issueIndexerUpdateQueue.Push(&issues.IndexerData{
+		IDs:      ids,
+		IsDelete: true,
+	})
 }
 
-// UpdateIssueIndexerCols update an issue in the issue indexer, given changes
-// to the specified columns
-func UpdateIssueIndexerCols(issueID int64, cols ...string) {
-	updateNeededCols(cols)
-}
-
-// UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issueID int64) {
-	select {
-	case issueIndexerUpdateQueue <- issueID:
-	default:
-		go func() {
-			issueIndexerUpdateQueue <- issueID
-		}()
+// SearchIssuesByKeyword search issue ids by keywords and repo id
+func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
+	var issueIDs []int64
+	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
+	if err != nil {
+		return nil, err
 	}
+	for _, r := range res.Hits {
+		issueIDs = append(issueIDs, r.ID)
+	}
+	return issueIDs, nil
 }
