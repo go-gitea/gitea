@@ -600,16 +600,29 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return nil, ErrLoginSourceNotActived
 	}
 
+	var err error
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
-		return LoginViaLDAP(user, login, password, source, autoRegister)
+		user, err = LoginViaLDAP(user, login, password, source, autoRegister)
 	case LoginSMTP:
-		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
+		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
-		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+	default:
+		return nil, ErrUnsupportedLoginType
 	}
 
-	return nil, ErrUnsupportedLoginType
+	if err != nil {
+		return nil, err
+	}
+
+	if !user.IsActive {
+		return nil, ErrUserInactive{user.ID, user.Name}
+	} else if user.ProhibitLogin {
+		return nil, ErrUserProhibitLogin{user.ID, user.Name}
+	}
+
+	return user, nil
 }
 
 // UserSignIn validates user name and password.
@@ -645,6 +658,12 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
+				if !user.IsActive {
+					return nil, ErrUserInactive{user.ID, user.Name}
+				} else if user.ProhibitLogin {
+					return nil, ErrUserProhibitLogin{user.ID, user.Name}
+				}
+
 				return user, nil
 			}
 
