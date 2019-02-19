@@ -7,6 +7,12 @@ function htmlEncode(text) {
 var csrf;
 var suburl;
 
+// Polyfill for IE9+ support
+if (!Element.prototype.matches) {
+    Element.prototype.matches = Element.prototype.msMatchesSelector ||
+                            Element.prototype.webkitMatchesSelector;
+}
+
 function initCommentPreviewTab($form) {
     var $tabMenu = $form.find('.tabular.menu');
     $tabMenu.find('.item').tab();
