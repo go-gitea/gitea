@@ -80,6 +80,10 @@ const (
 	CommentTypeCode
 	// Reviews a pull request by giving general feedback
 	CommentTypeReview
+	// Lock an issue, giving only collaborators access
+	CommentTypeLock
+	// Unlocks a previously locked issue
+	CommentTypeUnlock
 )
 
 // CommentTag defines comment tag type
@@ -1031,6 +1035,7 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := c.LoadIssue(); err != nil {
 		return err
 	}
+
 	if err := c.Issue.LoadAttributes(); err != nil {
 		return err
 	}
@@ -1089,6 +1094,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := comment.LoadIssue(); err != nil {
 		return err
 	}
+
 	if err := comment.Issue.LoadAttributes(); err != nil {
 		return err
 	}

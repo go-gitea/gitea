@@ -90,7 +90,9 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		models.InitIssueIndexer()
+		if err := models.InitIssueIndexer(); err != nil {
+			log.Fatal(4, "Failed to initialize issue indexer: %v", err)
+		}
 		models.InitRepoIndexer()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
