@@ -103,6 +103,7 @@ type User struct {
 	Rands       string `xorm:"VARCHAR(10)"`
 	Salt        string `xorm:"VARCHAR(10)"`
 	Language    string `xorm:"VARCHAR(5)"`
+	Description string
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -133,7 +134,6 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	Description string
 	NumTeams    int
 	NumMembers  int
 	Teams       []*Team `xorm:"-"`
