@@ -291,6 +291,13 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssuesOrPulls"] = perm.CanWriteIssuesOrPulls(isPullList)
+
 	ctx.HTML(200, tplIssues)
 }
 
