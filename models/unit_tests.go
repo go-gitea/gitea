@@ -44,6 +44,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
+	if err = InitIssueIndexer(); err != nil {
+		fatalTestError("Error InitIssueIndexer: %v\n", err)
+	}
+
 	setting.AppURL = "https://try.gitea.io/"
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
