@@ -69,7 +69,7 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 
 	setting.UI.ShowUserEmail = showUserEmail
 
-	session = loginUser(t, "user3")
+	session = loginUser(t, "user4")
 	req = NewRequest(t, "GET", "/user2")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
