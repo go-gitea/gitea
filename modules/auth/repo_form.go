@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/utils"
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -120,7 +121,8 @@ type RepoSettingForm struct {
 	IsArchived                       bool
 
 	// Admin settings
-	EnableHealthCheck bool
+	EnableHealthCheck                     bool
+	EnableCloseIssuesViaCommitInAnyBranch bool
 }
 
 // Validate validates the fields
@@ -307,6 +309,32 @@ func (f *ReactionForm) Validate(ctx *macaron.Context, errs binding.Errors) bindi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// IssueLockForm form for locking an issue
+type IssueLockForm struct {
+	Reason string `binding:"Required"`
+}
+
+// Validate validates the fields
+func (i *IssueLockForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, i, ctx.Locale)
+}
+
+// HasValidReason checks to make sure that the reason submitted in
+// the form matches any of the values in the config
+func (i IssueLockForm) HasValidReason() bool {
+	if strings.TrimSpace(i.Reason) == "" {
+		return true
+	}
+
+	for _, v := range setting.Repository.Issue.LockReasons {
+		if v == i.Reason {
+			return true
+		}
+	}
+
+	return false
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
@@ -364,7 +392,10 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 //                                     \/     \/   |__|           \/     \/
 
 // MergePullRequestForm form for merging Pull Request
+// swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
+	// required: true
+	// enum: merge,rebase,rebase-merge,squash
 	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string

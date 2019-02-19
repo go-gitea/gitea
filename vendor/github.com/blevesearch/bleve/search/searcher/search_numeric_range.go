@@ -68,7 +68,7 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 		return nil, err
 	}
 	if tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr()
+		return nil, tooManyClausesErr(len(terms))
 	}
 
 	return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
@@ -77,6 +77,25 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 
 func filterCandidateTerms(indexReader index.IndexReader,
 	terms [][]byte, field string) (rv [][]byte, err error) {
+
+	if ir, ok := indexReader.(index.IndexReaderOnly); ok {
+		fieldDict, err := ir.FieldDictOnly(field, terms, false)
+		if err != nil {
+			return nil, err
+		}
+		// enumerate the terms (no need to check them again)
+		tfd, err := fieldDict.Next()
+		for err == nil && tfd != nil {
+			rv = append(rv, []byte(tfd.Term))
+			tfd, err = fieldDict.Next()
+		}
+		if cerr := fieldDict.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+
+		return rv, err
+	}
+
 	fieldDict, err := indexReader.FieldDictRange(field, terms[0], terms[len(terms)-1])
 	if err != nil {
 		return nil, err

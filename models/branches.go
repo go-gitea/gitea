@@ -101,7 +101,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	reviews, err := GetReviewersByPullID(pr.Issue.ID)
 	if err != nil {
-		log.Error(1, "GetUniqueApprovalsByPullRequestID:", err)
+		log.Error(1, "GetReviewersByPullID:", err)
 		return 0
 	}
 

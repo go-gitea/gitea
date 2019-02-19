@@ -80,6 +80,10 @@ const (
 	CommentTypeCode
 	// Reviews a pull request by giving general feedback
 	CommentTypeReview
+	// Lock an issue, giving only collaborators access
+	CommentTypeLock
+	// Unlocks a previously locked issue
+	CommentTypeUnlock
 )
 
 // CommentTag defines comment tag type
@@ -873,10 +877,11 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	// No need for get commit for base branch changes
 	if line > 0 {
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err != nil {
+		if err == nil {
+			commitID = commit.ID.String()
+		} else if err != nil && !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
-		commitID = commit.ID.String()
 	}
 
 	// Only fetch diff if comment is review comment

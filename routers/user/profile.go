@@ -99,6 +99,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
 	tab := ctx.Query("tab")
 	ctx.Data["TabName"] = tab

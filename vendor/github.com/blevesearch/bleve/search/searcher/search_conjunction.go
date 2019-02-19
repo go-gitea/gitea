@@ -16,12 +16,21 @@ package searcher
 
 import (
 	"math"
+	"reflect"
 	"sort"
 
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/scorer"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeConjunctionSearcher int
+
+func init() {
+	var cs ConjunctionSearcher
+	reflectStaticSizeConjunctionSearcher = int(reflect.TypeOf(cs).Size())
+}
 
 type ConjunctionSearcher struct {
 	indexReader index.IndexReader
@@ -34,14 +43,27 @@ type ConjunctionSearcher struct {
 	options     search.SearcherOptions
 }
 
-func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, options search.SearcherOptions) (*ConjunctionSearcher, error) {
-	// build the downstream searchers
+func NewConjunctionSearcher(indexReader index.IndexReader,
+	qsearchers []search.Searcher, options search.SearcherOptions) (
+	search.Searcher, error) {
+	// build the sorted downstream searchers
 	searchers := make(OrderedSearcherList, len(qsearchers))
 	for i, searcher := range qsearchers {
 		searchers[i] = searcher
 	}
-	// sort the searchers
 	sort.Sort(searchers)
+
+	// attempt the "unadorned" conjunction optimization only when we
+	// do not need extra information like freq-norm's or term vectors
+	if len(searchers) > 1 &&
+		options.Score == "none" && !options.IncludeTermVectors {
+		rv, err := optimizeCompositeSearcher("conjunction:unadorned",
+			indexReader, searchers, options)
+		if err != nil || rv != nil {
+			return rv, err
+		}
+	}
+
 	// build our searcher
 	rv := ConjunctionSearcher{
 		indexReader: indexReader,
@@ -51,7 +73,34 @@ func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 		scorer:      scorer.NewConjunctionQueryScorer(options),
 	}
 	rv.computeQueryNorm()
+
+	// attempt push-down conjunction optimization when there's >1 searchers
+	if len(searchers) > 1 {
+		rv, err := optimizeCompositeSearcher("conjunction",
+			indexReader, searchers, options)
+		if err != nil || rv != nil {
+			return rv, err
+		}
+	}
+
 	return &rv, nil
+}
+
+func (s *ConjunctionSearcher) Size() int {
+	sizeInBytes := reflectStaticSizeConjunctionSearcher + size.SizeOfPtr +
+		s.scorer.Size()
+
+	for _, entry := range s.searchers {
+		sizeInBytes += entry.Size()
+	}
+
+	for _, entry := range s.currs {
+		if entry != nil {
+			sizeInBytes += entry.Size()
+		}
+	}
+
+	return sizeInBytes
 }
 
 func (s *ConjunctionSearcher) computeQueryNorm() {
@@ -108,7 +157,7 @@ func (s *ConjunctionSearcher) Next(ctx *search.SearchContext) (*search.DocumentM
 	var rv *search.DocumentMatch
 	var err error
 OUTER:
-	for s.currs[s.maxIDIdx] != nil {
+	for s.maxIDIdx < len(s.currs) && s.currs[s.maxIDIdx] != nil {
 		maxID := s.currs[s.maxIDIdx].IndexInternalID
 
 		i := 0
