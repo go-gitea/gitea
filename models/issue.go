@@ -57,6 +57,10 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+
+	// IsLocked limits commenting abilities to users on an issue
+	// with write access
+	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 var (

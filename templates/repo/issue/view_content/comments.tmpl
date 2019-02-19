@@ -2,7 +2,11 @@
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
-	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE, 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE, 22 = REVIEW -->
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
+	 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
+	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
+	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
+	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -355,5 +359,35 @@
 				{{end}}
 			{{end}}
 	    </div>
+	{{else if eq .Type 23}}
+		<div class="event">
+			<span class="octicon octicon-lock"
+				style="font-size:20px;margin-left:-28.5px; margin-right: -1px"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+
+			{{ if .Content }}
+	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+				{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
+	    		</span>
+			{{ else }}
+	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+				{{$.i18n.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
+	    		</span>
+			{{ end }}
+		</div>
+	{{else if eq .Type 24}}
+		<div class="event">
+			<span class="octicon octicon-key"
+				style="font-size:20px;margin-left:-28.5px; margin-right: -1px"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+
+	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+	    			{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
+	    		</span>
+		</div>
 	{{end}}
 {{end}}
