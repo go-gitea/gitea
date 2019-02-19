@@ -114,6 +114,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
+					return
 				}
 			}
 
@@ -131,7 +132,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				defer dataRc.Close()
 
 				buf = make([]byte, 1024)
-				n, _ = dataRc.Read(buf)
+				n, err = dataRc.Read(buf)
+				if err != nil {
+					ctx.ServerError("Data", err)
+					return
+				}
 				buf = buf[:n]
 
 				isTextFile = base.IsTextFile(buf)
@@ -141,7 +146,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = meta.Size
 				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
-				isLFSFile = true
 			}
 		}
 
@@ -228,33 +232,43 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
-	if isTextFile {
-		if meta := lfs.IsPointerFile(&buf); meta != nil {
-			if meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid); meta != nil {
-				ctx.Data["IsLFSFile"] = true
-				isLFSFile = true
-
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(meta)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
-				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, _ = dataRc.Read(buf)
-				buf = buf[:n]
-
-				isTextFile = base.IsTextFile(buf)
-				ctx.Data["IsTextFile"] = isTextFile
-
-				fileSize = meta.Size
-				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+	if isTextFile && setting.LFS.StartServer {
+		meta := lfs.IsPointerFile(&buf)
+		if meta != nil {
+			meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				ctx.ServerError("GetLFSMetaObject", err)
+				return
 			}
+		}
+		if meta != nil {
+			ctx.Data["IsLFSFile"] = true
+			isLFSFile = true
+
+			// OK read the lfs object
+			var err error
+			dataRc, err = lfs.ReadMetaObject(meta)
+			if err != nil {
+				ctx.ServerError("ReadMetaObject", err)
+				return
+			}
+			defer dataRc.Close()
+
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				ctx.ServerError("Data", err)
+				return
+			}
+			buf = buf[:n]
+
+			isTextFile = base.IsTextFile(buf)
+			ctx.Data["IsTextFile"] = isTextFile
+
+			fileSize = meta.Size
+			ctx.Data["FileSize"] = meta.Size
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
 
