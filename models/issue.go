@@ -183,12 +183,21 @@ func (issue *Issue) LoadPullRequest() error {
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
+	return issue.loadCommentsByType(e, CommentTypeUnknown)
+}
+
+// LoadDiscussComments loads discuss comments
+func (issue *Issue) LoadDiscussComments() error {
+	return issue.loadCommentsByType(x, CommentTypeComment)
+}
+
+func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
 	issue.Comments, err = findComments(e, FindCommentsOptions{
 		IssueID: issue.ID,
-		Type:    CommentTypeUnknown,
+		Type:    tp,
 	})
 	return err
 }
@@ -681,7 +690,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
@@ -1215,6 +1223,12 @@ func GetIssueByID(id int64) (*Issue, error) {
 func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, e.In("id", issueIDs).Find(&issues)
+}
+
+func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
+	var ids = make([]int64, 0, 10)
+	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	return ids, err
 }
 
 // GetIssuesByIDs return issues with the given IDs.
