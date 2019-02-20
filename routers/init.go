@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
@@ -90,7 +91,7 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		if err := models.InitIssueIndexer(); err != nil {
+		if err := issues.InitIssueIndexer(false); err != nil {
 			log.Fatal(4, "Failed to initialize issue indexer: %v", err)
 		}
 		models.InitRepoIndexer()
