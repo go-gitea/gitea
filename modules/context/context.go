@@ -121,6 +121,7 @@ func (ctx *Context) NotFound(title string, err error) {
 		}
 	}
 
+	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
 }

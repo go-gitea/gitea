@@ -15,10 +15,20 @@
 package searcher
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/scorer"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeMatchAllSearcher int
+
+func init() {
+	var mas MatchAllSearcher
+	reflectStaticSizeMatchAllSearcher = int(reflect.TypeOf(mas).Size())
+}
 
 type MatchAllSearcher struct {
 	indexReader index.IndexReader
@@ -44,6 +54,12 @@ func NewMatchAllSearcher(indexReader index.IndexReader, boost float64, options s
 		scorer:      scorer,
 		count:       count,
 	}, nil
+}
+
+func (s *MatchAllSearcher) Size() int {
+	return reflectStaticSizeMatchAllSearcher + size.SizeOfPtr +
+		s.reader.Size() +
+		s.scorer.Size()
 }
 
 func (s *MatchAllSearcher) Count() uint64 {
