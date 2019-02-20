@@ -106,7 +106,7 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 	if r.IsWiki {
 		prefix = util.URLJoin(prefix, "wiki", "raw")
 	}
-	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
+	prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 	if len(link) > 0 && !markup.IsLink(link) {
 		lnk := string(link)
 		lnk = util.URLJoin(prefix, lnk)
