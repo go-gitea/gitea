@@ -380,10 +380,22 @@ function initCommentForm() {
         var $noSelect = $list.find('.no-select');
         var $listMenu = $('.' + selector + ' .menu');
         var hasLabelUpdateAction = $listMenu.data('action') == 'update';
+        var labels = {};
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                for (var elementId in labels) {
+                    if (labels.hasOwnProperty(elementId)) {
+                        var label = labels[elementId];
+                        updateIssuesMeta(
+                            label["update-url"],
+                            label["action"],
+                            label["issue-id"],
+                            elementId
+                        );
+                    }
+                }
                 location.reload();
             }
         });
@@ -417,23 +429,29 @@ function initCommentForm() {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "detach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "detach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             } else {
                 $(this).addClass('checked');
                 $(this).find('.octicon').addClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "attach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "attach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             }
 
@@ -2040,11 +2058,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('#issue-filters').hide();
-            $('#issue-actions').show();
+            $('#issue-filters').addClass("hide");
+            $('#issue-actions').removeClass("hide");
         } else {
-            $('#issue-filters').show();
-            $('#issue-actions').hide();
+            $('#issue-filters').removeClass("hide");
+            $('#issue-actions').addClass("hide");
         }
     });
 
