@@ -253,9 +253,19 @@ DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
 
-
 [indexer]
+; Issue indexer type, currently support: bleve or db, default is bleve
+ISSUE_INDEXER_TYPE = bleve
+; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
+; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
+ISSUE_INDEXER_QUEUE_TYPE = levelqueue
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path, 
+; default is indexers/issues.queue
+ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
+; Batch queue number, default is 20
+ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
