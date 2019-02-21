@@ -1433,6 +1433,9 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
+	}
 
 	users = make([]*User, 0, opts.PageSize)
 	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
