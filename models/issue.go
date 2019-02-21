@@ -1231,6 +1231,11 @@ func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
 	return ids, err
 }
 
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
+	return getIssueIDsByRepoID(x, repoID)
+}
+
 // GetIssuesByIDs return issues with the given IDs.
 func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 	return getIssuesByIDs(x, issueIDs)

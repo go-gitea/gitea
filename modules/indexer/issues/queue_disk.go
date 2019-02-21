@@ -42,18 +42,21 @@ func (l *LevelQueue) Run() error {
 	var i int
 	var datas = make([]*IndexerData, 0, l.batchNumber)
 	for {
-		bs, err := l.queue.RPop()
-		if err != nil {
-			log.Error(4, "RPop: %v", err)
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-
 		i++
 		if len(datas) > l.batchNumber || (len(datas) > 0 && i > 3) {
 			l.indexer.Index(datas)
 			datas = make([]*IndexerData, 0, l.batchNumber)
 			i = 0
+			continue
+		}
+
+		bs, err := l.queue.RPop()
+		if err != nil {
+			if err != levelqueue.ErrNotFound {
+				log.Error(4, "RPop: %v", err)
+			}
+			time.Sleep(time.Millisecond * 100)
+			continue
 		}
 
 		if len(bs) <= 0 {
@@ -69,7 +72,7 @@ func (l *LevelQueue) Run() error {
 			continue
 		}
 
-		log.Trace("LedisLocalQueue: task found: %#v", data)
+		log.Trace("LevelQueue: task found: %#v", data)
 
 		if data.IsDelete {
 			if data.ID > 0 {
