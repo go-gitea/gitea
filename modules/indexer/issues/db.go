@@ -10,18 +10,22 @@ import "code.gitea.io/gitea/models"
 type DBIndexer struct {
 }
 
+// Init dummy function
 func (db *DBIndexer) Init() (bool, error) {
 	return false, nil
 }
 
+// Index dummy function
 func (db *DBIndexer) Index(issue []*IndexerData) error {
 	return nil
 }
 
+// Delete dummy function
 func (db *DBIndexer) Delete(ids ...int64) error {
 	return nil
 }
 
+// Search dummy function
 func (db *DBIndexer) Search(kw string, repoID int64, limit, start int) (*SearchResult, error) {
 	total, ids, err := models.SearchIssueIDsByKeyword(kw, repoID, limit, start)
 	if err != nil {
