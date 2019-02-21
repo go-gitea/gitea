@@ -4,6 +4,8 @@ IMPORT := code.gitea.io/gitea
 GO ?= go
 SED_INPLACE := sed -i
 
+export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
@@ -365,10 +367,14 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
+	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install npm version 5.2+"; \
+		exit 1; \
+	fi;
 	$(eval BROWSERS := "> 2%, last 2 firefox versions, last 2 safari versions")
-	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	$(foreach file, $(wildcard public/css/*),node_modules/.bin/postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
+	npx lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	$(foreach file, $(wildcard public/css/*),npx postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
 
 .PHONY: swagger-ui
 swagger-ui:

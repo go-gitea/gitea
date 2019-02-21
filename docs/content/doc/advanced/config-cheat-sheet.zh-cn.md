@@ -82,6 +82,20 @@ menu:
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 
+
+## Indexer (`indexer`)
+
+- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve` 或 `db`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel` 或 `levelqueue`。
+- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
+
+- `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间）。
+- `REPO_INDEXER_PATH`: **indexers/repos.bleve**: 用于代码搜索的索引文件路径。
+- `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
+- `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
+
 ## Security (`security`)
 
 - `INSTALL_LOCK`: 是否允许运行安装向导，(跟管理员账号有关，十分重要)。
