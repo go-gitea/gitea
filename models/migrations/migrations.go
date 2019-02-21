@@ -213,6 +213,8 @@ var migrations = []Migration{
 	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
 	// v79 -> v80
 	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	// v80 -> v81
+	NewMigration("add is locked to issues", addIsLockedToIssues),
 }
 
 // Migrate database to current version

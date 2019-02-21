@@ -21,6 +21,7 @@
   name: user2
   full_name: "   < U<se>r Tw<o > ><  "
   email: user2@example.com
+  keep_email_private: true
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
