@@ -49,7 +49,7 @@ func TestSearchIssues(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
 
-	ids, err = SearchIssuesByKeyword("good", 1, 10, 0)
+	ids, err = SearchIssuesByKeyword(1, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }
