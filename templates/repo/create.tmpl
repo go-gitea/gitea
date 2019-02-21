@@ -75,6 +75,7 @@
 							<input type="hidden" name="license" value="{{.license}}">
 							<div class="default text">{{.i18n.Tr "repo.license_helper"}}</div>
 							<div class="menu">
+								<div class="item" data-value="">{{.i18n.Tr "repo.license_helper"}}</div>
 								{{range .Licenses}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
 								{{end}}

@@ -302,6 +302,11 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
+	if !models.HasOrgVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
 	if !ctx.User.IsAdmin {
 		isOwner, err := org.IsOwnedBy(ctx.User.ID)
 		if err != nil {
