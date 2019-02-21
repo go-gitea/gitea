@@ -38,6 +38,7 @@ var (
 
 func newIndexerService() {
 	sec := Cfg.Section("indexer")
+	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
 	Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/issues.bleve"))
 	if !filepath.IsAbs(Indexer.IssuePath) {
 		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
