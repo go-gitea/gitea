@@ -55,7 +55,7 @@ func Search(ctx *context.APIContext) {
 		Type:     models.UserTypeIndividual,
 		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
 	}
-	if opts.PageSize == 0 {
+	if opts.PageSize <= 0 {
 		opts.PageSize = 10
 	}
 
