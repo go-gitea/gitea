@@ -1684,6 +1684,40 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	return openResult, closedResult
 }
 
+// SearchIssueIDsByKeyword search issues on database
+func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.Eq{"repo_id": repoID}
+	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	var cond = builder.And(
+		repoCond,
+		builder.Or(
+			builder.Like{"name", kw},
+			builder.Like{"content", kw},
+			builder.In("id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					builder.Like{"content", kw},
+				)),
+			),
+		),
+	)
+
+	var ids = make([]int64, 0, limit)
+	err := x.Distinct("id").Table("issue").Where(cond).Limit(limit, start).Find(&ids)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, ids, nil
+}
+
 func updateIssue(e Engine, issue *Issue) error {
 	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {

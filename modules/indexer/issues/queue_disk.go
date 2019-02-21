@@ -94,14 +94,10 @@ func (l *LevelQueue) Run() error {
 }
 
 // Push will push the indexer data to queue
-func (l *LevelQueue) Push(data *IndexerData) {
+func (l *LevelQueue) Push(data *IndexerData) error {
 	bs, err := json.Marshal(data)
 	if err != nil {
-		log.Error(4, "Marshal: %v", err)
-		return
+		return err
 	}
-	err = l.queue.LPush(bs)
-	if err != nil {
-		log.Error(4, "LPush: %v", err)
-	}
+	return l.queue.LPush(bs)
 }

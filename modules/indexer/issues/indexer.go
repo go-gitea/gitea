@@ -33,7 +33,8 @@ type Match struct {
 
 // SearchResult represents search results
 type SearchResult struct {
-	Hits []Match
+	Total int64
+	Hits  []Match
 }
 
 // Indexer defines an inteface to indexer issues contents
@@ -54,6 +55,7 @@ var (
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) error {
 	var populate bool
+	var dummyQueue bool
 	switch setting.Indexer.IssueType {
 	case "bleve":
 		issueIndexer = NewBleveIndexer(setting.Indexer.IssuePath)
@@ -62,8 +64,15 @@ func InitIssueIndexer(syncReindex bool) error {
 			return err
 		}
 		populate = !exist
+	case "db":
+		issueIndexer = &DBIndexer{}
+		dummyQueue = true
 	default:
 		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
+	}
+
+	if dummyQueue {
+		return nil
 	}
 
 	var err error
