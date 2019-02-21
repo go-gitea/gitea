@@ -138,6 +138,8 @@ make vet lint misspell-check
 
 ### Updating the stylesheets
 
+To generate the stylsheets, you will need [Node.js](https://nodejs.org/) at version 8.0 or above.
+
 At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
 **not** edit the files in `public/css/` directly as they are generated from
 `lessc` from the files in `public/less/`.
