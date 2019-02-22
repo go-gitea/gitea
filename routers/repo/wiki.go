@@ -53,7 +53,7 @@ type PageMeta struct {
 
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entries, err := commit.ListEntries()
+	entries, err := commit.ListEntries(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 
 	// Get page list.
 	if isViewPage {
-		entries, err := commit.ListEntries()
+		entries, err := commit.ListEntries(nil)
 		if err != nil {
 			ctx.ServerError("ListEntries", err)
 			return nil, nil
@@ -253,7 +253,7 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	entries, err := commit.ListEntries(nil)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return

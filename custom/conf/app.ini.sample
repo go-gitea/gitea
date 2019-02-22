@@ -640,9 +640,11 @@ GC = 60
 
 ; Last commit cache
 [git.last_commit_cache]
+; use default cache settings on cache
+USE_DEFAULT_CACHE = false
 ; could be empty, memory or boltdb
 TYPE = none
-DATA_PATH = 
+DATA_PATH = data/last_commit_cache_boltdb
 
 [mirror]
 ; Default interval as a duration between each check

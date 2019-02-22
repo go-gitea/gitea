@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache/lastcommit"
+	"code.gitea.io/gitea/modules/cache/ls_tree"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
@@ -37,18 +38,22 @@ const (
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath, ls_tree.Cache)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
 		return
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ls_tree.Cache)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
 	entries.CustomSort(base.NaturalSortLess)
+
+	if len(entries) > 1000 {
+		entries = entries[:1000]
+	}
 
 	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, lastcommit.LastCommitCache)
 	if err != nil {
@@ -428,11 +433,13 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath, ls_tree.Cache)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
 	}
+
+	ctx.Data["LsTreeCache"] = ls_tree.Cache
 
 	if entry.IsDir() {
 		renderDirectory(ctx, treeLink)

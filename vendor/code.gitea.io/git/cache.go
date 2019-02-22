@@ -9,3 +9,8 @@ type LastCommitCache interface {
 	Get(repoPath, ref, entryPath string) (*Commit, error)
 	Put(repoPath, ref, entryPath string, commit *Commit) error
 }
+
+type LsTreeCache interface {
+	Get(repoPath, treeIsh string) (Entries, error)
+	Put(repoPath, treeIsh string, entries Entries) error
+}

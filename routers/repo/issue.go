@@ -366,7 +366,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		}
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename, nil)
 	if err != nil {
 		return "", false
 	}

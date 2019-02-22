@@ -62,7 +62,7 @@
 				{{else}}
 					<td class="name">
 						{{if $entry.IsDir}}
-							{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
+							{{$subJumpablePathName := ($entry.GetSubJumpablePathName $.LsTreeCache)}}
 							{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 							<span class="octicon octicon-file-directory"></span>
 							<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}">

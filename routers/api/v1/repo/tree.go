@@ -82,7 +82,7 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	if ctx.QueryBool("recursive") {
 		entries, err = gitTree.ListEntriesRecursive()
 	} else {
-		entries, err = gitTree.ListEntries()
+		entries, err = gitTree.ListEntries(nil)
 	}
 	if err != nil {
 		return tree

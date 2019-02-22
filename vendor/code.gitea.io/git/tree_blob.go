@@ -10,7 +10,7 @@ import (
 )
 
 // GetTreeEntryByPath get the tree entries accroding the sub dir
-func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
+func (t *Tree) GetTreeEntryByPath(relpath string, cache LsTreeCache) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
 			ID:   t.ID,
@@ -25,7 +25,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	tree := t
 	for i, name := range parts {
 		if i == len(parts)-1 {
-			entries, err := tree.ListEntries()
+			entries, err := tree.ListEntries(cache)
 			if err != nil {
 				return nil, err
 			}
@@ -35,7 +35,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 				}
 			}
 		} else {
-			tree, err = tree.SubTree(name)
+			tree, err = tree.SubTree(name, cache)
 			if err != nil {
 				return nil, err
 			}
@@ -46,7 +46,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 
 // GetBlobByPath get the blob object accroding the path
 func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
-	entry, err := t.GetTreeEntryByPath(relpath)
+	entry, err := t.GetTreeEntryByPath(relpath, nil)
 	if err != nil {
 		return nil, err
 	}

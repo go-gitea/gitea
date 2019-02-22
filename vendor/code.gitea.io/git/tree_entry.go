@@ -125,7 +125,7 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 		return nil, ErrBadLink{te.Name(), "points outside of repo"}
 	}
 
-	target, err := t.GetTreeEntryByPath(lnk)
+	target, err := t.GetTreeEntryByPath(lnk, nil)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return nil, ErrBadLink{te.Name(), "broken link"}
@@ -136,17 +136,17 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
-func (te *TreeEntry) GetSubJumpablePathName() string {
+func (te *TreeEntry) GetSubJumpablePathName(cache LsTreeCache) string {
 	if te.IsSubModule() || !te.IsDir() {
 		return ""
 	}
-	tree, err := te.ptree.SubTree(te.name)
+	tree, err := te.ptree.SubTree(te.name, cache)
 	if err != nil {
 		return te.name
 	}
-	entries, _ := tree.ListEntries()
+	entries, _ := tree.ListEntries(cache)
 	if len(entries) == 1 && entries[0].IsDir() {
-		name := entries[0].GetSubJumpablePathName()
+		name := entries[0].GetSubJumpablePathName(cache)
 		if name != "" {
 			return te.name + "/" + name
 		}

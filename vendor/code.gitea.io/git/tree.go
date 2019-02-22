@@ -19,8 +19,8 @@ type Tree struct {
 	entries       Entries
 	entriesParsed bool
 
-	entriesRecursive 	Entries
-	entriesRecursiveParsed 	bool
+	entriesRecursive       Entries
+	entriesRecursiveParsed bool
 }
 
 // NewTree create a new tree according the repository and commit id
@@ -32,7 +32,7 @@ func NewTree(repo *Repository, id SHA1) *Tree {
 }
 
 // SubTree get a sub tree by the sub dir path
-func (t *Tree) SubTree(rpath string) (*Tree, error) {
+func (t *Tree) SubTree(rpath string, cache LsTreeCache) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil
 	}
@@ -45,7 +45,7 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		te  *TreeEntry
 	)
 	for _, name := range paths {
-		te, err = p.GetTreeEntryByPath(name)
+		te, err = p.GetTreeEntryByPath(name, cache)
 		if err != nil {
 			return nil, err
 		}
@@ -61,12 +61,22 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
+func (t *Tree) ListEntries(cache LsTreeCache) (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
 
-	stdout, err := NewCommand("ls-tree", t.ID.String()).RunInDirBytes(t.repo.Path)
+	var err error
+	id := t.ID.String()
+	if cache != nil {
+		t.entries, err = cache.Get(t.repo.Path, id)
+		if err == nil && t.entries != nil {
+			t.entriesParsed = true
+			return t.entries, nil
+		}
+	}
+
+	stdout, err := NewCommand("ls-tree", id).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +84,9 @@ func (t *Tree) ListEntries() (Entries, error) {
 	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
+		if cache != nil && t.entries != nil {
+			cache.Put(t.repo.Path, id, t.entries)
+		}
 	}
 
 	return t.entries, err

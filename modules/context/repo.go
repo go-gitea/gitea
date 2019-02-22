@@ -135,7 +135,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
+	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig", nil)
 	if err != nil {
 		return nil, err
 	}

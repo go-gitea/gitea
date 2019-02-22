@@ -76,7 +76,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
 	if !isNewFile {
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath, nil)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
 			return
@@ -222,7 +222,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	var newTreePath string
 	for index, part := range treeNames {
 		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath, nil)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
@@ -253,7 +253,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	}
 
 	if !isNewFile {
-		_, err := ctx.Repo.Commit.GetTreeEntryByPath(oldTreePath)
+		_, err := ctx.Repo.Commit.GetTreeEntryByPath(oldTreePath, nil)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				ctx.Data["Err_TreePath"] = true
@@ -281,7 +281,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 
 	if oldTreePath != form.TreePath {
 		// We have a new filename (rename or completely new file) so we need to make sure it doesn't already exist, can't clobber.
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath, nil)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
 				ctx.ServerError("GetTreeEntryByPath", err)
@@ -345,7 +345,7 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath, nil)
 	if err != nil {
 		ctx.Error(500, "GetTreeEntryByPath: "+err.Error())
 		return
@@ -554,7 +554,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	var newTreePath string
 	for _, part := range treeNames {
 		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath, nil)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good

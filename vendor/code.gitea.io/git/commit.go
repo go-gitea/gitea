@@ -230,7 +230,7 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		return c.submoduleCache, nil
 	}
 
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
+	entry, err := c.GetTreeEntryByPath(".gitmodules", nil)
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			return nil, nil
