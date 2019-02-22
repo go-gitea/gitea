@@ -617,6 +617,14 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
+  branch = "master"
+  digest = "1:3ea59a5ada4bbac04da58e6177ca63da8c377a3143b48fca584408bf415fdafb"
+  name = "github.com/lunny/levelqueue"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "02b525a4418e684a7786215296984e364746806f"
+
+[[projects]]
   digest = "1:1e6a29ed1f189354030e3371f63ec58aacbc2bf232fd104c6e0d41174ac5af48"
   name = "github.com/lunny/log"
   packages = ["."]
@@ -1270,6 +1278,7 @@
     "github.com/lafriks/xormstore",
     "github.com/lib/pq",
     "github.com/lunny/dingtalk_webhook",
+    "github.com/lunny/levelqueue",
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",

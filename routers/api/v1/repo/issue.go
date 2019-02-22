@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/indexer"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -78,7 +78,7 @@ func ListIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	var err error
 	if len(keyword) > 0 {
-		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
@@ -143,7 +143,7 @@ func GetIssue(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.Status(404)
