@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -138,6 +140,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 	})
+
 	if ctx.Written() {
 		return
 	}
@@ -255,7 +258,16 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
-	opts.Labels = ctx.Query("labels")
+	var labelIDs []int64
+	selectLabels := ctx.Query("labels")
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
+	opts.LabelIDs = labelIDs
 
 	issues, err := models.Issues(opts)
 	if err != nil {
@@ -276,7 +288,10 @@ func Issues(ctx *context.Context) {
 	if repoID > 0 {
 		if _, ok := showReposMap[repoID]; !ok {
 			repo, err := models.GetRepositoryByID(repoID)
-			if err != nil {
+			if models.IsErrRepoNotExist(err) {
+				ctx.NotFound("GetRepositoryByID", err)
+				return
+			} else if err != nil {
 				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
@@ -286,7 +301,12 @@ func Issues(ctx *context.Context) {
 		repo := showReposMap[repoID]
 
 		// Check if user has access to given repository.
-		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			return
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
 			ctx.Status(404)
 			return
 		}
@@ -366,7 +386,44 @@ func showOrgProfile(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
+
+	if !models.HasOrgVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
 	ctx.Data["Title"] = org.DisplayName()
+
+	var orderBy models.SearchOrderBy
+	ctx.Data["SortType"] = ctx.Query("sort")
+	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
+	case "oldest":
+		orderBy = models.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = models.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = models.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = models.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
+	default:
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
+	}
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	ctx.Data["Keyword"] = keyword
 
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -384,6 +441,9 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
+		if len(keyword) != 0 {
+			env.AddKeyword(keyword)
+		}
 		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
 		if err != nil {
 			ctx.ServerError("env.Repos", err)
@@ -394,25 +454,41 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("env.CountRepos", err)
 			return
 		}
-		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
-		if err != nil {
-			ctx.ServerError("GetRepositories", err)
-			return
+		if len(keyword) == 0 {
+			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			if err != nil {
+				ctx.ServerError("GetRepositories", err)
+				return
+			}
+			count = models.CountUserRepositories(org.ID, showPrivate)
+		} else {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:   keyword,
+				OwnerID:   org.ID,
+				OrderBy:   orderBy,
+				Private:   showPrivate,
+				Page:      page,
+				IsProfile: true,
+				PageSize:  setting.UI.User.RepoPagingNum,
+			})
+			if err != nil {
+				ctx.ServerError("SearchRepositoryByName", err)
+				return
+			}
 		}
-		ctx.Data["Repos"] = repos
-		count = models.CountUserRepositories(org.ID, showPrivate)
 	}
-	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
 	if err := org.GetMembers(); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.Data["Members"] = org.Members
 
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = count
+	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	ctx.Data["Members"] = org.Members
 	ctx.Data["Teams"] = org.Teams
 
 	ctx.HTML(200, tplOrgHome)

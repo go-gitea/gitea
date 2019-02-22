@@ -218,7 +218,7 @@ func (db *mssql) SqlType(c *core.Column) string {
 		res = core.Bit
 		if strings.EqualFold(c.Default, "true") {
 			c.Default = "1"
-		} else {
+		} else if strings.EqualFold(c.Default, "false") {
 			c.Default = "0"
 		}
 	case core.Serial:

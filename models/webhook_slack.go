@@ -11,9 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // SlackMeta contains the slack metadata
@@ -161,6 +160,10 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 		text = fmt.Sprintf("[%s] Issue labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueSynchronized:
 		text = fmt.Sprintf("[%s] Issue synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueMilestoned:
+		text = fmt.Sprintf("[%s] Issue milestoned: #%s %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueDemilestoned:
+		text = fmt.Sprintf("[%s] Issue milestone cleared: #%s %s", p.Repository.FullName, titleLink, senderLink)
 	}
 
 	return &SlackPayload{
@@ -298,12 +301,12 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &SlackPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = SlackLinkFormatter(setting.AppURL+user.UserName, user.UserName)
 		}
 		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", p.Repository.FullName,
-			SlackLinkFormatter(setting.AppURL+list, list),
+			strings.Join(list, ", "),
 			titleLink, senderLink)
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", p.Repository.FullName, titleLink, senderLink)
@@ -313,6 +316,38 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueSynchronized:
 		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueMilestoned:
+		text = fmt.Sprintf("[%s] Pull request milestoned: #%s %s", p.Repository.FullName, titleLink, senderLink)
+	case api.HookIssueDemilestoned:
+		text = fmt.Sprintf("[%s] Pull request milestone cleared: #%s %s", p.Repository.FullName, titleLink, senderLink)
+	}
+
+	return &SlackPayload{
+		Channel:  slack.Channel,
+		Text:     text,
+		Username: slack.Username,
+		IconURL:  slack.IconURL,
+		Attachments: []SlackAttachment{{
+			Color: slack.Color,
+			Title: title,
+			Text:  attachmentText,
+		}},
+	}, nil
+}
+
+func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event HookEventType) (*SlackPayload, error) {
+	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
+		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	var text, title, attachmentText string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		text = fmt.Sprintf("[%s] Pull request review %s : %s by %s", p.Repository.FullName, action, titleLink, senderLink)
 	}
 
 	return &SlackPayload{
@@ -376,6 +411,8 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
 	case HookEventRelease:

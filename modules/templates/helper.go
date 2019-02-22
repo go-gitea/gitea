@@ -193,9 +193,6 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
-		"HeatmapColorRange": func() string {
-			return setting.UI.HeatmapColorRange
-		},
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid dict call")

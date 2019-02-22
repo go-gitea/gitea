@@ -15,6 +15,10 @@ ignored = ["google.golang.org/appengine*"]
   name = "code.gitea.io/sdk"
 
 [[constraint]]
+  revision = "05d86ea8f6e30456949f612cf68cf4a27ce8c9c5"
+  name = "github.com/blevesearch/bleve"
+
+[[constraint]]
   revision = "12dd70caea0268ac0d6c2707d0611ef601e7c64e"
   name = "golang.org/x/crypto"
 
@@ -32,12 +36,15 @@ ignored = ["google.golang.org/appengine*"]
 
 [[override]]
   name = "github.com/go-xorm/xorm"
-  #version = "0.6.5"
-  revision = "ad69f7d8f0861a29438154bb0a20b60501298480"
+  revision = "a6300f2a45e05a8f75f00a1d6188049fe7851915"
+
+[[override]]
+  name = "github.com/go-xorm/builder"
+  version = "0.3.3"
 
 [[override]]
   name = "github.com/go-sql-driver/mysql"
-  revision = "d523deb1b23d913de5bdada721a6071e71283618"
+  revision = "c45f530f8e7fe40f4687eaa50d0c8c5f1b66f9e0"
 
 [[override]]
   name = "github.com/mattn/go-sqlite3"
@@ -61,7 +68,7 @@ ignored = ["google.golang.org/appengine*"]
 
 [[constraint]]
   name = "github.com/markbates/goth"
-  version = "1.46.1"
+  version = "1.47.2"
 
 [[constraint]]
   branch = "master"
@@ -88,8 +95,8 @@ ignored = ["google.golang.org/appengine*"]
   version = "1.31.1"
 
 [[constraint]]
-  name = "gopkg.in/ldap.v2"
-  version = "2.4.1"
+  name = "gopkg.in/ldap.v3"
+  version = "3.0.1"
 
 [[constraint]]
   name = "gopkg.in/macaron.v1"
@@ -100,10 +107,9 @@ ignored = ["google.golang.org/appengine*"]
   version = "2.0.0"
 
 [[override]]
-  name = "github.com/boltdb/bolt"
-  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
-  source = "github.com/go-gitea/bolt"
-
-[[override]]
-  revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
+  branch = "master"
   name = "golang.org/x/oauth2"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.9.0"

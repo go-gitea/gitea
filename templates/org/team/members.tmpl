@@ -6,24 +6,9 @@
 		<div class="ui grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
-				<div class="ui top attached header">
-					{{.i18n.Tr "org.teams.members"}}
-				</div>
-				<div class="ui attached table segment members">
-					{{range .Team.Members}}
-						<div class="item">
-							{{if $.IsOrganizationOwner}}
-								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove?uid={{.ID}}">{{$.i18n.Tr "org.members.remove"}}</a>
-							{{end}}
-							<a href="{{.HomeLink}}">
-								<img class="ui avatar image" src="{{.RelAvatarLink}}">
-								{{.DisplayName}}
-							</a>
-						</div>
-					{{end}}
-				</div>
+				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
-					<div class="ui bottom attached segment">
+					<div class="ui attached segment">
 						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
@@ -38,6 +23,23 @@
 						</form>
 					</div>
 				{{end}}
+				<div class="ui bottom attached table segment members">
+					{{range .Team.Members}}
+						<div class="item">
+							{{if $.IsOrganizationOwner}}
+								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove?uid={{.ID}}">{{$.i18n.Tr "org.members.remove"}}</a>
+							{{end}}
+							<a href="{{.HomeLink}}">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}">
+								{{.DisplayName}}
+							</a>
+						</div>
+					{{else}}
+						<div class="item">
+							<span class="text grey italic">{{$.i18n.Tr "org.teams.members.none"}}</span>
+						</div>
+					{{end}}
+				</div>
 			</div>
 		</div>
 	</div>

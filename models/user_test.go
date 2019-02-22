@@ -6,6 +6,7 @@ package models
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -169,7 +170,7 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 	accessibleRepos, err := user2.GetOrgRepositoryIDs()
 	assert.NoError(t, err)
 	// User 2's team has access to private repos 3, 5, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 5, 32}, accessibleRepos)
+	assert.Equal(t, []int64{3, 5, 23, 24, 32}, accessibleRepos)
 
 	accessibleRepos, err = user4.GetOrgRepositoryIDs()
 	assert.NoError(t, err)
@@ -180,4 +181,79 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 	assert.NoError(t, err)
 	// User 5's team has no access to any repo
 	assert.Len(t, accessibleRepos, 0)
+}
+
+func TestNewGitSig(t *testing.T) {
+	users := make([]*User, 0, 20)
+	sess := x.NewSession()
+	defer sess.Close()
+	sess.Find(&users)
+
+	for _, user := range users {
+		sig := user.NewGitSig()
+		assert.NotContains(t, sig.Name, "<")
+		assert.NotContains(t, sig.Name, ">")
+		assert.NotContains(t, sig.Name, "\n")
+		assert.NotEqual(t, len(strings.TrimSpace(sig.Name)), 0)
+	}
+}
+
+func TestDisplayName(t *testing.T) {
+	users := make([]*User, 0, 20)
+	sess := x.NewSession()
+	defer sess.Close()
+	sess.Find(&users)
+
+	for _, user := range users {
+		displayName := user.DisplayName()
+		assert.Equal(t, strings.TrimSpace(displayName), displayName)
+		if len(strings.TrimSpace(user.FullName)) == 0 {
+			assert.Equal(t, user.Name, displayName)
+		}
+		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	assert.NoError(t, CreateUser(user))
+
+	assert.NoError(t, DeleteUser(user))
+}
+
+func TestCreateUser_Issue5882(t *testing.T) {
+
+	// Init settings
+	_ = setting.Admin
+
+	passwd := ".//.;1;;//.,-=_"
+
+	tt := []struct {
+		user               *User
+		disableOrgCreation bool
+	}{
+		{&User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
+		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
+	}
+
+	for _, v := range tt {
+		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
+
+		assert.NoError(t, CreateUser(v.user))
+
+		u, err := GetUserByEmail(v.user.Email)
+		assert.NoError(t, err)
+
+		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
+
+		assert.NoError(t, DeleteUser(v.user))
+	}
 }
