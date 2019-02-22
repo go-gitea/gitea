@@ -283,7 +283,6 @@ pipeline:
 
   docker-dryrun:
     image: plugins/docker:17.12
-    secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
     cache_from: gitea/gitea
