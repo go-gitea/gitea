@@ -29,7 +29,7 @@
 					</a>
 				</div>
 				{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-					<div class="ui labeled button" tabindex="0">
+					<div class="ui labeled button {{if and (not $.CanSignedUserFork) ($.IsSigned)}}disabled{{end}}" tabindex="0">
 						<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 						</a>
@@ -58,8 +58,8 @@
 			{{end}}
 
 			{{if .Permission.CanRead $.UnitTypeExternalTracker}}
-				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank" rel="noopener noreferrer">
-					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
+				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
+					<i class="octicon octicon-link-external"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
 			{{end}}
 

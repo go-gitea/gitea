@@ -102,7 +102,7 @@ included in the next released version.
 Generally, the go build tools are installed as-needed in the `Makefile`.
 An exception are the tools to build the CSS and images.
 
-- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager)
+- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 8.0 or above
   with `npm` and then run `npm install` and `make generate-stylesheets`.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.
