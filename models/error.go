@@ -898,8 +898,8 @@ func (err ErrTagAlreadyExists) Error() string {
 
 // ErrShaDoesNotMatch represents a "ShaDoesNotMatch" kind of error.
 type ErrShaDoesNotMatch struct {
-	givenSHA   string
-	currentSHA string
+	GivenSHA   string
+	CurrentSHA string
 }
 
 // IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
@@ -909,7 +909,7 @@ func IsErrShaDoesNotMatch(err error) bool {
 }
 
 func (err ErrShaDoesNotMatch) Error() string {
-	return fmt.Sprintf("file sha does not match [%s != %s]", err.givenSHA, err.currentSHA)
+	return fmt.Sprintf("file sha does not match [%s != %s]", err.GivenSHA, err.CurrentSHA)
 }
 
 //  __      __      ___.   .__                   __

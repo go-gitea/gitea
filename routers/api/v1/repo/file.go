@@ -9,11 +9,10 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/uploader"
 	"code.gitea.io/gitea/routers/repo"
 	api "code.gitea.io/sdk/gitea"
-	"path"
-	"strings"
+	"encoding/base64"
 )
 
 // GetRawFile get a file by path on a repository
@@ -143,30 +142,13 @@ func GetEditorconfig(ctx *context.APIContext) {
 	ctx.JSON(200, def)
 }
 
-
-
-func renderCommitRights(ctx *context.APIContext) bool {
-	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
-	if err != nil {
-		log.Error(4, "CanCommitToBranch: %v", err)
-	}
-	return canCommit
+// CanWriteFiles returns true if repository is editable and user has proper access level.
+func CanWriteFiles(r *context.Repository) bool {
+	return r.Permission.CanWrite(models.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
-func cleanUploadFileName(name string) string {
-	// Rebase the filename
-	name = strings.Trim(path.Clean("/"+name), " /")
-	// Git disallows any filenames to have a .git directory in them.
-	for _, part := range strings.Split(name, "/") {
-		if strings.ToLower(part) == ".git" {
-			return ""
-		}
-	}
-	return name
-}
-
-// Dummy function to for a Swagger definition of the Create File API request
-func CreateFile(ctx *context.APIContext, opt api.CreateUpdateFileOptions) {
+// CreateFile handles API call for creating a file
+func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
 	// ---
 	// summary: Create a file in a repository
@@ -196,12 +178,27 @@ func CreateFile(ctx *context.APIContext, opt api.CreateUpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	//owner := user.GetUserByParams(ctx)
-	//canCommit := renderCommitRights(ctx)
+	opts := uploader.UpdateRepoFileOptions{
+		Content:   apiOpts.Content,
+		IsNewFile: true,
+		Message:   apiOpts.Message,
+		TreeName:  ctx.Repo.TreePath,
+		OldBranch: apiOpts.BranchName,
+		NewBranch: apiOpts.NewBranchName,
+		Committer: &uploader.IdentityOptions{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+		},
+		Author: &uploader.IdentityOptions{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+		},
+	}
+	createOrUpdateFile(ctx, &opts)
 }
 
-// Dummy function to for a Swagger definition of the Update File API request
-func UpdateFile(ctx *context.APIContext, form api.CreateUpdateFileOptions) {
+// UpdateFile handles API call for updating a file
+func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
 	// ---
 	// summary: Update a file in a repository
@@ -231,38 +228,49 @@ func UpdateFile(ctx *context.APIContext, form api.CreateUpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+	opts := uploader.UpdateRepoFileOptions{
+		Content:      apiOpts.Content,
+		SHA:          apiOpts.SHA,
+		IsNewFile:    false,
+		Message:      apiOpts.Message,
+		FromTreeName: apiOpts.FromPath,
+		TreeName:     ctx.Repo.TreePath,
+		OldBranch:    apiOpts.BranchName,
+		NewBranch:    apiOpts.NewBranchName,
+		Committer: &uploader.IdentityOptions{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+		},
+		Author: &uploader.IdentityOptions{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+		},
+	}
+
+	createOrUpdateFile(ctx, &opts)
+
 	ctx.JSON(200, &api.FileResponse{})
 }
 
-// Handles if a API call is for Creating or Updating a file
-func CreateUpdateFile(ctx *context.APIContext, opt api.CreateUpdateFileOptions) {
-	opts := models.FileOptions{
-		Content: opt.Content,
-		Message: opt.Message,
-		SHA: opt.SHA,
-		OrigPath: opt.OrigPath,
-		BranchName: opt.BranchName,
-		NewBranchName: opt.NewBranchName,
-		Committer: models.IdentityOptions{
-			Name: opt.Committer.Name,
-			Email: opt.Committer.Email,
-		},
-		Author: models.IdentityOptions{
-			Name: opt.Author.Name,
-			Email: opt.Author.Email,
-		},
+// Handles if an API call is for updating a repo file
+func createOrUpdateFile(ctx *context.APIContext, opts *uploader.UpdateRepoFileOptions) {
+	if !CanWriteFiles(ctx.Repo) {
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		return
 	}
-	if opts.Committer.Name == "" || opts.Committer.Email == "" {
-		if opts.Author.Name == "" || opts.Author.Email == "" {
-			opts.Author.Name = ctx.User.Name
-			opts.Author.Email = ctx.User.Email
-		}
-		opts.Committer = opts.Author
+
+	if content, err := base64.StdEncoding.DecodeString(opts.Content); err != nil {
+		ctx.Error(500, "", err)
+		return
+	} else {
+		opts.Content = string(content)
 	}
-	if opts.Author.Name == "" || opts.Author.Email == "" {
-		opts.Author = opts.Committer
+
+	if file, err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.User, opts); err != nil {
+		ctx.Error(500, "", err)
+	} else {
+		ctx.JSON(200, file)
 	}
-	models.CreateOrUpdateFile(opts)
 }
 
 // Delete a fle in a repository

@@ -633,7 +633,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Combo("/*", reqToken(), reqRepoWriter(models.UnitTypeCode)).
-						Put(bind(api.CreateUpdateFileOptions{}), repo.CreateUpdateFile).
+						Post(bind(api.CreateFileOptions{}), repo.CreateFile).
+						Put(bind(api.UpdateFileOptions{}), repo.UpdateFile).
 						Delete(bind(api.DeleteFileOptions{}), repo.DeleteFile)
 				})
 			}, repoAssignment())

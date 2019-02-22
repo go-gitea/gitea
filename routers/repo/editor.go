@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/uploader"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/uploader"
 )
 
 const (
@@ -166,7 +166,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 
 	oldBranchName := ctx.Repo.BranchName
 	branchName := oldBranchName
-	oldTreePath := cleanUploadFileName(ctx.Repo.TreePath)
+	fromTreePath := cleanUploadFileName(ctx.Repo.TreePath)
 	lastCommit := form.LastCommit
 	form.LastCommit = ctx.Repo.Commit.ID.String()
 
@@ -253,11 +253,11 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	}
 
 	if !isNewFile {
-		_, err := ctx.Repo.Commit.GetTreeEntryByPath(oldTreePath)
+		_, err := ctx.Repo.Commit.GetTreeEntryByPath(fromTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), tplEditFile, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", fromTreePath), tplEditFile, &form)
 			} else {
 				ctx.ServerError("GetTreeEntryByPath", err)
 			}
@@ -279,7 +279,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		}
 	}
 
-	if oldTreePath != form.TreePath {
+	if fromTreePath != form.TreePath {
 		// We have a new filename (rename or completely new file) so we need to make sure it doesn't already exist, can't clobber.
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath)
 		if err != nil {
@@ -309,12 +309,12 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &uploader.UpdateRepoFileOptions{
+	if _, err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.User, &uploader.UpdateRepoFileOptions{
 		LastCommitID: lastCommit,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
-		OldTreeName:  oldTreePath,
-		NewTreeName:  form.TreePath,
+		FromTreeName: fromTreePath,
+		TreeName:     form.TreePath,
 		Message:      message,
 		Content:      strings.Replace(form.Content, "\r", "", -1),
 		IsNewFile:    isNewFile,

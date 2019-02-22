@@ -6615,7 +6615,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "CreateFileOptions": {
-      "description": "CreateFileOptions options to create or update a file in a repo",
+      "description": "CreateFileOptions options for creating files",
       "type": "object",
       "properties": {
         "author": {
@@ -6623,7 +6623,7 @@
         },
         "branch": {
           "type": "string",
-          "x-go-name": "Branch"
+          "x-go-name": "BranchName"
         },
         "committer": {
           "$ref": "#/definitions/IdentityOptions"
@@ -6635,6 +6635,10 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7128,7 +7132,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "DeleteFileOptions": {
-      "description": "DeleteFileOptions options to create or update a file in a repo",
+      "description": "DeleteFileOptions options for deleting files (used for other File structs below)",
       "type": "object",
       "properties": {
         "author": {
@@ -7136,18 +7140,18 @@
         },
         "branch": {
           "type": "string",
-          "x-go-name": "Branch"
+          "x-go-name": "BranchName"
         },
         "committer": {
           "$ref": "#/definitions/IdentityOptions"
         },
-        "content": {
-          "type": "string",
-          "x-go-name": "Content"
-        },
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
         },
         "sha": {
           "type": "string",
@@ -7579,7 +7583,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "FileCommit": {
+    "FileCommitResponse": {
       "type": "object",
       "title": "FileCommit contains information generated from a Git commit for a repo's file.",
       "properties": {
@@ -7622,14 +7626,14 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "FileContent": {
+    "FileContentResponse": {
       "description": "FileContent contains information about a repo's file stats and content",
       "type": "object",
       "properties": {
         "_links": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FileLink"
+            "$ref": "#/definitions/FileLinkResponse"
           },
           "x-go-name": "Links"
         },
@@ -7678,7 +7682,7 @@
       "type": "object",
       "properties": {
         "commit": {
-          "$ref": "#/definitions/FileCommit"
+          "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
           "type": "object",
@@ -7690,7 +7694,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "FileLink": {
+    "FileLinkResponse": {
       "description": "FileLink contains the links for a repo's file",
       "type": "object",
       "properties": {
@@ -7714,10 +7718,10 @@
       "type": "object",
       "properties": {
         "commit": {
-          "$ref": "#/definitions/FileCommit"
+          "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "$ref": "#/definitions/FileContent"
+          "$ref": "#/definitions/FileContentResponse"
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
@@ -8967,7 +8971,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "UpdateFileOptions": {
-      "description": "UpdateFileOptions options to create or update a file in a repo",
+      "description": "UpdateFileOptions options for updating files",
       "type": "object",
       "properties": {
         "author": {
@@ -8975,7 +8979,7 @@
         },
         "branch": {
           "type": "string",
-          "x-go-name": "Branch"
+          "x-go-name": "BranchName"
         },
         "committer": {
           "$ref": "#/definitions/IdentityOptions"
@@ -8984,9 +8988,17 @@
           "type": "string",
           "x-go-name": "Content"
         },
+        "from_path binding:": {
+          "type": "string",
+          "x-go-name": "FromPath"
+        },
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
         },
         "sha": {
           "type": "string",
