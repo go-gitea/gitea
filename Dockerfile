@@ -30,7 +30,7 @@ RUN apk --no-cache add \
     gettext \
     git \
     linux-pam \
-    openssh \
+    openssh-server \
     s6 \
     sqlite \
     su-exec \
