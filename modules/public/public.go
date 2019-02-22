@@ -117,7 +117,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	if fi.IsDir() {
 		// Redirect if missing trailing slash.
 		if !strings.HasSuffix(ctx.Req.URL.Path, "/") {
-			http.Redirect(ctx.Resp, ctx.Req.Request, ctx.Req.URL.Path+"/", http.StatusFound)
+			http.Redirect(ctx.Resp, ctx.Req.Request, path.Clean(ctx.Req.URL.Path+"/"), http.StatusFound)
 			return true
 		}
 

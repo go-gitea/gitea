@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
 )
@@ -200,7 +201,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		if err := rel.LoadAttributes(); err != nil {
 			log.Error(2, "LoadAttributes: %v", err)
 		} else {
-			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
+			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 				Action:     api.HookReleasePublished,
 				Release:    rel.APIFormat(),
@@ -280,6 +281,15 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize 
 		Limit(pageSize, (page-1)*pageSize).
 		Where(opts.toConds(repoID)).
 		Find(&rels)
+	return rels, err
+}
+
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
+func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = x.
+		Desc("created_unix").
+		In("tag_name", tagNames).
+		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
 
@@ -392,7 +402,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
-	mode, _ := accessLevel(x, doer.ID, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
@@ -417,13 +427,6 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	repo, err := GetRepositoryByID(rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
-	}
-
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
-	if err != nil {
-		return fmt.Errorf("HasAccess: %v", err)
-	} else if !has {
-		return fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
 	if delTag {
@@ -454,7 +457,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := accessLevel(x, u.ID, rel.Repo)
+	mode, _ := AccessLevel(u, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),
@@ -486,10 +489,10 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				continue
 			}
 			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil {
+			if err != nil && !git.IsErrNotExist(err) {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
-			if !gitRepo.IsTagExist(rel.TagName) || commitID != rel.Sha1 {
+			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
 				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}

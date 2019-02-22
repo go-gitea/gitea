@@ -81,7 +81,7 @@ _Symbols used in table:_
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Lock Discussion | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Batch issue handling | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Issue Boards | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
@@ -119,5 +119,5 @@ _Symbols used in table:_
 | Act as OAuth 2.0 provider | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Two factor authentication (2FA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Mattermost/Slack integration | ✓ | ✓ | ⁄ | ✓ | ✓ | ⁄ | ✓ |
-| Discord integration | ✓ | ✓ | ✓ | ✘ | ✘ | ✘ | ✘ |
+| Discord integration | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | External CI/CD status display | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -177,6 +177,14 @@ func (engine *Engine) QuoteStr() string {
 	return engine.dialect.QuoteStr()
 }
 
+func (engine *Engine) quoteColumns(columnStr string) string {
+	columns := strings.Split(columnStr, ",")
+	for i := 0; i < len(columns); i++ {
+		columns[i] = engine.Quote(strings.TrimSpace(columns[i]))
+	}
+	return strings.Join(columns, ",")
+}
+
 // Quote Use QuoteStr quote the string sql
 func (engine *Engine) Quote(value string) string {
 	value = strings.TrimSpace(value)
@@ -235,6 +243,11 @@ func (engine *Engine) SQLType(c *core.Column) string {
 // AutoIncrStr Database's autoincrement statement
 func (engine *Engine) AutoIncrStr() string {
 	return engine.dialect.AutoIncrStr()
+}
+
+// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+func (engine *Engine) SetConnMaxLifetime(d time.Duration) {
+	engine.db.SetConnMaxLifetime(d)
 }
 
 // SetMaxOpenConns is only available for go 1.2+
@@ -468,7 +481,8 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		}
 
 		cols := table.ColumnsSeq()
-		colNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
+		colNames := engine.dialect.Quote(strings.Join(cols, engine.dialect.Quote(", ")))
+		destColNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
 
 		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
 		if err != nil {
@@ -483,7 +497,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+colNames+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+destColNames+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -513,7 +527,11 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				} else if col.SQLType.IsNumeric() {
 					switch reflect.TypeOf(d).Kind() {
 					case reflect.Slice:
-						temp += fmt.Sprintf(", %s", string(d.([]byte)))
+						if col.SQLType.Name == core.Bool {
+							temp += fmt.Sprintf(", %v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
+						} else {
+							temp += fmt.Sprintf(", %s", string(d.([]byte)))
+						}
 					case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
 						if col.SQLType.Name == core.Bool {
 							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Int() > 0))
@@ -550,7 +568,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 
 		// FIXME: Hack for postgres
 		if string(dialect.DBType()) == core.POSTGRES && table.AutoIncrColumn() != nil {
-			_, err = io.WriteString(w, "SELECT setval('table_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
+			_, err = io.WriteString(w, "SELECT setval('"+table.Name+"_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") + 1 FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
 			if err != nil {
 				return err
 			}
@@ -1333,10 +1351,10 @@ func (engine *Engine) DropIndexes(bean interface{}) error {
 }
 
 // Exec raw sql
-func (engine *Engine) Exec(sql string, args ...interface{}) (sql.Result, error) {
+func (engine *Engine) Exec(sqlorArgs ...interface{}) (sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Exec(sql, args...)
+	return session.Exec(sqlorArgs...)
 }
 
 // Query a raw sql and return records as []map[string][]byte

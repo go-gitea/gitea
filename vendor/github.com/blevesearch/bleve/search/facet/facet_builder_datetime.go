@@ -15,12 +15,24 @@
 package facet
 
 import (
+	"reflect"
 	"sort"
 	"time"
 
 	"github.com/blevesearch/bleve/numeric"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeDateTimeFacetBuilder int
+var reflectStaticSizedateTimeRange int
+
+func init() {
+	var dtfb DateTimeFacetBuilder
+	reflectStaticSizeDateTimeFacetBuilder = int(reflect.TypeOf(dtfb).Size())
+	var dtr dateTimeRange
+	reflectStaticSizedateTimeRange = int(reflect.TypeOf(dtr).Size())
+}
 
 type dateTimeRange struct {
 	start time.Time
@@ -44,6 +56,23 @@ func NewDateTimeFacetBuilder(field string, size int) *DateTimeFacetBuilder {
 		termsCount: make(map[string]int),
 		ranges:     make(map[string]*dateTimeRange, 0),
 	}
+}
+
+func (fb *DateTimeFacetBuilder) Size() int {
+	sizeInBytes := reflectStaticSizeDateTimeFacetBuilder + size.SizeOfPtr +
+		len(fb.field)
+
+	for k, _ := range fb.termsCount {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfInt
+	}
+
+	for k, _ := range fb.ranges {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfPtr + reflectStaticSizedateTimeRange
+	}
+
+	return sizeInBytes
 }
 
 func (fb *DateTimeFacetBuilder) AddRange(name string, start, end time.Time) {

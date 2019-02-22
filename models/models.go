@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -36,7 +35,7 @@ type Engine interface {
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
@@ -158,19 +157,6 @@ func LoadConfigs() {
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
-	if !filepath.IsAbs(setting.Indexer.IssuePath) {
-		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
-	}
-	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
-	if !filepath.IsAbs(setting.Indexer.RepoPath) {
-		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
-	}
-	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
-	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
@@ -200,7 +186,8 @@ func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DB
 	return
 }
 
-func parseMSSQLHostPort(info string) (string, string) {
+// ParseMSSQLHostPort splits the host into host and port
+func ParseMSSQLHostPort(info string) (string, string) {
 	host, port := "127.0.0.1", "1433"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -235,7 +222,7 @@ func getEngine() (*xorm.Engine, error) {
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
-		host, port := parseMSSQLHostPort(DbCfg.Host)
+		host, port := ParseMSSQLHostPort(DbCfg.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, DbCfg.Name, DbCfg.User, DbCfg.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {

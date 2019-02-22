@@ -16,10 +16,24 @@ package search
 
 import (
 	"fmt"
+	"reflect"
 
-	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeDocumentMatch int
+var reflectStaticSizeSearchContext int
+var reflectStaticSizeLocation int
+
+func init() {
+	var dm DocumentMatch
+	reflectStaticSizeDocumentMatch = int(reflect.TypeOf(dm).Size())
+	var sc SearchContext
+	reflectStaticSizeSearchContext = int(reflect.TypeOf(sc).Size())
+	var l Location
+	reflectStaticSizeLocation = int(reflect.TypeOf(l).Size())
+}
 
 type ArrayPositions []uint64
 
@@ -47,6 +61,11 @@ type Location struct {
 	ArrayPositions ArrayPositions `json:"array_positions"`
 }
 
+func (l *Location) Size() int {
+	return reflectStaticSizeLocation + size.SizeOfPtr +
+		len(l.ArrayPositions)*size.SizeOfUint64
+}
+
 type Locations []*Location
 
 type TermLocationMap map[string]Locations
@@ -56,6 +75,12 @@ func (t TermLocationMap) AddLocation(term string, location *Location) {
 }
 
 type FieldTermLocationMap map[string]TermLocationMap
+
+type FieldTermLocation struct {
+	Field    string
+	Term     string
+	Location Location
+}
 
 type FieldFragmentMap map[string][]string
 
@@ -74,11 +99,14 @@ type DocumentMatch struct {
 	// fields as float64s and date fields as time.RFC3339 formatted strings.
 	Fields map[string]interface{} `json:"fields,omitempty"`
 
-	// if we load the document for this hit, remember it so we dont load again
-	Document *document.Document `json:"-"`
-
 	// used to maintain natural index order
 	HitNumber uint64 `json:"-"`
+
+	// used to temporarily hold field term location information during
+	// search processing in an efficient, recycle-friendly manner, to
+	// be later incorporated into the Locations map when search
+	// results are completed
+	FieldTermLocations []FieldTermLocation `json:"-"`
 }
 
 func (dm *DocumentMatch) AddFieldValue(name string, value interface{}) {
@@ -108,13 +136,114 @@ func (dm *DocumentMatch) Reset() *DocumentMatch {
 	indexInternalID := dm.IndexInternalID
 	// remember the []interface{} used for sort
 	sort := dm.Sort
+	// remember the FieldTermLocations backing array
+	ftls := dm.FieldTermLocations
+	for i := range ftls { // recycle the ArrayPositions of each location
+		ftls[i].Location.ArrayPositions = ftls[i].Location.ArrayPositions[:0]
+	}
 	// idiom to copy over from empty DocumentMatch (0 allocations)
 	*dm = DocumentMatch{}
 	// reuse the []byte already allocated (and reset len to 0)
 	dm.IndexInternalID = indexInternalID[:0]
 	// reuse the []interface{} already allocated (and reset len to 0)
 	dm.Sort = sort[:0]
+	// reuse the FieldTermLocations already allocated (and reset len to 0)
+	dm.FieldTermLocations = ftls[:0]
 	return dm
+}
+
+func (dm *DocumentMatch) Size() int {
+	sizeInBytes := reflectStaticSizeDocumentMatch + size.SizeOfPtr +
+		len(dm.Index) +
+		len(dm.ID) +
+		len(dm.IndexInternalID)
+
+	if dm.Expl != nil {
+		sizeInBytes += dm.Expl.Size()
+	}
+
+	for k, v := range dm.Locations {
+		sizeInBytes += size.SizeOfString + len(k)
+		for k1, v1 := range v {
+			sizeInBytes += size.SizeOfString + len(k1) +
+				size.SizeOfSlice
+			for _, entry := range v1 {
+				sizeInBytes += entry.Size()
+			}
+		}
+	}
+
+	for k, v := range dm.Fragments {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfSlice
+
+		for _, entry := range v {
+			sizeInBytes += size.SizeOfString + len(entry)
+		}
+	}
+
+	for _, entry := range dm.Sort {
+		sizeInBytes += size.SizeOfString + len(entry)
+	}
+
+	for k, _ := range dm.Fields {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfPtr
+	}
+
+	return sizeInBytes
+}
+
+// Complete performs final preparation & transformation of the
+// DocumentMatch at the end of search processing, also allowing the
+// caller to provide an optional preallocated locations slice
+func (dm *DocumentMatch) Complete(prealloc []Location) []Location {
+	// transform the FieldTermLocations slice into the Locations map
+	nlocs := len(dm.FieldTermLocations)
+	if nlocs > 0 {
+		if cap(prealloc) < nlocs {
+			prealloc = make([]Location, nlocs)
+		}
+		prealloc = prealloc[:nlocs]
+
+		var lastField string
+		var tlm TermLocationMap
+
+		for i, ftl := range dm.FieldTermLocations {
+			if lastField != ftl.Field {
+				lastField = ftl.Field
+
+				if dm.Locations == nil {
+					dm.Locations = make(FieldTermLocationMap)
+				}
+
+				tlm = dm.Locations[ftl.Field]
+				if tlm == nil {
+					tlm = make(TermLocationMap)
+					dm.Locations[ftl.Field] = tlm
+				}
+			}
+
+			loc := &prealloc[i]
+			*loc = ftl.Location
+
+			if len(loc.ArrayPositions) > 0 { // copy
+				loc.ArrayPositions = append(ArrayPositions(nil), loc.ArrayPositions...)
+			}
+
+			tlm[ftl.Term] = append(tlm[ftl.Term], loc)
+
+			dm.FieldTermLocations[i] = FieldTermLocation{ // recycle
+				Location: Location{
+					ArrayPositions: ftl.Location.ArrayPositions[:0],
+				},
+			}
+		}
+	}
+
+	dm.FieldTermLocations = dm.FieldTermLocations[:0] // recycle
+
+	return prealloc
 }
 
 func (dm *DocumentMatch) String() string {
@@ -135,6 +264,7 @@ type Searcher interface {
 	SetQueryNorm(float64)
 	Count() uint64
 	Min() int
+	Size() int
 
 	DocumentMatchPoolSize() int
 }
@@ -142,9 +272,26 @@ type Searcher interface {
 type SearcherOptions struct {
 	Explain            bool
 	IncludeTermVectors bool
+	Score              string
 }
 
 // SearchContext represents the context around a single search
 type SearchContext struct {
 	DocumentMatchPool *DocumentMatchPool
+	Collector         Collector
+}
+
+func (sc *SearchContext) Size() int {
+	sizeInBytes := reflectStaticSizeSearchContext + size.SizeOfPtr +
+		reflectStaticSizeDocumentMatchPool + size.SizeOfPtr
+
+	if sc.DocumentMatchPool != nil {
+		for _, entry := range sc.DocumentMatchPool.avail {
+			if entry != nil {
+				sizeInBytes += entry.Size()
+			}
+		}
+	}
+
+	return sizeInBytes
 }

@@ -12,7 +12,6 @@ import (
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
@@ -30,10 +29,10 @@ import (
 )
 
 const (
-	tplRepoBARE base.TplName = "repo/bare"
-	tplRepoHome base.TplName = "repo/home"
-	tplWatchers base.TplName = "repo/watchers"
-	tplForks    base.TplName = "repo/forks"
+	tplRepoEMPTY base.TplName = "repo/empty"
+	tplRepoHome  base.TplName = "repo/home"
+	tplWatchers  base.TplName = "repo/watchers"
+	tplForks     base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -56,18 +55,31 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	var readmeFile *git.Blob
+	// 3 for the extensions in exts[] in order
+	// the last one is for a readme that doesn't
+	// strictly match an extension
+	var readmeFiles [4]*git.Blob
+	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 
-		if !markup.IsReadmeFile(entry.Name()) {
-			continue
+		for i, ext := range exts {
+			if markup.IsReadmeFile(entry.Name(), ext) {
+				readmeFiles[i] = entry.Blob()
+			}
 		}
 
-		readmeFile = entry.Blob()
-		if markup.Type(entry.Name()) != "" {
+		if markup.IsReadmeFile(entry.Name()) {
+			readmeFiles[3] = entry.Blob()
+		}
+	}
+
+	var readmeFile *git.Blob
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
 			break
 		}
 	}
@@ -91,13 +103,62 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		isTextFile := base.IsTextFile(buf)
 		ctx.Data["FileIsText"] = isTextFile
 		ctx.Data["FileName"] = readmeFile.Name()
+		fileSize := int64(0)
+		isLFSFile := false
+		ctx.Data["IsLFSFile"] = false
+
 		// FIXME: what happens when README file is an image?
+		if isTextFile && setting.LFS.StartServer {
+			meta := lfs.IsPointerFile(&buf)
+			if meta != nil {
+				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+				if err != nil && err != models.ErrLFSObjectNotExist {
+					ctx.ServerError("GetLFSMetaObject", err)
+					return
+				}
+			}
+
+			if meta != nil {
+				ctx.Data["IsLFSFile"] = true
+				isLFSFile = true
+
+				// OK read the lfs object
+				var err error
+				dataRc, err = lfs.ReadMetaObject(meta)
+				if err != nil {
+					ctx.ServerError("ReadMetaObject", err)
+					return
+				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, err = dataRc.Read(buf)
+				if err != nil {
+					ctx.ServerError("Data", err)
+					return
+				}
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				ctx.Data["IsTextFile"] = isTextFile
+
+				fileSize = meta.Size
+				ctx.Data["FileSize"] = meta.Size
+				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+			}
+		}
+
+		if !isLFSFile {
+			fileSize = readmeFile.Size()
+		}
+
 		if isTextFile {
-			if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
+			if fileSize >= setting.UI.MaxDisplayFileSize {
 				// Pretend that this is a normal text file to display 'This file is too large to be shown'
 				ctx.Data["IsFileTooLarge"] = true
 				ctx.Data["IsTextFile"] = true
-				ctx.Data["FileSize"] = readmeFile.Size()
+				ctx.Data["FileSize"] = fileSize
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
 				buf = templates.ToUTF8WithFallback(append(buf, d...))
@@ -137,9 +198,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = true
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled
+	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
+		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
+		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 }
 
@@ -156,7 +217,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
-	ctx.Data["FileSize"] = blob.Size()
+	fileSize := blob.Size()
+	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
@@ -166,40 +228,60 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	buf = buf[:n]
 
 	isTextFile := base.IsTextFile(buf)
+	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
-		headString := string(buf)
-		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
-			splitLines := strings.Split(headString, "\n")
-			if len(splitLines) >= 3 {
-				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
-				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-				if len(oid) == 64 && err == nil {
-					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
-					meta := &models.LFSMetaObject{Oid: oid}
-					if contentStore.Exists(meta) {
-						ctx.Data["IsTextFile"] = false
-						isTextFile = false
-						ctx.Data["IsLFSFile"] = true
-						ctx.Data["FileSize"] = size
-						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
-					}
-				}
+		meta := lfs.IsPointerFile(&buf)
+		if meta != nil {
+			meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				ctx.ServerError("GetLFSMetaObject", err)
+				return
 			}
+		}
+		if meta != nil {
+			ctx.Data["IsLFSFile"] = true
+			isLFSFile = true
+
+			// OK read the lfs object
+			var err error
+			dataRc, err = lfs.ReadMetaObject(meta)
+			if err != nil {
+				ctx.ServerError("ReadMetaObject", err)
+				return
+			}
+			defer dataRc.Close()
+
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				ctx.ServerError("Data", err)
+				return
+			}
+			buf = buf[:n]
+
+			isTextFile = base.IsTextFile(buf)
+			ctx.Data["IsTextFile"] = isTextFile
+
+			fileSize = meta.Size
+			ctx.Data["FileSize"] = meta.Size
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
 
 	// Assume file is not editable first.
-	if !isTextFile {
+	if isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else if !isTextFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
 	switch {
 	case isTextFile:
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
@@ -250,14 +332,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}
-
-		if ctx.Repo.CanEnableEditor() {
-			ctx.Data["CanEditFile"] = true
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-		} else if !ctx.Repo.IsViewBranch {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.IsWriter() {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		if !isLFSFile {
+			if ctx.Repo.CanEnableEditor() {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			} else if !ctx.Repo.IsViewBranch {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+			}
 		}
 
 	case base.IsPDFFile(buf):
@@ -275,16 +358,21 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.IsWriter() {
+	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if len(ctx.Repo.Repository.Units) > 0 {
+	if !models.HasOrgVisible(ctx.Repo.Repository.Owner, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
+	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
-		for _, repoUnit := range ctx.Repo.Repository.Units {
+		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
 				renderCode(ctx)
 				return
@@ -308,8 +396,8 @@ func Home(ctx *context.Context) {
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
-	if ctx.Repo.Repository.IsBare {
-		ctx.HTML(200, tplRepoBARE)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.HTML(200, tplRepoEMPTY)
 		return
 	}
 

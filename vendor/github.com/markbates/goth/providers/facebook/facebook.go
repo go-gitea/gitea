@@ -4,17 +4,18 @@ package facebook
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
 )
@@ -22,7 +23,7 @@ import (
 const (
 	authURL         string = "https://www.facebook.com/dialog/oauth"
 	tokenURL        string = "https://graph.facebook.com/oauth/access_token"
-	endpointProfile string = "https://graph.facebook.com/me?fields=email,first_name,last_name,link,about,id,name,picture,location"
+	endpointProfile string = "https://graph.facebook.com/me?fields="
 )
 
 // New creates a new Facebook provider, and sets up important connection details.
@@ -36,6 +37,7 @@ func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 		providerName: "facebook",
 	}
 	p.config = newConfig(p, scopes)
+	p.Fields = "email,first_name,last_name,link,about,id,name,picture,location"
 	return p
 }
 
@@ -45,6 +47,7 @@ type Provider struct {
 	Secret       string
 	CallbackURL  string
 	HTTPClient   *http.Client
+	Fields       string
 	config       *oauth2.Config
 	providerName string
 }
@@ -59,6 +62,16 @@ func (p *Provider) SetName(name string) {
 	p.providerName = name
 }
 
+// SetCustomFields sets the fields used to return information
+// for a user.
+//
+// A list of available field values can be found at
+// https://developers.facebook.com/docs/graph-api/reference/user
+func (p *Provider) SetCustomFields(fields []string) *Provider {
+	p.Fields = strings.Join(fields, ",")
+	return p
+}
+
 func (p *Provider) Client() *http.Client {
 	return goth.HTTPClientWithFallBack(p.HTTPClient)
 }
@@ -68,9 +81,9 @@ func (p *Provider) Debug(debug bool) {}
 
 // BeginAuth asks Facebook for an authentication end-point.
 func (p *Provider) BeginAuth(state string) (goth.Session, error) {
-	url := p.config.AuthCodeURL(state)
+	authUrl := p.config.AuthCodeURL(state)
 	session := &Session{
-		AuthURL: url,
+		AuthURL: authUrl,
 	}
 	return session, nil
 }
@@ -96,7 +109,15 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	hash.Write([]byte(sess.AccessToken))
 	appsecretProof := hex.EncodeToString(hash.Sum(nil))
 
-	response, err := p.Client().Get(endpointProfile + "&access_token=" + url.QueryEscape(sess.AccessToken) + "&appsecret_proof=" + appsecretProof)
+	reqUrl := fmt.Sprint(
+		endpointProfile,
+		p.Fields,
+		"&access_token=",
+		url.QueryEscape(sess.AccessToken),
+		"&appsecret_proof=",
+		appsecretProof,
+	)
+	response, err := p.Client().Get(reqUrl)
 	if err != nil {
 		return user, err
 	}

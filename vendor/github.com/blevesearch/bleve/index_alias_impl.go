@@ -15,11 +15,10 @@
 package bleve
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
@@ -434,6 +433,7 @@ func createChildSearchRequest(req *SearchRequest) *SearchRequest {
 		Explain:          req.Explain,
 		Sort:             req.Sort.Copy(),
 		IncludeLocations: req.IncludeLocations,
+		Score:            req.Score,
 	}
 	return &rv
 }

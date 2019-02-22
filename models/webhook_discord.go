@@ -347,12 +347,13 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		text = p.PullRequest.Body
 		color = warnColor
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &DiscordPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = user.UserName
 		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			list, p.Index, p.PullRequest.Title)
+		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d by %s", p.Repository.FullName,
+			strings.Join(list, ", "),
+			p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = successColor
 	case api.HookIssueUnassigned:
@@ -377,6 +378,40 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		color = warnColor
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
+	}
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: text,
+				URL:         p.PullRequest.HTMLURL,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
+func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *DiscordMeta, event HookEventType) (*DiscordPayload, error) {
+	var text, title string
+	var color int
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = warnColor
 	}
@@ -492,6 +527,8 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
+	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
 	case HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
 	case HookEventRelease:
@@ -499,4 +536,20 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 	}
 
 	return s, nil
+}
+
+func parseHookPullRequestEventType(event HookEventType) (string, error) {
+
+	switch event {
+
+	case HookEventPullRequestApproved:
+		return "approved", nil
+	case HookEventPullRequestRejected:
+		return "rejected", nil
+	case HookEventPullRequestComment:
+		return "comment", nil
+
+	default:
+		return "", errors.New("unknown event type")
+	}
 }
