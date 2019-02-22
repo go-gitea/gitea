@@ -296,6 +296,7 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
+    cache_from: gitea/gitea
     default_tags: true
     when:
       event: [ push, tag ]
