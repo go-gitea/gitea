@@ -5,6 +5,7 @@
 package uploader
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -38,13 +39,16 @@ type UpdateRepoFileOptions struct {
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*File, error) {
+func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*File, error) {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = "master"
 	}
+	if opts.NewBranch == "" {
+		opts.NewBranch = opts.OldBranch
+	}
 
-	// "BranchName" must exist for this operation
+	// oldBranch must exist for this operation
 	if _, err := repo.GetBranch(opts.OldBranch); err != nil {
 		return nil, err
 	}
@@ -52,7 +56,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, do
 	// A NewBranch can be specified for the file to be created/updated in a new branch
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
-	if opts.NewBranch != "" {
+	if opts.NewBranch != opts.OldBranch {
 		newBranch, err := repo.GetBranch(opts.NewBranch)
 		if git.IsErrNotExist(err) {
 			return nil, err
@@ -71,7 +75,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, do
 		opts.FromTreeName = opts.TreeName
 	}
 
-	log.Debug("%v", opts)
+	log.Warn("%v", opts)
 
 	// Check that the path given in opts.treeName is valid (not a git path)
 	treeName := cleanUploadFileName(opts.TreeName)
@@ -84,69 +88,22 @@ func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, do
 		return nil, models.ErrFilenameInvalid{opts.FromTreeName}
 	}
 
-	// Get the commit of the original branch
-	commit, err := gitRepo.GetBranchCommit(opts.OldBranch)
-	if err != nil {
-		return nil, err // Couldn't get a commit for the branch
-	}
-
-	// Check to see if we are needing to move this updated file to a new file name
-	// If so, we make sure the new file name doesn't already exist (cannot clobber)
-	if !opts.IsNewFile && treeName != fromTreeName {
-		if entry, err := commit.GetTreeEntryByPath(treeName); err != nil {
-			// If it wasn't a ErrNotExist error, it was something else so return it
-			if !git.IsErrNotExist(err) {
-				return nil, err
-			}
-		} else if entry != nil {
-			// Otherwise, if no error and the entry exists, we can't make the file
-			return nil, models.ErrRepoFileAlreadyExist{treeName}
-		}
-	}
-
-	// For the path where this file will be created/updated, we need to make
-	// sure no parts of the path are existing files or links except for the last
-	// item in the path which is the file name
-	treeNameParts := strings.Split(treeName, "/")
-	subTreeName := ""
-	for index, part := range treeNameParts {
-		subTreeName = path.Join(subTreeName, part)
-		entry, err := commit.GetTreeEntryByPath(treeName)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
-			}
-			return nil, err
-		}
-		if index < len(treeNameParts)-1 {
-			if !entry.IsDir() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", subTreeName)}
-			}
-		} else {
-			if entry.IsLink() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
-			}
-			if entry.IsDir() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
-			}
-		}
-	}
-
 	message := strings.TrimSpace(opts.Message)
 
 	var committer *models.User
 	var author *models.User
-	if opts.Committer.Email == "" {
-		committer, err = models.GetUserByEmail(opts.Committer.Email)
-		if err != nil {
-			return nil, err
+	if opts.Committer != nil && opts.Committer.Email == "" {
+		if c, err := models.GetUserByEmail(opts.Committer.Email); err != nil {
+			committer = doer
+		} else {
+			committer = c
 		}
 	}
-	if opts.Author.Email == "" {
-		author, err = models.GetUserByEmail(opts.Author.Email)
-		if err != nil {
-			return nil, err
+	if opts.Author != nil && opts.Author.Email == "" {
+		if a, err := models.GetUserByEmail(opts.Author.Email); err != nil {
+			author = doer
+		} else {
+			author = a
 		}
 	}
 	if author == nil {
@@ -173,15 +130,86 @@ func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, do
 		return nil, err
 	}
 
+	if opts.LastCommitID == "" {
+		if commitID, err := t.GetLastCommit(); err != nil {
+			return nil, err
+		} else {
+			opts.LastCommitID = commitID
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the commit of the original branch
+	commit, err := gitRepo.GetBranchCommit(opts.OldBranch)
+	if err != nil {
+		return nil, err // Couldn't get a commit for the branch
+	}
+
+	// Check to see if we are needing to move this updated file to a new file name
+	// If so, we make sure the new file name doesn't already exist (cannot clobber)
+	if !opts.IsNewFile && treeName != fromTreeName {
+		//if entry, err := commit.GetTreeEntryByPath(treeName); err != nil {
+		//	// If it wasn't a ErrNotExist error, it was something else so return it
+		//	if !git.IsErrNotExist(err) {
+		//		return nil, err
+		//	}
+		//} else if entry != nil {
+		//	// Otherwise, if no error and the entry exists, we can't make the file
+		//	return nil, models.ErrRepoFileAlreadyExists{treeName}
+		//}
+	}
+
+	// For the path where this file will be created/updated, we need to make
+	// sure no parts of the path are existing files or links except for the last
+	// item in the path which is the file name
+	treeNameParts := strings.Split(treeName, "/")
+	subTreeName := ""
+	for index, part := range treeNameParts {
+		subTreeName = path.Join(subTreeName, part)
+		log.Warn("GETTING ENTRY FOR %s", subTreeName)
+		entry, err := commit.GetTreeEntryByPath(treeName)
+		log.Warn("ERROR? %v", err)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				// Means there is no item with that name, so we're good
+				break
+			}
+			return nil, err
+		}
+		log.Warn("HERE: %s %v", entry.ID, entry.IsDir())
+		if index < len(treeNameParts)-1 {
+			if !entry.IsDir() {
+				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", subTreeName)}
+			}
+		} else {
+			if entry.IsLink() {
+				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
+			}
+			if entry.IsDir() {
+				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
+			}
+		}
+	}
+
 	filesInIndex, err := t.LsFiles(opts.TreeName, opts.FromTreeName)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateRepoFile: %v", err)
 	}
+	j, err := json.Marshal(filesInIndex)
+	log.Warn("FILESININDEX: %v", j)
+	for idx, file := range filesInIndex {
+		log.Warn("FILE: %d: %s", idx, file)
+	}
 
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
+			log.Warn("FILE: %s", file)
 			if file == opts.TreeName {
-				return nil, models.ErrRepoFileAlreadyExist{FileName: opts.TreeName}
+				return nil, models.ErrRepoFileAlreadyExists{FileName: opts.TreeName}
 			}
 		}
 	}
@@ -263,7 +291,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, gitRepo *git.Repository, do
 
 	// Simulate push event.
 	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch {
+	if opts.NewBranch != opts.OldBranch || oldCommitID == "" {
 		oldCommitID = git.EmptySHA
 	}
 

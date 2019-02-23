@@ -201,8 +201,20 @@ func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 		return "", fmt.Errorf("git write-tree: %s", stderr)
 	}
 	return strings.TrimSpace(treeHash), nil
-
 }
+
+// GetLastCommit gets the last commit ID SHA of the repo
+func (t *TemporaryUploadRepository) GetLastCommit() (string, error) {
+	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
+		t.basePath,
+		fmt.Sprintf("GetLastCommit (git rev-parse): %s", t.basePath),
+		"git", "rev-parse", "HEAD")
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse HEAD: %s", stderr)
+	}
+	return strings.TrimSpace(treeHash), nil
+}
+
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(doer *models.User, treeHash string, message string) (string, error) {

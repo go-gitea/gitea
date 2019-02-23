@@ -752,18 +752,18 @@ func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 
-// ErrRepoFileAlreadyExist represents a "RepoFileAlreadyExist" kind of error.
-type ErrRepoFileAlreadyExist struct {
+// ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
+type ErrRepoFileAlreadyExists struct {
 	FileName string
 }
 
-// IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
-func IsErrRepoFileAlreadyExist(err error) bool {
-	_, ok := err.(ErrRepoFileAlreadyExist)
+// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+func IsErrRepoFileAlreadyExists(err error) bool {
+	_, ok := err.(ErrRepoFileAlreadyExists)
 	return ok
 }
 
-func (err ErrRepoFileAlreadyExist) Error() string {
+func (err ErrRepoFileAlreadyExists) Error() string {
 	return fmt.Sprintf("repository file already exists [file_name: %s]", err.FileName)
 }
 
@@ -772,7 +772,7 @@ type ErrRepoFileDoesNotExist struct {
 	FileName string
 }
 
-// IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
+// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
 func IsErrRepoFileDoesNotExist(err error) bool {
 	_, ok := err.(ErrRepoFileDoesNotExist)
 	return ok
@@ -836,7 +836,7 @@ func (err ErrWithFilePath) Error() string {
 	return fmt.Sprintf("There is a problem with this file path: %s", err.Message)
 }
 
-// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExist.
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExists.
 func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
 	return ok
@@ -934,7 +934,7 @@ type ErrShaDoesNotMatch struct {
 	CurrentSHA string
 }
 
-// IsErrRepoFileAlreadyExist checks if an error is a ErrRepoFileAlreadyExist.
+// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
 func IsErrShaDoesNotMatch(err error) bool {
 	_, ok := err.(ErrShaDoesNotMatch)
 	return ok

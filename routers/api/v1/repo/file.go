@@ -182,7 +182,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
-		TreeName:  ctx.Repo.TreePath,
+		TreeName:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &uploader.IdentityOptions{
@@ -234,7 +234,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 		IsNewFile:    false,
 		Message:      apiOpts.Message,
 		FromTreeName: apiOpts.FromPath,
-		TreeName:     ctx.Repo.TreePath,
+		TreeName:      ctx.Params("*"),
 		OldBranch:    apiOpts.BranchName,
 		NewBranch:    apiOpts.NewBranchName,
 		Committer: &uploader.IdentityOptions{
@@ -266,7 +266,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *uploader.UpdateRepoFileOp
 		opts.Content = string(content)
 	}
 
-	if file, err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.User, opts); err != nil {
+	if file, err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
 		ctx.Error(500, "", err)
 	} else {
 		ctx.JSON(200, file)

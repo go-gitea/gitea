@@ -164,7 +164,7 @@ package models
 //				return nil, err
 //			}
 //		} else if entry != nil {
-//			return nil, ErrRepoFileAlreadyExist{newTreePath}
+//			return nil, ErrRepoFileAlreadyExists{newTreePath}
 //		}
 //	}
 //
@@ -246,7 +246,7 @@ package models
 //	if opts.IsNewFile {
 //		for _, file := range filesInIndex {
 //			if file == opts.NewTreeName {
-//				return models.ErrRepoFileAlreadyExist{FileName: opts.NewTreeName}
+//				return models.ErrRepoFileAlreadyExists{FileName: opts.NewTreeName}
 //			}
 //		}
 //	}
