@@ -337,6 +337,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 		ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
+		unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil {
+			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
+		}
+
 		tags, err := ctx.Repo.GitRepo.GetTags()
 		if err != nil {
 			ctx.ServerError("GetTags", err)

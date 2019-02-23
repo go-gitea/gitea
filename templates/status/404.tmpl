@@ -1,4 +1,5 @@
 {{template "base/head" .}}
+{{if .IsRepo}}<div class="repository">{{template "repo/header" .}}</div>{{end}}
 <div class="ui container center">
 	<p style="margin-top: 100px"><img src="{{AppSubUrl}}/img/404.png" alt="404"/></p>
 	<div class="ui divider"></div>

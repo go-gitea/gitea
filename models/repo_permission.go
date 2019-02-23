@@ -151,6 +151,15 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
+	// if user in an owner team
+	for _, team := range teams {
+		if team.Authorize >= AccessModeOwner {
+			perm.AccessMode = AccessModeOwner
+			perm.UnitsMode = nil
+			return
+		}
+	}
+
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {

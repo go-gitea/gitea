@@ -161,6 +161,19 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+		} else if models.IsErrUserProhibitLogin(err) {
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(200, "user/auth/prohibit_login")
+		} else if models.IsErrUserInactive(err) {
+			if setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(200, TplActivate)
+			} else {
+				log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(200, "user/auth/prohibit_login")
+			}
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}
@@ -1172,7 +1185,11 @@ func ResetPasswd(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Code"] = code
-	ctx.Data["IsResetForm"] = true
+
+	if u := models.VerifyUserActiveCode(code); u != nil {
+		ctx.Data["IsResetForm"] = true
+	}
+
 	ctx.HTML(200, tplResetPassword)
 }
 

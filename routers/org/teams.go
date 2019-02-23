@@ -288,8 +288,6 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			})
 		}
 		models.UpdateTeamUnits(t, units)
-	} else {
-		models.UpdateTeamUnits(t, nil)
 	}
 
 	if ctx.HasError() {
