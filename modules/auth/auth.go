@@ -152,7 +152,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				if isUsernameToken {
 					u, err = models.GetUserByID(token.UID)
 					if err != nil {
-						log.Error(4, "GetUserByID:  %v", err)
+						log.Error(0, "GetUserByID:  %v", err)
 						return nil, false
 					}
 				} else {
@@ -179,7 +179,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				u, err = models.UserSignIn(uname, passwd)
 				if err != nil {
 					if !models.IsErrUserNotExist(err) {
-						log.Error(4, "UserSignIn: %v", err)
+						log.Error(0, "UserSignIn: %v", err)
 					}
 					return nil, false
 				}

@@ -681,7 +681,7 @@ func (t *HookTask) deliver() {
 		// Update webhook last delivery status.
 		w, err := GetWebhookByID(t.HookID)
 		if err != nil {
-			log.Error(5, "GetWebhookByID: %v", err)
+			log.Error(0, "GetWebhookByID: %v", err)
 			return
 		}
 		if t.IsSucceed {
@@ -690,7 +690,7 @@ func (t *HookTask) deliver() {
 			w.LastStatus = HookStatusFail
 		}
 		if err = UpdateWebhookLastStatus(w); err != nil {
-			log.Error(5, "UpdateWebhookLastStatus: %v", err)
+			log.Error(0, "UpdateWebhookLastStatus: %v", err)
 			return
 		}
 	}()

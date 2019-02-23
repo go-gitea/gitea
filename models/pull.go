@@ -1215,7 +1215,7 @@ func (pr *PullRequest) AddToTaskQueue() {
 	go pullRequestQueue.AddFunc(pr.ID, func() {
 		pr.Status = PullRequestStatusChecking
 		if err := pr.UpdateCols("status"); err != nil {
-			log.Error(5, "AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+			log.Error(0, "AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		}
 	})
 }

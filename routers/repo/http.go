@@ -181,7 +181,7 @@ func HTTP(ctx *context.Context) {
 				}
 			} else {
 				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
+					log.Error(0, "GetAccessTokenBySha: %v", err)
 				}
 			}
 

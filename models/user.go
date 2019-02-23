@@ -532,7 +532,7 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 func (u *User) IsUserPartOfOrg(userID int64) bool {
 	isMember, err := IsOrganizationMember(u.ID, userID)
 	if err != nil {
-		log.Error(4, "IsOrganizationMember: %v", err)
+		log.Error(0, "IsOrganizationMember: %v", err)
 		return false
 	}
 	return isMember
