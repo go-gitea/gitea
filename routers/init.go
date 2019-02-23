@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cache/lastcommit"
-	"code.gitea.io/gitea/modules/cache/ls_tree"
+	"code.gitea.io/gitea/modules/cache/lstree"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/highlight"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -49,7 +49,7 @@ func NewServices() {
 	if err := lastcommit.NewContext(); err != nil {
 		log.Warn("last commit cache enabled but init failed:", err)
 	}
-	if err := ls_tree.NewContext(); err != nil {
+	if err := lstree.NewContext(); err != nil {
 		log.Warn("last commit cache enabled but init failed:", err)
 	}
 }

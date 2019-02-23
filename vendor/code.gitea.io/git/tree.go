@@ -71,6 +71,7 @@ func (t *Tree) ListEntries(cache LsTreeCache) (Entries, error) {
 	if cache != nil {
 		t.entries, err = cache.Get(t.repo.Path, id)
 		if err == nil && t.entries != nil {
+			//log("Hit ls tree cache: %s, %s", t.repo.Path, id)
 			t.entriesParsed = true
 			return t.entries, nil
 		}

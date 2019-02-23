@@ -45,6 +45,7 @@
 				<td colspan="3"><i class="octicon octicon-mail-reply"></i><a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
 			</tr>
 		{{end}}
+		{{$cache := (LsTreeCache $.LsTreeCache)}}
 		{{range $item := .Files}}
 			{{$entry := index $item 0}}
 			{{$commit := index $item 1}}
@@ -62,7 +63,7 @@
 				{{else}}
 					<td class="name">
 						{{if $entry.IsDir}}
-							{{$subJumpablePathName := ($entry.GetSubJumpablePathName $.LsTreeCache)}}
+							{{$subJumpablePathName := ($entry.GetSubJumpablePathName $cache)}}
 							{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 							<span class="octicon octicon-file-directory"></span>
 							<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}">

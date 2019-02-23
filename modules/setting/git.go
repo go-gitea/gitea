@@ -28,11 +28,6 @@ var (
 			Pull    int
 			GC      int `ini:"GC"`
 		} `ini:"git.timeout"`
-		LastCommitCache struct {
-			UseDefaultCache bool
-			Type            string
-			ConnStr         string
-		} `ini:"git.last_commit_cache"`
 	}{
 		DisableDiffHighlight:     false,
 		MaxGitDiffLines:          1000,
@@ -53,15 +48,6 @@ var (
 			Clone:   300,
 			Pull:    300,
 			GC:      60,
-		},
-		LastCommitCache: struct {
-			UseDefaultCache bool
-			Type            string
-			ConnStr         string
-		}{
-			UseDefaultCache: false,
-			Type:            "none",
-			ConnStr:         "",
 		},
 	}
 )

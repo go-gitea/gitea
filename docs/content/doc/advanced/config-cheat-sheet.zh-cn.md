@@ -147,6 +147,19 @@ menu:
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `TYPE`: **boltdb**: 缓存类型，可以为空，`default`， `memory`， `boltdb`， `redis`。为空则禁用此缓存。
+- `ENABLE_MIN_COMMIT_COUNT`: **1000**: 缓存类型，可以为空，`default`， `memory`， `boltdb`， `redis`。为空则禁用此缓存。
+- `CONN_STR`: **data/last_commit_cache_boltdb**: 如果缓存类型为 `boltdb` 则为缓存文件路径，如果为 `redis`，则为 `addrs=127.0.0.1 password= db=0`
+
+## Cache - LsTreeCache settings (`cache.ls_tree`)
+
+- `TYPE`: **boltdb**: 缓存类型，可以为空，`default`， `memory`， `boltdb`， `redis`。为空则禁用此缓存。
+- `ENABLE_MIN_COMMIT_COUNT`: **1000**: 缓存类型，可以为空，`default`， `memory`， `boltdb`， `redis`。为空则禁用此缓存。
+- `CONN_STR`: **data/ls_tree_cache_boltdb**: 如果缓存类型为 `boltdb` 则为缓存文件路径，如果为 `redis`，则为 `addrs=127.0.0.1 password= db=0`
+
 ## Session (`session`)
 
 - `PROVIDER`: Session 内容存储方式，可选 `memory`, `file`, `redis` 或 `mysql`。
@@ -209,11 +222,6 @@ menu:
 - `CLONE`: **300**: 内部仓库间克隆的超时时间，单位秒
 - `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
 - `GC`: **60**: git仓库GC的超时时间，单位秒
-
-## Git - 最后提交缓存设置 (`git.last_commit_cache`)
-
-- `TYPE`: **none**: 缓存类型，可以为空，`memory` 或 `boltdb`。
-- `DATA_PATH`: ****: 缓存目录，当类型为 `boltdb` 时有效。
 
 ## API (`api`)
 

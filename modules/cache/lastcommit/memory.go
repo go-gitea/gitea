@@ -5,7 +5,6 @@
 package lastcommit
 
 import (
-	"fmt"
 	"sync"
 
 	"code.gitea.io/git"
@@ -18,10 +17,6 @@ var (
 // MemoryCache implements git.LastCommitCache interface to save the last commits on memory
 type MemoryCache struct {
 	commits sync.Map
-}
-
-func getKey(repoPath, ref, entryPath string) string {
-	return fmt.Sprintf("%s:%s:%s", repoPath, ref, entryPath)
 }
 
 // Get implements git.LastCommitCache

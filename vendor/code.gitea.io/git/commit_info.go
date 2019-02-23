@@ -104,6 +104,7 @@ func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommi
 		if cache != nil {
 			commit, err := cache.Get(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath)
 			if err == nil && commit != nil {
+				log("Hit last commit cache: %s, %s", state.headCommit.repo.Path, commit.ID.String())
 				state.update(entryPath, commit)
 				continue
 			}

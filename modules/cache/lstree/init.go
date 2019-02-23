@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package lastcommit
+package lstree
 
 import (
 	"fmt"
@@ -15,30 +15,30 @@ import (
 )
 
 var (
-	// Cache defines globally last commit cache object
-	Cache git.LastCommitCache
+	// Cache defines globally tree entries cache
+	Cache git.LsTreeCache
 )
 
 // NewContext init
 func NewContext() error {
 	var err error
-	switch setting.CacheService.LastCommit.Type {
+	switch setting.CacheService.LsTree.Type {
 	case "default":
 		if cache.Cache != nil {
-			Cache = &lastCommitCache{
+			Cache = &lsTreeCache{
 				mc:      cache.Cache,
 				timeout: int64(setting.CacheService.TTL / time.Second),
 			}
 		} else {
-			log.Warn("Last Commit Cache Enabled but Cache Service not Configed Well")
+			log.Warn("Ls Tree Cache Enabled but Cache Service not Configed Well")
 			return nil
 		}
 	case "memory":
 		Cache = &MemoryCache{}
 	case "boltdb":
-		Cache, err = NewBoltDBCache(setting.CacheService.LastCommit.ConnStr)
+		Cache, err = NewBoltDBCache(setting.CacheService.LsTree.ConnStr)
 	case "redis":
-		addrs, pass, dbIdx, err := parseConnStr(setting.CacheService.LastCommit.ConnStr)
+		addrs, pass, dbIdx, err := parseConnStr(setting.CacheService.LsTree.ConnStr)
 		if err != nil {
 			return err
 		}
@@ -47,10 +47,10 @@ func NewContext() error {
 	case "":
 		return nil
 	default:
-		return fmt.Errorf("Unsupported last commit type: %s", setting.CacheService.LastCommit.Type)
+		return fmt.Errorf("Unsupported ls tree cache type: %s", setting.CacheService.LsTree.Type)
 	}
 	if err == nil {
-		log.Info("Last Commit Cache %s Enabled", setting.CacheService.LastCommit.Type)
+		log.Info("Ls Tree Cache %s Enabled", setting.CacheService.LsTree.Type)
 	}
 	return err
 }

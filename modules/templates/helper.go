@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -104,12 +105,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":        base.EllipsisString,
-		"DiffTypeToStr":         DiffTypeToStr,
-		"DiffLineTypeToStr":     DiffLineTypeToStr,
-		"Sha1":                  Sha1,
-		"ShortSha":              base.ShortSha,
-		"MD5":                   base.EncodeMD5,
+		"EllipsisString":    base.EllipsisString,
+		"DiffTypeToStr":     DiffTypeToStr,
+		"DiffLineTypeToStr": DiffLineTypeToStr,
+		"Sha1":              Sha1,
+		"ShortSha":          base.ShortSha,
+		"MD5":               base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
@@ -154,6 +155,12 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"LsTreeCache": func(cache interface{}) git.LsTreeCache {
+			if cache == nil {
+				return nil
+			}
+			return cache.(git.LsTreeCache)
 		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer

@@ -258,6 +258,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `TYPE`: **boltdb**: Cache type could be empty, `default`, `memory`, `boltdb`, `redis`, empty to disable this cache
+- `ENABLE_MIN_COMMIT_COUNT`: **1000**: repos which have less than commits number will enable this cache, 0 will always cache if `TYPE` is not empty
+- `CONN_STR`: **data/last_commit_cache_boltdb**: Cache dir when type is boltdb, when `TYPE` is `redis`, will be `addrs=127.0.0.1 password= db=0`
+
+## Cache - LsTreeCache settings (`cache.ls_tree`)
+
+- `TYPE`: **boltdb**: Cache type could be empty, `default`, `memory`, `boltdb`, `redis`, empty to disable this cache
+- `ENABLE_MIN_COMMIT_COUNT`: **1000**: repos which have less than commits number will enable this cache, 0 will always cache if `TYPE` is not empty
+- `CONN_STR`: **data/ls_tree_cache_boltdb**: Cache dir when type is boltdb, when `TYPE` is `redis`, will be `addrs=127.0.0.1 password= db=0`
+
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
@@ -333,11 +345,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
-
-## Git - LastCommitCache settings (`git.last_commit_cache`)
-
-- `TYPE`: **none**: Cache type, could be empty, `memory` or `boltdb`.
-- `DATA_PATH`: ****: Cache dir when type is boltdb.
 
 ## Metrics (`metrics`)
 

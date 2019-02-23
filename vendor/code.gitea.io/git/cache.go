@@ -4,12 +4,13 @@
 
 package git
 
-// LastCommitCache cache
+// LastCommitCache is the cache interface for get last commit info of an entry on the git tree
 type LastCommitCache interface {
 	Get(repoPath, ref, entryPath string) (*Commit, error)
 	Put(repoPath, ref, entryPath string, commit *Commit) error
 }
 
+// LsTreeCache is the cache interface for get a tree entries
 type LsTreeCache interface {
 	Get(repoPath, treeIsh string) (Entries, error)
 	Put(repoPath, treeIsh string, entries Entries) error

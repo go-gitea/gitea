@@ -1,4 +1,8 @@
-package ls_tree
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package lstree
 
 import (
 	"fmt"
@@ -13,8 +17,8 @@ type lsTreeCache struct {
 	timeout int64 // seconds
 }
 
-func getKey(repoPath, ref string) string {
-	return fmt.Sprintf("%s:%s", repoPath, ref)
+func getKey(repoPath, treeIsh string) string {
+	return fmt.Sprintf("%s:%s", treeIsh, repoPath)
 }
 
 func (c *lsTreeCache) Get(repoPath, id string) (git.Entries, error) {

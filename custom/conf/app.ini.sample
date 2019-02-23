@@ -455,6 +455,24 @@ HOST =
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
 
+; Last commit cache
+[cache.last_commit]
+; Cache type could be empty, "default", "memory", "boltdb", "redis", empty to disable this cache
+TYPE = boltdb
+; repos which have less than commits number will enable this cache, 0 will always cache if `TYPE` is not empty
+ENABLE_MIN_COMMIT_COUNT = 1000
+; Cache dir when type is boltdb, when `TYPE` is `redis`, will be `addrs=127.0.0.1 password= db=0`
+CONN_STR = data/last_commit_cache_boltdb
+
+; Ls tree cache
+[cache.ls_tree]
+; Cache type could be empty, "default", "memory", "boltdb", "redis", empty to disable this cache
+TYPE = boltdb
+; repos which have less than commits number will enable this cache, 0 will always cache if `TYPE` is not empty
+ENABLE_MIN_COMMIT_COUNT = 1000
+; Cache dir when type is boltdb, when `TYPE` is `redis`, will be `addrs=127.0.0.1 password= db=0`
+CONN_STR = data/ls_tree_cache_boltdb
+
 [session]
 ; Either "memory", "file", or "redis", default is "memory"
 PROVIDER = memory
@@ -637,14 +655,6 @@ MIRROR = 300
 CLONE = 300
 PULL = 300
 GC = 60
-
-; Last commit cache
-[git.last_commit_cache]
-; use default cache settings on cache
-USE_DEFAULT_CACHE = false
-; could be empty, memory or boltdb
-TYPE = none
-DATA_PATH = data/last_commit_cache_boltdb
 
 [mirror]
 ; Default interval as a duration between each check

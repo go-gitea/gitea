@@ -18,7 +18,7 @@ var Cache mc.Cache
 
 // NewContext start cache service
 func NewContext() error {
-	if setting.CacheService == nil || Cache != nil {
+	if setting.CacheService.Adapter == "" || Cache != nil {
 		return nil
 	}
 

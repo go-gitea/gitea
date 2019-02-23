@@ -5,6 +5,8 @@
 package lastcommit
 
 import (
+	"fmt"
+
 	"code.gitea.io/git"
 
 	"github.com/go-macaron/cache"
@@ -13,6 +15,10 @@ import (
 type lastCommitCache struct {
 	mc      cache.Cache
 	timeout int64 // seconds
+}
+
+func getKey(repoPath, ref, entryPath string) string {
+	return fmt.Sprintf("%s:%s:%s", repoPath, ref, entryPath)
 }
 
 func (l *lastCommitCache) Get(repoPath, ref, entryPath string) (*git.Commit, error) {
