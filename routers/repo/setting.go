@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -94,6 +96,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
+		// when ForcePrivate enabled, you could change public repo to private, but could not change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private {
+			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
+			return
+		}
+
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
