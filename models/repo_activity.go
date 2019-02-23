@@ -363,7 +363,7 @@ func (stats *CodeActivityStats) FillFromGit(repo *Repository, fromTime time.Time
 			continue
 		}
 		switch p {
-		case 1: // Seperator
+		case 1: // Separator
 		case 2: // Commit sha-1
 			stats.CommitCount++
 		case 3: // Author
