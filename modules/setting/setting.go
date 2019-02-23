@@ -384,7 +384,8 @@ var (
 	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
-	RouterLogTemplate  string
+	EnableAccessLog    bool
+	AccessLogTemplate  string
 
 	// Attachment settings
 	AttachmentPath         string
@@ -1226,7 +1227,7 @@ func NewServices() {
 	newService()
 	newLogService()
 	newMacaronLogService()
-	newRouterLogService()
+	newAccessLogService()
 	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()

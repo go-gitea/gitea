@@ -21,7 +21,7 @@ import (
 // is specified. For example, flags Ldate | Ltime
 // produce, 2009/01/23 01:23:23 message.
 // The standard is:
-// 2009/01/23 01:23:23 /a/b/c/d.go:23:runtime.Caller() [I]: message
+// 2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message
 const (
 	Ldate          = 1 << iota // the date in the local time zone: 2009/01/23
 	Ltime                      // the time in the local time zone: 01:23:23

@@ -96,7 +96,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		jsonConfig["password"] = sec.Key("PASSWD").MustString("******")
 		jsonConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
 		jsonConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
-		jsonConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from serve")
+		jsonConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
 	case "database":
 		jsonConfig["driver"] = sec.Key("DRIVER").String()
 		jsonConfig["conn"] = sec.Key("CONN").String()
@@ -146,15 +146,15 @@ func newMacaronLogService() {
 	generateNamedLogger("macaron", options)
 }
 
-func newRouterLogService() {
-	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(Cfg.Section("server").Key("DISABLE_ROUTER_LOG").MustBool())
-	RouterLogTemplate = Cfg.Section("log").Key("ROUTER_LOG_TEMPLATE").MustString(
+func newAccessLogService() {
+	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
+	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
-	if !DisableRouterLog {
+	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
 		options.flags = -1 // For the router we don't want any prefixed flags
-		generateNamedLogger("router", options)
+		generateNamedLogger("access", options)
 	}
 }
 

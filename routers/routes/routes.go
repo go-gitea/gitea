@@ -67,14 +67,17 @@ type routerLoggerOptions struct {
 	ResponseWriter *macaron.ResponseWriter
 }
 
-func routerLogger() macaron.Handler {
-	logger := log.NamedLoggers["router"]
+func setupAccessLogger(m *macaron.Macaron) {
+	if !setting.EnableAccessLog {
+		return
+	}
+	logger := log.NamedLoggers["access"]
 	if logger == nil {
-		return macaron.Logger()
+		return
 	}
 
-	logTemplate, _ := template.New("log").Parse(setting.RouterLogTemplate)
-	return func(ctx *macaron.Context) {
+	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
+	m.Use(func(ctx *macaron.Context) {
 		start := time.Now()
 		ctx.Next()
 		identity := "-"
@@ -94,7 +97,7 @@ func routerLogger() macaron.Handler {
 		})
 
 		logger.SendLog(log.INFO, "", "", 0, buf.String())
-	}
+	})
 }
 
 // NewMacaron initializes Macaron instance.
@@ -105,7 +108,7 @@ func NewMacaron() *macaron.Macaron {
 		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.NamedLoggers["macaron"])
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog {
-			m.Use(routerLogger())
+			m.Use(macaron.Logger())
 		}
 	} else {
 		m = macaron.New()
@@ -113,6 +116,8 @@ func NewMacaron() *macaron.Macaron {
 			m.Use(macaron.Logger())
 		}
 	}
+	// Access Logger is similar to Router Log but more configurable and by default is more the NCSA format
+	setupAccessLogger(m)
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())

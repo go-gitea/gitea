@@ -33,7 +33,7 @@ PREFERRED_LICENSES = Apache License 2.0,MIT License
 DISABLE_HTTP_GIT = false
 ; Value for Access-Control-Allow-Origin header, default is not to present
 ; WARNING: This maybe harmful to you website if you do not give it a right value.
-ACCESS_CONTROL_ALLOW_ORIGIN = 
+ACCESS_CONTROL_ALLOW_ORIGIN =
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
@@ -260,7 +260,7 @@ ISSUE_INDEXER_TYPE = bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
 ISSUE_INDEXER_QUEUE_TYPE = levelqueue
-; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path, 
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
 ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ; Batch queue number, default is 20
@@ -390,8 +390,8 @@ NO_REPLY_ADDRESS = noreply.example.org
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
 ; Default value for AutoWatchNewRepos
-; When adding a repo to a team or creating a new repo all team members will watch the 
-; repo automatically if enabled 
+; When adding a repo to a team or creating a new repo all team members will watch the
+; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
@@ -517,8 +517,14 @@ MODE = console
 ; Buffer length of the channel, keep it as it is if you don't know what it is.
 BUFFER_LEN = 10000
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
-LEVEL = Trace
+LEVEL = Info
+FLAGS = 0
+EXPRESSION =
 REDIRECT_MACARON_LOG = false
+MACARON = file
+ENABLE_ACCESS_LOG = false
+ACCESS_LOG_TEMPLATE = {{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"
+ACCESS = file
 
 ; For "console" mode only
 [log.console]

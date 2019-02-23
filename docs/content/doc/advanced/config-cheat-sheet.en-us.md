@@ -68,10 +68,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
 ### Repository - Pull Request (`repository.pull-request`)
+
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
 
 ### Repository - Issue (`repository.issue`)
+
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
 ## UI (`ui`)
@@ -287,9 +289,54 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Log (`log`)
 
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
-- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
-- `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
-- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to the Gitea logger.
+- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
+- `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger.
+- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.macaron.modename\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`.
+- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
+- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.access.modename\]`. By default the file mode will log to `$ROOT_PATH/access.log`.
+- `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
+   - The following variables are available: 
+   - `Ctx`: the `macaron.Context` of the request.
+   - `Identity`: the SignedUserName or `"-"` if not logged in.
+   - `Start`: the start time of the request.
+   - `ResponseWriter`: the responseWriter from the request.
+   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+
+### Log subsections (`log.name`, `log.*.name`)
+
+- `LEVEL`: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
+- `MODE`: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
+- `EXPRESSION`: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
+- `FLAGS`: A number representing the log flags. Defaults to `0` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `-1` means don't prefix log lines. See `modules/log/base.go` for more information.
+- `PREFIX`: An additional prefix for every log line in this logger. Defaults to empty.
+
+### Console log mode (`log.console`, `log.*.console`, or `MODE=console`)
+
+- The console log mode has no special log options just the default options
+
+### File log mode (`log.file`, `log.*.file` or `MODE=file`)
+
+- `FILE_NAME`: Set the file name for this logger. Defaults as described above.
+- `LOG_ROTATE`: **true**: Rotate the log files.
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
+- `DAILY_ROTATE`: **true**: Rotate logs daily.
+- `MAX_DAYS`: **7**: Delete the log file after n days
+
+### Conn log mode (`log.conn`, `log.*.conn` or `MODE=conn`)
+
+- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
+- `RECONNECT`: **false**: Try to reconnect when connection is lost.
+- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+- `ADDR`: **:7020**: Sets the address to connect to.
+
+### SMTP log mode (`log.smtp`, `log.*.smtp` or `MODE=smtp`)
+
+- `USER`: User email address to send from.
+- `PASSWD`: Password for the smtp server.
+- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
+- `RECEIVERS`: Email addresses to send to.
+- `SUBJECT`: **Diagnostic message from Gitea**
 
 ## Cron (`cron`)
 
