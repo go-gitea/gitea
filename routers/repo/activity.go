@@ -44,7 +44,7 @@ func Activity(ctx *context.Context) {
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
-	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository.ID, timeFrom,
+	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(models.UnitTypeReleases),
 		ctx.Repo.CanRead(models.UnitTypeIssues),
 		ctx.Repo.CanRead(models.UnitTypePullRequests),
