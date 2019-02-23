@@ -6,6 +6,7 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 )
@@ -35,16 +36,16 @@ func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 			issue.Comments = append(issue.Comments, comment)
 		}
 
-		models.UpdateIssueIndexer(issue)
+		issue_indexer.UpdateIssueIndexer(issue)
 	}
 }
 
 func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue) {
-	models.UpdateIssueIndexer(issue)
+	issue_indexer.UpdateIssueIndexer(issue)
 }
 
 func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
-	models.UpdateIssueIndexer(pr.Issue)
+	issue_indexer.UpdateIssueIndexer(pr.Issue)
 }
 
 func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
@@ -67,7 +68,7 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 			}
 		}
 
-		models.UpdateIssueIndexer(c.Issue)
+		issue_indexer.UpdateIssueIndexer(c.Issue)
 	}
 }
 
@@ -91,18 +92,18 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 			}
 		}
 		// reload comments to delete the old comment
-		models.UpdateIssueIndexer(comment.Issue)
+		issue_indexer.UpdateIssueIndexer(comment.Issue)
 	}
 }
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
-	models.DeleteRepoIssueIndexer(repo)
+	issue_indexer.DeleteRepoIssueIndexer(repo)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
-	models.UpdateIssueIndexer(issue)
+	issue_indexer.UpdateIssueIndexer(issue)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
-	models.UpdateIssueIndexer(issue)
+	issue_indexer.UpdateIssueIndexer(issue)
 }
