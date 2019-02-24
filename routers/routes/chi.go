@@ -283,6 +283,7 @@ func NormalRoutes() http.Handler {
 // DelegateToMacaron delegates other routes to macaron
 func DelegateToMacaron(r chi.Router) {
 	m := NewMacaron()
+	RegisterKitspaceRoutes(m)
 	RegisterMacaronRoutes(m)
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
