@@ -236,17 +236,12 @@ func main() {
 func runCmd(cmd ...string) {
 	log.Printf("Executing : %s ...\n", cmd)
 	c := exec.Command(cmd[0], cmd[1:]...)
-	stdout, err := c.StdoutPipe()
-	if err != nil {
-		log.Panicln(err)
-	}
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
 	if err := c.Start(); err != nil {
 		log.Panicln(err)
 	}
 	if err := c.Wait(); err != nil {
 		log.Panicln(err)
 	}
-	var b []byte
-	stdout.Read(b)
-	log.Println("Log: " + string(b)) //TODO stream to output
 }
