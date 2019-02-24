@@ -183,10 +183,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to list remotes of repo : %v", err)
 	}
-	remoteBranch := "origin" //Default
+	remoteUpstream := "origin" //Default
 	for _, r := range remotes {
 		if r.Config().URLs[0] == "https://github.com/go-gitea/gitea" || r.Config().URLs[0] == "git@github.com:go-gitea/gitea.git" { //fetch at index 0
-			remoteBranch = r.Config().Name
+			remoteUpstream = r.Config().Name
 			break
 		}
 	}
@@ -194,14 +194,15 @@ func main() {
 	branch := fmt.Sprintf("pr-%s-%d", pr, time.Now().Unix())
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 
+	ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branch)
 	err = repo.Fetch(&git.FetchOptions{
-		RemoteName: remoteBranch,
+		RemoteName: remoteUpstream,
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("pull/%s/head:%s", pr, branch)),
+			config.RefSpec(ref),
 		},
 	})
 	if err != nil {
-		log.Fatalf("Failed to fetch pr-%s : %v", pr, err)
+		log.Fatalf("Failed to fetch %s from %s : %v", ref, remoteUpstream, err)
 	}
 
 	tree, err := repo.Worktree()
