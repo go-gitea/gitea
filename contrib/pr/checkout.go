@@ -167,6 +167,8 @@ func main() {
 	}
 	pr := os.Args[1]
 
+	codeFilePath = filepath.FromSlash(codeFilePath) //Convert to running OS
+
 	//Copy this file if it will not exist in the PR branch
 	dat, err := ioutil.ReadFile(codeFilePath)
 	if err != nil {
