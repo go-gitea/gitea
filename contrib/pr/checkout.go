@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 	"github.com/Unknwon/com"
-	"github.com/facebookgo/grace/gracehttp"
 	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
 	"gopkg.in/src-d/go-git.v4"
@@ -131,10 +130,9 @@ func runPR() {
 			}()
 		}
 	*/
-	gracehttp.Serve(&http.Server{
-		Addr:    ":8080",
-		Handler: context2.ClearHandler(m),
-	})
+
+	//Start the server
+	http.ListenAndServe(":8080", context2.ClearHandler(m))
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
@@ -154,8 +152,6 @@ func runPR() {
 		log.Fatalf("os.RemoveAll: %v\n", err)
 	}
 }
-
-//TODO Add clean branch pr-
 
 func main() {
 	var runPRFlag = flag.Bool("run", false, "Run the PR code")
