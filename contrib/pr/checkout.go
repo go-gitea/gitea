@@ -25,9 +25,11 @@ import (
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/testfixtures.v2"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -152,6 +154,8 @@ func runPR() {
 	}
 }
 
+//TODO Add clean branch pr-
+
 func main() {
 	var runPRFlag = flag.Bool("run", false, "Run the PR code")
 	flag.Parse()
@@ -172,14 +176,46 @@ func main() {
 		log.Fatalf("Failed to cache this code file : %v", err)
 	}
 
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		log.Fatalf("Failed to open the repo : %v", err)
+	}
+
+	//Find remote upstream
+	remotes, err := repo.Remotes()
+	if err != nil {
+		log.Fatalf("Failed to list remotes of repo : %v", err)
+	}
+	remoteBranch := "origin" //Default
+	for _, r := range remotes {
+		if r.Config().URLs[0] == "https://github.com/go-gitea/gitea" || r.Config().URLs[0] == "git@github.com:go-gitea/gitea.git" { //fetch at index 0
+			remoteBranch = r.Config().Name
+			break
+		}
+	}
+
 	branch := fmt.Sprintf("pr-%s-%d", pr, time.Now().Unix())
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
-	runCmd("git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", pr, branch))
-	err = git.Checkout(".", git.CheckoutOptions{
-		Branch: branch,
+
+	err = repo.Fetch(&git.FetchOptions{
+		RemoteName: remoteBranch,
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("pull/%s/head:%s", pr, branch)),
+		},
 	})
 	if err != nil {
-		log.Fatalf("Failed to checkout pr-%s : %v", pr, err)
+		log.Fatalf("Failed to fetch pr-%s : %v", pr, err)
+	}
+
+	tree, err := repo.Worktree()
+	if err != nil {
+		log.Fatalf("Failed to parse git tree : %v", err)
+	}
+	err = tree.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(branch),
+	})
+	if err != nil {
+		log.Fatalf("Failed to checkout %s : %v", branch, err)
 	}
 
 	//Copy this file if not exist
