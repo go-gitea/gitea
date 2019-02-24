@@ -115,7 +115,7 @@ func runPR() {
 	routes.RegisterRoutes(m)
 
 	log.Printf("[PR] Ready for testing !\n")
-	log.Printf("[PR] Login with user1, user2, user3, ... with pass: passsword\n")
+	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")
 	/*
 		log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 
