@@ -1,10 +1,10 @@
-@footer-margin: 40px;
-
 body {
     font-family: "Lato", "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
     background-color: #fff;
     overflow-y: scroll;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
 img {
     border-radius: 3px;
@@ -56,9 +56,8 @@ pre, code {
     hyphens: auto;
 }
 .full.height {
-    padding: 0;
-    margin: 0 0 calc(-@footer-margin - 2px) 0;
-    min-height: 100%;
+    flex-grow: 1;
+    padding-bottom: 80px;
 }
 .following.bar {
     z-index: 900;
@@ -440,11 +439,10 @@ pre, code {
 }
 
 footer {
-    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
-    clear: both;
     width: 100%;
+    height: 40px;
     color: #888888;
     .container {
         width: 100vw !important;
