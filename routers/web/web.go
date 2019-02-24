@@ -294,6 +294,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
+	m.Get("/user/kitspace/session", auth.GetKitspaceSession)
 	m.Group("/user", func() {
 		m.Group("/kitspace", func() {
 			m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), auth.KitspaceSignUp)

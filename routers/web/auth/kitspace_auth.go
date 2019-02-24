@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
@@ -184,6 +185,30 @@ func KitspaceSignIn(ctx *context.Context) {
 	handleSignInFull(ctx, u, form.Remember, false)
 
 	response["user"] = convert.ToUser(u, u)
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetKitspaceSession(ctx *context.Context) {
+	// swagger:operation GET /user/kitspace/session
+	// ---
+	// summary: get currently signed in user (if any) and csrf token
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "success"
+
+	var user *structs.User
+	if ctx.Doer != nil && ctx.IsSigned {
+		user = convert.ToUser(ctx.Doer, ctx.Doer)
+	}
+
+	response := make(map[string]interface{})
+	response["user"] = user
+	response["csrf"] = ctx.Data["CsrfToken"]
 
 	ctx.JSON(http.StatusOK, response)
 }
