@@ -93,6 +93,7 @@ func runPR() {
 	models.NewEngine(func(_ *xorm.Engine) error {
 		return nil
 	})
+	models.HasEngine = true
 	//x.ShowSQL(true)
 	err = models.InitFixtures(
 		helper,
