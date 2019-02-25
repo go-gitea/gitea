@@ -96,6 +96,30 @@ Google Analytics, Matomo (previously Piwik), and other analytics services can be
 
 Place custom files in corresponding sub-folder under `custom/options`.
 
+**NOTE:** The files should not have a file extension, e.g. `Labels` rather than `Labels.txt`
+
+### gitignores
+
+To add custom .gitignore, add a file with existing [.gitignore rules](https://git-scm.com/docs/gitignore) in it to `custom/options/gitignore`
+
+### Labels
+
+To add a custom label set, add a file that follows [this](https://github.com/go-gitea/gitea/blob/master/options/label/Default) format to `custom/options/label`  
+`#hex-color label name ; label description`
+
+### Licenses
+
+To add a custom license, add a file with the license text to `custom/options/license`
+
+### Locales
+
+Locales are managed via our [crowdin](https://crowdin.com/project/gitea)
+
+### Readmes
+
+To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
 ## Customizing the look of Gitea
 
-As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
+As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
+As of version 1.8.0 Gitea also has per-user themes, which can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`
