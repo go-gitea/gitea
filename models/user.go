@@ -114,6 +114,9 @@ type User struct {
 	// Maximum repository creation limit, -1 means use global default
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
+	// Maximum private repositories limit, -1 means no limit
+	MaxPrivateRepos int `xorm:"NOT NULL DEFAULT -1"`
+
 	// Permissions
 	IsActive                bool `xorm:"INDEX"` // Activate primary email
 	IsAdmin                 bool
@@ -238,7 +241,7 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
-// CanCreateRepo returns if user login can create a repository
+// CanCreateRepo returns true if the logged in user can create a repository
 func (u *User) CanCreateRepo() bool {
 	if u.IsAdmin {
 		return true
@@ -250,6 +253,16 @@ func (u *User) CanCreateRepo() bool {
 		return u.NumRepos < setting.Repository.MaxCreationLimit
 	}
 	return u.NumRepos < u.MaxRepoCreation
+}
+
+// CanCreatePrivateRepo returns true if the logged in user can create a private
+// repository
+func (u *User) CanCreatePrivateRepo() bool {
+	if u.MaxPrivateRepos < 0 {
+		return true
+	}
+	numberOfPrivate, _ := GetPrivateRepositoryCount(u)
+	return numberOfPrivate < int64(u.MaxPrivateRepos)
 }
 
 // CanCreateOrganization returns true if user can create organisation.

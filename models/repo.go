@@ -1373,6 +1373,10 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
+	if opts.IsPrivate && !u.CanCreatePrivateRepo() {
+		return nil, ErrReachLimitOfPrivateRepo{u.MaxPrivateRepos}
+	}
+
 	repo := &Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
