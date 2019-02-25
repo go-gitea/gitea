@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/indexer"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
@@ -56,6 +56,23 @@ var (
 		".github/issue_template.md",
 	}
 )
+
+// MustAllowUserComment checks to make sure if an issue is locked.
+// If locked and user has permissions to write to the repository,
+// then the comment is allowed, else it is blocked
+func MustAllowUserComment(ctx *context.Context) {
+
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(issue.HTMLURL())
+		return
+	}
+}
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
@@ -130,7 +147,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		if err != nil {
+			ctx.ServerError("issueIndexer.Search", err)
+			return
+		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true
 		}
@@ -270,6 +291,13 @@ func Issues(ctx *context.Context) {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
 	}
+
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssuesOrPulls"] = perm.CanWriteIssuesOrPulls(isPullList)
 
 	ctx.HTML(200, tplIssues)
 }
@@ -898,6 +926,9 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
+	ctx.Data["IsRepoIssuesWriter"] = ctx.IsSigned && (ctx.Repo.CanWrite(models.UnitTypeIssues) || ctx.User.IsAdmin)
+	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.HTML(200, tplIssueView)
 }
 
@@ -1118,6 +1149,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
+	}
+
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 		return
 	}
 

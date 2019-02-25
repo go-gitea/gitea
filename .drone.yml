@@ -252,7 +252,7 @@ pipeline:
       branch: [ master ]
 
   static:
-    image: karalabe/xgo-latest:latest
+    image: techknowlogick/xgo:latest
     pull: true
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -281,12 +281,22 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
+  docker-dryrun:
+    image: plugins/docker:17.12
+    pull: true
+    repo: gitea/gitea
+    cache_from: gitea/gitea
+    dry_run: true
+    when:
+      event: [ pull_request ]
+
   docker:
     image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
+    cache_from: gitea/gitea
     when:
       event: [ push ]
       branch: [ release/* ]
@@ -296,6 +306,7 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
+    cache_from: gitea/gitea
     default_tags: true
     when:
       event: [ push, tag ]

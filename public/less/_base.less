@@ -1,10 +1,10 @@
-@footer-margin: 40px;
-
 body {
     font-family: "Lato", "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
     background-color: #fff;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
 img {
     border-radius: 3px;
@@ -30,24 +30,34 @@ pre, code {
         line-height: 1.5;
         overflow: auto;
     }
-}
-/* Wrap long lines of code. This will also apply to Markdown code boxes. */
-pre > code {
-        white-space: pre-wrap !important;
-        word-break: break-all !important;
-        overflow-wrap: break-word !important;
+    &.wrap {
+        white-space: pre-wrap;       /* CSS 3 */
+//      white-space: -moz-normal;    /* Mozilla, since 1999 */
+//      white-space: -normal;        /* Opera 4-6 */
+//      white-space: -o-normal;      /* Opera 7 */
+
+        -ms-word-break: break-all;
+        word-break: break-all;
+
+        /* These are technically the same, but use both */
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
 }
 .dont-break-out {
+    /* These are technically the same, but use both */
     overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    -ms-word-break: break-all;
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
     hyphens: auto;
 }
 .full.height {
-    padding: 0;
-    margin: 0 0 calc(-@footer-margin - 2px) 0;
-    min-height: 100%;
+    flex-grow: 1;
+    padding-bottom: 80px;
 }
 .following.bar {
     z-index: 900;
@@ -408,11 +418,10 @@ pre > code {
 }
 
 footer {
-    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
-    clear: both;
     width: 100%;
+    flex-basis: 40px;
     color: #888888;
     .container {
         width: 100vw !important;

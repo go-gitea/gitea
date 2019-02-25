@@ -104,7 +104,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 func TestViewAsRepoAdmin(t *testing.T) {
 	for user, expectedNoDescription := range map[string]bool{
 		"user2": true,
-		"user3": false,
+		"user4": false,
 	} {
 		prepareTestEnv(t)
 

@@ -18,10 +18,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index/store"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeTermFieldDoc int
+var reflectStaticSizeTermFieldVector int
+
+func init() {
+	var tfd TermFieldDoc
+	reflectStaticSizeTermFieldDoc = int(reflect.TypeOf(tfd).Size())
+	var tfv TermFieldVector
+	reflectStaticSizeTermFieldVector = int(reflect.TypeOf(tfv).Size())
+}
 
 var ErrorUnknownStorageType = fmt.Errorf("unknown storage type")
 
@@ -68,6 +80,8 @@ type IndexReader interface {
 	Document(id string) (*document.Document, error)
 	DocumentVisitFieldTerms(id IndexInternalID, fields []string, visitor DocumentFieldTermVisitor) error
 
+	DocValueReader(fields []string) (DocValueReader, error)
+
 	Fields() ([]string, error)
 
 	GetInternal(key []byte) ([]byte, error)
@@ -82,6 +96,29 @@ type IndexReader interface {
 	DumpFields() chan interface{}
 
 	Close() error
+}
+
+// The Regexp interface defines the subset of the regexp.Regexp API
+// methods that are used by bleve indexes, allowing callers to pass in
+// alternate implementations.
+type Regexp interface {
+	FindStringIndex(s string) (loc []int)
+
+	LiteralPrefix() (prefix string, complete bool)
+
+	String() string
+}
+
+type IndexReaderRegexp interface {
+	FieldDictRegexp(field string, regex string) (FieldDict, error)
+}
+
+type IndexReaderFuzzy interface {
+	FieldDictFuzzy(field string, term string, fuzziness int, prefix string) (FieldDict, error)
+}
+
+type IndexReaderOnly interface {
+	FieldDictOnly(field string, onlyTerms [][]byte, includeCount bool) (FieldDict, error)
 }
 
 // FieldTerms contains the terms used by a document, keyed by field
@@ -115,6 +152,11 @@ type TermFieldVector struct {
 	End            uint64
 }
 
+func (tfv *TermFieldVector) Size() int {
+	return reflectStaticSizeTermFieldVector + size.SizeOfPtr +
+		len(tfv.Field) + len(tfv.ArrayPositions)*size.SizeOfUint64
+}
+
 // IndexInternalID is an opaque document identifier interal to the index impl
 type IndexInternalID []byte
 
@@ -134,14 +176,27 @@ type TermFieldDoc struct {
 	Vectors []*TermFieldVector
 }
 
+func (tfd *TermFieldDoc) Size() int {
+	sizeInBytes := reflectStaticSizeTermFieldDoc + size.SizeOfPtr +
+		len(tfd.Term) + len(tfd.ID)
+
+	for _, entry := range tfd.Vectors {
+		sizeInBytes += entry.Size()
+	}
+
+	return sizeInBytes
+}
+
 // Reset allows an already allocated TermFieldDoc to be reused
 func (tfd *TermFieldDoc) Reset() *TermFieldDoc {
 	// remember the []byte used for the ID
 	id := tfd.ID
+	vectors := tfd.Vectors
 	// idiom to copy over from empty TermFieldDoc (0 allocations)
 	*tfd = TermFieldDoc{}
 	// reuse the []byte already allocated (and reset len to 0)
 	tfd.ID = id[:0]
+	tfd.Vectors = vectors[:0]
 	return tfd
 }
 
@@ -161,6 +216,8 @@ type TermFieldReader interface {
 	// Count returns the number of documents contains the term in this field.
 	Count() uint64
 	Close() error
+
+	Size() int
 }
 
 type DictEntry struct {
@@ -185,12 +242,18 @@ type DocIDReader interface {
 	// will start there instead. If ID is greater than or equal to the end of
 	// the range, Next() call will return io.EOF.
 	Advance(ID IndexInternalID) (IndexInternalID, error)
+
+	Size() int
+
 	Close() error
 }
 
+type BatchCallback func(error)
+
 type Batch struct {
-	IndexOps    map[string]*document.Document
-	InternalOps map[string][]byte
+	IndexOps          map[string]*document.Document
+	InternalOps       map[string][]byte
+	persistedCallback BatchCallback
 }
 
 func NewBatch() *Batch {
@@ -216,6 +279,14 @@ func (b *Batch) DeleteInternal(key []byte) {
 	b.InternalOps[string(key)] = nil
 }
 
+func (b *Batch) SetPersistedCallback(f BatchCallback) {
+	b.persistedCallback = f
+}
+
+func (b *Batch) PersistedCallback() BatchCallback {
+	return b.persistedCallback
+}
+
 func (b *Batch) String() string {
 	rv := fmt.Sprintf("Batch (%d ops, %d internal ops)\n", len(b.IndexOps), len(b.InternalOps))
 	for k, v := range b.IndexOps {
@@ -238,4 +309,53 @@ func (b *Batch) String() string {
 func (b *Batch) Reset() {
 	b.IndexOps = make(map[string]*document.Document)
 	b.InternalOps = make(map[string][]byte)
+	b.persistedCallback = nil
+}
+
+func (b *Batch) Merge(o *Batch) {
+	for k, v := range o.IndexOps {
+		b.IndexOps[k] = v
+	}
+	for k, v := range o.InternalOps {
+		b.InternalOps[k] = v
+	}
+}
+
+func (b *Batch) TotalDocSize() int {
+	var s int
+	for k, v := range b.IndexOps {
+		if v != nil {
+			s += v.Size() + size.SizeOfString
+		}
+		s += len(k)
+	}
+	return s
+}
+
+// Optimizable represents an optional interface that implementable by
+// optimizable resources (e.g., TermFieldReaders, Searchers).  These
+// optimizable resources are provided the same OptimizableContext
+// instance, so that they can coordinate via dynamic interface
+// casting.
+type Optimizable interface {
+	Optimize(kind string, octx OptimizableContext) (OptimizableContext, error)
+}
+
+// Represents a result of optimization -- see the Finish() method.
+type Optimized interface{}
+
+type OptimizableContext interface {
+	// Once all the optimzable resources have been provided the same
+	// OptimizableContext instance, the optimization preparations are
+	// finished or completed via the Finish() method.
+	//
+	// Depending on the optimization being performed, the Finish()
+	// method might return a non-nil Optimized instance.  For example,
+	// the Optimized instance might represent an optimized
+	// TermFieldReader instance.
+	Finish() (Optimized, error)
+}
+
+type DocValueReader interface {
+	VisitDocValues(id IndexInternalID, visitor DocumentFieldTermVisitor) error
 }
