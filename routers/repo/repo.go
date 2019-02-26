@@ -256,6 +256,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	if models.IsErrRepoAlreadyExist(err) {
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
+		return
+	}
+
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.URLSanitizedError(err, remoteAddr)
 
