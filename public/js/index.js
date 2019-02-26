@@ -487,8 +487,7 @@ function initCommentForm() {
                     "clear",
                     $listMenu.data('issue-id'),
                     ""
-                );
-                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                ).then(reload);
             }
 
             $(this).parent().find('.item').each(function () {
