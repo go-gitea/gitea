@@ -38,7 +38,8 @@ type LogDescription struct {
 }
 
 func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	return section.Key(key).In(defaultValue, log.Levels())
+	value := section.Key(key).MustString("info")
+	return log.FromString(value).String()
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, config, levelName string) {

@@ -384,6 +384,7 @@ var (
 	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
+	RouterLogLevel     log.Level
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 
@@ -760,6 +761,7 @@ func NewContext() {
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
+	RouterLogLevel = log.FromString(Cfg.Section("log").Key("ROUTER_LOG_LEVEL").MustString("Info"))
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")

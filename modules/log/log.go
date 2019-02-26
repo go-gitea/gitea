@@ -22,6 +22,7 @@ var (
 	// GitLogger logger for git
 	GitLogger *Logger
 	prefix    string
+	level     Level
 )
 
 // NewLogger create a logger
@@ -41,6 +42,9 @@ func NewLogger(bufLen int64, name, adapter, config string) *Logger {
 	if err := logger.SetLogger(name, adapter, config); err != nil {
 		Critical(1, "Failed to set logger (%s): %v", name, err)
 		panic(fmt.Errorf("Failed to set logger (%s): %v", name, err))
+	}
+	if logger.GetLevel() < level {
+		level = logger.GetLevel()
 	}
 	return logger
 }
@@ -69,7 +73,9 @@ func DelNamedLogger(name string) {
 func DelLogger(name string) error {
 	for _, l := range loggers {
 		if _, ok := l.outputs.Load(name); ok {
-			return l.DelLogger(name)
+			err := l.DelLogger(name)
+			ResetLevel()
+			return err
 		}
 	}
 
@@ -94,6 +100,11 @@ func NewGitLogger(logPath string) {
 
 // GetLevel returns the minimum logger level
 func GetLevel() Level {
+	return level
+}
+
+// ResetLevel rechecks the minimum logger level
+func ResetLevel() Level {
 	level := NONE
 	for _, l := range loggers {
 		if l.GetLevel() < level {
