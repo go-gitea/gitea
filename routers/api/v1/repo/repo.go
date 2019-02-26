@@ -408,6 +408,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err != nil {
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(422, "", "The repository with the same name has existed.")
+			return
+		}
+
 		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
