@@ -106,7 +106,7 @@ After the above steps, two options to run Gitea are:
 GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 ```
 
-### 2. Create a service file to start Gitea automatically
+### 2. Create a service file to start Gitea automatically (recommended)
 
 See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
 
