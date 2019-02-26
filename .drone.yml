@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.9
+    image: golang:1.10 # this step is kept as the lowest version of golang that we support
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -64,7 +64,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -82,8 +82,8 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  test:
-    image: golang:1.11
+  unit-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -94,8 +94,8 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test:
-    image: golang:1.11
+  release-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -106,8 +106,8 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ release/* ]
 
-  test:
-    image: golang:1.11
+  tag-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -118,7 +118,7 @@ pipeline:
       event: [ tag ]
 
   test-sqlite:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -133,7 +133,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -148,8 +148,8 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test-mysql:
-    image: golang:1.11
+  tag-test-mysql:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -165,7 +165,7 @@ pipeline:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -181,7 +181,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mssql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -196,7 +196,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   bench-sqlite:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -205,7 +205,7 @@ pipeline:
       event: [ tag ]
 
   bench-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -214,7 +214,7 @@ pipeline:
       event: [ tag ]
 
   bench-mssql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -223,7 +223,7 @@ pipeline:
       event: [ tag ]
 
   bench-pgsql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -232,7 +232,7 @@ pipeline:
       event: [ tag ]
 
   generate-coverage:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     environment:
       TAGS: bindata
@@ -290,7 +290,7 @@ pipeline:
     when:
       event: [ pull_request ]
 
-  docker:
+  release-docker:
     image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
@@ -323,7 +323,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  release:
+  tag-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
@@ -337,7 +337,7 @@ pipeline:
     when:
       event: [ tag ]
 
-  release:
+  release-branch-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
