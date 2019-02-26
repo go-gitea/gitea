@@ -179,15 +179,6 @@ var (
 	DBConnectRetries int
 	DBConnectBackoff time.Duration
 
-	// Indexer settings
-	Indexer struct {
-		IssuePath          string
-		RepoIndexerEnabled bool
-		RepoPath           string
-		UpdateQueueLength  int
-		MaxIndexerFileSize int64
-	}
-
 	// Repository settings
 	Repository = struct {
 		AnsiCharset                             string
@@ -1214,6 +1205,7 @@ func NewContext() {
 			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
 		})
 	}
+
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
@@ -1240,4 +1232,5 @@ func NewServices() {
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newIndexerService()
 }

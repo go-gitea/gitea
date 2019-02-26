@@ -62,6 +62,7 @@ coverage.all
 /integrations/pgsql.ini
 /integrations/mssql.ini
 /node_modules
+/modules/indexer/issues/indexers
 
 
 # Snapcraft
