@@ -257,7 +257,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	if models.IsErrRepoAlreadyExist(err) {
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.repo_existed"), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
 		return
 	}
 

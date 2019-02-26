@@ -409,7 +409,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
-			ctx.Error(409, "", "The repository with the same name has existed.")
+			ctx.Error(409, "", "The repository with the same name already exists.")
 			return
 		}
 
