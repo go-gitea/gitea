@@ -113,7 +113,8 @@ To add a custom license, add a file with the license text to `custom/options/lic
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea)
+Locales are managed via our [crowdin](https://crowdin.com/project/gitea)  
+To override a locale, add the appropriate file to `custom/options/locale`. The list of included files can be found [here](https://github.com/go-gitea/gitea/tree/master/options/locale) to use as examples.
 
 ### Readmes
 
@@ -122,4 +123,4 @@ To add a custom Readme, add a markdown formatted file (without an `.md` extensio
 ## Customizing the look of Gitea
 
 As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
-As of version 1.8.0 Gitea also has per-user themes, which can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`
+As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
