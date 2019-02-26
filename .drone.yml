@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.9
+    image: golang:1.10
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -83,7 +83,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -95,7 +95,7 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -107,7 +107,7 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -118,7 +118,7 @@ pipeline:
       event: [ tag ]
 
   test-sqlite:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -133,7 +133,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -149,7 +149,7 @@ pipeline:
       branch: [ master ]
 
   test-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -165,7 +165,7 @@ pipeline:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -181,7 +181,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mssql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -196,7 +196,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   bench-sqlite:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -205,7 +205,7 @@ pipeline:
       event: [ tag ]
 
   bench-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -214,7 +214,7 @@ pipeline:
       event: [ tag ]
 
   bench-mssql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -223,7 +223,7 @@ pipeline:
       event: [ tag ]
 
   bench-pgsql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: bench
     commands:
@@ -232,7 +232,7 @@ pipeline:
       event: [ tag ]
 
   generate-coverage:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     environment:
       TAGS: bindata
