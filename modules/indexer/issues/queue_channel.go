@@ -33,6 +33,11 @@ func (c *ChannelQueue) Run() error {
 	for {
 		select {
 		case data := <-c.queue:
+			if data.IsDelete {
+				c.indexer.Delete(data.IDs...)
+				continue
+			}
+
 			datas = append(datas, data)
 			if len(datas) >= c.batchNumber {
 				c.indexer.Index(datas)
@@ -51,6 +56,7 @@ func (c *ChannelQueue) Run() error {
 }
 
 // Push will push the indexer data to queue
-func (c *ChannelQueue) Push(data *IndexerData) {
+func (c *ChannelQueue) Push(data *IndexerData) error {
 	c.queue <- data
+	return nil
 }
