@@ -420,7 +420,7 @@ const (
 
 // OAuth2Token represents a JWT token used to authenticate a client
 type OAuth2Token struct {
-	GrantID int64           `json:"sub"`
+	GrantID int64           `json:"gnt"`
 	Type    OAuth2TokenType `json:"tt"`
 	Counter int64           `json:"cnt,omitempty"`
 	jwt.StandardClaims
