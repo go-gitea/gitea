@@ -1,7 +1,5 @@
 'use strict';
 
-console.log(Promise);
-
 function htmlEncode(text) {
    return jQuery('<div />').text(text).html()
 }
@@ -523,12 +521,13 @@ function initCommentForm() {
 
             $(this).addClass('selected active');
             if (hasUpdateAction) {
-                updateIssuesMeta(
+                var promise = updateIssuesMeta(
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
                     $(this).data('id'),
-                ).then(reload);
+                );
+                promise.then(reload);
             }
             switch (input_id) {
                 case '#milestone_id':
@@ -549,12 +548,13 @@ function initCommentForm() {
             });
 
             if (hasUpdateAction) {
-                updateIssuesMeta(
+                var promise = updateIssuesMeta(
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
                     $(this).data('id'),
-                ).then(reload);
+                );
+                promise.then(reload);
             }
 
             $list.find('.selected').html('');
