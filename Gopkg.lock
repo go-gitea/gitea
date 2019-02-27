@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:17c6c3f4af27f721e3176aceeb2ee30621547a44c81ada0ce733170b9bdfee19"
+  digest = "1:784d7948aaae61b9fe50aa15c69a62fb277268a47ed006748a7e25fa61b841c9"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "b9e72373fbe3001d98ce7395221d0134b9456679"
+  revision = "4a15722a627a9cf62a203a066e724e82556b3845"
 
 [[projects]]
   digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
@@ -90,7 +90,6 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  branch = "master"
   digest = "1:b17287a86f6cac923a5d886e10618df994eeb54b6724eac2e3b8dde89cfbe3a2"
   name = "github.com/blevesearch/bleve"
   packages = [
