@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package uploader
+package file_handling
 
 import (
 	"bytes"
@@ -214,7 +214,6 @@ func (t *TemporaryUploadRepository) GetLastCommit() (string, error) {
 	}
 	return strings.TrimSpace(treeHash), nil
 }
-
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(doer *models.User, treeHash string, message string) (string, error) {

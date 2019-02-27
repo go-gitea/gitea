@@ -23,18 +23,14 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	parts := strings.Split(relpath, "/")
 	var err error
 	tree := t
-	log("relpath: %s", relpath)
 	for i, name := range parts {
 		if i == len(parts)-1 {
 			entries, err := tree.ListEntries()
 			if err != nil {
 				return nil, err
 			}
-			log("NAME: %s", name)
 			for _, v := range entries {
-				log("v.NAME: %s", v.name)
 				if v.name == name {
-					log("FOUND %s = %s",v.name, name)
 					return v, nil
 				}
 			}

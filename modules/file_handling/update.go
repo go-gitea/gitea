@@ -2,19 +2,21 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package uploader
+package file_handling
 
 import (
-	"encoding/json"
-	"fmt"
-	"path"
-	"strings"
-
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/sdk/gitea"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"path"
+	"strings"
+	"time"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -39,7 +41,7 @@ type UpdateRepoFileOptions struct {
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*File, error) {
+func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*gitea.FileResponse, error) {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = "master"
@@ -170,9 +172,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	subTreeName := ""
 	for index, part := range treeNameParts {
 		subTreeName = path.Join(subTreeName, part)
-		log.Warn("GETTING ENTRY FOR %s", subTreeName)
-		entry, err := commit.GetTreeEntryByPath(treeName)
-		log.Warn("ERROR? %v", err)
+		entry, err := commit.GetTreeEntryByPath(subTreeName)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
@@ -180,7 +180,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			}
 			return nil, err
 		}
-		log.Warn("HERE: %s %v", entry.ID, entry.IsDir())
 		if index < len(treeNameParts)-1 {
 			if !entry.IsDir() {
 				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", subTreeName)}
@@ -315,5 +314,72 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 	models.UpdateRepoIndexer(repo)
 
-	return &File{}, nil
+	c, err := gitRepo.GetBranchCommit(opts.NewBranch)
+	entry, err := c.GetTreeEntryByPath(treeName)
+	log.Warn("lfsMetaObject: %v", lfsMetaObject)
+	log.Warn("ContentPath: %v", setting.LFS.ContentPath)
+	log.Warn("COMMIT: %v", commit)
+	log.Warn("C: %v", c)
+	log.Warn("ENTRY: %v", entry)
+
+	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + c.ID.String())
+	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + c.Tree.ID.String())
+	parents := make([]gitea.CommitMeta, c.ParentCount())
+	for i := 0; i <= c.ParentCount(); i++ {
+		if parent, err := c.Parent(i); err == nil && parent != nil {
+			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
+			parents[i] = gitea.CommitMeta{
+				SHA: parent.ID.String(),
+				URL: parentCommitURL.String(),
+			}
+		}
+	}
+
+	commitHtmlURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + c.ID.String())
+
+	verif := models.ParseCommitWithSignature(c)
+	var signature, payload string
+	if c.Signature != nil {
+		signature = c.Signature.Signature
+		payload = c.Signature.Payload
+	}
+
+	fileContents, err := GetFileContents(repo, opts.NewBranch, treeName)
+	if err != nil {
+		return nil, err
+	}
+	file := &gitea.FileResponse{
+		Content: fileContents,
+		Commit: &gitea.FileCommitResponse{
+			CommitMeta: gitea.CommitMeta{
+				SHA: c.ID.String(),
+				URL: commitURL.String(),
+			},
+			HTMLURL: commitHtmlURL.String(),
+			Author: &gitea.CommitUser{
+				Date:  c.Author.When.UTC().Format(time.RFC3339),
+				Name:  c.Author.Name,
+				Email: c.Author.Email,
+			},
+			Committer: &gitea.CommitUser{
+				Date:  c.Committer.When.UTC().Format(time.RFC3339),
+				Name:  c.Committer.Name,
+				Email: c.Committer.Email,
+			},
+			Message: c.Message(),
+			Tree: &gitea.CommitMeta{
+				URL: commitTreeURL.String(),
+				SHA: c.Tree.ID.String(),
+			},
+			Parents: &parents,
+		},
+		Verification: &gitea.PayloadCommitVerification{
+			Verified:  verif.Verified,
+			Reason:    verif.Reason,
+			Signature: signature,
+			Payload:   payload,
+		},
+	}
+
+	return file, nil
 }

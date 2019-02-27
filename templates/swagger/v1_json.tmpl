@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/admin/orgs": {
       "get": {
@@ -1512,6 +1512,48 @@
       }
     },
     "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the contents of a file or directory in a repository",
+        "operationId": "repoGetContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "path of the file to delete",
+            "name": "filepath",
+            "in": "path"
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FileContentResponse"
+          }
+        }
+      },
       "put": {
         "consumes": [
           "application/json"
@@ -1761,6 +1803,46 @@
         "responses": {
           "202": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/blobs/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the blob of a repository.",
+        "operationId": "GetBlob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitBlobResponse"
           }
         }
       }
@@ -7601,10 +7683,6 @@
           "type": "string",
           "x-go-name": "Message"
         },
-        "node_id": {
-          "type": "string",
-          "x-go-name": "NodeID"
-        },
         "parents": {
           "type": "array",
           "items": {
@@ -7631,11 +7709,7 @@
       "type": "object",
       "properties": {
         "_links": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/FileLinkResponse"
-          },
-          "x-go-name": "Links"
+          "$ref": "#/definitions/FileLinksResponse"
         },
         "download_url": {
           "type": "string",
@@ -7694,8 +7768,8 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "FileLinkResponse": {
-      "description": "FileLink contains the links for a repo's file",
+    "FileLinksResponse": {
+      "description": "FileLinksResponse contains the links for a repo's file",
       "type": "object",
       "properties": {
         "git_url": {

@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/uploader"
+	"code.gitea.io/gitea/modules/file_handling"
 	"code.gitea.io/gitea/routers/repo"
 	api "code.gitea.io/sdk/gitea"
 	"encoding/base64"
@@ -147,6 +147,11 @@ func CanWriteFiles(r *context.Repository) bool {
 	return r.Permission.CanWrite(models.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
+// CanReadFiles returns true if repository is readable and user has proper access level.
+func CanReadFiles(r *context.Repository) bool {
+	return r.Permission.CanRead(models.UnitTypeCode)
+}
+
 // CreateFile handles API call for creating a file
 func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents/{filepath} repository repoCreateFile
@@ -178,18 +183,18 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	opts := uploader.UpdateRepoFileOptions{
+	opts := file_handling.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
 		TreeName:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &uploader.IdentityOptions{
+		Committer: &file_handling.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &uploader.IdentityOptions{
+		Author: &file_handling.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
@@ -228,20 +233,20 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	opts := uploader.UpdateRepoFileOptions{
+	opts := file_handling.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
 		IsNewFile:    false,
 		Message:      apiOpts.Message,
 		FromTreeName: apiOpts.FromPath,
-		TreeName:      ctx.Params("*"),
+		TreeName:     ctx.Params("*"),
 		OldBranch:    apiOpts.BranchName,
 		NewBranch:    apiOpts.NewBranchName,
-		Committer: &uploader.IdentityOptions{
+		Committer: &file_handling.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &uploader.IdentityOptions{
+		Author: &file_handling.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
@@ -253,7 +258,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 }
 
 // Handles if an API call is for updating a repo file
-func createOrUpdateFile(ctx *context.APIContext, opts *uploader.UpdateRepoFileOptions) {
+func createOrUpdateFile(ctx *context.APIContext, opts *file_handling.UpdateRepoFileOptions) {
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
 		return
@@ -266,7 +271,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *uploader.UpdateRepoFileOp
 		opts.Content = string(content)
 	}
 
-	if file, err := uploader.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if file, err := file_handling.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
 		ctx.Error(500, "", err)
 	} else {
 		ctx.JSON(200, file)
@@ -305,4 +310,48 @@ func DeleteFile(ctx *context.APIContext, opt api.DeleteFileOptions) {
 	//   "201":
 	//     "$ref": "#/responses/FileDeleteResponse"
 	ctx.JSON(200, &api.FileDeleteResponse{})
+}
+
+// Get the contents of a fle in a repository
+func GetFileContents(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
+	// ---
+	// summary: Gets the contents of a file or directory in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: path of the file to delete
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   required: false
+	//   type: string
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/FileContentResponse"
+	if !CanReadFiles(ctx.Repo) {
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		return
+	}
+
+	treeName := ctx.Params("*")
+	ref := ctx.Params("ref")
+
+	if fileContents, err := file_handling.GetFileContents(ctx.Repo.Repository, treeName, ref); err != nil {
+		ctx.Error(500, "", err)
+	} else {
+		ctx.JSON(200, fileContents)
+	}
 }
