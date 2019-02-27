@@ -4,11 +4,25 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.3](https://github.com/go-gitea/gitea/releases/tag/v1.7.3) - 2019-02-27
+* BUGFIXES
+  * Fix server 500 when trying to migrate to an already existing repository (#6188) (#6197)
+  * Load Issue attributes for API /repos/{owner}/{repo}/issues/{index} (#6122) (#6185)
+  * Fix bug whereby user could change private repository to public when force private enabled. (#6156) (#6165)
+  * Fix bug when update owner team then visit team's repo return 404 (#6119) (#6166)
+  * Fix heatmap and repository menu display in Internet Explorer 9+ (#6117) (#6137)
+  * Fix prohibit login check on authorization (#6106) (#6115)
+  * Fix LDAP protocol error regression by moving to ldap.v3 (#6105) (#6107)
+  * Fix deadlock in webhook PullRequest (#6102) (#6104)
+  * Fix redirect loop when password change is required and Gitea is installed as a suburl (#5965) (#6101)
+  * Fix compare button regression (#5929) (#6098)
+  * Recover panic in orgmode.Render if bad orgfile (#4982) (#5903) (#6097)
+
 ## [1.7.2](https://github.com/go-gitea/gitea/releases/tag/v1.7.2) - 2019-02-14
 * BUGFIXES
   * Remove all CommitStatus when a repo is deleted (#5940) (#5941)
   * Fix notifications on pushing with deploy keys by setting hook environment variables (#5935) (#5944)
-  * Silence console logger in gitea serv (#5887) (#5943) 
+  * Silence console logger in gitea serv (#5887) (#5943)
   * Handle milestone webhook events for issues and PR (#5947) (#5955)
   * Show user who created the repository instead of the organization in action feed (#5948) (#5956)
   * Fix ssh deploy and user key constraints (#1357) (#5939) (#5966)
@@ -64,7 +78,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Give user a link to create PR after push (#4716)
   * Add rebase with merge commit merge style (#3844) (#4052)
 * BUGFIXES
-  * Disallow empty titles (#5785) (#5794) 
+  * Disallow empty titles (#5785) (#5794)
   * Fix sqlite deadlock when assigning to a PR (#5640) (#5642)
   * Don't close issues via commits on non-default branch. (#5622) (#5643)
   * Fix commit page showing status for current default branch (#5650) (#5653)
