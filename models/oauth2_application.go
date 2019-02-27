@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,7 +30,7 @@ type OAuth2Application struct {
 
 	Name string
 
-	ClientID     string `xorm:"INDEX unique"`
+	ClientID     string `xorm:"unique"`
 	ClientSecret string
 
 	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
