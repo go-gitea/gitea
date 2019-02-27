@@ -521,13 +521,12 @@ function initCommentForm() {
 
             $(this).addClass('selected active');
             if (hasUpdateAction) {
-                var promise = updateIssuesMeta(
+                updateIssuesMeta(
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                );
-                promise.then(reload);
+                    $(this).data('id')
+                ).then(reload);
             }
             switch (input_id) {
                 case '#milestone_id':
@@ -548,13 +547,12 @@ function initCommentForm() {
             });
 
             if (hasUpdateAction) {
-                var promise = updateIssuesMeta(
+                updateIssuesMeta(
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                );
-                promise.then(reload);
+                    $(this).data('id')
+                ).then(reload);
             }
 
             $list.find('.selected').html('');
