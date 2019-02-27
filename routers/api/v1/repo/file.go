@@ -312,12 +312,12 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 		return
 	}
 
-	opts := &file_handling.DeleteRepoFileOptions {
+	opts := &file_handling.DeleteRepoFileOptions{
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		SHA: apiOpts.SHA,
-		TreePath: ctx.Params("*"),
+		SHA:       apiOpts.SHA,
+		TreePath:  ctx.Params("*"),
 		Committer: &file_handling.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
@@ -378,4 +378,3 @@ func GetFileContents(ctx *context.APIContext) {
 		ctx.JSON(200, fileContents)
 	}
 }
-

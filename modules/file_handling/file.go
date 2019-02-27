@@ -10,7 +10,7 @@ import (
 
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, treeName string) (*gitea.FileResponse, error) {
 	fileContents, _ := GetFileContents(repo, treeName, commit.ID.String()) // of if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)           // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
 	fileResponse := &gitea.FileResponse{
 		Content:      fileContents,

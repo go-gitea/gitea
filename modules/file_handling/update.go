@@ -157,7 +157,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 	if opts.SHA != "" && opts.SHA != fromEntry.ID.String() {
 		return nil, models.ErrShaDoesNotMatch{
-			GivenSHA: opts.SHA,
+			GivenSHA:   opts.SHA,
 			CurrentSHA: fromEntry.ID.String(),
 		}
 	}
