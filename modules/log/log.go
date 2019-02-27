@@ -22,7 +22,7 @@ var (
 	// GitLogger logger for git
 	GitLogger *Logger
 	prefix    string
-	level     Level
+	level     = NONE
 )
 
 // NewLogger create a logger
