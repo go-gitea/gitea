@@ -1,0 +1,16 @@
+{{template "base/head" .}}
+<div class="repository quickstart">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="sixteen wide column content">
+				{{template "base/alert" .}}
+                    <div id="repo_migrating" class="ui segment center" repo="{{.Repo.Repository.FullName}}">
+                        {{.i18n.Tr "repo.migrate.migrating" .MigrateConfig.RemoteAddr}}
+                    </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

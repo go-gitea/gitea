@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -126,6 +127,15 @@ func NewRepoContext() {
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
+// RepositoryStatus defines the status of repository
+type RepositoryStatus int
+
+// all kinds of RepositoryStatus
+const (
+	RepositoryCreated  RepositoryStatus = iota // a normal repository
+	RepositoryCreating                         // repository is migrating or forking
+)
+
 // Repository represents a git repository.
 type Repository struct {
 	ID            int64  `xorm:"pk autoincr"`
@@ -156,9 +166,9 @@ type Repository struct {
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
 	IsArchived bool `xorm:"INDEX"`
-
-	IsMirror bool `xorm:"INDEX"`
-	*Mirror  `xorm:"-"`
+	IsMirror   bool `xorm:"INDEX"`
+	*Mirror    `xorm:"-"`
+	Status     RepositoryStatus
 
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
@@ -195,6 +205,11 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 		log.NewColoredIDValue(repo.ID),
 		ownerName,
 		repo.Name)
+}
+
+// IsCreating indicates that repository is creating
+func (repo *Repository) IsCreating() bool {
+	return repo.Status == RepositoryCreating
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -884,18 +899,6 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 	return repo.cloneLink(x, false)
 }
 
-// MigrateRepoOptions contains the repository migrate options
-type MigrateRepoOptions struct {
-	Name                 string
-	Description          string
-	OriginalURL          string
-	IsPrivate            bool
-	IsMirror             bool
-	RemoteAddr           string
-	Wiki                 bool // include wiki repository
-	SyncReleasesWithTags bool // sync releases from tags
-}
-
 /*
 	GitHub, GitLab, Gogs: *.wiki.git
 	BitBucket: *.git/wiki
@@ -915,19 +918,44 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates an existing repository from other project hosting.
-func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
+// CheckCreateRepository check if could created a repository
+func CheckCreateRepository(doer, u *User, name string) error {
+	if !doer.CanCreateRepo() {
+		return ErrReachLimitOfRepo{u.MaxRepoCreation}
+	}
+
+	if err := IsUsableRepoName(name); err != nil {
+		return err
+	}
+
+	has, err := isRepositoryExist(x, u, name)
+	if err != nil {
+		return fmt.Errorf("IsRepositoryExist: %v", err)
+	} else if has {
+		return ErrRepoAlreadyExist{u.Name, name}
+	}
+	return nil
+}
+
+// MigrateRepository migrates a existing repository from other project hosting.
+func MigrateRepository(doer, u *User, opts structs.MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
 		OriginalURL: opts.OriginalURL,
 		IsPrivate:   opts.IsPrivate,
 		IsMirror:    opts.IsMirror,
+		Status:      RepositoryCreating,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	return MigrateRepositoryGitData(doer, u, repo, opts)
+}
+
+// MigrateRepositoryGitData starts migrating git related data after created migrating repository
+func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.MigrateRepoOptions) (*Repository, error) {
 	repoPath := RepoPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
@@ -942,7 +970,8 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	if err := os.RemoveAll(repoPath); err != nil {
+	var err error
+	if err = os.RemoveAll(repoPath); err != nil {
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
@@ -1006,6 +1035,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	if opts.IsMirror {
+
 		if _, err = x.InsertOne(&Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
@@ -1143,6 +1173,7 @@ type CreateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	AutoInit    bool
+	Status      RepositoryStatus
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1410,6 +1441,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
+		Status:                          opts.Status,
 	}
 
 	sess := x.NewSession()
@@ -1856,6 +1888,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&Task{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

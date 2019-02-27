@@ -238,7 +238,36 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
             },
             success: resolve
         })
-    })
+    }
+}
+
+function initRepoStatusChecker() {
+    console.log("initRepoStatusChecker")
+    var migrating = $("#repo_migrating");
+    if (migrating) {
+        var repo_name = migrating.attr('repo');
+        if (typeof repo_nane === 'undefined') {
+            return
+        }
+        $.ajax({
+            type: "GET",
+            url: suburl +"/"+repo_name+"/status",
+            data: {
+                "_csrf": csrf,
+            }
+        }).done(function(resp) {
+            if (resp) {
+                if (resp["status"] == 0) {
+                    location.reload();
+                    return
+                }
+    
+                setTimeout(function () {
+                    initRepoStatusChecker()
+                }, 2000);
+            }
+        })
+    }
 }
 
 function initReactionSelector(parent) {
@@ -2219,6 +2248,7 @@ $(document).ready(function () {
     initIssueList();
     initWipTitle();
     initPullRequestReview();
+    initRepoStatusChecker();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {

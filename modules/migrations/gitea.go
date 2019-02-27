@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/satori/go.uuid"
@@ -90,7 +91,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		remoteAddr = u.String()
 	}
 
-	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
+	r, err := models.MigrateRepository(g.doer, owner, structs.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
 		OriginalURL:          repo.OriginalURL,

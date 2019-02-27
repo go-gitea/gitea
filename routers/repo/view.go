@@ -31,6 +31,7 @@ const (
 	tplRepoHome  base.TplName = "repo/home"
 	tplWatchers  base.TplName = "repo/watchers"
 	tplForks     base.TplName = "repo/forks"
+	tplMigrating base.TplName = "repo/migrating"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -359,6 +360,25 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
+		if ctx.Repo.Repository.IsCreating() {
+			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			if err != nil {
+				ctx.ServerError("models.GetMigratingTask", err)
+				return
+			}
+			cfg, err := task.MigrateConfig()
+			if err != nil {
+				ctx.ServerError("task.MigrateConfig", err)
+				return
+			}
+
+			ctx.Data["Repo"] = ctx.Repo
+			ctx.Data["MigrateTask"] = task
+			ctx.Data["MigrateConfig"] = cfg
+			ctx.HTML(200, tplMigrating)
+			return
+		}
+
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
