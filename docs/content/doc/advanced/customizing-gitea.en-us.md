@@ -104,7 +104,7 @@ To add custom .gitignore, add a file with existing [.gitignore rules](https://gi
 
 ### Labels
 
-To add a custom label set, add a file that follows [this](https://github.com/go-gitea/gitea/blob/master/options/label/Default) format to `custom/options/label`  
+To add a custom label set, add a file that follows the [label format](https://github.com/go-gitea/gitea/blob/master/options/label/Default) to `custom/options/label`  
 `#hex-color label name ; label description`
 
 ### Licenses
@@ -113,8 +113,19 @@ To add a custom license, add a file with the license text to `custom/options/lic
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea)  
-To override a locale, add the appropriate file to `custom/options/locale`. The list of included files can be found [here](https://github.com/go-gitea/gitea/tree/master/options/locale) to use as examples.
+Locales are managed via our [crowdin](https://crowdin.com/project/gitea).  
+You can override a locale by placing an altered locale file in `custom/options/locale`.  
+Gitea's default locale files can be found in  the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.  
+  
+To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
+
+```
+[i18n]
+LANGS = en-US,foo-BAR
+NAMES = English,FooBar
+```
+
+Locales may change between versions, so keeping track of your customized locales is highly encouraged.
 
 ### Readmes
 
