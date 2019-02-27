@@ -16,63 +16,125 @@ package scorch
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"reflect"
 	"sync/atomic"
 )
 
-// Stats tracks statistics about the index
+// Stats tracks statistics about the index, fields that are
+// prefixed like CurXxxx are gauges (can go up and down),
+// and fields that are prefixed like TotXxxx are monotonically
+// increasing counters.
 type Stats struct {
-	updates, deletes, batches, errors uint64
-	analysisTime, indexTime           uint64
-	termSearchersStarted              uint64
-	termSearchersFinished             uint64
-	numPlainTextBytesIndexed          uint64
-	numItemsIntroduced                uint64
-	numItemsPersisted                 uint64
-	i                                 *Scorch
+	TotUpdates uint64
+	TotDeletes uint64
+
+	TotBatches        uint64
+	TotBatchesEmpty   uint64
+	TotBatchIntroTime uint64
+	MaxBatchIntroTime uint64
+
+	CurRootEpoch       uint64
+	LastPersistedEpoch uint64
+	LastMergedEpoch    uint64
+
+	TotOnErrors uint64
+
+	TotAnalysisTime uint64
+	TotIndexTime    uint64
+
+	TotIndexedPlainTextBytes uint64
+
+	TotTermSearchersStarted  uint64
+	TotTermSearchersFinished uint64
+
+	TotIntroduceLoop       uint64
+	TotIntroduceSegmentBeg uint64
+	TotIntroduceSegmentEnd uint64
+	TotIntroducePersistBeg uint64
+	TotIntroducePersistEnd uint64
+	TotIntroduceMergeBeg   uint64
+	TotIntroduceMergeEnd   uint64
+	TotIntroduceRevertBeg  uint64
+	TotIntroduceRevertEnd  uint64
+
+	TotIntroducedItems         uint64
+	TotIntroducedSegmentsBatch uint64
+	TotIntroducedSegmentsMerge uint64
+
+	TotPersistLoopBeg          uint64
+	TotPersistLoopErr          uint64
+	TotPersistLoopProgress     uint64
+	TotPersistLoopWait         uint64
+	TotPersistLoopWaitNotified uint64
+	TotPersistLoopEnd          uint64
+
+	TotPersistedItems    uint64
+	TotItemsToPersist    uint64
+	TotPersistedSegments uint64
+
+	TotPersisterSlowMergerPause  uint64
+	TotPersisterSlowMergerResume uint64
+
+	TotPersisterNapPauseCompleted uint64
+	TotPersisterMergerNapBreak    uint64
+
+	TotFileMergeLoopBeg uint64
+	TotFileMergeLoopErr uint64
+	TotFileMergeLoopEnd uint64
+
+	TotFileMergePlan     uint64
+	TotFileMergePlanErr  uint64
+	TotFileMergePlanNone uint64
+	TotFileMergePlanOk   uint64
+
+	TotFileMergePlanTasks              uint64
+	TotFileMergePlanTasksDone          uint64
+	TotFileMergePlanTasksErr           uint64
+	TotFileMergePlanTasksSegments      uint64
+	TotFileMergePlanTasksSegmentsEmpty uint64
+
+	TotFileMergeSegmentsEmpty uint64
+	TotFileMergeSegments      uint64
+	TotFileSegmentsAtRoot     uint64
+	TotFileMergeWrittenBytes  uint64
+
+	TotFileMergeZapBeg  uint64
+	TotFileMergeZapEnd  uint64
+	TotFileMergeZapTime uint64
+	MaxFileMergeZapTime uint64
+
+	TotFileMergeIntroductions        uint64
+	TotFileMergeIntroductionsDone    uint64
+	TotFileMergeIntroductionsSkipped uint64
+
+	TotMemMergeBeg          uint64
+	TotMemMergeErr          uint64
+	TotMemMergeDone         uint64
+	TotMemMergeZapBeg       uint64
+	TotMemMergeZapEnd       uint64
+	TotMemMergeZapTime      uint64
+	MaxMemMergeZapTime      uint64
+	TotMemMergeSegments     uint64
+	TotMemorySegmentsAtRoot uint64
 }
 
-func (s *Stats) statsMap() (map[string]interface{}, error) {
+// atomically populates the returned map
+func (s *Stats) ToMap() map[string]interface{} {
 	m := map[string]interface{}{}
-	m["updates"] = atomic.LoadUint64(&s.updates)
-	m["deletes"] = atomic.LoadUint64(&s.deletes)
-	m["batches"] = atomic.LoadUint64(&s.batches)
-	m["errors"] = atomic.LoadUint64(&s.errors)
-	m["analysis_time"] = atomic.LoadUint64(&s.analysisTime)
-	m["index_time"] = atomic.LoadUint64(&s.indexTime)
-	m["term_searchers_started"] = atomic.LoadUint64(&s.termSearchersStarted)
-	m["term_searchers_finished"] = atomic.LoadUint64(&s.termSearchersFinished)
-	m["num_plain_text_bytes_indexed"] = atomic.LoadUint64(&s.numPlainTextBytesIndexed)
-	m["num_items_introduced"] = atomic.LoadUint64(&s.numItemsIntroduced)
-	m["num_items_persisted"] = atomic.LoadUint64(&s.numItemsPersisted)
-
-	if s.i.path != "" {
-		finfos, err := ioutil.ReadDir(s.i.path)
-		if err != nil {
-			return nil, err
+	sve := reflect.ValueOf(s).Elem()
+	svet := sve.Type()
+	for i := 0; i < svet.NumField(); i++ {
+		svef := sve.Field(i)
+		if svef.CanAddr() {
+			svefp := svef.Addr().Interface()
+			m[svet.Field(i).Name] = atomic.LoadUint64(svefp.(*uint64))
 		}
-
-		var numFilesOnDisk, numBytesUsedDisk uint64
-
-		for _, finfo := range finfos {
-			if !finfo.IsDir() {
-				numBytesUsedDisk += uint64(finfo.Size())
-				numFilesOnDisk++
-			}
-		}
-
-		m["num_bytes_used_disk"] = numBytesUsedDisk
-		m["num_files_on_disk"] = numFilesOnDisk
 	}
-
-	return m, nil
+	return m
 }
 
-// MarshalJSON implements json.Marshaler
+// MarshalJSON implements json.Marshaler, and in contrast to standard
+// json marshaling provides atomic safety
 func (s *Stats) MarshalJSON() ([]byte, error) {
-	m, err := s.statsMap()
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(m)
+	return json.Marshal(s.ToMap())
 }

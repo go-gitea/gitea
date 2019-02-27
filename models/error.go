@@ -90,6 +90,38 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
+type ErrUserProhibitLogin struct {
+	UID  int64
+	Name string
+}
+
+// IsErrUserProhibitLogin checks if an error is a ErrUserProhibitLogin
+func IsErrUserProhibitLogin(err error) bool {
+	_, ok := err.(ErrUserProhibitLogin)
+	return ok
+}
+
+func (err ErrUserProhibitLogin) Error() string {
+	return fmt.Sprintf("user is not allowed login [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// ErrUserInactive represents a "ErrUserInactive" kind of error.
+type ErrUserInactive struct {
+	UID  int64
+	Name string
+}
+
+// IsErrUserInactive checks if an error is a ErrUserInactive
+func IsErrUserInactive(err error) bool {
+	_, ok := err.(ErrUserInactive)
+	return ok
+}
+
+func (err ErrUserInactive) Error() string {
+	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
+}
+
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
 type ErrEmailAlreadyUsed struct {
 	Email string

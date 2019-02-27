@@ -17,11 +17,12 @@
   lower_name: repo2
   name: repo2
   is_private: true
-  num_issues: 1
+  num_issues: 2
   num_closed_issues: 1
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  close_issues_via_commit_in_any_branch: true
 
 -
   id: 3

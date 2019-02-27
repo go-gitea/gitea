@@ -21,17 +21,57 @@ import (
 	"github.com/blevesearch/bleve/search"
 )
 
+// NewRegexpStringSearcher is similar to NewRegexpSearcher, but
+// additionally optimizes for index readers that handle regexp's.
+func NewRegexpStringSearcher(indexReader index.IndexReader, pattern string,
+	field string, boost float64, options search.SearcherOptions) (
+	search.Searcher, error) {
+	ir, ok := indexReader.(index.IndexReaderRegexp)
+	if !ok {
+		r, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewRegexpSearcher(indexReader, r, field, boost, options)
+	}
+
+	fieldDict, err := ir.FieldDictRegexp(field, pattern)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if cerr := fieldDict.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	var candidateTerms []string
+
+	tfd, err := fieldDict.Next()
+	for err == nil && tfd != nil {
+		candidateTerms = append(candidateTerms, tfd.Term)
+		tfd, err = fieldDict.Next()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return NewMultiTermSearcher(indexReader, candidateTerms, field, boost,
+		options, true)
+}
+
 // NewRegexpSearcher creates a searcher which will match documents that
 // contain terms which match the pattern regexp.  The match must be EXACT
 // matching the entire term.  The provided regexp SHOULD NOT start with ^
 // or end with $ as this can intefere with the implementation.  Separately,
 // matches will be checked to ensure they match the entire term.
-func NewRegexpSearcher(indexReader index.IndexReader, pattern *regexp.Regexp,
+func NewRegexpSearcher(indexReader index.IndexReader, pattern index.Regexp,
 	field string, boost float64, options search.SearcherOptions) (
 	search.Searcher, error) {
+	var candidateTerms []string
 
 	prefixTerm, complete := pattern.LiteralPrefix()
-	var candidateTerms []string
 	if complete {
 		// there is no pattern
 		candidateTerms = []string{prefixTerm}
@@ -49,7 +89,7 @@ func NewRegexpSearcher(indexReader index.IndexReader, pattern *regexp.Regexp,
 }
 
 func findRegexpCandidateTerms(indexReader index.IndexReader,
-	pattern *regexp.Regexp, field, prefixTerm string) (rv []string, err error) {
+	pattern index.Regexp, field, prefixTerm string) (rv []string, err error) {
 	rv = make([]string, 0)
 	var fieldDict index.FieldDict
 	if len(prefixTerm) > 0 {
@@ -70,7 +110,7 @@ func findRegexpCandidateTerms(indexReader index.IndexReader,
 		if matchPos != nil && matchPos[0] == 0 && matchPos[1] == len(tfd.Term) {
 			rv = append(rv, tfd.Term)
 			if tooManyClauses(len(rv)) {
-				return rv, tooManyClausesErr()
+				return rv, tooManyClausesErr(len(rv))
 			}
 		}
 		tfd, err = fieldDict.Next()

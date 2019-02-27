@@ -2942,6 +2942,112 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/start": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Start stopwatch on an issue.",
+        "operationId": "issueStartStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to create the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot start a stopwatch again if it already exists"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/stop": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Stop an issue's existing stopwatch.",
+        "operationId": "issueStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot stop a non existent stopwatch"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys": {
       "get": {
         "produces": [
@@ -3825,6 +3931,13 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MergePullRequestOption"
+            }
           }
         ],
         "responses": {
@@ -4571,6 +4684,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tags": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's tags",
+        "operationId": "repoListTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagList"
           }
         }
       }
@@ -6778,6 +6924,10 @@
           "type": "string",
           "x-go-name": "LoginName"
         },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
+        },
         "password": {
           "type": "string",
           "x-go-name": "Password"
@@ -7196,6 +7346,10 @@
           "format": "int64",
           "x-go-name": "MaxRepoCreation"
         },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
+        },
         "password": {
           "type": "string",
           "x-go-name": "Password"
@@ -7560,6 +7714,32 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "MergePullRequestOption": {
+      "description": "MergePullRequestForm form for merging Pull Request",
+      "type": "object",
+      "required": [
+        "Do"
+      ],
+      "properties": {
+        "Do": {
+          "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ]
+        },
+        "MergeMessageField": {
+          "type": "string"
+        },
+        "MergeTitleField": {
+          "type": "string"
+        }
+      },
+      "x-go-name": "MergePullRequestForm",
+      "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository",
@@ -8313,6 +8493,39 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Tag": {
+      "description": "Tag represents a repository tag",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "object",
+          "properties": {
+            "sha": {
+              "type": "string",
+              "x-go-name": "SHA"
+            },
+            "url": {
+              "type": "string",
+              "x-go-name": "URL"
+            }
+          },
+          "x-go-name": "Commit"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "tarball_url": {
+          "type": "string",
+          "x-go-name": "TarballURL"
+        },
+        "zipball_url": {
+          "type": "string",
+          "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Team": {
       "description": "Team represents a team in an organization",
       "type": "object",
@@ -8789,6 +9002,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Status"
+        }
+      }
+    },
+    "TagList": {
+      "description": "TagList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Tag"
         }
       }
     },
