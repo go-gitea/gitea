@@ -1,5 +1,7 @@
 'use strict';
 
+console.log(Promise);
+
 function htmlEncode(text) {
    return jQuery('<div />').text(text).html()
 }
