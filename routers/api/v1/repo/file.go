@@ -183,7 +183,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	opts := file_handling.UpdateRepoFileOptions{
+	opts := &file_handling.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
@@ -199,7 +199,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 	}
-	createOrUpdateFile(ctx, &opts)
+	createOrUpdateFile(ctx, opts)
 }
 
 // UpdateFile handles API call for updating a file
@@ -233,7 +233,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
-	opts := file_handling.UpdateRepoFileOptions{
+	opts := &file_handling.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
 		IsNewFile:    false,
@@ -251,10 +251,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 	}
-
-	createOrUpdateFile(ctx, &opts)
-
-	ctx.JSON(200, &api.FileResponse{})
+	createOrUpdateFile(ctx, opts)
 }
 
 // Handles if an API call is for updating a repo file
@@ -271,15 +268,15 @@ func createOrUpdateFile(ctx *context.APIContext, opts *file_handling.UpdateRepoF
 		opts.Content = string(content)
 	}
 
-	if file, err := file_handling.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if fileResponse, err := file_handling.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
 		ctx.Error(500, "", err)
 	} else {
-		ctx.JSON(200, file)
+		ctx.JSON(200, fileResponse)
 	}
 }
 
 // Delete a fle in a repository
-func DeleteFile(ctx *context.APIContext, opt api.DeleteFileOptions) {
+func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{filepath} repository repoDeleteFile
 	// ---
 	// summary: Delete a file in a repository
@@ -309,7 +306,33 @@ func DeleteFile(ctx *context.APIContext, opt api.DeleteFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileDeleteResponse"
-	ctx.JSON(200, &api.FileDeleteResponse{})
+
+	if !CanWriteFiles(ctx.Repo) {
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		return
+	}
+
+	opts := &file_handling.DeleteRepoFileOptions {
+		Message:   apiOpts.Message,
+		OldBranch: apiOpts.BranchName,
+		NewBranch: apiOpts.NewBranchName,
+		SHA: apiOpts.SHA,
+		TreePath: ctx.Params("*"),
+		Committer: &file_handling.IdentityOptions{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+		},
+		Author: &file_handling.IdentityOptions{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+		},
+	}
+
+	if fileResponse, err := file_handling.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+		ctx.Error(500, "", err)
+	} else {
+		ctx.JSON(200, fileResponse)
+	}
 }
 
 // Get the contents of a fle in a repository
@@ -355,3 +378,4 @@ func GetFileContents(ctx *context.APIContext) {
 		ctx.JSON(200, fileContents)
 	}
 }
+

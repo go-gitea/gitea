@@ -11,12 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
+
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
-	"time"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -151,23 +150,22 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err // Couldn't get a commit for the branch
 	}
 
-	// Check to see if we are needing to move this updated file to a new file name
-	// If so, we make sure the new file name doesn't already exist (cannot clobber)
-	if !opts.IsNewFile && treeName != fromTreeName {
-		//if entry, err := commit.GetTreeEntryByPath(treeName); err != nil {
-		//	// If it wasn't a ErrNotExist error, it was something else so return it
-		//	if !git.IsErrNotExist(err) {
-		//		return nil, err
-		//	}
-		//} else if entry != nil {
-		//	// Otherwise, if no error and the entry exists, we can't make the file
-		//	return nil, models.ErrRepoFileAlreadyExists{treeName}
-		//}
+	// Get the entry of fromTreeName and check if the SHA given, if updating, is the same
+	fromEntry, err := commit.GetTreeEntryByPath(fromTreeName)
+	if err != nil {
+		return nil, err
+	}
+	if opts.SHA != "" && opts.SHA != fromEntry.ID.String() {
+		return nil, models.ErrShaDoesNotMatch{
+			GivenSHA: opts.SHA,
+			CurrentSHA: fromEntry.ID.String(),
+		}
 	}
 
 	// For the path where this file will be created/updated, we need to make
 	// sure no parts of the path are existing files or links except for the last
-	// item in the path which is the file name
+	// item in the path which is the file name, and that shouldn't exist IF it is
+	// a new file OR is being moved to a new path.
 	treeNameParts := strings.Split(treeName, "/")
 	subTreeName := ""
 	for index, part := range treeNameParts {
@@ -184,16 +182,18 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			if !entry.IsDir() {
 				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", subTreeName)}
 			}
-		} else {
-			if entry.IsLink() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
-			}
-			if entry.IsDir() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
-			}
+		} else if entry.IsLink() {
+			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
+		} else if entry.IsDir() {
+			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
+		} else if !opts.IsNewFile || fromTreeName != treeName {
+			// The entry shouldn't exist if we are creating new file or moving to a new path
+			return nil, models.ErrRepoFileAlreadyExists{FileName: treeName}
 		}
+
 	}
 
+	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(opts.TreeName, opts.FromTreeName)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateRepoFile: %v", err)
@@ -204,6 +204,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		log.Warn("FILE: %d: %s", idx, file)
 	}
 
+	// If is a new file (not updating) then the given path shouldn't exist
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
 			log.Warn("FILE: %s", file)
@@ -213,7 +214,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	//var stdout string
+	// Remove the old path from the tree
 	if fromTreeName != treeName && len(filesInIndex) > 0 {
 		for _, file := range filesInIndex {
 			if file == fromTreeName {
@@ -314,72 +315,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 	models.UpdateRepoIndexer(repo)
 
-	c, err := gitRepo.GetBranchCommit(opts.NewBranch)
-	entry, err := c.GetTreeEntryByPath(treeName)
-	log.Warn("lfsMetaObject: %v", lfsMetaObject)
-	log.Warn("ContentPath: %v", setting.LFS.ContentPath)
-	log.Warn("COMMIT: %v", commit)
-	log.Warn("C: %v", c)
-	log.Warn("ENTRY: %v", entry)
-
-	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + c.ID.String())
-	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + c.Tree.ID.String())
-	parents := make([]gitea.CommitMeta, c.ParentCount())
-	for i := 0; i <= c.ParentCount(); i++ {
-		if parent, err := c.Parent(i); err == nil && parent != nil {
-			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
-			parents[i] = gitea.CommitMeta{
-				SHA: parent.ID.String(),
-				URL: parentCommitURL.String(),
-			}
-		}
-	}
-
-	commitHtmlURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + c.ID.String())
-
-	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
-	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
-	}
-
-	fileContents, err := GetFileContents(repo, opts.NewBranch, treeName)
+	commit, err = gitRepo.GetCommit(commitHash)
 	if err != nil {
 		return nil, err
 	}
-	file := &gitea.FileResponse{
-		Content: fileContents,
-		Commit: &gitea.FileCommitResponse{
-			CommitMeta: gitea.CommitMeta{
-				SHA: c.ID.String(),
-				URL: commitURL.String(),
-			},
-			HTMLURL: commitHtmlURL.String(),
-			Author: &gitea.CommitUser{
-				Date:  c.Author.When.UTC().Format(time.RFC3339),
-				Name:  c.Author.Name,
-				Email: c.Author.Email,
-			},
-			Committer: &gitea.CommitUser{
-				Date:  c.Committer.When.UTC().Format(time.RFC3339),
-				Name:  c.Committer.Name,
-				Email: c.Committer.Email,
-			},
-			Message: c.Message(),
-			Tree: &gitea.CommitMeta{
-				URL: commitTreeURL.String(),
-				SHA: c.Tree.ID.String(),
-			},
-			Parents: &parents,
-		},
-		Verification: &gitea.PayloadCommitVerification{
-			Verified:  verif.Verified,
-			Reason:    verif.Reason,
-			Signature: signature,
-			Payload:   payload,
-		},
-	}
 
-	return file, nil
+	if file, err := GetFileResponseFromCommit(repo, commit, treeName); err != nil {
+		return nil, err
+	} else {
+		return file, nil
+	}
 }

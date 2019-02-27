@@ -448,7 +448,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := file_handling.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &file_handling.DeleteRepoFileOptions{
+	if _, err := file_handling.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &file_handling.DeleteRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,

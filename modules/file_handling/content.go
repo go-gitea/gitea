@@ -7,7 +7,6 @@ package file_handling
 import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/sdk/gitea"
 	"net/url"
 )
@@ -17,8 +16,6 @@ func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.File
 	if ref == "" {
 		ref = "master"
 	}
-
-	log.Warn("treeName: %s, REF: %s", treeName, ref)
 
 	// Check that the path given in opts.treeName is valid (not a git path)
 	treeName = cleanUploadFileName(treeName)
