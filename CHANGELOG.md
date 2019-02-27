@@ -12,10 +12,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug when update owner team then visit team's repo return 404 (#6119) (#6166)
   * Fix heatmap and repository menu display in Internet Explorer 9+ (#6117) (#6137)
   * Fix prohibit login check on authorization (#6106) (#6115)
-  * Move to ldap.v3 to fix #5928 (#6105) (#6107)
+  * Fix LDAP protocol error regression by moving to ldap.v3 (#6105) (#6107)
   * Fix deadlock in webhook PullRequest (#6102) (#6104)
-  * modules/context/auth.go: fix redirect loop (#5965) (#6101)
-  * Issue 5924 fix compare button (#5929) (#6098)
+  * Fix redirect loop when password change is required and Gitea is installed as a suburl (#5965) (#6101)
+  * Fix compare button regression (#5929) (#6098)
   * Recover panic in orgmode.Render if bad orgfile (#4982) (#5903) (#6097)
 
 ## [1.7.2](https://github.com/go-gitea/gitea/releases/tag/v1.7.2) - 2019-02-14
