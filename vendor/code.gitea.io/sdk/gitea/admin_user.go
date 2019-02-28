@@ -23,7 +23,7 @@ type CreateUserOption struct {
 	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
 	// required: true
 	Password           string `json:"password" binding:"Required;MaxSize(255)"`
-	MustChangePassword bool   `json:"must_change_password"`
+	MustChangePassword *bool  `json:"must_change_password"`
 	SendNotify         bool   `json:"send_notify"`
 }
 
@@ -46,7 +46,7 @@ type EditUserOption struct {
 	// swagger:strfmt email
 	Email                   string `json:"email" binding:"Required;Email;MaxSize(254)"`
 	Password                string `json:"password" binding:"MaxSize(255)"`
-	MustChangePassword      bool   `json:"must_change_password"`
+	MustChangePassword      *bool  `json:"must_change_password"`
 	Website                 string `json:"website" binding:"MaxSize(50)"`
 	Location                string `json:"location" binding:"MaxSize(50)"`
 	Active                  *bool  `json:"active"`

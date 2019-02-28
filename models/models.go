@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -155,7 +156,7 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 }
 
