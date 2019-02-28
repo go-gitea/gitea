@@ -151,14 +151,16 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Get the entry of fromTreeName and check if the SHA given, if updating, is the same
-	fromEntry, err := commit.GetTreeEntryByPath(fromTreeName)
-	if err != nil {
-		return nil, err
-	}
-	if opts.SHA != "" && opts.SHA != fromEntry.ID.String() {
-		return nil, models.ErrShaDoesNotMatch{
-			GivenSHA:   opts.SHA,
-			CurrentSHA: fromEntry.ID.String(),
+	if opts.SHA != "" {
+		fromEntry, err := commit.GetTreeEntryByPath(fromTreeName)
+		if err != nil {
+			return nil, err
+		}
+		if opts.SHA != fromEntry.ID.String() {
+			return nil, models.ErrShaDoesNotMatch{
+				GivenSHA:   opts.SHA,
+				CurrentSHA: fromEntry.ID.String(),
+			}
 		}
 	}
 
