@@ -227,7 +227,7 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
                 "issue_ids": issueIds,
                 "id": elementId
             },
-            success: resolve,
+            success: resolve
         })
     })
 }
