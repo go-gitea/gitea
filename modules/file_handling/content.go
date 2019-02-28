@@ -55,7 +55,7 @@ func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.File
 		}
 	}
 
-	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/master/" + treeName)
+	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treeName)
 
 	fileContent := &gitea.FileContentResponse{
 		Name:        entry.Name(),
