@@ -199,7 +199,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	// FIXME: Should we UpdateRepoIndexer(repo) here?
 
-	if file, err := GetFileResponseFromCommit(repo, commit, treePath); err != nil {
+	if file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath); err != nil {
 		return nil, err
 	} else {
 		return file, nil

@@ -322,7 +322,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	if file, err := GetFileResponseFromCommit(repo, commit, treeName); err != nil {
+	if file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treeName); err != nil {
 		return nil, err
 	} else {
 		return file, nil
