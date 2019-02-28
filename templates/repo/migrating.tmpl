@@ -16,7 +16,7 @@
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
 							<div>
-								<p>{{.i18n.Tr "repo.migrate.migrating" .MigrateConfig.RemoteAddr}}</p>
+								<p>{{.i18n.Tr "repo.migrate.migrating" .MigrateConfig.RemoteAddr | Safe}}</p>
 							</div>
 						</div>
 					</div>
