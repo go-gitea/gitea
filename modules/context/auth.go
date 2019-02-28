@@ -53,9 +53,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 					return
 				}
 			} else if ctx.Req.URL.Path == "/user/settings/change_password" {
-				// prevent infinite redirection
-				// also make sure that the form cannot be accessed by
-				// users who don't need this
+				// make sure that the form cannot be accessed by users who don't need this
 				ctx.Redirect(setting.AppSubURL + "/")
 				return
 			}
