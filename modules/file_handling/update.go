@@ -188,7 +188,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
 		} else if entry.IsDir() {
 			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
-		} else if !opts.IsNewFile || fromTreeName != treeName {
+		} else if fromTreeName != treeName || opts.IsNewFile {
 			// The entry shouldn't exist if we are creating new file or moving to a new path
 			return nil, models.ErrRepoFileAlreadyExists{FileName: treeName}
 		}
