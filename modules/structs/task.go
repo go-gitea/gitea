@@ -24,6 +24,7 @@ func (taskType TaskType) Name() string {
 // TaskStatus defines task status
 type TaskStatus int
 
+// enumerate all the kinds of task status
 const (
 	TaskStatusQueue    TaskStatus = iota // 0 task is queue
 	TaskStatusRunning                    // 1 task is running

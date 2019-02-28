@@ -22,13 +22,13 @@ import (
 func handleCreateError(owner *models.User, err error, name string) error {
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
-		return fmt.Errorf("You have already reached your limit of %d repositories.", owner.MaxCreationLimit())
+		return fmt.Errorf("You have already reached your limit of %d repositories", owner.MaxCreationLimit())
 	case models.IsErrRepoAlreadyExist(err):
-		return errors.New("The repository name is already used.")
+		return errors.New("The repository name is already used")
 	case models.IsErrNameReserved(err):
-		return fmt.Errorf("The repository name '%s' is reserved.", err.(models.ErrNameReserved).Name)
+		return fmt.Errorf("The repository name '%s' is reserved", err.(models.ErrNameReserved).Name)
 	case models.IsErrNamePatternNotAllowed(err):
-		return fmt.Errorf("The pattern '%s' is not allowed in a repository name.", err.(models.ErrNamePatternNotAllowed).Pattern)
+		return fmt.Errorf("The pattern '%s' is not allowed in a repository name", err.(models.ErrNamePatternNotAllowed).Pattern)
 	default:
 		return err
 	}
@@ -101,7 +101,7 @@ func runMigrateTask(t *models.Task) error {
 	}
 
 	if models.IsErrRepoAlreadyExist(err) {
-		return errors.New("The repository name is already used.")
+		return errors.New("The repository name is already used")
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it
