@@ -112,7 +112,7 @@ func (task *Task) MigrateConfig() (*structs.MigrateRepoOptions, error) {
 		}
 		return &opts, nil
 	}
-	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type)
+	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type.Name())
 }
 
 // ErrTaskIsNotExist represents a "TaskIsNotExist" kind of error.

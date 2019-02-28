@@ -12,6 +12,15 @@ const (
 	TaskTypeMigrateRepo TaskType = iota // migrate repository from external or local disk
 )
 
+// Name returns the task type name
+func (taskType TaskType) Name() string {
+	switch taskType {
+	case TaskTypeMigrateRepo:
+		return "Migrate Repository"
+	}
+	return ""
+}
+
 // TaskStatus defines task status
 type TaskStatus int
 
