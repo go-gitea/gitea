@@ -7,6 +7,7 @@ package routers
 
 import (
 	"bytes"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -44,6 +45,11 @@ func Home(ctx *context.Context) {
 			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(200, "user/auth/prohibit_login")
+		} else if ctx.User.MustChangePassword {
+			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+			ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
 		}
