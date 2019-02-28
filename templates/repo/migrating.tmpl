@@ -5,9 +5,21 @@
 		<div class="ui grid">
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
-                    <div id="repo_migrating" class="ui segment center" repo="{{.Repo.Repository.FullName}}">
-                        {{.i18n.Tr "repo.migrate.migrating" .MigrateConfig.RemoteAddr}}
-                    </div>
+				<div class="home">
+					<div class="ui stackable middle very relaxed page grid">
+						<div id="reop_migrating" class="sixteen wide center aligned centered column" repo="{{.Repo.Repository.FullName}}">
+							<div>
+								<img src="{{AppSubUrl}}/img/loading.png"/>
+							</div>
+						</div>
+					</div>
+					<div class="ui stackable middle very relaxed page grid">
+						<div class="sixteen wide center aligned centered column">
+							<div>
+								<p>{{.i18n.Tr "repo.migrate.migrating" .MigrateConfig.RemoteAddr | Safe}}</p>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

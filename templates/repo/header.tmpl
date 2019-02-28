@@ -16,34 +16,36 @@
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{MirrorAddress $.Mirror}}">{{MirrorAddress $.Mirror}}</a></div>{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
-			<div class="repo-buttons">
-				<div class="ui labeled button" tabindex="0">
-					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
-						<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
-					</a>
-					<a class="ui basic label" href="{{.Link}}/watchers">
-						{{.NumWatches}}
-					</a>
-				</div>
-				<div class="ui labeled button" tabindex="0">
-					<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-						<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
-					</a>
-					<a class="ui basic label" href="{{.Link}}/stars">
-						{{.NumStars}}
-					</a>
-				</div>
-				{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-					<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
-						<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
-							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
+			{{if not .IsCreating}}
+				<div class="repo-buttons">
+					<div class="ui labeled button" tabindex="0">
+						<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
+							<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
 						</a>
-						<a class="ui basic label" href="{{.Link}}/forks">
-							{{.NumForks}}
+						<a class="ui basic label" href="{{.Link}}/watchers">
+							{{.NumWatches}}
 						</a>
 					</div>
-				{{end}}
-			</div>
+					<div class="ui labeled button" tabindex="0">
+						<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
+							<i class="icon star{{if not $.IsStaringRepo}} outline{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
+						</a>
+						<a class="ui basic label" href="{{.Link}}/stars">
+							{{.NumStars}}
+						</a>
+					</div>
+					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
+						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
+							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
+								<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
+							</a>
+							<a class="ui basic label" href="{{.Link}}/forks">
+								{{.NumForks}}
+							</a>
+						</div>
+					{{end}}
+				</div>
+			{{end}}
 		</div><!-- end grid -->
 	</div><!-- end container -->
 {{end}}
