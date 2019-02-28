@@ -56,12 +56,16 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	u := &models.User{
-		Name:      form.Username,
-		FullName:  form.FullName,
-		Email:     form.Email,
-		Passwd:    form.Password,
-		IsActive:  true,
-		LoginType: models.LoginPlain,
+		Name:               form.Username,
+		FullName:           form.FullName,
+		Email:              form.Email,
+		Passwd:             form.Password,
+		MustChangePassword: true,
+		IsActive:           true,
+		LoginType:          models.LoginPlain,
+	}
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
@@ -133,6 +137,10 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			return
 		}
 		u.HashPassword(form.Password)
+	}
+
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	u.LoginName = form.LoginName
