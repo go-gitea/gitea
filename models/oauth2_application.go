@@ -212,9 +212,6 @@ func updateOAuth2Application(e Engine, opts UpdateOAuth2ApplicationOptions) erro
 }
 
 func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
-	if err := sess.Begin(); err != nil {
-		return err
-	}
 	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
 		return err
 	} else if deleted == 0 {
@@ -238,12 +235,19 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	if _, err := sess.Where("application_id = ?", id).Delete(new(OAuth2Grant)); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return nil
 }
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
-	return deleteOAuth2Application(x.NewSession(), id, userid)
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := deleteOAuth2Application(sess, id, userid); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 //////////////////////////////////////////////////////
