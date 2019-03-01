@@ -26,7 +26,7 @@ type Task struct {
 	RepoID         int64       `xorm:"index"`
 	Repo           *Repository `xorm:"-"`
 	Type           structs.TaskType
-	Status         structs.TaskStatus
+	Status         structs.TaskStatus `xorm:"index"`
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
@@ -172,11 +172,6 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 func createTask(e Engine, task *Task) error {
 	_, err := e.Insert(task)
 	return err
-}
-
-// CreateTask creates a task
-func CreateTask(task *Task) error {
-	return createTask(x, task)
 }
 
 // CreateMigrateTask creates a migrate task
