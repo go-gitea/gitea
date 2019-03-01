@@ -213,6 +213,9 @@ func Search(ctx *context.APIContext) {
 
 // CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
+	if opt.AutoInit && opt.Readme == "" {
+		opt.Readme = "Default"
+	}
 	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
@@ -405,6 +408,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err != nil {
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(409, "", "The repository with the same name already exists.")
+			return
+		}
+
 		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
