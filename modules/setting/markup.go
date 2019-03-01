@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// ExternalMarkupParsers represents the external markup parsers
 var (
 	ExternalMarkupParsers []MarkupParser
 )

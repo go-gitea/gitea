@@ -20,8 +20,8 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// Repository settings
 var (
-	// Repository settings
 	Repository = struct {
 		AnsiCharset                             string
 		ForcePrivate                            bool
