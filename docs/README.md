@@ -10,7 +10,7 @@ automatically updated on every push to the `master` branch.
 
 ## Install
 
-These pages use the [Hugo](https://github.com/spf13/hugo) static site generator.
+These pages use the [Hugo](https://gohugo.io/) static site generator.
 If you are planning to contribute you'll want to download and install Hugo on
 your local machine.
 
