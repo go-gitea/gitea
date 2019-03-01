@@ -46,9 +46,9 @@ type Indexer interface {
 }
 
 var (
-	// issueIndexerUpdateQueue queue of issue ids to be updated
-	issueIndexerUpdateQueue Queue
-	issueIndexer            Indexer
+	// issueIndexerQueue queue of issue ids to be updated
+	issueIndexerQueue Queue
+	issueIndexer      Indexer
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
@@ -72,27 +72,36 @@ func InitIssueIndexer(syncReindex bool) error {
 	}
 
 	if dummyQueue {
-		issueIndexerUpdateQueue = &DummyQueue{}
+		issueIndexerQueue = &DummyQueue{}
 		return nil
 	}
 
 	var err error
-	switch setting.Indexer.IssueIndexerQueueType {
+	switch setting.Indexer.IssueQueueType {
 	case setting.LevelQueueType:
-		issueIndexerUpdateQueue, err = NewLevelQueue(
+		issueIndexerQueue, err = NewLevelQueue(
 			issueIndexer,
-			setting.Indexer.IssueIndexerQueueDir,
-			setting.Indexer.IssueIndexerQueueBatchNumber)
+			setting.Indexer.IssueQueueDir,
+			setting.Indexer.IssueQueueBatchNumber)
 		if err != nil {
 			return err
 		}
 	case setting.ChannelQueueType:
-		issueIndexerUpdateQueue = NewChannelQueue(issueIndexer, setting.Indexer.IssueIndexerQueueBatchNumber)
+		issueIndexerQueue = NewChannelQueue(issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+	case setting.RedisQueueType:
+		addrs, pass, idx, err := parseConnStr(setting.Indexer.IssueQueueConnStr)
+		if err != nil {
+			return err
+		}
+		issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+		if err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueIndexerQueueType)
+		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueQueueType)
 	}
 
-	go issueIndexerUpdateQueue.Run()
+	go issueIndexerQueue.Run()
 
 	if populate {
 		if syncReindex {
@@ -152,7 +161,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	issueIndexerUpdateQueue.Push(&IndexerData{
+	issueIndexerQueue.Push(&IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
@@ -174,7 +183,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 		return
 	}
 
-	issueIndexerUpdateQueue.Push(&IndexerData{
+	issueIndexerQueue.Push(&IndexerData{
 		IDs:      ids,
 		IsDelete: true,
 	})

@@ -22,6 +22,7 @@ var (
 type redisClient interface {
 	RPush(key string, args ...interface{}) *redis.IntCmd
 	LPop(key string) *redis.StringCmd
+	Ping() *redis.StatusCmd
 }
 
 // RedisQueue redis queue
@@ -75,6 +76,9 @@ func NewRedisQueue(addrs string, password string, dbIdx int, indexer Indexer, ba
 			Addrs: dbs,
 		})
 	}
+	if err := queue.client.Ping().Err(); err != nil {
+		return nil, err
+	}
 	return &queue, nil
 }
 
@@ -83,8 +87,9 @@ func (r *RedisQueue) Run() error {
 	var datas = make([]*IndexerData, 0, r.batchNumber)
 	for {
 		bs, err := r.client.LPop(r.queueName).Bytes()
-		if err != nil {
-			log.Error(4, "LPop", err)
+		if err != nil && err != redis.Nil {
+			log.Error(4, "LPop faile: %v", err)
+			time.Sleep(time.Millisecond * 100)
 			continue
 		}
 
@@ -120,12 +125,12 @@ func (r *RedisQueue) Run() error {
 					log.Error(4, "indexer.Delete: %v", err)
 				}
 			}
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
 			continue
 		}
 
 		datas = append(datas, &data)
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 	}
 	return nil
 }
@@ -136,5 +141,5 @@ func (r *RedisQueue) Push(data *IndexerData) error {
 	if err != nil {
 		return err
 	}
-	return r.client.RPush(r.queueName, bs, 10*time.Second).Err()
+	return r.client.RPush(r.queueName, bs).Err()
 }
