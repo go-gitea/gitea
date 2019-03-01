@@ -82,6 +82,7 @@ func NewRedisQueue(addrs string, password string, dbIdx int, indexer Indexer, ba
 	return &queue, nil
 }
 
+// Run runs the redis queue
 func (r *RedisQueue) Run() error {
 	var i int
 	var datas = make([]*IndexerData, 0, r.batchNumber)
@@ -132,10 +133,9 @@ func (r *RedisQueue) Run() error {
 		datas = append(datas, &data)
 		time.Sleep(time.Millisecond * 100)
 	}
-	return nil
 }
 
-// Get implements git.LastCommitCache
+// Push implements Queue
 func (r *RedisQueue) Push(data *IndexerData) error {
 	bs, err := json.Marshal(data)
 	if err != nil {
