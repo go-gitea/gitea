@@ -82,6 +82,7 @@ func NewRedisQueue(addrs string, password string, dbIdx int) (*RedisQueue, error
 	return &queue, nil
 }
 
+// Run starts to run the queue
 func (r *RedisQueue) Run() error {
 	for {
 		bs, err := r.client.LPop(r.queueName).Bytes()
@@ -106,7 +107,6 @@ func (r *RedisQueue) Run() error {
 
 		time.Sleep(time.Millisecond * 100)
 	}
-	return nil
 }
 
 // Push implements Queue
