@@ -808,3 +808,8 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[task]
+QUEUE_TYPE = redis
+QUEUE_LENGTH = 1000
+QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"

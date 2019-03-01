@@ -238,15 +238,14 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
             },
             success: resolve
         })
-    }
+    })
 }
 
 function initRepoStatusChecker() {
-    console.log("initRepoStatusChecker")
     var migrating = $("#repo_migrating");
     if (migrating) {
         var repo_name = migrating.attr('repo');
-        if (typeof repo_nane === 'undefined') {
+        if (typeof repo_name === 'undefined') {
             return
         }
         $.ajax({

@@ -32,8 +32,17 @@ func Init() error {
 	switch setting.Task.QueueType {
 	case setting.ChannelQueueType:
 		taskQueue = NewChannelQueue(setting.Task.QueueLength)
+	case setting.RedisQueueType:
+		addrs, pass, idx, err := parseConnStr(setting.Task.QueueConnStr)
+		if err != nil {
+			return err
+		}
+		taskQueue, err = NewRedisQueue(addrs, pass, idx)
+		if err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Task.QueueType)
+		return fmt.Errorf("Unsupported task queue type: %v", setting.Task.QueueType)
 	}
 
 	go taskQueue.Run()
