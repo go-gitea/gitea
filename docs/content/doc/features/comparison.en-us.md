@@ -88,6 +88,7 @@ _Symbols used in table:_
 | Issue search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Global issue search | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
+| Service Desk | ✘ | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
