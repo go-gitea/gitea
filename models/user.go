@@ -25,22 +25,23 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
+	"github.com/nfnt/resize"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ssh"
 )
 
 // UserType defines the user type
@@ -136,8 +137,9 @@ type User struct {
 	Description string
 	NumTeams    int
 	NumMembers  int
-	Teams       []*Team `xorm:"-"`
-	Members     []*User `xorm:"-"`
+	Teams       []*Team             `xorm:"-"`
+	Members     []*User             `xorm:"-"`
+	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -417,7 +419,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 // NewGitSig generates and returns the signature of given user.
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
-		Name:  u.DisplayName(),
+		Name:  u.GitName(),
 		Email: u.getEmail(),
 		When:  time.Now(),
 	}
@@ -526,6 +528,16 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
+// IsUserPartOfOrg returns true if user with userID is part of the u organisation.
+func (u *User) IsUserPartOfOrg(userID int64) bool {
+	isMember, err := IsOrganizationMember(u.ID, userID)
+	if err != nil {
+		log.Error(4, "IsOrganizationMember: %v", err)
+		return false
+	}
+	return isMember
+}
+
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
 	isMember, err := IsPublicMembership(orgID, u.ID)
@@ -630,10 +642,31 @@ func (u *User) GetOrganizations(all bool) error {
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
-	if len(u.FullName) > 0 {
-		return u.FullName
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 {
+		return trimmed
 	}
 	return u.Name
+}
+
+func gitSafeName(name string) string {
+	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
+}
+
+// GitName returns a git safe name
+func (u *User) GitName() string {
+	gitName := gitSafeName(u.FullName)
+	if len(gitName) > 0 {
+		return gitName
+	}
+	// Although u.Name should be safe if created in our system
+	// LDAP users may have bad names
+	gitName = gitSafeName(u.Name)
+	if len(gitName) > 0 {
+		return gitName
+	}
+	// Totally pathological name so it's got to be:
+	return fmt.Sprintf("user-%d", u.ID)
 }
 
 // ShortName ellipses username to length
@@ -689,6 +722,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"ghost",
 		"help",
 		"img",
 		"install",
@@ -697,6 +731,7 @@ var (
 		"less",
 		"metrics",
 		"new",
+		"notifications",
 		"org",
 		"plugins",
 		"pulls",
@@ -793,6 +828,7 @@ func CreateUser(u *User) (err error) {
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
+	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -1319,13 +1355,18 @@ type SearchUserOptions struct {
 	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
-	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
+	Private       bool  // Include private orgs in search
+	OwnerID       int64 // id of user for visibility calculation
+	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
 	SearchByEmail bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"type": opts.Type}
+
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"type": opts.Type})
+
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1337,6 +1378,27 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 
 		cond = cond.And(keywordCond)
+	}
+
+	if !opts.Private {
+		// user not logged in and so they won't be allowed to see non-public orgs
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
+	}
+
+	if opts.OwnerID > 0 {
+		var exprCond builder.Cond
+		if DbCfg.Type == core.MYSQL {
+			exprCond = builder.Expr("org_user.org_id = user.id")
+		} else if DbCfg.Type == core.MSSQL {
+			exprCond = builder.Expr("org_user.org_id = [user].id")
+		} else {
+			exprCond = builder.Expr("org_user.org_id = \"user\".id")
+		}
+		var accessCond = builder.NewCond()
+		accessCond = builder.Or(
+			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+		cond = cond.And(accessCond)
 	}
 
 	if opts.UID > 0 {
@@ -1372,6 +1434,9 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	sess := x.Where(cond)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
@@ -1479,9 +1544,12 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
 	for _, v := range SSHPublicKeys {
-		ldapKey := strings.Join(strings.Split(v, " ")[:2], " ")
-		if !util.ExistsInSlice(ldapKey, ldapKeys) {
-			ldapKeys = append(ldapKeys, ldapKey)
+		sshKeySplit := strings.Split(v, " ")
+		if len(sshKeySplit) > 1 {
+			ldapKey := strings.Join(sshKeySplit[:2], " ")
+			if !util.ExistsInSlice(ldapKey, ldapKeys) {
+				ldapKeys = append(ldapKeys, ldapKey)
+			}
 		}
 	}
 

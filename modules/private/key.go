@@ -32,6 +32,31 @@ func UpdateDeployKeyUpdated(keyID int64, repoID int64) error {
 	return nil
 }
 
+// GetDeployKey check if repo has deploy key
+func GetDeployKey(keyID, repoID int64) (*models.DeployKey, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/keys/%d", repoID, keyID)
+	log.GitLogger.Trace("GetDeployKey: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case 404:
+		return nil, nil
+	case 200:
+		var dKey models.DeployKey
+		if err := json.NewDecoder(resp.Body).Decode(&dKey); err != nil {
+			return nil, err
+		}
+		return &dKey, nil
+	default:
+		return nil, fmt.Errorf("Failed to get deploy key: %s", decodeJSONError(resp).Err)
+	}
+}
+
 // HasDeployKey check if repo has deploy key
 func HasDeployKey(keyID, repoID int64) (bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/has-keys/%d", repoID, keyID)

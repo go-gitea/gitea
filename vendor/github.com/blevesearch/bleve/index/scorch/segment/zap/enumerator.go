@@ -46,26 +46,27 @@ func newEnumerator(itrs []vellum.Iterator) (*enumerator, error) {
 	for i, itr := range rv.itrs {
 		rv.currKs[i], rv.currVs[i] = itr.Current()
 	}
-	rv.updateMatches()
-	if rv.lowK == nil {
+	rv.updateMatches(false)
+	if rv.lowK == nil && len(rv.lowIdxs) == 0 {
 		return rv, vellum.ErrIteratorDone
 	}
 	return rv, nil
 }
 
 // updateMatches maintains the low key matches based on the currKs
-func (m *enumerator) updateMatches() {
+func (m *enumerator) updateMatches(skipEmptyKey bool) {
 	m.lowK = nil
 	m.lowIdxs = m.lowIdxs[:0]
 	m.lowCurr = 0
 
 	for i, key := range m.currKs {
-		if key == nil {
+		if (key == nil && m.currVs[i] == 0) || // in case of empty iterator
+			(len(key) == 0 && skipEmptyKey) { // skip empty keys
 			continue
 		}
 
 		cmp := bytes.Compare(key, m.lowK)
-		if cmp < 0 || m.lowK == nil {
+		if cmp < 0 || len(m.lowIdxs) == 0 {
 			// reached a new low
 			m.lowK = key
 			m.lowIdxs = m.lowIdxs[:0]
@@ -102,9 +103,10 @@ func (m *enumerator) Next() error {
 			}
 			m.currKs[vi], m.currVs[vi] = m.itrs[vi].Current()
 		}
-		m.updateMatches()
+		// can skip any empty keys encountered at this point
+		m.updateMatches(true)
 	}
-	if m.lowK == nil {
+	if m.lowK == nil && len(m.lowIdxs) == 0 {
 		return vellum.ErrIteratorDone
 	}
 	return nil

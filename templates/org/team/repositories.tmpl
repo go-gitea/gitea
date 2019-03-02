@@ -7,8 +7,23 @@
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
-				<div class="ui attached table segment repositories">
-					{{$canAddRemove := and $.IsOrganizationOwner (not (eq $.Team.LowerName "owners"))}}
+				{{$canAddRemove := and $.IsOrganizationOwner (not (eq $.Team.LowerName "owners"))}}
+				{{if $canAddRemove}}
+					<div class="ui attached segment">
+						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
+							{{.CsrfTokenHtml}}
+							<div class="inline field ui left">
+								<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
+									<div class="ui input">
+										<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+									</div>
+								</div>
+							</div>
+							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
+						</form>
+					</div>
+				{{end}}
+				<div class="ui bottom attached table segment repositories">
 					{{range .Team.Repos}}
 						<div class="item">
 							{{if $canAddRemove}}
@@ -25,21 +40,6 @@
 						</div>
 					{{end}}
 				</div>
-				{{if $canAddRemove}}
-					<div class="ui bottom attached segment">
-						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
-							{{.CsrfTokenHtml}}
-							<div class="inline field ui left">
-								<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
-									<div class="ui input">
-										<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
-									</div>
-								</div>
-							</div>
-							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
-						</form>
-					</div>
-				{{end}}
 			</div>
 		</div>
 	</div>

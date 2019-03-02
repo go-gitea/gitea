@@ -33,6 +33,29 @@
 							<input id="location" name="location"  value="{{.Org.Location}}">
 						</div>
 
+						<div class="ui divider"></div>
+						<div class="field" id="visibility_box">
+							<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}/>
+									<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}/>
+									<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}/>
+									<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
+								</div>
+							</div>
+						</div>
+
 						{{if .SignedUser.IsAdmin}}
 						<div class="ui divider"></div>
 

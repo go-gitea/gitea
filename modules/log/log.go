@@ -154,6 +154,48 @@ type LoggerInterface interface {
 
 type loggerType func() LoggerInterface
 
+// LoggerAsWriter is a io.Writer shim around the gitea log
+type LoggerAsWriter struct {
+	level int
+}
+
+// NewLoggerAsWriter creates a Writer representation of the logger with setable log level
+func NewLoggerAsWriter(level string) *LoggerAsWriter {
+	l := &LoggerAsWriter{}
+	switch strings.ToUpper(level) {
+	case "TRACE":
+		l.level = TRACE
+	case "DEBUG":
+		l.level = DEBUG
+	case "INFO":
+		l.level = INFO
+	case "WARN":
+		l.level = WARN
+	case "ERROR":
+		l.level = ERROR
+	case "CRITICAL":
+		l.level = CRITICAL
+	case "FATAL":
+		l.level = FATAL
+	default:
+		l.level = INFO
+	}
+	return l
+}
+
+// Write implements the io.Writer interface to allow spoofing of macaron
+func (l *LoggerAsWriter) Write(p []byte) (int, error) {
+	l.Log(string(p))
+	return len(p), nil
+}
+
+// Log takes a given string and logs it at the set log-level
+func (l *LoggerAsWriter) Log(msg string) {
+	for _, logger := range loggers {
+		logger.writerMsg(0, l.level, msg)
+	}
+}
+
 var adapters = make(map[string]loggerType)
 
 // Register registers given logger provider to adapters.
