@@ -55,7 +55,7 @@ Place the png image at the following path: `custom/public/img/avatar\_default.pn
 ## Customizing Gitea pages
 
 The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the `templates` directory of Gitea source. Override by
+to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source. Override by
 making a copy of the file under `custom/templates` using a full path structure
 matching source.
 
@@ -96,6 +96,42 @@ Google Analytics, Matomo (previously Piwik), and other analytics services can be
 
 Place custom files in corresponding sub-folder under `custom/options`.
 
+**NOTE:** The files should not have a file extension, e.g. `Labels` rather than `Labels.txt`
+
+### gitignores
+
+To add custom .gitignore, add a file with existing [.gitignore rules](https://git-scm.com/docs/gitignore) in it to `custom/options/gitignore`
+
+### Labels
+
+To add a custom label set, add a file that follows the [label format](https://github.com/go-gitea/gitea/blob/master/options/label/Default) to `custom/options/label`  
+`#hex-color label name ; label description`
+
+### Licenses
+
+To add a custom license, add a file with the license text to `custom/options/license`
+
+### Locales
+
+Locales are managed via our [crowdin](https://crowdin.com/project/gitea).  
+You can override a locale by placing an altered locale file in `custom/options/locale`.  
+Gitea's default locale files can be found in  the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.  
+  
+To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
+
+```
+[i18n]
+LANGS = en-US,foo-BAR
+NAMES = English,FooBar
+```
+
+Locales may change between versions, so keeping track of your customized locales is highly encouraged.
+
+### Readmes
+
+To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
 ## Customizing the look of Gitea
 
-As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
+As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
+As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)

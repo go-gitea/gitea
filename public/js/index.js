@@ -216,17 +216,19 @@ function initBranchSelector() {
     });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
-    $.ajax({
-        type: "POST",
-        url: url,
-        data: {
-            "_csrf": csrf,
-            "action": action,
-            "issue_ids": issueIds,
-            "id": elementId
-        },
-        success: afterSuccess
+function updateIssuesMeta(url, action, issueIds, elementId) {
+    return new Promise(function(resolve) {
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                "_csrf": csrf,
+                "action": action,
+                "issue_ids": issueIds,
+                "id": elementId
+            },
+            success: resolve
+        })
     })
 }
 
@@ -348,6 +350,10 @@ function uploadFile(file, callback) {
     xhr.send(formData);
 }
 
+function reload() {
+    window.location.reload();
+}
+
 function initImagePaste(target) {
     target.each(function(i, field) {
         field.addEventListener('paste', function(event){
@@ -385,18 +391,20 @@ function initCommentForm() {
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                var promises = [];
                 for (var elementId in labels) {
                     if (labels.hasOwnProperty(elementId)) {
                         var label = labels[elementId];
-                        updateIssuesMeta(
+                        var promise = updateIssuesMeta(
                             label["update-url"],
                             label["action"],
                             label["issue-id"],
                             elementId
                         );
+                        promises.push(promise);
                     }
                 }
-                location.reload();
+                Promise.all(promises).then(reload);
             }
         });
 
@@ -479,8 +487,7 @@ function initCommentForm() {
                     "clear",
                     $listMenu.data('issue-id'),
                     ""
-                );
-                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                ).then(reload);
             }
 
             $(this).parent().find('.item').each(function () {
@@ -518,9 +525,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
             switch (input_id) {
                 case '#milestone_id':
@@ -545,9 +551,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
 
             $list.find('.selected').html('');
@@ -801,7 +806,7 @@ function initRepository() {
                 function (data) {
                     $editInput.val(data.title);
                     $issueTitle.text(data.title);
-                    location.reload();
+                    reload();
                 });
             return false;
         });
@@ -1786,7 +1791,7 @@ function u2fRegistered(resp) {
         data: JSON.stringify(resp),
         contentType: "application/json; charset=utf-8",
         success: function(){
-            window.location.reload();
+            reload();
         },
         fail: function (xhr, textStatus) {
             u2fError(1);
@@ -2073,9 +2078,7 @@ $(document).ready(function () {
             return this.dataset.issueId;
         }).get().join();
         var url = this.dataset.url
-        updateIssuesMeta(url, action, issueIDs, elementId, function() {
-            location.reload();
-        });
+        updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
     });
 
     buttonsClickOnEnter();
@@ -2912,7 +2915,7 @@ function updateDeadline(deadlineString) {
         contentType: 'application/json',
         type: 'POST',
         success: function () {
-            window.location.reload();
+            reload();
         },
         error: function () {
             $('#deadline-loader').removeClass('loading');
