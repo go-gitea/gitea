@@ -79,6 +79,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 				if err = sess.Begin(); err != nil {
 					return err
 				}
+				count = 0
 			}
 		}
 	}
