@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:0f0ada42a7b1bd64794bf8fea917c2cd626d6b0539173e3704cd764b93eb5312"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "8983773ac6fef49203e7ee8cdbfde3e118bc3421"
 
 [[projects]]
   branch = "master"
