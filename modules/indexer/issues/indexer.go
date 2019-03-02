@@ -54,11 +54,25 @@ var (
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) error {
-	var populate bool
-	var dummyQueue bool
+	var (
+		populate   bool
+		dummyQueue bool
+		err        error
+	)
+
 	switch setting.Indexer.IssueType {
 	case "bleve":
 		issueIndexer = NewBleveIndexer(setting.Indexer.IssuePath)
+		exist, err := issueIndexer.Init()
+		if err != nil {
+			return err
+		}
+		populate = !exist
+	case "elasticsearch":
+		issueIndexer, err = NewElesticSearchIndexer(setting.Indexer.IssueQueueConnStr, "test")
+		if err != nil {
+			return err
+		}
 		exist, err := issueIndexer.Init()
 		if err != nil {
 			return err
@@ -76,7 +90,6 @@ func InitIssueIndexer(syncReindex bool) error {
 		return nil
 	}
 
-	var err error
 	switch setting.Indexer.IssueQueueType {
 	case setting.LevelQueueType:
 		issueIndexerQueue, err = NewLevelQueue(
