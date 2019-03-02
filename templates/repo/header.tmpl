@@ -29,8 +29,8 @@
 					</a>
 				</div>
 				{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-					<div class="ui labeled button" tabindex="0">
-						<a class="ui compact button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled{{else}}basic{{end}} {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
+					<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disable-fork{{end}}" tabindex="0">
+						<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 							<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 						</a>
 						<a class="ui basic label" href="{{.Link}}/forks">

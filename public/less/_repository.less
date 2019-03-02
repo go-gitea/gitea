@@ -1875,3 +1875,18 @@ tbody.commit-list {
     display: flex;
     align-items: center;
 }
+
+.ui.labeled.button.disable-fork a.button {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.ui.labeled.button.disable-fork a.button:hover {
+    background: transparent none!important;
+    color: rgba(0,0,0,.6)!important;
+    box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset;
+}
+
+.ui.labeled.button.disable-fork a.label {
+    opacity: .5;
+}
