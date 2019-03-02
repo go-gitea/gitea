@@ -46,26 +46,26 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 }
 
 // UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) (*models.CommitRepoEvent, error) {
 	if len(opts.Files) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	uploads, err := models.GetUploadsByUUIDs(opts.Files)
 	if err != nil {
-		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
+		return nil, fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := t.Clone(opts.OldBranch); err != nil {
-		return err
+		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {
-		return err
+		return nil, err
 	}
 
 	names := make([]string, len(uploads))
@@ -77,14 +77,14 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	filename2attribute2info, err := t.CheckAttribute("filter", names...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Copy uploaded files into repository.
 	for i, uploadInfo := range infos {
 		file, err := os.Open(uploadInfo.upload.LocalPath())
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer file.Close()
 
@@ -94,29 +94,29 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			// FIXME: Inefficient! this should probably happen in models.Upload
 			oid, err := models.GenerateLFSOid(file)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			fileInfo, err := file.Stat()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: t.repo.ID}
 
 			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.Pointer())); err != nil {
-				return err
+				return nil, err
 			}
 			infos[i] = uploadInfo
 
 		} else {
 			if objectHash, err = t.HashObject(file); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		// Add the object to the index
 		if err := t.AddObjectToIndex("100644", objectHash, path.Join(opts.TreePath, uploadInfo.upload.Name)); err != nil {
-			return err
+			return nil, err
 
 		}
 	}
@@ -124,13 +124,13 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	// Now write the tree
 	treeHash, err := t.WriteTree()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now commit the tree
 	commitHash, err := t.CommitTree(doer, treeHash, opts.Message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now deal with LFS objects
@@ -141,7 +141,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		uploadInfo.lfsMetaObject, err = models.NewLFSMetaObject(uploadInfo.lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
-			return cleanUpAfterFailure(&infos, t, err)
+			return nil, cleanUpAfterFailure(&infos, t, err)
 		}
 		// Don't move the files yet - we need to ensure that
 		// everything can be inserted first
@@ -157,7 +157,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		if !contentStore.Exists(uploadInfo.lfsMetaObject) {
 			file, err := os.Open(uploadInfo.upload.LocalPath())
 			if err != nil {
-				return cleanUpAfterFailure(&infos, t, err)
+				return nil, cleanUpAfterFailure(&infos, t, err)
 			}
 			defer file.Close()
 			// FIXME: Put regenerates the hash and copies the file over.
@@ -165,14 +165,14 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			if err := contentStore.Put(uploadInfo.lfsMetaObject, file); err != nil {
 				// OK Now we need to cleanup
 				// Can't clean up the store, once uploaded there they're there.
-				return cleanUpAfterFailure(&infos, t, err)
+				return nil, cleanUpAfterFailure(&infos, t, err)
 			}
 		}
 	}
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Simulate push event.
@@ -182,9 +182,9 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	if err = repo.GetOwner(); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	evt, err := models.PushUpdate(
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -197,9 +197,9 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
+		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
 	// FIXME: Should we models.UpdateRepoIndexer(repo) here?
 
-	return models.DeleteUploads(uploads...)
+	return evt, models.DeleteUploads(uploads...)
 }

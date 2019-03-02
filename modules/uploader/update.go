@@ -27,28 +27,28 @@ type UpdateRepoFileOptions struct {
 }
 
 // UpdateRepoFile adds or updates a file in the given repository
-func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) error {
+func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*models.CommitRepoEvent, error) {
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := t.Clone(opts.OldBranch); err != nil {
-		return err
+		return nil, err
 	}
 	if err := t.SetDefaultIndex(); err != nil {
-		return err
+		return nil, err
 	}
 
 	filesInIndex, err := t.LsFiles(opts.NewTreeName, opts.OldTreeName)
 	if err != nil {
-		return fmt.Errorf("UpdateRepoFile: %v", err)
+		return nil, fmt.Errorf("UpdateRepoFile: %v", err)
 	}
 
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
 			if file == opts.NewTreeName {
-				return models.ErrRepoFileAlreadyExist{FileName: opts.NewTreeName}
+				return nil, models.ErrRepoFileAlreadyExist{FileName: opts.NewTreeName}
 			}
 		}
 	}
@@ -58,7 +58,7 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 		for _, file := range filesInIndex {
 			if file == opts.OldTreeName {
 				if err := t.RemoveFilesFromIndex(opts.OldTreeName); err != nil {
-					return err
+					return nil, err
 				}
 			}
 		}
@@ -68,7 +68,7 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 	// Check there is no way this can return multiple infos
 	filename2attribute2info, err := t.CheckAttribute("filter", opts.NewTreeName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	content := opts.Content
@@ -78,7 +78,7 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 		// OK so we are supposed to LFS this data!
 		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
 		content = lfsMetaObject.Pointer()
@@ -87,46 +87,46 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 	// Add the object to the database
 	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Add the object to the index
 	if err := t.AddObjectToIndex("100644", objectHash, opts.NewTreeName); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now write the tree
 	treeHash, err := t.WriteTree()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now commit the tree
 	commitHash, err := t.CommitTree(doer, treeHash, opts.Message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
 		lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
 		if !contentStore.Exists(lfsMetaObject) {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
 				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
-					return fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
+					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Simulate push event.
@@ -136,9 +136,9 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 	}
 
 	if err = repo.GetOwner(); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	evt, err := models.PushUpdate(
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -151,9 +151,9 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
+		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
 	models.UpdateRepoIndexer(repo)
 
-	return nil
+	return evt, nil
 }
