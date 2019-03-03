@@ -74,7 +74,7 @@ func (i *connWriter) connect() error {
 	return nil
 }
 
-// ConnLogger implements LoggerInterface.
+// ConnLogger implements LoggerProvider.
 // it writes messages in keep-live tcp connection.
 type ConnLogger struct {
 	BaseLogger
@@ -84,8 +84,8 @@ type ConnLogger struct {
 	Addr           string `json:"addr"`
 }
 
-// NewConn creates new ConnLogger returning as LoggerInterface.
-func NewConn() LoggerInterface {
+// NewConn creates new ConnLogger returning as LoggerProvider.
+func NewConn() LoggerProvider {
 	conn := new(ConnLogger)
 	conn.Level = TRACE
 	return conn
@@ -93,22 +93,27 @@ func NewConn() LoggerInterface {
 
 // Init inits connection writer with json config.
 // json config only need key "level".
-func (cw *ConnLogger) Init(jsonconfig string) error {
-	err := json.Unmarshal([]byte(jsonconfig), cw)
+func (log *ConnLogger) Init(jsonconfig string) error {
+	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return err
 	}
-	cw.createLogger(&connWriter{
-		ReconnectOnMsg: cw.ReconnectOnMsg,
-		Reconnect:      cw.Reconnect,
-		Net:            cw.Net,
-		Addr:           cw.Addr,
-	}, cw.Level)
+	log.createLogger(&connWriter{
+		ReconnectOnMsg: log.ReconnectOnMsg,
+		Reconnect:      log.Reconnect,
+		Net:            log.Net,
+		Addr:           log.Addr,
+	}, log.Level)
 	return nil
 }
 
 // Flush does nothing for this implementation
-func (cw *ConnLogger) Flush() {
+func (log *ConnLogger) Flush() {
+}
+
+// GetName returns the default name for this implementation
+func (log *ConnLogger) GetName() string {
+	return "conn"
 }
 
 func init() {

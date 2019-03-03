@@ -132,11 +132,11 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 			sec, _ = Cfg.NewSection("log." + name + "." + key)
 		}
 
-		var levelName, adapter string
-		adapter, description.Configs[i], levelName = generateLogConfig(sec, name, options)
+		var levelName, provider string
+		provider, description.Configs[i], levelName = generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, bufferLength, name, adapter, description.Configs[i])
-		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), adapter, levelName)
+		log.NewNamedLogger(key, bufferLength, name, provider, description.Configs[i])
+		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
 	}
 	return &description
 }
@@ -144,6 +144,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 func newMacaronLogService() {
 	options := newDefaultLogOptions()
 	options.filename = filepath.Join(LogRootPath, "macaron.log")
+	Cfg.Section("log").Key("MACARON").MustString("file")
 	generateNamedLogger("macaron", options)
 }
 
@@ -151,11 +152,23 @@ func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
+	Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
 		options.flags = -1 // For the router we don't want any prefixed flags
 		generateNamedLogger("access", options)
+	}
+}
+
+func newRouterLogService() {
+	Cfg.Section("log").Key("ROUTER").MustString("console")
+
+	if !DisableRouterLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(LogRootPath, "router.log")
+		options.flags = 3 // For the router we don't want any prefixed flags
+		generateNamedLogger("router", options)
 	}
 }
 
@@ -193,10 +206,10 @@ func newLogService() {
 			sec, _ = Cfg.NewSection("log." + name)
 		}
 
-		var levelName, adapter string
-		adapter, LogDescriptions["default"].Configs[i], levelName = generateLogConfig(sec, name, options)
-		log.NewLogger(bufferLength, name, adapter, LogDescriptions["default"].Configs[i])
-		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(adapter), levelName)
+		var levelName, provider string
+		provider, LogDescriptions["default"].Configs[i], levelName = generateLogConfig(sec, name, options)
+		log.NewLogger(bufferLength, name, provider, LogDescriptions["default"].Configs[i])
+		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
 }
@@ -222,10 +235,10 @@ func NewXORMLogService(disableConsole bool) {
 			sec, _ = Cfg.NewSection("log." + name + ".xorm")
 		}
 
-		adapter, config, levelName := generateLogConfig(sec, name, options)
-		log.NewXORMLogger(bufferLength, name, adapter, config)
+		provider, config, levelName := generateLogConfig(sec, name, options)
+		log.NewXORMLogger(bufferLength, name, provider, config)
 		hasXormLogger = true
-		log.Info("XORM Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(adapter), levelName)
+		log.Info("XORM Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 
 		var lvl core.LogLevel
 		switch levelName {

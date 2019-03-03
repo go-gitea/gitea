@@ -21,10 +21,14 @@ func baseConsoleTest(t *testing.T, logger *Logger) (chan []byte, chan bool) {
 			closed <- close
 		},
 	}
-
-	consoleLogger, ok := logger.outputs.Load("console")
+	m, ok := logger.EventLogger.(*MultiChannelledLog)
 	assert.Equal(t, true, ok)
-	realCL, ok := consoleLogger.(*ConsoleLogger)
+
+	channelledLog := m.GetEventLogger("console")
+	assert.NotEmpty(t, channelledLog)
+	realChanLog, ok := channelledLog.(*ChannelledLog)
+	assert.Equal(t, true, ok)
+	realCL, ok := realChanLog.loggerProvider.(*ConsoleLogger)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, INFO, realCL.Level)
 	realCL.out = c
@@ -54,10 +58,14 @@ func baseConsoleTest(t *testing.T, logger *Logger) (chan []byte, chan bool) {
 
 func TestNewLoggerUnexported(t *testing.T) {
 	level := INFO
-	logger := newLogger(0)
+	logger := newLogger("UNEXPORTED", 0)
 	err := logger.SetLogger("console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 	assert.NoError(t, err)
-	assert.Equal(t, "console", logger.adapter)
+	out := logger.GetLogger("console")
+	assert.NotEmpty(t, out)
+	chanlog, ok := out.EventLogger.(*ChannelledLog)
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "console", chanlog.provider)
 	assert.Equal(t, INFO, logger.GetLevel())
 	baseConsoleTest(t, logger)
 }
@@ -88,7 +96,7 @@ func TestNewLoggger(t *testing.T) {
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
 	assert.Equal(t, false, <-closed)
 
-	go DelLogger("console")
+	DelLogger("console")
 	line = <-written
 	assert.Equal(t, "", string(line))
 	assert.Equal(t, true, <-closed)

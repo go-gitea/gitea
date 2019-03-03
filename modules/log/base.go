@@ -228,3 +228,8 @@ func (b *BaseLogger) Close() {
 		b.out.Close()
 	}
 }
+
+// GetName returns empty for these provider loggers
+func (b *BaseLogger) GetName() string {
+	return ""
+}

@@ -37,39 +37,39 @@ func (n *nopWriteCloser) Close() error {
 	return nil
 }
 
-// ConsoleLogger implements LoggerInterface and writes messages to terminal.
+// ConsoleLogger implements LoggerProvider and writes messages to terminal.
 type ConsoleLogger struct {
 	BaseLogger
 }
 
-// NewConsoleLogger create ConsoleLogger returning as LoggerInterface.
-func NewConsoleLogger() LoggerInterface {
-	cw := &ConsoleLogger{}
-	cw.createLogger(&nopWriteCloser{
+// NewConsoleLogger create ConsoleLogger returning as LoggerProvider.
+func NewConsoleLogger() LoggerProvider {
+	log := &ConsoleLogger{}
+	log.createLogger(&nopWriteCloser{
 		w: os.Stdout,
 	})
-	return cw
+	return log
 }
 
 // Init inits connection writer with json config.
 // json config only need key "level".
-func (cw *ConsoleLogger) Init(config string) error {
-	err := json.Unmarshal([]byte(config), cw)
+func (log *ConsoleLogger) Init(config string) error {
+	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return err
 	}
-	cw.createLogger(cw.out)
+	log.createLogger(log.out)
 	return nil
 }
 
 // LogEvent overrides the base event to add coloring
-func (cw *ConsoleLogger) LogEvent(event *Event) error {
-	if cw.Level > event.level {
+func (log *ConsoleLogger) LogEvent(event *Event) error {
+	if log.Level > event.level {
 		return nil
 	}
-	cw.mu.Lock()
-	defer cw.mu.Unlock()
-	if !cw.Match(event) {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+	if !log.Match(event) {
 		return nil
 	}
 	var buf []byte
@@ -77,16 +77,21 @@ func (cw *ConsoleLogger) LogEvent(event *Event) error {
 		buf = append(buf, pre...)
 		buf = append(buf, colors[event.level]...)
 	}
-	cw.createMsg(&buf, event)
+	log.createMsg(&buf, event)
 	if runtime.GOOS != "windows" {
 		buf = append(buf, reset...)
 	}
-	_, err := cw.out.Write(buf)
+	_, err := log.out.Write(buf)
 	return err
 }
 
 // Flush when log should be flushed
-func (cw *ConsoleLogger) Flush() {
+func (log *ConsoleLogger) Flush() {
+}
+
+// GetName returns the default name for this implementation
+func (log *ConsoleLogger) GetName() string {
+	return "console"
 }
 
 func init() {

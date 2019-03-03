@@ -385,6 +385,7 @@ var (
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
+	RouterLogMode      string
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 
@@ -1230,6 +1231,7 @@ func NewServices() {
 	newLogService()
 	newMacaronLogService()
 	newAccessLogService()
+	newRouterLogService()
 	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()

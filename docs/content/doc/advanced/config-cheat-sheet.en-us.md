@@ -292,16 +292,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
 - `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger.
-- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.macaron.modename\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`.
+- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.macaron.modename\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
+- `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
+- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
-- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.access.modename\]`. By default the file mode will log to `$ROOT_PATH/access.log`.
+- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.access.modename\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
-   - The following variables are available: 
-   - `Ctx`: the `macaron.Context` of the request.
-   - `Identity`: the SignedUserName or `"-"` if not logged in.
-   - `Start`: the start time of the request.
-   - `ResponseWriter`: the responseWriter from the request.
-   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+  - The following variables are available:
+  - `Ctx`: the `macaron.Context` of the request.
+  - `Identity`: the SignedUserName or `"-"` if not logged in.
+  - `Start`: the start time of the request.
+  - `ResponseWriter`: the responseWriter from the request.
+  - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
 
 ### Log subsections (`log.name`, `log.*.name`)
 

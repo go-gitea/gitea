@@ -29,7 +29,7 @@ func (s *smtpWriter) Close() error {
 	return nil
 }
 
-// SMTPLogger implements LoggerInterface and is used to send emails via given SMTP-server.
+// SMTPLogger implements LoggerProvider and is used to send emails via given SMTP-server.
 type SMTPLogger struct {
 	BaseLogger
 	Username           string   `json:"Username"`
@@ -41,7 +41,7 @@ type SMTPLogger struct {
 }
 
 // NewSMTPLogger creates smtp writer.
-func NewSMTPLogger() LoggerInterface {
+func NewSMTPLogger() LoggerProvider {
 	s := &SMTPLogger{}
 	s.Level = TRACE
 	s.sendMailFn = smtp.SendMail
@@ -58,47 +58,52 @@ func NewSMTPLogger() LoggerInterface {
 //		"sendTos":["email1","email2"],
 //		"level":LevelError
 //	}
-func (sw *SMTPLogger) Init(jsonconfig string) error {
-	err := json.Unmarshal([]byte(jsonconfig), sw)
+func (log *SMTPLogger) Init(jsonconfig string) error {
+	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return err
 	}
-	sw.createLogger(&smtpWriter{
-		owner: sw,
+	log.createLogger(&smtpWriter{
+		owner: log,
 	})
-	sw.sendMailFn = smtp.SendMail
+	log.sendMailFn = smtp.SendMail
 	return nil
 }
 
 // WriteMsg writes message in smtp writer.
 // it will send an email with subject and only this message.
-func (sw *SMTPLogger) sendMail(p []byte) (int, error) {
-	hp := strings.Split(sw.Host, ":")
+func (log *SMTPLogger) sendMail(p []byte) (int, error) {
+	hp := strings.Split(log.Host, ":")
 
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
 		"",
-		sw.Username,
-		sw.Password,
+		log.Username,
+		log.Password,
 		hp[0],
 	)
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
 	contentType := "Content-Type: text/plain" + "; charset=UTF-8"
-	mailmsg := []byte("To: " + strings.Join(sw.RecipientAddresses, ";") + "\r\nFrom: " + sw.Username + "<" + sw.Username +
-		">\r\nSubject: " + sw.Subject + "\r\n" + contentType + "\r\n\r\n")
+	mailmsg := []byte("To: " + strings.Join(log.RecipientAddresses, ";") + "\r\nFrom: " + log.Username + "<" + log.Username +
+		">\r\nSubject: " + log.Subject + "\r\n" + contentType + "\r\n\r\n")
 	mailmsg = append(mailmsg, p...)
-	return len(p), sw.sendMailFn(
-		sw.Host,
+	return len(p), log.sendMailFn(
+		log.Host,
 		auth,
-		sw.Username,
-		sw.RecipientAddresses,
+		log.Username,
+		log.RecipientAddresses,
 		mailmsg,
 	)
 }
 
 // Flush when log should be flushed
-func (sw *SMTPLogger) Flush() {
+func (log *SMTPLogger) Flush() {
+}
+
+// GetName returns the default name for this implementation
+func (log *SMTPLogger) GetName() string {
+	return "smtp"
 }
 
 func init() {

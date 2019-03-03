@@ -31,8 +31,8 @@ func DiscardXORMLogger() {
 }
 
 // NewXORMLogger generate logger for xorm FIXME: configable
-func NewXORMLogger(bufferlen int64, name, adapter, config string) error {
-	err := NewNamedLogger("xorm", bufferlen, name, adapter, config)
+func NewXORMLogger(bufferlen int64, name, provider, config string) error {
+	err := NewNamedLogger("xorm", bufferlen, name, provider, config)
 	if err != nil {
 		return err
 	}

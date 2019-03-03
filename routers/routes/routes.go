@@ -68,10 +68,7 @@ type routerLoggerOptions struct {
 }
 
 func setupAccessLogger(m *macaron.Macaron) {
-	logger := log.NamedLoggers["access"]
-	if logger == nil {
-		return
-	}
+	logger := log.GetLogger("access")
 
 	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
 	m.Use(func(ctx *macaron.Context) {
@@ -102,7 +99,7 @@ func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
 	var m *macaron.Macaron
 	if setting.RedirectMacaronLog {
-		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.NamedLoggers["macaron"])
+		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 			log.SetupRouterLogger(m, setting.RouterLogLevel)
