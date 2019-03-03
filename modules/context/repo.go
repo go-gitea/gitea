@@ -204,7 +204,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", ownerName, repo.Name),
+		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
 	ctx.Redirect(redirectPath)
