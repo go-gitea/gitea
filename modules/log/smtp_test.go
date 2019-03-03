@@ -7,6 +7,7 @@ package log
 import (
 	"fmt"
 	"net/smtp"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,7 +50,7 @@ func TestSMTPLogger(t *testing.T) {
 		time:     date,
 	}
 
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 
 	var envToHost string
 	var envFrom string
@@ -73,7 +74,7 @@ func TestSMTPLogger(t *testing.T) {
 	logger.Flush()
 
 	event.level = WARN
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	err = logger.LogEvent(&event)
 	assert.NoError(t, err)
 	assert.Equal(t, host, envToHost)

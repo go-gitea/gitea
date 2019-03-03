@@ -6,7 +6,7 @@ package log
 
 import (
 	"fmt"
-	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,6 +68,7 @@ func TestConsoleLogger(t *testing.T) {
 
 	cw := NewConsoleLogger()
 	realCW := cw.(*ConsoleLogger)
+	realCW.Colorize = false
 	nwc := realCW.out.(*nopWriteCloser)
 	nwc.w = c
 
@@ -92,10 +93,7 @@ func TestConsoleLogger(t *testing.T) {
 		time:     date,
 	}
 
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
-	if runtime.GOOS != "windows" {
-		expected = pre + colors[event.level] + expected + reset
-	}
+	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
@@ -128,10 +126,7 @@ func TestConsoleLogger(t *testing.T) {
 	assert.Equal(t, false, closed)
 
 	event.level = WARN
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
-	if runtime.GOOS != "windows" {
-		expected = pre + colors[event.level] + expected + reset
-	}
+	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)

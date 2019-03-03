@@ -6,9 +6,11 @@ package setting
 
 import (
 	"encoding/json"
+	golog "log"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -76,12 +78,14 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	// Generate log configuration.
 	switch mode {
 	case "console":
+		jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
 		// No-op
 	case "file":
 		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 			panic(err.Error())
 		}
 
+		jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
 		jsonConfig["filename"] = logPath
 		jsonConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		jsonConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
@@ -102,6 +106,8 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		jsonConfig["driver"] = sec.Key("DRIVER").String()
 		jsonConfig["conn"] = sec.Key("CONN").String()
 	}
+
+	jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 
 	byteConfig, err := json.Marshal(jsonConfig)
 	if err != nil {
@@ -212,6 +218,10 @@ func newLogService() {
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
+	// Finally redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 }
 
 // NewXORMLogService initializes xorm logger service

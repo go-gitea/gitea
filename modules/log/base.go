@@ -46,10 +46,10 @@ type BaseLogger struct {
 	out io.WriteCloser
 	mu  sync.Mutex
 
-	Level Level `json:"level"`
-
+	Level      Level  `json:"level"`
 	Flags      int    `json:"flags"`
 	Prefix     string `json:"prefix"`
+	Colorize   bool   `json:"colorize"`
 	Expression string `json:"expression"`
 	regexp     *regexp.Regexp
 }
@@ -105,6 +105,9 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	*buf = append(*buf, b.Prefix...)
 	t := event.time
 	if b.Flags&(Ldate|Ltime|Lmicroseconds) != 0 {
+		if b.Colorize {
+			*buf = append(*buf, fgCyanString...)
+		}
 		if b.Flags&LUTC != 0 {
 			t = t.UTC()
 		}
@@ -130,8 +133,15 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 			}
 			*buf = append(*buf, ' ')
 		}
+		if b.Colorize {
+			*buf = append(*buf, resetString...)
+		}
+
 	}
 	if b.Flags&(Lshortfile|Llongfile) != 0 {
+		if b.Colorize {
+			*buf = append(*buf, fgWhiteString...)
+		}
 		file := event.filename
 		if b.Flags&Lmedfile == Lmedfile {
 			startIndex := len(file) - 20
@@ -150,29 +160,46 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 		if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
 			*buf = append(*buf, ':')
 		} else {
+			if b.Colorize {
+				*buf = append(*buf, resetString...)
+			}
 			*buf = append(*buf, ' ')
 		}
 	}
 	if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
+		if b.Colorize {
+			*buf = append(*buf, fgWhiteString...)
+		}
 		funcname := event.caller
 		if b.Flags&Lshortfuncname != 0 {
 			lastIndex := strings.LastIndexByte(funcname, '.')
-			if lastIndex > 0 {
-				funcname = funcname[lastIndex:]
+			if lastIndex > 0 && len(funcname) > lastIndex+1 {
+				funcname = funcname[lastIndex+1:]
 			}
 		}
 		*buf = append(*buf, funcname...)
+		if b.Colorize {
+			*buf = append(*buf, resetString...)
+		}
 		*buf = append(*buf, ' ')
+
 	}
 	if b.Flags&(Llevel|Llevelinitial) != 0 {
-		level := event.level.String()
+		level := strings.ToUpper(event.level.String())
+		if b.Colorize {
+			*buf = append(*buf, levelToColor[event.level]...)
+		}
 		*buf = append(*buf, '[')
 		if b.Flags&Llevelinitial != 0 {
 			*buf = append(*buf, level[0])
 		} else {
 			*buf = append(*buf, level...)
 		}
-		*buf = append(*buf, "] "...)
+		*buf = append(*buf, ']')
+		if b.Colorize {
+			*buf = append(*buf, resetString...)
+		}
+		*buf = append(*buf, ' ')
 	}
 	// Now we need to prevent log spoofing:
 	if len(event.msg) > 0 && event.msg[len(event.msg)-1] == '\n' {

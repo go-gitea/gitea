@@ -9,21 +9,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"runtime"
 )
-
-var pre = "\033["
-var reset = "\033[0m"
-
-var colors = []string{
-	"1;36m", // Trace      cyan
-	"1;34m", // Debug      blue
-	"1;32m", // Info       green
-	"1;33m", // Warn       yellow
-	"1;31m", // Error      red
-	"1;35m", // Critical   purple
-	"1;31m", // Fatal      red
-}
 
 type nopWriteCloser struct {
 	w io.WriteCloser
@@ -60,29 +46,6 @@ func (log *ConsoleLogger) Init(config string) error {
 	}
 	log.createLogger(log.out)
 	return nil
-}
-
-// LogEvent overrides the base event to add coloring
-func (log *ConsoleLogger) LogEvent(event *Event) error {
-	if log.Level > event.level {
-		return nil
-	}
-	log.mu.Lock()
-	defer log.mu.Unlock()
-	if !log.Match(event) {
-		return nil
-	}
-	var buf []byte
-	if runtime.GOOS != "windows" {
-		buf = append(buf, pre...)
-		buf = append(buf, colors[event.level]...)
-	}
-	log.createMsg(&buf, event)
-	if runtime.GOOS != "windows" {
-		buf = append(buf, reset...)
-	}
-	_, err := log.out.Write(buf)
-	return err
 }
 
 // Flush when log should be flushed

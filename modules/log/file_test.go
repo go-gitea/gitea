@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -72,7 +73,7 @@ func TestFileLogger(t *testing.T) {
 		time:     date,
 	}
 
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 
 	fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\",\"maxsize\":%d}", prefix, level.String(), flags, filename, len(expected)*2))
 
@@ -103,7 +104,7 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	event.level = WARN
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -119,7 +120,7 @@ func TestFileLogger(t *testing.T) {
 
 	logData, err = ioutil.ReadFile(filename)
 	assert.NoError(t, err)
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	assert.Equal(t, expected, string(logData))
 
 	for num := 2; num <= 999; num++ {
@@ -130,7 +131,7 @@ func TestFileLogger(t *testing.T) {
 	err = realFileLogger.DoRotate()
 	assert.Error(t, err)
 
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -138,7 +139,7 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	// Should fail to rotate
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)

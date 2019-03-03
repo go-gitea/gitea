@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -65,7 +66,7 @@ func TestConnLogger(t *testing.T) {
 		line:     1,
 		time:     date,
 	}
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -82,7 +83,7 @@ func TestConnLogger(t *testing.T) {
 	written = written[:0]
 
 	event.level = WARN
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -193,7 +194,7 @@ func TestConnLoggerClose(t *testing.T) {
 		line:     1,
 		time:     date,
 	}
-	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -220,7 +221,7 @@ func TestConnLoggerClose(t *testing.T) {
 	written = written[:0]
 
 	event.level = WARN
-	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, event.level.String()[0], event.msg)
+	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	wg.Add(2)
 	go func() {
 		defer wg.Done()

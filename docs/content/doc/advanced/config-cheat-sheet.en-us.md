@@ -291,10 +291,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
-- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger.
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger or the default logger.
 - `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.macaron.modename\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
 - `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
+NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect.
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.access.modename\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
@@ -307,15 +308,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ### Log subsections (`log.name`, `log.*.name`)
 
-- `LEVEL`: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
-- `MODE`: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
-- `EXPRESSION`: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
-- `FLAGS`: A number representing the log flags. Defaults to `0` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `-1` means don't prefix log lines. See `modules/log/base.go` for more information.
-- `PREFIX`: An additional prefix for every log line in this logger. Defaults to empty.
+- `LEVEL`: **log.LEVEL**: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
+- `MODE`: **name**: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
+- `EXPRESSION`: **""**: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
+- `FLAGS`: **0**: A number representing the log flags. Defaults to `0` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `-1` means don't prefix log lines. See `modules/log/base.go` for more information.
+- `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
+- `COLORIZE`: **false**: Colorize the log lines by default
 
 ### Console log mode (`log.console`, `log.*.console`, or `MODE=console`)
 
-- The console log mode has no special log options just the default options
+- The console log mode has no special log options just the default options. `COLORIZE` will default to `true` if not on windows.
 
 ### File log mode (`log.file`, `log.*.file` or `MODE=file`)
 
@@ -324,6 +326,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
 - `MAX_DAYS`: **7**: Delete the log file after n days
+- NB: `COLORIZE`: will default to `true` if not on windows.
 
 ### Conn log mode (`log.conn`, `log.*.conn` or `MODE=conn`)
 
