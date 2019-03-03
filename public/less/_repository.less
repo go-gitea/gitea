@@ -2,7 +2,6 @@
     @mega-octicon-width: 30px;
 
     padding-top: 15px;
-    padding-bottom: @footer-margin * 2;
 
     .repo-header {
         .ui.compact.menu {
@@ -1584,6 +1583,10 @@
     display: none;
 }
 
+#issue-actions {
+  margin-top: -1rem !important; // counteract padding from Semantic
+}
+
 #issue-actions.hide {
     display: none;
 }
@@ -1594,7 +1597,6 @@
 
 .issue.list {
     list-style: none;
-    padding-top: 15px;
     >.item {
         padding-top: 15px;
         padding-bottom: 10px;

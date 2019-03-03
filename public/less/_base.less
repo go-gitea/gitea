@@ -1,5 +1,3 @@
-@footer-margin: 40px;
-
 @default-fonts: "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif;
 
 .override-fonts(@fonts) {
@@ -51,8 +49,10 @@
 body {
     .override-fonts(@default-fonts);
     background-color: #fff;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
 
 @ja-fonts: "Segoe UI", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", Roboto, Noto, "Noto Sans CJK JP", Arial, Helvetica, sans-serif;
@@ -130,9 +130,8 @@ pre, code {
     hyphens: auto;
 }
 .full.height {
-    padding: 0;
-    margin: 0 0 calc(-@footer-margin - 2px) 0;
-    min-height: 100%;
+    flex-grow: 1;
+    padding-bottom: 80px;
 }
 .following.bar {
     z-index: 900;
@@ -514,11 +513,10 @@ pre, code {
 }
 
 footer {
-    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
-    clear: both;
     width: 100%;
+    flex-basis: 40px;
     color: #888888;
     .container {
         width: 100vw !important;

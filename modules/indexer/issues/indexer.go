@@ -72,6 +72,7 @@ func InitIssueIndexer(syncReindex bool) error {
 	}
 
 	if dummyQueue {
+		issueIndexerUpdateQueue = &DummyQueue{}
 		return nil
 	}
 
