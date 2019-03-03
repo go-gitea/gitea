@@ -151,7 +151,9 @@ func newMacaronLogService() {
 	options := newDefaultLogOptions()
 	options.filename = filepath.Join(LogRootPath, "macaron.log")
 	Cfg.Section("log").Key("MACARON").MustString("file")
-	generateNamedLogger("macaron", options)
+	if RedirectMacaronLog {
+		generateNamedLogger("macaron", options)
+	}
 }
 
 func newAccessLogService() {
@@ -170,7 +172,7 @@ func newAccessLogService() {
 func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
 
-	if !DisableRouterLog {
+	if !DisableRouterLog && RedirectMacaronLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = 3 // For the router we don't want any prefixed flags
