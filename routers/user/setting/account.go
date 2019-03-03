@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -40,9 +41,12 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
+	chkpwd := util.CheckComplexity(&form.Password)
 
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
+	} else if chkpwd.Score < 4 {
+		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
