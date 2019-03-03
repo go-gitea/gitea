@@ -28,8 +28,8 @@ func TestChangePassword(t *testing.T) {
 	}{
 		{
 			OldPassword: oldPassword,
-			NewPassword: "123456",
-			Retype:      "123456",
+			NewPassword: "Qw123456-*",
+			Retype:      "Qw123456-*",
 			Message:     "",
 		},
 		{
@@ -49,6 +49,12 @@ func TestChangePassword(t *testing.T) {
 			NewPassword: "123456",
 			Retype:      "12345",
 			Message:     "form.password_not_match",
+		},
+		{
+			OldPassword: oldPassword,
+			NewPassword: "123456",
+			Retype:      "123456",
+			Message:     "settings.password_complexity",
 		},
 	} {
 		models.PrepareTestEnv(t)

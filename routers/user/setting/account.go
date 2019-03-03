@@ -45,12 +45,12 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
-	} else if chkpwd.Score < 4 {
-		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
+	} else if chkpwd.Score < 4 {
+		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
