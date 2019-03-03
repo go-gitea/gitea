@@ -12,7 +12,7 @@ import (
 
 func changeU2FCounterType(x *xorm.Engine) error {
 	type U2FRegistration struct {
-        Counter     uint32         `xorm:"BIGINT"`
+		Counter uint32 `xorm:"BIGINT"`
 	}
 
 	if err := x.Sync2(new(U2FRegistration)); err != nil {
