@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/go-macaron/csrf"
 	macaron "gopkg.in/macaron.v1"
@@ -32,28 +33,28 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 
 		// Check prohibit login users.
 		if ctx.IsSigned {
-
-			if ctx.User.ProhibitLogin {
+			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(200, "user/auth/activate")
+				return
+			} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(200, "user/auth/prohibit_login")
 				return
 			}
 
-			// prevent infinite redirection
-			// also make sure that the form cannot be accessed by
-			// users who don't need this
-			if ctx.Req.URL.Path == setting.AppSubURL+"/user/settings/change_password" {
-				if !ctx.User.MustChangePassword {
-					ctx.Redirect(setting.AppSubURL + "/")
-				}
-				return
-			}
-
 			if ctx.User.MustChangePassword {
-				ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-				ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-				ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
-				ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
+				if ctx.Req.URL.Path != "/user/settings/change_password" {
+					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+					ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
+					return
+				}
+			} else if ctx.Req.URL.Path == "/user/settings/change_password" {
+				// make sure that the form cannot be accessed by users who don't need this
+				ctx.Redirect(setting.AppSubURL + "/")
 				return
 			}
 		}

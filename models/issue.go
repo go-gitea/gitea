@@ -57,6 +57,10 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+
+	// IsLocked limits commenting abilities to users on an issue
+	// with write access
+	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 var (
@@ -103,7 +107,11 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled() bool {
-	if err := issue.loadRepo(x); err != nil {
+	return issue.isTimetrackerEnabled(x)
+}
+
+func (issue *Issue) isTimetrackerEnabled(e Engine) bool {
+	if err := issue.loadRepo(e); err != nil {
 		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
@@ -175,12 +183,21 @@ func (issue *Issue) LoadPullRequest() error {
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
+	return issue.loadCommentsByType(e, CommentTypeUnknown)
+}
+
+// LoadDiscussComments loads discuss comments
+func (issue *Issue) LoadDiscussComments() error {
+	return issue.loadCommentsByType(x, CommentTypeComment)
+}
+
+func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
 	issue.Comments, err = findComments(e, FindCommentsOptions{
 		IssueID: issue.ID,
-		Type:    CommentTypeUnknown,
+		Type:    tp,
 	})
 	return err
 }
@@ -196,7 +213,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+	if _, err := ReactionList(reactions).loadUsers(e); err != nil {
 		return err
 	}
 
@@ -255,7 +272,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
-	if issue.IsTimetrackerEnabled() {
+	if issue.isTimetrackerEnabled(e) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
@@ -673,7 +690,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
@@ -949,6 +965,25 @@ func (issue *Issue) GetTasksDone() int {
 	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
+// GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
+func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+	if issue.IsClosed {
+		return issue.ClosedUnix
+	}
+	return issue.CreatedUnix
+}
+
+// GetLastEventLabel returns the localization label for the current issue.
+func (issue *Issue) GetLastEventLabel() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by"
+		}
+		return "repo.issues.closed_by"
+	}
+	return "repo.issues.opened_by"
+}
+
 // NewIssueOptions represents the options of a new issue.
 type NewIssueOptions struct {
 	Repo        *Repository
@@ -1108,8 +1143,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	UpdateIssueIndexer(issue.ID)
-
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
@@ -1120,9 +1153,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
-	}
-	if err = issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
@@ -1195,6 +1225,17 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 	return issues, e.In("id", issueIDs).Find(&issues)
 }
 
+func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
+	var ids = make([]int64, 0, 10)
+	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	return ids, err
+}
+
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
+	return getIssueIDsByRepoID(x, repoID)
+}
+
 // GetIssuesByIDs return issues with the given IDs.
 func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 	return getIssuesByIDs(x, issueIDs)
@@ -1211,7 +1252,7 @@ type IssuesOptions struct {
 	PageSize    int
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
-	Labels      string
+	LabelIDs    []int64
 	SortType    string
 	IssueIDs    []int64
 }
@@ -1290,15 +1331,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 		sess.And("issue.is_pull=?", false)
 	}
 
-	if len(opts.Labels) > 0 && opts.Labels != "0" {
-		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-		if err != nil {
-			return err
-		}
-		if len(labelIDs) > 0 {
-			sess.
-				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-				In("issue_label.label_id", labelIDs)
+	if opts.LabelIDs != nil {
+		for i, labelID := range opts.LabelIDs {
+			sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
 	return nil
@@ -1402,7 +1438,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		}
 
 		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := GetOrgUsersByOrgID(user.ID)
+		orgUsers, err := getOrgUsersByOrgID(e, user.ID)
 		if err != nil {
 			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
 		}
@@ -1476,9 +1512,11 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
-			} else if len(labelIDs) > 0 {
-				sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-					In("issue_label.label_id", labelIDs)
+			} else {
+				for i, labelID := range labelIDs {
+					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				}
 			}
 		}
 
@@ -1646,12 +1684,45 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	return openResult, closedResult
 }
 
+// SearchIssueIDsByKeyword search issues on database
+func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.Eq{"repo_id": repoID}
+	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	var cond = builder.And(
+		repoCond,
+		builder.Or(
+			builder.Like{"name", kw},
+			builder.Like{"content", kw},
+			builder.In("id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					builder.Like{"content", kw},
+				)),
+			),
+		),
+	)
+
+	var ids = make([]int64, 0, limit)
+	err := x.Distinct("id").Table("issue").Where(cond).Limit(limit, start).Find(&ids)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, ids, nil
+}
+
 func updateIssue(e Engine, issue *Issue) error {
 	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 

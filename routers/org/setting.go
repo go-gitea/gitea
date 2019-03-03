@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -29,6 +31,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = structs.VisibleType(ctx.Org.Organization.Visibility)
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -79,6 +82,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
+	org.Visibility = form.Visibility
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

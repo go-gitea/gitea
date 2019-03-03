@@ -39,7 +39,7 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
-	if ctx.Repo.Repository.IsBare {
+	if ctx.Repo.Repository.IsEmpty {
 		ctx.Status(404)
 		return
 	}

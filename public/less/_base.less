@@ -1,16 +1,19 @@
-@footer-margin: 40px;
-
 body {
     font-family: "Lato", "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
     background-color: #fff;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
 img {
     border-radius: 3px;
 }
 table {
     border-collapse: collapse;
+}
+a {
+    cursor: pointer;
 }
 .rounded {
     border-radius: .28571429rem !important;
@@ -50,15 +53,11 @@ pre, code {
     word-break: break-all;
 
     /* Adds a hyphen where the word breaks, if supported (No Blink) */
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
 .full.height {
-    padding: 0;
-    margin: 0 0 -@footer-margin 0;
-    min-height: 100%;
+    flex-grow: 1;
+    padding-bottom: 80px;
 }
 .following.bar {
     z-index: 900;
@@ -106,6 +105,13 @@ pre, code {
         width: 16px;
         text-align: center;
     }
+    #navbar {
+        width: 100vw;
+        padding: 0 .5rem;
+    }
+    #navbar .brand {
+        margin: 0;
+    }
     @media only screen and (max-width: 767px) {
         #navbar:not(.shown) > *:not(:first-child) {
             display: none;
@@ -119,10 +125,7 @@ pre, code {
     // no, stackable won't work on right menus.
     margin-left: auto;
     display: flex;
-    display: -ms-flexbox;
-    -ms-flex-align: inherit;
     align-items: inherit;
-    -ms-flex-direction: inherit;
     flex-direction: inherit;
 }
 
@@ -135,9 +138,6 @@ pre, code {
     }
 
     &.button, &.menu .item {
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        -webkit-user-select: auto;
         user-select: auto;
     }
 
@@ -273,6 +273,18 @@ pre, code {
 
     .message {
         text-align: center;
+    }
+
+    &.bottom.attached.message {
+        font-weight: bold;
+        text-align: left;
+        color: black;
+        .pull-right {
+            color: black;
+        }
+        &>span, .pull-right>span{
+            color:#21ba45;
+        }
     }
 
     .header > i + .content {
@@ -427,14 +439,14 @@ pre, code {
 }
 
 footer {
-    height: @footer-margin;
     background-color: white;
     border-top: 1px solid #d6d6d6;
-    clear: both;
     width: 100%;
+    flex-basis: 40px;
     color: #888888;
     .container {
-        padding-top: 10px;
+        width: 100vw !important;
+        padding: 0 .5rem;
         .fa {
             width: 16px;
             text-align: center;
@@ -454,6 +466,12 @@ footer {
         max-height: 500px;
         overflow-y: auto;
         margin-bottom: 7px;
+    }
+
+    .ui {
+        &.left, &.right {
+            line-height: 40px;
+        }
     }
 }
 
@@ -589,10 +607,9 @@ footer {
     margin-bottom: 2px !important;
 }
 
-#user-heatmap{
+#user-heatmap {
     width: 107%; // Fixes newest contributions not showing
     text-align: center;
-    margin: 40px 0 30px;
 
     svg:not(:root) {
         overflow: inherit;
@@ -628,4 +645,12 @@ footer {
 
 .heatmap-color-5 {
     background-color: #2f6b1b;
+}
+
+.archived-icon{
+    color: lighten(#000, 70%) !important;
+}
+
+.archived-icon{
+    color: lighten(#000, 70%) !important;
 }

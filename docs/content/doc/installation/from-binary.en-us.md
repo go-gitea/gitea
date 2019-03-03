@@ -17,11 +17,11 @@ menu:
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
 embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea), copy
+the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.5.0/gitea-1.5.0-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.7.0/gitea-1.7.0-linux-amd64
 chmod +x gitea
 ```
 
@@ -30,7 +30,7 @@ Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vind
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
-gpg --verify gitea-1.5.0-linux-amd64.asc gitea-1.5.0-linux-amd64
+gpg --verify gitea-1.7.0-linux-amd64.asc gitea-1.7.0-linux-amd64
 ```
 
 ## Test
@@ -43,6 +43,9 @@ location. When launched manually, Gitea can be killed using `Ctrl+C`.
 ```
 
 ## Recommended server configuration
+
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!  
+Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
 
@@ -66,9 +69,9 @@ adduser \
 ### Create required directory structure
 
 ```sh
-mkdir -p /var/lib/gitea/{custom,data,indexers,public,log}
-chown git:git /var/lib/gitea/{data,indexers,log}
-chmod 750 /var/lib/gitea/{data,indexers,log}
+mkdir -p /var/lib/gitea/{custom,data,log}
+chown -R git:git /var/lib/gitea/
+chmod -R 750 /var/lib/gitea/
 mkdir /etc/gitea
 chown root:git /etc/gitea
 chmod 770 /etc/gitea
@@ -80,15 +83,32 @@ chmod 750 /etc/gitea
 chmod 644 /etc/gitea/app.ini
 ```
 
+### Configure Gitea's working directory
+
+**NOTE:** If you plan on running Gitea as a Linux service, you can skip this step as the service file allows you to set `WorkingDirectory`. Otherwise, consider setting this environment variable (semi-)permanently so that Gitea consistently uses the correct working directory.
+```
+export GITEA_WORK_DIR=/var/lib/gitea/
+```
+
 ### Copy gitea binary to global location
 
 ```
 cp gitea /usr/local/bin/gitea
 ```
 
-### Create service file to start gitea automatically
+## Running Gitea
+
+After the above steps, two options to run Gitea are:
+
+### 1. Creating a service file to start Gitea automatically (recommended)
 
 See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
+
+### 2. Running from command-line/terminal
+
+```
+GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
+```
 
 ## Updating to a new version
 
