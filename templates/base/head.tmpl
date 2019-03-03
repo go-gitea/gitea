@@ -6,7 +6,7 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json">
-	
+
 	<script>
 		if ('serviceWorker' in navigator) {
   			window.addEventListener('load', function() {
@@ -123,6 +123,7 @@
 {{end}}
 	<style class="list-search-style"></style>
 
+	<script src="{{AppSubUrl}}/vendor/plugins/promise-polyfill/polyfill.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}
@@ -147,7 +148,11 @@
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
-{{if ne DefaultTheme "gitea"}}
+{{if .IsSigned }}
+	{{ if ne .SignedUser.Theme "gitea" }}
+		<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css">
+	{{end}}
+{{else if ne DefaultTheme "gitea"}}
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css">
 {{end}}
 {{template "custom/header" .}}

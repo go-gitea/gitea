@@ -51,6 +51,11 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
+	if err := issue.LoadAttributes(); err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
+
 	apiLabels := make([]*api.Label, len(issue.Labels))
 	for i := range issue.Labels {
 		apiLabels[i] = issue.Labels[i].APIFormat()

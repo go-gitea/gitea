@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -63,7 +64,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if forkRepo.IsBare || !perm.CanRead(models.UnitTypeCode) {
+	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -344,6 +345,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
 	}
 
+	if pull.IsFilesConflicted() {
+		ctx.Data["IsPullFilesConflicted"] = true
+		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -589,10 +595,26 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
+	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		return
+	}
+
 	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+}
+
+func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+
+	if models.StopwatchExists(user.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing pull request
@@ -670,8 +692,10 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if isSameRepo {
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
+		ctx.Data["BaseName"] = headUser.Name
 	} else {
 		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		ctx.Data["BaseName"] = baseRepo.OwnerName
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -683,8 +707,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
-		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
+	if !perm.CanReadIssuesOrPulls(true) {
+		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -722,8 +746,9 @@ func PrepareCompareDiff(
 	baseBranch, headBranch string) bool {
 
 	var (
-		repo = ctx.Repo.Repository
-		err  error
+		repo  = ctx.Repo.Repository
+		err   error
+		title string
 	)
 
 	// Get diff information.
@@ -762,6 +787,20 @@ func PrepareCompareDiff(
 	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+
+	if prInfo.Commits.Len() == 1 {
+		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+		title = strings.TrimSpace(c.UserCommit.Summary())
+
+		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		if len(body) > 1 {
+			ctx.Data["content"] = strings.Join(body[1:], "\n")
+		}
+	} else {
+		title = headBranch
+	}
+
+	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
@@ -857,6 +896,16 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		}
 
 		ctx.HTML(200, tplComparePull)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
+		if ctx.Written() {
+			return
+		}
+
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplComparePull, form)
 		return
 	}
 

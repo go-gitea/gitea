@@ -497,12 +497,15 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
+	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := models.GetUserRepoPermission(repository, ctx.User)
 	if err != nil {
 		return false
 	}
-	if ctx.IsSigned {
-		return perm.CanAccess(accessMode, models.UnitTypeCode)
+
+	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	if canRead {
+		return true
 	}
 
 	user, repo, opStr, err := parseToken(authorization)
@@ -582,7 +585,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		if err != nil {
 			return nil, nil, "basic", err
 		}
-		if !u.ValidatePassword(password) {
+		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
 			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
 		}
 		return u, nil, "basic", nil

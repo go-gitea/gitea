@@ -17,7 +17,7 @@ menu:
 
 ## Enabling/configuring API access
 
-By default, `ENABLE_SWAGGER_ENDPOINT` is true, and
+By default, `ENABLE_SWAGGER` is true, and
 `MAX_RESPONSE_ITEMS` is set to 50.  See [Config Cheat
 Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) for more
 information.

@@ -67,6 +67,68 @@ func TestMisc_IsSameDomain(t *testing.T) {
 	assert.False(t, IsSameDomain("favicon.ico"))
 }
 
+func TestRender_links(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	// Text that should be turned into URL
+
+	test(
+		"https://www.example.com",
+		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
+	test(
+		"http://www.example.com",
+		`<p><a href="http://www.example.com" rel="nofollow">http://www.example.com</a></p>`)
+	test(
+		"https://example.com",
+		`<p><a href="https://example.com" rel="nofollow">https://example.com</a></p>`)
+	test(
+		"http://example.com",
+		`<p><a href="http://example.com" rel="nofollow">http://example.com</a></p>`)
+	test(
+		"http://foo.com/blah_blah",
+		`<p><a href="http://foo.com/blah_blah" rel="nofollow">http://foo.com/blah_blah</a></p>`)
+	test(
+		"http://foo.com/blah_blah/",
+		`<p><a href="http://foo.com/blah_blah/" rel="nofollow">http://foo.com/blah_blah/</a></p>`)
+	test(
+		"http://www.example.com/wpstyle/?p=364",
+		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
+	test(
+		"https://www.example.com/foo/?bar=baz&inga=42&quux",
+		`<p><a href="https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
+	test(
+		"http://142.42.1.1/",
+		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
+
+	// Test that should *not* be turned into URL
+	test(
+		"www.example.com",
+		`<p>www.example.com</p>`)
+	test(
+		"example.com",
+		`<p>example.com</p>`)
+	test(
+		"test.example.com",
+		`<p>test.example.com</p>`)
+	test(
+		"http://",
+		`<p>http://</p>`)
+	test(
+		"https://",
+		`<p>https://</p>`)
+	test(
+		"://",
+		`<p>://</p>`)
+	test(
+		"www",
+		`<p>www</p>`)
+}
+
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
