@@ -194,7 +194,7 @@ func main() {
 	}
 
 	branch := fmt.Sprintf("pr-%s-%d", pr, time.Now().Unix())
-	log.Printf("Checkout PR #%s in %s\n", pr, branch)
+	log.Printf("Fetch PR #%s in %s\n", pr, branch)
 
 	ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branch)
 	err = repo.Fetch(&git.FetchOptions{
@@ -211,12 +211,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to parse git tree : %v", err)
 	}
+	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	err = tree.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.ReferenceName(branch),
 	})
 	if err != nil {
 		log.Fatalf("Failed to checkout %s : %v", branch, err)
 	}
+
+	os.Exit(0)
+	//Temporary stop here
 
 	//Copy this file if not exist
 	if _, err := os.Stat(codeFilePath); os.IsNotExist(err) {
