@@ -15,8 +15,24 @@ func changeU2FCounterType(x *xorm.Engine) error {
 		Counter uint32 `xorm:"BIGINT"`
 	}
 
-	if err := x.Sync2(new(U2FRegistration)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	var err error
+
+	dialect := x.Dialect().DriverName()
+
+	switch dialect {
+	case "mysql":
+		_, err = x.Exec("ALTER TABLE u2f_registration MODIFY `counter` BIGINT")
+	case "postgres":
+		_, err = x.Exec("ALTER TABLE u2f_registration ALTER COLUMN \"counter\" SET DATA TYPE bigint")
+	case "tidb":
+		_, err = x.Exec("ALTER TABLE u2f_registration MODIFY `counter` BIGINT")
+	case "mssql":
+		_, err = x.Exec("ALTER TABLE u2f_registration ALTER COLUMN \"counter\" BIGINT")
+	case "sqlite3":
+	}
+
+	if err != nil {
+		return fmt.Errorf("Error changing u2f_registration counter column type: %v", err)
 	}
 
 	return nil
