@@ -22,7 +22,7 @@ import (
 
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
-	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
+	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
 	Visibility structs.VisibleType
 }
 
@@ -33,7 +33,7 @@ func (f *CreateOrgForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 
 // UpdateOrgSettingForm form for updating organization settings
 type UpdateOrgSettingForm struct {
-	Name            string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
+	Name            string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
 	FullName        string `binding:"MaxSize(100)"`
 	Description     string `binding:"MaxSize(255)"`
 	Website         string `binding:"ValidUrl;MaxSize(255)"`

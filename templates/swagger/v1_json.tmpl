@@ -6924,6 +6924,10 @@
           "type": "string",
           "x-go-name": "LoginName"
         },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
+        },
         "password": {
           "type": "string",
           "x-go-name": "Password"
@@ -7341,6 +7345,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxRepoCreation"
+        },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
         },
         "password": {
           "type": "string",
@@ -8631,6 +8639,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_admin": {
+          "description": "Is the user an administrator",
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
         },
         "language": {
           "description": "User locale",
