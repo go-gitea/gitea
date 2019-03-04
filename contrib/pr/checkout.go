@@ -196,7 +196,6 @@ func main() {
 
 	branch := fmt.Sprintf("pr-%s-%d", pr, time.Now().Unix())
 	branchRef := plumbing.NewBranchReferenceName(branch)
-	log.Println("DEBUG", branchRef)
 
 	log.Printf("Fetching PR #%s in %s\n", pr, branch)
 	ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
@@ -205,21 +204,10 @@ func main() {
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(ref),
 		},
-		//Force: true,
 	})
 	if err != nil {
 		log.Fatalf("Failed to fetch %s from %s : %v", ref, remoteUpstream, err)
 	}
-
-	/*
-		brs, err := repo.Branches()
-		log.Println("DEBUG", brs, err)
-		err = brs.ForEach(func(ref *plumbing.Reference) error {
-			log.Println("DEBUG", ref)
-			return nil
-		})
-		log.Println("DEBUG", err)
-	*/
 
 	tree, err := repo.Worktree()
 	if err != nil {
@@ -233,8 +221,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to checkout %s : %v", branch, err)
 	}
-
-	//os.Exit(0) //Temporary end point
 
 	//Copy this file if not exist
 	if _, err := os.Stat(codeFilePath); os.IsNotExist(err) {
