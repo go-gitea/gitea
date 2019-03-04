@@ -17,6 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/routers"
@@ -227,6 +228,7 @@ func main() {
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	err = tree.Checkout(&git.CheckoutOptions{
 		Branch: branchRef,
+		Force: runtime.GOOS == "windows",
 	})
 	if err != nil {
 		log.Fatalf("Failed to checkout %s : %v", branch, err)
