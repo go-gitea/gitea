@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIndexAndSearch(t *testing.T) {
+func TestBleveIndexAndSearch(t *testing.T) {
 	dir := "./bleve.index"
 	indexer := NewBleveIndexer(dir)
 	defer os.RemoveAll(dir)
