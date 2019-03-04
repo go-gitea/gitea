@@ -168,7 +168,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
-
+	PasswordComplexity    string
 	// Database settings
 	UseSQLite3       bool
 	UseMySQL         bool
@@ -962,6 +962,7 @@ func NewContext() {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
+
 		InternalToken, err = generate.NewInternalToken()
 		if err != nil {
 			log.Fatal(4, "Error generate internal token: %v", err)
@@ -984,6 +985,11 @@ func NewContext() {
 		if err := cfgSave.SaveTo(CustomConf); err != nil {
 			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 		}
+	}
+
+	PasswordComplexity = sec.Key("PASSWORD_COMPLEXITY").MustString("[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+")
+	if len(PasswordComplexity) == 0 {
+		PasswordComplexity = "[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+"
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
