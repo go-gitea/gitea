@@ -11,24 +11,17 @@ import (
 )
 
 func changeU2FCounterType(x *xorm.Engine) error {
-	type U2FRegistration struct {
-		Counter uint32 `xorm:"BIGINT"`
-	}
-
 	var err error
 
-	dialect := x.Dialect().DriverName()
-
-	switch dialect {
-	case "mysql":
-		_, err = x.Exec("ALTER TABLE u2f_registration MODIFY `counter` BIGINT")
-	case "postgres":
-		_, err = x.Exec("ALTER TABLE u2f_registration ALTER COLUMN \"counter\" SET DATA TYPE bigint")
+	switch x.Dialect().DriverName() {
 	case "tidb":
-		_, err = x.Exec("ALTER TABLE u2f_registration MODIFY `counter` BIGINT")
+		fallthrough
+	case "mysql":
+		_, err = x.Exec("ALTER TABLE `u2f_registration` MODIFY `counter` BIGINT")
+	case "postgres":
+		_, err = x.Exec("ALTER TABLE `u2f_registration` ALTER COLUMN `counter` SET DATA TYPE bigint")
 	case "mssql":
-		_, err = x.Exec("ALTER TABLE u2f_registration ALTER COLUMN \"counter\" BIGINT")
-	case "sqlite3":
+		_, err = x.Exec("ALTER TABLE `u2f_registration` ALTER COLUMN `counter` BIGINT")
 	}
 
 	if err != nil {
