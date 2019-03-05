@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,13 @@ import (
 	"time"
 
 	"github.com/go-xorm/core"
+)
+
+type sessionType int
+
+const (
+	engineSession sessionType = iota
+	groupSession
 )
 
 // Session keep a pointer to sql.DB and provides all execution of all
@@ -51,7 +59,8 @@ type Session struct {
 	lastSQL     string
 	lastSQLArgs []interface{}
 
-	err error
+	ctx         context.Context
+	sessionType sessionType
 }
 
 // Clone copy all the session's content and return a new session
@@ -82,6 +91,8 @@ func (session *Session) Init() {
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
+
+	session.ctx = session.engine.defaultContext
 }
 
 // Close release the connection from pool
@@ -275,7 +286,7 @@ func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, 
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = db.Prepare(sqlStr)
+		stmt, err = db.PrepareContext(session.ctx, sqlStr)
 		if err != nil {
 			return nil, err
 		}

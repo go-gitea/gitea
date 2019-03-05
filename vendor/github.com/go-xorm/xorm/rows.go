@@ -14,11 +14,8 @@ import (
 
 // Rows rows wrapper a rows to
 type Rows struct {
-	NoTypeCheck bool
-
 	session   *Session
 	rows      *core.Rows
-	fields    []string
 	beanType  reflect.Type
 	lastError error
 }
@@ -57,13 +54,6 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		return nil, err
 	}
 
-	rows.fields, err = rows.rows.Columns()
-	if err != nil {
-		rows.lastError = err
-		rows.Close()
-		return nil, err
-	}
-
 	return rows, nil
 }
 
@@ -90,7 +80,7 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return rows.lastError
 	}
 
-	if !rows.NoTypeCheck && reflect.Indirect(reflect.ValueOf(bean)).Type() != rows.beanType {
+	if reflect.Indirect(reflect.ValueOf(bean)).Type() != rows.beanType {
 		return fmt.Errorf("scan arg is incompatible type to [%v]", rows.beanType)
 	}
 
@@ -98,13 +88,18 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return err
 	}
 
-	scanResults, err := rows.session.row2Slice(rows.rows, rows.fields, bean)
+	fields, err := rows.rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	scanResults, err := rows.session.row2Slice(rows.rows, fields, bean)
 	if err != nil {
 		return err
 	}
 
 	dataStruct := rValue(bean)
-	_, err = rows.session.slice2Bean(scanResults, rows.fields, bean, &dataStruct, rows.session.statement.RefTable)
+	_, err = rows.session.slice2Bean(scanResults, fields, bean, &dataStruct, rows.session.statement.RefTable)
 	if err != nil {
 		return err
 	}

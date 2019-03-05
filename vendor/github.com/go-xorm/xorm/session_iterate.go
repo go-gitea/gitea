@@ -23,6 +23,10 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 		defer session.Close()
 	}
 
+	if session.statement.lastError != nil {
+		return session.statement.lastError
+	}
+
 	if session.statement.bufferSize > 0 {
 		return session.bufferIterate(bean, fun)
 	}

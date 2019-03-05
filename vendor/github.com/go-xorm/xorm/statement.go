@@ -60,6 +60,7 @@ type Statement struct {
 	cond            builder.Cond
 	bufferSize      int
 	context         ContextCache
+	lastError       error
 }
 
 // Init reset all the statement's fields
@@ -101,6 +102,7 @@ func (statement *Statement) Init() {
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
 	statement.context = nil
+	statement.lastError = nil
 }
 
 // NoAutoCondition if you do not want convert bean's field as query condition, then use this function
@@ -125,13 +127,13 @@ func (statement *Statement) SQL(query interface{}, args ...interface{}) *Stateme
 		var err error
 		statement.RawSQL, statement.RawParams, err = query.(*builder.Builder).ToSQL()
 		if err != nil {
-			statement.Engine.logger.Error(err)
+			statement.lastError = err
 		}
 	case string:
 		statement.RawSQL = query.(string)
 		statement.RawParams = args
 	default:
-		statement.Engine.logger.Error("unsupported sql type")
+		statement.lastError = ErrUnSupportedSQLType
 	}
 
 	return statement
@@ -160,7 +162,7 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 			}
 		}
 	default:
-		// TODO: not support condition type
+		statement.lastError = ErrConditionType
 	}
 
 	return statement
@@ -755,9 +757,32 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		fmt.Fprintf(&buf, "%v JOIN ", joinOP)
 	}
 
-	tbName := statement.Engine.TableName(tablename, true)
+	switch tp := tablename.(type) {
+	case builder.Builder:
+		subSQL, subQueryArgs, err := tp.ToSQL()
+		if err != nil {
+			statement.lastError = err
+			return statement
+		}
+		tbs := strings.Split(tp.TableName(), ".")
+		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
+		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
+	case *builder.Builder:
+		subSQL, subQueryArgs, err := tp.ToSQL()
+		if err != nil {
+			statement.lastError = err
+			return statement
+		}
+		tbs := strings.Split(tp.TableName(), ".")
+		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
+		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
+	default:
+		tbName := statement.Engine.TableName(tablename, true)
+		fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
+	}
 
-	fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
 	statement.JoinStr = buf.String()
 	statement.joinArgs = append(statement.joinArgs, args...)
 	return statement
@@ -1064,7 +1089,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 
 	if dialect.DBType() == core.MSSQL {
 		if statement.LimitN > 0 {
-			top = fmt.Sprintf(" TOP %d ", statement.LimitN)
+			top = fmt.Sprintf("TOP %d ", statement.LimitN)
 		}
 		if statement.Start > 0 {
 			var column string

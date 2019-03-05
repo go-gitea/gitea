@@ -74,6 +74,13 @@ func (eg *EngineGroup) Close() error {
 	return nil
 }
 
+// NewSession returned a group session
+func (eg *EngineGroup) NewSession() *Session {
+	sess := eg.Engine.NewSession()
+	sess.sessionType = groupSession
+	return sess
+}
+
 // Master returns the master engine
 func (eg *EngineGroup) Master() *Engine {
 	return eg.Engine

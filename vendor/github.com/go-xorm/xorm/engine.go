@@ -7,6 +7,7 @@ package xorm
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"errors"
@@ -52,6 +53,8 @@ type Engine struct {
 
 	cachers    map[string]core.Cacher
 	cacherLock sync.RWMutex
+
+	defaultContext context.Context
 }
 
 func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {

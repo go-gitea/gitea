@@ -147,6 +147,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		defer session.Close()
 	}
 
+	if session.statement.lastError != nil {
+		return 0, session.statement.lastError
+	}
+
 	v := rValue(bean)
 	t := v.Type()
 
