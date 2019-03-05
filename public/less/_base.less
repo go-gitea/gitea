@@ -396,33 +396,12 @@ pre, code {
 
 }
 
-.overflow.menu {
-    .items {
-        max-height: 300px;
-        overflow-y: auto;
-        .item {
-            position: relative;
-            cursor: pointer;
-            display: block;
-            border: none;
-            height: auto;
-            border-top: none;
-            line-height: 1em;
-            color: rgba(0,0,0,.8);
-            padding: .71428571em 1.14285714em !important;
-            font-size: 1rem;
-            text-transform: none;
-            font-weight: 400;
-            box-shadow: none;
-            -webkit-touch-callout: none;
-            &.active {
-                font-weight: 700;
-            }
-            &:hover {
-                background: rgba(0,0,0,.05);
-                color: rgba(0,0,0,.8);
-                z-index: 13;
-            }
+.ui.floating.dropdown {
+    .overflow.menu {
+        .scrolling.menu.items {
+            border-radius: 0px !important;
+            box-shadow: none !important;
+            border-bottom: 1px solid rgba(34, 36, 38, 0.15);
         }
     }
 }
