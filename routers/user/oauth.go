@@ -22,6 +22,7 @@ import (
 
 const (
 	tplGrantAccess base.TplName = "user/auth/grant"
+	tplGrantError  base.TplName = "user/auth/grant_error"
 )
 
 // TODO move error and responses to SDK or models
@@ -182,7 +183,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	if !app.ContainsRedirectURI(form.RedirectURI) {
 		handleAuthorizeError(ctx, AuthorizeError{
 			ErrorCode:        ErrorCodeInvalidRequest,
-			ErrorDescription: "Unregistered redirect uri.",
+			ErrorDescription: "Unregistered Redirect URI",
 			State:            form.State,
 		}, "")
 		return
@@ -432,8 +433,9 @@ func handleServerError(ctx *context.Context, state string, redirectURI string) {
 
 func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirectURI string) {
 	if redirectURI == "" {
-		println(authErr.ErrorDescription)
-		ctx.ServerError(authErr.ErrorDescription, authErr)
+		log.Warn("Authorization failed: %v", authErr.ErrorDescription)
+		ctx.Data["Error"] = authErr
+		ctx.HTML(400, tplGrantError)
 		return
 	}
 	redirect, err := url.Parse(redirectURI)
