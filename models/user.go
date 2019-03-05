@@ -739,6 +739,7 @@ var (
 		"template",
 		"user",
 		"vendor",
+		"login",
 		".",
 		"..",
 	}
