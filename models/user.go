@@ -211,6 +211,7 @@ func (u *User) APIFormat() *api.User {
 		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
+		IsAdmin:   u.IsAdmin,
 	}
 }
 
@@ -722,6 +723,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"ghost",
 		"help",
 		"img",
 		"install",
@@ -730,6 +732,7 @@ var (
 		"less",
 		"metrics",
 		"new",
+		"notifications",
 		"org",
 		"plugins",
 		"pulls",
@@ -1432,6 +1435,9 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	sess := x.Where(cond)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
 	}
 
 	users = make([]*User, 0, opts.PageSize)

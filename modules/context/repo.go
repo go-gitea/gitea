@@ -204,7 +204,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", ownerName, repo.Name),
+		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
 	ctx.Redirect(redirectPath)
@@ -212,6 +212,17 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
 	var err error
+	if err = repo.GetOwner(); err != nil {
+		ctx.ServerError("GetOwner", err)
+		return
+	}
+
+	if repo.Owner.IsOrganization() {
+		if !models.HasOrgVisible(repo.Owner, ctx.User) {
+			ctx.NotFound("HasOrgVisible", nil)
+			return
+		}
+	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
