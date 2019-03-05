@@ -321,6 +321,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		oldOwnerID := ctx.Repo.Owner.ID
 		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
@@ -329,6 +330,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			return
 		}
+
+		err = models.NewRepoRedirect(oldOwnerID, repo.ID, repo.Name, repo.Name)
+		if err != nil {
+			ctx.ServerError("NewRepoRedirect", err)
+			return
+		}
+
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
 		ctx.Redirect(setting.AppSubURL + "/" + newOwner + "/" + repo.Name)

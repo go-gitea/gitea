@@ -211,6 +211,7 @@ func (u *User) APIFormat() *api.User {
 		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
+		IsAdmin:   u.IsAdmin,
 	}
 }
 
@@ -722,6 +723,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"ghost",
 		"help",
 		"img",
 		"install",
@@ -730,6 +732,7 @@ var (
 		"less",
 		"metrics",
 		"new",
+		"notifications",
 		"org",
 		"plugins",
 		"pulls",
