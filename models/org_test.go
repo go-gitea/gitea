@@ -7,6 +7,8 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -544,4 +546,73 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	}
 	testSuccess(2, []int64{5})
 	testSuccess(4, []int64{})
+}
+
+func TestHasOrgVisibleTypePublic(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+
+	const newOrgName = "test-org-public"
+	org := &User{
+		Name:       newOrgName,
+		Visibility: structs.VisibleTypePublic,
+	}
+
+	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	assert.NoError(t, CreateOrganization(org, owner))
+	org = AssertExistsAndLoadBean(t,
+		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+	test1 := HasOrgVisible(org, owner)
+	test2 := HasOrgVisible(org, user3)
+	test3 := HasOrgVisible(org, nil)
+	assert.Equal(t, test1, true) // owner of org
+	assert.Equal(t, test2, true) // user not a part of org
+	assert.Equal(t, test3, true) // logged out user
+}
+
+func TestHasOrgVisibleTypeLimited(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+
+	const newOrgName = "test-org-limited"
+	org := &User{
+		Name:       newOrgName,
+		Visibility: structs.VisibleTypeLimited,
+	}
+
+	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	assert.NoError(t, CreateOrganization(org, owner))
+	org = AssertExistsAndLoadBean(t,
+		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+	test1 := HasOrgVisible(org, owner)
+	test2 := HasOrgVisible(org, user3)
+	test3 := HasOrgVisible(org, nil)
+	assert.Equal(t, test1, true)  // owner of org
+	assert.Equal(t, test2, true)  // user not a part of org
+	assert.Equal(t, test3, false) // logged out user
+}
+
+func TestHasOrgVisibleTypePrivate(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+
+	const newOrgName = "test-org-private"
+	org := &User{
+		Name:       newOrgName,
+		Visibility: structs.VisibleTypePrivate,
+	}
+
+	AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	assert.NoError(t, CreateOrganization(org, owner))
+	org = AssertExistsAndLoadBean(t,
+		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+	test1 := HasOrgVisible(org, owner)
+	test2 := HasOrgVisible(org, user3)
+	test3 := HasOrgVisible(org, nil)
+	assert.Equal(t, test1, true)  // owner of org
+	assert.Equal(t, test2, false) // user not a part of org
+	assert.Equal(t, test3, false) // logged out user
 }

@@ -57,6 +57,10 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+
+	// IsLocked limits commenting abilities to users on an issue
+	// with write access
+	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 var (
@@ -179,12 +183,21 @@ func (issue *Issue) LoadPullRequest() error {
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
+	return issue.loadCommentsByType(e, CommentTypeUnknown)
+}
+
+// LoadDiscussComments loads discuss comments
+func (issue *Issue) LoadDiscussComments() error {
+	return issue.loadCommentsByType(x, CommentTypeComment)
+}
+
+func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
 	issue.Comments, err = findComments(e, FindCommentsOptions{
 		IssueID: issue.ID,
-		Type:    CommentTypeUnknown,
+		Type:    tp,
 	})
 	return err
 }
@@ -677,7 +690,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
@@ -687,8 +699,14 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 }
 
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
+	// Reload the issue
+	currentIssue, err := getIssueByID(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
 	// Nothing should be performed if current status is same as target status
-	if issue.IsClosed == isClosed {
+	if currentIssue.IsClosed == isClosed {
 		return nil
 	}
 
@@ -953,6 +971,25 @@ func (issue *Issue) GetTasksDone() int {
 	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
+// GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
+func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+	if issue.IsClosed {
+		return issue.ClosedUnix
+	}
+	return issue.CreatedUnix
+}
+
+// GetLastEventLabel returns the localization label for the current issue.
+func (issue *Issue) GetLastEventLabel() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by"
+		}
+		return "repo.issues.closed_by"
+	}
+	return "repo.issues.opened_by"
+}
+
 // NewIssueOptions represents the options of a new issue.
 type NewIssueOptions struct {
 	Repo        *Repository
@@ -1192,6 +1229,17 @@ func GetIssueByID(id int64) (*Issue, error) {
 func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, e.In("id", issueIDs).Find(&issues)
+}
+
+func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
+	var ids = make([]int64, 0, 10)
+	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	return ids, err
+}
+
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
+	return getIssueIDsByRepoID(x, repoID)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
@@ -1640,6 +1688,40 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	closedResult, _ := closedCountSession.Count(new(Issue))
 
 	return openResult, closedResult
+}
+
+// SearchIssueIDsByKeyword search issues on database
+func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.Eq{"repo_id": repoID}
+	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	var cond = builder.And(
+		repoCond,
+		builder.Or(
+			builder.Like{"name", kw},
+			builder.Like{"content", kw},
+			builder.In("id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					builder.Like{"content", kw},
+				)),
+			),
+		),
+	)
+
+	var ids = make([]int64, 0, limit)
+	err := x.Distinct("id").Table("issue").Where(cond).Limit(limit, start).Find(&ids)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, ids, nil
 }
 
 func updateIssue(e Engine, issue *Issue) error {

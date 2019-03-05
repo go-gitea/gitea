@@ -197,13 +197,14 @@ type Repository struct {
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
 
-	IsFork        bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID        int64              `xorm:"INDEX"`
-	BaseRepo      *Repository        `xorm:"-"`
-	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
-	IndexerStatus *RepoIndexerStatus `xorm:"-"`
-	IsFsckEnabled bool               `xorm:"NOT NULL DEFAULT true"`
-	Topics        []string           `xorm:"TEXT JSON"`
+	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID                          int64              `xorm:"INDEX"`
+	BaseRepo                        *Repository        `xorm:"-"`
+	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
+	IndexerStatus                   *RepoIndexerStatus `xorm:"-"`
+	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
+	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
+	Topics                          []string           `xorm:"TEXT JSON"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -1373,13 +1374,14 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	repo := &Repository{
-		OwnerID:       u.ID,
-		Owner:         u,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		IsPrivate:     opts.IsPrivate,
-		IsFsckEnabled: true,
+		OwnerID:                         u.ID,
+		Owner:                           u,
+		Name:                            opts.Name,
+		LowerName:                       strings.ToLower(opts.Name),
+		Description:                     opts.Description,
+		IsPrivate:                       opts.IsPrivate,
+		IsFsckEnabled:                   !opts.IsMirror,
+		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
 	}
 
 	sess := x.NewSession()
@@ -1562,6 +1564,11 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		}
 	}
 
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
+		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
 	return sess.Commit()
 }
 
@@ -1612,7 +1619,18 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
-	return nil
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return fmt.Errorf("sess.Begin: %v", err)
+	}
+
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteRepoRedirect(sess, u.ID, newRepoName); err != nil {
+		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
+	return sess.Commit()
 }
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
