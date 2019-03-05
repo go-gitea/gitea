@@ -50,6 +50,7 @@ func GetTree(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
+
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "", "sha not provided")

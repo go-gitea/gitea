@@ -8,11 +8,9 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
 
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -29,8 +27,8 @@ type UpdateRepoFileOptions struct {
 	LastCommitID string
 	OldBranch    string
 	NewBranch    string
-	TreeName     string
-	FromTreeName string
+	TreePath     string
+	FromTreePath string
 	Message      string
 	Content      string
 	SHA          string
@@ -71,38 +69,36 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	// If FromTreeName is not set, set it to the opts.TreeName
-	if opts.TreeName != "" && opts.FromTreeName == "" {
-		opts.FromTreeName = opts.TreeName
+	// If FromTreePath is not set, set it to the opts.TreePath
+	if opts.TreePath != "" && opts.FromTreePath == "" {
+		opts.FromTreePath = opts.TreePath
 	}
-
-	log.Warn("%v", opts)
 
 	// Check that the path given in opts.treeName is valid (not a git path)
-	treeName := cleanUploadFileName(opts.TreeName)
+	treeName := cleanUploadFileName(opts.TreePath)
 	if treeName == "" {
-		return nil, models.ErrFilenameInvalid{opts.TreeName}
+		return nil, models.ErrFilenameInvalid{opts.TreePath}
 	}
 	// If there is a fromTreeName (we are copying it), also clean it up
-	fromTreeName := cleanUploadFileName(opts.FromTreeName)
-	if fromTreeName == "" && opts.FromTreeName != "" {
-		return nil, models.ErrFilenameInvalid{opts.FromTreeName}
+	fromTreeName := cleanUploadFileName(opts.FromTreePath)
+	if fromTreeName == "" && opts.FromTreePath != "" {
+		return nil, models.ErrFilenameInvalid{opts.FromTreePath}
 	}
 
 	message := strings.TrimSpace(opts.Message)
 
 	var committer *models.User
 	var author *models.User
-	if opts.Committer != nil && opts.Committer.Email == "" {
+	if opts.Committer != nil && opts.Committer.Email != "" {
 		if c, err := models.GetUserByEmail(opts.Committer.Email); err != nil {
 			committer = doer
 		} else {
 			committer = c
 		}
 	}
-	if opts.Author != nil && opts.Author.Email == "" {
+	if opts.Author != nil && opts.Author.Email != "" {
 		if a, err := models.GetUserByEmail(opts.Author.Email); err != nil {
-			author = doer
+			author = committer
 		} else {
 			author = a
 		}
@@ -117,7 +113,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if committer == nil {
 		committer = author
 	}
-	doer = committer // UNTIL WE FIGURE OUT HOW TO ADD AUTHOR AND COMMITTER, USING JUST COMMITTER
 
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
@@ -196,22 +191,15 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Get the two paths (might be the same if not moving) from the index if they exist
-	filesInIndex, err := t.LsFiles(opts.TreeName, opts.FromTreeName)
+	filesInIndex, err := t.LsFiles(opts.TreePath, opts.FromTreePath)
 	if err != nil {
 		return nil, fmt.Errorf("UpdateRepoFile: %v", err)
 	}
-	j, err := json.Marshal(filesInIndex)
-	log.Warn("FILESININDEX: %v", j)
-	for idx, file := range filesInIndex {
-		log.Warn("FILE: %d: %s", idx, file)
-	}
-
 	// If is a new file (not updating) then the given path shouldn't exist
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
-			log.Warn("FILE: %s", file)
-			if file == opts.TreeName {
-				return nil, models.ErrRepoFileAlreadyExists{FileName: opts.TreeName}
+			if file == opts.TreePath {
+				return nil, models.ErrRepoFileAlreadyExists{FileName: opts.TreePath}
 			}
 		}
 	}
@@ -220,7 +208,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if fromTreeName != treeName && len(filesInIndex) > 0 {
 		for _, file := range filesInIndex {
 			if file == fromTreeName {
-				if err := t.RemoveFilesFromIndex(opts.FromTreeName); err != nil {
+				if err := t.RemoveFilesFromIndex(opts.FromTreePath); err != nil {
 					return nil, err
 				}
 			}
@@ -264,7 +252,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(doer, treeHash, message)
+	commitHash, err := t.CommitTree(author, committer, treeHash, message)
 	if err != nil {
 		return nil, err
 	}

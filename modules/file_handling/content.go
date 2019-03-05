@@ -12,15 +12,15 @@ import (
 )
 
 // GetFileContents gets the meta data on a file's contents
-func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.FileContentResponse, error) {
+func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.FileContentResponse, error) {
 	if ref == "" {
 		ref = "master"
 	}
 
-	// Check that the path given in opts.treeName is valid (not a git path)
-	treeName = cleanUploadFileName(treeName)
-	if treeName == "" {
-		return nil, models.ErrFilenameInvalid{treeName}
+	// Check that the path given in opts.treePath is valid (not a git path)
+	treePath = cleanUploadFileName(treePath)
+	if treePath == "" {
+		return nil, models.ErrFilenameInvalid{treePath}
 	}
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
@@ -31,7 +31,7 @@ func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.File
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref)
 
-	entry, err := commit.GetTreeEntryByPath(treeName)
+	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +41,9 @@ func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.File
 		urlRef = "branch/" + ref
 	}
 
-	selfURL, _ := url.Parse(repo.APIURL() + "/contents/" + treeName)
+	selfURL, _ := url.Parse(repo.APIURL() + "/contents/" + treePath)
 	gitURL, _ := url.Parse(repo.APIURL() + "/git/blobs/" + entry.ID.String())
-	downloadURL, _ := url.Parse(repo.HTMLURL() + "/raw/" + urlRef + "/" + treeName)
+	downloadURL, _ := url.Parse(repo.HTMLURL() + "/raw/" + urlRef + "/" + treePath)
 	parents := make([]gitea.CommitMeta, commit.ParentCount())
 	for i := 0; i <= commit.ParentCount(); i++ {
 		if parent, err := commit.Parent(i); err == nil && parent != nil {
@@ -55,11 +55,11 @@ func GetFileContents(repo *models.Repository, treeName, ref string) (*gitea.File
 		}
 	}
 
-	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treeName)
+	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treePath)
 
 	fileContent := &gitea.FileContentResponse{
 		Name:        entry.Name(),
-		Path:        treeName,
+		Path:        treePath,
 		SHA:         entry.ID.String(),
 		Size:        entry.Size(),
 		URL:         selfURL.String(),

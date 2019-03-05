@@ -129,7 +129,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(doer, treeHash, opts.Message)
+	commitHash, err := t.CommitTree(doer, doer, treeHash, opts.Message)
 	if err != nil {
 		return err
 	}

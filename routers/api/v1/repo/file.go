@@ -183,11 +183,12 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+
 	opts := &file_handling.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
-		TreeName:  ctx.Params("*"),
+		TreePath:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &file_handling.IdentityOptions{
@@ -233,13 +234,14 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+
 	opts := &file_handling.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
 		IsNewFile:    false,
 		Message:      apiOpts.Message,
-		FromTreeName: apiOpts.FromPath,
-		TreeName:     ctx.Params("*"),
+		FromTreePath: apiOpts.FromPath,
+		TreePath:     ctx.Params("*"),
 		OldBranch:    apiOpts.BranchName,
 		NewBranch:    apiOpts.NewBranchName,
 		Committer: &file_handling.IdentityOptions{
@@ -306,7 +308,6 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileDeleteResponse"
-
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
 		return
@@ -364,15 +365,10 @@ func GetFileContents(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileContentResponse"
-	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
-		return
-	}
-
-	treeName := ctx.Params("*")
+	treePath := ctx.Params("*")
 	ref := ctx.Params("ref")
 
-	if fileContents, err := file_handling.GetFileContents(ctx.Repo.Repository, treeName, ref); err != nil {
+	if fileContents, err := file_handling.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
 		ctx.Error(500, "", err)
 	} else {
 		ctx.JSON(200, fileContents)

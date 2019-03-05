@@ -5,12 +5,12 @@
 package file_handling
 
 import (
-	"code.gitea.io/sdk/gitea"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/sdk/gitea"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -76,7 +76,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 	if opts.Author != nil && opts.Author.Email == "" {
 		if a, err := models.GetUserByEmail(opts.Author.Email); err != nil {
-			author = doer
+			author = committer
 		} else {
 			author = a
 		}
@@ -91,7 +91,6 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if committer == nil {
 		committer = author
 	}
-	doer = committer // UNTIL WE FIGURE OUT HOW TO ADD AUTHOR AND COMMITTER, USING JUST COMMITTER
 
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
@@ -139,7 +138,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, git.ErrNotExist{RelPath: opts.TreePath}
 	}
 
-	// Get the entry of treePath and check if the SHA given, if updating, is the same
+	// Get the entry of treePath and check if the SHA given is the same as the file
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
@@ -162,7 +161,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(doer, treeHash, message)
+	commitHash, err := t.CommitTree(author, committer, treeHash, message)
 	if err != nil {
 		return nil, err
 	}

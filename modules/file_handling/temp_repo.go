@@ -216,18 +216,19 @@ func (t *TemporaryUploadRepository) GetLastCommit() (string, error) {
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(doer *models.User, treeHash string, message string) (string, error) {
+func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
 	commitTimeStr := time.Now().Format(time.UnixDate)
-	sig := doer.NewGitSig()
+	authorSig := author.NewGitSig()
+	committerSig := committer.NewGitSig()
 
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
