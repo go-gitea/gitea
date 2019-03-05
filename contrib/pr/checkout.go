@@ -198,15 +198,20 @@ func main() {
 	branchRef := plumbing.NewBranchReferenceName(branch)
 
 	log.Printf("Fetching PR #%s in %s\n", pr, branch)
-	ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
-	err = repo.Fetch(&git.FetchOptions{
-		RemoteName: remoteUpstream,
-		RefSpecs: []config.RefSpec{
-			config.RefSpec(ref),
-		},
-	})
-	if err != nil {
-		log.Fatalf("Failed to fetch %s from %s : %v", ref, remoteUpstream, err)
+	if runtime.GOOS == "windows" {
+		//Use git cli command for windows
+		runCmd("git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", pr, branch))
+	} else {
+		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
+		err = repo.Fetch(&git.FetchOptions{
+			RemoteName: remoteUpstream,
+			RefSpecs: []config.RefSpec{
+				config.RefSpec(ref),
+			},
+		})
+		if err != nil {
+			log.Fatalf("Failed to fetch %s from %s : %v", ref, remoteUpstream, err)
+		}
 	}
 
 	tree, err := repo.Worktree()
@@ -216,7 +221,7 @@ func main() {
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	err = tree.Checkout(&git.CheckoutOptions{
 		Branch: branchRef,
-		Force:  runtime.GOOS == "windows",
+		//Force:  runtime.GOOS == "windows",
 	})
 	if err != nil {
 		log.Fatalf("Failed to checkout %s : %v", branch, err)
