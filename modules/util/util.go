@@ -5,12 +5,13 @@
 package util
 
 import (
-	"net/url"
-	"path"
-	"strings"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"net/url"
+	"path"
+	"regexp"
+	"strings"
+	"sync"
 )
 
 // OptionalBool a boolean that can be "null"
@@ -24,6 +25,20 @@ const (
 	// OptionalBoolFalse a "false" boolean value
 	OptionalBoolFalse
 )
+
+var matchComplexity *regexp.Regexp
+var matchComplexityOnce sync.Once
+
+// CheckPasswordComplexity return True if password is Complexity
+func CheckPasswordComplexity(pwd string) bool {
+	matchComplexityOnce.Do(func() {
+		matchComplexity = regexp.MustCompile(setting.PasswordComplexity)
+	})
+	if matchComplexity.MatchString(pwd) {
+		return true
+	}
+	return false
+}
 
 // IsTrue return true if equal to OptionalBoolTrue
 func (o OptionalBool) IsTrue() bool {

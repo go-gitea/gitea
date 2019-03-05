@@ -12,14 +12,12 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"regexp"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
 	tplSettingsAccount base.TplName = "user/settings/account"
 )
-
-var matchComplexity = regexp.MustCompile("[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+")
 
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
@@ -50,7 +48,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
-	} else if matchComplexity != nil && !matchComplexity.MatchString(form.Password) {
+	} else if !util.CheckPasswordComplexity(form.Password) {
 		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else {
 		var err error
