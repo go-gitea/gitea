@@ -73,3 +73,4 @@ prime/
 *.snap
 *.snap-build
 *_source.tar.bz2
+/.vs
