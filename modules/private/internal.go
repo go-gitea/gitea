@@ -80,8 +80,8 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository
 	log.GitLogger.Trace("GetRepositoryByOwnerAndName: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
+	return nil, err
 	if err != nil {
-		return nil, err
 	}
 	defer resp.Body.Close()
 
