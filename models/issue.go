@@ -699,8 +699,14 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 }
 
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
+	// Reload the issue
+	currentIssue, err := getIssueByID(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
 	// Nothing should be performed if current status is same as target status
-	if issue.IsClosed == isClosed {
+	if currentIssue.IsClosed == isClosed {
 		return nil
 	}
 
