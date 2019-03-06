@@ -175,6 +175,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-mysql8-migration
       - make test-mysql8
     when:
       event: [ push, tag, pull_request ]
