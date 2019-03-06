@@ -365,6 +365,12 @@ func GetFileContents(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileContentResponse"
+
+	if !CanReadFiles(ctx.Repo) {
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		return
+	}
+
 	treePath := ctx.Params("*")
 	ref := ctx.Params("ref")
 

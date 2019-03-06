@@ -30,6 +30,9 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.File
 
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref)
+	if err != nil {
+		return nil, err
+	}
 
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {

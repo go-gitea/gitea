@@ -27,6 +27,16 @@ type DeleteRepoFileOptions struct {
 
 // DeleteRepoFile deletes a file in the given repository
 func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*gitea.FileResponse, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repo not passed to DeleteRepoFile")
+	}
+	if doer == nil {
+		return nil, fmt.Errorf("doer not passed to DeleteRepoFile")
+	}
+	if opts == nil {
+		return nil, fmt.Errorf("opts not passed to DeleteRepoFile")
+	}
+
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = "master"
@@ -65,31 +75,41 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	message := strings.TrimSpace(opts.Message)
 
+	// Committer and author are optional. If they are not the doer (not same email address)
+	// then we use bogus User objects for them to store their FullName and Email.
+	// If only one of the two are provided, we set both of them to it.
+	// If neither are provided, both are the doer.
 	var committer *models.User
 	var author *models.User
 	if opts.Committer != nil && opts.Committer.Email == "" {
-		if c, err := models.GetUserByEmail(opts.Committer.Email); err != nil {
-			committer = doer
+		if strings.ToLower(doer.Email) == strings.ToLower(opts.Committer.Email) {
+			committer = doer // the committer is the doer, so will use their user object
 		} else {
-			committer = c
+			committer = &models.User{
+				FullName: opts.Committer.Name,
+				Email: opts.Committer.Email,
+			}
 		}
 	}
 	if opts.Author != nil && opts.Author.Email == "" {
-		if a, err := models.GetUserByEmail(opts.Author.Email); err != nil {
-			author = committer
+		if strings.ToLower(doer.Email) == strings.ToLower(opts.Author.Email) {
+			author = doer // the author is the doer, so will use their user object
 		} else {
-			author = a
+			author = &models.User{
+				FullName: opts.Author.Name,
+				Email: opts.Author.Email,
+			}
 		}
 	}
 	if author == nil {
 		if committer != nil {
-			author = committer
+			author = committer // No valid author was given so use the committer
 		} else {
-			author = doer
+			author = doer // No valid author was given and no valid committer so use the doer
 		}
 	}
 	if committer == nil {
-		committer = author
+		committer = author // No valid committer so use the author as the committer (was set to a valid user above)
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)

@@ -2,21 +2,27 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package git_data
 
 import (
 	"github.com/stretchr/testify/assert"
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/sdk/gitea"
 )
 
+func TestMain(m *testing.M) {
+	models.MainTest(m, filepath.Join( "..", ".."))
+}
+
 func TestGetTreeBySHA(t *testing.T) {
 	models.PrepareTestEnv(t)
 	sha := "master"
+	page := 1
+	perPage := 10
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
@@ -25,7 +31,7 @@ func TestGetTreeBySHA(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
 
-	tree := GetTreeBySHA(&context.APIContext{Context: ctx, Org: nil}, ctx.Params("sha"))
+	tree := GetTreeBySHA(ctx.Repo.Repository, ctx.Params("sha"), page, perPage, true)
 	expectedTree := &gitea.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/65f1bf27bc3bf70f64657658635e66094edbcb4d",

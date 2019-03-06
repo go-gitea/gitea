@@ -782,12 +782,6 @@ func (err ErrRepoFileDoesNotExist) Error() string {
 	return fmt.Sprintf("repository file does not exist [file_name: %s]", err.FileName)
 }
 
-// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
-type ErrUserDoesNotHaveAccessToRepo struct {
-	UserID   int64
-	RepoName string
-}
-
 // ErrFilenameInvalid represents a "filename invalid error.
 type ErrFilenameInvalid struct {
 	Filename string
@@ -834,6 +828,12 @@ func IsErrWithFilePath(err error) bool {
 
 func (err ErrWithFilePath) Error() string {
 	return fmt.Sprintf("There is a problem with this file path: %s", err.Message)
+}
+
+// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
+type ErrUserDoesNotHaveAccessToRepo struct {
+	UserID   int64
+	RepoName string
 }
 
 // IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExists.
