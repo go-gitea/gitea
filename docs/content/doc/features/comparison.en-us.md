@@ -81,13 +81,15 @@ _Symbols used in table:_
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
 | Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Lock Discussion | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Batch issue handling | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Issue Boards | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Issue search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Global issue search | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
+| Create issue via email | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
+| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
 
 #### Pull/Merge requests
 

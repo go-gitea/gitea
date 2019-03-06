@@ -62,10 +62,17 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
+- `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
+   default is not to present. **WARNING**: This maybe harmful to you website if you do not
+   give it a right value.
+- `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+
+### Repository - Issue (`repository.issue`)
+- `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
 ## UI (`ui`)
 
@@ -74,6 +81,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
+- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
+  regardless of the value of `DEFAULT_THEME`.
 
 ### UI - Admin (`ui.admin`)
 
@@ -140,10 +149,17 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
+- `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
+- `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently support: channel or levelqueue
+- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number
+
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
@@ -195,10 +211,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
-- `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
-- `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
+- `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
+- `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
+- `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
+- `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
+- `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 
 ## Webhook (`webhook`)
 
@@ -219,10 +238,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
-- `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP.
+- `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
+   - **smtp** Use SMTP to send mail
+   - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
    This is common on linux systems.
+   - **dummy** Send email messages to the log as a testing phase.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM` and `SENDMAIL_PATH`.
+   - Enabling dummy will ignore all settings except `ENABLED` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
@@ -237,7 +260,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
@@ -266,6 +289,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
 - `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to the Gitea logger.
 
 ## Cron (`cron`)
 
@@ -302,6 +326,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 
 ## Git - Timeout settings (`git.timeout`)
+- `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -315,8 +340,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
+- `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
 
 ## i18n (`i18n`)
 

@@ -66,7 +66,7 @@ var (
 
 	// matches http/https links. used for autlinking those. partly modified from
 	// the original present in autolink.js
-	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
+	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+(?:\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
 )
 
 // regexp for full links to issues/pulls

@@ -518,6 +518,10 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     $ref: "#/definitions/MergePullRequestOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
@@ -668,8 +672,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
-		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
+	if !perm.CanReadIssuesOrPulls(true) {
+		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
 		ctx.Status(404)
 		return nil, nil, nil, nil, "", ""
 	}

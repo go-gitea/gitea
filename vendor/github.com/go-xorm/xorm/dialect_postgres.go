@@ -822,7 +822,7 @@ func (db *postgres) SqlType(c *core.Column) string {
 	case core.NVarchar:
 		res = core.Varchar
 	case core.Uuid:
-		res = core.Uuid
+		return core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
 	case core.Double:
@@ -834,6 +834,10 @@ func (db *postgres) SqlType(c *core.Column) string {
 		res = t
 	}
 
+	if strings.EqualFold(res, "bool") {
+		// for bool, we don't need length information
+		return res
+	}
 	hasLen1 := (c.Length > 0)
 	hasLen2 := (c.Length2 > 0)
 

@@ -121,6 +121,7 @@ func (ctx *Context) NotFound(title string, err error) {
 		}
 	}
 
+	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
 }
@@ -136,7 +137,7 @@ func (ctx *Context) ServerError(title string, err error) {
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(404, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -209,7 +210,7 @@ func Contexter() macaron.Handler {
 			if err == nil && len(repo.DefaultBranch) > 0 {
 				branchName = repo.DefaultBranch
 			}
-			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
+			prefix := setting.AppURL + path.Join(url.QueryEscape(ownerName), url.QueryEscape(repoName), "src", "branch", branchName)
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
 			c.Write([]byte(com.Expand(`<!doctype html>

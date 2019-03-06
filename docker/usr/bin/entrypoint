@@ -7,6 +7,14 @@ if [ "${USER}" != "git" ]; then
     sed -i -e "s/AllowUsers git$/AllowUsers ${USER}/g" /etc/ssh/sshd_config
 fi
 
+if [ -z "${USER_GID}" ]; then
+  USER_GID="`id -g ${USER}`"
+fi
+
+if [ -z "${USER_UID}" ]; then
+  USER_UID="`id -u ${USER}`"
+fi
+
 ## Change GID for USER?
 if [ -n "${USER_GID}" ] && [ "${USER_GID}" != "`id -g ${USER}`" ]; then
     sed -i -e "s/^${USER}:\([^:]*\):[0-9]*/${USER}:\1:${USER_GID}/" /etc/group

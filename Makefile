@@ -4,6 +4,8 @@ IMPORT := code.gitea.io/gitea
 GO ?= go
 SED_INPLACE := sed -i
 
+export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
@@ -35,7 +37,7 @@ endif
 
 LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
@@ -178,7 +180,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do $(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	$(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -200,6 +202,10 @@ test-vendor: vendor
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
+
+.PHONY: test-sqlite-migration
+test-sqlite-migration:  migrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
 
 generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -227,17 +233,34 @@ generate-ini:
 test-mysql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
+.PHONY: test-mysql-migration
+test-mysql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.test
+
 .PHONY: test-mysql8
 test-mysql8: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.test
+
+.PHONY: test-mysql8-migration
+test-mysql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.test
 
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
+.PHONY: test-pgsql-migration
+test-pgsql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.test
+
 .PHONY: test-mssql
 test-mssql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test
+
+.PHONY: test-mssql-migration
+test-mssql-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.test
+
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
@@ -246,6 +269,10 @@ bench-sqlite: integrations.sqlite.test
 .PHONY: bench-mysql
 bench-mysql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
+
+.PHONY: bench-mssql
+bench-mssql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-pgsql
 bench-pgsql: integrations.test generate-ini
@@ -264,6 +291,14 @@ integrations.sqlite.test: $(SOURCES)
 
 integrations.cover.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+
+.PHONY: migrations.test
+migrations.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.test
+
+.PHONY: migrations.sqlite.test
+migrations.sqlite.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
@@ -348,8 +383,14 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
-	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),node_modules/.bin/lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install npm version 5.2+"; \
+		exit 1; \
+	fi;
+	$(eval BROWSERS := "> 1%, last 2 firefox versions, last 2 safari versions, ie 11")
+	npx lessc --clean-css public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	$(foreach file, $(wildcard public/css/*),npx postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
 
 .PHONY: swagger-ui
 swagger-ui:

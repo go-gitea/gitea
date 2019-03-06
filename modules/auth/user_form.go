@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // InstallForm form for installation page
@@ -76,7 +76,7 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"Required;MaxSize(255)"`
 	Retype             string
@@ -146,7 +146,7 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"AlphaDashDot;MaxSize(35)"`
+	Name             string `binding:"AlphaDashDot;MaxSize(40)"`
 	FullName         string `binding:"MaxSize(100)"`
 	Email            string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate bool
@@ -187,6 +187,30 @@ type AddEmailForm struct {
 // Validate validates the fields
 func (f *AddEmailForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// UpdateThemeForm form for updating a users' theme
+type UpdateThemeForm struct {
+	Theme string `binding:"Required;MaxSize(30)"`
+}
+
+// Validate validates the field
+func (f *UpdateThemeForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsThemeExists checks if the theme is a theme available in the config.
+func (f UpdateThemeForm) IsThemeExists() bool {
+	var exists bool
+
+	for _, v := range setting.UI.Themes {
+		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+			exists = true
+			break
+		}
+	}
+
+	return exists
 }
 
 // ChangePasswordForm form for changing password

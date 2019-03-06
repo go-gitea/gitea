@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.9
+    image: golang:1.10 # this step is kept as the lowest version of golang that we support
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -64,7 +64,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -82,8 +82,8 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  test:
-    image: golang:1.11
+  unit-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -94,8 +94,8 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test:
-    image: golang:1.11
+  release-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -106,8 +106,8 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ release/* ]
 
-  test:
-    image: golang:1.11
+  tag-test:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -118,7 +118,7 @@ pipeline:
       event: [ tag ]
 
   test-sqlite:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -127,12 +127,13 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
+      - make test-sqlite-migration
       - make test-sqlite
     when:
       event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -141,13 +142,14 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - make test-mysql-migration
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test-mysql:
-    image: golang:1.11
+  tag-test-mysql:
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -157,6 +159,7 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-mysql-migration
       - make test-mysql
     when:
       event: [ tag ]
@@ -177,7 +180,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-pgsql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -187,12 +190,13 @@ pipeline:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
       - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-pgsql-migration
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
   test-mssql:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -201,12 +205,49 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
+      - make test-mssql-migration
       - make test-mssql
     when:
       event: [ push, tag, pull_request ]
 
+  bench-sqlite:
+    image: golang:1.12
+    pull: true
+    group: bench
+    commands:
+      - make bench-sqlite
+    when:
+      event: [ tag ]
+
+  bench-mysql:
+    image: golang:1.12
+    pull: true
+    group: bench
+    commands:
+      - make bench-mysql
+    when:
+      event: [ tag ]
+
+  bench-mssql:
+    image: golang:1.12
+    pull: true
+    group: bench
+    commands:
+      - make bench-mssql
+    when:
+      event: [ tag ]
+
+  bench-pgsql:
+    image: golang:1.12
+    pull: true
+    group: bench
+    commands:
+      - make bench-pgsql
+    when:
+      event: [ tag ]
+
   generate-coverage:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     environment:
       TAGS: bindata
@@ -226,7 +267,7 @@ pipeline:
       branch: [ master ]
 
   static:
-    image: karalabe/xgo-latest:latest
+    image: techknowlogick/xgo:latest
     pull: true
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -255,12 +296,22 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  docker:
+  docker-dryrun:
+    image: plugins/docker:17.12
+    pull: true
+    repo: gitea/gitea
+    cache_from: gitea/gitea
+    dry_run: true
+    when:
+      event: [ pull_request ]
+
+  release-docker:
     image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
+    cache_from: gitea/gitea
     when:
       event: [ push ]
       branch: [ release/* ]
@@ -270,6 +321,7 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
+    cache_from: gitea/gitea
     default_tags: true
     when:
       event: [ push, tag ]
@@ -286,7 +338,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  release:
+  tag-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
@@ -300,7 +352,7 @@ pipeline:
     when:
       event: [ tag ]
 
-  release:
+  release-branch-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]

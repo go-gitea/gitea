@@ -17,7 +17,7 @@ type U2FRegistration struct {
 	Name        string
 	UserID      int64 `xorm:"INDEX"`
 	Raw         []byte
-	Counter     uint32
+	Counter     uint32         `xorm:"BIGINT"`
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }

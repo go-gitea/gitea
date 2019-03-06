@@ -39,6 +39,7 @@ func decodeJSONError(resp *http.Response) *Response {
 func newInternalRequest(url, method string) *httplib.Request {
 	req := newRequest(url, method).SetTLSClientConfig(&tls.Config{
 		InsecureSkipVerify: true,
+		ServerName:         setting.Domain,
 	})
 	if setting.Protocol == setting.UnixSocket {
 		req.SetTransport(&http.Transport{
