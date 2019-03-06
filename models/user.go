@@ -211,6 +211,7 @@ func (u *User) APIFormat() *api.User {
 		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
+		IsAdmin:   u.IsAdmin,
 	}
 }
 
