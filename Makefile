@@ -242,7 +242,7 @@ test-mysql8: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.test
 
 .PHONY: test-mysql8-migration
-test-mysql-migration: migrations.test generate-ini
+test-mysql8-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.test
 
 .PHONY: test-pgsql
