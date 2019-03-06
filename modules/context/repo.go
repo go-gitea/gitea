@@ -380,7 +380,6 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 		ctx.Data["HasForkedRepo"] = ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)
 
-
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 			ctx.ServerError("CanUserFork", err)
 			return
