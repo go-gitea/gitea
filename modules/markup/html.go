@@ -171,11 +171,6 @@ type postProcessCtx struct {
 
 	// processors used by this context.
 	procs []processor
-
-	// if set to true, when an <a> is found, instead of just returning during
-	// visitNode, it will recursively visit the node exclusively running
-	// shortLinkProcessorFull with true.
-	visitLinksForShortLinks bool
 }
 
 // PostProcess does the final required transformations to the passed raw HTML
@@ -191,11 +186,10 @@ func PostProcess(
 ) ([]byte, error) {
 	// create the context from the parameters
 	ctx := &postProcessCtx{
-		metas:                   metas,
-		urlPrefix:               urlPrefix,
-		isWikiMarkdown:          isWikiMarkdown,
-		procs:                   defaultProcessors,
-		visitLinksForShortLinks: true,
+		metas:          metas,
+		urlPrefix:      urlPrefix,
+		isWikiMarkdown: isWikiMarkdown,
+		procs:          defaultProcessors,
 	}
 	return ctx.postProcess(rawHTML)
 }
@@ -285,9 +279,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 		ctx.textNode(node)
 	case html.ElementNode:
 		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
-			if node.Data == "a" && ctx.visitLinksForShortLinks {
-				ctx.visitNodeForShortLinks(node)
-			}
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
@@ -302,7 +293,7 @@ func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
 	case html.TextNode:
 		shortLinkProcessorFull(ctx, node, true)
 	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" {
+		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
