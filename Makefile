@@ -423,4 +423,4 @@ generate-images:
 	
 .PHONY: pr
 pr:
-    $(GO) run contrib/pr/checkout.go $(PR)
+	$(GO) run contrib/pr/checkout.go $(PR)
