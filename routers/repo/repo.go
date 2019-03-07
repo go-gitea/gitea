@@ -256,26 +256,8 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	if models.IsErrRepoAlreadyExist(err) {
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
-		return
-	}
-
-	if models.IsErrNameReserved(err) {
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplMigrate, &form)
-		return
-	}
-
-	if models.IsErrNamePatternNotAllowed(err) {
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplMigrate, &form)
-		return
-	}
-
 	// remoteAddr may contain credentials, so we sanitize it
-	err = util.URLSanitizedError(err, remoteAddr)
+	sanitizedErr := util.URLSanitizedError(err, remoteAddr)
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
@@ -283,14 +265,14 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		}
 	}
 
-	if strings.Contains(err.Error(), "Authentication failed") ||
-		strings.Contains(err.Error(), "could not read Username") {
+	if strings.Contains(sanitizedErr.Error(), "Authentication failed") ||
+		strings.Contains(sanitizedErr.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
-		ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("form.auth_failed", sanitizedErr.Error()), tplMigrate, &form)
 		return
-	} else if strings.Contains(err.Error(), "fatal:") {
+	} else if strings.Contains(sanitizedErr.Error(), "fatal:") {
 		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", sanitizedErr.Error()), tplMigrate, &form)
 		return
 	}
 
