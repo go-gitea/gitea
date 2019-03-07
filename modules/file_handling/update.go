@@ -87,32 +87,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	message := strings.TrimSpace(opts.Message)
 
-	var committer *models.User
-	var author *models.User
-	if opts.Committer != nil && opts.Committer.Email != "" {
-		if c, err := models.GetUserByEmail(opts.Committer.Email); err != nil {
-			committer = doer
-		} else {
-			committer = c
-		}
-	}
-	if opts.Author != nil && opts.Author.Email != "" {
-		if a, err := models.GetUserByEmail(opts.Author.Email); err != nil {
-			author = committer
-		} else {
-			author = a
-		}
-	}
-	if author == nil {
-		if committer != nil {
-			author = committer
-		} else {
-			author = doer
-		}
-	}
-	if committer == nil {
-		committer = author
-	}
+	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()

@@ -75,42 +75,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	message := strings.TrimSpace(opts.Message)
 
-	// Committer and author are optional. If they are not the doer (not same email address)
-	// then we use bogus User objects for them to store their FullName and Email.
-	// If only one of the two are provided, we set both of them to it.
-	// If neither are provided, both are the doer.
-	var committer *models.User
-	var author *models.User
-	if opts.Committer != nil && opts.Committer.Email == "" {
-		if strings.ToLower(doer.Email) == strings.ToLower(opts.Committer.Email) {
-			committer = doer // the committer is the doer, so will use their user object
-		} else {
-			committer = &models.User{
-				FullName: opts.Committer.Name,
-				Email: opts.Committer.Email,
-			}
-		}
-	}
-	if opts.Author != nil && opts.Author.Email == "" {
-		if strings.ToLower(doer.Email) == strings.ToLower(opts.Author.Email) {
-			author = doer // the author is the doer, so will use their user object
-		} else {
-			author = &models.User{
-				FullName: opts.Author.Name,
-				Email: opts.Author.Email,
-			}
-		}
-	}
-	if author == nil {
-		if committer != nil {
-			author = committer // No valid author was given so use the committer
-		} else {
-			author = doer // No valid author was given and no valid committer so use the doer
-		}
-	}
-	if committer == nil {
-		committer = author // No valid committer so use the author as the committer (was set to a valid user above)
-	}
+	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	defer t.Close()
