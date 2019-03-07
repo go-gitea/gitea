@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 )
 
@@ -198,6 +199,10 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
+			return
+		}
+		if !util.CheckPasswordComplexity(form.Password) {
+			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
 			return
 		}
 		u.HashPassword(form.Password)
