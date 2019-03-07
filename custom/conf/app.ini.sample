@@ -299,7 +299,7 @@ DISABLE_GIT_HOOKS = false
 lower = [a-z]+
 upper = [A-Z]+
 digit = [0-9]+
-spec = ^[a-zA-Z0-9]+
+spec = [-_\*\.\&\%\$\\]+
 
 [openid]
 ;

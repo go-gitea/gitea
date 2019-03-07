@@ -94,7 +94,10 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-
+	if !util.CheckPasswordComplexity(form.Password) {
+		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
