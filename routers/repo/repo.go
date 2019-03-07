@@ -129,7 +129,6 @@ func Create(ctx *context.Context) {
 	ctx.HTML(200, tplCreate)
 }
 
-
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
