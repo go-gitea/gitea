@@ -64,6 +64,8 @@ var (
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
+
+	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
 
 // regexp for full links to issues/pulls
@@ -642,7 +644,7 @@ func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := xurls.Strict().FindStringIndex(node.Data)
+	m := linkRegex.FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}
