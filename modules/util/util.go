@@ -27,7 +27,7 @@ const (
 	OptionalBoolFalse
 )
 
-var matchComplexities = make(map[string]*(regexp.Regexp))
+var matchComplexities = map[string]regexp.Regexp{}
 var matchComplexityOnce sync.Once
 
 // CheckPasswordComplexity return True if password is Complexity
@@ -35,15 +35,13 @@ func CheckPasswordComplexity(pwd string) bool {
 	matchComplexityOnce.Do(func() {
 		//matchComplexity = regexp.MustCompile(setting.PasswordComplexity)
 		for key, val := range setting.PasswordComplexity {
-			matchComplexity := new(regexp.Regexp)
+			var matchComplexity *regexp.Regexp
 			matchComplexity = regexp.MustCompile(val)
-			matchComplexities[key] = matchComplexity
+			matchComplexities[key] = *matchComplexity
 
 		}
 	})
-	//r := true
-	for key, val := range matchComplexities {
-		log.Trace("2: %v:%v:%v:", key, val.String, pwd, matchComplexities[key].MatchString(pwd))
+	for _, val := range matchComplexities {
 		if !val.MatchString(pwd) {
 			return false
 		}
