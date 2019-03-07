@@ -104,6 +104,15 @@ func TestRender_links(t *testing.T) {
 	test(
 		"http://142.42.1.1/",
 		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
+	test(
+		"https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd",
+		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
+	test(
+		"https://en.wikipedia.org/wiki/URL_(disambiguation)",
+		`<p><a href="https://en.wikipedia.org/wiki/URL_(disambiguation)" rel="nofollow">https://en.wikipedia.org/wiki/URL_(disambiguation)</a></p>`)
+	test(
+		"https://foo_bar.example.com/",
+		`<p><a href="https://foo_bar.example.com/" rel="nofollow">https://foo_bar.example.com/</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
+	"github.com/mvdan/xurls"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -63,10 +64,6 @@ var (
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
-
-	// matches http/https links. used for autlinking those. partly modified from
-	// the original present in autolink.js
-	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+(?:\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
 )
 
 // regexp for full links to issues/pulls
@@ -645,7 +642,7 @@ func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := linkRegex.FindStringIndex(node.Data)
+	m := xurls.Strict().FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}
