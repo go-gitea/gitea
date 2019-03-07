@@ -113,3 +113,7 @@ ignored = ["google.golang.org/appengine*"]
 [[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "0.9.0"
+
+[[constraint]]
+  name = "github.com/mvdan/xurls"
+  version = "2.0.0"
