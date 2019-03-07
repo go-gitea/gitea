@@ -168,7 +168,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
-	PasswordComplexity    string
+	PasswordComplexity    map[string]string
 	// Database settings
 	UseSQLite3       bool
 	UseMySQL         bool
@@ -987,7 +987,7 @@ func NewContext() {
 		}
 	}
 
-	PasswordComplexity = sec.Key("PASSWORD_COMPLEXITY").MustString("[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+")
+	PasswordComplexity = Cfg.Section("security.PASSWORD_COMPLEXITY").KeysHash()
 
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)

@@ -5,13 +5,14 @@
 package util
 
 import (
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"net/url"
 	"path"
 	"regexp"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // OptionalBool a boolean that can be "null"
@@ -26,18 +27,28 @@ const (
 	OptionalBoolFalse
 )
 
-var matchComplexity *regexp.Regexp
+var matchComplexities = make(map[string]*(regexp.Regexp))
 var matchComplexityOnce sync.Once
 
 // CheckPasswordComplexity return True if password is Complexity
 func CheckPasswordComplexity(pwd string) bool {
 	matchComplexityOnce.Do(func() {
-		matchComplexity = regexp.MustCompile(setting.PasswordComplexity)
+		//matchComplexity = regexp.MustCompile(setting.PasswordComplexity)
+		for key, val := range setting.PasswordComplexity {
+			matchComplexity := new(regexp.Regexp)
+			matchComplexity = regexp.MustCompile(val)
+			matchComplexities[key] = matchComplexity
+
+		}
 	})
-	if matchComplexity.MatchString(pwd) {
-		return true
+	//r := true
+	for key, val := range matchComplexities {
+		log.Trace("2: %v:%v:%v:", key, val.String, pwd, matchComplexities[key].MatchString(pwd))
+		if !val.MatchString(pwd) {
+			return false
+		}
 	}
-	return false
+	return true
 }
 
 // IsTrue return true if equal to OptionalBoolTrue
