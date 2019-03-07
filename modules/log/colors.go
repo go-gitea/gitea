@@ -11,16 +11,12 @@ import (
 
 const escape = "\033"
 
-// Attribute defines a single SGR Code
-type Attribute int
+// ColorAttribute defines a single SGR Code
+type ColorAttribute int
 
-func (a Attribute) String() string {
-	return fmt.Sprintf("%d", a)
-}
-
-// Base attributes
+// Base ColorAttributes
 const (
-	Reset Attribute = iota
+	Reset ColorAttribute = iota
 	Bold
 	Faint
 	Italic
@@ -34,7 +30,7 @@ const (
 
 // Foreground text colors
 const (
-	FgBlack Attribute = iota + 30
+	FgBlack ColorAttribute = iota + 30
 	FgRed
 	FgGreen
 	FgYellow
@@ -46,7 +42,7 @@ const (
 
 // Foreground Hi-Intensity text colors
 const (
-	FgHiBlack Attribute = iota + 90
+	FgHiBlack ColorAttribute = iota + 90
 	FgHiRed
 	FgHiGreen
 	FgHiYellow
@@ -58,7 +54,7 @@ const (
 
 // Background text colors
 const (
-	BgBlack Attribute = iota + 40
+	BgBlack ColorAttribute = iota + 40
 	BgRed
 	BgGreen
 	BgYellow
@@ -70,7 +66,7 @@ const (
 
 // Background Hi-Intensity text colors
 const (
-	BgHiBlack Attribute = iota + 100
+	BgHiBlack ColorAttribute = iota + 100
 	BgHiRed
 	BgHiGreen
 	BgHiYellow
@@ -80,11 +76,68 @@ const (
 	BgHiWhite
 )
 
-// ColorString converts a list of attributes to a color string
-func ColorString(attrs ...Attribute) string {
+var _ColorAttributeToString = map[ColorAttribute]string{
+	Reset:        "Reset",
+	Bold:         "Bold",
+	Faint:        "Faint",
+	Italic:       "Italic",
+	Underline:    "Underline",
+	BlinkSlow:    "BlinkSlow",
+	BlinkRapid:   "BlinkRapid",
+	ReverseVideo: "ReverseVideo",
+	Concealed:    "Concealed",
+	CrossedOut:   "CrossedOut",
+	FgBlack:      "FgBlack",
+	FgRed:        "FgRed",
+	FgGreen:      "FgGreen",
+	FgYellow:     "FgYellow",
+	FgBlue:       "FgBlue",
+	FgMagenta:    "FgMagenta",
+	FgCyan:       "FgCyan",
+	FgWhite:      "FgWhite",
+	FgHiBlack:    "FgHiBlack",
+	FgHiRed:      "FgHiRed",
+	FgHiGreen:    "FgHiGreen",
+	FgHiYellow:   "FgHiYellow",
+	FgHiBlue:     "FgHiBlue",
+	FgHiMagenta:  "FgHiMagenta",
+	FgHiCyan:     "FgHiCyan",
+	FgHiWhite:    "FgHiWhite",
+	BgBlack:      "BgBlack",
+	BgRed:        "BgRed",
+	BgGreen:      "BgGreen",
+	BgYellow:     "BgYellow",
+	BgBlue:       "BgBlue",
+	BgMagenta:    "BgMagenta",
+	BgCyan:       "BgCyan",
+	BgWhite:      "BgWhite",
+	BgHiBlack:    "BgHiBlack",
+	BgHiRed:      "BgHiRed",
+	BgHiGreen:    "BgHiGreen",
+	BgHiYellow:   "BgHiYellow",
+	BgHiBlue:     "BgHiBlue",
+	BgHiMagenta:  "BgHiMagenta",
+	BgHiCyan:     "BgHiCyan",
+	BgHiWhite:    "BgHiWhite",
+}
+
+func (c *ColorAttribute) String() string {
+	return _ColorAttributeToString[*c]
+}
+
+var _ColorAttributeFromString = map[string]ColorAttribute{}
+
+// ColorAttributeFromString will return a ColorAttribute given a string
+func ColorAttributeFromString(from string) ColorAttribute {
+	lowerFrom := strings.TrimSpace(strings.ToLower(from))
+	return _ColorAttributeFromString[lowerFrom]
+}
+
+// ColorString converts a list of ColorAttributes to a color string
+func ColorString(attrs ...ColorAttribute) string {
 	format := make([]string, len(attrs))
 	for i, a := range attrs {
-		format[i] = a.String()
+		format[i] = fmt.Sprintf("%d", a)
 	}
 	return fmt.Sprintf("%s[%sm", escape, strings.Join(format, ";"))
 }
@@ -115,4 +168,10 @@ var statusToColor = map[int]string{
 	403: ColorString(Underline, FgRed),
 	404: ColorString(Bold, FgRed),
 	500: ColorString(Bold, BgRed),
+}
+
+func init() {
+	for attr, from := range _ColorAttributeToString {
+		_ColorAttributeFromString[strings.ToLower(from)] = attr
+	}
 }
