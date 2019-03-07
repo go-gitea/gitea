@@ -988,9 +988,7 @@ func NewContext() {
 	}
 
 	PasswordComplexity = sec.Key("PASSWORD_COMPLEXITY").MustString("[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+")
-	if len(PasswordComplexity) == 0 {
-		PasswordComplexity = "[a-z]+[A-Z]+[0-9_]+[^A-Za-z0-9_]+"
-	}
+
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
