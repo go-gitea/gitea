@@ -129,23 +129,6 @@ func Create(ctx *context.Context) {
 	ctx.HTML(200, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
-	switch {
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
-	case models.IsErrNameReserved(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
-	default:
-		ctx.ServerError(name, err)
-	}
-}
 
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
@@ -187,7 +170,21 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
+	switch {
+	case models.IsErrReachLimitOfRepo(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctxUser.MaxCreationLimit()), tplCreate, form)
+	case models.IsErrRepoAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplCreate, form)
+	case models.IsErrNameReserved(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplCreate, form)
+	case models.IsErrNamePatternNotAllowed(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplCreate, form)
+	default:
+		ctx.ServerError("CreatePost", err)
+	}
 }
 
 // Migrate render migration of repository page
@@ -256,8 +253,26 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	if models.IsErrRepoAlreadyExist(err) {
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
+		return
+	}
+
+	if models.IsErrNameReserved(err) {
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplMigrate, &form)
+		return
+	}
+
+	if models.IsErrNamePatternNotAllowed(err) {
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplMigrate, &form)
+		return
+	}
+
 	// remoteAddr may contain credentials, so we sanitize it
-	sanitizedErr := util.URLSanitizedError(err, remoteAddr)
+	err = util.URLSanitizedError(err, remoteAddr)
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
@@ -265,18 +280,18 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		}
 	}
 
-	if strings.Contains(sanitizedErr.Error(), "Authentication failed") ||
-		strings.Contains(sanitizedErr.Error(), "could not read Username") {
+	if strings.Contains(err.Error(), "Authentication failed") ||
+		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
-		ctx.RenderWithErr(ctx.Tr("form.auth_failed", sanitizedErr.Error()), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
 		return
-	} else if strings.Contains(sanitizedErr.Error(), "fatal:") {
+	} else if strings.Contains(err.Error(), "fatal:") {
 		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", sanitizedErr.Error()), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tplMigrate, &form)
 		return
 	}
 
-	handleCreateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+	ctx.ServerError("MigratePost", err)
 }
 
 // Action response for actions to a repository
