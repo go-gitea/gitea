@@ -140,7 +140,7 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	}
 	if b.Flags&(Lshortfile|Llongfile) != 0 {
 		if b.Colorize {
-			*buf = append(*buf, fgWhiteString...)
+			*buf = append(*buf, fgGreenString...)
 		}
 		file := event.filename
 		if b.Flags&Lmedfile == Lmedfile {
@@ -168,7 +168,7 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	}
 	if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
 		if b.Colorize {
-			*buf = append(*buf, fgWhiteString...)
+			*buf = append(*buf, fgGreenString...)
 		}
 		funcname := event.caller
 		if b.Flags&Lshortfuncname != 0 {

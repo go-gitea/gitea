@@ -155,7 +155,7 @@ var levelToColor = map[Level]string{
 
 var resetString = ColorString(Reset)
 var fgCyanString = ColorString(FgCyan)
-var fgWhiteString = ColorString(FgWhite)
+var fgGreenString = ColorString(FgGreen)
 
 var statusToColor = map[int]string{
 	200: ColorString(Bold, FgGreen),
