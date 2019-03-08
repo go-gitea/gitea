@@ -560,6 +560,18 @@ var (
 		DefaultGitTreesPerPage: 1000,
 	}
 
+	OAuth2 = struct {
+		Enable                     bool
+		AccessTokenExpirationTime  int64
+		RefreshTokenExpirationTime int64
+		JWTSecretBytes             []byte `ini:"-"`
+		JWTSecretBase64            string `ini:"JWT_SECRET"`
+	}{
+		Enable:                     true,
+		AccessTokenExpirationTime:  3600,
+		RefreshTokenExpirationTime: 730,
+	}
+
 	U2F = struct {
 		AppID         string
 		TrustedFacets []string
@@ -922,7 +934,7 @@ func NewContext() {
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewLfsJwtSecret()
+			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
 				log.Fatal(4, "Error generating JWT Secret for custom config: %v", err)
 				return
@@ -944,6 +956,41 @@ func NewContext() {
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
 				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				return
+			}
+		}
+	}
+
+	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
+		log.Fatal(4, "Failed to OAuth2 settings: %v", err)
+		return
+	}
+
+	if OAuth2.Enable {
+		OAuth2.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(OAuth2.JWTSecretBytes, []byte(OAuth2.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
+			if err != nil {
+				log.Fatal(4, "error generating JWT secret: %v", err)
+				return
+			}
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "failed to load custom conf %s: %v", CustomConf, err)
+					return
+				}
+			}
+			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+
+			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+				log.Fatal(4, "failed to create '%s': %v", CustomConf, err)
+				return
+			}
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "error saving generating JWT secret to custom config: %v", err)
 				return
 			}
 		}
