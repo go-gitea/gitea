@@ -44,7 +44,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
    an absolute path.
-- `SCRIPT_TYPE`: **bash**: The script type this server supports, usually this is `bash`,
+- `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.

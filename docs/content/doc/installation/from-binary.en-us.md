@@ -26,7 +26,7 @@ chmod +x gitea
 ```
 
 ## Verify GPG signature
-Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vindex&fingerprint=on&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vindex&fingerprint=on&search=0x2D9AE806EC1592E2) to prevent against unwanted modification of binaries. To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
@@ -49,7 +49,7 @@ Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working 
 
 ### Prepare environment
 
-Check that Git is installed on the server, if it is not install it first.
+Check that Git is installed on the server. If it is not, install it first.
 ```sh
 git --version
 ```
@@ -77,7 +77,7 @@ chown root:git /etc/gitea
 chmod 770 /etc/gitea
 ```
 
-**NOTE:** `/etc/gitea` is temporary set with write rights for user `git` so that Web installer could write configuration file. After installation is done it is recommended to set rights to read-only using:
+**NOTE:** `/etc/gitea` is temporary set with write rights for user `git` so that Web installer could write configuration file. After installation is done, it is recommended to set rights to read-only using:
 ```
 chmod 750 /etc/gitea
 chmod 644 /etc/gitea/app.ini

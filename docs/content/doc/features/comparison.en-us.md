@@ -15,9 +15,9 @@ menu:
 
 # Gitea compared to other Git hosting options
 
-To help decide if Gitea is suited for your needs here is how it compares to other Git self hosted options.
+To help decide if Gitea is suited for your needs, here is how it compares to other Git self hosted options.
 
-Be warned that we don't regularly check for feature changes in other products so this list can be outdated. If you find anything that needs to be updated in table below please report [issue on GitHub](https://github.com/go-gitea/gitea/issues).
+Be warned that we don't regularly check for feature changes in other products, so this list may be outdated. If you find anything that needs to be updated in the table below, please report it in an [issue on GitHub](https://github.com/go-gitea/gitea/issues).
 
 _Symbols used in table:_
 

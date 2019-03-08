@@ -17,10 +17,10 @@ menu:
 
 ## Using built-in server
 
-Before you enable HTTPS make sure that you have valid SSL/TLS certificates.
+Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
 
-To use Gitea's built-in HTTPS support you must change your `app.ini` file:
+To use Gitea's built-in HTTPS support, you must change your `app.ini` file:
 
 ```ini
 [server]
@@ -48,7 +48,7 @@ If you are using Docker, make sure that this port is configured in your `docker-
 
 ## Using Let's Encrypt
 
-[Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
+[Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates, Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
 
 By using Let's Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 
@@ -74,5 +74,5 @@ After that, enable HTTPS by following one of these guides:
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
-Note: Your connection between your reverse proxy and Gitea might be unencrypted. To encrypt it too follow the [built-in server guide](#using-built-in-server) and change
+Note: Your connection between your reverse proxy and Gitea might be unencrypted. To encrypt it too, follow the [built-in server guide](#using-built-in-server) and change
 the proxy url to `https://[URL]`.

@@ -15,8 +15,8 @@ menu:
 
 # Webhooks
 
-Gitea supports web hooks for repository events, this can be found in the settings
-page(`/:username/:reponame/settings/hooks`). All event pushes are POST requests.
+Gitea supports web hooks for repository events. This can be found in the settings
+page `/:username/:reponame/settings/hooks`. All event pushes are POST requests.
 The two methods currently supported are Gitea and Slack.
 
 ### Event information

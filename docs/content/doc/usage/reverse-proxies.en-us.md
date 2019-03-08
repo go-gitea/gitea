@@ -14,7 +14,7 @@ menu:
 ---
 
 ##  Using Nginx as a reverse proxy
-If you want Nginx to serve your Gitea instance you can the following `server` section inside the `http` section of `nginx.conf`:
+If you want Nginx to serve your Gitea instance, you can the following `server` section inside the `http` section of `nginx.conf`:
 
 ```
 server {
@@ -46,7 +46,7 @@ Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration
 
 ## Using Apache HTTPD as a reverse proxy
 
-If you want Apache HTTPD to serve your Gitea instance you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
+If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
 
 ```
 <VirtualHost *:80>
@@ -83,7 +83,7 @@ Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
 ## Using Caddy as a reverse proxy
 
-If you want Caddy to serve your Gitea instance you can add the following server block to your Caddyfile:
+If you want Caddy to serve your Gitea instance, you can add the following server block to your Caddyfile:
 
 ```
 git.example.com {
