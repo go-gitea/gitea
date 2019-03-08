@@ -420,3 +420,7 @@ generate-images:
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
 	rm -rf $(TMPDIR)/images
+	
+.PHONY: pr
+pr:
+	$(GO) run contrib/pr/checkout.go $(PR)
