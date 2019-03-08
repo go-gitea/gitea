@@ -743,6 +743,7 @@ var (
 		"user",
 		"vendor",
 		"login",
+		"robots.txt",
 		".",
 		"..",
 	}
