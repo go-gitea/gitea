@@ -52,8 +52,8 @@ action = iptables-allports
 Make sure and read up on fail2ban and configure it to your needs, this bans someone 
 for **15 minutes** (from all ports) when they fail authentication 10 times in an hour.
 
-If you run Gitea behind a reverse proxy with nginx (for example with docker), you need to add
-this to your nginx configuration so that IPs don't show up as 127.0.0.1: 
+If you run Gitea behind a reverse proxy with Nginx (for example with Docker), you need to add
+this to your Nginx configuration so that IPs don't show up as 127.0.0.1: 
 
 ```
 proxy_set_header X-Real-IP $remote_addr;
