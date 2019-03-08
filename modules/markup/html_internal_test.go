@@ -218,9 +218,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
 	test("Look here http://localhost:3000/person/repo/issues/4",
-		`Look here <a href="http://localhost:3000/person/repo/issues/4">#4</a>`)
+		`Look here <a href="http://localhost:3000/person/repo/issues/4">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">person/repo#4</a>`)
+	test("http://localhost:3000/gogits/gogs/issues/4",
+		`<a href="http://localhost:3000/gogits/gogs/issues/4">#4</a>`)
 }
 
 func TestRegExp_issueNumericPattern(t *testing.T) {

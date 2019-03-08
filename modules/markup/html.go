@@ -540,9 +540,32 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 	link := node.Data[m[0]:m[1]]
 	id := "#" + node.Data[m[2]:m[3]]
-	// TODO if m[4]:m[5] is not nil, then link is to a comment,
-	// and we should indicate that in the text somehow
-	replaceContent(node, m[0], m[1], createLink(link, id))
+
+	// extract repo and org name from matched link like
+	// http://localhost:3000/gituser/myrepo/issues/1
+	linkParts := strings.Split(path.Clean(link), "/")
+	matchOrg := linkParts[len(linkParts)-4]
+	matchRepo := linkParts[len(linkParts)-3]
+
+	// extract the current org and repo from ctx URL like
+	// http://localhost:3000/gituser/myrepo/
+	urlParts := strings.Split(path.Clean(ctx.urlPrefix), "/")
+
+	if urlParts[len(urlParts)-1] == "wiki" {
+		urlParts = urlParts[:len(urlParts)-1]
+	}
+	currentOrg := urlParts[len(urlParts)-2]
+	currentRepo := urlParts[len(urlParts)-1]
+
+	if matchOrg == currentOrg && matchRepo == currentRepo {
+		// TODO if m[4]:m[5] is not nil, then link is to a comment,
+		// and we should indicate that in the text somehow
+		replaceContent(node, m[0], m[1], createLink(link, id))
+
+	} else {
+		orgRepoID := matchOrg + "/" + matchRepo + id
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID))
+	}
 }
 
 func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
