@@ -24,7 +24,8 @@ menu:
 [Using Gitea with Drone](https://docs.drone.io/installation/gitea/)
 
 
-### Migration
+### Migrating
+[Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
 [GitHub Migrator](https://gitea.com/gitea/migrator)
 
 
