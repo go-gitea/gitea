@@ -17,7 +17,7 @@ func TestNoClientID(t *testing.T) {
 	prepareTestEnv(t)
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	ctx := loginUser(t, "user2")
-	ctx.MakeRequest(t, req, 500)
+	ctx.MakeRequest(t, req, 400)
 }
 
 func TestLoginRedirect(t *testing.T) {
