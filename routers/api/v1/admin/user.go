@@ -10,8 +10,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	api "code.gitea.io/sdk/gitea"
+	"errors"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -72,7 +74,11 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if ctx.Written() {
 		return
 	}
-
+	if !util.CheckPasswordComplexity(form.Password) {
+		err := errors.New("PasswordComplexity")
+		ctx.Error(500, "PasswordComplexity",err)
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
@@ -131,6 +137,11 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if len(form.Password) > 0 {
+		if !util.CheckPasswordComplexity(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(500, "PasswordComplexity",err)
+			return
+		}
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(500, "UpdateUser", err)

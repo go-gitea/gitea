@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"code.gitea.io/gitea/modules/util"
 	"errors"
 	"fmt"
 	"os"
@@ -269,7 +270,10 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-
+	if !util.CheckPasswordComplexity(c.String("password")) {
+		err := errors.New("PasswordComplexity")
+		return err
+	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {
@@ -279,6 +283,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	user.HashPassword(c.String("password"))
+
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return err
 	}
