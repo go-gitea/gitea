@@ -26,8 +26,8 @@ a Payload URL:
 
 
 ```
-X-Github-Delivery: f6266f16-1bf3-46a5-9ea4-602e06ead473
-X-Github-Event: push
+X-GitHub-Delivery: f6266f16-1bf3-46a5-9ea4-602e06ead473
+X-GitHub-Event: push
 X-Gogs-Delivery: f6266f16-1bf3-46a5-9ea4-602e06ead473
 X-Gogs-Event: push
 X-Gitea-Delivery: f6266f16-1bf3-46a5-9ea4-602e06ead473
