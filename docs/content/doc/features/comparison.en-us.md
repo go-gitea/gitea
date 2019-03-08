@@ -118,7 +118,7 @@ _Symbols used in table:_
 | LDAP user synchronization | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | OpenId Connect support | ✓ | ✘ | ✓ | ✓ | ✓ | ? | ✘ |
 | OAuth 2.0 integration (external authorization) | ✓ | ✘ | ⁄ | ✓ | ✓ | ? | ✓ |
-| Act as OAuth 2.0 provider | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Act as OAuth 2.0 provider | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Two factor authentication (2FA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Mattermost/Slack integration | ✓ | ✓ | ⁄ | ✓ | ✓ | ⁄ | ✓ |
 | Discord integration | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
