@@ -742,6 +742,7 @@ var (
 		"template",
 		"user",
 		"vendor",
+		"robots.txt",
 		".",
 		"..",
 	}
