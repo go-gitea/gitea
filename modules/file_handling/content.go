@@ -16,6 +16,8 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.File
 	if ref == "" {
 		ref = "master"
 	}
+	if repo == nil {
+		return nil, Err	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)
 	treePath = cleanUploadFileName(treePath)

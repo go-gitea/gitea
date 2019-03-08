@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,7 +34,13 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
 	basePath := path.Join(models.LocalCopyPath(), "upload-"+timeStr+".git")
 	if err := os.MkdirAll(path.Dir(basePath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("Failed to create dir %s: %v", basePath, err)
+		return nil, fmt.Errorf("failed to create dir %s: %v", basePath, err)
+	}
+	if repo == nil {
+		return nil, fmt.Errorf("repository cannot be nil")
+	}
+	if repo.RepoPath() == "" {
+		return nil, fmt.Errorf("no path to repository on system")
 	}
 	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
 	return t, nil
@@ -51,7 +58,18 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 	if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
 		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
 		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
-		return fmt.Errorf("Clone: %v %s", err, stderr)
+		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
+			return models.ErrBranchNotExist{branch}
+		} else  if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
+			return models.ErrRepoNotExist{
+				ID: t.repo.ID,
+				UID: t.repo.OwnerID,
+				OwnerName: t.repo.OwnerName,
+				Name: t.repo.Name,
+			}
+		} else {
+			return fmt.Errorf("Clone: %v %s", err, stderr)
+		}
 	}
 	return nil
 }
@@ -186,7 +204,11 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 		t.basePath,
 		fmt.Sprintf("addObjectToIndex (git update-index): %s", t.basePath),
 		"git", "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath); err != nil {
-		return fmt.Errorf("git update-index: %s", stderr)
+		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
+			return models.ErrWithFilePath{objectPath}
+		} else {
+			return fmt.Errorf("git update-index: %s", stderr)
+		}
 	}
 	return nil
 }

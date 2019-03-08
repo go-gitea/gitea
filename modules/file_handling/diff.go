@@ -12,11 +12,14 @@ import (
 
 // GetDiffPreview produces and returns diff result of a file which is not yet committed.
 func GetDiffPreview(repo *models.Repository, branch, treePath, content string) (*models.Diff, error) {
+	if branch == "" {
+		branch = "master"
+	}
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer t.Close()
 	if err := t.Clone(branch); err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-func getDefaultOpts() (*DeleteRepoFileOptions) {
+func getDeleteReportFileOptions() (*DeleteRepoFileOptions) {
 	return &DeleteRepoFileOptions{
 		LastCommitID: "",
 		OldBranch:    "master",
@@ -26,7 +26,7 @@ func getDefaultOpts() (*DeleteRepoFileOptions) {
 	}
 }
 
-func getExpectedFileResponse() (*gitea.FileResponse) {
+func getExpectedDeleteFileResponse() (*gitea.FileResponse) {
 	return &gitea.FileResponse{
 		Content: nil,
 		Commit: &gitea.FileCommitResponse{
@@ -69,8 +69,8 @@ func TestDelete(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getDefaultOpts()
-	expectedFileResponse := getExpectedFileResponse()
+	opts := getDeleteReportFileOptions()
+	expectedFileResponse := getExpectedDeleteFileResponse()
 	fileResponse, err := DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
 	assert.Nil(t, err)
 	assert.EqualValues(t, fileResponse, expectedFileResponse)
@@ -90,8 +90,8 @@ func TestDeleteWithoutBranchNames(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getDefaultOpts()
-	expectedFileResponse := getExpectedFileResponse()
+	opts := getDeleteReportFileOptions()
+	expectedFileResponse := getExpectedDeleteFileResponse()
 	opts.OldBranch = ""
 	opts.NewBranch = ""
 	fileResponse, err := DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
@@ -109,7 +109,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	test.LoadGitRepo(t, ctx)
 
 	// Test bad branch:
-	opts := getDefaultOpts()
+	opts := getDeleteReportFileOptions()
 	opts.OldBranch = "bad_branch"
 	fileResponse, err := DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
 	assert.Nil(t, fileResponse)
@@ -117,7 +117,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, "branch does not exist [name: "+opts.OldBranch+"]")
 
 	// Test bad SHA:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	origSHA := opts.SHA
 	opts.SHA = "bad_sha"
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
@@ -126,7 +126,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, "file sha does not match ["+opts.SHA+" != "+origSHA+"]")
 
 	// Test new branch already exists:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	opts.NewBranch = "develop"
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
 	assert.Nil(t, fileResponse)
@@ -134,28 +134,28 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, "branch already exists [name: "+opts.NewBranch+"]")
 
 	// Test passed repo is nil:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	fileResponse, err = DeleteRepoFile(nil, ctx.User, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "repo not passed to DeleteRepoFile")
 
 	// Test passed doer is nil:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, nil, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "doer not passed to DeleteRepoFile")
 
 	// Test passed opts is nil:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, ctx.User, nil)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "opts not passed to DeleteRepoFile")
 
 	// Test treePath is empty:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	opts.TreePath = ""
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
 	assert.Nil(t, fileResponse)
@@ -163,25 +163,10 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, "file name is invalid: ")
 
 	// Test treePath is a git directory:
-	opts = getDefaultOpts()
+	opts = getDeleteReportFileOptions()
 	opts.TreePath = ".git"
 	fileResponse, err = DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "file name is invalid: "+opts.TreePath)
-}
-
-func TestDeleteRepoFileAuthorAndCommitter(t *testing.T) {
-	models.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
-	opts := getDefaultOpts()
-	opts.Author = &IdentityOptions{
-		Name: "User3",
-
-	}
 }
