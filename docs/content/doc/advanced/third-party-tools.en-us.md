@@ -1,6 +1,6 @@
 ---
 date: "2018-05-22T11:00:00+00:00"
-title: "Usage: Third Party Tools"
+title: "Advanced: Third Party Tools"
 slug: "third-party-tools"
 weight: 50
 toc: true
