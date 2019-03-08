@@ -726,6 +726,14 @@
   revision = "02ccfbfaf0cc627aa3aec8ef7ed5cfeec5b43f63"
 
 [[projects]]
+  digest = "1:63953ffb90bbc880c612d576fcfd973a5904277d25ec9e2d8d5719bf67969662"
+  name = "github.com/mvdan/xurls"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "e52e821cbfe8fe163ff6f8628ab5869b11fc05af"
+  version = "v2.0.0"
+
+[[projects]]
   digest = "1:2be1d891535ce3d6d2a3db9087f07415e909744e9eff1a30f8f0b2519df60ae6"
   name = "github.com/nfnt/resize"
   packages = ["."]
@@ -1293,6 +1301,7 @@
     "github.com/mcuadros/go-version",
     "github.com/microcosm-cc/bluemonday",
     "github.com/msteinert/pam",
+    "github.com/mvdan/xurls",
     "github.com/nfnt/resize",
     "github.com/pquerna/otp",
     "github.com/pquerna/otp/totp",
