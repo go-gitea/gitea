@@ -16,8 +16,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// These vars define the Authentication, Token, and Profile URLS for Gitlab. If
-// using Gitlab CE or EE, you should change these values before calling New.
+// These vars define the Authentication, Token, and Profile URLS for GitLab. If
+// using GitLab CE or EE, you should change these values before calling New.
 //
 // Examples:
 //	gitlab.AuthURL = "https://gitlab.acme.com/oauth/authorize
@@ -29,7 +29,7 @@ var (
 	ProfileURL = "https://gitlab.com/api/v3/user"
 )
 
-// Provider is the implementation of `goth.Provider` for accessing Gitlab.
+// Provider is the implementation of `goth.Provider` for accessing GitLab.
 type Provider struct {
 	ClientKey    string
 	Secret       string
@@ -42,7 +42,7 @@ type Provider struct {
 	profileURL   string
 }
 
-// New creates a new Gitlab provider and sets up important connection details.
+// New creates a new GitLab provider and sets up important connection details.
 // You should always call `gitlab.New` to get a new provider.  Never try to
 // create one manually.
 func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
@@ -79,14 +79,14 @@ func (p *Provider) Client() *http.Client {
 // Debug is a no-op for the gitlab package.
 func (p *Provider) Debug(debug bool) {}
 
-// BeginAuth asks Gitlab for an authentication end-point.
+// BeginAuth asks GitLab for an authentication end-point.
 func (p *Provider) BeginAuth(state string) (goth.Session, error) {
 	return &Session{
 		AuthURL: p.config.AuthCodeURL(state),
 	}, nil
 }
 
-// FetchUser will go to Gitlab and access basic information about the user.
+// FetchUser will go to GitLab and access basic information about the user.
 func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	sess := session.(*Session)
 	user := goth.User{
