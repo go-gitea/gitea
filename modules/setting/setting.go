@@ -7,6 +7,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -668,7 +669,7 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
-	log.NewLogger(0, "console", "console", `{"level": 0}`)
+	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t}`, !IsWindows))
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
