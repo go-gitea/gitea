@@ -19,7 +19,7 @@ This page contains some common seen issues and their solutions.
 
 ## SSH issues
 
-For issues reaching repositories over `ssh` while the gitea web front-end, but
+For issues reaching repositories over `ssh` while the Gitea web front-end, but
 `https` based git repository access works fine, consider looking into the following.
 
 ```
@@ -43,7 +43,7 @@ following things:
   * Verify that the correct public keys are added to `.ssh/authorized_keys`.
     Try to run `Rewrite '.ssh/authorized_keys' file (for Gitea SSH keys)` on the
     Gitea admin panel.
-  * Read gitea logs.
+  * Read Gitea logs.
   * Read /var/log/auth (or similar).
   * Check permissions of repositories.
 
@@ -76,7 +76,7 @@ To migrate an repository *with* all tags you need to do two things
  git push --tags
  ```
  
- * (Re-)sync tags of all repositories within gitea:
+ * (Re-)sync tags of all repositories within Gitea:
  ```
  gitea admin repo-sync-releases
  ```
