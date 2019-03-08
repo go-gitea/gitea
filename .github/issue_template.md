@@ -1,3 +1,5 @@
+<!-- NOTE: If your issue is a security concern, please send an email to security@gitea.io instead of opening a public issue -->
+
 <!--
     1. Please speak English, this is the language all of us can speak and write.
     2. Please ask questions or configuration/deploy problems on our Discord 
