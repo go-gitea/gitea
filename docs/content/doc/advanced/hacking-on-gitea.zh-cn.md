@@ -24,7 +24,7 @@ menu:
 go get -d code.gitea.io/gitea
 ```
 
-然后你可以在 Github 上 fork [Gitea 项目](https://github.com/go-gitea/gitea)，之后可以通过下面的命令进入源码目录：
+然后你可以在 GitHub 上 fork [Gitea 项目](https://github.com/go-gitea/gitea)，之后可以通过下面的命令进入源码目录：
 
 ```
 cd $GOPATH/src/code.gitea.io/gitea

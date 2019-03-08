@@ -495,12 +495,12 @@ func secondPass(p *parser, input []byte) []byte {
 // The basic format is:
 //
 //    [1]: http://www.google.com/ "Google"
-//    [2]: http://www.github.com/ "Github"
+//    [2]: http://www.github.com/ "GitHub"
 //
 // Anywhere in the document, the reference can be linked by referring to its
 // label, i.e., 1 and 2 in this example, as in:
 //
-//    This library is hosted on [Github][2], a git hosting site.
+//    This library is hosted on [GitHub][2], a git hosting site.
 //
 // Actual footnotes as specified in Pandoc and supported by some other Markdown
 // libraries such as php-markdown are also taken care of. They look like this:

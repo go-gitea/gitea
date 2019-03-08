@@ -49,7 +49,7 @@ is the relevant line - however this may change.)
 Go is quite opinionated about where it expects its source code, and simply
 cloning the Gitea repository to an arbitrary path is likely to lead to
 problems - the fixing of which is out of scope for this document. Further some
-internal packages are referenced using their respective Github URL and at
+internal packages are referenced using their respective GitHub URL and at
 present we use `vendor/` directories.
 
 The recommended method of obtaining the source code is by using the `go get` command:

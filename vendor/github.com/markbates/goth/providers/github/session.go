@@ -8,13 +8,13 @@ import (
 	"github.com/markbates/goth"
 )
 
-// Session stores data during the auth process with Github.
+// Session stores data during the auth process with GitHub.
 type Session struct {
 	AuthURL     string
 	AccessToken string
 }
 
-// GetAuthURL will return the URL set by calling the `BeginAuth` function on the Github provider.
+// GetAuthURL will return the URL set by calling the `BeginAuth` function on the GitHub provider.
 func (s Session) GetAuthURL() (string, error) {
 	if s.AuthURL == "" {
 		return "", errors.New(goth.NoAuthUrlErrorMessage)
@@ -22,7 +22,7 @@ func (s Session) GetAuthURL() (string, error) {
 	return s.AuthURL, nil
 }
 
-// Authorize the session with Github and return the access token to be stored for future use.
+// Authorize the session with GitHub and return the access token to be stored for future use.
 func (s *Session) Authorize(provider goth.Provider, params goth.Params) (string, error) {
 	p := provider.(*Provider)
 	token, err := p.config.Exchange(goth.ContextForClient(p.Client()), params.Get("code"))
