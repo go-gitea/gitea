@@ -92,7 +92,7 @@ func checkOAuthAccessToken(accessToken string) int64 {
 	}
 	token, err := models.ParseOAuth2Token(accessToken)
 	if err != nil {
-		log.Trace("ParseOAuth2Token", err)
+		log.Trace("ParseOAuth2Token: %v", err)
 		return 0
 	}
 	var grant *models.OAuth2Grant

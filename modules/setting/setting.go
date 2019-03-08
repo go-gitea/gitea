@@ -571,7 +571,7 @@ var (
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
 	}{
-		Enable:                     true,
+		Enable: true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 	}
