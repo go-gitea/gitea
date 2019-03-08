@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:8fc6087da8ce81094b7a7c8a5b2dc496cd04333ce7b0068826c7e2ff5d004e1e"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "6cba05a15095efee8d444c36e5363e22939bdd84"
 
 [[projects]]
   branch = "master"
@@ -1331,6 +1331,9 @@
     "gopkg.in/ini.v1",
     "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/config",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]
