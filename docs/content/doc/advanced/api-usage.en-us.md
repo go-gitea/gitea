@@ -36,7 +36,7 @@ better understand this by looking at the code -- as of this writing,
 Gitea parses queries and headers to find the token in
 [modules/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/modules/auth/auth.go#L47).
 
-You can create an apiKey token via your Gitea install's web interface:
+You can create an apiKey token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
 ### More on the `Authorization:` header
