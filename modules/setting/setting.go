@@ -966,7 +966,7 @@ func NewContext() {
 	}
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
-		log.Fatal(4, "Failed to OAuth2 settings: %v", err)
+		log.Fatal(0, "Failed to OAuth2 settings: %v", err)
 		return
 	}
 
@@ -977,24 +977,24 @@ func NewContext() {
 		if err != nil || n != 32 {
 			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
-				log.Fatal(4, "error generating JWT secret: %v", err)
+				log.Fatal(0, "error generating JWT secret: %v", err)
 				return
 			}
 			cfg := ini.Empty()
 			if com.IsFile(CustomConf) {
 				if err := cfg.Append(CustomConf); err != nil {
-					log.Error(4, "failed to load custom conf %s: %v", CustomConf, err)
+					log.Error(0, "failed to load custom conf %s: %v", CustomConf, err)
 					return
 				}
 			}
 			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
 
 			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal(4, "failed to create '%s': %v", CustomConf, err)
+				log.Fatal(0, "failed to create '%s': %v", CustomConf, err)
 				return
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal(4, "error saving generating JWT secret to custom config: %v", err)
+				log.Fatal(0, "error saving generating JWT secret to custom config: %v", err)
 				return
 			}
 		}
