@@ -74,4 +74,12 @@ func loadApplicationsData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tokens"] = tokens
+	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	if setting.OAuth2.Enable {
+		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			return
+		}
+	}
 }
