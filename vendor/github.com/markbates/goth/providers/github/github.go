@@ -1,4 +1,4 @@
-// Package github implements the OAuth2 protocol for authenticating users through GitHub.
+// Package github implements the OAuth2 protocol for authenticating users through Github.
 // This package can be used as a reference implementation of an OAuth2 provider for Goth.
 package github
 
@@ -33,7 +33,7 @@ var (
 	EmailURL   = "https://api.github.com/user/emails"
 )
 
-// New creates a new GitHub provider, and sets up important connection details.
+// New creates a new Github provider, and sets up important connection details.
 // You should always call `github.New` to get a new Provider. Never try to create
 // one manually.
 func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
@@ -54,7 +54,7 @@ func NewCustomisedURL(clientKey, secret, callbackURL, authURL, tokenURL, profile
 	return p
 }
 
-// Provider is the implementation of `goth.Provider` for accessing GitHub.
+// Provider is the implementation of `goth.Provider` for accessing Github.
 type Provider struct {
 	ClientKey    string
 	Secret       string
@@ -83,7 +83,7 @@ func (p *Provider) Client() *http.Client {
 // Debug is a no-op for the github package.
 func (p *Provider) Debug(debug bool) {}
 
-// BeginAuth asks GitHub for an authentication end-point.
+// BeginAuth asks Github for an authentication end-point.
 func (p *Provider) BeginAuth(state string) (goth.Session, error) {
 	url := p.config.AuthCodeURL(state)
 	session := &Session{
@@ -92,7 +92,7 @@ func (p *Provider) BeginAuth(state string) (goth.Session, error) {
 	return session, nil
 }
 
-// FetchUser will go to GitHub and access basic information about the user.
+// FetchUser will go to Github and access basic information about the user.
 func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	sess := session.(*Session)
 	user := goth.User{

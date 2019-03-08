@@ -26,7 +26,7 @@ sudo vim /etc/systemd/system/gitea.service
 
 修改 user，home 目录以及其他必须的初始化参数，如果使用自定义端口，则需修改 PORT 参数，反之如果使用默认端口则需删除 -p 标记。
 
-激活 Gitea 并将它作为系统自启动服务：
+激活 gitea 并将它作为系统自启动服务：
 ```
 sudo systemctl enable gitea
 sudo systemctl start gitea
@@ -42,7 +42,7 @@ sudo apt install supervisor
 
 为 supervisor 配置日志路径：
 ```
-# assuming Gitea is installed in /home/git/gitea/
+# assuming gitea is installed in /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
 ```
 
@@ -54,7 +54,7 @@ sudo vim /etc/supervisor/supervisord.conf
 增加如下示例配置
 [supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea)。
 
-将 user (git) 和 home (/home/git) 设置为与上文部署中匹配的值。如果使用自定义端口，则需修改 PORT 参数，反之如果使用默认端口则需删除 -p 标记。
+将 user(git) 和 home(/home/git) 设置为与上文部署中匹配的值。如果使用自定义端口，则需修改 PORT 参数，反之如果使用默认端口则需删除 -p 标记。
 
 最后激活 supervisor 并将它作为系统自启动服务：
 ```

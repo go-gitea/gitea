@@ -17,7 +17,7 @@ menu:
 
 这里列出了 Gitea 与其它一些 Git 托管工具之间的异同，以便确认 Gitea 是否能够满足您的需求。
 
-请注意，此列表中的某些表项可能已经过时，因为我们并没有定期检查其它产品的功能是否有所更改。你可以前往 [GitHub issue](https://github.com/go-gitea/gitea/issues) 来帮助我们更新过时的内容，感谢！
+请注意，此列表中的某些表项可能已经过时，因为我们并没有定期检查其它产品的功能是否有所更改。你可以前往 [Github issue](https://github.com/go-gitea/gitea/issues) 来帮助我们更新过时的内容，感谢！
 
 _表格中的符号含义:_
 
