@@ -345,6 +345,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
 
+## OAuth2 (`oauth2`)
+
+- `ENABLED`: **true**: Enables OAuth2 provider.
+- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+
 ## i18n (`i18n`)
 
 - `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
