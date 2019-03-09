@@ -5,8 +5,10 @@
 package user
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-macaron/binding"
@@ -357,6 +359,30 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 }
 
 func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
+	if form.ClientID == "" && form.ClientSecret == "" {
+		authHeader := ctx.Header().Get("Authorization")
+		authContent := strings.SplitN(authHeader, " ", 2)
+		if len(authContent) == 2 && authContent[0] == "Basic" {
+			payload, err := base64.StdEncoding.DecodeString(authContent[1])
+			if err != nil {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			pair := strings.SplitN(string(payload), ":", 2)
+			if len(pair) != 2 {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			form.ClientID = pair[0]
+			form.ClientSecret = pair[1]
+		}
+	}
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
