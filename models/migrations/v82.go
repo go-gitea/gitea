@@ -36,7 +36,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 
 	for start := 0; ; start += batchSize {
 		releases := make([]*Release, 0, batchSize)
-		if err = sess.Limit(batchSize, start).Where("is_tag=?", false).Find(&releases); err != nil {
+		if err = sess.Limit(batchSize, start).Asc("id").Where("is_tag=?", false).Find(&releases); err != nil {
 			return err
 		}
 		if len(releases) == 0 {
