@@ -16,86 +16,71 @@ func (c *Client) GetFile(user, repo, ref, tree string) ([]byte, error) {
 
 // IdentityOptions for a person's identity like an author or committer
 type IdentityOptions struct {
-	Name string `json:"name" binding:"MaxSize(100)"`
+	// required: true
+	Name  string `json:"name" binding:"MaxSize(100)"`
+	// required: true
 	// swagger:strfmt email
-	Email string `json:"email" binding:"MaxSize(254)"`
+	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
 }
 
-// FileOptions options for all file APIs
-type FileOptions struct {
-	Message       string          `json:"message"" binding:"Required"`
-	BranchName    string          `json:"branch"`
-	NewBranchName string          `json:"new_branch"`
-	Author        IdentityOptions `json:"author"`
-	Committer     IdentityOptions `json:"committer"`
-}
-
-// CreateFileOptions options for creating files
+// CreateFileOptions options to create or update a file in a repo
 type CreateFileOptions struct {
-	*FileOptions
-	Content string `json:"content"`
+	Message     string `json:"message"" binding:"Required"`
+	Content     string `json:"content"`
+	Branch      string `json:"branch"`
+	Author 	    User   `json:"author"`
+	Committer   User   `json:"committer"`
 }
 
-// DeleteFileOptions options for deleting files (used for other File structs below)
-type DeleteFileOptions struct {
-	*FileOptions
-	SHA string `json:"sha" binding:"Required"`
-}
-
-// UpdateFileOptions options for updating files
+// UpdateFileOptions options to create or update a file in a repo
 type UpdateFileOptions struct {
-	*DeleteFileOptions
-	Content  string `json:"content"`
-	FromPath string `json:"from_path binding:"MaxSize(500)`
+	CreateFileOptions
+	SHA	    string `json:"sha" binding:"Required"`
 }
 
-// FileLinksResponse contains the links for a repo's file
-type FileLinksResponse struct {
-	Self    string `json:"url"`
-	GitURL  string `json:"git_url"`
-	HTMLURL string `json:"html_url"`
+// DeleteFileOptions options to create or update a file in a repo
+type DeleteFileOptions struct {
+	UpdateFileOptions
+}
+
+// FileLink contains the links for a repo's file
+type FileLink struct {
+	SelfL    string `json:"url"`
+	GitURL    string `json:"git_url"`
+	HTMLURL    string `json:"html_url"`
 }
 
 // FileContent contains information about a repo's file stats and content
-type FileContentResponse struct {
-	Name        string             `json:"name"`
-	Path        string             `json:"path"`
-	SHA         string             `json:"sha"`
-	Size        int64              `json:"size"`
-	URL         string             `json:"url"`
-	HTMLURL     string             `json:"html_url"`
-	GitURL      string             `json:"git_url"`
-	DownloadURL string             `json:"download_url"`
-	Type        string             `json:"type"`
-	Links       *FileLinksResponse `json:"_links"`
+type FileContent struct {
+	name   string        `json:"name"`
+	path   string         `json:"path"`
+	SHA    string `json:"sha"`
+	Size   int64  `json:"size"`
+	URL    string `json:"url"`
+	HTMLURL    string `json:"html_url"`
+	GitURL    string `json:"git_url"`
+	DownloadURL    string `json:"download_url"`
+	Type      string        `json:"type"`
+	Links   []*FileLink        `json:"_links"`
 }
 
 // FileCommit contains information generated from a Git commit for a repo's file.
-type FileCommitResponse struct {
+type FileCommit struct {
 	*CommitMeta
 	HTMLURL   string        `json:"html_url"`
-	Author    *CommitUser   `json:"author"`
-	Committer *CommitUser   `json:"committer"`
-	Parents   *[]CommitMeta `json:"parents"`
+	Author    *User         `json:"author"`
+	Committer *User         `json:"committer"`
+	Parents   []*CommitMeta `json:"parents"`
+	NodeID    string        `json:"node_id"`
 	Message   string        `json:"message"`
-	Tree      *CommitMeta   `json:"tree"`
+	Tree      *CommitMeta `json:"tree"`
 }
 
 // FileResponse contains information about a repo's file
-type FileResponse struct {
-	Content      *FileContentResponse       `json:"content"`
-	Commit       *FileCommitResponse        `json:"commit"`
-	Verification *PayloadCommitVerification `json:"verification"`
+type FileResponpse struct {
+	Content	     FileContent               `json:"content"`
+	Commit       FileCommit                   `json:"commit"`
+	Verification PayloadCommitVerification `json:"verification"`
 }
 
-// FileDeleteResponse contains information about a repo's file that was deleted
-type FileDeleteResponse struct {
-	Content      interface{}                `json:"content"` // to be set to nil
-	Commit       *FileCommitResponse        `json:"commit"`
-	Verification *PayloadCommitVerification `json:"verification"`
-}
 
-type FileError struct {
-	Message          string `json:"message"`
-	DocumentationUrl string ``
-}
