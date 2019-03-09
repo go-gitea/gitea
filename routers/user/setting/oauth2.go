@@ -78,6 +78,7 @@ func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2Application
 	ctx.HTML(200, tplSettingsOAuthApplications)
 }
 
+// OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
 func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
