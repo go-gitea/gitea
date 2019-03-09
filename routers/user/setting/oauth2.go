@@ -78,6 +78,34 @@ func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2Application
 	ctx.HTML(200, tplSettingsOAuthApplications)
 }
 
+// OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
+func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	if err != nil {
+		if models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound("Application not found", err)
+			return
+		}
+		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		return
+	}
+	if app.UID != ctx.User.ID {
+		ctx.NotFound("Application not found", nil)
+		return
+	}
+	ctx.Data["App"] = app
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	if err != nil {
+		ctx.ServerError("GenerateClientSecret", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
+	ctx.HTML(200, tplSettingsOAuthApplications)
+}
+
 // OAuth2ApplicationShow displays the given application
 func OAuth2ApplicationShow(ctx *context.Context) {
 	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
