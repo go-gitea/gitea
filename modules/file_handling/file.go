@@ -4,12 +4,19 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/sdk/gitea"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
 )
 
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*gitea.FileResponse, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repo cannot be nil")
+	}
+	if commit == nil {
+		return nil, fmt.Errorf("commit cannot be nil")
+	}
 	fileContents, _ := GetFileContents(repo, treeName, branch)   // ok if fails, then will be nil
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
@@ -22,6 +29,12 @@ func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, bran
 }
 
 func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*gitea.FileCommitResponse, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repo cannot be nil")
+	}
+	if commit == nil {
+		return nil, fmt.Errorf("commit cannot be nil")
+	}
 	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + commit.ID.String())
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + commit.Tree.ID.String())
 	parents := make([]gitea.CommitMeta, commit.ParentCount())

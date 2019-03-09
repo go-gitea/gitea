@@ -100,7 +100,6 @@ func TestGetFileResponseFromCommitErrors(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	commit, err := gitRepo.GetBranchCommit(branch)
-	expectedFileResponse := getExpectedFileResponse()
 
 	// nil repo
 	fileResponse, err := GetFileResponseFromCommit(nil, commit, branch, treePath)
