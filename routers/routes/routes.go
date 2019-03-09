@@ -302,6 +302,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/applications/oauth2", func() {
 			m.Get("/:id", userSetting.OAuth2ApplicationShow)
 			m.Post("/:id", bindIgnErr(auth.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsEdit)
+			m.Post("/:id/regenerate_secret", userSetting.OAuthApplicationsRegenerateSecret)
 			m.Post("", bindIgnErr(auth.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsPost)
 			m.Post("/delete", userSetting.DeleteOAuth2Application)
 		})
