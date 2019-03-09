@@ -389,6 +389,7 @@ var (
 	RouterLogMode      string
 	EnableAccessLog    bool
 	AccessLogTemplate  string
+	EnableXORMLog      bool
 
 	// Attachment settings
 	AttachmentPath         string

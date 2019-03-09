@@ -305,6 +305,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
 ### Log subsections (`log.name`, `log.*.name`)
 

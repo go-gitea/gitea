@@ -15,21 +15,24 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/core"
 	ini "gopkg.in/ini.v1"
 )
 
 type defaultLogOptions struct {
-	levelName string // LogLevel
-	flags     int
-	filename  string //path.Join(LogRootPath, "gitea.log")
+	levelName      string // LogLevel
+	flags          int
+	filename       string //path.Join(LogRootPath, "gitea.log")
+	bufferLength   int64
+	disableConsole bool
 }
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName: LogLevel,
-		flags:     0,
-		filename:  filepath.Join(LogRootPath, "gitea.log"),
+		levelName:      LogLevel,
+		flags:          0,
+		filename:       filepath.Join(LogRootPath, "gitea.log"),
+		bufferLength:   10000,
+		disableConsole: false,
 	}
 }
 
@@ -120,7 +123,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 
 func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
 	description := LogDescription{}
-	bufferLength := Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 
 	description.Sections = strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 	description.Configs = make([]string, len(description.Sections))
@@ -130,7 +132,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	}
 
 	for i, name := range description.Sections {
-		if len(name) == 0 {
+		if len(name) == 0 || (name == "console" && options.disableConsole) {
 			continue
 		}
 		sec, err := Cfg.GetSection("log." + name + "." + key)
@@ -141,7 +143,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 		var levelName, provider string
 		provider, description.Configs[i], levelName = generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, bufferLength, name, provider, description.Configs[i])
+		log.NewNamedLogger(key, options.bufferLength, name, provider, description.Configs[i])
 		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
 	}
 	return &description
@@ -150,6 +152,8 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 func newMacaronLogService() {
 	options := newDefaultLogOptions()
 	options.filename = filepath.Join(LogRootPath, "macaron.log")
+	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+
 	Cfg.Section("log").Key("MACARON").MustString("file")
 	if RedirectMacaronLog {
 		generateNamedLogger("macaron", options)
@@ -165,6 +169,7 @@ func newAccessLogService() {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
 		options.flags = -1 // For the router we don't want any prefixed flags
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 		generateNamedLogger("access", options)
 	}
 }
@@ -176,6 +181,7 @@ func newRouterLogService() {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = 3 // For the router we don't want any prefixed flags
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 		generateNamedLogger("router", options)
 	}
 }
@@ -184,13 +190,12 @@ func newLogService() {
 	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
 	options := newDefaultLogOptions()
+	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 
 	LogDescriptions["default"] = &LogDescription{}
 
 	LogDescriptions["default"].Sections = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogDescriptions["default"].Configs = make([]string, len(LogDescriptions["default"].Sections))
-
-	bufferLength := Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 
 	useConsole := false
 	for i := 0; i < len(LogDescriptions["default"].Sections); i++ {
@@ -216,7 +221,7 @@ func newLogService() {
 
 		var levelName, provider string
 		provider, LogDescriptions["default"].Configs[i], levelName = generateLogConfig(sec, name, options)
-		log.NewLogger(bufferLength, name, provider, LogDescriptions["default"].Configs[i])
+		log.NewLogger(options.bufferLength, name, provider, LogDescriptions["default"].Configs[i])
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
@@ -228,47 +233,19 @@ func newLogService() {
 
 // NewXORMLogService initializes xorm logger service
 func NewXORMLogService(disableConsole bool) {
-	options := newDefaultLogOptions()
-	options.filename = filepath.Join(LogRootPath, "xorm.log")
-	bufferLength := Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
+	if EnableXORMLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(LogRootPath, "xorm.log")
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		options.disableConsole = disableConsole
 
-	hasXormLogger := false
+		Cfg.Section("log").Key("XORM").MustString(",")
+		generateNamedLogger("xorm", options)
+		log.InitXORMLogger(true)
 
-	logNames := strings.Split(Cfg.Section("log").Key("XORM").MustString(""), ",")
-	for _, name := range logNames {
-		name = strings.TrimSpace(name)
-
-		if len(name) == 0 || (disableConsole && name == "console") {
-			continue
-		}
-
-		sec, err := Cfg.GetSection("log." + name + ".xorm")
-		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name + ".xorm")
-		}
-
-		provider, config, levelName := generateLogConfig(sec, name, options)
-		log.NewXORMLogger(bufferLength, name, provider, config)
-		hasXormLogger = true
-		log.Info("XORM Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
-
-		var lvl core.LogLevel
-		switch levelName {
-		case "Trace", "Debug":
-			lvl = core.LOG_DEBUG
-		case "Info":
-			lvl = core.LOG_INFO
-		case "Warn":
-			lvl = core.LOG_WARNING
-		case "Error", "Critical":
-			lvl = core.LOG_ERR
-		}
-		log.XORMLogger.SetLevel(lvl)
-	}
-
-	if !hasXormLogger {
-		log.DiscardXORMLogger()
-	} else {
 		log.XORMLogger.ShowSQL(LogSQL)
+	} else {
+		log.InitXORMLogger(false)
 	}
 }
