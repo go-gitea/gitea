@@ -8,16 +8,21 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/sdk/gitea"
+	"fmt"
 	"net/url"
 )
 
 // GetFileContents gets the meta data on a file's contents
 func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.FileContentResponse, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repo cannot be nil")
+	}
+	if treePath == "" {
+		return nil, fmt.Errorf("treePath cannot be empty")
+	}
 	if ref == "" {
 		ref = "master"
 	}
-	if repo == nil {
-		return nil, Err	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)
 	treePath = cleanUploadFileName(treePath)

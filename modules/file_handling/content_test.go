@@ -56,7 +56,7 @@ func TestGetFileContents(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestGetFileContentsBadInput(t *testing.T) {
+func TestGetFileContentsErrors(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -64,20 +64,34 @@ func TestGetFileContentsBadInput(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	repo := ctx.Repo.Repository
+	treePath := "README.md"
+	ref := "master"
+
+	// nil repo
+	fileContentResponse, err := GetFileContents(nil, treePath, ref)
+	assert.Error(t, err);
+	assert.EqualError(t, err, "repo cannot be nil")
+	assert.Nil(t, fileContentResponse)
+
+	// empty treePath
+	badTreePath := ""
+	fileContentResponse, err = GetFileContents(repo, badTreePath, ref)
+	assert.Error(t, err);
+	assert.EqualError(t, err, "treePath cannot be empty")
+	assert.Nil(t, fileContentResponse)
 
 	// bad treePath
-	treePath := "bad/tree.md"
-	ref := "master"
-	fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref)
+	badTreePath = "bad/tree.md"
+	fileContentResponse, err = GetFileContents(repo, badTreePath, ref)
 	assert.Error(t, err);
 	assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
 	assert.Nil(t, fileContentResponse)
 
 	// bad ref
-	treePath = "README.md"
-	ref = "badref"
-	fileContentResponse, err = GetFileContents(ctx.Repo.Repository, treePath, ref)
+	badRef := "bad_ref"
+	fileContentResponse, err = GetFileContents(repo, treePath, badRef)
 	assert.Error(t, err);
-	assert.EqualError(t, err, "object does not exist [id: "+ref+", rel_path: ]")
+	assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 	assert.Nil(t, fileContentResponse)
 }
