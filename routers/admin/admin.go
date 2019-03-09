@@ -243,11 +243,13 @@ func Config(ctx *context.Context) {
 	type logger struct {
 		Mode, Config string
 	}
-	loggers := make([]*logger, len(setting.LogDescriptions["default"].Sections))
-	for i := range setting.LogDescriptions["default"].Sections {
-		loggers[i] = &logger{setting.LogDescriptions["default"].Sections[i], setting.LogDescriptions["default"].Configs[i]}
-	}
-	ctx.Data["Loggers"] = loggers
+	ctx.Data["Loggers"] = setting.LogDescriptions
+	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
+	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
+	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
+	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
+	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["LogSQL"] = setting.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }

@@ -36,10 +36,17 @@ func newDefaultLogOptions() defaultLogOptions {
 	}
 }
 
-// LogDescription describes a logger
+// SubLogDescription describes a sublogger
+type SubLogDescription struct {
+	Name     string
+	Provider string
+	Config   string
+}
+
+// LogDescription describes a named logger
 type LogDescription struct {
-	Sections []string
-	Configs  []string
+	Name               string
+	SubLogDescriptions []SubLogDescription
 }
 
 func getLogLevel(section *ini.Section, key string, defaultValue string) string {
@@ -122,16 +129,19 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 }
 
 func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
-	description := LogDescription{}
-
-	description.Sections = strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
-	description.Configs = make([]string, len(description.Sections))
-
-	for i := 0; i < len(description.Sections); i++ {
-		description.Sections[i] = strings.TrimSpace(description.Sections[i])
+	description := LogDescription{
+		Name: key,
 	}
 
-	for i, name := range description.Sections {
+	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
+
+	//description.Configs = make([]string, len(description.Sections))
+
+	for i := 0; i < len(sections); i++ {
+		sections[i] = strings.TrimSpace(sections[i])
+	}
+
+	for _, name := range sections {
 		if len(name) == 0 || (name == "console" && options.disableConsole) {
 			continue
 		}
@@ -140,12 +150,20 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 			sec, _ = Cfg.NewSection("log." + name + "." + key)
 		}
 
-		var levelName, provider string
-		provider, description.Configs[i], levelName = generateLogConfig(sec, name, options)
+		provider, config, levelName := generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, options.bufferLength, name, provider, description.Configs[i])
+		log.NewNamedLogger(key, options.bufferLength, name, provider, config)
+
+		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
+			Name:     name,
+			Provider: provider,
+			Config:   config,
+		})
 		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
 	}
+
+	LogDescriptions[key] = &description
+
 	return &description
 }
 
@@ -192,15 +210,17 @@ func newLogService() {
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 
-	LogDescriptions["default"] = &LogDescription{}
+	description := LogDescription{
+		Name: "default",
+	}
 
-	LogDescriptions["default"].Sections = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
-	LogDescriptions["default"].Configs = make([]string, len(LogDescriptions["default"].Sections))
+	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	//LogDescriptions["default"].Configs = make([]string, len(LogDescriptions["default"].Sections))
 
 	useConsole := false
-	for i := 0; i < len(LogDescriptions["default"].Sections); i++ {
-		LogDescriptions["default"].Sections[i] = strings.TrimSpace(LogDescriptions["default"].Sections[i])
-		if LogDescriptions["default"].Sections[i] == "console" {
+	for i := 0; i < len(sections); i++ {
+		sections[i] = strings.TrimSpace(sections[i])
+		if sections[i] == "console" {
 			useConsole = true
 		}
 	}
@@ -209,7 +229,7 @@ func newLogService() {
 		log.DelLogger("console")
 	}
 
-	for i, name := range LogDescriptions["default"].Sections {
+	for _, name := range sections {
 		if len(name) == 0 {
 			continue
 		}
@@ -219,11 +239,17 @@ func newLogService() {
 			sec, _ = Cfg.NewSection("log." + name)
 		}
 
-		var levelName, provider string
-		provider, LogDescriptions["default"].Configs[i], levelName = generateLogConfig(sec, name, options)
-		log.NewLogger(options.bufferLength, name, provider, LogDescriptions["default"].Configs[i])
+		provider, config, levelName := generateLogConfig(sec, name, options)
+		log.NewLogger(options.bufferLength, name, provider, config)
+		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
+			Name:     name,
+			Provider: provider,
+			Config:   config,
+		})
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
+
+	LogDescriptions["default"] = &description
 
 	// Finally redirect the default golog to here
 	golog.SetFlags(0)
