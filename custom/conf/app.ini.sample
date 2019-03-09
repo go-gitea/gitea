@@ -321,6 +321,8 @@ IMPORT_LOCAL_PATHS = false
 DISABLE_GIT_HOOKS = false
 ; Password Hash algorithm, either "pbkdf2", "argon2", "scrypt" or "bcrypt"
 PASSWORD_HASH_ALGO = pbkdf2
+; Set false to allow JavaScript to read CSRF cookie
+CSRF_COOKIE_HTTP_ONLY = true
 
 [openid]
 ;

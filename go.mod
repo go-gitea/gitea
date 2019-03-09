@@ -47,8 +47,8 @@ require (
 	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
 	github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
-	github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
-	github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f
+	github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c
+	github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
