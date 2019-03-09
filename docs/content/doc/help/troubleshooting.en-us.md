@@ -19,7 +19,7 @@ This page contains some common seen issues and their solutions.
 
 ## SSH issues
 
-For issues reaching repositories over `ssh` while the gitea web front-end, but
+For issues reaching repositories over `ssh` while the Gitea web front-end, but
 `https` based git repository access works fine, consider looking into the following.
 
 ```
@@ -32,7 +32,7 @@ following things:
 
 * On the client:
   * Ensure the public and private ssh keys are added to the correct Gitea user.
-  * Make sure there are no issues in the remote url, ensure the name of the
+  * Make sure there are no issues in the remote url. In particular, ensure the name of the
     git user (before the `@`) is spelled correctly.
   * Ensure public and private ssh keys are correct on client machine.
   * Try to connect using ssh (ssh git@myremote.example) to ensure a connection
@@ -43,7 +43,7 @@ following things:
   * Verify that the correct public keys are added to `.ssh/authorized_keys`.
     Try to run `Rewrite '.ssh/authorized_keys' file (for Gitea SSH keys)` on the
     Gitea admin panel.
-  * Read gitea logs.
+  * Read Gitea logs.
   * Read /var/log/auth (or similar).
   * Check permissions of repositories.
 
@@ -69,14 +69,14 @@ In this case, look into the following settings:
 
 ## Missing releases after migrating repository with tags
 
-To migrate an repository *with* all tags you need to do two things
+To migrate an repository *with* all tags, you need to do two things:
 
 * Push tags to the repository:
 ```
  git push --tags
  ```
  
- * (Re-)sync tags of all repositories within gitea:
+ * (Re-)sync tags of all repositories within Gitea:
  ```
  gitea admin repo-sync-releases
  ```
@@ -90,7 +90,7 @@ batch response: Authentication required: Authorization error: <GITEA_LFS_URL>/in
 Check that you have proper access to the repository
 error: failed to push some refs to '<GIT_REPO_URL>'
 ```
-Have you checked the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file? By default your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both) it may not finish uploading within the time limit. 
+Have you checked the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file? By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
 
 You may want to set this value to `60m` or `120m`.
 
