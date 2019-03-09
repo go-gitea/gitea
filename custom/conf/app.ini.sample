@@ -654,6 +654,16 @@ DEFAULT_PAGING_NUM = 30
 ; Default and maximum number of items per page for git trees api
 DEFAULT_GIT_TREES_PER_PAGE = 1000
 
+[oauth2]
+; Enables OAuth2 provider
+ENABLED = true
+; Lifetime of an OAuth2 access token in seconds
+ACCESS_TOKEN_EXPIRATION_TIME=3600
+; Lifetime of an OAuth2 access token in hours
+REFRESH_TOKEN_EXPIRATION_TIME=730
+; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
+
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
 NAMES = English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,Українська,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어
