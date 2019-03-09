@@ -102,8 +102,26 @@ func TestGetFileResponseFromCommitErrors(t *testing.T) {
 	commit, err := gitRepo.GetBranchCommit(branch)
 	expectedFileResponse := getExpectedFileResponse()
 
+	// nil repo
 	fileResponse, err := GetFileResponseFromCommit(nil, commit, branch, treePath)
-	assert.Nil(t, err)
-	assert.EqualValues(t, fileResponse, expectedFileResponse)
+	assert.Nil(t, fileResponse)
+	assert.EqualError(t, err, "")
+
+	// nil commit
+	fileResponse, err = GetFileResponseFromCommit(repo, nil, branch, treePath)
+	assert.Nil(t, fileResponse)
+	assert.EqualError(t, err, "")
+
+	// bad branch
+	badBranch := "bad_branch"
+	fileResponse, err = GetFileResponseFromCommit(repo, nil, badBranch, treePath)
+	assert.Nil(t, fileResponse)
+	assert.EqualError(t, err, "")
+
+	// bad branch
+	badTreePath := "bad/tree/path.txt"
+	fileResponse, err = GetFileResponseFromCommit(repo, nil, badBranch, badTreePath)
+	assert.Nil(t, fileResponse)
+	assert.EqualError(t, err, "")
 }
 
