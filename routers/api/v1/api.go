@@ -74,6 +74,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-macaron/binding"
+	"github.com/go-macaron/cors"
 	macaron "gopkg.in/macaron.v1"
 )
 
@@ -386,6 +387,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
+
+	var handlers []macaron.Handler
+	if setting.EnableCORS {
+		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	}
+	handlers = append(handlers, securityHeaders(), context.APIContexter(), sudo())
 
 	m.Group("/v1", func() {
 		// Miscellaneous
@@ -709,5 +716,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, context.APIContexter(), sudo())
+	}, handlers...)
+}
+
+func securityHeaders() macaron.Handler {
+	return func(ctx *macaron.Context) {
+		ctx.Resp.Before(func(w macaron.ResponseWriter) {
+			// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
+			// http://stackoverflow.com/a/3146618/244009
+			w.Header().Set("x-content-type-options", "nosniff")
+		})
+	}
 }

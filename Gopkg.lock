@@ -365,6 +365,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:e45234f6d4cba1964e8662e2fbe231982f5d4b22990ba5b152ddf910ecc0c15e"
+  name = "github.com/go-macaron/cors"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "1733aeedd68a9834be86a207e4f9408b1c2a77b6"
+
+[[projects]]
+  branch = "master"
   digest = "1:7ae1d1b3a156d71413b3a35ef6cf2b1fd6f91e6db0b6f1e8a5f69b47a46795d9"
   name = "github.com/go-macaron/csrf"
   packages = ["."]
@@ -1259,6 +1267,7 @@
     "github.com/go-macaron/cache/memcache",
     "github.com/go-macaron/cache/redis",
     "github.com/go-macaron/captcha",
+    "github.com/go-macaron/cors",
     "github.com/go-macaron/csrf",
     "github.com/go-macaron/i18n",
     "github.com/go-macaron/inject",
@@ -1331,6 +1340,9 @@
     "gopkg.in/ini.v1",
     "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/config",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]

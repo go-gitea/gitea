@@ -1275,6 +1275,7 @@ func NewServices() {
 	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()
+	newCORSService()
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
