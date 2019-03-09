@@ -37,7 +37,7 @@ to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
 recommended to install the version of go that our continuous integration is
-running. At the time of writing this is Go version 1.11; however, this can be
+running. At the time of writing this is Go version 1.12; however, this can be
 checked by looking at the
 [master `.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml)
 (At the time of writing
