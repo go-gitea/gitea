@@ -387,7 +387,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
-			ErrorDescription: "cannot load client",
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: '%s'", form.ClientID),
 		})
 		return
 	}
