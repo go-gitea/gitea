@@ -10,7 +10,7 @@ draft: false
 
 # What is Gitea?
 
-Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and Gitlab.
+Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab.
 Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
 blog post to read about the justification for a fork.
 
@@ -254,7 +254,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - A Raspberry Pi 3 is powerful enough to run Gitea for small workloads.
 - 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
-   - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running gitea as a regular user could break that user's ability to log in.
+   - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 
 ## Browser Support
 
