@@ -549,13 +549,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 	// extract the current org and repo from ctx URL like
 	// http://localhost:3000/gituser/myrepo/
-	urlParts := strings.Split(path.Clean(ctx.urlPrefix), "/")
+	url := strings.Replace(ctx.urlPrefix, setting.AppURL, "", -1)
+	urlParts := strings.Split(path.Clean(url), "/")
 
-	if urlParts[len(urlParts)-1] == "wiki" {
-		urlParts = urlParts[:len(urlParts)-1]
-	}
-	currentOrg := urlParts[len(urlParts)-2]
-	currentRepo := urlParts[len(urlParts)-1]
+	currentOrg := urlParts[0]
+	currentRepo := urlParts[1]
 
 	if matchOrg == currentOrg && matchRepo == currentRepo {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
