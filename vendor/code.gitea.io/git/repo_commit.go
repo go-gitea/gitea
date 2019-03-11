@@ -32,7 +32,14 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(TagPrefix + name)
+	stdout, err := NewCommand("rev-list", "-n", "1", name).RunInDir(repo.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "unknown revision or path") {
+			return "", ErrNotExist{name, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw
