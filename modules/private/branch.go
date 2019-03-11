@@ -7,6 +7,7 @@ package private
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -16,7 +17,7 @@ import (
 // GetProtectedBranchBy get protected branch information
 func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBranch, error) {
 	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/branch/%d/%s", repoID, branchName)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/branch/%d/%s", repoID, url.PathEscape(branchName))
 	log.GitLogger.Trace("GetProtectedBranchBy: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
