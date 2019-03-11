@@ -64,15 +64,27 @@ high-level discussions.
 
 ## Testing redux
 
-Before sending code out for review, run all the tests for the
-whole tree to make sure the changes don't break other usage
-and keep the compatibility on upgrade. To make sure you are
-running the test suite exactly like we do, you should install
-the CLI for [Drone CI](https://github.com/drone/drone), as
-we are using the server for continuous testing, following [these
-instructions](http://docs.drone.io/cli-installation/). After that,
-you can simply call `drone exec --local --build-event "pull_request"` within
-your working directory and it will try to run the test suite locally.
+Before submitting a pull request, run all the tests for the whole tree
+to make sure your changes don't cause regression elsewhere.  To run
+the test suite, cd into the base of your gitea repository and execute
+`scripts/test-local.sh`.  This script will automatically fetch the
+correct version of drone, check disk space requirements, and run the
+correct drone command line.  As of this writing, the script supports
+x86_64 on Linux, and we welcome pull requests to support other
+platforms -- see the notes in the script.
+
+On other platforms, you can manually install the correct version of
+the drone-cli package, ensure you have enough free disk space, and
+then run `drone exec --local --build-event pull_request` while in your
+gitea repository.  As of this writing, the correct drone-cli version
+is [0.8.6](https://0-8-0.docs.drone.io/cli-installation/), and you
+will need at least 15-20 Gb of free disk space to hold all of the
+containers drone creates (a default AWS or GCE disk size won't work --
+see #6243).  The drone version, command line, and disk requirements do
+change over time (see #4053 and #6243).  If you have any issues, take
+a look at the drone-cli version and command line in
+`scripts/test-local.sh` -- it will be up to date if the automation in
+#6269 has been implemented.  
 
 ## Vendoring
 
