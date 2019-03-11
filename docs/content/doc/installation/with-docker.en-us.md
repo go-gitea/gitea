@@ -20,13 +20,13 @@ possible to always use the latest stable tag or to use another service that hand
 Docker images.
 
 This reference setup guides users through the setup based on `docker-compose`, but the installation
-of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself follow
+of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
 ## Basics
 
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest`
-image as a service. Since there is no database available one can be initialized using SQLite3.
+image as a service. Since there is no database available, one can be initialized using SQLite3.
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
@@ -187,7 +187,7 @@ services:
 To use named volumes instead of host volumes, define and use the named volume
 within the `docker-compose.yml` configuration. This change will automatically
 create the required volume. You don't need to worry about permissions with
-named volumes, Docker will deal with that automatically.
+named volumes; Docker will deal with that automatically.
 
 ```diff
 version: "2"
@@ -230,10 +230,10 @@ Notice: if using a non-3000 port on http, change app.ini to match
 
 ## Install
 
-After starting the Docker setup via `docker-compose` Gitea should be available using a
+After starting the Docker setup via `docker-compose`, Gitea should be available using a
 favorite browser to finalize the installation. Visit http://server-ip:3000 and follow the
 installation wizard. If the database was started with the `docker-compose` setup as
-documented above please note that `db` must be used as the database hostname.
+documented above, please note that `db` must be used as the database hostname.
 
 ## Environments variables
 
@@ -252,7 +252,7 @@ You can configure some of Gitea's settings via environment variables:
 * `DB_HOST`: **localhost:3306**: Database host address and port.
 * `DB_NAME`: **gitea**: Database name.
 * `DB_USER`: **root**: Database username.
-* `DB_PASSWD`: **"<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
+* `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 * `INSTALL_LOCK`: **false**: Disallow access to the install page.
 * `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
 * `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
@@ -263,8 +263,8 @@ You can configure some of Gitea's settings via environment variables:
 # Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
-be placed in `/data/gitea` directory. If using host volumes it's quite easy to access these
-files; for named volumes this is done through another container or by direct access at
+be placed in `/data/gitea` directory. If using host volumes, it's quite easy to access these
+files; for named volumes, this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
 
@@ -285,7 +285,7 @@ docker-compose up -d
 
 Since SSH is running inside the container, you'll have to pass SSH from the host to the
 container if you wish to use SSH support. If you wish to do this without running the container
-SSH on a non-standard port (or move your host port to a non-standard port) you can forward
+SSH on a non-standard port (or move your host port to a non-standard port), you can forward
 SSH connections destined for the container with a little extra setup.
 
 This guide assumes that you have created a user on the host called `git` which shares the same 

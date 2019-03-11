@@ -31,18 +31,18 @@ Gitea supports these methods of API authentication:
 - `access_token=...` parameter in URL query string
 - `Authorization: token ...` header in HTTP headers
 
-All of these methods accept the same apiKey token type.  You can
+All of these methods accept the same API key token type.  You can
 better understand this by looking at the code -- as of this writing,
 Gitea parses queries and headers to find the token in
 [modules/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/modules/auth/auth.go#L47).
 
-You can create an apiKey token via your gitea install's web interface:
+You can create an API key token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
 ### More on the `Authorization:` header
 
 For historical reasons, Gitea needs the word `token` included before
-the apiKey token in an authorization header, like this:
+the API key token in an authorization header, like this:
 
 ```
 Authorization: token 65eaa9c8ef52460d22a93307fe0aee76289dc675

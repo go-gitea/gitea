@@ -5,8 +5,10 @@
 package user
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-macaron/binding"
@@ -305,6 +307,30 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+	if form.ClientID == "" {
+		authHeader := ctx.Req.Header.Get("Authorization")
+		authContent := strings.SplitN(authHeader, " ", 2)
+		if len(authContent) == 2 && authContent[0] == "Basic" {
+			payload, err := base64.StdEncoding.DecodeString(authContent[1])
+			if err != nil {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			pair := strings.SplitN(string(payload), ":", 2)
+			if len(pair) != 2 {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			form.ClientID = pair[0]
+			form.ClientSecret = pair[1]
+		}
+	}
 	switch form.GrantType {
 	case "refresh_token":
 		handleRefreshToken(ctx, form)
@@ -361,7 +387,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
-			ErrorDescription: "cannot load client",
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: '%s'", form.ClientID),
 		})
 		return
 	}

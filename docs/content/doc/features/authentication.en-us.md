@@ -91,7 +91,7 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     name given on sign-in form.
   - Example: `(&(objectClass=posixAccount)(uid=%s))`
   - Example for Microsoft Active Directory (AD): `(&(objectCategory=Person)(memberOf=CN=user-group,OU=example,DC=example,DC=org)(sAMAccountName=%s)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))`
-  - To substitute more than once `%[1]s` should be used instead, e.g. when
+  - To substitute more than once, `%[1]s` should be used instead, e.g. when
     matching supplied login name against multiple attributes such as user
     identifier, email or even phone number.
   - Example: `(&(objectClass=Person)(|(uid=%[1]s)(mail=%[1]s)(mobile=%[1]s)))`
@@ -181,7 +181,7 @@ configure this, set the fields below:
 
 ## FreeIPA
 
-- In order to log in to Gitea using FreeIPA credentials,a bind account needs to
+- In order to log in to Gitea using FreeIPA credentials, a bind account needs to
   be created for Gitea:
 
 - On the FreeIPA server, create a `gitea.ldif` file, replacing `dc=example,dc=com`
