@@ -228,7 +228,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   description: path of the file to update
 	// - name: body
 	//   in: body
-	//   description: "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists; 'author' and 'committer' are optional (if only one exists, it will be used for the other, otherwise the authenticated user will be used)\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file"
+	//   description: "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one exists, it will be used for the other, otherwise the authenticated user will be used)\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file"
 	//   schema:
 	//     "$ref": "#/definitions/UpdateFileOptions"
 	// responses:
