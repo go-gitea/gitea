@@ -101,7 +101,11 @@ l:
 				sig, err := newGPGSignatureFromCommitline(data, (nextline+1)+sigindex, true)
 				if err == nil && sig != nil {
 					// remove signature from commit message
-					cm = cm[:sigindex-1]
+					if sigindex == 0 {
+						cm = ""
+					} else {
+						cm = cm[:sigindex-1]
+					}
 					commit.Signature = sig
 				}
 			}
