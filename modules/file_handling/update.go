@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
-
 	"fmt"
 	"path"
 	"strings"
@@ -39,6 +38,16 @@ type UpdateRepoFileOptions struct {
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
 func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*gitea.FileResponse, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repo cannot be nil")
+	}
+	if doer == nil {
+		return nil, fmt.Errorf("doer cannot be nil")
+	}
+	if opts == nil {
+		return nil, fmt.Errorf("opts cannot be nil")
+	}
+
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = "master"
@@ -75,12 +84,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Check that the path given in opts.treeName is valid (not a git path)
-	treeName := cleanUploadFileName(opts.TreePath)
+	treeName := CleanUploadFileName(opts.TreePath)
 	if treeName == "" {
 		return nil, models.ErrFilenameInvalid{opts.TreePath}
 	}
 	// If there is a fromTreeName (we are copying it), also clean it up
-	fromTreeName := cleanUploadFileName(opts.FromTreePath)
+	fromTreeName := CleanUploadFileName(opts.FromTreePath)
 	if fromTreeName == "" && opts.FromTreePath != "" {
 		return nil, models.ErrFilenameInvalid{opts.FromTreePath}
 	}
@@ -127,6 +136,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, err
 		}
 		if opts.SHA != fromEntry.ID.String() {
+			fmt.Printf("%s %s", opts.SHA, fromEntry.ID.String())
 			return nil, models.ErrShaDoesNotMatch{
 				GivenSHA:   opts.SHA,
 				CurrentSHA: fromEntry.ID.String(),

@@ -99,12 +99,12 @@ func TestGetDiffPreview(t *testing.T) {
 	// Test with given branch
 	diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
 	assert.Nil(t, err)
-	assert.EqualValues(t, diff, expectedDiff)
+	assert.EqualValues(t, expectedDiff, diff)
 
 	// Test empty branch, same results
 	diff, err = GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
 	assert.Nil(t, err)
-	assert.EqualValues(t, diff, expectedDiff)
+	assert.EqualValues(t, expectedDiff, diff)
 }
 
 func TestGetDiffPreviewErrors(t *testing.T) {

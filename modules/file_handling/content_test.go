@@ -47,12 +47,12 @@ func TestGetFileContents(t *testing.T) {
 	}
 
 	fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref)
-	assert.EqualValues(t, fileContentResponse, expectedFileContentResponse)
+	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
 	assert.Nil(t, err)
 
 	// test with ref as empty string (should then use "master")
 	fileContentResponse, _ = GetFileContents(ctx.Repo.Repository, treePath, "")
-	assert.EqualValues(t, fileContentResponse, expectedFileContentResponse)
+	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
 	assert.Nil(t, err)
 }
 

@@ -28,13 +28,13 @@ type DeleteRepoFileOptions struct {
 // DeleteRepoFile deletes a file in the given repository
 func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*gitea.FileResponse, error) {
 	if repo == nil {
-		return nil, fmt.Errorf("repo not passed to DeleteRepoFile")
+		return nil, fmt.Errorf("repo cannot be nil")
 	}
 	if doer == nil {
-		return nil, fmt.Errorf("doer not passed to DeleteRepoFile")
+		return nil, fmt.Errorf("doer cannot be nil")
 	}
 	if opts == nil {
-		return nil, fmt.Errorf("opts not passed to DeleteRepoFile")
+		return nil, fmt.Errorf("opts cannot be nil")
 	}
 
 	// If no branch name is set, assume master
@@ -68,7 +68,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// Check that the path given in opts.treeName is valid (not a git path)
-	treePath := cleanUploadFileName(opts.TreePath)
+	treePath := CleanUploadFileName(opts.TreePath)
 	if treePath == "" {
 		return nil, models.ErrFilenameInvalid{opts.TreePath}
 	}

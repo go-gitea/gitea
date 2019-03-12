@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func cleanUploadFileName(name string) string {
+func CleanUploadFileName(name string) string {
 	// Rebase the filename
 	name = strings.Trim(path.Clean("/"+name), " /")
 	// Git disallows any filenames to have a .git directory in them.

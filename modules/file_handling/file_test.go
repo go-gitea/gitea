@@ -16,8 +16,7 @@ import (
 
 func getExpectedFileResponse() (*gitea.FileResponse) {
 	return &gitea.FileResponse{
-		Content:
-		&gitea.FileContentResponse{
+		Content: &gitea.FileContentResponse{
 			Name:        "README.md",
 			Path:        "README.md",
 			SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
@@ -49,7 +48,7 @@ func getExpectedFileResponse() (*gitea.FileResponse) {
 				Email: "ethantkoenig@gmail.com",
 				Date:  "2017-03-19T20:47:59Z",
 			},
-			Parents: &[]gitea.CommitMeta{},
+			Parents: []*gitea.CommitMeta{},
 			Message: "Initial commit\n",
 			Tree: &gitea.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
@@ -82,7 +81,7 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 
 	fileResponse, err := GetFileResponseFromCommit(repo, commit, branch, treePath)
 	assert.Nil(t, err)
-	assert.EqualValues(t, fileResponse, expectedFileResponse)
+	assert.EqualValues(t, expectedFileResponse, fileResponse)
 }
 
 // Test errors thrown by GetFileResponseFromCommit
@@ -104,23 +103,10 @@ func TestGetFileResponseFromCommitErrors(t *testing.T) {
 	// nil repo
 	fileResponse, err := GetFileResponseFromCommit(nil, commit, branch, treePath)
 	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "")
+	assert.EqualError(t, err, "repo cannot be nil")
 
 	// nil commit
 	fileResponse, err = GetFileResponseFromCommit(repo, nil, branch, treePath)
 	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "")
-
-	// bad branch
-	badBranch := "bad_branch"
-	fileResponse, err = GetFileResponseFromCommit(repo, nil, badBranch, treePath)
-	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "")
-
-	// bad branch
-	badTreePath := "bad/tree/path.txt"
-	fileResponse, err = GetFileResponseFromCommit(repo, nil, badBranch, badTreePath)
-	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "")
+	assert.EqualError(t, err, "commit cannot be nil")
 }
-

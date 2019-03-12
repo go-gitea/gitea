@@ -37,11 +37,11 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*gitea.
 	}
 	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + commit.ID.String())
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + commit.Tree.ID.String())
-	parents := make([]gitea.CommitMeta, commit.ParentCount())
+	parents := make([]*gitea.CommitMeta, commit.ParentCount())
 	for i := 0; i <= commit.ParentCount(); i++ {
 		if parent, err := commit.Parent(i); err == nil && parent != nil {
 			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
-			parents[i] = gitea.CommitMeta{
+			parents[i] = &gitea.CommitMeta{
 				SHA: parent.ID.String(),
 				URL: parentCommitURL.String(),
 			}
@@ -69,7 +69,7 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*gitea.
 			URL: commitTreeURL.String(),
 			SHA: commit.Tree.ID.String(),
 		},
-		Parents: &parents,
+		Parents: parents,
 	}
 	return fileCommit, nil
 }
