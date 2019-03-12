@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/ldap.v2"
-
 	"code.gitea.io/gitea/modules/log"
+
+	ldap "gopkg.in/ldap.v3"
 )
 
 // SecurityProtocol protocol type

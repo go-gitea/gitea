@@ -6,11 +6,13 @@ package routers
 
 import (
 	"bytes"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -38,6 +40,15 @@ func Home(ctx *context.Context) {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 			ctx.HTML(200, user.TplActivate)
+		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(200, "user/auth/prohibit_login")
+		} else if ctx.User.MustChangePassword {
+			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+			ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
 		}
