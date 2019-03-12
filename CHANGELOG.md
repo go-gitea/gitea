@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
 * SECURITY
-  * Fix reported issue in repo description (#6306) (#6308)
+  * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
   * Update git vendor to fix wrong release commit id and add migrations (#6224) (#6300)
   * Fix organization dropdown not being scrollable when using mouse wheel (#5988) (#6246)
