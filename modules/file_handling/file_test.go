@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-func getExpectedFileResponse() (*gitea.FileResponse) {
+func getExpectedFileResponse() *gitea.FileResponse {
 	return &gitea.FileResponse{
 		Content: &gitea.FileContentResponse{
 			Name:        "README.md",

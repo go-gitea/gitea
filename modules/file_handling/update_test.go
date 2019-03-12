@@ -17,28 +17,28 @@ import (
 
 func getCreateRepoFileOptions() *UpdateRepoFileOptions {
 	return &UpdateRepoFileOptions{
-		OldBranch:    "master",
-		NewBranch:    "master",
-		TreePath:     "new/file.txt",
-		Message:      "Creates new/file.txt",
-		Content:      "This is a NEW file",
-		IsNewFile:    true,
-		Author:       nil,
-		Committer:    nil,
+		OldBranch: "master",
+		NewBranch: "master",
+		TreePath:  "new/file.txt",
+		Message:   "Creates new/file.txt",
+		Content:   "This is a NEW file",
+		IsNewFile: true,
+		Author:    nil,
+		Committer: nil,
 	}
 }
 
 func getUpdateRepoFileOptions() *UpdateRepoFileOptions {
 	return &UpdateRepoFileOptions{
-		OldBranch:    "master",
-		NewBranch:    "master",
-		TreePath:     "README.md",
-		Message:      "Updates README.md",
-		SHA:          "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		Content:      "This is UPDATED content for the README file",
-		IsNewFile:    false,
-		Author:       nil,
-		Committer:    nil,
+		OldBranch: "master",
+		NewBranch: "master",
+		TreePath:  "README.md",
+		Message:   "Updates README.md",
+		SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		Content:   "This is UPDATED content for the README file",
+		IsNewFile: false,
+		Author:    nil,
+		Committer: nil,
 	}
 }
 
@@ -89,10 +89,10 @@ func getExpectedFileResponseForCreate(commitID string) *gitea.FileResponse {
 			},
 		},
 		Verification: &gitea.PayloadCommitVerification{
-			Verified: false,
-			Reason: "",
+			Verified:  false,
+			Reason:    "unsigned",
 			Signature: "",
-			Payload: "",
+			Payload:   "",
 		},
 	}
 }
@@ -102,16 +102,16 @@ func getExpectedFileResponseForUpdate(commitID string) *gitea.FileResponse {
 		Content: &gitea.FileContentResponse{
 			Name:        "README.md",
 			Path:        "README.md",
-			SHA:         "c7b380be487ac136e9ae8777e320fa09071a4fae",
-			Size:        39,
+			SHA:         "dbf8d00e022e05b7e5cf7e535de857de57925647",
+			Size:        43,
 			URL:         "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
 			HTMLURL:     "https://try.gitea.io/user2/repo1/blob/master/README.md",
-			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/c7b380be487ac136e9ae8777e320fa09071a4fae",
+			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
 			DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
 			Type:        "blob",
 			Links: &gitea.FileLinksResponse{
 				Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
-				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/c7b380be487ac136e9ae8777e320fa09071a4fae",
+				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
 				HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/README.md",
 			},
 		},
@@ -144,10 +144,10 @@ func getExpectedFileResponseForUpdate(commitID string) *gitea.FileResponse {
 			},
 		},
 		Verification: &gitea.PayloadCommitVerification{
-			Verified: false,
-			Reason: "",
+			Verified:  false,
+			Reason:    "unsigned",
 			Signature: "",
-			Payload: "",
+			Payload:   "",
 		},
 	}
 }
@@ -165,15 +165,15 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// Actual test
+	// test
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
 
+	// asserts
 	assert.Nil(t, err)
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
 	commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 	expectedFileResponse := getExpectedFileResponseForCreate(commitID)
 	assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-	// Can't get an exact match to the Commit Response since there are date stamps so we compare a few of the attributes
 	assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 	assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 	assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
@@ -193,49 +193,87 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// Actual test
-	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
-
-	assert.Nil(t, err)
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
-	commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-	expectedFileResponse := getExpectedFileResponseForUpdate(commitID)
-	assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-	// Can't get an exact match to the Commit Response since there are date stamps so we compare a few of the attributes
-	assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-	assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-	assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-	assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
-}
-
-// Test opts with branch names removed, same results
-func TestUpdateRepoFileWithoutBranchNames(t *testing.T) {
-	// setup
-	models.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
-	opts := getUpdateRepoFileOptions()
-	opts.OldBranch = ""
-	opts.NewBranch = ""
-	repo := ctx.Repo.Repository
-	doer := ctx.User
-
-	// Test #1 - Update README.md file
+	// test
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
 
 	// asserts
 	assert.Nil(t, err)
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
 	commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-	expectedFileContentResponse := getExpectedFileResponseForUpdate(commitID)
-	assert.EqualValues(t, expectedFileContentResponse, fileResponse.Content)
+	expectedFileResponse := getExpectedFileResponseForUpdate(commitID)
+	assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
+	assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+	assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+	assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+	assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
 }
 
-func TestUpdateRepoFileErrors(t *testing.T) {
+func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
+	// setup
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo1")
+	ctx.SetParams(":id", "1")
+	test.LoadRepo(t, ctx, 1)
+	test.LoadRepoCommit(t, ctx)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	opts := getUpdateRepoFileOptions()
+	repo := ctx.Repo.Repository
+	doer := ctx.User
+	suffix := "_new"
+	opts.FromTreePath = "README.md"
+	opts.TreePath = "README.md" + suffix // new file name, README.md_new
+
+	// test
+	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+
+	// asserts
+	assert.Nil(t, err)
+	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
+	expectedFileResponse := getExpectedFileResponseForUpdate(commit.ID.String())
+	// assert that the old file no longer exists in the last commit of the branch
+	fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
+	toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
+	assert.Nil(t, fromEntry)  // Should no longer exist here
+	assert.NotNil(t, toEntry) // Should exist here
+	// assert SHA has remained the same but paths use the new file name
+	assert.EqualValues(t, expectedFileResponse.Content.SHA, fileResponse.Content.SHA)
+	assert.EqualValues(t, expectedFileResponse.Content.Name+suffix, fileResponse.Content.Name)
+	assert.EqualValues(t, expectedFileResponse.Content.Path+suffix, fileResponse.Content.Path)
+	assert.EqualValues(t, expectedFileResponse.Content.URL+suffix, fileResponse.Content.URL)
+	assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+	assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+}
+
+// Test opts with branch names removed, should get same results as above test
+func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
+	// setup
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo1")
+	ctx.SetParams(":id", "1")
+	test.LoadRepo(t, ctx, 1)
+	test.LoadRepoCommit(t, ctx)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	opts := getUpdateRepoFileOptions()
+	repo := ctx.Repo.Repository
+	doer := ctx.User
+	opts.OldBranch = ""
+	opts.NewBranch = ""
+
+	// test
+	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+
+	// asserts
+	assert.Nil(t, err)
+	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	commitID, _ := gitRepo.GetBranchCommitID("master")
+	expectedFileResponse := getExpectedFileResponseForUpdate(commitID)
+	assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
+}
+
+func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	// setup
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
@@ -247,35 +285,35 @@ func TestUpdateRepoFileErrors(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// Test #1 - bad branch
+	// test #1 - bad branch
 	opts := getUpdateRepoFileOptions()
 	opts.OldBranch = "bad_branch"
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Error(t, err)
 	assert.Nil(t, fileResponse)
-	expectedError := "branch does not exist [name: "+opts.OldBranch+"]"
+	expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #2 - bad SHA
+	// test #2 - bad SHA
 	opts = getUpdateRepoFileOptions()
 	origSHA := opts.SHA
 	opts.SHA = "bad_sha"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file sha does not match ["+opts.SHA+" != "+origSHA+"]"
+	expectedError = "file sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #3 - new branch already exists
+	// test #3 - new branch already exists
 	opts = getUpdateRepoFileOptions()
 	opts.NewBranch = "develop"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "branch already exists [name: "+opts.NewBranch+"]"
+	expectedError = "branch already exists [name: " + opts.NewBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #4 - repo is nil
+	// test #4 - repo is nil
 	opts = getUpdateRepoFileOptions()
 	fileResponse, err = CreateOrUpdateRepoFile(nil, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -283,7 +321,7 @@ func TestUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "repo cannot be nil"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #5 - doer is nil
+	// test #5 - doer is nil
 	opts = getUpdateRepoFileOptions()
 	fileResponse, err = CreateOrUpdateRepoFile(repo, nil, opts)
 	assert.Nil(t, fileResponse)
@@ -291,7 +329,7 @@ func TestUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "doer cannot be nil"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #6 - opts is nil:
+	// test #6 - opts is nil:
 	opts = getUpdateRepoFileOptions()
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, nil)
 	assert.Nil(t, fileResponse)
@@ -299,7 +337,7 @@ func TestUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "opts cannot be nil"
 	assert.EqualError(t, err, expectedError)
 
-	// Test #7 - treePath is empty:
+	// test #7 - treePath is empty:
 	opts = getUpdateRepoFileOptions()
 	opts.TreePath = ""
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
@@ -308,12 +346,21 @@ func TestUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "file name is invalid: "
 	assert.EqualError(t, err, expectedError)
 
-	// Test #8 - treePath is a git directory:
+	// test #8 - treePath is a git directory:
 	opts = getUpdateRepoFileOptions()
 	opts.TreePath = ".git"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: "+opts.TreePath
+	expectedError = "file name is invalid: " + opts.TreePath
+	assert.EqualError(t, err, expectedError)
+
+	// test #9 - create file that already exists
+	opts = getCreateRepoFileOptions()
+	opts.TreePath = "README.md" //already exists
+	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
+	assert.Nil(t, fileResponse)
+	assert.Error(t, err)
+	expectedError = "repository file already exists [file_name: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }

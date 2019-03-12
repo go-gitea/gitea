@@ -60,12 +60,12 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return models.ErrBranchNotExist{branch}
-		} else  if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
+		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
 			return models.ErrRepoNotExist{
-				ID: t.repo.ID,
-				UID: t.repo.OwnerID,
+				ID:        t.repo.ID,
+				UID:       t.repo.OwnerID,
 				OwnerName: t.repo.OwnerName,
-				Name: t.repo.Name,
+				Name:      t.repo.Name,
 			}
 		} else {
 			return fmt.Errorf("Clone: %v %s", err, stderr)

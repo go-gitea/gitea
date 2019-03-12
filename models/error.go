@@ -941,7 +941,7 @@ func IsErrShaDoesNotMatch(err error) bool {
 }
 
 func (err ErrShaDoesNotMatch) Error() string {
-	return fmt.Sprintf("file sha does not match [%s != %s]", err.GivenSHA, err.CurrentSHA)
+	return fmt.Sprintf("file sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
 }
 
 //  __      __      ___.   .__                   __

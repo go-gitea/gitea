@@ -28,7 +28,7 @@ func TestGetDiffPreview(t *testing.T) {
 		TotalAddition: 2,
 		TotalDeletion: 1,
 		Files: []*models.DiffFile{
-			&models.DiffFile{
+			{
 				Name:        "README.md",
 				OldName:     "README.md",
 				Index:       1,
@@ -42,45 +42,45 @@ func TestGetDiffPreview(t *testing.T) {
 				IsRenamed:   false,
 				IsSubmodule: false,
 				Sections: []*models.DiffSection{
-					&models.DiffSection{
+					{
 						Name: "",
 						Lines: []*models.DiffLine{
-							&models.DiffLine{
+							{
 								LeftIdx:  0,
 								RightIdx: 0,
 								Type:     4,
 								Content:  "@@ -1,3 +1,4 @@",
 								Comments: nil,
 							},
-							&models.DiffLine{
+							{
 								LeftIdx:  1,
 								RightIdx: 1,
 								Type:     1,
 								Content:  " # repo1",
 								Comments: nil,
 							},
-							&models.DiffLine{
+							{
 								LeftIdx:  2,
 								RightIdx: 2,
 								Type:     1,
 								Content:  " ",
 								Comments: nil,
 							},
-							&models.DiffLine{
+							{
 								LeftIdx:  3,
 								RightIdx: 0,
 								Type:     3,
 								Content:  "-Description for repo1",
 								Comments: nil,
 							},
-							&models.DiffLine{
+							{
 								LeftIdx:  0,
 								RightIdx: 3,
 								Type:     2,
 								Content:  "+Description for repo1",
 								Comments: nil,
 							},
-							&models.DiffLine{
+							{
 								LeftIdx:  0,
 								RightIdx: 4,
 								Type:     2,
@@ -140,4 +140,3 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	assert.Nil(t, diff)
 	assert.EqualError(t, err, "There is a problem with this file path: ")
 }
-

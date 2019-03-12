@@ -89,7 +89,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 		} else {
 			committerUser = &models.User{
 				FullName: committer.Name,
-				Email: committer.Email,
+				Email:    committer.Email,
 			}
 		}
 	}
@@ -102,7 +102,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 		} else {
 			authorUser = &models.User{
 				FullName: author.Name,
-				Email: author.Email,
+				Email:    author.Email,
 			}
 		}
 	}

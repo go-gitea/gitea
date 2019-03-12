@@ -86,7 +86,7 @@ func TestDeleteRepoFile(t *testing.T) {
 	// Test #2 - Verify deleted by trying to delete again
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
-	expectedError := "object does not exist [id: , rel_path: "+opts.TreePath+"]"
+	expectedError := "object does not exist [id: , rel_path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }
 
@@ -133,7 +133,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err := DeleteRepoFile(repo, doer, opts)
 	assert.Error(t, err)
 	assert.Nil(t, fileResponse)
-	expectedError := "branch does not exist [name: "+opts.OldBranch+"]"
+	expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// Test #2 - bad SHA
@@ -143,7 +143,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file sha does not match ["+opts.SHA+" != "+origSHA+"]"
+	expectedError = "file sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// Test #3 - new branch already exists
@@ -152,7 +152,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "branch already exists [name: "+opts.NewBranch+"]"
+	expectedError = "branch already exists [name: " + opts.NewBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// Test #4 - repo is nil
@@ -194,6 +194,6 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: "+opts.TreePath
+	expectedError = "file name is invalid: " + opts.TreePath
 	assert.EqualError(t, err, expectedError)
 }
