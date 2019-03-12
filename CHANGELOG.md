@@ -8,7 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
-  * Update git vendor to fix wrong release commit id and add migrations (#6224) (#6300)
+  * Fix wrong release commit id (#6224) (#6300)
   * Fix panic on empty signed commits (#6292) (#6300)
   * Fix organization dropdown not being scrollable when using mouse wheel (#5988) (#6246)
   * Fix displaying dashboard even if required to change password (#6214) (#6215)
