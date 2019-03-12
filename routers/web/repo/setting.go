@@ -347,9 +347,10 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
 		} else if form.EnableWiki && !form.EnableExternalWiki && !models.UnitTypeWiki.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypeWiki,
-				Config: new(models.UnitConfig),
+				RepoID:        repo.ID,
+				Type:          models.UnitTypeWiki,
+				Config:        new(models.UnitConfig), // TODO: introduce a WikiConfig
+				AllowWriteAll: form.AllowWikiEditAll,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
 		} else {
