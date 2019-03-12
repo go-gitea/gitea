@@ -38,7 +38,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 				ctx.HTML(200, "user/auth/activate")
 				return
 			} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(200, "user/auth/prohibit_login")
 				return

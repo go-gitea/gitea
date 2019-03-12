@@ -23,7 +23,7 @@ Gitea returns an HTTP 200 for bad logins in the web logs, but if you have loggin
 on a bad authentication:
 
 ```log
-2018/04/26 18:15:54 [I] Failed authentication attempt for user from xxx.xxx.xxx.xxx
+2019/03/12 12:14:04 [W] Failed authentication attempt for user from xxx.xxx.xxx.xxx
 ```
 
 So we set our filter in `/etc/fail2ban/filter.d/gitea.conf`:
