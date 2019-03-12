@@ -20,7 +20,7 @@ menu:
 
 ## Bugs
 
-If you found a bug, please create an [issue on Github](https://github.com/go-gitea/gitea/issues).
+If you found a bug, please create an [issue on GitHub](https://github.com/go-gitea/gitea/issues).
 
 ## Chinese Support
 

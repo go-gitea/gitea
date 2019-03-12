@@ -23,18 +23,18 @@ environment variable and to add the go bin directory or directories
 
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
-necessary. To be able to use these you must have the `"$GOPATH/bin"` directory
+necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
-executable path you will have to manage this yourself.
+executable path, you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required, however it is recommended to
+**Note 2**: Go version 1.9 or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{ relref "docs/advanced/hacking-on-gitea.en-us.md" }}'>Hacking on
 Gitea</a>
 
 ## Download
 
-First retrieve the source code. The easiest way is to use the Go tool. Use the
+First, retrieve the source code. The easiest way is to use the Go tool. Use the
 following commands to fetch the source and switch into the source directory.
 Go is quite opinionated about where it expects its source code, and simply
 cloning the Gitea repository to an arbitrary path is likely to lead to
@@ -100,7 +100,7 @@ task e.g.:
 TAGS="bindata" make generate build
 ```
 
-In the default release build of our continuous integration system the build
+In the default release build of our continuous integration system, the build
 tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
 recommended way to build from source is therefore:
 
@@ -110,7 +110,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make generate build
 
 ## Test
 
-After following the steps above a `gitea` binary will be available in the working directory.
+After following the steps above, a `gitea` binary will be available in the working directory.
 It can be tested from this directory or moved to a directory with test data. When Gitea is
 launched manually from command line, it can be killed by pressing `Ctrl + C`.
 

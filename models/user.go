@@ -742,6 +742,8 @@ var (
 		"template",
 		"user",
 		"vendor",
+		"login",
+		"robots.txt",
 		".",
 		"..",
 	}

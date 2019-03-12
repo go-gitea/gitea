@@ -32,24 +32,24 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required, however it is important
+**Note 2**: Go version 1.9 or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
-the results of `gofmt` can differ by the version of `go` it is therefore
+the results of `gofmt` can differ by the version of `go`. It is therefore
 recommended to install the version of go that our continuous integration is
-running. At the time of writing this is Go version 1.11, however this can be
+running. At the time of writing this is Go version 1.12; however, this can be
 checked by looking at the
 [master `.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml)
 (At the time of writing
 [line 67](https://github.com/go-gitea/gitea/blob/8917d66571a95f3da232a0c27bc1300210d10fde/.drone.yml#L67)
-is the relevant line - however this may change.)
+is the relevant line - but this may change.)
 
 ## Downloading and cloning the Gitea source code
 
 Go is quite opinionated about where it expects its source code, and simply
 cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document. Further some
-internal packages are referenced using their respective Github URL and at
+problems - the fixing of which is out of scope for this document. Further, some
+internal packages are referenced using their respective GitHub URL and at
 present we use `vendor/` directories.
 
 The recommended method of obtaining the source code is by using the `go get` command:
@@ -65,7 +65,7 @@ is not set `"$HOME/go/src/code.gitea.io/gitea"`.
 ## Forking Gitea
 
 As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
-code as above. Then fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
+code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
 ```bash
@@ -86,7 +86,7 @@ git fetch --all --prune
 ```
 
 To be able to create pull requests, the forked repository should be added as a remote
-to the Gitea sources, otherwise changes can't be pushed.
+to the Gitea sources. Otherwise, changes can't be pushed.
 
 ## Building Gitea (Basic)
 
@@ -141,10 +141,10 @@ make vet lint misspell-check
 To generate the stylsheets, you will need [Node.js](https://nodejs.org/) at version 8.0 or above.
 
 At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
-**not** edit the files in `public/css/` directly as they are generated from
+**not** edit the files in `public/css/` directly, as they are generated from
 `lessc` from the files in `public/less/`.
 
-If you wish to work on the stylesheets you will need to install `lessc` the
+If you wish to work on the stylesheets, you will need to install `lessc` the
 less compiler and `postcss`. The recommended way to do this is using `npm install`:
 
 ```bash
@@ -163,17 +163,17 @@ PRs.
 
 ### Updating the API
 
-When creating new API routes or modifying existing API routes you **MUST**
+When creating new API routes or modifying existing API routes, you **MUST**
 update and/or create [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/)
 documentation for these using [go-swagger](https://goswagger.io/) comments.
 The structure of these comments is described in the [specification](https://goswagger.io/use/spec.html#annotation-syntax).
-If you want more information about the Swagger structure you can look at the
+If you want more information about the Swagger structure, you can look at the
 [Swagger 2.0 Documentation](https://swagger.io/docs/specification/2-0/basic-structure/)
-or compare with a previous PR adding a new API endpoint e.g. [PR #5483](https://github.com/go-gitea/gitea/pull/5843/files#diff-2e0a7b644cf31e1c8ef7d76b444fe3aaR20)
+or compare with a previous PR adding a new API endpoint, e.g. [PR #5483](https://github.com/go-gitea/gitea/pull/5843/files#diff-2e0a7b644cf31e1c8ef7d76b444fe3aaR20)
 
 You should be careful not to break the API for downstream users which depend
-on a stable API. In general this means additions are acceptable, but deletions
-or fundamental changes of API will be rejected.
+on a stable API. In general, this means additions are acceptable, but deletions
+or fundamental changes to the API will be rejected.
 
 Once you have created or changed an API endpoint, please regenerate the Swagger
 documentation using:
@@ -208,7 +208,7 @@ found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo
 
-When changing the Gitea logo svg. You will need to run and commit the results
+When changing the Gitea logo SVG, you will need to run and commit the results
 of:
 
 ```bash
@@ -220,7 +220,7 @@ This will create the necessary Gitea favicon and others.
 ### Database Migrations
 
 If you make breaking changes to any of the database persisted structs in the
-`models/` directory you will need to make a new migration. These can be found
+`models/` directory, you will need to make a new migration. These can be found
 in `models/migrations/`. You can ensure that your migrations work for the main
 database types using:
 
@@ -236,23 +236,23 @@ There are two types of test run by Gitea: Unit tests and Integration Tests.
 TAGS="bindata sqlite sqlite_unlock_notify" make test # Runs the unit tests
 ```
 
-Unit tests will not and cannot completely test Gitea alone. Therefore we
-have written integration tests, however, these are database dependent.
+Unit tests will not and cannot completely test Gitea alone. Therefore, we
+have written integration tests; however, these are database dependent.
 
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
 ```
 
-Will run the integration tests in an sqlite environment. Other database tests
-are available however may need adjustment for local environment. 
+will run the integration tests in an sqlite environment. Other database tests
+are available but may need adjustment to the local environment. 
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
 for more information and how to run a single test.
 
 Our continuous integration will test the code passes its unit tests and that
-all supported databases will pass integration test in a docker environment.
-Migration from several recent versions of gitea will also be tested.
+all supported databases will pass integration test in a Docker environment.
+Migration from several recent versions of Gitea will also be tested.
 
 Please submit your PR with additional tests and integration tests as
 appropriate.
@@ -268,7 +268,7 @@ make trans-copy clean build
 ```
 
 You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
-note this may generate a number of untracked git objects which will need to
+note: this may generate a number of untracked git objects, which will need to
 be cleaned up.
 
 ## Visual Studio Code
