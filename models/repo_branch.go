@@ -70,10 +70,6 @@ func (repo *Repository) CheckBranchName(name string) error {
 		return err
 	}
 
-	if _, err := gitRepo.GetTag(name); err == nil {
-		return ErrTagAlreadyExists{name}
-	}
-
 	branches, err := repo.GetBranches()
 	if err != nil {
 		return err
@@ -87,6 +83,11 @@ func (repo *Repository) CheckBranchName(name string) error {
 			return ErrBranchNameConflict{branch.Name}
 		}
 	}
+
+	if _, err := gitRepo.GetTag(name); err == nil {
+		return ErrTagAlreadyExists{name}
+	}
+
 	return nil
 }
 
