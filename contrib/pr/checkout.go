@@ -200,7 +200,7 @@ func main() {
 	log.Printf("Fetching PR #%s in %s\n", pr, branch)
 	if runtime.GOOS == "windows" {
 		//Use git cli command for windows
-		runCmd("git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", pr, branch))
+		runCmd("git", "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
 	} else {
 		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
 		err = repo.Fetch(&git.FetchOptions{
