@@ -177,7 +177,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   description: path of the file to create
 	// - name: body
 	//   in: body
-	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
+	//   description: "`content`m must be base64 encoded\n\n `author` and `committer` are optional (if only one exists, it will be used for the other, otherwise the authenticated user will be used)\n\n `sha` is the SHA for the file that already exists\n\n `new_branch` (optional) will make a new branch from `branch` before creating the file"
 	//   schema:
 	//     "$ref": "#/definitions/CreateFileOptions"
 	// responses:
@@ -228,7 +228,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   description: path of the file to update
 	// - name: body
 	//   in: body
-	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
+	//   description: "`content` must be base64 encoded\n\n `sha` is the SHA for the file that already exists; `author` and `committer` are optional (if only one exists, it will be used for the other, otherwise the authenticated user will be used)\n\n `new_branch` (optional) will make a new branch from `branch` before updating the file"
 	//   schema:
 	//     "$ref": "#/definitions/UpdateFileOptions"
 	// responses:
@@ -302,7 +302,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   description: path of the file to delete
 	// - name: body
 	//   in: body
-	//   description: Both the `author` and `committer` parameters have the same keys; `sha` is the SHA for the file that already exists
+	//   description: "`sha` is the SHA for the file to be deleted; `author` and `committer` are optional (if only one exists, it will be used for the other, otherwise the authenticated user will be used); `new_branch` (optional) will make a new branch from `branch` before deleting the file"
 	//   schema:
 	//     "$ref": "#/definitions/DeleteFileOptions"
 	// responses:
