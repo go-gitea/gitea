@@ -1,21 +1,67 @@
-@default-fonts: "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif;
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-regular.eot');
+    src: url('../vendor/assets/lato-fonts/lato-regular.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-regular.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-regular.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-italic.eot');
+    src: url('../vendor/assets/lato-fonts/lato-italic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-italic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-italic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-bold.eot');
+    src: url('../vendor/assets/lato-fonts/lato-bold.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bold.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bold.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot');
+    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bolditalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Yu Gothic';
+    src: local('Yu Gothic Medium');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Yu Gothic';
+    src: local('Yu Gothic Bold');
+    font-weight: 700;
+}
+
+@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial;
+@monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
 
 .override-fonts(@fonts) {
-    body {
-        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, @fonts;
+    textarea {
+        font-family: @fonts, sans-serif;
     }
 
     .markdown:not(code) {
-        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, @fonts;
+        font-family: @fonts, sans-serif;
     }
 
     /* We're going to just override the semantic fonts here */
     h1, h2, h3, h4, h5 {
-        font-family: "Lato", @fonts;
+        font-family: Lato, @fonts, sans-serif;
     }
 
     .home .hero h1, .home .hero h2 {
-        font-family: 'PT Sans Narrow', "Lato", @fonts;
+        font-family: 'PT Sans Narrow', Lato, @fonts, sans-serif;
     }
 
     .ui.accordion .title:not(.ui),
@@ -40,14 +86,16 @@
     .ui.statistics .statistic > .label,
     .ui.statistic > .label,
     .ui.steps .step .title,
-    .ui.text.container
+    .ui.text.container,
+    .ui.language > .menu > .item&
     {
-        font-family: "Lato", @fonts;
+        font-family: Lato, @fonts, sans-serif;
     }
 }
 
+.override-fonts(@default-fonts);
+
 body {
-    .override-fonts(@default-fonts);
     background-color: #fff;
     overflow-y: auto;
     -webkit-font-smoothing: antialiased;
@@ -55,29 +103,29 @@ body {
     flex-direction: column;
 }
 
-@ja-fonts: "Segoe UI", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", Roboto, Noto, "Noto Sans CJK JP", Arial, Helvetica, sans-serif;
+@ja-fonts: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Source Han Sans JP', 'Noto Sans CJK JP', 'Droid Sans Japanese', 'Meiryo', 'MS PGothic';
 :lang(ja) {
-    .override-fonts(@ja-fonts);
+    .override-fonts(@default-fonts, @ja-fonts;);
 }
 
-@zh-CN-fonts: "Segoe UI", "Microsoft YaHei New", "Microsoft Yahei", "微软雅黑", "方体", "PingFang SC", "黑体", "Heiti SC", STXihei, "华文细黑", Roboto, Noto, "Noto Sans CJK SC", Arial, Helvetica, sans-serif;
+@zh-CN-fonts: 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Heiti SC', SimHei;
 :lang(zh-CN) {
-    .override-fonts(@zh-CN-fonts);
+    .override-fonts(@default-fonts, @zh-CN-fonts;);
 }
 
-@zh-TW-fonts: "Segoe UI", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
+@zh-TW-fonts: 'PingFang TC', 'Hiragino Sans TC', 'Source Han Sans TW', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU;
 :lang(zh-TW) {
-    .override-fonts(@zh-TW-fonts);
+    .override-fonts(@default-fonts, @zh-TW-fonts;);
 }
 
-@zh-HK-fonts: "Segoe UI", "方體", "PingFang HK", "方體", "PingFang TC", "黑體", "Heiti TC", "Microsoft JhengHei New", "Microsoft JhengHei", "微軟正黑體", "宋体", MingLiu, Roboto, Noto, "Noto Sans CJK TC", Arial, Helvetica, sans-serif;
+@zh-HK-fonts: 'PingFang HK', 'Hiragino Sans TC', 'Source Han Sans HK', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU_HKSCS, PMingLiU;
 :lang(zh-HK) {
-    .override-fonts(@zh-HK-fonts);
+    .override-fonts(@default-fonts, @zh-HK-fonts;);
 }
 
-@ko-fonts: "Segoe UI", 'Apple SD Gothic Neo', 'NanumBarunGothic', '맑은 고딕', 'Malgun Gothic', '굴림', 'Gulim', '돋움', 'Dotum', "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", Roboto, Noto, "Noto Sans CJK KR", 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
+@ko-fonts: 'Apple SD Gothic Neo', 'NanumBarunGothic', 'Malgun Gothic', 'Gulim', 'Dotum', 'Nanum Gothic', 'Source Han Sans KR', 'Noto Sans CJK KR';
 :lang(ko) {
-    .override-fonts(@ko-fonts);
+    .override-fonts(@default-fonts, @ko-fonts;);
 }
 
 img {
@@ -93,7 +141,7 @@ a {
     border-radius: .28571429rem !important;
 }
 pre, code {
-    font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font: 12px @monospaced-fonts, monospace;
     &.raw {
         padding: 7px 12px;
         margin: 10px 0;
@@ -411,7 +459,7 @@ pre, code {
     }
 
     .sha.label {
-        font-family: Consolas, Menlo, Monaco, "Lucida Console", monospace, inherit;
+        font-family: @monospaced-fonts, monospace;
         font-size: 13px;
         padding: 6px 10px 4px 10px;
         font-weight: normal;
@@ -465,7 +513,7 @@ pre, code {
 }
 
 .file-comment {
-    font: 12px Consolas,"Liberation Mono",Menlo,Courier,monospace;
+    font: 12px @monospaced-fonts, monospace;
     color: rgba(0,0,0,.87);
 
 }
