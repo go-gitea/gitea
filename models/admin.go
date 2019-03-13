@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -60,7 +61,7 @@ func RemoveAllWithNotice(title, path string) {
 }
 
 func removeAllWithNotice(e Engine, title, path string) {
-	if err := util.RemoveAll(path); err != nil {
+	if err := os.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(desc)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {

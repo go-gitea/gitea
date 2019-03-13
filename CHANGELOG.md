@@ -4,6 +4,15 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
+* SECURITY
+  * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
+* BUGFIXES
+  * Fix wrong release commit id (#6224) (#6300)
+  * Fix panic on empty signed commits (#6292) (#6300)
+  * Fix organization dropdown not being scrollable when using mouse wheel (#5988) (#6246)
+  * Fix displaying dashboard even if required to change password (#6214) (#6215)
+
 ## [1.7.3](https://github.com/go-gitea/gitea/releases/tag/v1.7.3) - 2019-02-27
 * BUGFIXES
   * Fix server 500 when trying to migrate to an already existing repository (#6188) (#6197)
