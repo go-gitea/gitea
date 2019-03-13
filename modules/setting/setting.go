@@ -1234,7 +1234,7 @@ func loadInternalToken(sec *ini.Section) string {
 
 		return string(buf)
 	default:
-		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URL = %q)", tempURI.Scheme, uri)
+		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
 	return ""
 }
