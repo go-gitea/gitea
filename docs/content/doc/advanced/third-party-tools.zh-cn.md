@@ -21,7 +21,7 @@ menu:
 ### 持续集成
 [BuildKite 连接器](https://github.com/techknowlogick/gitea-buildkite-connector)  
 [Jenkins 插件](https://github.com/jenkinsci/gitea-plugin)  
-[[Gitea搭配Drone](https://docs.drone.io/installation/gitea/)
+[Gitea搭配Drone](https://docs.drone.io/installation/gitea)
 
 
 ### 迁移
