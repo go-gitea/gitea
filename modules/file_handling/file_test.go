@@ -5,8 +5,9 @@
 package file_handling
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"

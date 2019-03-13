@@ -1,13 +1,18 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package file_handling
 
 import (
-	"code.gitea.io/git"
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
+
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/sdk/gitea"
 )
 
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*gitea.FileResponse, error) {

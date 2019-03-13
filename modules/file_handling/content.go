@@ -5,11 +5,12 @@
 package file_handling
 
 import (
+	"fmt"
+	"net/url"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/sdk/gitea"
-	"fmt"
-	"net/url"
 )
 
 // GetFileContents gets the meta data on a file's contents

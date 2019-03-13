@@ -5,11 +5,12 @@
 package file_handling
 
 import (
-	"code.gitea.io/git"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/sdk/gitea"

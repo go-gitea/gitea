@@ -5,8 +5,8 @@
 package file_handling
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCleanUploadFileName(t *testing.T) {
