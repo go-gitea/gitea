@@ -5,6 +5,8 @@
 package log
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,6 +35,9 @@ type FileLogger struct {
 	dailyOpenDate int
 
 	Rotate bool `json:"rotate"`
+
+	Compress         bool `json:"compress"`
+	CompressionLevel int  `json:"compressionLevel"`
 
 	startLock sync.Mutex // Only one log can write to the file
 }
@@ -68,11 +73,13 @@ func (mw *MuxWriter) SetFd(fd *os.File) {
 // NewFileLogger create a FileLogger returning as LoggerProvider.
 func NewFileLogger() LoggerProvider {
 	log := &FileLogger{
-		Filename: "",
-		Maxsize:  1 << 28, //256 MB
-		Daily:    true,
-		Maxdays:  7,
-		Rotate:   true,
+		Filename:         "",
+		Maxsize:          1 << 28, //256 MB
+		Daily:            true,
+		Maxdays:          7,
+		Rotate:           true,
+		Compress:         true,
+		CompressionLevel: gzip.DefaultCompression,
 	}
 	log.Level = TRACE
 	// use MuxWriter instead direct use os.File for lock write when rotate
@@ -153,6 +160,9 @@ func (log *FileLogger) DoRotate() error {
 		for ; err == nil && num <= 999; num++ {
 			fname = log.Filename + fmt.Sprintf(".%s.%03d", time.Now().Format("2006-01-02"), num)
 			_, err = os.Lstat(fname)
+			if log.Compress && err != nil {
+				_, err = os.Lstat(fname + ".gz")
+			}
 		}
 		// return error if the last file checked still existed
 		if err == nil {
@@ -168,6 +178,10 @@ func (log *FileLogger) DoRotate() error {
 			return fmt.Errorf("Rotate: %v", err)
 		}
 
+		if log.Compress {
+			go compressOldLogFile(fname, log.CompressionLevel)
+		}
+
 		// re-start logger
 		if err = log.StartLogger(); err != nil {
 			return fmt.Errorf("Rotate StartLogger: %v", err)
@@ -177,6 +191,34 @@ func (log *FileLogger) DoRotate() error {
 	}
 
 	return nil
+}
+
+func compressOldLogFile(fname string, compressionLevel int) error {
+	reader, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	buffer := bufio.NewReader(reader)
+	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0660)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
+	if err != nil {
+		return err
+	}
+	defer zw.Close()
+	_, err = buffer.WriteTo(zw)
+	if err != nil {
+		zw.Close()
+		fw.Close()
+		os.Remove(fname + ".gz")
+		return err
+	}
+	reader.Close()
+	return os.Remove(fname)
 }
 
 func (log *FileLogger) deleteOldLog() {

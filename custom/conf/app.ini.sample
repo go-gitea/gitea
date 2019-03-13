@@ -548,6 +548,10 @@ MAX_SIZE_SHIFT = 28
 DAILY_ROTATE = true
 ; delete the log file after n days, default is 7
 MAX_DAYS = 7
+; compress logs with gzip
+COMPRESS = true
+; compression level see godoc for compress/gzip
+COMPRESSION_LEVEL = -1
 
 ; For "conn" mode only
 [log.conn]

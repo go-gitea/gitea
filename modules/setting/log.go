@@ -101,6 +101,8 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		jsonConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
 		jsonConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
 		jsonConfig["maxdays"] = sec.Key("MAX_DAYS").MustInt(7)
+		jsonConfig["compress"] = sec.Key("COMPRESS").MustBool(true)
+		jsonConfig["compressionLevel"] = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
 	case "conn":
 		jsonConfig["reconnectOnMsg"] = sec.Key("RECONNECT_ON_MSG").MustBool()
 		jsonConfig["reconnect"] = sec.Key("RECONNECT").MustBool()

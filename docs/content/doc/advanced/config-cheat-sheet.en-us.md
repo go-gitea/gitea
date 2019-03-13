@@ -328,6 +328,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
 - `MAX_DAYS`: **7**: Delete the log file after n days
 - NB: `COLORIZE`: will default to `true` if not on windows.
+- `COMPRESS`: **true**: Compress old log files by default with gzip
+- `COMPRESSION_LEVEL`: **-1**: Compression level
 
 ### Conn log mode (`log.conn`, `log.*.conn` or `MODE=conn`)
 
