@@ -1875,3 +1875,23 @@ tbody.commit-list {
     display: flex;
     align-items: center;
 }
+
+.repo-buttons .disabled-repo-button .label {
+  opacity: .5;
+}
+
+.repo-buttons .disabled-repo-button a.button {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.repo-buttons .disabled-repo-button a.button:hover {
+  background: none !important;
+  color: rgba(0,0,0,.6) !important;
+  box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset !important;
+}
+
+.repo-buttons .ui.labeled.button > .label {
+  border-left: none !important;
+  margin: 0 !important;
+}

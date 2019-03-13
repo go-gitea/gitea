@@ -7,6 +7,7 @@ package auth
 import (
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
@@ -44,7 +45,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			auHead := ctx.Req.Header.Get("Authorization")
 			if len(auHead) > 0 {
 				auths := strings.Fields(auHead)
-				if len(auths) == 2 && auths[0] == "token" {
+				if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
 					tokenSHA = auths[1]
 				}
 			}
@@ -52,6 +53,13 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 
 		// Let's see if token is valid.
 		if len(tokenSHA) > 0 {
+			if strings.Contains(tokenSHA, ".") {
+				uid := checkOAuthAccessToken(tokenSHA)
+				if uid != 0 {
+					ctx.Data["IsApiToken"] = true
+				}
+				return uid
+			}
 			t, err := models.GetAccessTokenBySHA(tokenSHA)
 			if err != nil {
 				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
@@ -75,6 +83,29 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 		return id
 	}
 	return 0
+}
+
+func checkOAuthAccessToken(accessToken string) int64 {
+	// JWT tokens require a "."
+	if !strings.Contains(accessToken, ".") {
+		return 0
+	}
+	token, err := models.ParseOAuth2Token(accessToken)
+	if err != nil {
+		log.Trace("ParseOAuth2Token", err)
+		return 0
+	}
+	var grant *models.OAuth2Grant
+	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+		return 0
+	}
+	if token.Type != models.TypeAccessToken {
+		return 0
+	}
+	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+		return 0
+	}
+	return grant.UserID
 }
 
 // SignedInUser returns the user object of signed user.
