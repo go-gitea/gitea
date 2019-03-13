@@ -1206,7 +1206,7 @@ func loadInternalToken(sec *ini.Section) string {
 	}
 	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s). Falling back to INTERNAL_TOKEN: %v", uri, err)
+		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
 	}
 	switch tempURI.Scheme {
 	case "file":
