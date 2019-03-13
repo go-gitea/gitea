@@ -44,7 +44,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
    an absolute path.
-- `SCRIPT_TYPE`: **bash**: The script type this server supports, usually this is `bash`,
+- `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
@@ -344,6 +344,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
+
+## OAuth2 (`oauth2`)
+
+- `ENABLED`: **true**: Enables OAuth2 provider.
+- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
 ## i18n (`i18n`)
 

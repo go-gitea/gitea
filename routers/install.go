@@ -266,7 +266,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
 		var secretKey string
-		if secretKey, err = generate.NewLfsJwtSecret(); err != nil {
+		if secretKey, err = generate.NewJwtSecret(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}

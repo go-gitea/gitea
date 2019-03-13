@@ -3,19 +3,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:e1fa64238b0a2dbf1edf98c4af8d1b8cb65179e286d7f28006b50fa9f508ee9d"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "74d7c14dd4a3ed9c5def0dc3c1aeede399ddc5c5"
 
 [[projects]]
   branch = "master"
-  digest = "1:59b2036a2d4b51fc91018adebd33ec4a893aa2b11af3a606445fe8df5640f514"
+  digest = "1:dbf849e6552740945ac1c6c6acba590fbc594e4efa80cf05568dec8579ae0dab"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "9c4f6485997bcff568e30cfe45165018ac5772c1"
+  revision = "e4effe4df2b895ca51482d24edb8748704326f1a"
 
 [[projects]]
   digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
@@ -726,6 +726,14 @@
   revision = "02ccfbfaf0cc627aa3aec8ef7ed5cfeec5b43f63"
 
 [[projects]]
+  digest = "1:63953ffb90bbc880c612d576fcfd973a5904277d25ec9e2d8d5719bf67969662"
+  name = "github.com/mvdan/xurls"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "e52e821cbfe8fe163ff6f8628ab5869b11fc05af"
+  version = "v2.0.0"
+
+[[projects]]
   digest = "1:2be1d891535ce3d6d2a3db9087f07415e909744e9eff1a30f8f0b2519df60ae6"
   name = "github.com/nfnt/resize"
   packages = ["."]
@@ -954,11 +962,13 @@
   revision = "2c050d2dae5345c417db301f11fda6fbf5ad0f0a"
 
 [[projects]]
-  digest = "1:c3d6b9e2cf3936ba9927da2e8858651aad69890b9dd3349f1316b4003b25d7a3"
+  digest = "1:590035a7bbea1c037c2e6d51f81ee09857480c3c21f1f77397d9802f10507c06"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
+    "bcrypt",
+    "blowfish",
     "cast5",
     "curve25519",
     "ed25519",
@@ -1293,6 +1303,7 @@
     "github.com/mcuadros/go-version",
     "github.com/microcosm-cc/bluemonday",
     "github.com/msteinert/pam",
+    "github.com/mvdan/xurls",
     "github.com/nfnt/resize",
     "github.com/pquerna/otp",
     "github.com/pquerna/otp/totp",
@@ -1306,6 +1317,7 @@
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
     "golang.org/x/crypto/acme/autocert",
+    "golang.org/x/crypto/bcrypt",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/html",
@@ -1319,6 +1331,9 @@
     "gopkg.in/ini.v1",
     "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/config",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]

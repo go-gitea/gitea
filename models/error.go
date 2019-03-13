@@ -1398,3 +1398,42 @@ func IsErrReviewNotExist(err error) bool {
 func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
+
+//  ________      _____          __  .__
+//  \_____  \    /  _  \  __ ___/  |_|  |__
+//   /   |   \  /  /_\  \|  |  \   __\  |  \
+//  /    |    \/    |    \  |  /|  | |   Y  \
+//  \_______  /\____|__  /____/ |__| |___|  /
+//          \/         \/                 \/
+
+// ErrOAuthClientIDInvalid will be thrown if client id cannot be found
+type ErrOAuthClientIDInvalid struct {
+	ClientID string
+}
+
+// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+func IsErrOauthClientIDInvalid(err error) bool {
+	_, ok := err.(ErrOAuthClientIDInvalid)
+	return ok
+}
+
+// Error returns the error message
+func (err ErrOAuthClientIDInvalid) Error() string {
+	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
+}
+
+// ErrOAuthApplicationNotFound will be thrown if id cannot be found
+type ErrOAuthApplicationNotFound struct {
+	ID int64
+}
+
+// IsErrOAuthApplicationNotFound checks if an error is a ErrReviewNotExist.
+func IsErrOAuthApplicationNotFound(err error) bool {
+	_, ok := err.(ErrOAuthApplicationNotFound)
+	return ok
+}
+
+// Error returns the error message
+func (err ErrOAuthApplicationNotFound) Error() string {
+	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
+}

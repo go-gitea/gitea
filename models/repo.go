@@ -722,10 +722,12 @@ var (
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener noreferrer">%[1]s</a>`, s)
+	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	if err != nil {
+		log.Error(4, "Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
+		return template.HTML(markup.Sanitize(repo.Description))
 	}
-	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
+	return template.HTML(markup.Sanitize(string(desc)))
 }
 
 // LocalCopyPath returns the local repository copy path.
@@ -1564,6 +1566,11 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		}
 	}
 
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
+		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
 	return sess.Commit()
 }
 
@@ -1614,7 +1621,18 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
-	return nil
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return fmt.Errorf("sess.Begin: %v", err)
+	}
+
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteRepoRedirect(sess, u.ID, newRepoName); err != nil {
+		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
+	return sess.Commit()
 }
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
