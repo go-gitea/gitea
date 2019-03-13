@@ -21,7 +21,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.File
 		return nil, fmt.Errorf("treePath cannot be empty")
 	}
 	if ref == "" {
-		ref = "master"
+		ref = repo.DefaultBranch
 	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)

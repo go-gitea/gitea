@@ -50,7 +50,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
-		opts.OldBranch = "master"
+		opts.OldBranch = repo.DefaultBranch
 	}
 	if opts.NewBranch == "" {
 		opts.NewBranch = opts.OldBranch

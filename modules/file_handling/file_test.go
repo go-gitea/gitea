@@ -73,7 +73,7 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
 	repo := ctx.Repo.Repository
-	branch := "master"
+	branch := repo.DefaultBranch
 	treePath := "README.md"
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
 	commit, _ := gitRepo.GetBranchCommit(branch)
@@ -94,7 +94,7 @@ func TestGetFileResponseFromCommitErrors(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
 	repo := ctx.Repo.Repository
-	branch := "master"
+	branch := repo.DefaultBranch
 	treePath := "README.md"
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())

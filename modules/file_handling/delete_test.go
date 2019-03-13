@@ -13,11 +13,11 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-func getDeleteRepoFileOptions() *DeleteRepoFileOptions {
+func getDeleteRepoFileOptions(repo *models.Repository) *DeleteRepoFileOptions {
 	return &DeleteRepoFileOptions{
 		LastCommitID: "",
-		OldBranch:    "master",
-		NewBranch:    "master",
+		OldBranch:    repo.DefaultBranch,
+		NewBranch:    repo.DefaultBranch,
 		TreePath:     "README.md",
 		Message:      "Deletes README.md",
 		SHA:          "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
@@ -70,9 +70,9 @@ func TestDeleteRepoFile(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getDeleteRepoFileOptions()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getDeleteRepoFileOptions(repo)
 
 	// Test #1 - Delete the README.md file
 	// actual test
@@ -100,11 +100,11 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getDeleteRepoFileOptions()
-	opts.OldBranch = ""
-	opts.NewBranch = ""
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getDeleteRepoFileOptions(repo)
+	opts.OldBranch = ""
+	opts.NewBranch = ""
 
 	// Test #1 - Delete README.md file
 	fileResponse, err := DeleteRepoFile(repo, doer, opts)
@@ -128,7 +128,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	doer := ctx.User
 
 	// Test #1 - bad branch
-	opts := getDeleteRepoFileOptions()
+	opts := getDeleteRepoFileOptions(repo)
 	opts.OldBranch = "bad_branch"
 	fileResponse, err := DeleteRepoFile(repo, doer, opts)
 	assert.Error(t, err)
@@ -137,7 +137,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #2 - bad SHA
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	origSHA := opts.SHA
 	opts.SHA = "bad_sha"
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
@@ -147,7 +147,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #3 - new branch already exists
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	opts.NewBranch = "develop"
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -156,7 +156,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #4 - repo is nil
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	fileResponse, err = DeleteRepoFile(nil, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -164,7 +164,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #5 - doer is nil
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	fileResponse, err = DeleteRepoFile(repo, nil, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -172,7 +172,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #6 - opts is nil:
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	fileResponse, err = DeleteRepoFile(repo, doer, nil)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -180,7 +180,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #7 - treePath is empty:
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	opts.TreePath = ""
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -189,7 +189,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// Test #8 - treePath is a git directory:
-	opts = getDeleteRepoFileOptions()
+	opts = getDeleteRepoFileOptions(repo)
 	opts.TreePath = ".git"
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)

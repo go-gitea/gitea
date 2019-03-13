@@ -27,7 +27,7 @@ func TestGetFileContents(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
 	treePath := "README.md"
-	ref := "master"
+	ref := ctx.Repo.Repository.DefaultBranch
 
 	expectedFileContentResponse := &gitea.FileContentResponse{
 		Name:        treePath,
@@ -50,7 +50,7 @@ func TestGetFileContents(t *testing.T) {
 	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
 	assert.Nil(t, err)
 
-	// test with ref as empty string (should then use "master")
+	// test with ref as empty string (should then use the repo's default branch)
 	fileContentResponse, _ = GetFileContents(ctx.Repo.Repository, treePath, "")
 	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
 	assert.Nil(t, err)
@@ -66,7 +66,7 @@ func TestGetFileContentsErrors(t *testing.T) {
 	test.LoadGitRepo(t, ctx)
 	repo := ctx.Repo.Repository
 	treePath := "README.md"
-	ref := "master"
+	ref := repo.DefaultBranch
 
 	// nil repo
 	fileContentResponse, err := GetFileContents(nil, treePath, ref)

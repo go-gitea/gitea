@@ -20,16 +20,16 @@ func TestMain(m *testing.M) {
 
 func TestGetTreeBySHA(t *testing.T) {
 	models.PrepareTestEnv(t)
-	sha := "master"
-	page := 1
-	perPage := 10
 	ctx := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	ctx.SetParams(":sha", sha)
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	sha := ctx.Repo.Repository.DefaultBranch
+	page := 1
+	perPage := 10
+	ctx.SetParams(":id", "1")
+	ctx.SetParams(":sha", sha)
 
 	tree := GetTreeBySHA(ctx.Repo.Repository, ctx.Params("sha"), page, perPage, true)
 	expectedTree := &gitea.GitTreeResponse{

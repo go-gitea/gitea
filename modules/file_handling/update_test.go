@@ -15,10 +15,10 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
-func getCreateRepoFileOptions() *UpdateRepoFileOptions {
+func getCreateRepoFileOptions(repo *models.Repository) *UpdateRepoFileOptions {
 	return &UpdateRepoFileOptions{
-		OldBranch: "master",
-		NewBranch: "master",
+		OldBranch: repo.DefaultBranch,
+		NewBranch: repo.DefaultBranch,
 		TreePath:  "new/file.txt",
 		Message:   "Creates new/file.txt",
 		Content:   "This is a NEW file",
@@ -28,10 +28,10 @@ func getCreateRepoFileOptions() *UpdateRepoFileOptions {
 	}
 }
 
-func getUpdateRepoFileOptions() *UpdateRepoFileOptions {
+func getUpdateRepoFileOptions(repo *models.Repository) *UpdateRepoFileOptions {
 	return &UpdateRepoFileOptions{
-		OldBranch: "master",
-		NewBranch: "master",
+		OldBranch: repo.DefaultBranch,
+		NewBranch: repo.DefaultBranch,
 		TreePath:  "README.md",
 		Message:   "Updates README.md",
 		SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
@@ -161,9 +161,9 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getCreateRepoFileOptions()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getCreateRepoFileOptions(repo)
 
 	// test
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
@@ -189,9 +189,9 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getUpdateRepoFileOptions()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getUpdateRepoFileOptions(repo)
 
 	// test
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
@@ -217,9 +217,9 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getUpdateRepoFileOptions()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getUpdateRepoFileOptions(repo)
 	suffix := "_new"
 	opts.FromTreePath = "README.md"
 	opts.TreePath = "README.md" + suffix // new file name, README.md_new
@@ -256,9 +256,9 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
-	opts := getUpdateRepoFileOptions()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
+	opts := getUpdateRepoFileOptions(repo)
 	opts.OldBranch = ""
 	opts.NewBranch = ""
 
@@ -268,7 +268,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 	// asserts
 	assert.Nil(t, err)
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
-	commitID, _ := gitRepo.GetBranchCommitID("master")
+	commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	expectedFileResponse := getExpectedFileResponseForUpdate(commitID)
 	assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 }
@@ -286,7 +286,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	doer := ctx.User
 
 	// test #1 - bad branch
-	opts := getUpdateRepoFileOptions()
+	opts := getUpdateRepoFileOptions(repo)
 	opts.OldBranch = "bad_branch"
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Error(t, err)
@@ -295,7 +295,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #2 - bad SHA
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	origSHA := opts.SHA
 	opts.SHA = "bad_sha"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
@@ -305,7 +305,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #3 - new branch already exists
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	opts.NewBranch = "develop"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -314,7 +314,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #4 - repo is nil
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	fileResponse, err = CreateOrUpdateRepoFile(nil, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -322,7 +322,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #5 - doer is nil
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	fileResponse, err = CreateOrUpdateRepoFile(repo, nil, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -330,7 +330,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #6 - opts is nil:
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, nil)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
@@ -338,7 +338,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #7 - treePath is empty:
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	opts.TreePath = ""
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -347,7 +347,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #8 - treePath is a git directory:
-	opts = getUpdateRepoFileOptions()
+	opts = getUpdateRepoFileOptions(repo)
 	opts.TreePath = ".git"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
@@ -356,7 +356,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	// test #9 - create file that already exists
-	opts = getCreateRepoFileOptions()
+	opts = getCreateRepoFileOptions(repo)
 	opts.TreePath = "README.md" //already exists
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)

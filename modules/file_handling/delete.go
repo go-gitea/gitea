@@ -37,9 +37,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, fmt.Errorf("opts cannot be nil")
 	}
 
-	// If no branch name is set, assume master
+	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
-		opts.OldBranch = "master"
+		opts.OldBranch = repo.DefaultBranch
 	}
 	if opts.NewBranch == "" {
 		opts.NewBranch = opts.OldBranch
