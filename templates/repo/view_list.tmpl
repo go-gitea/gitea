@@ -65,7 +65,7 @@
 							{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 							{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 							<span class="octicon octicon-file-directory"></span>
-							<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+							<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{EscapePound $subJumpablePathName}}">
 								{{if eq (len $subJumpablePath) 2}}
 									<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
 								{{else}}
