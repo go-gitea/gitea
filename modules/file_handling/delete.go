@@ -162,13 +162,6 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, models.ErrShaOrCommitIDNotProvided{}
 	}
 
-	if opts.SHA != "" && opts.SHA != entry.ID.String() {
-		return nil, models.ErrShaDoesNotMatch{
-			GivenSHA:   opts.SHA,
-			CurrentSHA: entry.ID.String(),
-		}
-	}
-
 	if err := t.RemoveFilesFromIndex(opts.TreePath); err != nil {
 		return nil, err
 	}
