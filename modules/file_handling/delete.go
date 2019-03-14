@@ -108,11 +108,13 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, err // Couldn't get a commit for the branch
 	}
 
+	// Get the files in the index
 	filesInIndex, err := t.LsFiles(opts.TreePath)
 	if err != nil {
 		return nil, fmt.Errorf("DeleteRepoFile: %v", err)
 	}
 
+	// Find the file we want to delete in the index
 	inFilelist := false
 	for _, file := range filesInIndex {
 		if file == opts.TreePath {
@@ -162,6 +164,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, models.ErrShaOrCommitIDNotProvided{}
 	}
 
+	// Remove the file from the index
 	if err := t.RemoveFilesFromIndex(opts.TreePath); err != nil {
 		return nil, err
 	}
