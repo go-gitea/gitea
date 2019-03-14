@@ -48,6 +48,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
+		"StaticUrlPrefix": func() string {
+			return setting.StaticURLPrefix
+		},
 		"AppUrl": func() string {
 			return setting.AppURL
 		},
@@ -110,12 +113,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":        base.EllipsisString,
-		"DiffTypeToStr":         DiffTypeToStr,
-		"DiffLineTypeToStr":     DiffLineTypeToStr,
-		"Sha1":                  Sha1,
-		"ShortSha":              base.ShortSha,
-		"MD5":                   base.EncodeMD5,
+		"EllipsisString":    base.EllipsisString,
+		"DiffTypeToStr":     DiffTypeToStr,
+		"DiffLineTypeToStr": DiffLineTypeToStr,
+		"Sha1":              Sha1,
+		"ShortSha":          base.ShortSha,
+		"MD5":               base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
 		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
