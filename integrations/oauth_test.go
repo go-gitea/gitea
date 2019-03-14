@@ -136,3 +136,44 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 	})
 	MakeRequest(t, req, 400)
 }
+
+func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+
+	// use wrong client_secret
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OmJsYWJsYQ==")
+	resp = MakeRequest(t, req, 400)
+
+	// missing header
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp = MakeRequest(t, req, 400)
+}

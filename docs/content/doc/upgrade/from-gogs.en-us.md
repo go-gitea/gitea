@@ -70,7 +70,7 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 
 ## Upgrading to most recent `gitea` version
 
-After successful migration from `gogs` to `gitea 1.0.x` it is possible to upgrade to the recent `gitea` version.
+After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgrade to the recent `gitea` version.
 Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
 and replace the binary.
 
