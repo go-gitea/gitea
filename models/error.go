@@ -5,7 +5,10 @@
 
 package models
 
-import "fmt"
+import (
+	"code.gitea.io/git"
+	"fmt"
+)
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -27,8 +30,7 @@ type ErrNamePatternNotAllowed struct {
 	Pattern string
 }
 
-// IsErrNamePatternNotAllowed checks if an error is an
-// ErrNamePatternNotAllowed.
+// IsErrNamePatternNotAllowed checks if an error is an ErrNamePatternNotAllowed.
 func IsErrNamePatternNotAllowed(err error) bool {
 	_, ok := err.(ErrNamePatternNotAllowed)
 	return ok
@@ -662,7 +664,7 @@ type ErrRepoRedirectNotExist struct {
 	RepoName string
 }
 
-// IsErrRepoRedirectNotExist check if an error is an ErrRepoRedirectNotExist
+// IsErrRepoRedirectNotExist check if an error is an ErrRepoRedirectNotExist.
 func IsErrRepoRedirectNotExist(err error) bool {
 	_, ok := err.(ErrRepoRedirectNotExist)
 	return ok
@@ -786,8 +788,7 @@ type ErrFilenameInvalid struct {
 	Filename string
 }
 
-// IsErrFilenameInvalid checks if an error is an
-// ErrFilenameInvalid.
+// IsErrFilenameInvalid checks if an error is an ErrFilenameInvalid.
 func IsErrFilenameInvalid(err error) bool {
 	_, ok := err.(ErrFilenameInvalid)
 	return ok
@@ -802,8 +803,7 @@ type ErrCannotCommit struct {
 	UserName string
 }
 
-// IsErrCannotCommit checks if an error is an
-// ErrCannotCommit.
+// IsErrCannotCommit checks if an error is an ErrCannotCommit.
 func IsErrCannotCommit(err error) bool {
 	_, ok := err.(ErrCannotCommit)
 	return ok
@@ -813,13 +813,15 @@ func (err ErrCannotCommit) Error() string {
 	return fmt.Sprintf("User cannot commit to repo: %s", err.UserName)
 }
 
-// ErrWithFilePath represents a problem with the file to be edited
+// ErrWithFilePath represents a problem with the file to be edited.
 type ErrWithFilePath struct {
 	Message string
+	Path    string
+	Name    string
+	Type    git.EntryMode
 }
 
-// IsErrWithFilePath checks if an error is an
-// ErrWithFilePath.
+// IsErrWithFilePath checks if an error is an ErrWithFilePath.
 func IsErrWithFilePath(err error) bool {
 	_, ok := err.(ErrWithFilePath)
 	return ok
@@ -829,7 +831,7 @@ func (err ErrWithFilePath) Error() string {
 	return fmt.Sprintf("There is a problem with this file path: %s", err.Message)
 }
 
-// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
+// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
 	RepoName string
@@ -867,7 +869,7 @@ func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
 }
 
-// ErrBranchAlreadyExists represents an error that branch with such name already exists
+// ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
 }
@@ -882,7 +884,7 @@ func (err ErrBranchAlreadyExists) Error() string {
 	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
 }
 
-// ErrBranchNameConflict represents an error that branch name conflicts with other branch
+// ErrBranchNameConflict represents an error that branch name conflicts with other branch.
 type ErrBranchNameConflict struct {
 	BranchName string
 }
@@ -897,7 +899,7 @@ func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
 }
 
-// ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it
+// ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrNotAllowedToMerge struct {
 	Reason string
 }
@@ -912,7 +914,7 @@ func (err ErrNotAllowedToMerge) Error() string {
 	return fmt.Sprintf("not allowed to merge [reason: %s]", err.Reason)
 }
 
-// ErrTagAlreadyExists represents an error that tag with such name already exists
+// ErrTagAlreadyExists represents an error that tag with such name already exists.
 type ErrTagAlreadyExists struct {
 	TagName string
 }
@@ -933,7 +935,7 @@ type ErrShaDoesNotMatch struct {
 	CurrentSHA string
 }
 
-// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrShaDoesNotMatch checks if an error is a ErrRepoFileAlreadyExists.
 func IsErrShaDoesNotMatch(err error) bool {
 	_, ok := err.(ErrShaDoesNotMatch)
 	return ok
@@ -941,6 +943,35 @@ func IsErrShaDoesNotMatch(err error) bool {
 
 func (err ErrShaDoesNotMatch) Error() string {
 	return fmt.Sprintf("file sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
+}
+
+// ErrCommitIDDoesNotMatch represents a "CommitIDDoesNotMatch" kind of error.
+type ErrCommitIDDoesNotMatch struct {
+	GivenCommitID   string
+	CurrentCommitID string
+}
+
+// IsErrCommitIDDoesNotMatch checks if an error is a ErrRepoFileAlreadyExists.
+func IsErrCommitIDDoesNotMatch(err error) bool {
+	_, ok := err.(ErrCommitIDDoesNotMatch)
+	return ok
+}
+
+func (err ErrCommitIDDoesNotMatch) Error() string {
+	return fmt.Sprintf("file CommitID does not match [given: %s, expected: %s]", err.GivenCommitID, err.CurrentCommitID)
+}
+
+// ErrShaOrCommitIDNotProvided represents a "ShaOrCommitIDNotProvided" kind of error.
+type ErrShaOrCommitIDNotProvided struct{}
+
+// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+func IsErrShaOrCommitIDNotProvided(err error) bool {
+	_, ok := err.(ErrShaOrCommitIDNotProvided)
+	return ok
+}
+
+func (err ErrShaOrCommitIDNotProvided) Error() string {
+	return fmt.Sprintf("a SHA or commmit ID must be proved when updating a file")
 }
 
 //  __      __      ___.   .__                   __

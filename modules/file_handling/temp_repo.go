@@ -205,7 +205,10 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 		fmt.Sprintf("addObjectToIndex (git update-index): %s", t.basePath),
 		"git", "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath); err != nil {
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
-			return models.ErrWithFilePath{objectPath}
+			return models.ErrWithFilePath{
+				Message: objectPath,
+				Path:    objectPath,
+			}
 		} else {
 			return fmt.Errorf("git update-index: %s", stderr)
 		}

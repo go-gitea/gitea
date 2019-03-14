@@ -61,16 +61,18 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	// A NewBranch can be specified for the file to be created/updated in a new branch
+	// A NewBranch can be specified for the file to be created/updated in a new branch.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo.GetBranch(opts.NewBranch)
-		if git.IsErrNotExist(err) {
-			return nil, err
+		existingBranch, err := repo.GetBranch(opts.NewBranch)
+		if existingBranch != nil {
+			return nil, models.ErrBranchAlreadyExists{
+				BranchName: opts.NewBranch,
+			}
 		}
-		if newBranch != nil {
-			return nil, models.ErrBranchAlreadyExists{opts.NewBranch}
+		if err != nil && !models.IsErrBranchNotExist(err) {
+			return nil, err
 		}
 	} else {
 		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
@@ -129,17 +131,43 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err // Couldn't get a commit for the branch
 	}
 
-	// Get the entry of fromTreeName and check if the SHA given, if updating, is the same
-	if opts.SHA != "" {
+	if !opts.IsNewFile {
 		fromEntry, err := commit.GetTreeEntryByPath(fromTreeName)
 		if err != nil {
 			return nil, err
 		}
-		if opts.SHA != fromEntry.ID.String() {
-			return nil, models.ErrShaDoesNotMatch{
-				GivenSHA:   opts.SHA,
-				CurrentSHA: fromEntry.ID.String(),
+		if opts.SHA != "" {
+			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
+			if opts.SHA != fromEntry.ID.String() {
+				return nil, models.ErrShaDoesNotMatch{
+					GivenSHA:   opts.SHA,
+					CurrentSHA: fromEntry.ID.String(),
+				}
 			}
+		} else if opts.LastCommitID != "" {
+			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
+			// an error, but only if we aren't creating a new branch.
+			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
+				// CommitIDs don't match, but we don't want to throw a ErrCommitIDDoesNotMatch unless
+				// this specific file has been edited since opts.LastCommitID
+				files, err := commit.GetFilesChangedSinceCommit(opts.LastCommitID)
+				if err != nil {
+					return nil, err
+				}
+				for _, file := range files {
+					if file == fromTreeName {
+						return nil, models.ErrCommitIDDoesNotMatch{
+							GivenCommitID:   opts.LastCommitID,
+							CurrentCommitID: opts.LastCommitID,
+						}
+					}
+				}
+				// The file wasn't modified, so we are good to update it
+			}
+		} else {
+			// When updating a file, a lastCommitID or SHA needs to be given to make sure other commits
+			// haven't been made. We throw an error if one wasn't provided.
+			return nil, models.ErrShaOrCommitIDNotProvided{}
 		}
 	}
 
@@ -161,12 +189,27 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 		if index < len(treeNameParts)-1 {
 			if !entry.IsDir() {
-				return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a directory, it is a file", subTreeName)}
+				return nil, models.ErrWithFilePath{
+					Message: fmt.Sprintf("%s is not a directory, it is a file", subTreeName),
+					Path:    subTreeName,
+					Name:    part,
+					Type:    git.EntryModeBlob,
+				}
 			}
 		} else if entry.IsLink() {
-			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName)}
+			return nil, models.ErrWithFilePath{
+				Message: fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName),
+				Path:    subTreeName,
+				Name:    part,
+				Type:    git.EntryModeSymlink,
+			}
 		} else if entry.IsDir() {
-			return nil, models.ErrWithFilePath{fmt.Sprintf("%s is not a file, it is a directory", subTreeName)}
+			return nil, models.ErrWithFilePath{
+				Message: fmt.Sprintf("%s is not a file, it is a directory", subTreeName),
+				Path:    subTreeName,
+				Name:    part,
+				Type:    git.EntryModeTree,
+			}
 		} else if fromTreeName != treeName || opts.IsNewFile {
 			// The entry shouldn't exist if we are creating new file or moving to a new path
 			return nil, models.ErrRepoFileAlreadyExists{FileName: treeName}

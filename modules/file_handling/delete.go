@@ -50,7 +50,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, err
 	}
 
-	// A NewBranch can be specified for the file to be created/updated in a new branch
+	// A NewBranch can be specified for the file to be created/updated in a new branch.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
@@ -128,6 +128,42 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if err != nil {
 		return nil, err
 	}
+	if opts.SHA != "" {
+		// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
+		if opts.SHA != entry.ID.String() {
+			return nil, models.ErrShaDoesNotMatch{
+				GivenSHA:   opts.SHA,
+				CurrentSHA: entry.ID.String(),
+			}
+		}
+	} else if opts.LastCommitID != "" {
+		// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
+		// an error, but only if we aren't creating a new branch.
+		if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
+			// CommitIDs don't match, but we don't want to throw a ErrCommitIDDoesNotMatch unless
+			// this specific file has been edited since opts.LastCommitID
+			files, err := commit.GetFilesChangedSinceCommit(opts.LastCommitID)
+			if err != nil {
+				return nil, err
+			}
+			for _, file := range files {
+				if file == treePath {
+					return nil, models.ErrCommitIDDoesNotMatch{
+						GivenCommitID:   opts.LastCommitID,
+						CurrentCommitID: opts.LastCommitID,
+					}
+				}
+			}
+			// The file wasn't modified, so we are good to delete it
+		}
+	} else {
+		// When deleting a file, a lastCommitID or SHA needs to be given to make sure other commits haven't been
+		// made. We throw an error if one wasn't provided.
+		return nil, models.ErrShaOrCommitIDNotProvided{}
+	}
+
+
+
 	if opts.SHA != "" && opts.SHA != entry.ID.String() {
 		return nil, models.ErrShaDoesNotMatch{
 			GivenSHA:   opts.SHA,
