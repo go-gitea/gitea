@@ -177,7 +177,7 @@
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
-					{{if $.CanWriteIssues}}
+					{{if or (and $.CanWriteIssues (not .IsPull)) (and $.CanWritePulls .IsPull)}}
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>

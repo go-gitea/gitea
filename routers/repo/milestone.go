@@ -75,13 +75,6 @@ func Milestones(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
-
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.HTML(200, tplMilestone)
@@ -266,6 +259,14 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Milestone"] = milestone
 
 	issues(ctx, milestoneID, util.OptionalBoolNone)
+
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
+	ctx.Data["CanWritePulls"] = perm.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(200, tplMilestoneIssues)
 }
