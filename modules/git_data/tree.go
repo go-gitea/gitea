@@ -5,11 +5,12 @@
 package git_data
 
 import (
+	"fmt"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
-	"fmt"
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
