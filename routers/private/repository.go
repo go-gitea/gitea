@@ -56,7 +56,7 @@ func GetRepository(ctx *macaron.Context) {
 func GetActivePullRequest(ctx *macaron.Context) {
 	baseRepoID := ctx.QueryInt64("baseRepoID")
 	headRepoID := ctx.QueryInt64("headRepoID")
-	baseBranch, err := url.QueryUnescape(ctx.QueryTrim("baseBranch"))
+	baseBranch, err := url.PathUnescape(ctx.QueryTrim("baseBranch"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
@@ -64,7 +64,7 @@ func GetActivePullRequest(ctx *macaron.Context) {
 		return
 	}
 
-	headBranch, err := url.QueryUnescape(ctx.QueryTrim("headBranch"))
+	headBranch, err := url.PathUnescape(ctx.QueryTrim("headBranch"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
