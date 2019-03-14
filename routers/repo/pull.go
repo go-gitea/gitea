@@ -635,7 +635,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	)
 	infoPath, err = url.PathUnescape(ctx.Params("*"))
 	if err != nil {
-		ctx.NotFound("QueryUnescape", err)
+		ctx.NotFound("PathUnescape", err)
 	}
 	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
