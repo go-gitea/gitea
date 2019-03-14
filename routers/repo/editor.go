@@ -233,16 +233,16 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				case git.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				default:
 					ctx.Error(500, err.Error())
-					break;
+					break
 				}
 			} else {
 				ctx.Error(500, err.Error())
@@ -401,16 +401,16 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				case git.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
-					break;
+					break
 				default:
 					ctx.ServerError("DeleteRepoFile", err)
-					break;
+					break
 				}
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)

@@ -6,13 +6,14 @@
 package repo
 
 import (
+	"encoding/base64"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/file_handling"
 	"code.gitea.io/gitea/routers/repo"
 	api "code.gitea.io/sdk/gitea"
-	"encoding/base64"
 )
 
 // GetRawFile get a file by path on a repository
