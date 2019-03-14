@@ -28,4 +28,4 @@ The first value of the list will be used in helpers.
 
 ## Pull Request Templates
 
-You can find more information about pull request templates in the dedicated page : [Issue and Pull Request templates](../issue-pull-request-templates)
+You can find more information about pull request templates at the page [Issue and Pull Request templates](../issue-pull-request-templates).

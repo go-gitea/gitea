@@ -227,6 +227,23 @@ func RenderCommitMessage(
 	return ctx.postProcess(rawHTML)
 }
 
+// RenderDescriptionHTML will use similar logic as PostProcess, but will
+// use a single special linkProcessor.
+func RenderDescriptionHTML(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			descriptionLinkProcessor,
+		},
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 var byteBodyTag = []byte("<body>")
 var byteBodyTagClosing = []byte("</body>")
 
@@ -657,4 +674,35 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}}
 		node.FirstChild, node.LastChild = ch, ch
 	}
+}
+
+// descriptionLinkProcessor creates links for DescriptionHTML
+func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
+	m := linkRegex.FindStringIndex(node.Data)
+	if m == nil {
+		return
+	}
+	uri := node.Data[m[0]:m[1]]
+	replaceContent(node, m[0], m[1], createDescriptionLink(uri, uri))
+}
+
+func createDescriptionLink(href, content string) *html.Node {
+	textNode := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+	linkNode := &html.Node{
+		FirstChild: textNode,
+		LastChild:  textNode,
+		Type:       html.ElementNode,
+		Data:       "a",
+		DataAtom:   atom.A,
+		Attr: []html.Attribute{
+			{Key: "href", Val: href},
+			{Key: "target", Val: "_blank"},
+			{Key: "rel", Val: "noopener noreferrer"},
+		},
+	}
+	textNode.Parent = linkNode
+	return linkNode
 }
