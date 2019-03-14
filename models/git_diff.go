@@ -550,7 +550,12 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			beg := len(cmdDiffHead)
 			a := line[beg+2 : middle]
 			b := line[middle+3:]
+
 			if hasQuote {
+				// Keep the entire string in double quotes for now
+				a = line[beg:middle]
+				b = line[middle+1:]
+
 				var err error
 				a, err = strconv.Unquote(a)
 				if err != nil {
@@ -560,6 +565,10 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				if err != nil {
 					return nil, fmt.Errorf("Unquote: %v", err)
 				}
+				// Now remove the /a /b
+				a = a[2:]
+				b = b[2:]
+
 			}
 
 			curFile = &DiffFile{
@@ -637,6 +646,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			}
 		}
 	}
+
 	return diff, nil
 }
 
