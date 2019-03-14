@@ -5,12 +5,13 @@
 package git_data
 
 import (
-	"code.gitea.io/git"
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
 	"encoding/base64"
 	"io"
 	"io/ioutil"
+
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/sdk/gitea"
 )
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
