@@ -7,6 +7,8 @@ package setting
 
 import (
 	"encoding/base64"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -1007,31 +1009,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
-	InternalToken = sec.Key("INTERNAL_TOKEN").String()
-	if len(InternalToken) == 0 {
-		InternalToken, err = generate.NewInternalToken()
-		if err != nil {
-			log.Fatal(4, "Error generate internal token: %v", err)
-		}
-
-		// Save secret
-		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
-			// Keeps custom settings if there is already something.
-			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
-			}
-		}
-
-		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
-
-		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
-		}
-		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
-		}
-	}
+	InternalToken = loadInternalToken(sec)
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
@@ -1266,6 +1244,76 @@ func NewContext() {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
 	}
+}
+
+func loadInternalToken(sec *ini.Section) string {
+	uri := sec.Key("INTERNAL_TOKEN_URI").String()
+	if len(uri) == 0 {
+		return loadOrGenerateInternalToken(sec)
+	}
+	tempURI, err := url.Parse(uri)
+	if err != nil {
+		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
+	}
+	switch tempURI.Scheme {
+	case "file":
+		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
+		if err != nil {
+			log.Fatal(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
+		}
+		defer fp.Close()
+
+		buf, err := ioutil.ReadAll(fp)
+		if err != nil {
+			log.Fatal(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
+		}
+		// No token in the file, generate one and store it.
+		if len(buf) == 0 {
+			token, err := generate.NewInternalToken()
+			if err != nil {
+				log.Fatal(4, "Error generate internal token: %v", err)
+			}
+			if _, err := io.WriteString(fp, token); err != nil {
+				log.Fatal(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
+			}
+			return token
+		}
+
+		return string(buf)
+	default:
+		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+	}
+	return ""
+}
+
+func loadOrGenerateInternalToken(sec *ini.Section) string {
+	var err error
+	token := sec.Key("INTERNAL_TOKEN").String()
+	if len(token) == 0 {
+		token, err = generate.NewInternalToken()
+		if err != nil {
+			log.Fatal(4, "Error generate internal token: %v", err)
+		}
+
+		// Save secret
+		cfgSave := ini.Empty()
+		if com.IsFile(CustomConf) {
+			// Keeps custom settings if there is already something.
+			if err := cfgSave.Append(CustomConf); err != nil {
+				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			}
+		}
+
+		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+		}
+		if err := cfgSave.SaveTo(CustomConf); err != nil {
+			log.Fatal(4, "Error saving generated INTERNAL_TOKEN to custom config: %v", err)
+		}
+	}
+	return token
 }
 
 // NewServices initializes the services

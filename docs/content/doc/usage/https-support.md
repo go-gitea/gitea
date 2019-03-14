@@ -15,12 +15,12 @@ menu:
 
 # HTTPS setup to encrypt connections to Gitea
 
-## Using built-in server
+ ## Using the built-in server
 
-Before you enable HTTPS make sure that you have valid SSL/TLS certificates.
+Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
 
-To use Gitea's built-in HTTPS support you must change your `app.ini` file:
+To use Gitea's built-in HTTPS support, you must change your `app.ini` file:
 
 ```ini
 [server]
@@ -33,7 +33,7 @@ KEY_FILE = key.pem
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
 
-### Setting-up HTTP redirection
+### Setting up HTTP redirection
 
 The Gitea server is only able to listen to one port; to redirect HTTP requests to the HTTPS port, you will need to enable the HTTP redirection service:
 
@@ -48,9 +48,9 @@ If you are using Docker, make sure that this port is configured in your `docker-
 
 ## Using Let's Encrypt
 
-[Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
+[Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates, Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
 
-By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf)
+By using Let's Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 
 ```ini
 [server]
@@ -66,7 +66,7 @@ To learn more about the config values, please checkout the [Config Cheat Sheet](
 
 ## Using reverse proxy
 
-Setup up your reverse proxy like shown in the [reverse proxy guide](../reverse-proxies).
+Setup up your reverse proxy as shown in the [reverse proxy guide](../reverse-proxies).
 
 After that, enable HTTPS by following one of these guides:
 
@@ -74,5 +74,5 @@ After that, enable HTTPS by following one of these guides:
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
-Note: Your connection between your reverse proxy and gitea might be unencrypted. To encrypt it too follow the [built-in server guide](#using-built-in-server) and change
+Note: Your connection between your reverse proxy and Gitea might be unencrypted. To encrypt it too, follow the [built-in server guide](#using-built-in-server) and change
 the proxy url to `https://[URL]`.
