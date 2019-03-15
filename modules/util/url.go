@@ -13,8 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Escape all segements of a path while leaving
-// forward slashes unescaped
+// PathEscapeSegments escapes segments of a path while not escaping forward slash
 func PathEscapeSegments(path string) string {
 	slice := strings.Split(path, "/")
 	for index := range slice {
