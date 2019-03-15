@@ -211,7 +211,7 @@ func Contexter() macaron.Handler {
 			if err == nil && len(repo.DefaultBranch) > 0 {
 				branchName = repo.DefaultBranch
 			}
-			prefix := setting.AppURL + path.Join(util.PathEscapeSegments(ownerName), util.PathEscapeSegments(repoName), "src", "branch", branchName)
+			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
 			c.Write([]byte(com.Expand(`<!doctype html>

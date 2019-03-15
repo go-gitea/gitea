@@ -7,11 +7,11 @@ package private
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // GetRepository return the repository by its ID and a bool about if it's allowed to have PR
@@ -44,7 +44,7 @@ func GetRepository(repoID int64) (*models.Repository, bool, error) {
 
 // ActivePullRequest returns an active pull request if it exists
 func ActivePullRequest(baseRepoID int64, headRepoID int64, baseBranch, headBranch string) (*models.PullRequest, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/active-pull-request?baseRepoID=%d&headRepoID=%d&baseBranch=%s&headBranch=%s", baseRepoID, headRepoID, util.PathEscapeSegments(baseBranch), util.PathEscapeSegments(headBranch))
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/active-pull-request?baseRepoID=%d&headRepoID=%d&baseBranch=%s&headBranch=%s", baseRepoID, headRepoID, url.QueryEscape(baseBranch), url.QueryEscape(headBranch))
 	log.GitLogger.Trace("ActivePullRequest: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()

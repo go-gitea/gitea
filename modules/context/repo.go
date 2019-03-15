@@ -8,6 +8,7 @@ package context
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
@@ -172,7 +172,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, util.PathEscapeSegments(owner), util.PathEscapeSegments(repo))
+	return path.Join(setting.Domain, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
