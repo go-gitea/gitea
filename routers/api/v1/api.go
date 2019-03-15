@@ -633,12 +633,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
-					m.Combo("/*", reqRepoWriter(models.UnitTypeCode), reqToken()).
-						Post(bind(api.CreateFileOptions{}), repo.CreateFile).
-						Put(bind(api.UpdateFileOptions{}), repo.UpdateFile).
-						Delete(bind(api.DeleteFileOptions{}), repo.DeleteFile)
-					m.Get("/*", reqAnyRepoReader(), repo.GetFileContents)
-				})
+					m.Get("/*", repo.GetFileContents)
+					m.Group("/*", func() {
+						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
+					}, reqRepoWriter(models.UnitTypeCode), reqToken())
+				}, reqRepoReader(models.UnitTypeCode))
 			}, repoAssignment())
 		})
 
