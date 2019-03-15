@@ -148,6 +148,13 @@ type swaggerGitTreeResponse struct {
 	Body api.GitTreeResponse `json:"body"`
 }
 
+// GitBlobResponse
+// swagger:response GitBlobResponse
+type swaggerGitBlobResponse struct {
+	//in: body
+	Body api.GitBlobResponse `json:"body"`
+}
+
 // Commit
 // swagger:response Commit
 type swaggerCommit struct {
@@ -160,6 +167,13 @@ type swaggerCommit struct {
 type swaggerFileResponse struct {
 	//in: body
 	Body api.FileResponse `json:"body"`
+}
+
+// FileContentResponse
+// swagger:response FileContentResponse
+type swaggerFileContentResponse struct {
+	//in: body
+	Body api.FileContentResponse `json:"body"`
 }
 
 // FileDeleteResponse

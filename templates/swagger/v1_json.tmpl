@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
     "/admin/orgs": {
       "get": {
@@ -7890,6 +7890,34 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "GitBlobResponse": {
+      "description": "GitBlobResponse represents a git blob",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "encoding": {
+          "type": "string",
+          "x-go-name": "Encoding"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "GitEntry": {
       "description": "GitEntry represents a git tree",
       "type": "object",
@@ -9274,6 +9302,12 @@
         }
       }
     },
+    "FileContentResponse": {
+      "description": "FileContentResponse",
+      "schema": {
+        "$ref": "#/definitions/FileContentResponse"
+      }
+    },
     "FileDeleteResponse": {
       "description": "FileDeleteResponse",
       "schema": {
@@ -9299,6 +9333,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GitBlobResponse": {
+      "description": "GitBlobResponse",
+      "schema": {
+        "$ref": "#/definitions/GitBlobResponse"
       }
     },
     "GitTreeResponse": {
