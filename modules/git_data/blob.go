@@ -11,11 +11,11 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(repo *models.Repository, sha string) (*gitea.GitBlobResponse, error) {
+func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*gitea.GitBlobResponse, 
 	if err != nil {
 		return nil, err
 	}
-	blob := new(gitea.GitBlobResponse)
+	blob := new(api.GitBlobResponse)
 	blob.SHA = gitBlob.ID.String()
 	blob.URL = repo.APIURL() + "/git/blobs/" + blob.SHA
 	blob.Size = gitBlob.Size()

@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 func getDeleteRepoFileOptions(repo *models.Repository) *DeleteRepoFileOptions {
@@ -27,33 +27,37 @@ func getDeleteRepoFileOptions(repo *models.Repository) *DeleteRepoFileOptions {
 	}
 }
 
-func getExpectedDeleteFileResponse() *gitea.FileResponse {
-	return &gitea.FileResponse{
+func getExpectedDeleteFileResponse() *api.FileResponse {
+	return &api.FileResponse{
 		Content: nil,
-		Commit: &gitea.FileCommitResponse{
-			CommitMeta: &gitea.CommitMeta{
+		Commit: &api.FileCommitResponse{
+			CommitMeta: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-			Author: &gitea.CommitUser{
-				Name:  "user1",
-				Email: "address1@example.com",
+			Author: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "user1",
+					Email: "address1@example.com",
+				},
 				Date:  "2017-03-19T20:47:59Z",
 			},
-			Committer: &gitea.CommitUser{
-				Name:  "Ethan Koenig",
-				Email: "ethantkoenig@gmail.com",
+			Committer: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+				},
 				Date:  "2017-03-19T20:47:59Z",
 			},
-			Parents: []*gitea.CommitMeta{},
+			Parents: []*api.CommitMeta{},
 			Message: "Initial commit\n",
-			Tree: &gitea.CommitMeta{
+			Tree: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
 				SHA: "2a2f1d4670728a2e10049e345bd7a276468beab6",
 			},
 		},
-		Verification: &gitea.PayloadCommitVerification{
+		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
 			Reason:    "",
 			Signature: "",

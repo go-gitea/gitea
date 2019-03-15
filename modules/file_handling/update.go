@@ -5,14 +5,15 @@
 package file_handling
 
 import (
+	"fmt"
+	"path"
+	"strings"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
-	"fmt"
-	"path"
-	"strings"
 )
 
 // IdentityOptions for a person's identity like an author or committer

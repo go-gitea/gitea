@@ -5,19 +5,14 @@
 package git_data
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
-
-func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
-}
 
 func TestGetTreeBySHA(t *testing.T) {
 	models.PrepareTestEnv(t)
@@ -32,11 +27,11 @@ func TestGetTreeBySHA(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
-	tree := GetTreeBySHA(ctx.Repo.Repository, ctx.Params("sha"), page, perPage, true)
-	expectedTree := &gitea.GitTreeResponse{
+	tree := GetTreeBySHA(ctx.Repo.Repository, ctx.Params(":sha"), page, perPage, true)
+	expectedTree := &api.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Entries: []gitea.GitEntry{
+		Entries: []api.GitEntry{
 			{
 				Path: "README.md",
 				Mode: "100644",

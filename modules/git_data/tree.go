@@ -10,17 +10,17 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
-func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) *gitea.GitTreeResponse {
+func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) *api.GitTreeResponse {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
 		return nil
 	}
-	tree := new(gitea.GitTreeResponse)
+	tree := new(api.GitTreeResponse)
 	tree.SHA = gitTree.ID.String()
 	tree.URL = repo.APIURL() + "/git/trees/" + tree.SHA
 	var entries git.Entries
@@ -69,7 +69,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	} else {
 		rangeEnd = len(entries)
 	}
-	tree.Entries = make([]gitea.GitEntry, rangeEnd-rangeStart)
+	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
 		tree.Entries[i].Path = entries[e].Name()

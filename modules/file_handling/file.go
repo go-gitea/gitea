@@ -12,10 +12,10 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
-func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*gitea.FileResponse, error) {
+func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
 	}
@@ -25,7 +25,7 @@ func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, bran
 	fileContents, _ := GetFileContents(repo, treeName, branch)   // ok if fails, then will be nil
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
-	fileResponse := &gitea.FileResponse{
+	fileResponse := &api.FileResponse{
 		Content:      fileContents,
 		Commit:       fileCommitResponse,
 		Verification: verification,
@@ -33,7 +33,7 @@ func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, bran
 	return fileResponse, nil
 }
 
-func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*gitea.FileCommitResponse, error) {
+func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
 	}
@@ -42,35 +42,39 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*gitea.
 	}
 	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + commit.ID.String())
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + commit.Tree.ID.String())
-	parents := make([]*gitea.CommitMeta, commit.ParentCount())
+	parents := make([]*api.CommitMeta, commit.ParentCount())
 	for i := 0; i <= commit.ParentCount(); i++ {
 		if parent, err := commit.Parent(i); err == nil && parent != nil {
 			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
-			parents[i] = &gitea.CommitMeta{
+			parents[i] = &api.CommitMeta{
 				SHA: parent.ID.String(),
 				URL: parentCommitURL.String(),
 			}
 		}
 	}
 	commitHtmlURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + commit.ID.String())
-	fileCommit := &gitea.FileCommitResponse{
-		CommitMeta: &gitea.CommitMeta{
+	fileCommit := &api.FileCommitResponse{
+		CommitMeta: &api.CommitMeta{
 			SHA: commit.ID.String(),
 			URL: commitURL.String(),
 		},
 		HTMLURL: commitHtmlURL.String(),
-		Author: &gitea.CommitUser{
+		Author: &api.CommitUser{
+			Identity: &api.Identity{
+				Name:  commit.Author.Name,
+				Email: commit.Author.Email,
+			},
 			Date:  commit.Author.When.UTC().Format(time.RFC3339),
-			Name:  commit.Author.Name,
-			Email: commit.Author.Email,
 		},
-		Committer: &gitea.CommitUser{
+		Committer: &api.CommitUser{
+			Identity: &api.Identity{
+				Name:  commit.Committer.Name,
+				Email: commit.Committer.Email,
+			},
 			Date:  commit.Committer.When.UTC().Format(time.RFC3339),
-			Name:  commit.Committer.Name,
-			Email: commit.Committer.Email,
 		},
 		Message: commit.Message(),
-		Tree: &gitea.CommitMeta{
+		Tree: &api.CommitMeta{
 			URL: commitTreeURL.String(),
 			SHA: commit.Tree.ID.String(),
 		},

@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -26,7 +26,7 @@ type DeleteRepoFileOptions struct {
 }
 
 // DeleteRepoFile deletes a file in the given repository
-func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*gitea.FileResponse, error) {
+func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
 	}

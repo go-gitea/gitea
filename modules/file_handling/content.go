@@ -10,11 +10,11 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetFileContents gets the meta data on a file's contents
-func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.FileContentResponse, error) {
+func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileContentResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
 	}
@@ -68,7 +68,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.File
 
 	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treePath)
 
-	fileContent := &gitea.FileContentResponse{
+	fileContent := &api.FileContentResponse{
 		Name:        entry.Name(),
 		Path:        treePath,
 		SHA:         entry.ID.String(),
@@ -78,7 +78,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*gitea.File
 		GitURL:      gitURL.String(),
 		DownloadURL: downloadURL.String(),
 		Type:        string(entry.Type),
-		Links: &gitea.FileLinksResponse{
+		Links: &api.FileLinksResponse{
 			Self:    selfURL.String(),
 			GitURL:  gitURL.String(),
 			HTMLURL: htmlURL.String(),

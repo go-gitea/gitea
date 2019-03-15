@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 )
 
 func getCreateRepoFileOptions(repo *models.Repository) *UpdateRepoFileOptions {
@@ -43,9 +43,9 @@ func getUpdateRepoFileOptions(repo *models.Repository) *UpdateRepoFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(commitID string) *gitea.FileResponse {
-	return &gitea.FileResponse{
-		Content: &gitea.FileContentResponse{
+func getExpectedFileResponseForCreate(commitID string) *api.FileResponse {
+	return &api.FileResponse{
+		Content: &api.FileContentResponse{
 			Name:        "file.txt",
 			Path:        "new/file.txt",
 			SHA:         "103ff9234cefeee5ec5361d22b49fbb04d385885",
@@ -55,41 +55,45 @@ func getExpectedFileResponseForCreate(commitID string) *gitea.FileResponse {
 			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
 			DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/new/file.txt",
 			Type:        "blob",
-			Links: &gitea.FileLinksResponse{
+			Links: &api.FileLinksResponse{
 				Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/new/file.txt",
 				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
 				HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/new/file.txt",
 			},
 		},
-		Commit: &gitea.FileCommitResponse{
-			CommitMeta: &gitea.CommitMeta{
+		Commit: &api.FileCommitResponse{
+			CommitMeta: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/" + commitID,
-			Author: &gitea.CommitUser{
-				Name:  "User Two",
-				Email: "user2@",
+			Author: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "User Two",
+					Email: "user2@",
+				},
 				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
-			Committer: &gitea.CommitUser{
-				Name:  "User Two",
-				Email: "user2@",
+			Committer: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "User Two",
+					Email: "user2@",
+				},
 				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
-			Parents: []*gitea.CommitMeta{
+			Parents: []*api.CommitMeta{
 				{
 					URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				},
 			},
 			Message: "Updates README.md\n",
-			Tree: &gitea.CommitMeta{
+			Tree: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 				SHA: "f93e3a1a1525fb5b91020git dda86e44810c87a2d7bc",
 			},
 		},
-		Verification: &gitea.PayloadCommitVerification{
+		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
 			Reason:    "unsigned",
 			Signature: "",
@@ -98,9 +102,9 @@ func getExpectedFileResponseForCreate(commitID string) *gitea.FileResponse {
 	}
 }
 
-func getExpectedFileResponseForUpdate(commitID string) *gitea.FileResponse {
-	return &gitea.FileResponse{
-		Content: &gitea.FileContentResponse{
+func getExpectedFileResponseForUpdate(commitID string) *api.FileResponse {
+	return &api.FileResponse{
+		Content: &api.FileContentResponse{
 			Name:        "README.md",
 			Path:        "README.md",
 			SHA:         "dbf8d00e022e05b7e5cf7e535de857de57925647",
@@ -110,41 +114,45 @@ func getExpectedFileResponseForUpdate(commitID string) *gitea.FileResponse {
 			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
 			DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
 			Type:        "blob",
-			Links: &gitea.FileLinksResponse{
+			Links: &api.FileLinksResponse{
 				Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
 				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
 				HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/README.md",
 			},
 		},
-		Commit: &gitea.FileCommitResponse{
-			CommitMeta: &gitea.CommitMeta{
+		Commit: &api.FileCommitResponse{
+			CommitMeta: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/" + commitID,
-			Author: &gitea.CommitUser{
-				Name:  "User Two",
-				Email: "user2@",
+			Author: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "User Two",
+					Email: "user2@",
+				},
 				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
-			Committer: &gitea.CommitUser{
-				Name:  "User Two",
-				Email: "user2@",
+			Committer: &api.CommitUser{
+				Identity: &api.Identity{
+					Name:  "User Two",
+					Email: "user2@",
+				},
 				Date:  time.Now().UTC().Format(time.RFC3339),
 			},
-			Parents: []*gitea.CommitMeta{
+			Parents: []*api.CommitMeta{
 				{
 					URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				},
 			},
 			Message: "Updates README.md\n",
-			Tree: &gitea.CommitMeta{
+			Tree: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 				SHA: "f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 			},
 		},
-		Verification: &gitea.PayloadCommitVerification{
+		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
 			Reason:    "unsigned",
 			Signature: "",
