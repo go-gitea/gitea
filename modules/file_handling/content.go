@@ -55,17 +55,6 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 	selfURL, _ := url.Parse(repo.APIURL() + "/contents/" + treePath)
 	gitURL, _ := url.Parse(repo.APIURL() + "/git/blobs/" + entry.ID.String())
 	downloadURL, _ := url.Parse(repo.HTMLURL() + "/raw/" + urlRef + "/" + treePath)
-	parents := make([]gitea.CommitMeta, commit.ParentCount())
-	for i := 0; i <= commit.ParentCount(); i++ {
-		if parent, err := commit.Parent(i); err == nil && parent != nil {
-			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
-			parents[i] = gitea.CommitMeta{
-				SHA: parent.ID.String(),
-				URL: parentCommitURL.String(),
-			}
-		}
-	}
-
 	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treePath)
 
 	fileContent := &api.FileContentResponse{
