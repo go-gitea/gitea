@@ -11,7 +11,9 @@
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
+					{{if or .CanWriteIssues .CanWritePulls}}
 					<a class="ui grey button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
+					{{end}}
 					<a class="ui green button" href="{{.RepoLink}}/issues/new?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
@@ -58,7 +60,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -111,11 +113,17 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid">
+		<div id="issue-actions" class="ui stackable grid hide">
 			<div class="six wide column">
-				<div class="ui basic status buttons">
-					<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_open"}}</div>
-					<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_close"}}</div>
+				<div class="ui tiny basic status buttons">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-closed"></i>
+						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+					</a>
 				</div>
 			</div>
 
@@ -125,15 +133,21 @@
 			this one correctly, but not the other one. */}}
 			<div class="nine wide right aligned right floated column">
 				<div class="ui secondary filter stackable menu">
+					<!-- Action Button -->
+					{{if .IsShowClosed}}
+						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
+					{{else}}
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_close"}}</div>
+					{{end}}
 					<!-- Labels -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.action_label"}}
 							<i class="dropdown icon"></i>
 						</span>
 						<div class="menu">
 							{{range .Labels}}
-								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
 									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 								</div>
 							{{end}}
@@ -165,9 +179,11 @@
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
+					{{if or (and $.CanWriteIssues (not .IsPull)) (and $.CanWritePulls .IsPull)}}
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
+					{{end}}
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 
@@ -175,7 +191,7 @@
 						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
 					{{end}}
 					{{range .Labels}}
-						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
 
 					{{if .NumComments}}
