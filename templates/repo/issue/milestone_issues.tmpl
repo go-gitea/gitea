@@ -1,0 +1,251 @@
+{{template "base/head" .}}
+<div class="repository">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui three column stackable grid">
+			<div class="column">
+				<h3>{{.Milestone.Name}}</h3>
+			</div>
+			<div class="column center aligned">
+				
+			</div>
+			{{if not .Repository.IsArchived}}
+				<div class="column right aligned">
+					{{if or .CanWriteIssues .CanWritePulls}}
+					<a class="ui grey button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
+					{{end}}
+					<a class="ui green button" href="{{.RepoLink}}/issues/new?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
+				</div>
+			{{end}}
+		</div>
+        <div class="ui one column stackable grid">
+            <div class="column">
+                {{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
+                {{if .IsClosed}}
+                    <span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+                {{else}}
+                    <span class="octicon octicon-calendar"></span>
+                    {{if .Milestone.DeadlineString}}
+                        <span {{if .IsOverdue}}class="overdue"{{end}}>{{.Milestone.DeadlineString}}</span>
+                    {{else}}
+                        {{$.i18n.Tr "repo.milestones.no_due_date"}}
+                    {{end}}
+                {{end}}
+                &nbsp; 
+                <b>{{.i18n.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
+            </div>
+        </div>
+		<div class="ui divider"></div>
+		<div id="issue-filters" class="ui stackable grid">
+			<div class="six wide column">
+				<div class="ui tiny basic status buttons">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-closed"></i>
+						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+					</a>
+				</div>
+			</div>
+			<div class="ten wide right aligned column">
+				<div class="ui secondary filter stackable menu">
+					<!-- Label -->
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.filter_label"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
+							{{range .Labels}}
+								<a class="item has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Assignee -->
+					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.filter_assignee"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
+							{{range .Assignees}}
+								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
+							{{end}}
+						</div>
+					</div>
+
+					{{if .IsSigned}}
+						<!-- Type -->
+						<div class="ui dropdown type jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.filter_type"}}
+								<i class="dropdown icon"></i>
+							</span>
+							<div class="menu">
+								<a class="{{if eq .ViewType "all"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.all_issues"}}</a>
+								<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{.SignedUser.ID}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+								<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}</a>
+								<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}</a>
+							</div>
+						</div>
+					{{end}}
+
+					<!-- Sort -->
+					<div class="ui dropdown type jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.filter_sort"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+							<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+							<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="issue-actions" class="ui stackable grid hide">
+			<div class="six wide column">
+				<div class="ui tiny basic status buttons">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-closed"></i>
+						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+					</a>
+				</div>
+			</div>
+
+			{{/* Ten wide does not cope well and makes the columns stack.
+			This seems to be related to jQuery's hide/show: in fact, switching
+			issue-actions and issue-filters and having this ten wide will show
+			this one correctly, but not the other one. */}}
+			<div class="nine wide right aligned right floated column">
+				<div class="ui secondary filter stackable menu">
+					<!-- Action Button -->
+					{{if .IsShowClosed}}
+						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
+					{{else}}
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_close"}}</div>
+					{{end}}
+					<!-- Labels -->
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.action_label"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							{{range .Labels}}
+								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Assignees -->
+					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.action_assignee"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
+								{{.i18n.Tr "repo.issues.action_assignee_no_select"}}
+							</div>
+							{{range .Assignees}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
+									<img src="{{.RelAvatarLink}}"> {{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="issue list">
+			{{range .Issues}}
+				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+				<li class="item">
+					{{if or (and $.CanWriteIssues (not .IsPull)) (and $.CanWritePulls .IsPull)}}
+					<div class="ui checkbox issue-checkbox">
+						<input type="checkbox" data-issue-id={{.ID}}></input>
+					</div>
+					{{end}}
+					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
+					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+
+					{{if .Ref}}
+						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
+					{{end}}
+					{{range .Labels}}
+						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+					{{end}}
+
+					{{if .NumComments}}
+						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+					{{end}}
+
+					{{if .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+					{{end}}
+
+					<p class="desc">
+						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{$tasks := .GetTasks}}
+						{{if gt $tasks 0}}
+							{{$tasksDone := .GetTasksDone}}
+							<span class="checklist">
+								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+							</span>
+						{{end}}
+						{{if ne .DeadlineUnix 0}}
+							<span class="octicon octicon-calendar"></span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+						{{end}}
+						{{range .Assignees}}
+							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							</a>
+						{{end}}
+					</p>
+				</li>
+			{{end}}
+
+			{{with .Page}}
+				{{if gt .TotalPages 1}}
+					<div class="center page buttons">
+						<div class="ui borderless pagination menu">
+							<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
+								<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
+							</a>
+							{{range .Pages}}
+								{{if eq .Num -1}}
+									<a class="disabled item">...</a>
+								{{else}}
+									<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
+								{{end}}
+							{{end}}
+							<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
+								{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
+							</a>
+						</div>
+					</div>
+				{{end}}
+			{{end}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

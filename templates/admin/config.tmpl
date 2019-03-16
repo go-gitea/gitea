@@ -148,8 +148,13 @@
 					<dt>{{.i18n.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
 					<dd><i class="fa fa{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}-check{{end}}-square-o"></i></dd>
 				{{end}}
+				<dt>{{.i18n.Tr "admin.config.default_visibility_organization"}}</dt>
+				<dd>{{.Service.DefaultOrgVisibility}}</dd>
+
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.default_enable_dependencies"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultEnableDependencies}}-check{{end}}-square-o"></i></dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
@@ -182,12 +187,12 @@
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					{{if not .Mailer.UseSendmail}}
+					{{if eq .Mailer.MailerType "smtp"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
 						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
 						<dd>{{.Mailer.Host}}</dd>
-					{{else}}
+					{{else if eq .Mailer.MailerType "sendmail"}}
 						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
 						<dd><i class="fa fa-check-square-o"></i></dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>

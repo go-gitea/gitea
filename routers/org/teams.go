@@ -96,7 +96,12 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		err = ctx.Org.Team.AddMember(u.ID)
+		if ctx.Org.Team.IsMember(u.ID) {
+			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
+		} else {
+			err = ctx.Org.Team.AddMember(u.ID)
+		}
+
 		page = "team"
 	}
 
@@ -181,7 +186,8 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
-	if t.Authorize < models.AccessModeAdmin {
+
+	if t.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, &models.TeamUnit{
@@ -222,6 +228,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamMembers"] = true
 	if err := ctx.Org.Team.GetMembers(); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -233,6 +240,7 @@ func TeamMembers(ctx *context.Context) {
 func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamRepos"] = true
 	if err := ctx.Org.Team.GetRepositories(); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
@@ -270,7 +278,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < models.AccessModeAdmin {
+	if t.Authorize < models.AccessModeOwner {
 		var units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
@@ -280,8 +288,6 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			})
 		}
 		models.UpdateTeamUnits(t, units)
-	} else {
-		models.UpdateTeamUnits(t, nil)
 	}
 
 	if ctx.HasError() {

@@ -23,12 +23,13 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	label := models.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID}).(*models.Label)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
-		owner.Name, repo.Name, issue.Index)
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
+		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []int64{label.ID},
 	})
-	session := loginUser(t, owner.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
@@ -45,12 +46,13 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	label := models.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID}).(*models.Label)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels",
-		owner.Name, repo.Name, issue.Index)
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
+		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
 		Labels: []int64{label.ID},
 	})
-	session := loginUser(t, owner.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)

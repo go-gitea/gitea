@@ -44,7 +44,11 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
-	err = issue.loadAssignees(x)
+	return getAssigneesByIssue(x, issue)
+}
+
+func getAssigneesByIssue(e Engine, issue *Issue) (assignees []*User, err error) {
+	err = issue.loadAssignees(e)
 	if err != nil {
 		return assignees, err
 	}
@@ -134,14 +138,14 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		return err
 	}
 
-	if err := issue.changeAssignee(sess, doer, assigneeID); err != nil {
+	if err := issue.changeAssignee(sess, doer, assigneeID, false); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (err error) {
+func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (err error) {
 
 	// Update the assignee
 	removed, err := updateIssueAssignee(sess, issue, assigneeID)
@@ -159,16 +163,22 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
-	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
+	// if pull request is in the middle of creation - don't call webhook
+	if isCreate {
+		return nil
+	}
+
 	if issue.IsPull {
+		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypePullRequests)
+
 		if err = issue.loadPullRequest(sess); err != nil {
 			return fmt.Errorf("loadPullRequest: %v", err)
 		}
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
+			PullRequest: issue.PullRequest.apiFormat(sess),
+			Repository:  issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:      doer.APIFormat(),
 		}
 		if removed {
@@ -181,10 +191,12 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 			return nil
 		}
 	} else {
+		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypeIssues)
+
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
+			Issue:      issue.apiFormat(sess),
+			Repository: issue.Repo.innerAPIFormat(sess, mode, false),
 			Sender:     doer.APIFormat(),
 		}
 		if removed {
@@ -202,7 +214,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 }
 
 // UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
-// Deleting is done the Github way (quote from their api documentation):
+// Deleting is done the GitHub way (quote from their api documentation):
 // https://developer.github.com/v3/issues/#edit-an-issue
 // "assignees" (array): Logins for Users to assign to this issue.
 // Pass one or more user logins to replace the set of assignees on this Issue.

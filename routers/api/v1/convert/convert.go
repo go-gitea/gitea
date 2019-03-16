@@ -34,6 +34,22 @@ func ToBranch(repo *models.Repository, b *models.Branch, c *git.Commit) *api.Bra
 	}
 }
 
+// ToTag convert a tag to an api.Tag
+func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+	return &api.Tag{
+		Name: t.Name,
+		Commit: struct {
+			SHA string `json:"sha"`
+			URL string `json:"url"`
+		}{
+			SHA: t.ID.String(),
+			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
+		},
+		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.Link(), "archive", t.Name+".tar.gz"),
+	}
+}
+
 // ToCommit convert a commit to api.PayloadCommit
 func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
@@ -167,12 +183,14 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 // ToDeployKey convert models.DeployKey to api.DeployKey
 func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
-		ID:       key.ID,
-		Key:      key.Content,
-		URL:      apiLink + com.ToStr(key.ID),
-		Title:    key.Name,
-		Created:  key.CreatedUnix.AsTime(),
-		ReadOnly: true, // All deploy keys are read-only.
+		ID:          key.ID,
+		KeyID:       key.KeyID,
+		Key:         key.Content,
+		Fingerprint: key.Fingerprint,
+		URL:         apiLink + com.ToStr(key.ID),
+		Title:       key.Name,
+		Created:     key.CreatedUnix.AsTime(),
+		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
 	}
 }
 
@@ -196,5 +214,6 @@ func ToTeam(team *models.Team) *api.Team {
 		Name:        team.Name,
 		Description: team.Description,
 		Permission:  team.Authorize.String(),
+		Units:       team.GetUnitNames(),
 	}
 }

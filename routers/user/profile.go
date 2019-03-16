@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -87,6 +88,8 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	ctx.Data["HeatmapUser"] = ctxUser.Name
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
@@ -96,6 +99,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
 	tab := ctx.Query("tab")
 	ctx.Data["TabName"] = tab
@@ -104,6 +108,8 @@ func Profile(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+
+	topicOnly := ctx.QueryBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -174,6 +180,7 @@ func Profile(ctx *context.Context) {
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Starred:     true,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -217,6 +224,7 @@ func Profile(ctx *context.Context) {
 				IsProfile:   true,
 				PageSize:    setting.UI.User.RepoPagingNum,
 				Collaborate: util.OptionalBoolFalse,
+				TopicOnly:   topicOnly,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
@@ -229,7 +237,7 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(200, tplProfile)
 }

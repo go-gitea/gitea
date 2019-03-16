@@ -24,6 +24,8 @@ type User struct {
 	AvatarURL string `json:"avatar_url"`
 	// User locale
 	Language string `json:"language"`
+	// Is the user an administrator
+	IsAdmin bool `json:"is_admin"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
@@ -40,5 +42,12 @@ func (u User) MarshalJSON() ([]byte, error) {
 func (c *Client) GetUserInfo(user string) (*User, error) {
 	u := new(User)
 	err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)
+	return u, err
+}
+
+// GetMyUserInfo get user info of current user
+func (c *Client) GetMyUserInfo() (*User, error) {
+	u := new(User)
+	err := c.getParsedResponse("GET", "/user", nil, nil, u)
 	return u, err
 }

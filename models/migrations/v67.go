@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -43,7 +45,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 		AccessModeRead // 1
 	)
 
-	accessLevel := func(userID int64, repo *Repository) (int, error) {
+	accessLevel := func(e *xorm.Session, userID int64, repo *Repository) (int, error) {
 		mode := AccessModeNone
 		if !repo.IsPrivate {
 			mode = AccessModeRead
@@ -58,7 +60,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 		}
 
 		a := &Access{UserID: userID, RepoID: repo.ID}
-		if has, err := x.Get(a); !has || err != nil {
+		if has, err := e.Get(a); !has || err != nil {
 			return mode, err
 		}
 		return a.Mode, nil
@@ -70,8 +72,15 @@ func removeStaleWatches(x *xorm.Engine) error {
 		return err
 	}
 
+	var issueWatch IssueWatch
+	if exist, err := sess.IsTableExist(&issueWatch); err != nil {
+		return fmt.Errorf("IsExist IssueWatch: %v", err)
+	} else if !exist {
+		return nil
+	}
+
 	repoCache := make(map[int64]*Repository)
-	err := x.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
+	err := sess.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
 		func(idx int, bean interface{}) error {
 			watch := bean.(*Watch)
 
@@ -80,14 +89,14 @@ func removeStaleWatches(x *xorm.Engine) error {
 				repo = &Repository{
 					ID: watch.RepoID,
 				}
-				if _, err := x.Get(repo); err != nil {
+				if _, err := sess.Get(repo); err != nil {
 					return err
 				}
 				repoCache[watch.RepoID] = repo
 			}
 
 			// Remove watches from now unaccessible repositories
-			mode, err := accessLevel(watch.UserID, repo)
+			mode, err := accessLevel(sess, watch.UserID, repo)
 			if err != nil {
 				return err
 			}
@@ -108,7 +117,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 	}
 
 	repoCache = make(map[int64]*Repository)
-	err = x.BufferSize(setting.IterateBufferSize).
+	err = sess.BufferSize(setting.IterateBufferSize).
 		Distinct("issue_watch.user_id", "issue.repo_id").
 		Join("INNER", "issue", "issue_watch.issue_id = issue.id").
 		Where("issue_watch.is_watching = ?", true).
@@ -121,14 +130,14 @@ func removeStaleWatches(x *xorm.Engine) error {
 					repo = &Repository{
 						ID: watch.RepoID,
 					}
-					if _, err := x.Get(repo); err != nil {
+					if _, err := sess.Get(repo); err != nil {
 						return err
 					}
 					repoCache[watch.RepoID] = repo
 				}
 
 				// Remove issue watches from now unaccssible repositories
-				mode, err := accessLevel(watch.UserID, repo)
+				mode, err := accessLevel(sess, watch.UserID, repo)
 				if err != nil {
 					return err
 				}

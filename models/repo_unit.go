@@ -74,6 +74,7 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+	EnableDependencies               bool
 }
 
 // FromDB fills up a IssuesConfig from serialized format.
@@ -91,6 +92,7 @@ type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts bool
 	AllowMerge                bool
 	AllowRebase               bool
+	AllowRebaseMerge          bool
 	AllowSquash               bool
 }
 
@@ -108,6 +110,7 @@ func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
 func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
+		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 
@@ -169,8 +172,4 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, e.Where("repo_id = ?", repoID).Find(&units)
-}
-
-func getUnitsByRepoIDAndIDs(e Engine, repoID int64, types []UnitType) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).In("`type`", types).Find(&units)
 }

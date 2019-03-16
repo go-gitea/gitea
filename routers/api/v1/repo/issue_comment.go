@@ -5,10 +5,12 @@
 package repo
 
 import (
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -35,8 +37,9 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the specified time are returned.
 	//   type: string
@@ -49,7 +52,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	// comments,err:=models.GetCommentsByIssueIDSince(, since)
-	issue, err := models.GetRawIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetRawIssueByIndex", err)
 		return
@@ -66,6 +69,10 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
 	for i := range comments {
 		apiComments[i] = comments[i].APIFormat()
 	}
@@ -90,7 +97,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: string
+	// - name: since
 	//   in: query
 	//   description: if provided, only comments updated since the provided time are returned.
 	//   type: string
@@ -109,6 +116,11 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	})
 	if err != nil {
 		ctx.Error(500, "GetCommentsByRepoIDSince", err)
+		return
+	}
+
+	if err = models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
 		return
 	}
 
@@ -143,6 +155,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -157,11 +170,18 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Error(403, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
+		return
+	}
+
 	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
+
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
@@ -190,6 +210,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -231,6 +252,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//   in: path
 	//   description: id of the comment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -267,6 +289,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
+
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, comment.APIFormat())
 }
 
@@ -290,6 +315,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -323,6 +349,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of comment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -353,5 +380,8 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
+
+	notification.NotifyDeleteComment(ctx.User, comment)
+
 	ctx.Status(204)
 }

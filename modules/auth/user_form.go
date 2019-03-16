@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,9 +7,12 @@ package auth
 
 import (
 	"mime/multipart"
+	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // InstallForm form for installation page
@@ -72,7 +76,7 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"Required;MaxSize(255)"`
 	Retype             string
@@ -81,6 +85,43 @@ type RegisterForm struct {
 
 // Validate valideates the fields
 func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsEmailDomainWhitelisted validates that the email address
+// provided by the user matches what has been configured .
+// If the domain whitelist from the config is empty, it marks the
+// email as whitelisted
+func (f RegisterForm) IsEmailDomainWhitelisted() bool {
+	if len(setting.Service.EmailDomainWhitelist) == 0 {
+		return true
+	}
+
+	n := strings.LastIndex(f.Email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := strings.ToLower(f.Email[n+1:])
+
+	for _, v := range setting.Service.EmailDomainWhitelist {
+		if strings.ToLower(v) == domain {
+			return true
+		}
+	}
+
+	return false
+}
+
+// MustChangePasswordForm form for updating your password after account creation
+// by an admin
+type MustChangePasswordForm struct {
+	Password string `binding:"Required;MaxSize(255)"`
+	Retype   string
+}
+
+// Validate valideates the fields
+func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -96,6 +137,54 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AuthorizationForm form for authorizing oauth2 clients
+type AuthorizationForm struct {
+	ResponseType string `binding:"Required;In(code)"`
+	ClientID     string `binding:"Required"`
+	RedirectURI  string
+	State        string
+
+	// PKCE support
+	CodeChallengeMethod string // S256, plain
+	CodeChallenge       string
+}
+
+// Validate valideates the fields
+func (f *AuthorizationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// GrantApplicationForm form for authorizing oauth2 clients
+type GrantApplicationForm struct {
+	ClientID    string `binding:"Required"`
+	RedirectURI string
+	State       string
+}
+
+// Validate valideates the fields
+func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
+type AccessTokenForm struct {
+	GrantType    string
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
+	// TODO Specify authentication code length to prevent against birthday attacks
+	Code         string
+	RefreshToken string
+
+	// PKCE support
+	CodeVerifier string
+}
+
+// Validate valideates the fields
+func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 //   __________________________________________.___ _______    ________  _________
 //  /   _____/\_   _____/\__    ___/\__    ___/|   |\      \  /  _____/ /   _____/
 //  \_____  \  |    __)_   |    |     |    |   |   |/   |   \/   \  ___ \_____  \
@@ -105,7 +194,7 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"AlphaDashDot;MaxSize(35)"`
+	Name             string `binding:"AlphaDashDot;MaxSize(40)"`
 	FullName         string `binding:"MaxSize(100)"`
 	Email            string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate bool
@@ -146,6 +235,30 @@ type AddEmailForm struct {
 // Validate validates the fields
 func (f *AddEmailForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// UpdateThemeForm form for updating a users' theme
+type UpdateThemeForm struct {
+	Theme string `binding:"Required;MaxSize(30)"`
+}
+
+// Validate validates the field
+func (f *UpdateThemeForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// IsThemeExists checks if the theme is a theme available in the config.
+func (f UpdateThemeForm) IsThemeExists() bool {
+	var exists bool
+
+	for _, v := range setting.UI.Themes {
+		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+			exists = true
+			break
+		}
+	}
+
+	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -190,6 +303,17 @@ type NewAccessTokenForm struct {
 
 // Validate valideates the fields
 func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// EditOAuth2ApplicationForm form for editing oauth2 applications
+type EditOAuth2ApplicationForm struct {
+	Name        string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURI string `binding:"Required" form:"redirect_uri"`
+}
+
+// Validate valideates the fields
+func (f *EditOAuth2ApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

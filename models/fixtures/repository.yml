@@ -17,11 +17,12 @@
   lower_name: repo2
   name: repo2
   is_private: true
-  num_issues: 1
+  num_issues: 2
   num_closed_issues: 1
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  close_issues_via_commit_in_any_branch: true
 
 -
   id: 3
@@ -175,7 +176,7 @@
   owner_id: 2
   lower_name: repo15
   name: repo15
-  is_bare: true
+  is_empty: true
 
 -
   id: 16
@@ -391,10 +392,39 @@
   is_mirror: false
 
 -
-  id: 32
+  id: 32 # org public repo
   owner_id: 3
   lower_name: repo21
   name: repo21
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 33
+  owner_id: 2
+  lower_name: utf8
+  name: utf8
+  is_private: false
+
+-
+  id: 34
+  owner_id: 21
+  lower_name: golang
+  name: golang
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 35
+  owner_id: 21
+  lower_name: graphql
+  name: graphql
   is_private: false
   num_stars: 0
   num_forks: 0

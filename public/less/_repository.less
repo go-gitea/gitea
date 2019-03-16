@@ -2,11 +2,8 @@
     @mega-octicon-width: 30px;
 
     padding-top: 15px;
-    padding-bottom: @footer-margin * 2;
 
-    .header-grid {
-        padding-top: 5px;
-        padding-bottom: 5px;
+    .repo-header {
         .ui.compact.menu {
             margin-left: 1rem;
         }
@@ -19,10 +16,10 @@
         }
         .ui.huge.breadcrumb {
             font-weight: 400;
-            font-size: 1.7rem;
+            font-size: 1.5rem;
         }
         .fork-flag {
-            margin-left: @mega-octicon-width + 8px;
+            margin-left: @mega-octicon-width + 6px;
             margin-top: 3px;
             display: block;
             font-size: 12px;
@@ -48,7 +45,6 @@
         display: flex;
         justify-content: space-between;
         .ui.label {
-            margin-top: -2px;
             margin-left: 7px;
             padding: 3px 5px;
         }
@@ -98,6 +94,13 @@
                 }
             }
         }
+
+        #deadlineForm input{
+          width: 12.8rem;
+          border-radius: 4px 0 0 4px;
+          border-right: 0;
+          white-space: nowrap;
+        }
     }
     .header-wrapper {
         background-color: #FAFAFA;
@@ -122,8 +125,11 @@
             margin: 5px -7px 0 -5px;
             width: 16px;
         }
-        .text{
-          margin-left: 0.9em;
+        &.labels .octicon {
+            margin: -2px -7px 0 -5px;
+        }
+        .text {
+            margin-left: 0.9em;
         }
         .menu {
             max-height: 300px;
@@ -165,9 +171,14 @@
     #clone-panel {
         width: 350px;
 
+        @media only screen and (max-width: 768px) {
+            width: 100%;
+        }
+
         input {
             border-radius: 0;
             padding: 5px 10px;
+            width: 50%;
         }
 
         .clone.button {
@@ -212,6 +223,12 @@
             .ui.button {
                 padding: 8px 10px;
                 font-weight: normal;
+            }
+
+            .ui.tiny.blue.buttons {
+                @media only screen and (max-width: 768px) {
+                    width: 100%;
+                }
             }
         }
 
@@ -326,9 +343,6 @@
                     color: #999;
                     background: #f5f5f5;
                     width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
                     user-select: none;
 
                     span {
@@ -538,6 +552,38 @@
                     margin-top: 10px;
                 }
             }
+            .review-item {
+
+                .avatar, .type-icon{
+                    float: none;
+                    display: inline-block;
+                    text-align: center;
+                    vertical-align: middle;
+
+                    .octicon {
+                        width: 23px;
+                        font-size: 23px;
+                        margin-top: 0.45em;
+                    }
+                }
+
+                .text {
+                    margin: .3em 0 .5em .5em
+                }
+
+                .type-icon{
+                    float: right;
+                    margin-right: 1em;
+                }
+
+                .divider{
+                    margin: .5rem 0;
+                }
+
+                .review-content {
+                    padding: 1em 0 1em 3.8em;
+                }
+            }
         }
         .comment-list {
             &:before {
@@ -687,6 +733,21 @@
                         margin-right: -1px;
                         font-size: 25px;
                     }
+                    &.octicon-comment {
+                        margin-top: 4px;
+                        margin-left: -35px;
+                        font-size: 24px;
+                    }
+                    &.octicon-eye {
+                        margin-top: 3px;
+                        margin-left: -35px;
+                        margin-right: 0px;
+                        font-size: 22px;
+                    }
+                    &.octicon-x {
+                        margin-left: -33px;
+                        font-size: 25px;
+                    }
                 }
                 .detail {
                     font-size: 0.9rem;
@@ -708,6 +769,14 @@
             img {
                 margin-top: 5px;
                 margin-right: 5px;
+            }
+        }
+
+        .ui.depending {
+            .item.is-closed {
+                .title {
+                    text-decoration: line-through;
+                }
             }
         }
     }
@@ -865,38 +934,44 @@
                 width: 140px;
             }
         }
-                td.sha .sha.label {
-                        margin: 0;
-                }
+        td.sha .sha.label {
+            margin: 0;
+        }
         &.ui.basic.striped.table tbody tr:nth-child(2n) {
             background-color: rgba(0, 0, 0, .02)!important;
         }
     }
 
-        #commits-table td.sha .sha.label, #repo-files-table .sha.label{
-                &.isSigned{
-                        border: 1px solid #BBB;
-                        .detail.icon{
-                                background: #FAFAFA;
-                                margin: -6px -10px -4px 0px;
-                                padding: 5px 3px 5px 6px;
-                                border-left: 1px solid #BBB;
-                                border-top-left-radius: 0;
-                                border-bottom-left-radius: 0;
-                        }
-                }
-                &.isSigned.isVerified{
-                        border: 1px solid #21BA45;
-                        background: #21BA4518;
-                        .detail.icon{
-                                border-left: 1px solid #21BA4580;
-                        }
-                }
+    #commits-table td.sha .sha.label, #repo-files-table .sha.label{
+        &.isSigned{
+            border: 1px solid #BBB;
+            .detail.icon{
+                background: #FAFAFA;
+                margin: -6px -10px -4px 0px;
+                padding: 5px 3px 5px 6px;
+                border-left: 1px solid #BBB;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
         }
+        &.isSigned.isVerified{
+            border: 1px solid #21BA45;
+            background: fade(#21BA45, 10%);
+            .detail.icon{
+                border-left: 1px solid fade(#21BA45, 50%);
+            }
+        }
+    }
 
     .diff-detail-box {
-        margin: 15px 0;
+        padding: 7px 0;
+        background: #fff;
         line-height: 30px;
+        >div:after{
+            clear: both;
+            content: "";
+            display: block;
+        }
         ol {
             clear: both;
             padding-left: 0;
@@ -929,8 +1004,9 @@
                 background-color: #dad8ff;
             }
         }
-        .ui.right {
-            margin-bottom: 15px;
+        .detail-files {
+            background: #fff;
+            margin: 0px;
         }
     }
     .diff-box .header {
@@ -977,9 +1053,6 @@
                 color: #A7A7A7;
                 background: #fafafa;
                 width: 1%;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                -webkit-user-select: none;
                 user-select: none;
                 vertical-align: top;
 
@@ -1221,6 +1294,20 @@
         }
         .prerelease.field {
             margin-bottom: 0;
+        }
+
+        .field {
+            button, input {
+                @media only screen and (max-width: 438px) {
+                    width: 100%;
+                }
+            }
+
+            button {
+                @media only screen and (max-width: 768px) {
+                    margin-bottom: 1em;
+                }
+            }
         }
     }
 
@@ -1492,13 +1579,24 @@
     }
 }
 
-#issue-actions {
+#issue-filters.hide {
     display: none;
+}
+
+#issue-actions {
+  margin-top: -1rem !important; // counteract padding from Semantic
+}
+
+#issue-actions.hide {
+    display: none;
+}
+
+.ui.checkbox.issue-checkbox {
+    vertical-align: middle;
 }
 
 .issue.list {
     list-style: none;
-    padding-top: 15px;
     >.item {
         padding-top: 15px;
         padding-bottom: 10px;
@@ -1582,7 +1680,7 @@
     .list {
         > .item {
             .green {
-                color: #21BA45 !important;
+                color: #21BA45;
             }
             &:not(:first-child) {
                 border-top: 1px solid #eaeaea;
@@ -1704,7 +1802,6 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
     .tab-size-@{i} {
         tab-size: @i !important;
-        -moz-tab-size: @i !important;
     }
     .generate-tab-size(@n, (@i + 1));
 }
@@ -1742,10 +1839,59 @@ tbody.commit-list {
 }
 
 #topic_edit {
-    margin-top:5px;
-    display: none;
+    margin-top: 5px;
 }
 
-#repo-topic {
+#repo-topics {
     margin-top: 5px;
+}
+
+.repo-topic {
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 768px) {
+    .new-dependency-drop-list {
+        width: 100%;
+    }
+}
+
+#manage_topic {
+    font-size: 12px;
+}
+
+.label + #manage_topic {
+    margin-left: 5px;
+}
+
+.repo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.repo-header .repo-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.repo-buttons .disabled-repo-button .label {
+  opacity: .5;
+}
+
+.repo-buttons .disabled-repo-button a.button {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.repo-buttons .disabled-repo-button a.button:hover {
+  background: none !important;
+  color: rgba(0,0,0,.6) !important;
+  box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset !important;
+}
+
+.repo-buttons .ui.labeled.button > .label {
+  border-left: none !important;
+  margin: 0 !important;
 }

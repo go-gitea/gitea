@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -38,16 +39,16 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 	// In case the issue poster is not watching the repository and is active,
 	// even if we have duplicated in watchers, can be safely filtered out.
-	poster, err := GetUserByID(issue.PosterID)
+	err = issue.loadPoster(e)
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
 	}
-	if issue.PosterID != doer.ID && poster.IsActive && !poster.ProhibitLogin {
+	if issue.PosterID != doer.ID && issue.Poster.IsActive && !issue.Poster.ProhibitLogin {
 		participants = append(participants, issue.Poster)
 	}
 
 	// Assignees must receive any communications
-	assignees, err := GetAssigneesByIssue(issue)
+	assignees, err := getAssigneesByIssue(e, issue)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,13 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, participants[i].Name)
 	}
 
-	SendIssueCommentMail(issue, doer, content, comment, tos)
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+
+	for _, to := range tos {
+		SendIssueCommentMail(issue, doer, content, comment, []string{to})
+	}
 
 	// Mail mentioned people and exclude watchers.
 	names = append(names, doer.Name)
@@ -99,7 +106,12 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 		tos = append(tos, mentions[i])
 	}
-	SendIssueMentionMail(issue, doer, content, comment, getUserEmailsByNames(e, tos))
+
+	emails := getUserEmailsByNames(e, tos)
+
+	for _, to := range emails {
+		SendIssueMentionMail(issue, doer, content, comment, []string{to})
+	}
 
 	return nil
 }

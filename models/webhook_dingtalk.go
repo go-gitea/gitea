@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
-
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -231,12 +230,13 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &DingtalkPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = user.UserName
 		}
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			list, p.Index, p.PullRequest.Title)
+			strings.Join(list, ", "),
+			p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
@@ -263,6 +263,32 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		ActionCard: dingtalk.ActionCard{
 			Text: title + "\r\n\r\n" + text,
 			//Markdown:    "# " + title + "\n" + text,
+			Title:       title,
+			HideAvatar:  "0",
+			SingleTitle: "view pull request",
+			SingleURL:   p.PullRequest.HTMLURL,
+		},
+	}, nil
+}
+
+func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event HookEventType) (*DingtalkPayload, error) {
+	var text, title string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+
+	}
+
+	return &DingtalkPayload{
+		MsgType: "actionCard",
+		ActionCard: dingtalk.ActionCard{
+			Text:        title + "\r\n\r\n" + text,
 			Title:       title,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
@@ -369,6 +395,8 @@ func GetDingtalkPayload(p api.Payloader, event HookEventType, meta string) (*Din
 		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case HookEventPullRequest:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
+	case HookEventPullRequestApproved, HookEventPullRequestRejected, HookEventPullRequestComment:
+		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))
 	case HookEventRelease:

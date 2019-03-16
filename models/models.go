@@ -36,7 +36,7 @@ type Engine interface {
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
@@ -118,11 +118,16 @@ func init() {
 		new(TrackedTime),
 		new(DeletedBranch),
 		new(RepoIndexerStatus),
+		new(IssueDependency),
 		new(LFSLock),
 		new(Reaction),
 		new(IssueAssignees),
 		new(U2FRegistration),
 		new(TeamUnit),
+		new(Review),
+		new(OAuth2Application),
+		new(OAuth2AuthorizationCode),
+		new(OAuth2Grant),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -153,22 +158,9 @@ func LoadConfigs() {
 	if len(DbCfg.Passwd) == 0 {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
-	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
-	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
+	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
-	if !filepath.IsAbs(setting.Indexer.IssuePath) {
-		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
-	}
-	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
-	if !filepath.IsAbs(setting.Indexer.RepoPath) {
-		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
-	}
-	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
-	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
@@ -198,7 +190,8 @@ func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DB
 	return
 }
 
-func parseMSSQLHostPort(info string) (string, string) {
+// ParseMSSQLHostPort splits the host into host and port
+func ParseMSSQLHostPort(info string) (string, string) {
 	host, port := "127.0.0.1", "1433"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -220,17 +213,20 @@ func getEngine() (*xorm.Engine, error) {
 	}
 	switch DbCfg.Type {
 	case "mysql":
+		connType := "tcp"
 		if DbCfg.Host[0] == '/' { // looks like a unix socket
-			connStr = fmt.Sprintf("%s:%s@unix(%s)/%s%scharset=utf8&parseTime=true",
-				DbCfg.User, DbCfg.Passwd, DbCfg.Host, DbCfg.Name, Param)
-		} else {
-			connStr = fmt.Sprintf("%s:%s@tcp(%s)/%s%scharset=utf8&parseTime=true",
-				DbCfg.User, DbCfg.Passwd, DbCfg.Host, DbCfg.Name, Param)
+			connType = "unix"
 		}
+		tls := DbCfg.SSLMode
+		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
+			tls = "false"
+		}
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=utf8&parseTime=true&tls=%s",
+			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
-		host, port := parseMSSQLHostPort(DbCfg.Host)
+		host, port := ParseMSSQLHostPort(DbCfg.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, DbCfg.Name, DbCfg.User, DbCfg.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {

@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,7 +19,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
@@ -192,6 +193,32 @@ var migrations = []Migration{
 	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
 	// v69 -> v70
 	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// v70 -> v71
+	NewMigration("add issue_dependencies", addIssueDependencies),
+	// v71 -> v72
+	NewMigration("protect each scratch token", addScratchHash),
+	// v72 -> v73
+	NewMigration("add review", addReview),
+	// v73 -> v74
+	NewMigration("add must_change_password column for users table", addMustChangePassword),
+	// v74 -> v75
+	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	// v75 -> v76
+	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+	// v76 -> v77
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
+	// v77 -> v78
+	NewMigration("add theme to users", addUserDefaultTheme),
+	// v78 -> v79
+	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
+	// v79 -> v80
+	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	// v80 -> v81
+	NewMigration("add is locked to issues", addIsLockedToIssues),
+	// v81 -> v82
+	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 }
 
 // Migrate database to current version

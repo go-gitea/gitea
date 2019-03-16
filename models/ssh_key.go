@@ -18,14 +18,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -50,7 +51,7 @@ type PublicKey struct {
 	ID            int64      `xorm:"pk autoincr"`
 	OwnerID       int64      `xorm:"INDEX NOT NULL"`
 	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"NOT NULL"`
+	Fingerprint   string     `xorm:"INDEX NOT NULL"`
 	Content       string     `xorm:"TEXT NOT NULL"`
 	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
@@ -349,7 +350,6 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 func checkKeyFingerprint(e Engine, fingerprint string) error {
 	has, err := e.Get(&PublicKey{
 		Fingerprint: fingerprint,
-		Type:        KeyTypeUser,
 	})
 	if err != nil {
 		return err
@@ -376,7 +376,7 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
-	if len(key.Fingerprint) <= 0 {
+	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = calcFingerprint(key.Content)
 		if err != nil {
 			return err
@@ -400,24 +400,24 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	if err := checkKeyFingerprint(x, fingerprint); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
 		return nil, err
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := x.
+	has, err := sess.
 		Where("owner_id = ? AND name = ?", ownerID, name).
 		Get(new(PublicKey))
 	if err != nil {
 		return nil, err
 	} else if has {
 		return nil, ErrKeyNameAlreadyUsed{ownerID, name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
 	}
 
 	key := &PublicKey{
@@ -450,11 +450,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
-// and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+func searchPublicKeyByContentWithEngine(e Engine, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.
+	has, err := e.
 		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
@@ -463,6 +461,25 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 		return nil, ErrKeyNotExist{}
 	}
 	return key, nil
+}
+
+// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentWithEngine(x, content)
+}
+
+// SearchPublicKey returns a list of public keys matching the provided arguments.
+func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	cond := builder.NewCond()
+	if uid != 0 {
+		cond = cond.And(builder.Eq{"owner_id": uid})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
@@ -501,7 +518,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 }
 
 // deletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
+func deletePublicKeys(e Engine, keyIDs ...int64) error {
 	if len(keyIDs) == 0 {
 		return nil
 	}
@@ -535,6 +552,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	return RewriteAllPublicKeys()
 }
@@ -543,8 +561,12 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
+	return rewriteAllPublicKeys(x)
+}
+
+func rewriteAllPublicKeys(e Engine) error {
 	//Don't rewrite key if internal server
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -569,7 +591,7 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	err = e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
@@ -705,24 +727,28 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = AccessModeWrite
 	}
 
-	pkey := &PublicKey{
-		Fingerprint: fingerprint,
-		Mode:        accessMode,
-		Type:        KeyTypeDeploy,
-	}
-	has, err := x.Get(pkey)
-	if err != nil {
-		return nil, err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	// First time use this deploy key.
-	if !has {
+	pkey := &PublicKey{
+		Fingerprint: fingerprint,
+	}
+	has, err := sess.Get(pkey)
+	if err != nil {
+		return nil, err
+	}
+
+	if has {
+		if pkey.Type != KeyTypeDeploy {
+			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+		}
+	} else {
+		// First time use this deploy key.
+		pkey.Mode = accessMode
+		pkey.Type = KeyTypeDeploy
 		pkey.Content = content
 		pkey.Name = name
 		if err = addKey(sess, pkey); err != nil {
@@ -732,7 +758,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
-		return nil, fmt.Errorf("addDeployKey: %v", err)
+		return nil, err
 	}
 
 	return key, sess.Commit()
@@ -740,8 +766,12 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(id int64) (*DeployKey, error) {
+	return getDeployKeyByID(x, id)
+}
+
+func getDeployKeyByID(e Engine, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := x.ID(id).Get(key)
+	has, err := e.ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -752,11 +782,15 @@ func GetDeployKeyByID(id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
+	return getDeployKeyByRepo(x, keyID, repoID)
+}
+
+func getDeployKeyByRepo(e Engine, keyID, repoID int64) (*DeployKey, error) {
 	key := &DeployKey{
 		KeyID:  keyID,
 		RepoID: repoID,
 	}
-	has, err := x.Get(key)
+	has, err := e.Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -779,7 +813,19 @@ func UpdateDeployKey(key *DeployKey) error {
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 func DeleteDeployKey(doer *User, id int64) error {
-	key, err := GetDeployKeyByID(id)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := deleteDeployKey(sess, doer, id); err != nil {
+		return err
+	}
+	return sess.Commit()
+}
+
+func deleteDeployKey(sess Engine, doer *User, id int64) error {
+	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {
 			return nil
@@ -789,22 +835,16 @@ func DeleteDeployKey(doer *User, id int64) error {
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := GetRepositoryByID(key.RepoID)
+		repo, err := getRepositoryByID(sess, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		yes, err := HasAccess(doer.ID, repo, AccessModeAdmin)
+		has, err := isUserRepoAdmin(sess, repo, doer)
 		if err != nil {
-			return fmt.Errorf("HasAccess: %v", err)
-		} else if !yes {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
 			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
 		}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
 	}
 
 	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
@@ -821,15 +861,40 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err = deletePublicKeys(sess, key.KeyID); err != nil {
 			return err
 		}
+
+		// after deleted the public keys, should rewrite the public keys file
+		if err = rewriteAllPublicKeys(sess); err != nil {
+			return err
+		}
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
 func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID)
+}
+
+func listDeployKeys(e Engine, repoID int64) ([]*DeployKey, error) {
 	keys := make([]*DeployKey, 0, 5)
-	return keys, x.
+	return keys, e.
 		Where("repo_id = ?", repoID).
 		Find(&keys)
+}
+
+// SearchDeployKeys returns a list of deploy keys matching the provided arguments.
+func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+	keys := make([]*DeployKey, 0, 5)
+	cond := builder.NewCond()
+	if repoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": repoID})
+	}
+	if keyID != 0 {
+		cond = cond.And(builder.Eq{"key_id": keyID})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
 }
