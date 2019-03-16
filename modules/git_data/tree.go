@@ -14,11 +14,11 @@ import (
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
-func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) *api.GitTreeResponse {
+func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
-		return nil
+		return nil, models.ErrShaNotFound{sha}
 	}
 	tree := new(api.GitTreeResponse)
 	tree.SHA = gitTree.ID.String()
@@ -30,7 +30,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 		entries, err = gitTree.ListEntries()
 	}
 	if err != nil {
-		return tree
+		return nil, err
 	}
 	apiUrl := repo.APIURL()
 	apiUrlLen := len(apiUrl)
@@ -58,7 +58,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	tree.TotalCount = len(entries)
 	rangeStart := perPage * (page - 1)
 	if rangeStart >= len(entries) {
-		return tree
+		return tree, nil
 	}
 	var rangeEnd int
 	if len(entries) > perPage {
@@ -86,5 +86,5 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 			tree.Entries[i].URL = string(blobURL[:])
 		}
 	}
-	return tree
+	return tree, nil
 }

@@ -936,7 +936,7 @@ type ErrShaDoesNotMatch struct {
 	CurrentSHA string
 }
 
-// IsErrShaDoesNotMatch checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrShaDoesNotMatch checks if an error is a ErrShaDoesNotMatch.
 func IsErrShaDoesNotMatch(err error) bool {
 	_, ok := err.(ErrShaDoesNotMatch)
 	return ok
@@ -946,13 +946,28 @@ func (err ErrShaDoesNotMatch) Error() string {
 	return fmt.Sprintf("file sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
 }
 
+// ErrShaNotFound represents a "ShaDoesNotMatch" kind of error.
+type ErrShaNotFound struct {
+	SHA string
+}
+
+// IsErrShaNotFound checks if an error is a ErrShaNotFound.
+func IsErrShaNotFound(err error) bool {
+	_, ok := err.(ErrShaNotFound)
+	return ok
+}
+
+func (err ErrShaNotFound) Error() string {
+	return fmt.Sprintf("sha not found [%s]", err.SHA)
+}
+
 // ErrCommitIDDoesNotMatch represents a "CommitIDDoesNotMatch" kind of error.
 type ErrCommitIDDoesNotMatch struct {
 	GivenCommitID   string
 	CurrentCommitID string
 }
 
-// IsErrCommitIDDoesNotMatch checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrCommitIDDoesNotMatch checks if an error is a ErrCommitIDDoesNotMatch.
 func IsErrCommitIDDoesNotMatch(err error) bool {
 	_, ok := err.(ErrCommitIDDoesNotMatch)
 	return ok

@@ -51,15 +51,14 @@ func GetTree(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
 
-	sha := ctx.Params("sha")
+	sha := ctx.Params(":sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "", "sha not provided")
 		return
 	}
-	tree := git_data.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.QueryInt("page"), ctx.QueryInt("per_page"), ctx.QueryBool("recursive"))
-	if tree != nil {
-		ctx.JSON(200, tree)
+	if tree, err := git_data.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.QueryInt("page"), ctx.QueryInt("per_page"), ctx.QueryBool("recursive")); err != nil {
+		ctx.Error(400, "", err.Error())
 	} else {
-		ctx.Error(400, "", "sha invalid")
+		ctx.JSON(200, tree)
 	}
 }
