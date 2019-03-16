@@ -17,6 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/markup/external"
@@ -162,6 +163,12 @@ func main() {
 		return
 	}
 
+	// To force checkout (e.g. Windows complains about unclean work tree) set env variable FORCE=true
+	force, err := strconv.ParseBool(os.Getenv("FORCE"))
+	if err != nil {
+		force = false
+	}
+
 	//Otherwise checkout PR
 	if len(os.Args) != 2 {
 		log.Fatal("Need only one arg: the PR number")
@@ -221,7 +228,7 @@ func main() {
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	err = tree.Checkout(&git.CheckoutOptions{
 		Branch: branchRef,
-		//Force:  runtime.GOOS == "windows",
+		Force:  force,
 	})
 	if err != nil {
 		log.Fatalf("Failed to checkout %s : %v", branch, err)

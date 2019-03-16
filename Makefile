@@ -323,7 +323,7 @@ release-dirs:
 .PHONY: release-windows
 release-windows:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -333,7 +333,7 @@ endif
 .PHONY: release-linux
 release-linux:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -343,7 +343,7 @@ endif
 .PHONY: release-darwin
 release-darwin:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
