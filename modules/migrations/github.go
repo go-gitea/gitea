@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/migrations/base"
+
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
