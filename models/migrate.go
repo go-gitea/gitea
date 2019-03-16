@@ -20,7 +20,16 @@ func InsertIssue(issue *Issue, labelIDs []int64) error {
 }
 
 func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
-	if _, err := sess.Insert(issue); err != nil {
+	if issue.MilestoneID > 0 {
+		sess.Incr("num_issues")
+		if issue.IsClosed {
+			sess.Incr("num_closed_issues")
+		}
+		if _, err := sess.ID(issue.MilestoneID).NoAutoTime().Update(new(Milestone)); err != nil {
+			return err
+		}
+	}
+	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
 	var issueLabels = make([]IssueLabel, 0, len(labelIDs))
@@ -33,13 +42,41 @@ func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
 	if _, err := sess.Insert(issueLabels); err != nil {
 		return err
 	}
+	if !issue.IsPull {
+		sess.ID(issue.RepoID).Incr("num_issues")
+		if issue.IsClosed {
+			sess.Incr("num_closed_issues")
+		}
+	} else {
+		sess.ID(issue.RepoID).Incr("num_pulls")
+		if issue.IsClosed {
+			sess.Incr("num_closed_pulls")
+		}
+	}
+	if _, err := sess.NoAutoTime().Update(issue.Repo); err != nil {
+		return err
+	}
+
+	sess.Incr("num_issues")
+	if issue.IsClosed {
+		sess.Incr("num_closed_issues")
+	}
+	if _, err := sess.In("id", labelIDs).Update(new(Label)); err != nil {
+		return err
+	}
+
+	if issue.MilestoneID > 0 {
+		if _, err := sess.ID(issue.MilestoneID).SetExpr("completeness", "num_closed_issues * 100 / num_issues").Update(new(Milestone)); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 // InsertComment inserted a comment
 func InsertComment(comment *Comment) error {
-	_, err := x.Insert(comment)
+	_, err := x.NoAutoTime().Insert(comment)
 	return err
 }
 
@@ -53,7 +90,7 @@ func InsertPullRequest(pr *PullRequest, labelIDs []int64) error {
 		return err
 	}
 	pr.IssueID = pr.Issue.ID
-	if _, err := sess.Insert(pr); err != nil {
+	if _, err := sess.NoAutoTime().Insert(pr); err != nil {
 		return err
 	}
 	return sess.Commit()

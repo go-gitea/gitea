@@ -12,5 +12,8 @@ type Milestone struct {
 	Title       string
 	Description string
 	Deadline    *time.Time
+	Created     time.Time
+	Updated     *time.Time
+	Closed      *time.Time
 	State       string
 }

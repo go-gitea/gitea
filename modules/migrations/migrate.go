@@ -6,7 +6,10 @@
 package migrations
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
@@ -16,6 +19,11 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 	if err != nil {
 		return err
 	}
+	url, err := opts.URL()
+	if err != nil {
+		return err
+	}
+
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
@@ -23,8 +31,12 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 
 	switch source {
 	case MigrateFromGithub:
-		if opts.AuthPassword == "" {
-			downloader = NewGithubDownloaderV3(opts.AuthUsername, ownerName, opts.Name)
+		if opts.AuthUsername != "" && opts.AuthPassword == "" {
+			fields := strings.Split(url.Path, "/")
+			oldOwner := fields[1]
+			oldName := strings.TrimSuffix(fields[2], ".git")
+			downloader = NewGithubDownloaderV3(opts.AuthUsername, oldOwner, oldName)
+			log.Trace("Will migrate from github: %s/%s", oldOwner, oldName)
 		}
 	}
 	if downloader == nil {
@@ -34,6 +46,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		opts.Milestones = false
 		opts.PullRequests = false
 		downloader = NewPlainGitDownloader(ownerName, opts.Name, opts.RemoteURL)
+		log.Trace("Will migrate from git")
 	}
 
 	return migrateRepository(downloader, uploader, opts)
@@ -49,11 +62,13 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
+	log.Trace("migrating git data")
 	if err := uploader.CreateRepo(repo); err != nil {
 		return err
 	}
 
 	if opts.Milestones {
+		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
 		if err != nil {
 			return err
@@ -67,6 +82,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 
 	if opts.Labels {
+		log.Trace("migrating labels")
 		labels, err := downloader.GetLabels()
 		if err != nil {
 			return err
@@ -80,6 +96,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 
 	if opts.Issues {
+		log.Trace("migrating issues and comments")
 		issues, err := downloader.GetIssues(0, 1000000)
 		if err != nil {
 			return err
@@ -106,6 +123,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 
 	if opts.PullRequests {
+		log.Trace("migrating pull requests and comments")
 		prs, err := downloader.GetPullRequests(0, 1000000)
 		if err != nil {
 			return err

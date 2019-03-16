@@ -17,6 +17,7 @@ type PullRequest struct {
 	Milestone   string
 	State       string
 	Created     time.Time
+	Closed      *time.Time
 	Labels      []*Label
 	PatchURL    string
 	Merged      bool

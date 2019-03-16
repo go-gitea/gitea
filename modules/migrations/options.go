@@ -22,6 +22,7 @@ type MigrateOptions struct {
 	AuthUsername string
 	AuthPassword string
 	Name         string
+	Description  string
 
 	Wiki         bool
 	Issues       bool
@@ -45,4 +46,9 @@ func (opts MigrateOptions) Source() (MigrationSource, error) {
 		return MigrateFromGithub, nil
 	}
 	return MigrateFromPlainGit, nil
+}
+
+// URL return remote URL
+func (opts MigrateOptions) URL() (*url.URL, error) {
+	return url.Parse(opts.RemoteURL)
 }

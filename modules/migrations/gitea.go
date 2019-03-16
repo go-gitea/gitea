@@ -8,9 +8,11 @@ package migrations
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -23,7 +25,7 @@ type GiteaLocalUploader struct {
 	doer       *models.User
 	repoOwner  string
 	repoName   string
-	repoID     int64
+	repo       *models.Repository
 	labels     sync.Map
 	milestones sync.Map
 	issues     sync.Map
@@ -55,7 +57,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
 	if err != nil {
 		return err
 	}
-	g.repoID = r.ID
+	g.repo = r
 	return nil
 }
 
@@ -65,16 +67,18 @@ func (g *GiteaLocalUploader) CreateMilestone(milestone *base.Milestone) error {
 	if milestone.Deadline != nil {
 		deadline = util.TimeStamp(milestone.Deadline.Unix())
 	}
+	if deadline == 0 {
+		deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
+	}
 	var ms = models.Milestone{
-		RepoID:   g.repoID,
-		Name:     milestone.Title,
-		Content:  milestone.Description,
-		IsClosed: milestone.State == "close",
-		//NumIssues       int
-		//NumClosedIssues int
-		//Completeness    int  // Percentage(1-100).
+		RepoID:       g.repo.ID,
+		Name:         milestone.Title,
+		Content:      milestone.Description,
+		IsClosed:     milestone.State == "close",
 		DeadlineUnix: deadline,
-		//ClosedDateUnix util.TimeStamp
+	}
+	if ms.IsClosed && milestone.Closed != nil {
+		ms.ClosedDateUnix = util.TimeStamp(milestone.Closed.Unix())
 	}
 	err := models.NewMilestone(&ms)
 
@@ -88,7 +92,7 @@ func (g *GiteaLocalUploader) CreateMilestone(milestone *base.Milestone) error {
 // CreateLabel creates label
 func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
 	var lb = models.Label{
-		RepoID:      g.repoID,
+		RepoID:      g.repo.ID,
 		Name:        label.Name,
 		Description: label.Description,
 		Color:       fmt.Sprintf("#%s", label.Color),
@@ -122,13 +126,18 @@ func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 	}
 
 	var is = models.Issue{
-		RepoID:      g.repoID,
+		RepoID:      g.repo.ID,
+		Repo:        g.repo,
 		Index:       issue.Number,
 		PosterID:    g.doer.ID,
 		Title:       issue.Title,
-		Content:     fmt.Sprintf("Author: @%s Posted at: %s\n\n\n%s", issue.PosterName, issue.Created.Format("02.01.2006 15:04"), issue.Content),
+		Content:     fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content),
 		IsClosed:    issue.State == "closed",
 		MilestoneID: milestoneID,
+		CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+	}
+	if issue.Closed != nil {
+		is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
 	}
 
 	err := models.InsertIssue(&is, labelIDs)
@@ -144,7 +153,7 @@ func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comment) error {
 	var issueID int64
 	if issueIDStr, ok := g.issues.Load(issueNumber); !ok {
-		issue, err := models.GetIssueByIndex(g.repoID, issueNumber)
+		issue, err := models.GetIssueByIndex(g.repo.ID, issueNumber)
 		if err != nil {
 			return err
 		}
@@ -158,10 +167,10 @@ func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comm
 		IssueID:  issueID,
 		Type:     models.CommentTypeComment,
 		PosterID: g.doer.ID,
-		Content: fmt.Sprintf("Author: @%s Posted at: %s\n\n\n%s",
+		Content: fmt.Sprintf("Author: @%s \n\n%s",
 			comment.PosterName,
-			comment.Created.Format("02.01.2006 15:04"),
 			comment.Content),
+		CreatedUnix: util.TimeStamp(comment.Created.Unix()),
 	}
 	err := models.InsertComment(&cm)
 	// TODO: Reactions
@@ -196,23 +205,34 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 
 	// TODO: creates special branches
 	var pullRequest = models.PullRequest{
-		HeadRepoID:   g.repoID,
+		HeadRepoID:   g.repo.ID,
 		HeadBranch:   head,
 		HeadUserName: g.repoOwner,
-		BaseRepoID:   g.repoID,
+		BaseRepoID:   g.repo.ID,
 		BaseBranch:   pr.Base.Ref,
 		Index:        pr.Number,
 
 		Issue: &models.Issue{
-			RepoID:      g.repoID,
+			RepoID:      g.repo.ID,
+			Repo:        g.repo,
 			Title:       pr.Title,
-			Content:     fmt.Sprintf("Author: @%s Posted at: %s\n\n\n%s", pr.PosterName, pr.Created.Format("02.01.2006 15:04"), pr.Content),
+			Index:       pr.Number,
+			PosterID:    g.doer.ID,
+			Content:     fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content),
 			MilestoneID: milestoneID,
 			IsPull:      true,
 			IsClosed:    pr.State == "closed",
+			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
 		},
 	}
 
+	if pullRequest.Issue.IsClosed && pr.Closed != nil {
+		pullRequest.Issue.ClosedUnix = util.TimeStamp(pr.Closed.Unix())
+	}
+
+	// TODO: islocked
+	// TODO: reactions
+	// TODO: replace internal link github.com/xxx/xxx#<index> to #xxx/xxx#<index>
 	// TODO: assignees
 
 	err := models.InsertPullRequest(&pullRequest, labelIDs)

@@ -17,6 +17,7 @@ type Issue struct {
 	Milestone   string
 	State       string // closed, open
 	Created     time.Time
+	Closed      *time.Time
 	Labels      []*Label
 	Reactions   *Reactions
 }

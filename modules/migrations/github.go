@@ -105,6 +105,9 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 				Description: desc,
 				Deadline:    m.DueOn,
 				State:       state,
+				Created:     *m.CreatedAt,
+				Updated:     m.UpdatedAt,
+				Closed:      m.ClosedAt,
 			})
 		}
 		if len(ms) < perPage {
@@ -215,6 +218,7 @@ func (g *GithubDownloaderV3) GetIssues(start, limit int) ([]*base.Issue, error) 
 				Created:     *issue.CreatedAt,
 				Labels:      labels,
 				Reactions:   reactions,
+				Closed:      issue.ClosedAt,
 			})
 			if len(allIssues) >= limit {
 				return allIssues, nil
@@ -326,6 +330,7 @@ func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequ
 				Milestone:   milestone,
 				State:       *pr.State,
 				Created:     *pr.CreatedAt,
+				Closed:      pr.ClosedAt,
 				Labels:      labels,
 				Merged:      merged,
 				Head: base.PullRequestBranch{
