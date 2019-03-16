@@ -28,6 +28,7 @@ func NewPlainGitDownloader(ownerName, repoName, remoteURL string) *PlainGitDownl
 	}
 }
 
+// GetRepoInfo returns a repository information
 func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	// convert github repo to stand Repo
 	return &base.Repository{
@@ -37,22 +38,27 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
+// GetMilestones returns milestones
 func (g *PlainGitDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return nil, ErrNotSupported
 }
 
+// GetLabels returns labels
 func (g *PlainGitDownloader) GetLabels() ([]*base.Label, error) {
 	return nil, ErrNotSupported
 }
 
+// GetIssues returns issues according start and limit
 func (g *PlainGitDownloader) GetIssues(start, limit int) ([]*base.Issue, error) {
 	return nil, ErrNotSupported
 }
 
+// GetComments returns comments according issueNumber
 func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	return nil, ErrNotSupported
 }
 
+// GetPullRequests returns pull requests according start and limit
 func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
 	return nil, ErrNotSupported
 }

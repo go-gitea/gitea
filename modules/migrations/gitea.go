@@ -38,6 +38,7 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 	}
 }
 
+// CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
 	owner, err := models.GetUserByName(g.repoOwner)
 	if err != nil {
@@ -58,6 +59,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
 	return nil
 }
 
+// CreateMilestone creates milestone
 func (g *GiteaLocalUploader) CreateMilestone(milestone *base.Milestone) error {
 	var deadline util.TimeStamp
 	if milestone.Deadline != nil {
@@ -83,6 +85,7 @@ func (g *GiteaLocalUploader) CreateMilestone(milestone *base.Milestone) error {
 	return nil
 }
 
+// CreateLabel creates label
 func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
 	var lb = models.Label{
 		RepoID:      g.repoID,
@@ -98,6 +101,7 @@ func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
 	return nil
 }
 
+// CreateIssue creates issue
 func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 	var labelIDs []int64
 	for _, label := range issue.Labels {
@@ -136,6 +140,7 @@ func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 	return err
 }
 
+// CreateComment creates comment
 func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comment) error {
 	var issueID int64
 	if issueIDStr, ok := g.issues.Load(issueNumber); !ok {
@@ -163,6 +168,7 @@ func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comm
 	return err
 }
 
+// CreatePullRequest creates pull request
 func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 	var labelIDs []int64
 	for _, label := range pr.Labels {

@@ -7,8 +7,10 @@ package migrations
 
 import "net/url"
 
+// MigrationSource represents a migration source
 type MigrationSource string
 
+// enumerates all MigrationSources
 const (
 	MigrateFromPlainGit                 = "git"
 	MigrateFromGithub   MigrationSource = "github"

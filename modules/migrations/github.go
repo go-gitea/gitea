@@ -20,7 +20,7 @@ var (
 	_ base.Downloader = &GithubDownloaderV3{}
 )
 
-// GithubDownloader implements a Downloader interface to get repository informations
+// GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
 	ctx       context.Context
@@ -58,6 +58,7 @@ func NewGithubDownloaderV3WithClient(ghClient *github.Client, repoOwner, repoNam
 	}
 }
 
+// GetRepoInfo returns a repository information
 func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	gr, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
@@ -74,6 +75,7 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
+// GetMilestones returns milestones
 func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	var perPage = 100
 	var milestones = make([]*base.Milestone, 0, perPage)
@@ -112,6 +114,7 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
+// GetLabels returns labels
 func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
@@ -159,6 +162,7 @@ func convertGithubReactions(reactions *github.Reactions) *base.Reactions {
 	}
 }
 
+// GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(start, limit int) ([]*base.Issue, error) {
 	var perPage = 100
 	opt := &github.IssueListByRepoOptions{
@@ -224,6 +228,7 @@ func (g *GithubDownloaderV3) GetIssues(start, limit int) ([]*base.Issue, error) 
 	return allIssues, nil
 }
 
+// GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, 100)
 	opt := &github.IssueListCommentsOptions{
@@ -263,6 +268,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 	return allComments, nil
 }
 
+// GetPullRequests returns pull requests according start and limit
 func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
 	opt := &github.PullRequestListOptions{
 		Sort:      "created",

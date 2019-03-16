@@ -26,7 +26,7 @@ type PullRequest struct {
 	Assignees   []string
 }
 
-// PullRequestBranch
+// PullRequestBranch represents a pull request branch
 type PullRequestBranch struct {
 	Ref       string
 	SHA       string
