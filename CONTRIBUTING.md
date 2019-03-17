@@ -83,8 +83,7 @@ containers drone creates (a default AWS or GCE disk size won't work --
 see #6243).  The drone version, command line, and disk requirements do
 change over time (see #4053 and #6243).  If you have any issues, take
 a look at the drone-cli version and command line in
-`scripts/test-local.sh` -- it will be up to date if the automation in
-#6269 has been implemented.  
+`scripts/test-local.sh` -- it may be more up to date.
 
 ## Vendoring
 
