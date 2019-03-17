@@ -469,19 +469,19 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 	return repo.OwnerName
 }
 
-// ComposeMetas composes a map of metas for rendering external issue tracker URL.
+// ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	unit, err := repo.GetUnit(UnitTypeExternalTracker)
-	if err != nil {
-		return nil
-	}
-
 	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"format": unit.ExternalTrackerConfig().ExternalTrackerFormat,
-			"user":   repo.MustOwner().Name,
-			"repo":   repo.Name,
+			"user": repo.MustOwner().Name,
+			"repo": repo.Name,
 		}
+		unit, err := repo.GetUnit(UnitTypeExternalTracker)
+		if err != nil {
+			return repo.ExternalMetas
+		}
+
+		repo.ExternalMetas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
 		case markup.IssueNameStyleAlphanumeric:
 			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
