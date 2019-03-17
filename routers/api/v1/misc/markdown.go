@@ -5,6 +5,8 @@
 package misc
 
 import (
+	"strings"
+
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/context"
@@ -45,11 +47,20 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	switch form.Mode {
 	case "gfm":
 		md := []byte(form.Text)
-		context := util.URLJoin(setting.AppURL, form.Context)
+		urlPrefix := form.Context
+		var meta map[string]string
+		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
+			// This is still incorrect...
+			// Need to check if urlPrefix is an url - if so no join
+			urlPrefix = util.URLJoin(setting.AppURL, form.Context)
+		}
+		if ctx.Repo != nil && ctx.Repo.Repository != nil {
+			meta = ctx.Repo.Repository.ComposeMetas()
+		}
 		if form.Wiki {
-			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
+			ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
 		} else {
-			ctx.Write(markdown.Render(md, context, nil))
+			ctx.Write(markdown.Render(md, urlPrefix, meta))
 		}
 	default:
 		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
