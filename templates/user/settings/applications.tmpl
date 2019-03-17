@@ -45,6 +45,10 @@
 				</button>
 			</form>
 		</div>
+
+		{{if .EnableOAuth2}}
+			{{template "user/settings/applications_oauth2" .}}
+		{{end}}
 	</div>
 </div>
 
