@@ -130,5 +130,5 @@ func MigrateRelease(rel *Release) error {
 		return err
 	}
 
-	return nil
+	return sess.Commit()
 }

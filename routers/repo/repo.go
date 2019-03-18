@@ -257,6 +257,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Labels:       true,
 		Comments:     true,
 		PullRequests: true,
+		Releases:     true,
 	})
 
 	if err == nil {

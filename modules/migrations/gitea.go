@@ -130,6 +130,9 @@ func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
 		CreatedUnix:  util.TimeStamp(release.Created.Unix()),
 	}
 
+	// TODO: calc NumCommits
+	// TODO: retrieve Target
+
 	for _, asset := range release.Assets {
 		var attach = models.Attachment{
 			UUID:          gouuid.NewV4().String(),
