@@ -38,6 +38,8 @@ the setup page. On the setup page, you can configure the following settings:
     If you do not, the first account created after setting up Gitea will 
     be an admin account.
 
+![The setup page](images/gitea-setup-page-1.png)
+
 <!-- TODO Describe setup options -->
 <!-- TODO Add screenshots -->
 
