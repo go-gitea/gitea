@@ -330,7 +330,7 @@
             .code-view {
                 * {
                     font-size: 12px;
-                    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                    font-family: @monospaced-fonts, monospace;
                     line-height: 20px;
                 }
 
@@ -430,7 +430,7 @@
                     .branch-name {
                         display: inline-block;
                         padding: 3px 6px;
-                        font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                        font: 12px @monospaced-fonts, monospace;
                         color: rgba(0,0,0,0.65);
                         background-color: rgba(209,227,237,0.45);
                         border-radius: 3px;
@@ -699,7 +699,7 @@
                     }
                     textarea {
                         height: 200px;
-                        font-family: "Consolas", monospace;
+                        font-family: @monospaced-fonts, monospace;
                     }
                 }
 
@@ -802,7 +802,7 @@
             }
             textarea {
                 height: 200px;
-                                font-family: "Consolas", monospace;
+                                font-family: @monospaced-fonts, monospace;
             }
         }
     }
@@ -1346,7 +1346,7 @@
         &.new {
             .CodeMirror {
                 .CodeMirror-code {
-                    font-family: "Consolas", monospace;
+                    font-family: @monospaced-fonts, monospace;
                     .cm-comment {
                         background: inherit;
                     }
