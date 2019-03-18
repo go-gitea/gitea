@@ -22,25 +22,35 @@ the setup page, which looks like this:
 
 On the setup page, you can configure the following settings:
 
-- Database Settings: database type and other database-dependent settings. You can
-  choose from SQLite3, MySQL, PostgreSQL, and Microsoft SQL Server. (Default: 
-  SQLite3.)
-- General Settings:
-  - Site Title (default: "Gitea: Git with a cup of tea")
-  - Repository Root Path (default: `/data/git/repositories`)
-  - Git LFS Root Path (optional, default: `/data/git/lfs`)
-  - Run As Username (default: `git`)
-  - SSH Server Domain (default: `localhost`)
-  - SSH Server Port (optional, default: 22)
-  - Gitea HTTP Listen Port (default: 3000)
-  - Gitea Base URL (default: http://localhost:3000/)
-  - Log Path (default: `/data/gitea/log`)
-- Optional Settings:
-  - Email Settings
-  - Server and Third-Party Service Settings
-  - Administrator Account Settings: You may create an administrator account here.
-    If you do not, the first account created after setting up Gitea will 
-    be an admin account.
+## Database Settings
+
+Includes database type and other database-dependent settings. You can choose 
+from SQLite3, MySQL, PostgreSQL, and Microsoft SQL Server. (The default database 
+system is SQLite3.)
+
+## General Settings
+
+| Option                 | Required? | In `app.ini`                  |
+| ---------------------- | --------- | ----------------------------- |
+| Site Title             | required  | `APP_NAME`                    |
+| Repository Root Path   | required  | `repository.ROOT`             |
+| Git LFS Root Path      | optional  | `server.LFS_CONTENT_PATH`     |
+| Run As Username        | required  | `RUN_USER`                    |
+| SSH Server Domain      | required  | `server.SSH_DOMAIN`           |
+| SSH Server Port        | optional  | `server.SSH_PORT`             |
+| Gitea HTTP Listen Port | required  | `server.HTTP_PORT`            |
+| Gitea Base URL         | required  | `server.ROOT_URL`             |
+| Log Path               | required  | `log.ROOT_PATH`               |
+
+## Optional Settings
+
+Consists of:
+
+- Email Settings
+- Server and Third-Party Service Settings
+- Administrator Account Settings: You may create an administrator account here.
+  If you do not, the first account created after setting up Gitea will 
+  be an admin account.
 
 <!-- TODO Describe setup options -->
 <!-- TODO Add screenshots -->
