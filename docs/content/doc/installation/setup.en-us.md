@@ -16,7 +16,11 @@ menu:
 
 The first time you access the Gitea web interface, the home page will appear. 
 Clicking on "Register" or "Sign In" in the upper right corner will take you to 
-the setup page. On the setup page, you can configure the following settings:
+the setup page, which looks like this:
+
+![Screenshot of the setup page](images/gitea-setup-page-1.png)
+
+On the setup page, you can configure the following settings:
 
 - Database Settings: database type and other database-dependent settings. You can
   choose from SQLite3, MySQL, PostgreSQL, and Microsoft SQL Server. (Default: 
@@ -37,8 +41,6 @@ the setup page. On the setup page, you can configure the following settings:
   - Administrator Account Settings: You may create an administrator account here.
     If you do not, the first account created after setting up Gitea will 
     be an admin account.
-
-![The setup page](images/gitea-setup-page-1.png)
 
 <!-- TODO Describe setup options -->
 <!-- TODO Add screenshots -->
