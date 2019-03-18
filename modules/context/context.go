@@ -194,6 +194,7 @@ func Contexter() macaron.Handler {
 			},
 			Org: &Organization{},
 		}
+		ctx.Data["Language"] = ctx.Locale.Language()
 		c.Data["Link"] = ctx.Link
 		ctx.Data["PageStartTime"] = time.Now()
 		// Quick responses appropriate go-get meta with status 200
