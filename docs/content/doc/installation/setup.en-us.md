@@ -36,7 +36,7 @@ the setup page. On the setup page, you can configure the following settings:
   - Server and Third-Party Service Settings
   - Administrator Account Settings: You may create an administrator account here.
     If you do not, the first account created after setting up Gitea will 
-    automatically become an administrator account.
+    be an admin account.
 
 <!-- TODO Describe setup options -->
 <!-- TODO Add screenshots -->
@@ -45,5 +45,5 @@ When you are done configuring Gitea, click the button labeled "Install Gitea" at
 the bottom of the page.
 
 After finishing the setup process, you will be directed to a page where you can 
-create a user account. The first account created after setting up Gitea will be 
-an admin account.
+create a user account. The first registered user will automatically become an 
+administrator.
