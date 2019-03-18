@@ -12,8 +12,8 @@ type ReleaseAsset struct {
 	ContentType   *string
 	Size          *int
 	DownloadCount *int
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Created       time.Time
+	Updated       time.Time
 }
 
 type Release struct {
@@ -24,7 +24,6 @@ type Release struct {
 	Draft           bool
 	Prerelease      bool
 	Assets          []ReleaseAsset
-
-	CreatedAt   time.Time
-	PublishedAt time.Time
+	Created         time.Time
+	Published       time.Time
 }

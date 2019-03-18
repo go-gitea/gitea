@@ -7,6 +7,11 @@ package migrations
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	gouuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -107,8 +114,57 @@ func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
 
 // CreateRelease creates release
 func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
-	// TODO:
-	return nil
+	var rel = models.Release{
+		RepoID:       g.repo.ID,
+		PublisherID:  g.doer.ID,
+		TagName:      release.TagName,
+		LowerTagName: strings.ToLower(release.TagName),
+		//Target           : release.Target
+		Title: release.Name,
+		Sha1:  release.TargetCommitish,
+		//NumCommits       int64
+		Note:         release.Body,
+		IsDraft:      release.Draft,
+		IsPrerelease: release.Prerelease,
+		IsTag:        false,
+		CreatedUnix:  util.TimeStamp(release.Created.Unix()),
+	}
+
+	for _, asset := range release.Assets {
+		var attach = models.Attachment{
+			UUID:          gouuid.NewV4().String(),
+			Name:          asset.Name,
+			DownloadCount: int64(*asset.DownloadCount),
+			Size:          int64(*asset.Size),
+			CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
+		}
+
+		// donwload attachment
+		resp, err := http.Get(asset.URL)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		localPath := attach.LocalPath()
+		if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
+			return fmt.Errorf("MkdirAll: %v", err)
+		}
+
+		fw, err := os.Create(localPath)
+		if err != nil {
+			return fmt.Errorf("Create: %v", err)
+		}
+		defer fw.Close()
+
+		if _, err := io.Copy(fw, resp.Body); err != nil {
+			return err
+		}
+
+		rel.Attachments = append(rel.Attachments, &attach)
+	}
+
+	return models.MigrateRelease(&rel)
 }
 
 // CreateIssue creates issue

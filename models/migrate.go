@@ -95,3 +95,40 @@ func InsertPullRequest(pr *PullRequest, labelIDs []int64) error {
 	}
 	return sess.Commit()
 }
+
+// MigrateRelease migrates release
+func MigrateRelease(rel *Release) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	var oriRel = Release{
+		RepoID:  rel.RepoID,
+		TagName: rel.TagName,
+	}
+	exist, err := sess.Get(&oriRel)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
+			return err
+		}
+	} else {
+		rel.ID = oriRel.ID
+		if _, err := sess.ID(rel.ID).Cols("target, title, note, is_tag").Update(rel); err != nil {
+			return err
+		}
+	}
+
+	for i := 0; i < len(rel.Attachments); i++ {
+		rel.Attachments[i].ReleaseID = rel.ID
+	}
+
+	if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+		return err
+	}
+
+	return nil
+}

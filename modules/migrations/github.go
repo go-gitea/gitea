@@ -159,12 +159,29 @@ func convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
 		desc = *rel.Body
 	}
 
-	return &base.Release{
+	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
 		Name:            *rel.Name,
 		Body:            desc,
+		Draft:           *rel.Draft,
+		Prerelease:      *rel.Prerelease,
+		Created:         rel.CreatedAt.Time,
+		Published:       rel.PublishedAt.Time,
 	}
+
+	for _, asset := range rel.Assets {
+		r.Assets = append(r.Assets, base.ReleaseAsset{
+			URL:           *asset.URL,
+			Name:          *asset.Name,
+			ContentType:   asset.ContentType,
+			Size:          asset.Size,
+			DownloadCount: asset.DownloadCount,
+			Created:       asset.CreatedAt.Time,
+			Updated:       asset.UpdatedAt.Time,
+		})
+	}
+	return r
 }
 
 // GetReleases returns releases
