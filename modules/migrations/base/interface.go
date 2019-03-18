@@ -9,6 +9,7 @@ package base
 type Downloader interface {
 	GetRepoInfo() (*Repository, error)
 	GetMilestones() ([]*Milestone, error)
+	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
 	GetIssues(start, limit int) ([]*Issue, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
@@ -19,6 +20,7 @@ type Downloader interface {
 type Uploader interface {
 	CreateRepo(*Repository) error
 	CreateMilestone(milestone *Milestone) error
+	CreateRelease(release *Release) error
 	CreateLabel(label *Label) error
 	CreateIssue(issue *Issue) error
 	CreateComment(issueNumber int64, comment *Comment) error

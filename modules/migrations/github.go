@@ -117,6 +117,18 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	return milestones, nil
 }
 
+func convertGithubLabel(label *github.Label) *base.Label {
+	var desc string
+	if label.Description != nil {
+		desc = *label.Description
+	}
+	return &base.Label{
+		Name:        *label.Name,
+		Color:       *label.Color,
+		Description: desc,
+	}
+}
+
 // GetLabels returns labels
 func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
@@ -141,16 +153,42 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	return labels, nil
 }
 
-func convertGithubLabel(label *github.Label) *base.Label {
+func convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
 	var desc string
-	if label.Description != nil {
-		desc = *label.Description
+	if rel.Body != nil {
+		desc = *rel.Body
 	}
-	return &base.Label{
-		Name:        *label.Name,
-		Color:       *label.Color,
-		Description: desc,
+
+	return &base.Release{
+		TagName:         *rel.TagName,
+		TargetCommitish: *rel.TargetCommitish,
+		Name:            *rel.Name,
+		Body:            desc,
 	}
+}
+
+// GetReleases returns releases
+func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
+	var perPage = 100
+	var releases = make([]*base.Release, 0, perPage)
+	for i := 1; ; i++ {
+		ls, _, err := g.client.Repositories.ListReleases(g.ctx, g.repoOwner, g.repoName,
+			&github.ListOptions{
+				Page:    i,
+				PerPage: perPage,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, release := range ls {
+			releases = append(releases, convertGithubRelease(release))
+		}
+		if len(ls) < perPage {
+			break
+		}
+	}
+	return releases, nil
 }
 
 func convertGithubReactions(reactions *github.Reactions) *base.Reactions {

@@ -40,10 +40,11 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		}
 	}
 	if downloader == nil {
+		opts.Milestones = false
+		opts.Labels = false
+		opts.Releases = false
 		opts.Comments = false
 		opts.Issues = false
-		opts.Labels = false
-		opts.Milestones = false
 		opts.PullRequests = false
 		downloader = NewPlainGitDownloader(ownerName, opts.Name, opts.RemoteURL)
 		log.Trace("Will migrate from git")
@@ -90,6 +91,20 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 		for _, label := range labels {
 			if err := uploader.CreateLabel(label); err != nil {
+				return err
+			}
+		}
+	}
+
+	if opts.Releases {
+		log.Trace("migrating releases")
+		releases, err := downloader.GetReleases()
+		if err != nil {
+			return err
+		}
+
+		for _, release := range releases {
+			if err := uploader.CreateRelease(release); err != nil {
 				return err
 			}
 		}

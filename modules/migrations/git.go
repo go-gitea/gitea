@@ -48,6 +48,11 @@ func (g *PlainGitDownloader) GetLabels() ([]*base.Label, error) {
 	return nil, ErrNotSupported
 }
 
+// GetReleases returns releases
+func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
+	return nil, ErrNotSupported
+}
+
 // GetIssues returns issues according start and limit
 func (g *PlainGitDownloader) GetIssues(start, limit int) ([]*base.Issue, error) {
 	return nil, ErrNotSupported

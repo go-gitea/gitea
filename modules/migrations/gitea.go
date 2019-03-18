@@ -105,6 +105,12 @@ func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
 	return nil
 }
 
+// CreateRelease creates release
+func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
+	// TODO:
+	return nil
+}
+
 // CreateIssue creates issue
 func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 	var labelIDs []int64
