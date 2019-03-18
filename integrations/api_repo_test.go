@@ -6,7 +6,10 @@ package integrations
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -291,6 +294,44 @@ func TestAPIRepoMigrate(t *testing.T) {
 	}
 }
 
+func TestAPIRepoMigrateConflict(t *testing.T) {
+	onGiteaRun(t, testAPIRepoMigrateConflict)
+}
+
+func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
+	username := "user2"
+	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+
+	u.Path = baseAPITestContext.GitPath()
+
+	t.Run("Existing", func(t *testing.T) {
+		httpContext := baseAPITestContext
+
+		httpContext.Reponame = "repo-tmp-17"
+		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		assert.NoError(t, err)
+		defer os.RemoveAll(dstPath)
+		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
+
+		user, err := models.GetUserByName(httpContext.Username)
+		assert.NoError(t, err)
+		userID := user.ID
+
+		cloneURL := "https://github.com/go-gitea/git.git"
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+httpContext.Token,
+			&api.MigrateRepoOption{
+				CloneAddr: cloneURL,
+				UID:       int(userID),
+				RepoName:  httpContext.Reponame,
+			})
+		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
+		respJSON := map[string]string{}
+		DecodeJSON(t, resp, &respJSON)
+		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+	})
+}
+
 func TestAPIOrgRepoCreate(t *testing.T) {
 	testCases := []struct {
 		ctxUserID         int64
@@ -312,4 +353,34 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		})
 		session.MakeRequest(t, req, testCase.expectedStatus)
 	}
+}
+
+func TestAPIRepoCreateConflict(t *testing.T) {
+	onGiteaRun(t, testAPIRepoCreateConflict)
+}
+
+func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
+	username := "user2"
+	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+
+	u.Path = baseAPITestContext.GitPath()
+
+	t.Run("Existing", func(t *testing.T) {
+		httpContext := baseAPITestContext
+
+		httpContext.Reponame = "repo-tmp-17"
+		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		assert.NoError(t, err)
+		defer os.RemoveAll(dstPath)
+		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+httpContext.Token,
+			&api.CreateRepoOption{
+				Name: httpContext.Reponame,
+			})
+		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
+		respJSON := map[string]string{}
+		DecodeJSON(t, resp, &respJSON)
+		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+	})
 }
