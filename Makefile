@@ -52,6 +52,10 @@ TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
+TEST_MYSQL8_HOST ?= mysql8:3306
+TEST_MYSQL8_DBNAME ?= testgitea
+TEST_MYSQL8_USERNAME ?= root
+TEST_MYSQL8_PASSWORD ?=
 TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
@@ -80,9 +84,9 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
-		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ \
-		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql \
-		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
+		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
+		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini
 
 .PHONY: fmt
 fmt:
@@ -209,6 +213,11 @@ generate-ini:
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
+	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
+		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
+		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
+		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
+			integrations/mysql8.ini.tmpl > integrations/mysql8.ini
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
@@ -228,6 +237,14 @@ test-mysql: integrations.test generate-ini
 test-mysql-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.test
 
+.PHONY: test-mysql8
+test-mysql8: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.test
+
+.PHONY: test-mysql8-migration
+test-mysql8-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.test
+
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
@@ -235,7 +252,6 @@ test-pgsql: integrations.test generate-ini
 .PHONY: test-pgsql-migration
 test-pgsql-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.test
-
 
 .PHONY: test-mssql
 test-mssql: integrations.test generate-ini
