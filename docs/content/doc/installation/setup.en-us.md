@@ -38,17 +38,17 @@ system is SQLite3.)
 
 ## General Settings
 
-| Option                 | Required? | In `app.ini`                  |
-| ---------------------- | --------- | ----------------------------- |
-| Site Title             | yes       | `APP_NAME`                    |
-| Repository Root Path   | yes       | `repository.ROOT`             |
-| Git LFS Root Path      | no        | `server.LFS_CONTENT_PATH`     |
-| Run As Username        | yes       | `RUN_USER`                    |
-| SSH Server Domain      | yes       | `server.SSH_DOMAIN`           |
-| SSH Server Port        | no        | `server.SSH_PORT`             |
-| Gitea HTTP Listen Port | yes       | `server.HTTP_PORT`            |
-| Gitea Base URL         | yes       | `server.ROOT_URL`             |
-| Log Path               | yes       | `log.ROOT_PATH`               |
+| Option                 | In app.ini                  | Required? |
+| ---------------------- | --------------------------- | --------- |
+| Site Title             | `APP_NAME`                  | yes       |
+| Repository Root Path   | `repository.ROOT`           | yes       |
+| Git LFS Root Path      | `server.LFS_CONTENT_PATH`   | no        |
+| Run As Username        | `RUN_USER`                  | yes       |
+| SSH Server Domain      | `server.SSH_DOMAIN`         | yes       |
+| SSH Server Port        | `server.SSH_PORT`           | no        |
+| Gitea HTTP Listen Port | `server.HTTP_PORT`          | yes       |
+| Gitea Base URL         | `server.ROOT_URL`           | yes       |
+| Log Path               | `log.ROOT_PATH`             | yes       |
 
 ## Optional Settings
 
