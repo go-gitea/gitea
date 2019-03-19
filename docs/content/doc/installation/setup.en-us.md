@@ -16,11 +16,19 @@ menu:
 
 The first time you access the Gitea web interface, the home page will appear. 
 Clicking on "Register" or "Sign In" in the upper right corner will take you to 
-the setup page, which looks like this:
+the setup page, where you can configure the database type and associated 
+settings, general settings such as networking and locations of files, and 
+optional settings such as email.
 
 ![Screenshot of the setup page](/images/gitea-setup-page-1.png)
 
-On the setup page, you can configure the following settings:
+When you are done configuring Gitea, click the button labeled "Install Gitea" at
+the bottom of the page. This will write your settings to `app.ini`.
+
+After finishing the setup process, you will be directed to a page where you can 
+create a user account. The first registered user will automatically become an 
+administrator.
+
 
 ## Database Settings
 
@@ -51,13 +59,3 @@ Consists of:
 - Administrator Account Settings: You may create an administrator account here.
   If you do not, the first account created after setting up Gitea will 
   be an admin account.
-
-<!-- TODO Describe setup options -->
-<!-- TODO Add screenshots -->
-
-When you are done configuring Gitea, click the button labeled "Install Gitea" at
-the bottom of the page.
-
-After finishing the setup process, you will be directed to a page where you can 
-create a user account. The first registered user will automatically become an 
-administrator.
