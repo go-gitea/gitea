@@ -27,11 +27,13 @@ type GithubDownloaderV3 struct {
 	client    *github.Client
 	repoOwner string
 	repoName  string
+	token     string
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
 func NewGithubDownloaderV3(token, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
+		token:     token,
 		ctx:       context.Background(),
 		repoOwner: repoOwner,
 		repoName:  repoName,
@@ -153,7 +155,7 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	return labels, nil
 }
 
-func convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
+func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
 	var desc string
 	if rel.Body != nil {
 		desc = *rel.Body
@@ -172,7 +174,7 @@ func convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
 
 	for _, asset := range rel.Assets {
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:           *asset.URL,
+			URL:           *asset.BrowserDownloadURL + "?access_token=" + g.token,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,
@@ -199,7 +201,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 		}
 
 		for _, release := range ls {
-			releases = append(releases, convertGithubRelease(release))
+			releases = append(releases, g.convertGithubRelease(release))
 		}
 		if len(ls) < perPage {
 			break

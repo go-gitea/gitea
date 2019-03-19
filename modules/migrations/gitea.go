@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,6 +37,7 @@ type GiteaLocalUploader struct {
 	labels     sync.Map
 	milestones sync.Map
 	issues     sync.Map
+	gitRepo    *git.Repository
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
@@ -65,7 +67,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
 		return err
 	}
 	g.repo = r
-	return nil
+	g.gitRepo, err = git.OpenRepository(r.RepoPath())
+	return err
 }
 
 // CreateMilestone creates milestone
@@ -119,10 +122,9 @@ func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
 		PublisherID:  g.doer.ID,
 		TagName:      release.TagName,
 		LowerTagName: strings.ToLower(release.TagName),
-		//Target           : release.Target
-		Title: release.Name,
-		Sha1:  release.TargetCommitish,
-		//NumCommits       int64
+		Target:       release.TargetCommitish,
+		Title:        release.Name,
+		Sha1:         release.TargetCommitish,
 		Note:         release.Body,
 		IsDraft:      release.Draft,
 		IsPrerelease: release.Prerelease,
@@ -130,8 +132,15 @@ func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
 		CreatedUnix:  util.TimeStamp(release.Created.Unix()),
 	}
 
-	// TODO: calc NumCommits
-	// TODO: retrieve Target
+	// calc NumCommits
+	commit, err := g.gitRepo.GetCommit(rel.TagName)
+	if err != nil {
+		return fmt.Errorf("GetCommit: %v", err)
+	}
+	rel.NumCommits, err = commit.CommitsCount()
+	if err != nil {
+		return fmt.Errorf("CommitsCount: %v", err)
+	}
 
 	for _, asset := range release.Assets {
 		var attach = models.Attachment{
@@ -142,7 +151,7 @@ func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
 			CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
 		}
 
-		// donwload attachment
+		// download attachment
 		resp, err := http.Get(asset.URL)
 		if err != nil {
 			return err

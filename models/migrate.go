@@ -117,7 +117,7 @@ func MigrateRelease(rel *Release) error {
 		}
 	} else {
 		rel.ID = oriRel.ID
-		if _, err := sess.ID(rel.ID).Cols("target, title, note, is_tag").Update(rel); err != nil {
+		if _, err := sess.ID(rel.ID).Cols("target, title, note, is_tag, num_commits").Update(rel); err != nil {
 			return err
 		}
 	}
