@@ -18,7 +18,7 @@ menu:
 Customizing Gitea is typically done using the `custom` folder. This is the central
 place to override configuration settings, templates, etc.
 
-If Gitea is deployed from binary, all default paths will be relative to the gitea
+If Gitea is deployed from binary, all default paths will be relative to the Gitea
 binary. If installed from a distribution, these paths will likely be modified to
 the Linux Filesystem Standard. Gitea will create required folders, including `custom/`.
 Application settings are configured in `custom/conf/app.ini`. Distributions may

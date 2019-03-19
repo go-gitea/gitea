@@ -215,6 +215,10 @@ var migrations = []Migration{
 	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
 	// v80 -> v81
 	NewMigration("add is locked to issues", addIsLockedToIssues),
+	// v81 -> v82
+	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 }
 
 // Migrate database to current version

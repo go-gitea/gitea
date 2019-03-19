@@ -75,6 +75,7 @@ func Search(ctx *context.APIContext) {
 			UserName:  users[i].Name,
 			AvatarURL: users[i].AvatarLink(),
 			FullName:  markup.Sanitize(users[i].FullName),
+			IsAdmin:   users[i].IsAdmin,
 		}
 		if ctx.IsSigned && (!users[i].KeepEmailPrivate || ctx.User.IsAdmin) {
 			results[i].Email = users[i].Email
@@ -108,7 +109,7 @@ func GetInfo(ctx *context.APIContext) {
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetUserByName", err)
 		}

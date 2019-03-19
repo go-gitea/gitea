@@ -164,6 +164,22 @@ pipeline:
     when:
       event: [ tag ]
 
+  test-mysql8:
+    image: golang:1.11
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      TEST_LDAP: "1"
+    commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
+      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
+      - make test-mysql8-migration
+      - make test-mysql8
+    when:
+      event: [ push, tag, pull_request ]
+
   test-pgsql:
     image: golang:1.12
     pull: true
@@ -403,6 +419,15 @@ services:
     environment:
       - MYSQL_DATABASE=test
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    when:
+      event: [ push, tag, pull_request ]
+
+  mysql8:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=test
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_DATABASE=testgitea
     when:
       event: [ push, tag, pull_request ]
 
