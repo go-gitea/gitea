@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
