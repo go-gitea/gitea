@@ -40,15 +40,15 @@ system is SQLite3.)
 
 | Option                 | Required? | In `app.ini`                  |
 | ---------------------- | --------- | ----------------------------- |
-| Site Title             | required  | `APP_NAME`                    |
-| Repository Root Path   | required  | `repository.ROOT`             |
-| Git LFS Root Path      | optional  | `server.LFS_CONTENT_PATH`     |
-| Run As Username        | required  | `RUN_USER`                    |
-| SSH Server Domain      | required  | `server.SSH_DOMAIN`           |
-| SSH Server Port        | optional  | `server.SSH_PORT`             |
-| Gitea HTTP Listen Port | required  | `server.HTTP_PORT`            |
-| Gitea Base URL         | required  | `server.ROOT_URL`             |
-| Log Path               | required  | `log.ROOT_PATH`               |
+| Site Title             | yes       | `APP_NAME`                    |
+| Repository Root Path   | yes       | `repository.ROOT`             |
+| Git LFS Root Path      | no        | `server.LFS_CONTENT_PATH`     |
+| Run As Username        | yes       | `RUN_USER`                    |
+| SSH Server Domain      | yes       | `server.SSH_DOMAIN`           |
+| SSH Server Port        | no        | `server.SSH_PORT`             |
+| Gitea HTTP Listen Port | yes       | `server.HTTP_PORT`            |
+| Gitea Base URL         | yes       | `server.ROOT_URL`             |
+| Log Path               | yes       | `log.ROOT_PATH`               |
 
 ## Optional Settings
 
