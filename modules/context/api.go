@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,8 @@ package context
 
 import (
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/go-macaron/csrf"
@@ -139,4 +142,30 @@ func ReferencesGitRepo() macaron.Handler {
 			ctx.Repo.GitRepo = gitRepo
 		}
 	}
+}
+
+// NotFound handles 404s for APIContext
+// String will replace message, errors will be added to a slice
+func (ctx *APIContext) NotFound(objs ...interface{}) {
+	var message = "Not Found"
+	var errors []string
+	for _, obj := range objs {
+		if err, ok := obj.(error); ok {
+			errors = append(errors, err.Error())
+		} else {
+			message = obj.(string)
+		}
+	}
+
+	u, err := url.Parse(setting.AppURL)
+	if err != nil {
+		ctx.Error(500, "Invalid AppURL", err)
+		return
+	}
+	u.Path = path.Join(u.Path, "api", "swagger")
+	ctx.JSON(404, map[string]interface{}{
+		"message":           message,
+		"documentation_url": u.String(),
+		"errors":            errors,
+	})
 }

@@ -42,13 +42,13 @@ func GetBranch(ctx *context.APIContext) {
 		// if TreePath != "", then URL contained extra slashes
 		// (i.e. "master/subbranch" instead of "master"), so branch does
 		// not exist
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
 	if err != nil {
 		if models.IsErrBranchNotExist(err) {
-			ctx.Error(404, "GetBranch", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetBranch", err)
 		}

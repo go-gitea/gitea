@@ -239,7 +239,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteWebhookByRepoID", err)
 		}

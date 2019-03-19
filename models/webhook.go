@@ -241,7 +241,11 @@ func (w *Webhook) EventsArray() []string {
 
 // CreateWebhook creates a new web hook.
 func CreateWebhook(w *Webhook) error {
-	_, err := x.Insert(w)
+	return createWebhook(x, w)
+}
+
+func createWebhook(e Engine, w *Webhook) error {
+	_, err := e.Insert(w)
 	return err
 }
 
@@ -316,6 +320,32 @@ func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
 	return ws, err
 }
 
+// GetDefaultWebhook returns admin-default webhook by given ID.
+func GetDefaultWebhook(id int64) (*Webhook, error) {
+	webhook := &Webhook{ID: id}
+	has, err := x.
+		Where("repo_id=? AND org_id=?", 0, 0).
+		Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{id}
+	}
+	return webhook, nil
+}
+
+// GetDefaultWebhooks returns all admin-default webhooks.
+func GetDefaultWebhooks() ([]*Webhook, error) {
+	return getDefaultWebhooks(x)
+}
+
+func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
+	webhooks := make([]*Webhook, 0, 5)
+	return webhooks, e.
+		Where("repo_id=? AND org_id=?", 0, 0).
+		Find(&webhooks)
+}
+
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(w *Webhook) error {
 	_, err := x.ID(w.ID).AllCols().Update(w)
@@ -362,6 +392,47 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 		ID:    id,
 		OrgID: orgID,
 	})
+}
+
+// DeleteDefaultWebhook deletes an admin-default webhook by given ID.
+func DeleteDefaultWebhook(id int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	count, err := sess.
+		Where("repo_id=? AND org_id=?", 0, 0).
+		Delete(&Webhook{ID: id})
+	if err != nil {
+		return err
+	} else if count == 0 {
+		return ErrWebhookNotExist{ID: id}
+	}
+
+	if _, err := sess.Delete(&HookTask{HookID: id}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// copyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
+func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
+	ws, err := getDefaultWebhooks(e)
+	if err != nil {
+		return fmt.Errorf("GetDefaultWebhooks: %v", err)
+	}
+
+	for _, w := range ws {
+		w.ID = 0
+		w.RepoID = repoID
+		if err := createWebhook(e, w); err != nil {
+			return fmt.Errorf("CreateWebhook: %v", err)
+		}
+	}
+	return nil
 }
 
 //   ___ ___                __   ___________              __

@@ -125,7 +125,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	key, err := models.GetDeployKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrDeployKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetDeployKeyByID", err)
 		}

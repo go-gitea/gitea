@@ -92,6 +92,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
 	ctx.User.Language = form.Language
+	ctx.User.Description = form.Description
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
