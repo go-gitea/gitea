@@ -160,7 +160,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number
 
-- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
+- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
