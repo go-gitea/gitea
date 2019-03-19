@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
 	version "github.com/mcuadros/go-version"
 )
 

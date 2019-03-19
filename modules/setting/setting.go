@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
@@ -302,7 +302,7 @@ var (
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
 	}{
-		Enable:                     true,
+		Enable: true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 	}
