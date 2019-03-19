@@ -41,7 +41,7 @@ type OAuth2Application struct {
 }
 
 // TableName sets the table name to `oauth2_application`
-func (app *OAuth2Application) TableName() string {
+func (OAuth2Application) TableName() string {
 	return "oauth2_application"
 }
 
@@ -265,7 +265,7 @@ type OAuth2AuthorizationCode struct {
 }
 
 // TableName sets the table name to `oauth2_authorization_code`
-func (code *OAuth2AuthorizationCode) TableName() string {
+func (OAuth2AuthorizationCode) TableName() string {
 	return "oauth2_authorization_code"
 }
 
@@ -349,7 +349,7 @@ type OAuth2Grant struct {
 }
 
 // TableName sets the table name to `oauth2_grant`
-func (grant *OAuth2Grant) TableName() string {
+func (OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
