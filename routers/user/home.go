@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -265,8 +266,20 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
-	if repoID > 0 {
-		opts.RepoIDs = []int64{repoID}
+	repoIDStrings := ctx.QueryStrings("repos[]")
+	var repoIDs []int64
+	for _, IDString := range repoIDStrings {
+		IDint64, err := strconv.ParseInt(IDString, 10, 64)
+		if err == nil {
+			repoIDs = append(repoIDs, IDint64)
+		}
+	}
+
+	if len(repoIDs) > 0 {
+		if len(repoIDs) == 1 {
+			repoID = repoIDs[0]
+		}
+		opts.RepoIDs = repoIDs
 	}
 
 	issues, err := models.Issues(opts)
@@ -326,6 +339,7 @@ func Issues(ctx *context.Context) {
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		RepoID:      repoID,
+		RepoIDs:     repoIDs,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
@@ -351,6 +365,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoID"] = repoID
+	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	if isShowClosed {
