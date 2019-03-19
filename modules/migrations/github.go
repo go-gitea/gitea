@@ -401,6 +401,7 @@ func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequ
 					SHA:       *pr.Head.SHA,
 					RepoName:  headRepoName,
 					OwnerName: *pr.Head.User.Login,
+					CloneURL:  *pr.Head.Repo.CloneURL,
 				},
 				Base: base.PullRequestBranch{
 					Ref:       *pr.Base.Ref,

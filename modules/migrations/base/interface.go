@@ -25,4 +25,5 @@ type Uploader interface {
 	CreateIssue(issue *Issue) error
 	CreateComment(issueNumber int64, comment *Comment) error
 	CreatePullRequest(pr *PullRequest) error
+	Rollback() error
 }

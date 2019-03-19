@@ -272,12 +272,21 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 	}
 
 	var head string
-	if pr.Head.OwnerName != "" {
-		head = fmt.Sprintf("%s/%s:", pr.Head.OwnerName, pr.Head.RepoName)
-	}
-	head = head + pr.Head.Ref
+	if pr.IsForkPullRequest() {
+		headPrefix := fmt.Sprintf("%s/%s", pr.Head.OwnerName, pr.Head.RepoName)
 
-	// TODO: creates special branches
+		// TODO: clone the remote creates special branches\
+		// git remote add
+		err := g.gitRepo.AddRemote(headPrefix, pr.Head.CloneURL, true)
+		if err != nil {
+			return fmt.Errorf("AddRemote failed: %s", err)
+		}
+
+		head = "remotes/" + headPrefix + "/" + pr.Head.Ref
+	} else {
+		head = pr.Head.Ref
+	}
+
 	var pullRequest = models.PullRequest{
 		HeadRepoID:   g.repo.ID,
 		HeadBranch:   head,
@@ -311,4 +320,14 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 
 	err := models.InsertPullRequest(&pullRequest, labelIDs)
 	return err
+}
+
+// Rollback when migrating failed, this will rollback all the changes.
+func (g *GiteaLocalUploader) Rollback() error {
+	if g.repo != nil && g.repo.ID > 0 {
+		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }

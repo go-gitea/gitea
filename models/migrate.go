@@ -76,13 +76,24 @@ func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
 
 // InsertComment inserted a comment
 func InsertComment(comment *Comment) error {
-	_, err := x.NoAutoTime().Insert(comment)
-	return err
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+		return err
+	}
+	if _, err := sess.ID(comment.IssueID).Incr("num_comments").Update(new(Issue)); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // InsertPullRequest inserted a pull request
 func InsertPullRequest(pr *PullRequest, labelIDs []int64) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}

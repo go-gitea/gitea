@@ -50,7 +50,11 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		log.Trace("Will migrate from git")
 	}
 
-	return migrateRepository(downloader, uploader, opts)
+	if err := migrateRepository(downloader, uploader, opts); err != nil {
+		return uploader.Rollback()
+	}
+
+	return nil
 }
 
 // migrateRepository will download informations and upload to Uploader, this is a simple

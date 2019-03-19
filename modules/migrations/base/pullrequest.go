@@ -5,7 +5,10 @@
 
 package base
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // PullRequest defines a standard pull request information
 type PullRequest struct {
@@ -27,10 +30,21 @@ type PullRequest struct {
 	Assignees   []string
 }
 
+// IsForkPullRequest returns true if the pull request from a forked repository but not the same repository
+func (p *PullRequest) IsForkPullRequest() bool {
+	return p.Head.RepoPath() != p.Base.RepoPath()
+}
+
 // PullRequestBranch represents a pull request branch
 type PullRequestBranch struct {
+	CloneURL  string
 	Ref       string
 	SHA       string
 	RepoName  string
 	OwnerName string
+}
+
+// RepoPath returns pull request repo path
+func (p PullRequestBranch) RepoPath() string {
+	return fmt.Sprintf("%s/%s", p.OwnerName, p.RepoName)
 }
