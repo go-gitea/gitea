@@ -34,6 +34,12 @@
 									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
+							{{if .Owner.Description}}
+								<li>
+									<i class="octicon octicon-info"></i>
+									<span>{{.Owner.Description}}</span>
+								</li>
+							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
