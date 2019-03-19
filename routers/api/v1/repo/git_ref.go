@@ -89,7 +89,7 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	}
 
 	if len(refs) == 0 {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 
