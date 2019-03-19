@@ -107,7 +107,7 @@ func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 
 	userDN := sr.Entries[0].DN
 	if userDN == "" {
-		log.Error(0, "LDAP search was successful, but found no DN!")
+		log.Error("LDAP search was successful, but found no DN!")
 		return "", false
 	}
 
@@ -162,7 +162,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 		sr, err := l.Search(search)
 
 		if err != nil {
-			log.Error(0, "LDAP Admin Search failed unexpectedly! (%v)", err)
+			log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
 		} else if len(sr.Entries) < 1 {
 			log.Trace("LDAP Admin Search found no matching entries.")
 		} else {
@@ -181,7 +181,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 	l, err := dial(ls)
 	if err != nil {
-		log.Error(0, "LDAP Connect error, %s:%v", ls.Host, err)
+		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
 		return nil
 	}
@@ -261,7 +261,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 	sr, err := l.Search(search)
 	if err != nil {
-		log.Error(0, "LDAP Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Search failed unexpectedly! (%v)", err)
 		return nil
 	} else if len(sr.Entries) < 1 {
 		if directBind {
@@ -311,7 +311,7 @@ func (ls *Source) UsePagedSearch() bool {
 func (ls *Source) SearchEntries() []*SearchResult {
 	l, err := dial(ls)
 	if err != nil {
-		log.Error(0, "LDAP Connect error, %s:%v", ls.Host, err)
+		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
 		return nil
 	}
@@ -349,7 +349,7 @@ func (ls *Source) SearchEntries() []*SearchResult {
 		sr, err = l.Search(search)
 	}
 	if err != nil {
-		log.Error(0, "LDAP Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Search failed unexpectedly! (%v)", err)
 		return nil
 	}
 

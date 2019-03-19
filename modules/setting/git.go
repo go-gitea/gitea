@@ -55,13 +55,13 @@ var (
 
 func newGit() {
 	if err := Cfg.Section("git").MapTo(&Git); err != nil {
-		log.Fatal(0, "Failed to map Git settings: %v", err)
+		log.Fatal("Failed to map Git settings: %v", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
 	binVersion, err := git.BinVersion()
 	if err != nil {
-		log.Fatal(0, "Error retrieving git version: %v", err)
+		log.Fatal("Error retrieving git version: %v", err)
 	}
 
 	if version.Compare(binVersion, "2.9", ">=") {

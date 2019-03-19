@@ -139,17 +139,34 @@ func (l *Logger) Warn(format string, v ...interface{}) {
 }
 
 // Error records error log
-func (l *Logger) Error(skip int, format string, v ...interface{}) {
+func (l *Logger) Error(format string, v ...interface{}) {
+	l.Log(1, ERROR, format, v...)
+}
+
+// ErrorWithSkip records error log from "skip" calls back from this function
+func (l *Logger) ErrorWithSkip(skip int, format string, v ...interface{}) {
 	l.Log(skip+1, ERROR, format, v...)
 }
 
 // Critical records critical log
-func (l *Logger) Critical(skip int, format string, v ...interface{}) {
+func (l *Logger) Critical(format string, v ...interface{}) {
+	l.Log(1, CRITICAL, format, v...)
+}
+
+// CriticalWithSkip records critical log from "skip" calls back from this function
+func (l *Logger) CriticalWithSkip(skip int, format string, v ...interface{}) {
 	l.Log(skip+1, CRITICAL, format, v...)
 }
 
-// Fatal records error log and exit the process
-func (l *Logger) Fatal(skip int, format string, v ...interface{}) {
+// Fatal records fatal log and exit the process
+func (l *Logger) Fatal(format string, v ...interface{}) {
+	l.Log(1, FATAL, format, v...)
+	l.Close()
+	os.Exit(1)
+}
+
+// FatalWithSkip records fatal log from "skip" calls back from this function and exits the process
+func (l *Logger) FatalWithSkip(skip int, format string, v ...interface{}) {
 	l.Log(skip+1, FATAL, format, v...)
 	l.Close()
 	os.Exit(1)

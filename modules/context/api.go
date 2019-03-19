@@ -71,7 +71,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	}
 
 	if status == 500 {
-		log.Error(0, "%s: %s", title, message)
+		log.Error("%s: %s", title, message)
 	}
 
 	ctx.JSON(status, APIError{

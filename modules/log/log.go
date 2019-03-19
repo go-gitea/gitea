@@ -26,7 +26,7 @@ var (
 func NewLogger(bufLen int64, name, provider, config string) *Logger {
 	err := NewNamedLogger(DEFAULT, bufLen, name, provider, config)
 	if err != nil {
-		Critical(1, "Unable to create default logger: %v", err)
+		CriticalWithSkip(1, "Unable to create default logger: %v", err)
 		panic(err)
 	}
 	return NamedLoggers[DEFAULT]
@@ -78,7 +78,7 @@ func NewGitLogger(logPath string) {
 	path := path.Dir(logPath)
 
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		Fatal(0, "Failed to create dir %s: %v", path, err)
+		Fatal("Failed to create dir %s: %v", path, err)
 	}
 
 	GitLogger = newLogger("git", 0)
@@ -131,7 +131,12 @@ func IsWarn() bool {
 }
 
 // Error records error log
-func Error(skip int, format string, v ...interface{}) {
+func Error(format string, v ...interface{}) {
+	Log(1, ERROR, format, v...)
+}
+
+// ErrorWithSkip records error log from "skip" calls back from this function
+func ErrorWithSkip(skip int, format string, v ...interface{}) {
 	Log(skip+1, ERROR, format, v...)
 }
 
@@ -141,7 +146,12 @@ func IsError() bool {
 }
 
 // Critical records critical log
-func Critical(skip int, format string, v ...interface{}) {
+func Critical(format string, v ...interface{}) {
+	Log(1, CRITICAL, format, v...)
+}
+
+// CriticalWithSkip records critical log from "skip" calls back from this function
+func CriticalWithSkip(skip int, format string, v ...interface{}) {
 	Log(skip+1, CRITICAL, format, v...)
 }
 
@@ -150,8 +160,15 @@ func IsCritical() bool {
 	return GetLevel() <= CRITICAL
 }
 
-// Fatal records error log and exit process
-func Fatal(skip int, format string, v ...interface{}) {
+// Fatal records fatal log and exit process
+func Fatal(format string, v ...interface{}) {
+	Log(1, FATAL, format, v...)
+	Close()
+	os.Exit(1)
+}
+
+// FatalWithSkip records fatal log from "skip" calls back from this function
+func FatalWithSkip(skip int, format string, v ...interface{}) {
 	Log(skip+1, FATAL, format, v...)
 	Close()
 	os.Exit(1)

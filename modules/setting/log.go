@@ -123,7 +123,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 
 	byteConfig, err := json.Marshal(jsonConfig)
 	if err != nil {
-		log.Error(0, "Failed to marshal log configuration: %v %v", jsonConfig, err)
+		log.Error("Failed to marshal log configuration: %v %v", jsonConfig, err)
 		return
 	}
 	config = string(byteConfig)

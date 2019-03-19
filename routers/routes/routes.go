@@ -149,7 +149,7 @@ func NewMacaron() *macaron.Macaron {
 	localeNames, err := options.Dir("locale")
 
 	if err != nil {
-		log.Fatal(0, "Failed to list locale files: %v", err)
+		log.Fatal("Failed to list locale files: %v", err)
 	}
 
 	localFiles := make(map[string][]byte)
@@ -158,7 +158,7 @@ func NewMacaron() *macaron.Macaron {
 		localFiles[name], err = options.Locale(name)
 
 		if err != nil {
-			log.Fatal(0, "Failed to load %s locale file. %v", name, err)
+			log.Fatal("Failed to load %s locale file. %v", name, err)
 		}
 	}
 

@@ -49,7 +49,7 @@ func baseConsoleTest(t *testing.T, logger *Logger) (chan []byte, chan bool) {
 	assert.Equal(t, false, <-closed)
 
 	format = "testerror: %s"
-	logger.Error(0, format, args...)
+	logger.Error(format, args...)
 	line = <-written
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
 	assert.Equal(t, false, <-closed)
