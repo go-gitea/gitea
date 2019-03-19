@@ -42,7 +42,7 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 	user, err := models.GetUserByName(ctx.Params(name))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetUserByName", err)
 		}
@@ -165,7 +165,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetPublicKeyByID", err)
 		}
@@ -246,7 +246,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
