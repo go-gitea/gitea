@@ -20,7 +20,7 @@ the setup page, where you can configure the database type and associated
 settings, general settings such as networking and locations of files, and 
 optional settings such as email.
 
-![Screenshot of the setup page](/images/gitea-setup-page-1.png)
+[![Screenshot of the setup page](/images/gitea-setup-page-1.png)](/images/gitea-setup-page-1.png)
 
 When you are done configuring Gitea, click the button labeled "Install Gitea" at
 the bottom of the page. This will write your settings to `app.ini`.
