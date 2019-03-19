@@ -14,18 +14,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertMilestoneEqual(t *testing.T, title, dueOn, state string, ms *base.Milestone) {
+func assertMilestoneEqual(t *testing.T, title, dueOn, created, updated, closed, state string, ms *base.Milestone) {
 	var tmPtr *time.Time
 	if dueOn != "" {
 		tm, err := time.Parse("2006-01-02 15:04:05 -0700 MST", dueOn)
 		assert.NoError(t, err)
 		tmPtr = &tm
 	}
+	var (
+		createdTM time.Time
+		updatedTM *time.Time
+		closedTM  *time.Time
+	)
+	if created != "" {
+		var err error
+		createdTM, err = time.Parse("2006-01-02 15:04:05 -0700 MST", created)
+		assert.NoError(t, err)
+	}
+	if updated != "" {
+		updatedTemp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", updated)
+		assert.NoError(t, err)
+		updatedTM = &updatedTemp
+	}
+	if closed != "" {
+		closedTemp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", closed)
+		assert.NoError(t, err)
+		closedTM = &closedTemp
+	}
 
 	assert.EqualValues(t, &base.Milestone{
 		Title:    title,
 		Deadline: tmPtr,
 		State:    state,
+		Created:  createdTM,
+		Updated:  updatedTM,
+		Closed:   closedTM,
 	}, ms)
 }
 
@@ -55,23 +78,53 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	for _, milestone := range milestones {
 		switch milestone.Title {
 		case "1.0.0":
-			assertMilestoneEqual(t, "1.0.0", "2016-12-23 08:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.0.0", "2016-12-23 08:00:00 +0000 UTC",
+				"2016-11-02 18:06:55 +0000 UTC",
+				"2016-12-29 10:26:00 +0000 UTC",
+				"2016-12-24 00:40:56 +0000 UTC",
+				"closed", milestone)
 		case "1.1.0":
-			assertMilestoneEqual(t, "1.1.0", "2017-02-24 08:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.1.0", "2017-02-24 08:00:00 +0000 UTC",
+				"2016-11-03 08:40:10 +0000 UTC",
+				"2017-06-15 05:04:36 +0000 UTC",
+				"2017-03-09 21:22:21 +0000 UTC",
+				"closed", milestone)
 		case "1.2.0":
-			assertMilestoneEqual(t, "1.2.0", "2017-04-24 07:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.2.0", "2017-04-24 07:00:00 +0000 UTC",
+				"2016-11-03 08:40:15 +0000 UTC",
+				"2017-12-10 02:43:29 +0000 UTC",
+				"2017-10-12 08:24:28 +0000 UTC",
+				"closed", milestone)
 		case "1.3.0":
-			assertMilestoneEqual(t, "1.3.0", "2017-11-29 08:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.3.0", "2017-11-29 08:00:00 +0000 UTC",
+				"2017-03-03 08:08:59 +0000 UTC",
+				"2017-12-04 07:48:44 +0000 UTC",
+				"2017-11-29 18:39:00 +0000 UTC",
+				"closed", milestone)
 		case "1.4.0":
-			assertMilestoneEqual(t, "1.4.0", "2018-01-25 08:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.4.0", "2018-01-25 08:00:00 +0000 UTC",
+				"2017-08-23 11:02:37 +0000 UTC",
+				"2018-03-25 20:01:56 +0000 UTC",
+				"2018-03-25 20:01:56 +0000 UTC",
+				"closed", milestone)
 		case "1.5.0":
-			assertMilestoneEqual(t, "1.5.0", "2018-06-15 07:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.5.0", "2018-06-15 07:00:00 +0000 UTC",
+				"2017-12-30 04:21:56 +0000 UTC",
+				"2018-09-05 16:34:22 +0000 UTC",
+				"2018-08-11 08:45:01 +0000 UTC",
+				"closed", milestone)
 		case "1.6.0":
-			assertMilestoneEqual(t, "1.6.0", "2018-09-25 07:00:00 +0000 UTC", "closed", milestone)
+			assertMilestoneEqual(t, "1.6.0", "2018-09-25 07:00:00 +0000 UTC",
+				"2018-05-11 05:37:01 +0000 UTC",
+				"2019-01-27 19:21:22 +0000 UTC",
+				"2018-11-23 13:23:16 +0000 UTC",
+				"closed", milestone)
 		case "1.7.0":
-			assertMilestoneEqual(t, "1.7.0", "2018-12-25 08:00:00 +0000 UTC", "closed", milestone)
-		case "1.x.x":
-			assertMilestoneEqual(t, "1.x.x", "", "open", milestone)
+			assertMilestoneEqual(t, "1.7.0", "2018-12-25 08:00:00 +0000 UTC",
+				"2018-08-28 14:20:14 +0000 UTC",
+				"2019-01-27 11:30:24 +0000 UTC",
+				"2019-01-23 08:58:23 +0000 UTC",
+				"closed", milestone)
 		}
 	}
 
@@ -99,10 +152,26 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		}
 	}
 
+	releases, err := downloader.GetReleases()
+	assert.NoError(t, err)
+	assert.EqualValues(t, []*base.Release{
+		{
+			TagName:         "v0.9.99",
+			TargetCommitish: "master",
+			Name:            "fork",
+			Body:            "Forked source from Gogs into Gitea\n",
+			Created:         time.Date(2016, 10, 17, 02, 17, 59, 0, time.UTC),
+			Published:       time.Date(2016, 11, 17, 15, 37, 0, 0, time.UTC),
+		},
+	}, releases[len(releases)-1:])
+
 	// downloader.GetIssues()
 	issues, err := downloader.GetIssues(0, 3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(issues))
+	var (
+		closed1 = time.Date(2018, 10, 23, 02, 57, 43, 0, time.UTC)
+	)
 	assert.EqualValues(t, []*base.Issue{
 		{
 			Number:     6,
@@ -131,6 +200,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				Heart:      0,
 				Hooray:     0,
 			},
+			Closed: &closed1,
 		},
 		{
 			Number:     7,
@@ -252,6 +322,12 @@ something like in the latest 15days could be enough don't you think ?
 	prs, err := downloader.GetPullRequests(0, 3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(prs))
+
+	closed1 = time.Date(2016, 11, 02, 18, 22, 21, 0, time.UTC)
+	var (
+		closed2 = time.Date(2016, 11, 03, 8, 06, 27, 0, time.UTC)
+		closed3 = time.Date(2016, 11, 02, 18, 22, 31, 0, time.UTC)
+	)
 	assert.EqualValues(t, []*base.PullRequest{
 		{
 			Number:     1,
@@ -283,6 +359,7 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
+			Closed: &closed1,
 		},
 		{
 			Number:     2,
@@ -315,6 +392,7 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
+			Closed: &closed2,
 		},
 		{
 			Number:     3,
@@ -347,6 +425,7 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
+			Closed: &closed3,
 		},
 	}, prs)
 }

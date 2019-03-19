@@ -156,15 +156,21 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
-	var desc string
+	var (
+		name string
+		desc string
+	)
 	if rel.Body != nil {
 		desc = *rel.Body
+	}
+	if rel.Name != nil {
+		name = *rel.Name
 	}
 
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
-		Name:            *rel.Name,
+		Name:            name,
 		Body:            desc,
 		Draft:           *rel.Draft,
 		Prerelease:      *rel.Prerelease,
