@@ -3,7 +3,7 @@ title: "Setup"
 slug: "setup"
 weight: 10
 toc: true
-draft: true
+draft: false
 menu:
   sidebar:
     parent: "installation"
@@ -18,7 +18,7 @@ The first time you access the Gitea web interface, the home page will appear.
 Clicking on "Register" or "Sign In" in the upper right corner will take you to 
 the setup page, which looks like this:
 
-![Screenshot of the setup page](images/gitea-setup-page-1.png)
+![Screenshot of the setup page](/images/gitea-setup-page-1.png)
 
 On the setup page, you can configure the following settings:
 
