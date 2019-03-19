@@ -3,19 +3,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:e1fa64238b0a2dbf1edf98c4af8d1b8cb65179e286d7f28006b50fa9f508ee9d"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "74d7c14dd4a3ed9c5def0dc3c1aeede399ddc5c5"
 
 [[projects]]
   branch = "master"
-  digest = "1:17c6c3f4af27f721e3176aceeb2ee30621547a44c81ada0ce733170b9bdfee19"
+  digest = "1:dbf849e6552740945ac1c6c6acba590fbc594e4efa80cf05568dec8579ae0dab"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "b9e72373fbe3001d98ce7395221d0134b9456679"
+  revision = "e4effe4df2b895ca51482d24edb8748704326f1a"
 
 [[projects]]
   digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
@@ -39,14 +39,6 @@
   pruneopts = "NUT"
   revision = "1a28a7fa985680f9f4e1644c0a857ec359a444b0"
   version = "v0.4.7"
-
-[[projects]]
-  branch = "master"
-  digest = "1:93367b6d47a8ccc7d14f9f493ccf103ccf5afb698559ff8e8f1999427ce27ace"
-  name = "github.com/Smerity/govarint"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "7265e41f48f15fd61751e16da866af3c704bb3ab"
 
 [[projects]]
   branch = "master"
@@ -98,7 +90,7 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  digest = "1:c10f35be6200b09e26da267ca80f837315093ecaba27e7a223071380efb9dd32"
+  digest = "1:b17287a86f6cac923a5d886e10618df994eeb54b6724eac2e3b8dde89cfbe3a2"
   name = "github.com/blevesearch/bleve"
   packages = [
     ".",
@@ -121,7 +113,6 @@
     "index/scorch",
     "index/scorch/mergeplan",
     "index/scorch/segment",
-    "index/scorch/segment/mem",
     "index/scorch/segment/zap",
     "index/store",
     "index/store/boltdb",
@@ -141,9 +132,10 @@
     "search/query",
     "search/scorer",
     "search/searcher",
+    "size",
   ]
   pruneopts = "NUT"
-  revision = "c74e08f039e56cef576e4336382b2a2d12d9e026"
+  revision = "05d86ea8f6e30456949f612cf68cf4a27ce8c9c5"
 
 [[projects]]
   branch = "master"
@@ -159,14 +151,6 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "db70c57796cc8c310613541dfade3dce627d09c7"
-
-[[projects]]
-  digest = "1:c7e0968c05659f3973148cd5c5387d6ee960a6ae1b2eaaec0b1d435d806458bb"
-  name = "github.com/boltdb/bolt"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
-  source = "github.com/go-gitea/bolt"
 
 [[projects]]
   digest = "1:7c96cf7bf7f52af67f7a8222185813b9b665f5172ec2ac5f7d49ed96e5fcf3e5"
@@ -217,15 +201,16 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:82e1ad11d777f7bff9a1fc678a8a534a318f85e5026a8a4d6f4a94a6b0678bb6"
+  digest = "1:6a658ac7d23204dc743c7155557c45273747d78e05ae0579742bd6b744bce215"
   name = "github.com/couchbase/vellum"
   packages = [
     ".",
+    "levenshtein2",
     "regexp",
     "utf8",
   ]
   pruneopts = "NUT"
-  revision = "eb6ae3743b3f300f2136f83ca78c08cc071edbd4"
+  revision = "e91b68ff3efe3cc11723aa25dd315cbc9276cd65"
 
 [[projects]]
   branch = "master"
@@ -286,6 +271,14 @@
   pruneopts = "NUT"
   revision = "1615341f118ae12f353cc8a983f35b584342c9b3"
   version = "v1.12.0"
+
+[[projects]]
+  digest = "1:ae8eea1a24ae43a46c2e96631b6303fcc4210ca0ac9d643e4da965029d1b511d"
+  name = "github.com/etcd-io/bbolt"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "63597a96ec0ad9e6d43c3fc81e809909e0237461"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:8603f74d35c93b37c615a02ba297be2cf2efc9ff6f1ff2b458a903990b568e48"
@@ -623,6 +616,14 @@
   revision = "e3534c89ef969912856dfa39e56b09e58c5f5daf"
 
 [[projects]]
+  branch = "master"
+  digest = "1:3ea59a5ada4bbac04da58e6177ca63da8c377a3143b48fca584408bf415fdafb"
+  name = "github.com/lunny/levelqueue"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "02b525a4418e684a7786215296984e364746806f"
+
+[[projects]]
   digest = "1:1e6a29ed1f189354030e3371f63ec58aacbc2bf232fd104c6e0d41174ac5af48"
   name = "github.com/lunny/log"
   packages = ["."]
@@ -723,6 +724,14 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "02ccfbfaf0cc627aa3aec8ef7ed5cfeec5b43f63"
+
+[[projects]]
+  digest = "1:63953ffb90bbc880c612d576fcfd973a5904277d25ec9e2d8d5719bf67969662"
+  name = "github.com/mvdan/xurls"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "e52e821cbfe8fe163ff6f8628ab5869b11fc05af"
+  version = "v2.0.0"
 
 [[projects]]
   digest = "1:2be1d891535ce3d6d2a3db9087f07415e909744e9eff1a30f8f0b2519df60ae6"
@@ -953,11 +962,13 @@
   revision = "2c050d2dae5345c417db301f11fda6fbf5ad0f0a"
 
 [[projects]]
-  digest = "1:c3d6b9e2cf3936ba9927da2e8858651aad69890b9dd3349f1316b4003b25d7a3"
+  digest = "1:590035a7bbea1c037c2e6d51f81ee09857480c3c21f1f77397d9802f10507c06"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
+    "bcrypt",
+    "blowfish",
     "cast5",
     "curve25519",
     "ed25519",
@@ -1100,12 +1111,12 @@
   version = "v1.31.1"
 
 [[projects]]
-  digest = "1:7e1c00b9959544fa1ccca7cf0407a5b29ac6d5201059c4fac6f599cb99bfd24d"
-  name = "gopkg.in/ldap.v2"
+  digest = "1:8a502dedecf5b6d56e36f0d0e6196392baf616634af2c23108b6e8bb89ec57fc"
+  name = "gopkg.in/ldap.v3"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9"
-  version = "v2.5.1"
+  revision = "214f299a0ecb2a6c6f6d2b0f13977032b207dc58"
+  version = "v3.0.1"
 
 [[projects]]
   digest = "1:de2e7294c9bd0b7d07ada8e98ad02cbbaabacff90eedebe7454ebdbab50d0d19"
@@ -1276,6 +1287,7 @@
     "github.com/lafriks/xormstore",
     "github.com/lib/pq",
     "github.com/lunny/dingtalk_webhook",
+    "github.com/lunny/levelqueue",
     "github.com/markbates/goth",
     "github.com/markbates/goth/gothic",
     "github.com/markbates/goth/providers/bitbucket",
@@ -1291,6 +1303,7 @@
     "github.com/mcuadros/go-version",
     "github.com/microcosm-cc/bluemonday",
     "github.com/msteinert/pam",
+    "github.com/mvdan/xurls",
     "github.com/nfnt/resize",
     "github.com/pquerna/otp",
     "github.com/pquerna/otp/totp",
@@ -1304,6 +1317,7 @@
     "github.com/urfave/cli",
     "github.com/yohcop/openid-go",
     "golang.org/x/crypto/acme/autocert",
+    "golang.org/x/crypto/bcrypt",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ssh",
     "golang.org/x/net/html",
@@ -1315,8 +1329,11 @@
     "gopkg.in/editorconfig/editorconfig-core-go.v1",
     "gopkg.in/gomail.v2",
     "gopkg.in/ini.v1",
-    "gopkg.in/ldap.v2",
+    "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/config",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]

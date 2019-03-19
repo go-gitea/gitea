@@ -10,7 +10,6 @@ import (
 	"container/list"
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"strings"
 
@@ -633,10 +632,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		infoPath   string
 		err        error
 	)
-	infoPath, err = url.QueryUnescape(ctx.Params("*"))
-	if err != nil {
-		ctx.NotFound("QueryUnescape", err)
-	}
+	infoPath = ctx.Params("*")
 	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)

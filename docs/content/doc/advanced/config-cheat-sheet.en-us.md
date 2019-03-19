@@ -44,7 +44,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
    an absolute path.
-- `SCRIPT_TYPE`: **bash**: The script type this server supports, usually this is `bash`,
+- `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
@@ -70,6 +70,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Pull Request (`repository.pull-request`)
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+
+### Repository - Issue (`repository.issue`)
+- `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
 ## UI (`ui`)
 
@@ -147,12 +150,17 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
-- `DB_RETRY_BACKOFF`: **3s*: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
-- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently support: channel or levelqueue
+- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number
+
+- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
@@ -203,12 +211,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
-- `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
-- `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
+- `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
+- `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
-- `AUTO_WATCH_NEW_REPOS`: **true** Enable this to let all organisation users watch new repos when they are created
+- `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
+- `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 
 ## Webhook (`webhook`)
 
@@ -335,6 +344,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
+
+## OAuth2 (`oauth2`)
+
+- `ENABLED`: **true**: Enables OAuth2 provider.
+- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
 ## i18n (`i18n`)
 

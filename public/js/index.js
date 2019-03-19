@@ -7,6 +7,115 @@ function htmlEncode(text) {
 var csrf;
 var suburl;
 
+// Polyfill for IE9+ support (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from)
+if (!Array.from) {
+    Array.from = (function () {
+        var toStr = Object.prototype.toString;
+        var isCallable = function (fn) {
+            return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+        };
+        var toInteger = function (value) {
+            var number = Number(value);
+            if (isNaN(number)) { return 0; }
+            if (number === 0 || !isFinite(number)) { return number; }
+            return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+        };
+        var maxSafeInteger = Math.pow(2, 53) - 1;
+        var toLength = function (value) {
+            var len = toInteger(value);
+            return Math.min(Math.max(len, 0), maxSafeInteger);
+        };
+
+        // The length property of the from method is 1.
+        return function from(arrayLike/*, mapFn, thisArg */) {
+            // 1. Let C be the this value.
+            var C = this;
+
+            // 2. Let items be ToObject(arrayLike).
+            var items = Object(arrayLike);
+
+            // 3. ReturnIfAbrupt(items).
+            if (arrayLike == null) {
+                throw new TypeError("Array.from requires an array-like object - not null or undefined");
+            }
+
+            // 4. If mapfn is undefined, then let mapping be false.
+            var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            var T;
+            if (typeof mapFn !== 'undefined') {
+                // 5. else
+                // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
+                if (!isCallable(mapFn)) {
+                    throw new TypeError('Array.from: when provided, the second argument must be a function');
+                }
+
+                // 5. b. If thisArg was supplied, let T be thisArg; else let T be undefined.
+                if (arguments.length > 2) {
+                    T = arguments[2];
+                }
+            }
+
+            // 10. Let lenValue be Get(items, "length").
+            // 11. Let len be ToLength(lenValue).
+            var len = toLength(items.length);
+
+            // 13. If IsConstructor(C) is true, then
+            // 13. a. Let A be the result of calling the [[Construct]] internal method of C with an argument list containing the single item len.
+            // 14. a. Else, Let A be ArrayCreate(len).
+            var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+
+            // 16. Let k be 0.
+            var k = 0;
+            // 17. Repeat, while k < len… (also steps a - h)
+            var kValue;
+            while (k < len) {
+                kValue = items[k];
+                if (mapFn) {
+                    A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+                } else {
+                    A[k] = kValue;
+                }
+                k += 1;
+            }
+            // 18. Let putStatus be Put(A, "length", len, true).
+            A.length = len;
+            // 20. Return A.
+            return A;
+        };
+    }());
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+if (typeof Object.assign != 'function') {
+    // Must be writable: true, enumerable: false, configurable: true
+    Object.defineProperty(Object, "assign", {
+        value: function assign(target, varArgs) { // .length of function is 2
+            'use strict';
+            if (target == null) { // TypeError if undefined or null
+                throw new TypeError('Cannot convert undefined or null to object');
+            }
+
+            var to = Object(target);
+
+            for (var index = 1; index < arguments.length; index++) {
+                var nextSource = arguments[index];
+
+                if (nextSource != null) { // Skip over if undefined or null
+                    for (var nextKey in nextSource) {
+                        // Avoid bugs when hasOwnProperty is shadowed
+                        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                            to[nextKey] = nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return to;
+        },
+        writable: true,
+        configurable: true
+    });
+}
+
 function initCommentPreviewTab($form) {
     var $tabMenu = $form.find('.tabular.menu');
     $tabMenu.find('.item').tab();
@@ -107,17 +216,19 @@ function initBranchSelector() {
     });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
-    $.ajax({
-        type: "POST",
-        url: url,
-        data: {
-            "_csrf": csrf,
-            "action": action,
-            "issue_ids": issueIds,
-            "id": elementId
-        },
-        success: afterSuccess
+function updateIssuesMeta(url, action, issueIds, elementId) {
+    return new Promise(function(resolve) {
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                "_csrf": csrf,
+                "action": action,
+                "issue_ids": issueIds,
+                "id": elementId
+            },
+            success: resolve
+        })
     })
 }
 
@@ -239,6 +350,10 @@ function uploadFile(file, callback) {
     xhr.send(formData);
 }
 
+function reload() {
+    window.location.reload();
+}
+
 function initImagePaste(target) {
     target.each(function(i, field) {
         field.addEventListener('paste', function(event){
@@ -271,11 +386,25 @@ function initCommentForm() {
         var $noSelect = $list.find('.no-select');
         var $listMenu = $('.' + selector + ' .menu');
         var hasLabelUpdateAction = $listMenu.data('action') == 'update';
+        var labels = {};
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
-                location.reload();
+                var promises = [];
+                for (var elementId in labels) {
+                    if (labels.hasOwnProperty(elementId)) {
+                        var label = labels[elementId];
+                        var promise = updateIssuesMeta(
+                            label["update-url"],
+                            label["action"],
+                            label["issue-id"],
+                            elementId
+                        );
+                        promises.push(promise);
+                    }
+                }
+                Promise.all(promises).then(reload);
             }
         });
 
@@ -308,23 +437,29 @@ function initCommentForm() {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "detach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "detach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             } else {
                 $(this).addClass('checked');
                 $(this).find('.octicon').addClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "attach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "attach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             }
 
@@ -352,8 +487,7 @@ function initCommentForm() {
                     "clear",
                     $listMenu.data('issue-id'),
                     ""
-                );
-                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                ).then(reload);
             }
 
             $(this).parent().find('.item').each(function () {
@@ -391,9 +525,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
             switch (input_id) {
                 case '#milestone_id':
@@ -418,9 +551,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
 
             $list.find('.selected').html('');
@@ -674,7 +806,7 @@ function initRepository() {
                 function (data) {
                     $editInput.val(data.title);
                     $issueTitle.text(data.title);
-                    location.reload();
+                    reload();
                 });
             return false;
         });
@@ -1659,7 +1791,7 @@ function u2fRegistered(resp) {
         data: JSON.stringify(resp),
         contentType: "application/json; charset=utf-8",
         success: function(){
-            window.location.reload();
+            reload();
         },
         fail: function (xhr, textStatus) {
             u2fError(1);
@@ -1931,11 +2063,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('#issue-filters').hide();
-            $('#issue-actions').show();
+            $('#issue-filters').addClass("hide");
+            $('#issue-actions').removeClass("hide");
         } else {
-            $('#issue-filters').show();
-            $('#issue-actions').hide();
+            $('#issue-filters').removeClass("hide");
+            $('#issue-actions').addClass("hide");
         }
     });
 
@@ -1946,9 +2078,7 @@ $(document).ready(function () {
             return this.dataset.issueId;
         }).get().join();
         var url = this.dataset.url
-        updateIssuesMeta(url, action, issueIDs, elementId, function() {
-            location.reload();
-        });
+        updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
     });
 
     buttonsClickOnEnter();
@@ -2171,7 +2301,9 @@ function initVueComponents(){
                 return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
             },
             searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
+                return this.suburl + '/api/v1/repos/search?sort=updated&order=desc&uid=' + this.uid + '&q=' + this.searchQuery
+                                   + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode
+                                   + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
             },
             repoTypeCount: function() {
                 return this.repoTypes[this.reposFilter].count;
@@ -2348,7 +2480,6 @@ function initHeatmap(appElementId, heatmapUser, locale) {
                 this.getColor(4),
                 this.getColor(5)
             ];
-            console.log(this.colorRange);
             this.endDate = new Date();
             this.loadHeatmap(this.user);
         },
@@ -2784,7 +2915,7 @@ function updateDeadline(deadlineString) {
         contentType: 'application/json',
         type: 'POST',
         success: function () {
-            window.location.reload();
+            reload();
         },
         error: function () {
             $('#deadline-loader').removeClass('loading');

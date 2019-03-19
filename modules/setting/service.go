@@ -4,10 +4,16 @@
 
 package setting
 
-import "regexp"
+import (
+	"regexp"
+
+	"code.gitea.io/gitea/modules/structs"
+)
 
 // Service settings
 var Service struct {
+	DefaultOrgVisibility                    string
+	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
@@ -68,6 +74,8 @@ func newService() {
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
+	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
+	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

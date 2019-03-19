@@ -15,13 +15,26 @@
 package searcher
 
 import (
+	"fmt"
+
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 )
 
+var MaxFuzziness = 2
+
 func NewFuzzySearcher(indexReader index.IndexReader, term string,
 	prefix, fuzziness int, field string, boost float64,
 	options search.SearcherOptions) (search.Searcher, error) {
+
+	if fuzziness > MaxFuzziness {
+		return nil, fmt.Errorf("fuzziness exceeds max (%d)", MaxFuzziness)
+	}
+
+	if fuzziness < 0 {
+		return nil, fmt.Errorf("invalid fuzziness, negative")
+	}
+
 	// Note: we don't byte slice the term for a prefix because of runes.
 	prefixTerm := ""
 	for i, r := range term {
@@ -31,7 +44,6 @@ func NewFuzzySearcher(indexReader index.IndexReader, term string,
 			break
 		}
 	}
-
 	candidateTerms, err := findFuzzyCandidateTerms(indexReader, term, fuzziness,
 		field, prefixTerm)
 	if err != nil {
@@ -45,11 +57,39 @@ func NewFuzzySearcher(indexReader index.IndexReader, term string,
 func findFuzzyCandidateTerms(indexReader index.IndexReader, term string,
 	fuzziness int, field, prefixTerm string) (rv []string, err error) {
 	rv = make([]string, 0)
+
+	// in case of advanced reader implementations directly call
+	// the levenshtein automaton based iterator to collect the
+	// candidate terms
+	if ir, ok := indexReader.(index.IndexReaderFuzzy); ok {
+		fieldDict, err := ir.FieldDictFuzzy(field, term, fuzziness, prefixTerm)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if cerr := fieldDict.Close(); cerr != nil && err == nil {
+				err = cerr
+			}
+		}()
+		tfd, err := fieldDict.Next()
+		for err == nil && tfd != nil {
+			rv = append(rv, tfd.Term)
+			if tooManyClauses(len(rv)) {
+				return nil, tooManyClausesErr(len(rv))
+			}
+			tfd, err = fieldDict.Next()
+		}
+		return rv, err
+	}
+
 	var fieldDict index.FieldDict
 	if len(prefixTerm) > 0 {
 		fieldDict, err = indexReader.FieldDictPrefix(field, []byte(prefixTerm))
 	} else {
 		fieldDict, err = indexReader.FieldDict(field)
+	}
+	if err != nil {
+		return nil, err
 	}
 	defer func() {
 		if cerr := fieldDict.Close(); cerr != nil && err == nil {
@@ -58,13 +98,16 @@ func findFuzzyCandidateTerms(indexReader index.IndexReader, term string,
 	}()
 
 	// enumerate terms and check levenshtein distance
+	var reuse []int
 	tfd, err := fieldDict.Next()
 	for err == nil && tfd != nil {
-		ld, exceeded := search.LevenshteinDistanceMax(term, tfd.Term, fuzziness)
+		var ld int
+		var exceeded bool
+		ld, exceeded, reuse = search.LevenshteinDistanceMaxReuseSlice(term, tfd.Term, fuzziness, reuse)
 		if !exceeded && ld <= fuzziness {
 			rv = append(rv, tfd.Term)
 			if tooManyClauses(len(rv)) {
-				return rv, tooManyClausesErr()
+				return nil, tooManyClausesErr(len(rv))
 			}
 		}
 		tfd, err = fieldDict.Next()

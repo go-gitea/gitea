@@ -15,10 +15,10 @@
 package scorch
 
 import (
-	"bytes"
 	"container/heap"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -27,7 +27,12 @@ import (
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
+	"github.com/couchbase/vellum"
+	lev2 "github.com/couchbase/vellum/levenshtein2"
 )
+
+// re usable, threadsafe levenshtein builders
+var lb1, lb2 *lev2.LevenshteinAutomatonBuilder
 
 type asynchSegmentResult struct {
 	dictItr segment.DictionaryIterator
@@ -40,15 +45,36 @@ type asynchSegmentResult struct {
 	err error
 }
 
+var reflectStaticSizeIndexSnapshot int
+
+func init() {
+	var is interface{} = IndexSnapshot{}
+	reflectStaticSizeIndexSnapshot = int(reflect.TypeOf(is).Size())
+	var err error
+	lb1, err = lev2.NewLevenshteinAutomatonBuilder(1, true)
+	if err != nil {
+		panic(fmt.Errorf("Levenshtein automaton ed1 builder err: %v", err))
+	}
+	lb2, err = lev2.NewLevenshteinAutomatonBuilder(2, true)
+	if err != nil {
+		panic(fmt.Errorf("Levenshtein automaton ed2 builder err: %v", err))
+	}
+}
+
 type IndexSnapshot struct {
 	parent   *Scorch
 	segment  []*SegmentSnapshot
 	offsets  []uint64
 	internal map[string][]byte
 	epoch    uint64
+	size     uint64
+	creator  string
 
 	m    sync.Mutex // Protects the fields that follow.
 	refs int64
+
+	m2        sync.Mutex                                 // Protects the fields that follow.
+	fieldTFRs map[string][]*IndexSnapshotTermFieldReader // keyed by field, recycled TFR's
 }
 
 func (i *IndexSnapshot) Segments() []*SegmentSnapshot {
@@ -85,12 +111,27 @@ func (i *IndexSnapshot) DecRef() (err error) {
 	return err
 }
 
+func (i *IndexSnapshot) Close() error {
+	return i.DecRef()
+}
+
+func (i *IndexSnapshot) Size() int {
+	return int(i.size)
+}
+
+func (i *IndexSnapshot) updateSize() {
+	i.size += uint64(reflectStaticSizeIndexSnapshot)
+	for _, s := range i.segment {
+		i.size += uint64(s.Size())
+	}
+}
+
 func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i segment.TermDictionary) segment.DictionaryIterator) (*IndexSnapshotFieldDict, error) {
 
 	results := make(chan *asynchSegmentResult)
 	for index, segment := range i.segment {
 		go func(index int, segment *SegmentSnapshot) {
-			dict, err := segment.Dictionary(field)
+			dict, err := segment.segment.Dictionary(field)
 			if err != nil {
 				results <- &asynchSegmentResult{err: err}
 			} else {
@@ -116,7 +157,7 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 			if next != nil {
 				rv.cursors = append(rv.cursors, &segmentDictCursor{
 					itr:  asr.dictItr,
-					curr: next,
+					curr: *next,
 				})
 			}
 		}
@@ -148,6 +189,56 @@ func (i *IndexSnapshot) FieldDictPrefix(field string,
 	termPrefix []byte) (index.FieldDict, error) {
 	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
 		return i.PrefixIterator(string(termPrefix))
+	})
+}
+
+func (i *IndexSnapshot) FieldDictRegexp(field string,
+	termRegex string) (index.FieldDict, error) {
+	// TODO: potential optimization where the literal prefix represents the,
+	//       entire regexp, allowing us to use PrefixIterator(prefixTerm)?
+
+	a, prefixBeg, prefixEnd, err := segment.ParseRegexp(termRegex)
+	if err != nil {
+		return nil, err
+	}
+
+	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
+		return i.AutomatonIterator(a, prefixBeg, prefixEnd)
+	})
+}
+
+func (i *IndexSnapshot) getLevAutomaton(term string,
+	fuzziness uint8) (vellum.Automaton, error) {
+	if fuzziness == 1 {
+		return lb1.BuildDfa(term, fuzziness)
+	} else if fuzziness == 2 {
+		return lb2.BuildDfa(term, fuzziness)
+	}
+	return nil, fmt.Errorf("fuzziness exceeds the max limit")
+}
+
+func (i *IndexSnapshot) FieldDictFuzzy(field string,
+	term string, fuzziness int, prefix string) (index.FieldDict, error) {
+	a, err := i.getLevAutomaton(term, uint8(fuzziness))
+	if err != nil {
+		return nil, err
+	}
+
+	var prefixBeg, prefixEnd []byte
+	if prefix != "" {
+		prefixBeg = []byte(prefix)
+		prefixEnd = segment.IncrementBytes(prefixBeg)
+	}
+
+	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
+		return i.AutomatonIterator(a, prefixBeg, prefixEnd)
+	})
+}
+
+func (i *IndexSnapshot) FieldDictOnly(field string,
+	onlyTerms [][]byte, includeCount bool) (index.FieldDict, error) {
+	return i.newIndexSnapshotFieldDict(field, func(i segment.TermDictionary) segment.DictionaryIterator {
+		return i.OnlyIterator(onlyTerms, includeCount)
 	})
 }
 
@@ -264,21 +355,26 @@ func (i *IndexSnapshot) Document(id string) (rv *document.Document, err error) {
 	segmentIndex, localDocNum := i.segmentIndexAndLocalDocNumFromGlobal(docNum)
 
 	rv = document.NewDocument(id)
-	err = i.segment[segmentIndex].VisitDocument(localDocNum, func(name string, typ byte, value []byte, pos []uint64) bool {
+	err = i.segment[segmentIndex].VisitDocument(localDocNum, func(name string, typ byte, val []byte, pos []uint64) bool {
 		if name == "_id" {
 			return true
 		}
+
+		// copy value, array positions to preserve them beyond the scope of this callback
+		value := append([]byte(nil), val...)
+		arrayPos := append([]uint64(nil), pos...)
+
 		switch typ {
 		case 't':
-			rv.AddField(document.NewTextField(name, pos, value))
+			rv.AddField(document.NewTextField(name, arrayPos, value))
 		case 'n':
-			rv.AddField(document.NewNumericFieldFromBytes(name, pos, value))
+			rv.AddField(document.NewNumericFieldFromBytes(name, arrayPos, value))
 		case 'd':
-			rv.AddField(document.NewDateTimeFieldFromBytes(name, pos, value))
+			rv.AddField(document.NewDateTimeFieldFromBytes(name, arrayPos, value))
 		case 'b':
-			rv.AddField(document.NewBooleanFieldFromBytes(name, pos, value))
+			rv.AddField(document.NewBooleanFieldFromBytes(name, arrayPos, value))
 		case 'g':
-			rv.AddField(document.NewGeoPointFieldFromBytes(name, pos, value))
+			rv.AddField(document.NewGeoPointFieldFromBytes(name, arrayPos, value))
 		}
 
 		return true
@@ -307,24 +403,15 @@ func (i *IndexSnapshot) ExternalID(id index.IndexInternalID) (string, error) {
 	}
 	segmentIndex, localDocNum := i.segmentIndexAndLocalDocNumFromGlobal(docNum)
 
-	var found bool
-	var rv string
-	err = i.segment[segmentIndex].VisitDocument(localDocNum, func(field string, typ byte, value []byte, pos []uint64) bool {
-		if field == "_id" {
-			found = true
-			rv = string(value)
-			return false
-		}
-		return true
-	})
+	v, err := i.segment[segmentIndex].DocID(localDocNum)
 	if err != nil {
 		return "", err
 	}
-
-	if found {
-		return rv, nil
+	if v == nil {
+		return "", fmt.Errorf("document number %d not found", docNum)
 	}
-	return "", fmt.Errorf("document number %d not found", docNum)
+
+	return string(v), nil
 }
 
 func (i *IndexSnapshot) InternalID(id string) (rv index.IndexInternalID, err error) {
@@ -349,31 +436,79 @@ func (i *IndexSnapshot) InternalID(id string) (rv index.IndexInternalID, err err
 
 func (i *IndexSnapshot) TermFieldReader(term []byte, field string, includeFreq,
 	includeNorm, includeTermVectors bool) (index.TermFieldReader, error) {
+	rv := i.allocTermFieldReaderDicts(field)
 
-	rv := &IndexSnapshotTermFieldReader{
-		term:               term,
-		field:              field,
-		snapshot:           i,
-		postings:           make([]segment.PostingsList, len(i.segment)),
-		iterators:          make([]segment.PostingsIterator, len(i.segment)),
-		includeFreq:        includeFreq,
-		includeNorm:        includeNorm,
-		includeTermVectors: includeTermVectors,
+	rv.term = term
+	rv.field = field
+	rv.snapshot = i
+	if rv.postings == nil {
+		rv.postings = make([]segment.PostingsList, len(i.segment))
 	}
-	for i, segment := range i.segment {
-		dict, err := segment.Dictionary(field)
-		if err != nil {
-			return nil, err
+	if rv.iterators == nil {
+		rv.iterators = make([]segment.PostingsIterator, len(i.segment))
+	}
+	rv.segmentOffset = 0
+	rv.includeFreq = includeFreq
+	rv.includeNorm = includeNorm
+	rv.includeTermVectors = includeTermVectors
+	rv.currPosting = nil
+	rv.currID = rv.currID[:0]
+
+	if rv.dicts == nil {
+		rv.dicts = make([]segment.TermDictionary, len(i.segment))
+		for i, segment := range i.segment {
+			dict, err := segment.segment.Dictionary(field)
+			if err != nil {
+				return nil, err
+			}
+			rv.dicts[i] = dict
 		}
-		pl, err := dict.PostingsList(string(term), nil)
+	}
+
+	for i, segment := range i.segment {
+		pl, err := rv.dicts[i].PostingsList(term, segment.deleted, rv.postings[i])
 		if err != nil {
 			return nil, err
 		}
 		rv.postings[i] = pl
-		rv.iterators[i] = pl.Iterator()
+		rv.iterators[i] = pl.Iterator(includeFreq, includeNorm, includeTermVectors, rv.iterators[i])
 	}
-	atomic.AddUint64(&i.parent.stats.termSearchersStarted, uint64(1))
+	atomic.AddUint64(&i.parent.stats.TotTermSearchersStarted, uint64(1))
 	return rv, nil
+}
+
+func (i *IndexSnapshot) allocTermFieldReaderDicts(field string) (tfr *IndexSnapshotTermFieldReader) {
+	i.m2.Lock()
+	if i.fieldTFRs != nil {
+		tfrs := i.fieldTFRs[field]
+		last := len(tfrs) - 1
+		if last >= 0 {
+			tfr = tfrs[last]
+			tfrs[last] = nil
+			i.fieldTFRs[field] = tfrs[:last]
+			i.m2.Unlock()
+			return
+		}
+	}
+	i.m2.Unlock()
+	return &IndexSnapshotTermFieldReader{}
+}
+
+func (i *IndexSnapshot) recycleTermFieldReader(tfr *IndexSnapshotTermFieldReader) {
+	i.parent.rootLock.RLock()
+	obsolete := i.parent.root != i
+	i.parent.rootLock.RUnlock()
+	if obsolete {
+		// if we're not the current root (mutations happened), don't bother recycling
+		return
+	}
+
+	i.m2.Lock()
+	if i.fieldTFRs == nil {
+		i.fieldTFRs = map[string][]*IndexSnapshotTermFieldReader{}
+	}
+	i.fieldTFRs[tfr.field] = append(i.fieldTFRs[tfr.field], tfr)
+	i.m2.Unlock()
 }
 
 func docNumberToBytes(buf []byte, in uint64) []byte {
@@ -389,115 +524,172 @@ func docNumberToBytes(buf []byte, in uint64) []byte {
 }
 
 func docInternalToNumber(in index.IndexInternalID) (uint64, error) {
-	var res uint64
-	err := binary.Read(bytes.NewReader(in), binary.BigEndian, &res)
-	if err != nil {
-		return 0, err
+	if len(in) != 8 {
+		return 0, fmt.Errorf("wrong len for IndexInternalID: %q", in)
 	}
-	return res, nil
+	return binary.BigEndian.Uint64(in), nil
 }
 
 func (i *IndexSnapshot) DocumentVisitFieldTerms(id index.IndexInternalID,
 	fields []string, visitor index.DocumentFieldTermVisitor) error {
+	_, err := i.documentVisitFieldTerms(id, fields, visitor, nil)
+	return err
+}
 
+func (i *IndexSnapshot) documentVisitFieldTerms(id index.IndexInternalID,
+	fields []string, visitor index.DocumentFieldTermVisitor,
+	dvs segment.DocVisitState) (segment.DocVisitState, error) {
+	docNum, err := docInternalToNumber(id)
+	if err != nil {
+		return nil, err
+	}
+
+	segmentIndex, localDocNum := i.segmentIndexAndLocalDocNumFromGlobal(docNum)
+	if segmentIndex >= len(i.segment) {
+		return nil, nil
+	}
+
+	_, dvs, err = i.documentVisitFieldTermsOnSegment(
+		segmentIndex, localDocNum, fields, nil, visitor, dvs)
+
+	return dvs, err
+}
+
+func (i *IndexSnapshot) documentVisitFieldTermsOnSegment(
+	segmentIndex int, localDocNum uint64, fields []string, cFields []string,
+	visitor index.DocumentFieldTermVisitor, dvs segment.DocVisitState) (
+	cFieldsOut []string, dvsOut segment.DocVisitState, err error) {
+	ss := i.segment[segmentIndex]
+
+	var vFields []string // fields that are visitable via the segment
+
+	ssv, ssvOk := ss.segment.(segment.DocumentFieldTermVisitable)
+	if ssvOk && ssv != nil {
+		vFields, err = ssv.VisitableDocValueFields()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var errCh chan error
+
+	// cFields represents the fields that we'll need from the
+	// cachedDocs, and might be optionally be provided by the caller,
+	// if the caller happens to know we're on the same segmentIndex
+	// from a previous invocation
+	if cFields == nil {
+		cFields = subtractStrings(fields, vFields)
+
+		if !ss.cachedDocs.hasFields(cFields) {
+			errCh = make(chan error, 1)
+
+			go func() {
+				err := ss.cachedDocs.prepareFields(cFields, ss)
+				if err != nil {
+					errCh <- err
+				}
+				close(errCh)
+			}()
+		}
+	}
+
+	if ssvOk && ssv != nil && len(vFields) > 0 {
+		dvs, err = ssv.VisitDocumentFieldTerms(localDocNum, fields, visitor, dvs)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if errCh != nil {
+		err = <-errCh
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if len(cFields) > 0 {
+		ss.cachedDocs.visitDoc(localDocNum, cFields, visitor)
+	}
+
+	return cFields, dvs, nil
+}
+
+func (i *IndexSnapshot) DocValueReader(fields []string) (
+	index.DocValueReader, error) {
+	return &DocValueReader{i: i, fields: fields, currSegmentIndex: -1}, nil
+}
+
+type DocValueReader struct {
+	i      *IndexSnapshot
+	fields []string
+	dvs    segment.DocVisitState
+
+	currSegmentIndex int
+	currCachedFields []string
+}
+
+func (dvr *DocValueReader) VisitDocValues(id index.IndexInternalID,
+	visitor index.DocumentFieldTermVisitor) (err error) {
 	docNum, err := docInternalToNumber(id)
 	if err != nil {
 		return err
 	}
-	segmentIndex, localDocNum := i.segmentIndexAndLocalDocNumFromGlobal(docNum)
-	if segmentIndex >= len(i.segment) {
+
+	segmentIndex, localDocNum := dvr.i.segmentIndexAndLocalDocNumFromGlobal(docNum)
+	if segmentIndex >= len(dvr.i.segment) {
 		return nil
 	}
 
-	ss := i.segment[segmentIndex]
-
-	if zaps, ok := ss.segment.(segment.DocumentFieldTermVisitable); ok {
-		// get the list of doc value persisted fields
-		pFields, err := zaps.VisitableDocValueFields()
-		if err != nil {
-			return err
-		}
-		// assort the fields for which terms look up have to
-		// be performed runtime
-		dvPendingFields := extractDvPendingFields(fields, pFields)
-		if len(dvPendingFields) == 0 {
-			// all fields are doc value persisted
-			return zaps.VisitDocumentFieldTerms(localDocNum, fields, visitor)
-		}
-
-		// concurrently trigger the runtime doc value preparations for
-		// pending fields as well as the visit of the persisted doc values
-		errCh := make(chan error, 1)
-
-		go func() {
-			defer close(errCh)
-			err := ss.cachedDocs.prepareFields(fields, ss)
-			if err != nil {
-				errCh <- err
-			}
-		}()
-
-		// visit the persisted dv while the cache preparation is in progress
-		err = zaps.VisitDocumentFieldTerms(localDocNum, fields, visitor)
-		if err != nil {
-			return err
-		}
-
-		// err out if fieldCache preparation failed
-		err = <-errCh
-		if err != nil {
-			return err
-		}
-
-		visitDocumentFieldCacheTerms(localDocNum, dvPendingFields, ss, visitor)
-		return nil
+	if dvr.currSegmentIndex != segmentIndex {
+		dvr.currSegmentIndex = segmentIndex
+		dvr.currCachedFields = nil
 	}
 
-	return prepareCacheVisitDocumentFieldTerms(localDocNum, fields, ss, visitor)
+	dvr.currCachedFields, dvr.dvs, err = dvr.i.documentVisitFieldTermsOnSegment(
+		dvr.currSegmentIndex, localDocNum, dvr.fields, dvr.currCachedFields, visitor, dvr.dvs)
+
+	return err
 }
 
-func prepareCacheVisitDocumentFieldTerms(localDocNum uint64, fields []string,
-	ss *SegmentSnapshot, visitor index.DocumentFieldTermVisitor) error {
-	err := ss.cachedDocs.prepareFields(fields, ss)
-	if err != nil {
-		return err
+func (i *IndexSnapshot) DumpAll() chan interface{} {
+	rv := make(chan interface{})
+	go func() {
+		close(rv)
+	}()
+	return rv
+}
+
+func (i *IndexSnapshot) DumpDoc(id string) chan interface{} {
+	rv := make(chan interface{})
+	go func() {
+		close(rv)
+	}()
+	return rv
+}
+
+func (i *IndexSnapshot) DumpFields() chan interface{} {
+	rv := make(chan interface{})
+	go func() {
+		close(rv)
+	}()
+	return rv
+}
+
+// subtractStrings returns set a minus elements of set b.
+func subtractStrings(a, b []string) []string {
+	if len(b) == 0 {
+		return a
 	}
 
-	visitDocumentFieldCacheTerms(localDocNum, fields, ss, visitor)
-	return nil
-}
-
-func visitDocumentFieldCacheTerms(localDocNum uint64, fields []string,
-	ss *SegmentSnapshot, visitor index.DocumentFieldTermVisitor) {
-
-	for _, field := range fields {
-		if cachedFieldDocs, exists := ss.cachedDocs.cache[field]; exists {
-			if tlist, exists := cachedFieldDocs.docs[localDocNum]; exists {
-				for {
-					i := bytes.Index(tlist, TermSeparatorSplitSlice)
-					if i < 0 {
-						break
-					}
-					visitor(field, tlist[0:i])
-					tlist = tlist[i+1:]
-				}
+	rv := make([]string, 0, len(a))
+OUTER:
+	for _, as := range a {
+		for _, bs := range b {
+			if as == bs {
+				continue OUTER
 			}
 		}
-	}
-
-}
-
-func extractDvPendingFields(requestedFields, persistedFields []string) []string {
-	removeMap := map[string]struct{}{}
-	for _, str := range persistedFields {
-		removeMap[str] = struct{}{}
-	}
-
-	rv := make([]string, 0, len(requestedFields))
-	for _, s := range requestedFields {
-		if _, ok := removeMap[s]; !ok {
-			rv = append(rv, s)
-		}
+		rv = append(rv, as)
 	}
 	return rv
 }

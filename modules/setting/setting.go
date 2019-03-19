@@ -7,13 +7,14 @@ package setting
 
 import (
 	"encoding/base64"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -59,22 +60,6 @@ const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
 	LandingPageOrganizations LandingPage = "/explore/organizations"
-)
-
-// MarkupParser defines the external parser configured in ini
-type MarkupParser struct {
-	Enabled        bool
-	MarkupName     string
-	Command        string
-	FileExtensions []string
-	IsInputFile    bool
-}
-
-// enumerates all the policy repository creating
-const (
-	RepoCreatingLastUserVisibility = "last"
-	RepoCreatingPrivate            = "private"
-	RepoCreatingPublic             = "public"
 )
 
 // enumerates all the types of captchas
@@ -178,110 +163,6 @@ var (
 	LogSQL           bool
 	DBConnectRetries int
 	DBConnectBackoff time.Duration
-
-	// Indexer settings
-	Indexer struct {
-		IssuePath          string
-		RepoIndexerEnabled bool
-		RepoPath           string
-		UpdateQueueLength  int
-		MaxIndexerFileSize int64
-	}
-
-	// Repository settings
-	Repository = struct {
-		AnsiCharset                             string
-		ForcePrivate                            bool
-		DefaultPrivate                          string
-		MaxCreationLimit                        int
-		MirrorQueueLength                       int
-		PullRequestQueueLength                  int
-		PreferredLicenses                       []string
-		DisableHTTPGit                          bool
-		AccessControlAllowOrigin                string
-		UseCompatSSHURI                         bool
-		DefaultCloseIssuesViaCommitsInAnyBranch bool
-
-		// Repository editor settings
-		Editor struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
-		} `ini:"-"`
-
-		// Repository upload settings
-		Upload struct {
-			Enabled      bool
-			TempPath     string
-			AllowedTypes []string `delim:"|"`
-			FileMaxSize  int64
-			MaxFiles     int
-		} `ini:"-"`
-
-		// Repository local settings
-		Local struct {
-			LocalCopyPath string
-			LocalWikiPath string
-		} `ini:"-"`
-
-		// Pull request settings
-		PullRequest struct {
-			WorkInProgressPrefixes []string
-		} `ini:"repository.pull-request"`
-	}{
-		AnsiCharset:                             "",
-		ForcePrivate:                            false,
-		DefaultPrivate:                          RepoCreatingLastUserVisibility,
-		MaxCreationLimit:                        -1,
-		MirrorQueueLength:                       1000,
-		PullRequestQueueLength:                  1000,
-		PreferredLicenses:                       []string{"Apache License 2.0,MIT License"},
-		DisableHTTPGit:                          false,
-		AccessControlAllowOrigin:                "",
-		UseCompatSSHURI:                         false,
-		DefaultCloseIssuesViaCommitsInAnyBranch: false,
-
-		// Repository editor settings
-		Editor: struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
-		}{
-			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
-			PreviewableFileModes: []string{"markdown"},
-		},
-
-		// Repository upload settings
-		Upload: struct {
-			Enabled      bool
-			TempPath     string
-			AllowedTypes []string `delim:"|"`
-			FileMaxSize  int64
-			MaxFiles     int
-		}{
-			Enabled:      true,
-			TempPath:     "data/tmp/uploads",
-			AllowedTypes: []string{},
-			FileMaxSize:  3,
-			MaxFiles:     5,
-		},
-
-		// Repository local settings
-		Local: struct {
-			LocalCopyPath string
-			LocalWikiPath string
-		}{
-			LocalCopyPath: "tmp/local-repo",
-			LocalWikiPath: "tmp/local-wiki",
-		},
-
-		// Pull request settings
-		PullRequest: struct {
-			WorkInProgressPrefixes []string
-		}{
-			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
-		},
-	}
-	RepoRootPath string
-	ScriptType   = "bash"
 
 	// UI settings
 	UI = struct {
@@ -395,149 +276,6 @@ var (
 
 	CSRFCookieName = "_csrf"
 
-	// Cron tasks
-	Cron = struct {
-		UpdateMirror struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-		} `ini:"cron.update_mirrors"`
-		RepoHealthCheck struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			Timeout    time.Duration
-			Args       []string `delim:" "`
-		} `ini:"cron.repo_health_check"`
-		CheckRepoStats struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-		} `ini:"cron.check_repo_stats"`
-		ArchiveCleanup struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			OlderThan  time.Duration
-		} `ini:"cron.archive_cleanup"`
-		SyncExternalUsers struct {
-			Enabled        bool
-			RunAtStart     bool
-			Schedule       string
-			UpdateExisting bool
-		} `ini:"cron.sync_external_users"`
-		DeletedBranchesCleanup struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			OlderThan  time.Duration
-		} `ini:"cron.deleted_branches_cleanup"`
-	}{
-		UpdateMirror: struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-		}{
-			Enabled:    true,
-			RunAtStart: false,
-			Schedule:   "@every 10m",
-		},
-		RepoHealthCheck: struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			Timeout    time.Duration
-			Args       []string `delim:" "`
-		}{
-			Enabled:    true,
-			RunAtStart: false,
-			Schedule:   "@every 24h",
-			Timeout:    60 * time.Second,
-			Args:       []string{},
-		},
-		CheckRepoStats: struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-		}{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@every 24h",
-		},
-		ArchiveCleanup: struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			OlderThan  time.Duration
-		}{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@every 24h",
-			OlderThan:  24 * time.Hour,
-		},
-		SyncExternalUsers: struct {
-			Enabled        bool
-			RunAtStart     bool
-			Schedule       string
-			UpdateExisting bool
-		}{
-			Enabled:        true,
-			RunAtStart:     false,
-			Schedule:       "@every 24h",
-			UpdateExisting: true,
-		},
-		DeletedBranchesCleanup: struct {
-			Enabled    bool
-			RunAtStart bool
-			Schedule   string
-			OlderThan  time.Duration
-		}{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@every 24h",
-			OlderThan:  24 * time.Hour,
-		},
-	}
-
-	// Git settings
-	Git = struct {
-		Version                  string `ini:"-"`
-		DisableDiffHighlight     bool
-		MaxGitDiffLines          int
-		MaxGitDiffLineCharacters int
-		MaxGitDiffFiles          int
-		GCArgs                   []string `delim:" "`
-		Timeout                  struct {
-			Default int
-			Migrate int
-			Mirror  int
-			Clone   int
-			Pull    int
-			GC      int `ini:"GC"`
-		} `ini:"git.timeout"`
-	}{
-		DisableDiffHighlight:     false,
-		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 5000,
-		MaxGitDiffFiles:          100,
-		GCArgs:                   []string{},
-		Timeout: struct {
-			Default int
-			Migrate int
-			Mirror  int
-			Clone   int
-			Pull    int
-			GC      int `ini:"GC"`
-		}{
-			Default: int(git.DefaultCommandExecutionTimeout / time.Second),
-			Migrate: 600,
-			Mirror:  300,
-			Clone:   300,
-			Pull:    300,
-			GC:      60,
-		},
-	}
-
 	// Mirror settings
 	Mirror struct {
 		DefaultInterval time.Duration
@@ -555,6 +293,18 @@ var (
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
+	}
+
+	OAuth2 = struct {
+		Enable                     bool
+		AccessTokenExpirationTime  int64
+		RefreshTokenExpirationTime int64
+		JWTSecretBytes             []byte `ini:"-"`
+		JWTSecretBase64            string `ini:"JWT_SECRET"`
+	}{
+		Enable:                     true,
+		AccessTokenExpirationTime:  3600,
+		RefreshTokenExpirationTime: 730,
 	}
 
 	U2F = struct {
@@ -595,7 +345,6 @@ var (
 	InternalToken     string // internal access token
 	IterateBufferSize int
 
-	ExternalMarkupParsers []MarkupParser
 	// UILocation is the location on the UI, so that we can display the time on UI.
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
@@ -919,7 +668,7 @@ func NewContext() {
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewLfsJwtSecret()
+			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
 				log.Fatal(4, "Error generating JWT Secret for custom config: %v", err)
 				return
@@ -946,6 +695,41 @@ func NewContext() {
 		}
 	}
 
+	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
+		log.Fatal(4, "Failed to OAuth2 settings: %v", err)
+		return
+	}
+
+	if OAuth2.Enable {
+		OAuth2.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(OAuth2.JWTSecretBytes, []byte(OAuth2.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
+			if err != nil {
+				log.Fatal(4, "error generating JWT secret: %v", err)
+				return
+			}
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "failed to load custom conf %s: %v", CustomConf, err)
+					return
+				}
+			}
+			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+
+			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+				log.Fatal(4, "failed to create '%s': %v", CustomConf, err)
+				return
+			}
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "error saving generating JWT secret to custom config: %v", err)
+				return
+			}
+		}
+	}
+
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
@@ -957,31 +741,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
-	InternalToken = sec.Key("INTERNAL_TOKEN").String()
-	if len(InternalToken) == 0 {
-		InternalToken, err = generate.NewInternalToken()
-		if err != nil {
-			log.Fatal(4, "Error generate internal token: %v", err)
-		}
-
-		// Save secret
-		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
-			// Keeps custom settings if there is already something.
-			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
-			}
-		}
-
-		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
-
-		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
-		}
-		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
-		}
-	}
+	InternalToken = loadInternalToken(sec)
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
@@ -1036,34 +796,7 @@ func NewContext() {
 
 	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
 
-	// Determine and create root git repository path.
-	sec = Cfg.Section("repository")
-	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
-	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
-	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
-	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
-	forcePathSeparator(RepoRootPath)
-	if !filepath.IsAbs(RepoRootPath) {
-		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
-	} else {
-		RepoRootPath = filepath.Clean(RepoRootPath)
-	}
-	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
-	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
-		log.Fatal(4, "Failed to map Repository settings: %v", err)
-	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
-		log.Fatal(4, "Failed to map Repository.Editor settings: %v", err)
-	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
-		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
-	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
-		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
-	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
-		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
-	}
-
-	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
-	}
+	newRepository()
 
 	sec = Cfg.Section("picture")
 	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
@@ -1117,17 +850,14 @@ func NewContext() {
 		log.Fatal(4, "Failed to map Markdown settings: %v", err)
 	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
 		log.Fatal(4, "Fail to map Admin settings: %v", err)
-	} else if err = Cfg.Section("cron").MapTo(&Cron); err != nil {
-		log.Fatal(4, "Failed to map Cron settings: %v", err)
-	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
-		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal(4, "Failed to map Metrics settings: %v", err)
 	}
 
-	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
+	newCron()
+	newGit()
 
 	sec = Cfg.Section("mirror")
 	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
@@ -1165,56 +895,81 @@ func NewContext() {
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
-	extensionReg := regexp.MustCompile(`\.\w`)
-	for _, sec := range Cfg.Section("markup").ChildSections() {
-		name := strings.TrimPrefix(sec.Name(), "markup.")
-		if name == "" {
-			log.Warn("name is empty, markup " + sec.Name() + "ignored")
-			continue
-		}
+	newMarkup()
 
-		extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-		var exts = make([]string, 0, len(extensions))
-		for _, extension := range extensions {
-			if !extensionReg.MatchString(extension) {
-				log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
-			} else {
-				exts = append(exts, extension)
-			}
-		}
-
-		if len(exts) == 0 {
-			log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
-			continue
-		}
-
-		command := sec.Key("RENDER_COMMAND").MustString("")
-		if command == "" {
-			log.Warn(" RENDER_COMMAND is empty, markup " + name + " ignored")
-			continue
-		}
-
-		ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
-			Enabled:        sec.Key("ENABLED").MustBool(false),
-			MarkupName:     name,
-			FileExtensions: exts,
-			Command:        command,
-			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
-		})
-	}
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+}
 
-	binVersion, err := git.BinVersion()
+func loadInternalToken(sec *ini.Section) string {
+	uri := sec.Key("INTERNAL_TOKEN_URI").String()
+	if len(uri) == 0 {
+		return loadOrGenerateInternalToken(sec)
+	}
+	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal(4, "Error retrieving git version: %v", err)
+		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
 	}
+	switch tempURI.Scheme {
+	case "file":
+		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
+		if err != nil {
+			log.Fatal(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
+		}
+		defer fp.Close()
 
-	if version.Compare(binVersion, "2.9", ">=") {
-		// Explicitly disable credential helper, otherwise Git credentials might leak
-		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
+		buf, err := ioutil.ReadAll(fp)
+		if err != nil {
+			log.Fatal(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
+		}
+		// No token in the file, generate one and store it.
+		if len(buf) == 0 {
+			token, err := generate.NewInternalToken()
+			if err != nil {
+				log.Fatal(4, "Error generate internal token: %v", err)
+			}
+			if _, err := io.WriteString(fp, token); err != nil {
+				log.Fatal(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
+			}
+			return token
+		}
+
+		return string(buf)
+	default:
+		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
+	return ""
+}
+
+func loadOrGenerateInternalToken(sec *ini.Section) string {
+	var err error
+	token := sec.Key("INTERNAL_TOKEN").String()
+	if len(token) == 0 {
+		token, err = generate.NewInternalToken()
+		if err != nil {
+			log.Fatal(4, "Error generate internal token: %v", err)
+		}
+
+		// Save secret
+		cfgSave := ini.Empty()
+		if com.IsFile(CustomConf) {
+			// Keeps custom settings if there is already something.
+			if err := cfgSave.Append(CustomConf); err != nil {
+				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			}
+		}
+
+		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+		}
+		if err := cfgSave.SaveTo(CustomConf); err != nil {
+			log.Fatal(4, "Error saving generated INTERNAL_TOKEN to custom config: %v", err)
+		}
+	}
+	return token
 }
 
 // NewServices initializes the services
@@ -1228,4 +983,5 @@ func NewServices() {
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newIndexerService()
 }

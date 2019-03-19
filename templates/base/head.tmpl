@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{.Language}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
+	<title>{{if .Title}}{{.Title}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json">
 
 	<script>
@@ -123,6 +123,7 @@
 {{end}}
 	<style class="list-search-style"></style>
 
+	<script src="{{AppSubUrl}}/vendor/plugins/promise-polyfill/polyfill.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}

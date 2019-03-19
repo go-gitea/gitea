@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
+	"github.com/mvdan/xurls"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -64,9 +65,7 @@ var (
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
 
-	// matches http/https links. used for autlinking those. partly modified from
-	// the original present in autolink.js
-	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
+	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
 
 // regexp for full links to issues/pulls
@@ -171,11 +170,6 @@ type postProcessCtx struct {
 
 	// processors used by this context.
 	procs []processor
-
-	// if set to true, when an <a> is found, instead of just returning during
-	// visitNode, it will recursively visit the node exclusively running
-	// shortLinkProcessorFull with true.
-	visitLinksForShortLinks bool
 }
 
 // PostProcess does the final required transformations to the passed raw HTML
@@ -191,11 +185,10 @@ func PostProcess(
 ) ([]byte, error) {
 	// create the context from the parameters
 	ctx := &postProcessCtx{
-		metas:                   metas,
-		urlPrefix:               urlPrefix,
-		isWikiMarkdown:          isWikiMarkdown,
-		procs:                   defaultProcessors,
-		visitLinksForShortLinks: true,
+		metas:          metas,
+		urlPrefix:      urlPrefix,
+		isWikiMarkdown: isWikiMarkdown,
+		procs:          defaultProcessors,
 	}
 	return ctx.postProcess(rawHTML)
 }
@@ -230,6 +223,23 @@ func RenderCommitMessage(
 		// something to it the slice is realloc+copied, so append always
 		// generates the slice ex-novo.
 		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+	}
+	return ctx.postProcess(rawHTML)
+}
+
+// RenderDescriptionHTML will use similar logic as PostProcess, but will
+// use a single special linkProcessor.
+func RenderDescriptionHTML(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			descriptionLinkProcessor,
+		},
 	}
 	return ctx.postProcess(rawHTML)
 }
@@ -285,9 +295,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 		ctx.textNode(node)
 	case html.ElementNode:
 		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
-			if node.Data == "a" && ctx.visitLinksForShortLinks {
-				ctx.visitNodeForShortLinks(node)
-			}
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
@@ -302,7 +309,7 @@ func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
 	case html.TextNode:
 		shortLinkProcessorFull(ctx, node, true)
 	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" {
+		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
@@ -667,4 +674,35 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}}
 		node.FirstChild, node.LastChild = ch, ch
 	}
+}
+
+// descriptionLinkProcessor creates links for DescriptionHTML
+func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
+	m := linkRegex.FindStringIndex(node.Data)
+	if m == nil {
+		return
+	}
+	uri := node.Data[m[0]:m[1]]
+	replaceContent(node, m[0], m[1], createDescriptionLink(uri, uri))
+}
+
+func createDescriptionLink(href, content string) *html.Node {
+	textNode := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+	linkNode := &html.Node{
+		FirstChild: textNode,
+		LastChild:  textNode,
+		Type:       html.ElementNode,
+		Data:       "a",
+		DataAtom:   atom.A,
+		Attr: []html.Attribute{
+			{Key: "href", Val: href},
+			{Key: "target", Val: "_blank"},
+			{Key: "rel", Val: "noopener noreferrer"},
+		},
+	}
+	textNode.Parent = linkNode
+	return linkNode
 }

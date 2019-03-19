@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -212,6 +213,12 @@ var migrations = []Migration{
 	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
 	// v79 -> v80
 	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	// v80 -> v81
+	NewMigration("add is locked to issues", addIsLockedToIssues),
+	// v81 -> v82
+	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 }
 
 // Migrate database to current version
