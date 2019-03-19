@@ -33,6 +33,11 @@ type Team struct {
 	Units       []*TeamUnit `xorm:"-"`
 }
 
+// GetUnits return a list of available units for a team
+func (t *Team) GetUnits() error {
+	return t.getUnits(x)
+}
+
 func (t *Team) getUnits(e Engine) (err error) {
 	if t.Units != nil {
 		return nil
