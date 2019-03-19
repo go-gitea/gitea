@@ -5,7 +5,6 @@ without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.8.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc1) - 2019-03-18
-## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-03-18
 * BREAKING
   * Add "ghost" and "notifications" to list of reserved user names. (#6208)
   * Change sqlite DB path default to data directory (#6198)
