@@ -104,6 +104,7 @@ type User struct {
 	Rands       string `xorm:"VARCHAR(10)"`
 	Salt        string `xorm:"VARCHAR(10)"`
 	Language    string `xorm:"VARCHAR(5)"`
+	Description string
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -134,12 +135,11 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	Description string
-	NumTeams    int
-	NumMembers  int
-	Teams       []*Team             `xorm:"-"`
-	Members     []*User             `xorm:"-"`
-	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams   int
+	NumMembers int
+	Teams      []*Team             `xorm:"-"`
+	Members    []*User             `xorm:"-"`
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
