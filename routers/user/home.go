@@ -228,10 +228,6 @@ func Issues(ctx *context.Context) {
 		SortType: sortType,
 	}
 
-	if repoID > 0 {
-		opts.RepoIDs = []int64{repoID}
-	}
-
 	switch filterMode {
 	case models.FilterModeAll:
 		if repoID > 0 {
@@ -268,6 +264,10 @@ func Issues(ctx *context.Context) {
 		}
 	}
 	opts.LabelIDs = labelIDs
+
+	if repoID > 0 {
+		opts.RepoIDs = []int64{repoID}
+	}
 
 	issues, err := models.Issues(opts)
 	if err != nil {
