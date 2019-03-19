@@ -6,6 +6,7 @@ package base
 
 import "time"
 
+// ReleaseAsset represents a release asset
 type ReleaseAsset struct {
 	URL           string
 	Name          string
@@ -16,6 +17,7 @@ type ReleaseAsset struct {
 	Updated       time.Time
 }
 
+// Release represents a release
 type Release struct {
 	TagName         string
 	TargetCommitish string
