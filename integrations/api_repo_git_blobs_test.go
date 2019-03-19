@@ -13,11 +13,11 @@ import (
 
 func TestAPIReposGitBlobs(t *testing.T) {
 	prepareTestEnv(t)
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the below 2 repos
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of the below 2 repos
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // owner of the below 2 repos
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // public repo
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3
+	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
+	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
 	repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 	repo1ReadmeSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo3ReadmeSHA := "d56a3073c1dbb7b15963110a049d50cdb5db99fc"
@@ -26,7 +26,7 @@ func TestAPIReposGitBlobs(t *testing.T) {
 
 	// Login as User2.
 	session := loginUser(t, user2.Name)
-	token :=  getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session)
 	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test a public repo that anyone can GET the blob of
@@ -38,7 +38,7 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Test using access token for a private repo that the user of the token owns
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?access_token=%s", user2.Name, repo16.Name, repo16ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user2.Name, repo16.Name, repo16ReadmeSHA, token)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
@@ -46,11 +46,11 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?access_token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?access_token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s?token=%s", user3.Name, repo3.Name, repo3ReadmeSHA, token)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" with no user token

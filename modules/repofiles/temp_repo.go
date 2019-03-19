@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"bytes"
@@ -59,7 +59,9 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
 		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
-			return models.ErrBranchNotExist{branch}
+			return models.ErrBranchNotExist{
+				Name: branch,
+			}
 		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
 			return models.ErrRepoNotExist{
 				ID:        t.repo.ID,
@@ -209,9 +211,8 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 				Message: objectPath,
 				Path:    objectPath,
 			}
-		} else {
-			return fmt.Errorf("git update-index: %s", stderr)
 		}
+		return fmt.Errorf("git update-index: %s", stderr)
 	}
 	return nil
 }

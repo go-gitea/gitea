@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"fmt"
@@ -28,7 +28,9 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 	// Check that the path given in opts.treePath is valid (not a git path)
 	treePath = CleanUploadFileName(treePath)
 	if treePath == "" {
-		return nil, models.ErrFilenameInvalid{treePath}
+		return nil, models.ErrFilenameInvalid{
+			Filename: treePath,
+		}
 	}
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())

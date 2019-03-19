@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"fmt"
@@ -89,12 +89,16 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Check that the path given in opts.treeName is valid (not a git path)
 	treeName := CleanUploadFileName(opts.TreePath)
 	if treeName == "" {
-		return nil, models.ErrFilenameInvalid{opts.TreePath}
+		return nil, models.ErrFilenameInvalid{
+			Filename: opts.TreePath,
+		}
 	}
 	// If there is a fromTreeName (we are copying it), also clean it up
 	fromTreeName := CleanUploadFileName(opts.FromTreePath)
 	if fromTreeName == "" && opts.FromTreePath != "" {
-		return nil, models.ErrFilenameInvalid{opts.FromTreePath}
+		return nil, models.ErrFilenameInvalid{
+			Filename: opts.FromTreePath,
+		}
 	}
 
 	message := strings.TrimSpace(opts.Message)
@@ -114,11 +118,11 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	if opts.LastCommitID == "" {
-		if commitID, err := t.GetLastCommit(); err != nil {
+		commitID, err := t.GetLastCommit()
+		if err != nil {
 			return nil, err
-		} else {
-			opts.LastCommitID = commitID
 		}
+		opts.LastCommitID = commitID
 	}
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
@@ -338,9 +342,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	if file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treeName); err != nil {
+	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treeName)
+	if err != nil {
 		return nil, err
-	} else {
-		return file, nil
 	}
+	return file, nil
 }

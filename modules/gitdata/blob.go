@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package git_data
+package gitdata
 
 import (
 	"encoding/base64"
@@ -36,7 +36,7 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	return blob, nil
 }
 
-// Reads the blob with a base64 encode and returns the encoded string
+// GetBlobContentBase64 Reads the blob with a base64 encode and returns the encoded string
 func GetBlobContentBase64(blob *git.Blob) (string, error) {
 	dataRc, err := blob.DataAsync()
 	if err != nil {

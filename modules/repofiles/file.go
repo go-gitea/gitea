@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"fmt"
@@ -15,6 +15,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// GetFileResponseFromCommit Constructs a FileResponse from a Commit object
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
@@ -33,6 +34,7 @@ func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, bran
 	return fileResponse, nil
 }
 
+// GetFileCommitResponse Constructs a FileCommitResponse from a Commit object
 func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
@@ -52,26 +54,26 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 			}
 		}
 	}
-	commitHtmlURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + commit.ID.String())
+	commitHTMLURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + commit.ID.String())
 	fileCommit := &api.FileCommitResponse{
 		CommitMeta: &api.CommitMeta{
 			SHA: commit.ID.String(),
 			URL: commitURL.String(),
 		},
-		HTMLURL: commitHtmlURL.String(),
+		HTMLURL: commitHTMLURL.String(),
 		Author: &api.CommitUser{
 			Identity: &api.Identity{
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
 			},
-			Date:  commit.Author.When.UTC().Format(time.RFC3339),
+			Date: commit.Author.When.UTC().Format(time.RFC3339),
 		},
 		Committer: &api.CommitUser{
 			Identity: &api.Identity{
 				Name:  commit.Committer.Name,
 				Email: commit.Committer.Email,
 			},
-			Date:  commit.Committer.When.UTC().Format(time.RFC3339),
+			Date: commit.Committer.When.UTC().Format(time.RFC3339),
 		},
 		Message: commit.Message(),
 		Tree: &api.CommitMeta{
@@ -83,7 +85,7 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 	return fileCommit, nil
 }
 
-// Gets the author and committer user objects from the IdentityOptions
+// GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
 func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (committerUser, authorUser *models.User) {
 	// Committer and author are optional. If they are not the doer (not same email address)
 	// then we use bogus User objects for them to store their FullName and Email.

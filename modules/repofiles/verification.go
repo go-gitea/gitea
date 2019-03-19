@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"code.gitea.io/git"
@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/sdk/gitea"
 )
 
+// GetPayloadCommitVerification returns the verification information of a commit
 func GetPayloadCommitVerification(commit *git.Commit) *gitea.PayloadCommitVerification {
 	verification := &gitea.PayloadCommitVerification{}
 	commitVerification := models.ParseCommitWithSignature(commit)

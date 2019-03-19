@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"fmt"
@@ -59,7 +59,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 			return nil, err
 		}
 		if newBranch != nil {
-			return nil, models.ErrBranchAlreadyExists{opts.NewBranch}
+			return nil, models.ErrBranchAlreadyExists{
+				BranchName: opts.NewBranch,
+			}
 		}
 	} else {
 		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
@@ -70,7 +72,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Check that the path given in opts.treeName is valid (not a git path)
 	treePath := CleanUploadFileName(opts.TreePath)
 	if treePath == "" {
-		return nil, models.ErrFilenameInvalid{opts.TreePath}
+		return nil, models.ErrFilenameInvalid{
+			Filename: opts.TreePath,
+		}
 	}
 
 	message := strings.TrimSpace(opts.Message)
@@ -90,11 +94,11 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	if opts.LastCommitID == "" {
-		if commitID, err := t.GetLastCommit(); err != nil {
+		commitID, err := t.GetLastCommit()
+		if err != nil {
 			return nil, err
-		} else {
-			opts.LastCommitID = commitID
 		}
+		opts.LastCommitID = commitID
 	}
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
@@ -213,9 +217,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	// FIXME: Should we UpdateRepoIndexer(repo) here?
 
-	if file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath); err != nil {
+	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	if err != nil {
 		return nil, err
-	} else {
-		return file, nil
 	}
+	return file, nil
 }

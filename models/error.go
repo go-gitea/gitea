@@ -774,7 +774,7 @@ type ErrRepoFileDoesNotExist struct {
 	FileName string
 }
 
-// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrRepoFileDoesNotExist checks if an error is a ErrRepoDoesNotExist.
 func IsErrRepoFileDoesNotExist(err error) bool {
 	_, ok := err.(ErrRepoFileDoesNotExist)
 	return ok
@@ -980,7 +980,7 @@ func (err ErrCommitIDDoesNotMatch) Error() string {
 // ErrShaOrCommitIDNotProvided represents a "ShaOrCommitIDNotProvided" kind of error.
 type ErrShaOrCommitIDNotProvided struct{}
 
-// IsErrRepoFileAlreadyExists checks if an error is a ErrRepoFileAlreadyExists.
+// IsErrShaOrCommitIDNotProvided checks if an error is a ErrShaOrCommitIDNotProvided.
 func IsErrShaOrCommitIDNotProvided(err error) bool {
 	_, ok := err.(ErrShaOrCommitIDNotProvided)
 	return ok

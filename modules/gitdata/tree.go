@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package git_data
+package gitdata
 
 import (
 	"fmt"
@@ -18,7 +18,9 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
-		return nil, models.ErrShaNotFound{sha}
+		return nil, models.ErrShaNotFound{
+			SHA: sha,
+		}
 	}
 	tree := new(api.GitTreeResponse)
 	tree.SHA = gitTree.ID.String()
@@ -32,18 +34,18 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	if err != nil {
 		return nil, err
 	}
-	apiUrl := repo.APIURL()
-	apiUrlLen := len(apiUrl)
+	apiURL := repo.APIURL()
+	apiURLLen := len(apiURL)
 
 	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, apiUrlLen+51)
-	copy(blobURL[:], apiUrl)
-	copy(blobURL[apiUrlLen:], "/git/blobs/")
+	blobURL := make([]byte, apiURLLen+51)
+	copy(blobURL[:], apiURL)
+	copy(blobURL[apiURLLen:], "/git/blobs/")
 
 	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, apiUrlLen+51)
-	copy(treeURL[:], apiUrl)
-	copy(treeURL[apiUrlLen:], "/git/trees/")
+	treeURL := make([]byte, apiURLLen+51)
+	copy(treeURL[:], apiURL)
+	copy(treeURL[apiURLLen:], "/git/trees/")
 
 	// 40 is the size of the sha1 hash in hexadecimal format.
 	copyPos := len(treeURL) - 40

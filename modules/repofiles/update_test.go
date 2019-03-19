@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"testing"
@@ -72,14 +72,14 @@ func getExpectedFileResponseForCreate(commitID string) *api.FileResponse {
 					Name:  "User Two",
 					Email: "user2@",
 				},
-				Date:  time.Now().UTC().Format(time.RFC3339),
+				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: &api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
-				Date:  time.Now().UTC().Format(time.RFC3339),
+				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Parents: []*api.CommitMeta{
 				{
@@ -131,14 +131,14 @@ func getExpectedFileResponseForUpdate(commitID string) *api.FileResponse {
 					Name:  "User Two",
 					Email: "user2@",
 				},
-				Date:  time.Now().UTC().Format(time.RFC3339),
+				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: &api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
-				Date:  time.Now().UTC().Format(time.RFC3339),
+				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Parents: []*api.CommitMeta{
 				{

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file_handling
+package repofiles
 
 import (
 	"testing"
@@ -41,14 +41,14 @@ func getExpectedDeleteFileResponse() *api.FileResponse {
 					Name:  "user1",
 					Email: "address1@example.com",
 				},
-				Date:  "2017-03-19T20:47:59Z",
+				Date: "2017-03-19T20:47:59Z",
 			},
 			Committer: &api.CommitUser{
 				Identity: &api.Identity{
 					Name:  "Ethan Koenig",
 					Email: "ethantkoenig@gmail.com",
 				},
-				Date:  "2017-03-19T20:47:59Z",
+				Date: "2017-03-19T20:47:59Z",
 			},
 			Parents: []*api.CommitMeta{},
 			Message: "Initial commit\n",

@@ -5,7 +5,7 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/file_handling"
+	"code.gitea.io/gitea/modules/repofiles"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -211,7 +211,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := file_handling.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &file_handling.UpdateRepoFileOptions{
+	if _, err := repofiles.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -221,7 +221,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		Content:      strings.Replace(form.Content, "\r", "", -1),
 		IsNewFile:    isNewFile,
 	}); err != nil {
-		// This is where we handle all the errors thrown by file_handling.CreateOrUpdateRepoFile
+		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
@@ -302,7 +302,7 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	diff, err := file_handling.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := repofiles.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(500, "GetDiffPreview: "+err.Error())
 		return
@@ -382,14 +382,14 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := file_handling.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &file_handling.DeleteRepoFileOptions{
+	if _, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		TreePath:     ctx.Repo.TreePath,
 		Message:      message,
 	}); err != nil {
-		// This is where we handle all the errors thrown by file_handling.DeleteRepoFile
+		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_deleting_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
@@ -560,7 +560,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := file_handling.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &file_handling.UploadRepoFileOptions{
+	if err := repofiles.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &repofiles.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,

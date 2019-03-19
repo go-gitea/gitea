@@ -7,11 +7,12 @@ package repo
 
 import (
 	"encoding/base64"
+	"net/http"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/file_handling"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/routers/repo"
 	api "code.gitea.io/sdk/gitea"
 )
@@ -185,23 +186,27 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
 
-	opts := &file_handling.UpdateRepoFileOptions{
+	opts := &repofiles.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
 		TreePath:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &file_handling.IdentityOptions{
+		Committer: &repofiles.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &file_handling.IdentityOptions{
+		Author: &repofiles.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
 	}
-	createOrUpdateFile(ctx, opts)
+	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
+		ctx.Error(500, "", err)
+	} else {
+		ctx.JSON(http.StatusCreated, fileResponse)
+	}
 }
 
 // UpdateFile handles API call for updating a file
@@ -233,10 +238,10 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   schema:
 	//     "$ref": "#/definitions/UpdateFileOptions"
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/FileResponse"
 
-	opts := &file_handling.UpdateRepoFileOptions{
+	opts := &repofiles.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
 		IsNewFile:    false,
@@ -245,40 +250,42 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 		TreePath:     ctx.Params("*"),
 		OldBranch:    apiOpts.BranchName,
 		NewBranch:    apiOpts.NewBranchName,
-		Committer: &file_handling.IdentityOptions{
+		Committer: &repofiles.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &file_handling.IdentityOptions{
+		Author: &repofiles.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
 	}
-	createOrUpdateFile(ctx, opts)
+
+	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
+		ctx.Error(500, "", err)
+	} else {
+		ctx.JSON(http.StatusOK, fileResponse)
+	}
 }
 
-// Handles if an API call is for updating a repo file
-func createOrUpdateFile(ctx *context.APIContext, opts *file_handling.UpdateRepoFileOptions) {
+// Called from both CreateFile or UpdateFile to handle both
+func createOrUpdateFile(ctx *context.APIContext, opts *repofiles.UpdateRepoFileOptions) (*api.FileResponse, error) {
 	if !CanWriteFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
-		return
+		return nil, models.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   ctx.User.ID,
+			RepoName: ctx.Repo.Repository.LowerName,
+		}
 	}
 
-	if content, err := base64.StdEncoding.DecodeString(opts.Content); err != nil {
-		ctx.Error(500, "", err)
-		return
-	} else {
-		opts.Content = string(content)
+	content, err := base64.StdEncoding.DecodeString(opts.Content)
+	if err != nil {
+		return nil, err
 	}
+	opts.Content = string(content)
 
-	if fileResponse, err := file_handling.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
-		ctx.Error(500, "", err)
-	} else {
-		ctx.JSON(200, fileResponse)
-	}
+	return repofiles.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts)
 }
 
-// Delete a fle in a repository
+// DeleteFile Delete a fle in a repository
 func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{filepath} repository repoDeleteFile
 	// ---
@@ -307,37 +314,40 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   schema:
 	//     "$ref": "#/definitions/DeleteFileOptions"
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
 	if !CanWriteFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   ctx.User.ID,
+			RepoName: ctx.Repo.Repository.LowerName,
+		})
 		return
 	}
 
-	opts := &file_handling.DeleteRepoFileOptions{
+	opts := &repofiles.DeleteRepoFileOptions{
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		SHA:       apiOpts.SHA,
 		TreePath:  ctx.Params("*"),
-		Committer: &file_handling.IdentityOptions{
+		Committer: &repofiles.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &file_handling.IdentityOptions{
+		Author: &repofiles.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
 	}
 
-	if fileResponse, err := file_handling.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
 		ctx.Error(500, "", err)
 	} else {
 		ctx.JSON(200, fileResponse)
 	}
 }
 
-// Get the contents of a fle in a repository
+// GetFileContents Get the contents of a fle in a repository
 func GetFileContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
 	// ---
@@ -364,18 +374,21 @@ func GetFileContents(ctx *context.APIContext) {
 	//   required: false
 	//   type: string
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/FileContentResponse"
 
 	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{ctx.User.ID, ctx.Repo.Repository.LowerName})
+		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   ctx.User.ID,
+			RepoName: ctx.Repo.Repository.LowerName,
+		})
 		return
 	}
 
 	treePath := ctx.Params("*")
 	ref := ctx.Params("ref")
 
-	if fileContents, err := file_handling.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileContents, err := repofiles.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
 		ctx.Error(500, "", err)
 	} else {
 		ctx.JSON(200, fileContents)

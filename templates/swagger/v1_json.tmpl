@@ -21,7 +21,7 @@
     },
     "version": "1.1.1"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/admin/orgs": {
       "get": {
@@ -1549,7 +1549,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/responses/FileContentResponse"
           }
         }
@@ -1596,7 +1596,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/responses/FileResponse"
           }
         }
@@ -1690,7 +1690,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/responses/FileDeleteResponse"
           }
         }
@@ -6672,6 +6672,7 @@
         },
         "email": {
           "type": "string",
+          "format": "email",
           "x-go-name": "Email"
         },
         "name": {
@@ -6701,14 +6702,14 @@
       "type": "object",
       "properties": {
         "author": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "branch": {
           "type": "string",
           "x-go-name": "BranchName"
         },
         "committer": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "content": {
           "type": "string",
@@ -7222,14 +7223,14 @@
       "type": "object",
       "properties": {
         "author": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "branch": {
           "type": "string",
           "x-go-name": "BranchName"
         },
         "committer": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "message": {
           "type": "string",
@@ -7675,7 +7676,7 @@
     },
     "FileCommitResponse": {
       "type": "object",
-      "title": "FileCommit contains information generated from a Git commit for a repo's file.",
+      "title": "FileCommitResponse contains information generated from a Git commit for a repo's file.",
       "properties": {
         "author": {
           "$ref": "#/definitions/CommitUser"
@@ -7713,7 +7714,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "FileContentResponse": {
-      "description": "FileContent contains information about a repo's file stats and content",
+      "description": "FileContentResponse contains information about a repo's file stats and content",
       "type": "object",
       "properties": {
         "_links": {
@@ -8005,8 +8006,8 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "IdentityOptions": {
-      "description": "IdentityOptions for a person's identity like an author or committer",
+    "Identity": {
+      "description": "Identity for a person's identity like an author or committer",
       "type": "object",
       "properties": {
         "email": {
@@ -9085,20 +9086,20 @@
       "type": "object",
       "properties": {
         "author": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "branch": {
           "type": "string",
           "x-go-name": "BranchName"
         },
         "committer": {
-          "$ref": "#/definitions/IdentityOptions"
+          "$ref": "#/definitions/Identity"
         },
         "content": {
           "type": "string",
           "x-go-name": "Content"
         },
-        "from_path binding:": {
+        "from_path": {
           "type": "string",
           "x-go-name": "FromPath"
         },
