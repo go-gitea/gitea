@@ -53,6 +53,8 @@
 							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=leastupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=mostcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
 							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=leastcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+							<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=nearduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+							<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=farduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
 						</div>
 					</div>
 				</div>

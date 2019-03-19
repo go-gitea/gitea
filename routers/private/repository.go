@@ -6,7 +6,6 @@ package private
 
 import (
 	"net/http"
-	"net/url"
 
 	"code.gitea.io/gitea/models"
 
@@ -56,18 +55,18 @@ func GetRepository(ctx *macaron.Context) {
 func GetActivePullRequest(ctx *macaron.Context) {
 	baseRepoID := ctx.QueryInt64("baseRepoID")
 	headRepoID := ctx.QueryInt64("headRepoID")
-	baseBranch, err := url.QueryUnescape(ctx.QueryTrim("baseBranch"))
-	if err != nil {
+	baseBranch := ctx.QueryTrim("baseBranch")
+	if len(baseBranch) == 0 {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": err.Error(),
+			"err": "QueryTrim failed",
 		})
 		return
 	}
 
-	headBranch, err := url.QueryUnescape(ctx.QueryTrim("headBranch"))
-	if err != nil {
+	headBranch := ctx.QueryTrim("headBranch")
+	if len(headBranch) == 0 {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": err.Error(),
+			"err": "QueryTrim failed",
 		})
 		return
 	}

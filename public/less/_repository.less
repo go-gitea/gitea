@@ -2,7 +2,6 @@
     @mega-octicon-width: 30px;
 
     padding-top: 15px;
-    padding-bottom: @footer-margin * 2;
 
     .repo-header {
         .ui.compact.menu {
@@ -331,7 +330,7 @@
             .code-view {
                 * {
                     font-size: 12px;
-                    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                    font-family: @monospaced-fonts, monospace;
                     line-height: 20px;
                 }
 
@@ -431,7 +430,7 @@
                     .branch-name {
                         display: inline-block;
                         padding: 3px 6px;
-                        font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                        font: 12px @monospaced-fonts, monospace;
                         color: rgba(0,0,0,0.65);
                         background-color: rgba(209,227,237,0.45);
                         border-radius: 3px;
@@ -700,7 +699,7 @@
                     }
                     textarea {
                         height: 200px;
-                        font-family: "Consolas", monospace;
+                        font-family: @monospaced-fonts, monospace;
                     }
                 }
 
@@ -803,7 +802,7 @@
             }
             textarea {
                 height: 200px;
-                                font-family: "Consolas", monospace;
+                                font-family: @monospaced-fonts, monospace;
             }
         }
     }
@@ -1347,7 +1346,7 @@
         &.new {
             .CodeMirror {
                 .CodeMirror-code {
-                    font-family: "Consolas", monospace;
+                    font-family: @monospaced-fonts, monospace;
                     .cm-comment {
                         background: inherit;
                     }
@@ -1580,13 +1579,24 @@
     }
 }
 
-#issue-actions {
+#issue-filters.hide {
     display: none;
+}
+
+#issue-actions {
+  margin-top: -1rem !important; // counteract padding from Semantic
+}
+
+#issue-actions.hide {
+    display: none;
+}
+
+.ui.checkbox.issue-checkbox {
+    vertical-align: middle;
 }
 
 .issue.list {
     list-style: none;
-    padding-top: 15px;
     >.item {
         padding-top: 15px;
         padding-bottom: 10px;
@@ -1864,4 +1874,24 @@ tbody.commit-list {
 .repo-header .repo-buttons {
     display: flex;
     align-items: center;
+}
+
+.repo-buttons .disabled-repo-button .label {
+  opacity: .5;
+}
+
+.repo-buttons .disabled-repo-button a.button {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.repo-buttons .disabled-repo-button a.button:hover {
+  background: none !important;
+  color: rgba(0,0,0,.6) !important;
+  box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset !important;
+}
+
+.repo-buttons .ui.labeled.button > .label {
+  border-left: none !important;
+  margin: 0 !important;
 }
