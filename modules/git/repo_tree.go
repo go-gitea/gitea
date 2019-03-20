@@ -21,7 +21,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
 		res, err := NewCommand("rev-parse", idStr).RunInDir(repo.Path)
 		if err != nil {
-			return nil, err;
+			return nil, err
 		}
 		if len(res) > 0 {
 			idStr = res[:len(res)-1]

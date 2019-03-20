@@ -19,8 +19,8 @@ type Tree struct {
 	entries       Entries
 	entriesParsed bool
 
-	entriesRecursive 	Entries
-	entriesRecursiveParsed 	bool
+	entriesRecursive       Entries
+	entriesRecursiveParsed bool
 }
 
 // NewTree create a new tree according the repository and commit id
