@@ -62,8 +62,15 @@ to access the database. **Make sure the user exists on the database server first
 
 Consists of:
 
-- Email Settings
-- Server and Third-Party Service Settings
-- Administrator Account Settings: You may create an administrator account here.
-  If you do not, the first account created after setting up Gitea will 
-  be an admin account.
+### Email Settings
+
+<!-- TODO expand -->
+
+### Server and Third-Party Service Settings
+
+<!-- TODO expand -->
+
+### Administrator Account Settings
+
+You may create an administrator account here. If you do not, the first account 
+created after setting up Gitea will be an admin account.
