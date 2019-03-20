@@ -5,8 +5,11 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -18,6 +21,17 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 		TagName string
 	}
 
+	type Repository struct {
+		ID      int64
+		OwnerID int64
+		Name    string
+	}
+
+	type User struct {
+		ID   int64
+		Name string
+	}
+
 	// Update release sha1
 	const batchSize = 100
 	sess := x.NewSession()
@@ -27,7 +41,8 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 		err          error
 		count        int
 		gitRepoCache = make(map[int64]*git.Repository)
-		repoCache    = make(map[int64]*models.Repository)
+		repoCache    = make(map[int64]*Repository)
+		userCache    = make(map[int64]*User)
 	)
 
 	if err = sess.Begin(); err != nil {
@@ -48,14 +63,31 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 			if !ok {
 				repo, ok := repoCache[release.RepoID]
 				if !ok {
-					repo, err = models.GetRepositoryByID(release.RepoID)
+					repo = new(Repository)
+					has, err := sess.ID(release.RepoID).Get(repo)
 					if err != nil {
 						return err
+					} else if !has {
+						return fmt.Errorf("Repository %d is not exist", release.RepoID)
 					}
+
 					repoCache[release.RepoID] = repo
 				}
 
-				gitRepo, err = git.OpenRepository(repo.RepoPath())
+				user, ok := userCache[repo.OwnerID]
+				if !ok {
+					user = new(User)
+					has, err := sess.ID(repo.OwnerID).Get(user)
+					if err != nil {
+						return err
+					} else if !has {
+						return fmt.Errorf("User %d is not exist", repo.OwnerID)
+					}
+
+					userCache[repo.OwnerID] = user
+				}
+
+				gitRepo, err = git.OpenRepository(models.RepoPath(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}
@@ -63,12 +95,14 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 			}
 
 			release.Sha1, err = gitRepo.GetTagCommitID(release.TagName)
-			if err != nil {
+			if err != nil && !git.IsErrNotExist(err) {
 				return err
 			}
 
-			if _, err = sess.ID(release.ID).Cols("sha1").Update(release); err != nil {
-				return err
+			if err == nil {
+				if _, err = sess.ID(release.ID).Cols("sha1").Update(release); err != nil {
+					return err
+				}
 			}
 
 			count++
