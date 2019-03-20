@@ -12,4 +12,5 @@ import (
 
 func init() {
 	EnableSQLite3 = true
+	supportedDatabse = append(supportedDatabse, "sqlite3")
 }
