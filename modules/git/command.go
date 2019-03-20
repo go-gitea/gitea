@@ -120,7 +120,7 @@ func (c *Command) RunInDir(dir string) (string, error) {
 	return string(stdout), nil
 }
 
-// RunTimeout executes the command in defualt working directory with given timeout,
+// RunTimeout executes the command in default working directory with given timeout,
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
 	stdout, err := c.RunInDirTimeout(timeout, "")
@@ -130,7 +130,7 @@ func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
 	return string(stdout), nil
 }
 
-// Run executes the command in defualt working directory
+// Run executes the command in default working directory
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) Run() (string, error) {
 	return c.RunTimeout(-1)

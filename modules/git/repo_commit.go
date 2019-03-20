@@ -146,7 +146,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 		return nil, err
 	}
 
-	// name-rev commitID ouput will be "COMMIT_ID master" or "COMMIT_ID master~12"
+	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
 	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
 
 	repo.commitCache.Set(id.String(), commit)
@@ -262,7 +262,7 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 	return commitsCount(repo.Path, revision, file)
 }
 
-// CommitsByFileAndRange return the commits accroding revison file and the page
+// CommitsByFileAndRange return the commits according revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
 	stdout, err := NewCommand("log", revision, "--follow", "--skip="+strconv.Itoa((page-1)*50),
 		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
