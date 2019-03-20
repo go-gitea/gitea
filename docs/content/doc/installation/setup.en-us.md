@@ -36,7 +36,7 @@ Includes database type and other database-dependent settings. You can choose
 from SQLite3, MySQL, PostgreSQL, and Microsoft SQL Server. (The default database 
 system is SQLite3.)
 
-To set up Gitea with SQLite3, you just have to specify the path to the database 
+To set up Gitea with SQLite3, you need to specify the path to the database 
 file. If you're running Gitea as a service, this must be an absolute path.
 
 For MySQL, PostgreSQL, and Microsoft SQL Server, you need to specify the 
