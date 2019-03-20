@@ -46,6 +46,9 @@ to access the database. **Make sure the user exists on the database server first
 
 ## General Settings
 
+In this section, you can set the general attributes of the Gitea instance. For 
+more details, see the [configuration cheat sheet](/en-us/config-cheat-sheet/).
+
 | Option                 | In app.ini                  | Required? |
 | ---------------------- | --------------------------- | --------- |
 | Site Title             | `APP_NAME`                  | yes       |
