@@ -22,15 +22,15 @@ import (
 
 func getCreateFileOptions() api.CreateFileOptions {
 	return api.CreateFileOptions{
-		FileOptions: &api.FileOptions{
+		FileOptions: api.FileOptions{
 			BranchName:    "master",
 			NewBranchName: "master",
 			Message:       "Creates new/file.txt",
-			Author: &api.Identity{
+			Author: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
 			},
-			Committer: &api.Identity{
+			Committer: api.Identity{
 				Name:  "Jane Doe",
 				Email: "janedoe@example.com",
 			},
@@ -58,20 +58,20 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: &api.CommitMeta{
+			CommitMeta: api.CommitMeta{
 				URL: "http://localhost:3003/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
 			HTMLURL: "http://localhost:3003/user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "Jane Doe",
 					Email: "janedoe@example.com",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "John Doe",
 					Email: "johndoe@example.com",
 				},
@@ -148,7 +148,7 @@ func TestAPICreateFile(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", url, &createFileOptions)
 	resp := session.MakeRequest(t, req, http.StatusInternalServerError)
 	expectedAPIError := context.APIError{
-		Message: "repository file already exists [file_name: " + treePath + "]",
+		Message: "repository file already exists [path: " + treePath + "]",
 		URL:     base.DocURL,
 	}
 	var apiError context.APIError

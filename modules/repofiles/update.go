@@ -77,7 +77,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	} else {
 		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrCannotCommit{UserName: doer.LowerName}
+			return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
 		}
 	}
 
@@ -86,18 +86,18 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		opts.FromTreePath = opts.TreePath
 	}
 
-	// Check that the path given in opts.treeName is valid (not a git path)
-	treeName := CleanUploadFileName(opts.TreePath)
-	if treeName == "" {
+	// Check that the path given in opts.treePath is valid (not a git path)
+	treePath := CleanUploadFileName(opts.TreePath)
+	if treePath == "" {
 		return nil, models.ErrFilenameInvalid{
-			Filename: opts.TreePath,
+			Path: opts.TreePath,
 		}
 	}
-	// If there is a fromTreeName (we are copying it), also clean it up
-	fromTreeName := CleanUploadFileName(opts.FromTreePath)
-	if fromTreeName == "" && opts.FromTreePath != "" {
+	// If there is a fromTreePath (we are copying it), also clean it up
+	fromTreePath := CleanUploadFileName(opts.FromTreePath)
+	if fromTreePath == "" && opts.FromTreePath != "" {
 		return nil, models.ErrFilenameInvalid{
-			Filename: opts.FromTreePath,
+			Path: opts.FromTreePath,
 		}
 	}
 
@@ -137,7 +137,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	if !opts.IsNewFile {
-		fromEntry, err := commit.GetTreeEntryByPath(fromTreeName)
+		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +145,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
 			if opts.SHA != fromEntry.ID.String() {
 				return nil, models.ErrShaDoesNotMatch{
+					Path:       treePath,
 					GivenSHA:   opts.SHA,
 					CurrentSHA: fromEntry.ID.String(),
 				}
@@ -160,7 +161,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 					return nil, err
 				}
 				for _, file := range files {
-					if file == fromTreeName {
+					if file == fromTreePath {
 						return nil, models.ErrCommitIDDoesNotMatch{
 							GivenCommitID:   opts.LastCommitID,
 							CurrentCommitID: opts.LastCommitID,
@@ -180,11 +181,11 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// sure no parts of the path are existing files or links except for the last
 	// item in the path which is the file name, and that shouldn't exist IF it is
 	// a new file OR is being moved to a new path.
-	treeNameParts := strings.Split(treeName, "/")
-	subTreeName := ""
-	for index, part := range treeNameParts {
-		subTreeName = path.Join(subTreeName, part)
-		entry, err := commit.GetTreeEntryByPath(subTreeName)
+	treePathParts := strings.Split(treePath, "/")
+	subTreePath := ""
+	for index, part := range treePathParts {
+		subTreePath = path.Join(subTreePath, part)
+		entry, err := commit.GetTreeEntryByPath(subTreePath)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				// Means there is no item with that name, so we're good
@@ -192,32 +193,34 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			}
 			return nil, err
 		}
-		if index < len(treeNameParts)-1 {
+		if index < len(treePathParts)-1 {
 			if !entry.IsDir() {
-				return nil, models.ErrWithFilePath{
-					Message: fmt.Sprintf("%s is not a directory, it is a file", subTreeName),
-					Path:    subTreeName,
+				return nil, models.ErrFilePathInvalid{
+					Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
+					Path:    subTreePath,
 					Name:    part,
 					Type:    git.EntryModeBlob,
 				}
 			}
 		} else if entry.IsLink() {
-			return nil, models.ErrWithFilePath{
-				Message: fmt.Sprintf("%s is not a file, it is a symbolic link", subTreeName),
-				Path:    subTreeName,
+			return nil, models.ErrFilePathInvalid{
+				Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
+				Path:    subTreePath,
 				Name:    part,
 				Type:    git.EntryModeSymlink,
 			}
 		} else if entry.IsDir() {
-			return nil, models.ErrWithFilePath{
-				Message: fmt.Sprintf("%s is not a file, it is a directory", subTreeName),
-				Path:    subTreeName,
+			return nil, models.ErrFilePathInvalid{
+				Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
+				Path:    subTreePath,
 				Name:    part,
 				Type:    git.EntryModeTree,
 			}
-		} else if fromTreeName != treeName || opts.IsNewFile {
+		} else if fromTreePath != treePath || opts.IsNewFile {
 			// The entry shouldn't exist if we are creating new file or moving to a new path
-			return nil, models.ErrRepoFileAlreadyExists{FileName: treeName}
+			return nil, models.ErrRepoFileAlreadyExists{
+				Path: treePath,
+			}
 		}
 
 	}
@@ -231,15 +234,17 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
 			if file == opts.TreePath {
-				return nil, models.ErrRepoFileAlreadyExists{FileName: opts.TreePath}
+				return nil, models.ErrRepoFileAlreadyExists{
+					Path: opts.TreePath,
+				}
 			}
 		}
 	}
 
 	// Remove the old path from the tree
-	if fromTreeName != treeName && len(filesInIndex) > 0 {
+	if fromTreePath != treePath && len(filesInIndex) > 0 {
 		for _, file := range filesInIndex {
-			if file == fromTreeName {
+			if file == fromTreePath {
 				if err := t.RemoveFilesFromIndex(opts.FromTreePath); err != nil {
 					return nil, err
 				}
@@ -248,7 +253,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Check there is no way this can return multiple infos
-	filename2attribute2info, err := t.CheckAttribute("filter", treeName)
+	filename2attribute2info, err := t.CheckAttribute("filter", treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +261,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	content := opts.Content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if filename2attribute2info[treeName] != nil && filename2attribute2info[treeName]["filter"] == "lfs" {
+	if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
 		// OK so we are supposed to LFS this data!
 		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
@@ -273,7 +278,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Add the object to the index
-	if err := t.AddObjectToIndex("100644", objectHash, treeName); err != nil {
+	if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
 		return nil, err
 	}
 
@@ -342,7 +347,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treeName)
+	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}

@@ -227,9 +227,9 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplEditFile, &form)
-		} else if models.IsErrWithFilePath(err) {
+		} else if models.IsErrFilePathInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
-			if fileErr, ok := err.(models.ErrWithFilePath); ok {
+			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
@@ -390,14 +390,14 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		Message:      message,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
-		if git.IsErrNotExist(err) {
+		if git.IsErrNotExist(err) || models.IsErrRepoFileDoesNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_deleting_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", ctx.Repo.TreePath), tplEditFile, &form)
-		} else if models.IsErrWithFilePath(err) {
+		} else if models.IsErrFilePathInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
-			if fileErr, ok := err.(models.ErrWithFilePath); ok {
+			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)

@@ -44,21 +44,21 @@ func GetRawFile(ctx *context.APIContext) {
 	//   200:
 	//     description: success
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Status(404)
+			ctx.Status(http.StatusNotFound)
 		} else {
-			ctx.Error(500, "GetBlobByPath", err)
+			ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
 		}
 		return
 	}
 	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
-		ctx.Error(500, "ServeBlob", err)
+		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
 
@@ -91,7 +91,7 @@ func GetArchive(ctx *context.APIContext) {
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		ctx.Error(500, "OpenRepository", err)
+		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
@@ -128,9 +128,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Error(404, "GetEditorconfig", err)
+			ctx.Error(http.StatusNotFound, "GetEditorconfig", err)
 		} else {
-			ctx.Error(500, "GetEditorconfig", err)
+			ctx.Error(http.StatusInternalServerError, "GetEditorconfig", err)
 		}
 		return
 	}
@@ -138,10 +138,10 @@ func GetEditorconfig(ctx *context.APIContext) {
 	fileName := ctx.Params("filename")
 	def := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
-		ctx.Error(404, "GetDefinitionForFilename", err)
+		ctx.Error(http.StatusNotFound, "GetDefinitionForFilename", err)
 		return
 	}
-	ctx.JSON(200, def)
+	ctx.JSON(http.StatusOK, def)
 }
 
 // CanWriteFiles returns true if repository is editable and user has proper access level.
@@ -203,7 +203,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 		},
 	}
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(500, "", err)
+		ctx.Error(http.StatusInternalServerError, "CreateFile", err)
 	} else {
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}
@@ -261,7 +261,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(500, "", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
 	} else {
 		ctx.JSON(http.StatusOK, fileResponse)
 	}
@@ -317,7 +317,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
 	if !CanWriteFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -341,9 +341,9 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 
 	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
-		ctx.Error(500, "", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		ctx.JSON(200, fileResponse)
+		ctx.JSON(http.StatusOK, fileResponse)
 	}
 }
 
@@ -378,7 +378,7 @@ func GetFileContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/FileContentResponse"
 
 	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(500, "", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -389,8 +389,8 @@ func GetFileContents(ctx *context.APIContext) {
 	ref := ctx.Params("ref")
 
 	if fileContents, err := repofiles.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
-		ctx.Error(500, "", err)
+		ctx.Error(http.StatusInternalServerError, "GetFileContents", err)
 	} else {
-		ctx.JSON(200, fileContents)
+		ctx.JSON(http.StatusOK, fileContents)
 	}
 }

@@ -29,7 +29,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 	treePath = CleanUploadFileName(treePath)
 	if treePath == "" {
 		return nil, models.ErrFilenameInvalid{
-			Filename: treePath,
+			Path: treePath,
 		}
 	}
 

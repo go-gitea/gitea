@@ -31,20 +31,20 @@ func getExpectedDeleteFileResponse() *api.FileResponse {
 	return &api.FileResponse{
 		Content: nil,
 		Commit: &api.FileCommitResponse{
-			CommitMeta: &api.CommitMeta{
+			CommitMeta: api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			Author: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "user1",
 					Email: "address1@example.com",
 				},
 				Date: "2017-03-19T20:47:59Z",
 			},
 			Committer: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "Ethan Koenig",
 					Email: "ethantkoenig@gmail.com",
 				},
@@ -148,7 +148,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
+	expectedError = "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// Test #3 - new branch already exists
@@ -199,6 +199,6 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: " + opts.TreePath
+	expectedError = "path contains a malformed path component: [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }

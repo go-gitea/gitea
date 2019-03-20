@@ -56,20 +56,20 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 	}
 	commitHTMLURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + commit.ID.String())
 	fileCommit := &api.FileCommitResponse{
-		CommitMeta: &api.CommitMeta{
+		CommitMeta: api.CommitMeta{
 			SHA: commit.ID.String(),
 			URL: commitURL.String(),
 		},
 		HTMLURL: commitHTMLURL.String(),
 		Author: &api.CommitUser{
-			Identity: &api.Identity{
+			Identity: api.Identity{
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
 			},
 			Date: commit.Author.When.UTC().Format(time.RFC3339),
 		},
 		Committer: &api.CommitUser{
-			Identity: &api.Identity{
+			Identity: api.Identity{
 				Name:  commit.Committer.Name,
 				Email: commit.Committer.Email,
 			},

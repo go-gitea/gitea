@@ -65,7 +65,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		}
 	} else {
 		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrCannotCommit{UserName: doer.LowerName}
+			return nil, models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
+			}
 		}
 	}
 
@@ -73,7 +75,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	treePath := CleanUploadFileName(opts.TreePath)
 	if treePath == "" {
 		return nil, models.ErrFilenameInvalid{
-			Filename: opts.TreePath,
+			Path: opts.TreePath,
 		}
 	}
 
@@ -126,7 +128,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		}
 	}
 	if !inFilelist {
-		return nil, git.ErrNotExist{RelPath: opts.TreePath}
+		return nil, models.ErrRepoFileDoesNotExist{
+			Path: opts.TreePath,
+		}
 	}
 
 	// Get the entry of treePath and check if the SHA given is the same as the file
@@ -138,6 +142,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
 		if opts.SHA != entry.ID.String() {
 			return nil, models.ErrShaDoesNotMatch{
+				Path:       treePath,
 				GivenSHA:   opts.SHA,
 				CurrentSHA: entry.ID.String(),
 			}

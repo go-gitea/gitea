@@ -62,20 +62,20 @@ func getExpectedFileResponseForCreate(commitID string) *api.FileResponse {
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: &api.CommitMeta{
+			CommitMeta: api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
@@ -121,20 +121,20 @@ func getExpectedFileResponseForUpdate(commitID string) *api.FileResponse {
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: &api.CommitMeta{
+			CommitMeta: api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
 			HTMLURL: "https://try.gitea.io/user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: &api.Identity{
+				Identity: api.Identity{
 					Name:  "User Two",
 					Email: "user2@",
 				},
@@ -310,7 +310,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
+	expectedError = "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// test #3 - new branch already exists
@@ -352,7 +352,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: "
+	expectedError = "path contains a malformed path component [path: ]"
 	assert.EqualError(t, err, expectedError)
 
 	// test #8 - treePath is a git directory:
@@ -361,7 +361,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: " + opts.TreePath
+	expectedError = "path contains a malformed path component [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 
 	// test #9 - create file that already exists
@@ -370,6 +370,6 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "repository file already exists [file_name: " + opts.TreePath + "]"
+	expectedError = "repository file already exists [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }
