@@ -38,10 +38,11 @@ system is SQLite3.)
 
 To set up Gitea with SQLite3, you need to specify the path to the database 
 file. If you're running Gitea as a service, this must be an absolute path.
+**If the database file does not already exist, Gitea should be able to create it.**
 
 For MySQL, PostgreSQL, and Microsoft SQL Server, you need to specify the 
-database server's domain and port, the database name, and the username and 
-password that Gitea will use to access the database.
+server address, the database name, and the user credentials that Gitea will use 
+to access the database. **Make sure the user exists on the database server first.**
 
 ## General Settings
 
