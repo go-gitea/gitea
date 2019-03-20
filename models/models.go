@@ -52,7 +52,7 @@ type Engine interface {
 
 var (
 	x                *xorm.Engine
-	supportedDatabse = []string{"mysql", "postgres", "mssql"}
+	supportedDatabases = []string{"mysql", "postgres", "mssql"}
 	tables           []interface{}
 
 	// HasEngine specifies if we have a xorm.Engine

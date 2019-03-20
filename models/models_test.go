@@ -103,7 +103,7 @@ func TestDumpDatabase(t *testing.T) {
 	dir, err := ioutil.TempDir(os.TempDir(), "dump")
 	assert.NoError(t, err)
 
-	for _, dbType := range supportedDatabse {
+	for _, dbType := range supportedDatabases {
 		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }
