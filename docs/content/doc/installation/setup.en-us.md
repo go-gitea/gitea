@@ -68,7 +68,8 @@ Consists of:
 
 ### Email Settings
 
-<!-- TODO expand -->
+If you want Gitea to send email notifications to users, you may configure it to 
+use an SMTP server in this section.
 
 ### Server and Third-Party Service Settings
 
