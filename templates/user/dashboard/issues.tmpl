@@ -66,6 +66,12 @@
 							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
+                            {{if .IsPull }}
+                                {{if (index $.CommitStatus .ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{end}}
+                            {{end}}
+
 							{{with .Labels}}
 								{{/* If we have any labels, we should show them
 								with a 2.5 line height, this way they don't look

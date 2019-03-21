@@ -319,8 +319,17 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 	for _, issue := range issues {
 		issue.Repo = showReposMap[issue.RepoID]
+
+		if isPullList {
+			commitStatus[issue.PullRequest.ID], err = issue.PullRequest.GetLastCommitStatus()
+			if err != nil {
+				ctx.ServerError("GetLastCommitStatus", err)
+				return
+			}
+		}
 	}
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
@@ -344,6 +353,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["Issues"] = issues
+	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
 	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
