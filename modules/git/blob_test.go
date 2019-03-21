@@ -13,12 +13,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var repoSelf = &Repository{
+	Path: "../../",
+}
+
 var testBlob = &Blob{
-	repo: &Repository{},
+	repo: repoSelf,
 	TreeEntry: &TreeEntry{
 		ID: MustIDFromString("176d8dfe018c850d01851b05fb8a430096247353"),
 		ptree: &Tree{
-			repo: &Repository{},
+			repo: repoSelf,
 		},
 	},
 }
