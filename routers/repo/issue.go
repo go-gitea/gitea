@@ -214,6 +214,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
+	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
+
 	// Get posters.
 	for i := range issues {
 		// Check read status
@@ -223,8 +225,14 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
+
+		if isPullOption == util.OptionalBoolTrue {
+			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
+		}
 	}
+
 	ctx.Data["Issues"] = issues
+	ctx.Data["CommitStatus"] = commitStatus
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = repo.GetAssignees()

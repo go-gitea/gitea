@@ -292,6 +292,31 @@ func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
+// GetLastCommitStatus returns the last commit status for this pull request.
+func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
+	if err = pr.GetHeadRepo(); err != nil {
+		return nil, err
+	}
+
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+
+	repo := pr.HeadRepo
+	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	var statusList []*CommitStatus
+	statusList, err = GetLatestCommitStatus(repo, lastCommitID, 0)
+	if err != nil {
+		return nil, err
+	}
+	return CalcCommitStatus(statusList), nil
+}
+
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
 
