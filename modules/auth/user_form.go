@@ -201,6 +201,7 @@ type UpdateProfileForm struct {
 	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
 	Language         string `binding:"Size(5)"`
+	Description      string `binding:"MaxSize(255)"`
 }
 
 // Validate validates the fields
