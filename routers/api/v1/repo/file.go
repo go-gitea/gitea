@@ -177,6 +177,8 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// - name: filepath
 	//   in: path
 	//   description: path of the file to create
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   description: "'content' must be base64 encoded\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'sha' is the SHA for the file that already exists\n\n 'new_branch' (optional) will make a new branch from 'branch' before creating the file"
@@ -232,6 +234,8 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// - name: filepath
 	//   in: path
 	//   description: path of the file to update
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   description: "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file"
@@ -308,6 +312,8 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// - name: filepath
 	//   in: path
 	//   description: path of the file to delete
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   description: "'sha' is the SHA for the file to be deleted\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before deleting the file"
@@ -349,7 +355,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 
 // GetFileContents Get the contents of a fle in a repository
 func GetFileContents(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
 	// ---
 	// summary: Gets the contents of a file or directory in a repository
 	// produces:
@@ -368,6 +374,8 @@ func GetFileContents(ctx *context.APIContext) {
 	// - name: filepath
 	//   in: path
 	//   description: path of the file to delete
+	//   type: string
+	//   required: true
 	// - name: ref
 	//   in: query
 	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"

@@ -7,11 +7,11 @@ package gitdata
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTreeBySHA(t *testing.T) {

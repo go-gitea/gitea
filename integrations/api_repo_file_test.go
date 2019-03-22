@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/modules/repofiles"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
