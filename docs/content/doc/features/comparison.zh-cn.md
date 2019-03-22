@@ -90,6 +90,8 @@ _表格中的符号含义:_
 | Issue 搜索           | ✓     | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 全局 Issue 搜索      | ✘     | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Issue 依赖           | ✓     | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
+| 通过 Email 创建工单 | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
+| Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
 
 #### Pull/Merge requests
 
@@ -118,7 +120,7 @@ _表格中的符号含义:_
 | LDAP 用户同步              | ✓     | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 支持 OpenId 连接           | ✓     | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | 集成 OAuth 2.0（外部授权） | ✓     | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
-| 作为 OAuth 2.0 provider    | ✘     | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| 作为 OAuth 2.0 provider    | [✓](https://github.com/go-gitea/gitea/pull/5378)     | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 二次验证 (2FA)             | ✓     | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 集成 Mattermost/Slack      | ✓     | ✓    | ⁄         | ✓         | ✓         | ⁄         | ✓            |
 | 集成 Discord               | ✓     | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
