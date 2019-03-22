@@ -69,6 +69,6 @@ func TestAPIReposGitTrees(t *testing.T) {
 	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, repo3TreeSHA, token4)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
