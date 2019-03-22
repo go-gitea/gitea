@@ -91,7 +91,7 @@ func TestDeleteRepoFile(t *testing.T) {
 	// Test #2 - Verify deleted by trying to delete again
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
-	expectedError := "object does not exist [id: , rel_path: " + opts.TreePath + "]"
+	expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }
 
@@ -190,7 +190,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "file name is invalid: "
+	expectedError = "path contains a malformed path component [path: ]"
 	assert.EqualError(t, err, expectedError)
 
 	// Test #8 - treePath is a git directory:
@@ -199,6 +199,6 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	fileResponse, err = DeleteRepoFile(repo, doer, opts)
 	assert.Nil(t, fileResponse)
 	assert.Error(t, err)
-	expectedError = "path contains a malformed path component: [path: " + opts.TreePath + "]"
+	expectedError = "path contains a malformed path component [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 }
