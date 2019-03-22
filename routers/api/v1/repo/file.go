@@ -386,7 +386,7 @@ func GetFileContents(ctx *context.APIContext) {
 	}
 
 	treePath := ctx.Params("*")
-	ref := ctx.Params("ref")
+	ref := ctx.QueryTrim("ref")
 
 	if fileContents, err := repofiles.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFileContents", err)
