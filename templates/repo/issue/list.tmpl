@@ -222,9 +222,9 @@
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
 
 						{{if gt .Poster.ID 0}}
-							{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.opened_by_fake" $timeStr .Poster.Name | Safe}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
 						{{end}}
 
 						{{$tasks := .GetTasks}}
