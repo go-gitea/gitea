@@ -288,7 +288,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {

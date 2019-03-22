@@ -74,7 +74,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 func sudo() macaron.Handler {
@@ -89,7 +89,7 @@ func sudo() macaron.Handler {
 				user, err := models.GetUserByName(sudo)
 				if err != nil {
 					if models.IsErrUserNotExist(err) {
-						ctx.Status(404)
+						ctx.NotFound()
 					} else {
 						ctx.Error(500, "GetUserByName", err)
 					}
@@ -124,7 +124,7 @@ func repoAssignment() macaron.Handler {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					ctx.Status(404)
+					ctx.NotFound()
 				} else {
 					ctx.Error(500, "GetUserByName", err)
 				}
@@ -141,7 +141,7 @@ func repoAssignment() macaron.Handler {
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
 				} else if models.IsErrRepoRedirectNotExist(err) {
-					ctx.Status(404)
+					ctx.NotFound()
 				} else {
 					ctx.Error(500, "LookupRepoRedirect", err)
 				}
@@ -160,7 +160,7 @@ func repoAssignment() macaron.Handler {
 		}
 
 		if !ctx.Repo.HasAccess() {
-			ctx.Status(404)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -268,7 +268,7 @@ func reqOrgMembership() macaron.Handler {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization member")
 			} else {
-				ctx.Status(404)
+				ctx.NotFound()
 			}
 			return
 		}
@@ -294,7 +294,7 @@ func reqOrgOwnership() macaron.Handler {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization owner")
 			} else {
-				ctx.Status(404)
+				ctx.NotFound()
 			}
 			return
 		}
@@ -320,7 +320,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":orgname"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					ctx.Status(404)
+					ctx.NotFound()
 				} else {
 					ctx.Error(500, "GetOrgByName", err)
 				}
@@ -332,7 +332,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 			ctx.Org.Team, err = models.GetTeamByID(ctx.ParamsInt64(":teamid"))
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					ctx.Status(404)
+					ctx.NotFound()
 				} else {
 					ctx.Error(500, "GetTeamById", err)
 				}
@@ -344,36 +344,36 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 func mustEnableIssues(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 }
 
-func mustAllowPulls(ctx *context.Context) {
+func mustAllowPulls(ctx *context.APIContext) {
 	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 }
 
-func mustEnableIssuesOrPulls(ctx *context.Context) {
+func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
 		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 }
 
-func mustEnableUserHeatmap(ctx *context.Context) {
+func mustEnableUserHeatmap(ctx *context.APIContext) {
 	if !setting.Service.EnableUserHeatmap {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 }
 
-func mustNotBeArchived(ctx *context.Context) {
+func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 }
@@ -683,8 +683,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
 
-		m.Any("/*", func(ctx *context.Context) {
-			ctx.Error(404)
+		m.Any("/*", func(ctx *context.APIContext) {
+			ctx.NotFound()
 		})
 
 		m.Group("/admin", func() {

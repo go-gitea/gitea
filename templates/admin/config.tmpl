@@ -41,12 +41,23 @@
 				<dd>{{.RepoRootPath}}</dd>
 				<dt>{{.i18n.Tr "admin.config.static_file_root_path"}}</dt>
 				<dd>{{.StaticRootPath}}</dd>
+				<dt>{{.i18n.Tr "admin.config.custom_file_root_path"}}</dt>
+				<dd>{{.CustomRootPath}}</dd>
 				<dt>{{.i18n.Tr "admin.config.log_file_root_path"}}</dt>
 				<dd>{{.LogRootPath}}</dd>
 				<dt>{{.i18n.Tr "admin.config.script_type"}}</dt>
 				<dd>{{.ScriptType}}</dd>
 				<dt>{{.i18n.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
+
+				{{if .EnvVars }}
+				<div class="ui divider"></div>
+				{{range .EnvVars}}
+				<dt>{{.Name}}</dt>
+				<dd>{{.Value}}</dd>
+				{{end}}
+				{{end}}
+
 			</dl>
 		</div>
 

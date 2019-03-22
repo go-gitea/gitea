@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -96,7 +95,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 	if len(redirectTo) > 0 {
 		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
-		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
+		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -496,7 +495,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -587,7 +586,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 				return
 			}
 
-			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+			if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
 				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
@@ -1298,7 +1297,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		ctx.RedirectToFirst(redirectTo)
 		return
