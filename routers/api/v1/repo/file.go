@@ -44,14 +44,14 @@ func GetRawFile(ctx *context.APIContext) {
 	//   200:
 	//     description: success
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Status(http.StatusNotFound)
+			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
 		}
@@ -128,7 +128,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Error(http.StatusNotFound, "GetEditorconfig", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetEditorconfig", err)
 		}
@@ -138,7 +138,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	fileName := ctx.Params("filename")
 	def := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
-		ctx.Error(http.StatusNotFound, "GetDefinitionForFilename", err)
+		ctx.NotFound(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, def)
