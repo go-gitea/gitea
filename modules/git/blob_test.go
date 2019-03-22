@@ -14,7 +14,7 @@ import (
 )
 
 var repoSelf = &Repository{
-	Path: "../../",
+	Path: "./",
 }
 
 var testBlob = &Blob{
