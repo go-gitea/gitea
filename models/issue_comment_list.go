@@ -41,7 +41,7 @@ func (comments CommentList) loadPosters(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
 

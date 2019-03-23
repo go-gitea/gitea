@@ -43,7 +43,10 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return 0, err
+		}
 	}
 	switch value := conn.Get(key).(type) {
 	case int:
@@ -72,7 +75,10 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return 0, err
+		}
 	}
 	switch value := conn.Get(key).(type) {
 	case int64:
@@ -93,5 +99,5 @@ func Remove(key string) {
 	if conn == nil {
 		return
 	}
-	conn.Delete(key)
+	_ = conn.Delete(key)
 }

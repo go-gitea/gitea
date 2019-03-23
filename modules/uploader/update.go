@@ -29,10 +29,10 @@ type UpdateRepoFileOptions struct {
 // UpdateRepoFile adds or updates a file in the given repository
 func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) error {
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return err
 	}

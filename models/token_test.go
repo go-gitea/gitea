@@ -35,11 +35,11 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.Equal(t, "Token A", token.Name)
 	assert.Equal(t, "hash1", token.Sha1)
 
-	token, err = GetAccessTokenBySHA("notahash")
+	_, err = GetAccessTokenBySHA("notahash")
 	assert.Error(t, err)
 	assert.True(t, IsErrAccessTokenNotExist(err))
 
-	token, err = GetAccessTokenBySHA("")
+	_, err = GetAccessTokenBySHA("")
 	assert.Error(t, err)
 	assert.True(t, IsErrAccessTokenEmpty(err))
 }

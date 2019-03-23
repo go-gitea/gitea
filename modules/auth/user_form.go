@@ -253,7 +253,7 @@ func (f UpdateThemeForm) IsThemeExists() bool {
 	var exists bool
 
 	for _, v := range setting.UI.Themes {
-		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+		if strings.EqualFold(v, f.Theme) {
 			exists = true
 			break
 		}

@@ -12,10 +12,6 @@ import (
 	"time"
 )
 
-const (
-	subjectPhrase = "Diagnostic message from server"
-)
-
 // SMTPWriter implements LoggerInterface and is used to send emails via given SMTP-server.
 type SMTPWriter struct {
 	Username           string   `json:"Username"`

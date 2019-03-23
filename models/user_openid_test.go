@@ -31,12 +31,12 @@ func TestGetUserOpenIDs(t *testing.T) {
 func TestGetUserByOpenID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user, err := GetUserByOpenID("https://unknown")
+	_, err := GetUserByOpenID("https://unknown")
 	if assert.Error(t, err) {
 		assert.True(t, IsErrUserNotExist(err))
 	}
 
-	user, err = GetUserByOpenID("https://user1.domain1.tld")
+	user, err := GetUserByOpenID("https://user1.domain1.tld")
 	if assert.NoError(t, err) {
 		assert.Equal(t, user.ID, int64(1))
 	}

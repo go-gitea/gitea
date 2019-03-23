@@ -217,8 +217,6 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
 	}
 
-	pr.Issue.loadRepo(e)
-
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
 		Index:     pr.Index,
@@ -1151,7 +1149,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 		return fmt.Errorf("AddRemote: %v", err)
 	}
 	defer func() {
-		headGitRepo.RemoveRemote(tmpRemote)
+		_ = headGitRepo.RemoveRemote(tmpRemote)
 	}()
 	remoteBranch := "remotes/" + tmpRemote + "/" + pr.BaseBranch
 	pr.MergeBase, err = headGitRepo.GetMergeBase(remoteBranch, pr.HeadBranch)
@@ -1190,7 +1188,9 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
 	}
 	// Make sure to remove the remote even if the push fails
-	defer headGitRepo.RemoveRemote(tmpRemoteName)
+	defer func() {
+		_ = headGitRepo.RemoveRemote(tmpRemoteName)
+	}()
 
 	headFile := pr.GetGitRefName()
 

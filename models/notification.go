@@ -119,7 +119,10 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		}
 	}
 
-	issue.loadRepo(e)
+	err = issue.loadRepo(e)
+	if err != nil {
+		return err
+	}
 
 	for _, watch := range watches {
 		issue.Repo.Units = nil

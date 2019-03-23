@@ -70,7 +70,7 @@ func checkLFSVersion() {
 }
 
 func setup(logPath string) {
-	log.DelLogger("console")
+	_ = log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
@@ -120,8 +120,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		cli.ShowSubcommandHelp(c)
-		return nil
+		return cli.ShowSubcommandHelp(c)
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")

@@ -41,7 +41,7 @@ type NilResponseRecorder struct {
 }
 
 func (n *NilResponseRecorder) Write(b []byte) (int, error) {
-	n.Length = n.Length + len(b)
+	n.Length += len(b)
 	return len(b), nil
 }
 
@@ -137,8 +137,7 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'",
-			models.DbCfg.Name))
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", models.DbCfg.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
@@ -202,7 +201,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -218,7 +217,7 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -258,7 +257,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
 	session := emptyTestSession(t)

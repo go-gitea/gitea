@@ -220,7 +220,6 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			}, form.RedirectURI)
 			return
 		}
-		break
 	case "":
 		break
 	default:

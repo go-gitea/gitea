@@ -126,14 +126,14 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", RepoID).Desc("updated_unix").Find(&protectedBranches)
+	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
+func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err

@@ -5,18 +5,16 @@
 package lfs
 
 import (
-	"encoding/json"
-	"strconv"
-	"strings"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
+	"encoding/json"
+	"strconv"
 )
 
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
-func checkIsValidRequest(ctx *context.Context, post bool) bool {
+func checkIsValidRequest(ctx *context.Context) bool {
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return false
@@ -33,13 +31,6 @@ func checkIsValidRequest(ctx *context.Context, post bool) bool {
 			return false
 		}
 		ctx.User = user
-	}
-	if post {
-		mediaParts := strings.Split(ctx.Req.Header.Get("Content-Type"), ";")
-		if mediaParts[0] != metaMediaType {
-			writeStatus(ctx, 400)
-			return false
-		}
 	}
 	return true
 }
@@ -70,7 +61,7 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx, false) {
+	if !checkIsValidRequest(ctx) {
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -130,7 +121,7 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx, false) {
+	if !checkIsValidRequest(ctx) {
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -173,7 +164,7 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx, false) {
+	if !checkIsValidRequest(ctx) {
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
@@ -218,7 +209,7 @@ func VerifyLockHandler(ctx *context.Context) {
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx, false) {
+	if !checkIsValidRequest(ctx) {
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)

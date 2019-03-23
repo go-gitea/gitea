@@ -53,21 +53,6 @@ func initMigrationTest() {
 	models.LoadConfigs()
 }
 
-func getDialect() string {
-	dialect := "sqlite"
-	switch {
-	case setting.UseSQLite3:
-		dialect = "sqlite"
-	case setting.UseMySQL:
-		dialect = "mysql"
-	case setting.UsePostgreSQL:
-		dialect = "pgsql"
-	case setting.UseMSSQL:
-		dialect = "mssql"
-	}
-	return dialect
-}
-
 func availableVersions() ([]string, error) {
 	migrationsDir, err := os.Open("integrations/migration-test")
 	if err != nil {

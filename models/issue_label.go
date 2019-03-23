@@ -401,14 +401,6 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	return sess.Commit()
 }
 
-func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
-	issueLabels := make([]*IssueLabel, 0, 10)
-	return issueLabels, e.
-		Where("issue_id=?", issueID).
-		Asc("label_id").
-		Find(&issueLabels)
-}
-
 func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,

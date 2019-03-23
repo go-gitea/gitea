@@ -152,7 +152,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	issueIndexerUpdateQueue.Push(&IndexerData{
+	_ = issueIndexerUpdateQueue.Push(&IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
@@ -170,11 +170,11 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 		return
 	}
 
-	if len(ids) <= 0 {
+	if len(ids) == 0 {
 		return
 	}
 
-	issueIndexerUpdateQueue.Push(&IndexerData{
+	_ = issueIndexerUpdateQueue.Push(&IndexerData{
 		IDs:      ids,
 		IsDelete: true,
 	})

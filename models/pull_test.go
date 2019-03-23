@@ -94,7 +94,7 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
-	pr, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
+	_, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -128,7 +128,7 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	assert.Equal(t, int64(1), pr.BaseRepoID)
 	assert.Equal(t, int64(2), pr.Index)
 
-	pr, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -151,7 +151,7 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	pr, err = GetPullRequestByIssueID(9223372036854775807)
+	_, err = GetPullRequestByIssueID(9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }

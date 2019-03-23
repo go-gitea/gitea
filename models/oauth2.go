@@ -106,7 +106,10 @@ func InitOAuth2() error {
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
-		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
+		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -279,7 +279,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	// original left over. This way we won't lose data.
 	result, n, err := transform.String(encoding.NewDecoder(), string(content))
 	if err != nil {
-		result = result + string(content[n:])
+		result += string(content[n:])
 	}
 
 	return result, err
@@ -327,7 +327,7 @@ func ReplaceLeft(s, old, new string) string {
 
 	// allocating space for the new string
 	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
+	replacement := make([]byte, curLen)
 
 	j := 0
 	for ; j < n*newLen; j += newLen {

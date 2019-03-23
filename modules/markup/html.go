@@ -304,20 +304,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 	// ignore everything else
 }
 
-func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
-	switch node.Type {
-	case html.TextNode:
-		shortLinkProcessorFull(ctx, node, true)
-	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
-			return
-		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNodeForShortLinks(n)
-		}
-	}
-}
-
 // textNode runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
 func (ctx *postProcessCtx) textNode(node *html.Node) {

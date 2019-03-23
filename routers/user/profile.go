@@ -22,7 +22,6 @@ import (
 
 const (
 	tplFollowers base.TplName = "user/meta/followers"
-	tplStars     base.TplName = "user/meta/stars"
 )
 
 // GetUserByName get user by name

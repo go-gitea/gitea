@@ -372,10 +372,7 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 func HasOrgVisible(org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		if org.Visibility == structs.VisibleTypePublic {
-			return true
-		}
-		return false
+		return org.Visibility == structs.VisibleTypePublic
 	}
 
 	if user.IsAdmin {

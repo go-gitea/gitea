@@ -5,9 +5,9 @@
 package integrations
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"

@@ -41,9 +41,9 @@ func NewXORMLogger(bufferlen int64, mode, config string) {
 	XORMLogger.loggers = append(XORMLogger.loggers, logger)
 }
 
-func (l *XORMLogBridge) writerMsg(skip, level int, msg string) error {
+func (l *XORMLogBridge) writerMsg(level int, msg string) error {
 	for _, logger := range l.loggers {
-		if err := logger.writerMsg(skip, level, msg); err != nil {
+		if err := logger.writerMsg(0, level, msg); err != nil {
 			return err
 		}
 	}
@@ -54,7 +54,7 @@ func (l *XORMLogBridge) writerMsg(skip, level int, msg string) error {
 func (l *XORMLogBridge) Debug(v ...interface{}) {
 	if l.level <= core.LOG_DEBUG {
 		msg := fmt.Sprint(v...)
-		l.writerMsg(0, DEBUG, "[D]"+msg)
+		l.writerMsg(DEBUG, "[D]"+msg)
 	}
 }
 
@@ -71,7 +71,7 @@ func (l *XORMLogBridge) Debugf(format string, v ...interface{}) {
 func (l *XORMLogBridge) Error(v ...interface{}) {
 	if l.level <= core.LOG_ERR {
 		msg := fmt.Sprint(v...)
-		l.writerMsg(0, ERROR, "[E]"+msg)
+		l.writerMsg(ERROR, "[E]"+msg)
 	}
 }
 
@@ -88,7 +88,7 @@ func (l *XORMLogBridge) Errorf(format string, v ...interface{}) {
 func (l *XORMLogBridge) Info(v ...interface{}) {
 	if l.level <= core.LOG_INFO {
 		msg := fmt.Sprint(v...)
-		l.writerMsg(0, INFO, "[I]"+msg)
+		l.writerMsg(INFO, "[I]"+msg)
 	}
 }
 
@@ -105,7 +105,7 @@ func (l *XORMLogBridge) Infof(format string, v ...interface{}) {
 func (l *XORMLogBridge) Warn(v ...interface{}) {
 	if l.level <= core.LOG_WARNING {
 		msg := fmt.Sprint(v...)
-		l.writerMsg(0, WARN, "[W] "+msg)
+		l.writerMsg(WARN, "[W] "+msg)
 	}
 }
 

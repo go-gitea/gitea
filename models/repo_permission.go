@@ -238,6 +238,7 @@ func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) 
 	if err != nil {
 		return AccessModeNone, err
 	}
+	// WHY is the passed unitType completely ignored???
 	return perm.UnitAccessMode(UnitTypeCode), nil
 }
 

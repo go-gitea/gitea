@@ -41,7 +41,7 @@ type Release struct {
 	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
 }
 
-func (r *Release) loadAttributes(e Engine) error {
+func (r *Release) loadAttributes() error {
 	var err error
 	if r.Repo == nil {
 		r.Repo, err = GetRepositoryByID(r.RepoID)
@@ -60,7 +60,7 @@ func (r *Release) loadAttributes(e Engine) error {
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(x)
+	return r.loadAttributes()
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -395,7 +395,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		return err
 	}
 
-	err = rel.loadAttributes(x)
+	err = rel.loadAttributes()
 	if err != nil {
 		return err
 	}
@@ -493,7 +493,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
+				if err := pushUpdateDeleteTag(repo, rel.TagName); err != nil {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}
 			} else {

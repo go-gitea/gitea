@@ -6,7 +6,7 @@ package issues
 
 // Queue defines an interface to save an issue indexer queue
 type Queue interface {
-	Run() error
+	Run() error // It looks like none of the implementations return an error here at all. Could we refactor this to not make it require an error?
 	Push(*IndexerData) error
 }
 

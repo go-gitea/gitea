@@ -11,19 +11,49 @@ linters:
     - structcheck
     - varcheck
     - golint
-    - gosec
-    - interfacer
     - dupl
-    - goconst
-    - gocyclo
+    #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
-    - maligned
     - misspell
-    - scopelint
     - gocritic
-
   enable-all: false
-  presets:
-    - bugs
-    - unused
+  disable-all: true
   fast: false
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - unparam
+    - path: models/migrations/v
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+    - linters:
+        - dupl
+      text: "webhook"
+    - linters:
+        - gocritic
+      text: "`ID' should not be capitalized"
+    - path: modules/templates/helper.go
+      linters:
+        - gocritic
+    - path: routers/api/v1/swagger/
+      linters:
+        - deadcode
+    - path: contrib/pr/checkout.go
+      linters:
+        - errcheck
+    - path: models/issue.go
+      linters:
+        - errcheck
+    - path: models/migrations/
+      linters:
+        - errcheck

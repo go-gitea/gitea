@@ -1288,7 +1288,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1347,7 +1347,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
-	return nil
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1355,9 +1354,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1382,9 +1379,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)

@@ -388,9 +388,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		newHunk[idx] = lof
 	}
 	// transfer last n lines
-	for _, lof := range hunk[len(hunk)-numbersOfLine-1:] {
-		newHunk = append(newHunk, lof)
-	}
+	newHunk = append(newHunk, hunk[len(hunk)-numbersOfLine-1:]...)
 	// calculate newBegin, ... by counting lines
 	for i := len(hunk) - 1; i >= len(hunk)-numbersOfLine; i-- {
 		switch hunk[i][0] {
@@ -582,7 +580,10 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			diff.Files = append(diff.Files, curFile)
 			if len(diff.Files) >= maxFiles {
 				diff.IsIncomplete = true
-				io.Copy(ioutil.Discard, reader)
+				_, err := io.Copy(ioutil.Discard, reader)
+				if err != nil {
+					return nil, fmt.Errorf("Copy: %v", err)
+				}
 				break
 			}
 			curFileLinesCount = 0

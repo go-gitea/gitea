@@ -109,10 +109,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			}
 			infos[i] = uploadInfo
 
-		} else {
-			if objectHash, err = t.HashObject(file); err != nil {
-				return err
-			}
+		} else if objectHash, err = t.HashObject(file); err != nil {
+			return err
 		}
 
 		// Add the object to the index

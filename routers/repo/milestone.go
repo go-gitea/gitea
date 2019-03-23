@@ -20,7 +20,6 @@ import (
 const (
 	tplMilestone       base.TplName = "repo/issue/milestones"
 	tplMilestoneNew    base.TplName = "repo/issue/milestone_new"
-	tplMilestoneEdit   base.TplName = "repo/issue/milestone_edit"
 	tplMilestoneIssues base.TplName = "repo/issue/milestone_issues"
 )
 

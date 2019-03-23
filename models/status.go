@@ -87,7 +87,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	status.loadRepo(x)
+	_ = status.loadRepo(x)
 	return fmt.Sprintf("%sapi/v1/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -95,7 +95,7 @@ func (status *CommitStatus) APIURL() string {
 // APIFormat assumes some fields assigned with values:
 // Required - Repo, Creator
 func (status *CommitStatus) APIFormat() *api.Status {
-	status.loadRepo(x)
+	_ = status.loadRepo(x)
 	apiStatus := &api.Status{
 		Created:     status.CreatedUnix.AsTime(),
 		Updated:     status.CreatedUnix.AsTime(),

@@ -151,7 +151,10 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 
 func composeIssueCommentMessage(issue *Issue, doer *User, content string, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
-	issue.LoadRepo()
+	err := issue.LoadRepo()
+	if err != nil {
+		log.Error(3, "LoadRepo: %v", err)
+	}
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
 	data := make(map[string]interface{}, 10)

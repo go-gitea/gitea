@@ -94,7 +94,6 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/")
-	return
 }
 
 // HTML calls Context.HTML and converts template name to string.
@@ -215,7 +214,7 @@ func Contexter() macaron.Handler {
 			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
-			c.Write([]byte(com.Expand(`<!doctype html>
+			_, _ = c.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">

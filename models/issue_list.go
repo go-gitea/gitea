@@ -47,7 +47,7 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 		if err != nil {
 			return nil, fmt.Errorf("find repository: %v", err)
 		}
-		left = left - limit
+		left -= limit
 		repoIDs = repoIDs[limit:]
 	}
 
@@ -91,7 +91,7 @@ func (issues IssueList) loadPosters(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
 

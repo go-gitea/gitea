@@ -91,12 +91,12 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 
 	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
 	blobURL := make([]byte, repoIDLen+51)
-	copy(blobURL[:], repoID)
+	copy(blobURL, repoID)
 	copy(blobURL[repoIDLen:], "/git/blobs/")
 
 	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
 	treeURL := make([]byte, repoIDLen+51)
-	copy(treeURL[:], repoID)
+	copy(treeURL, repoID)
 	copy(treeURL[repoIDLen:], "/git/trees/")
 
 	// 40 is the size of the sha1 hash in hexadecimal format.
@@ -136,10 +136,10 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(treeURL[:])
+			tree.Entries[i].URL = string(treeURL)
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(blobURL[:])
+			tree.Entries[i].URL = string(blobURL)
 		}
 	}
 	return tree

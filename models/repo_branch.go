@@ -38,7 +38,7 @@ func (repo *Repository) DiscardLocalRepoBranchChanges(branch string) error {
 }
 
 // checkoutNewBranch checks out to a new branch from the a branch name.
-func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
+func checkoutNewBranch(localPath, oldBranch, newBranch string) error {
 	if err := git.Checkout(localPath, git.CheckoutOptions{
 		Timeout:   time.Duration(setting.Git.Timeout.Pull) * time.Second,
 		Branch:    newBranch,
@@ -51,7 +51,7 @@ func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
 
 // CheckoutNewBranch checks out a new branch
 func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
-	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
+	return checkoutNewBranch(repo.LocalCopyPath(), oldBranch, newBranch)
 }
 
 // Branch holds the branch information

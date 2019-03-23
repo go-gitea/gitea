@@ -16,7 +16,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -715,10 +714,6 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 func (repo *Repository) NextIssueIndex() int64 {
 	return int64(repo.NumIssues+repo.NumPulls) + 1
 }
-
-var (
-	descPattern = regexp.MustCompile(`https?://\S+`)
-)
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
@@ -1892,7 +1887,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	repoPath := repo.repoPath(sess)
 	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
-	repo.deleteWiki(sess)
+	err = repo.deleteWiki(sess)
+	if err != nil {
+		return err
+	}
 
 	// Remove attachment files.
 	for i := range attachmentPaths {

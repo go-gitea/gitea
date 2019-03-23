@@ -242,10 +242,10 @@ func TestGetOrgByName(t *testing.T) {
 	assert.EqualValues(t, 3, org.ID)
 	assert.Equal(t, "user3", org.Name)
 
-	org, err = GetOrgByName("user2") // user2 is an individual
+	_, err = GetOrgByName("user2") // user2 is an individual
 	assert.True(t, IsErrOrgNotExist(err))
 
-	org, err = GetOrgByName("") // corner case
+	_, err = GetOrgByName("") // corner case
 	assert.True(t, IsErrOrgNotExist(err))
 }
 
@@ -499,7 +499,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	testSuccess := func(userID, page, pageSize int64, expectedRepoIDs []int64) {
+	testSuccess := func(userID, _, pageSize int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
 		repoIDs, err := env.RepoIDs(1, 100)

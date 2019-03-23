@@ -286,12 +286,6 @@ func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
 }
 
-// FIXME: struct contains a struct
-func validateStruct(obj interface{}) binding.Errors {
-
-	return nil
-}
-
 func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaron.Locale) binding.Errors {
 	if errs.Len() == 0 {
 		return errs

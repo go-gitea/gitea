@@ -58,7 +58,7 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
 	for _, mirror := range mirrors {
-		mirror.Interval = mirror.Interval * time.Hour
+		mirror.Interval *= time.Hour
 		if mirror.Interval < setting.Mirror.MinInterval {
 			log.Info("Mirror interval less than Mirror.MinInterval, setting default interval: repo id %v", mirror.RepoID)
 			mirror.Interval = setting.Mirror.DefaultInterval

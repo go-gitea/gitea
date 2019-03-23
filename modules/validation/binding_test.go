@@ -26,12 +26,6 @@ type (
 		expectedErrors binding.Errors
 	}
 
-	handlerFunc func(interface{}, ...interface{}) macaron.Handler
-
-	modeler interface {
-		Model() string
-	}
-
 	TestForm struct {
 		BranchName string `form:"BranchName" binding:"GitRefName"`
 		URL        string `form:"ValidUrl" binding:"ValidUrl"`

@@ -283,10 +283,8 @@ func CreateLoginSource(source *LoginSource) error {
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
 
-		if err != nil {
-			// remove the LoginSource in case of errors while registering OAuth2 providers
-			x.Delete(source)
-		}
+		// remove the LoginSource in case of errors while registering OAuth2 providers
+		_, err = x.Delete(source)
 	}
 	return err
 }
@@ -326,10 +324,8 @@ func UpdateSource(source *LoginSource) error {
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
 
-		if err != nil {
-			// restore original values since we cannot update the provider it self
-			x.ID(source.ID).AllCols().Update(originalLoginSource)
-		}
+		// restore original values since we cannot update the provider it self
+		_, err = x.ID(source.ID).AllCols().Update(originalLoginSource)
 	}
 	return err
 }
@@ -397,7 +393,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-			RewriteAllPublicKeys()
+			return user, RewriteAllPublicKeys()
 		}
 
 		return user, nil
@@ -431,7 +427,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	err := CreateUser(user)
 
 	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-		RewriteAllPublicKeys()
+		err = RewriteAllPublicKeys()
 	}
 
 	return user, err

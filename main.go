@@ -60,10 +60,10 @@ arguments - which can alternatively be run by running the subcommand web.`
 	}
 }
 
-func formatBuiltWith(Tags string) string {
-	if len(Tags) == 0 {
+func formatBuiltWith(tags string) string {
+	if len(tags) == 0 {
 		return " built with " + runtime.Version()
 	}
 
-	return " built with " + runtime.Version() + " : " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with " + runtime.Version() + " : " + strings.Replace(tags, " ", ", ", -1)
 }

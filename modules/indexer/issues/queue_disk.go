@@ -59,7 +59,7 @@ func (l *LevelQueue) Run() error {
 			continue
 		}
 
-		if len(bs) <= 0 {
+		if len(bs) == 0 {
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}

@@ -134,7 +134,7 @@ func (email *EmailAddress) Activate() error {
 
 	email.IsActivated = true
 	if _, err := sess.
-		Id(email.ID).
+		ID(email.ID).
 		Cols("is_activated").
 		Update(email); err != nil {
 		return err
