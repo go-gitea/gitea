@@ -1345,11 +1345,9 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
 		go HookQueue.Add(repo.ID)
-	} else {
+	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
-		if err = repo.recalculateAccesses(e); err != nil {
-			return fmt.Errorf("recalculateAccesses: %v", err)
-		}
+		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
@@ -1524,11 +1522,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		} else if err = t.addRepository(sess, repo); err != nil {
 			return fmt.Errorf("add to owner team: %v", err)
 		}
-	} else {
+	} else if err = repo.recalculateAccesses(sess); err != nil {
 		// Organization called this in addRepository method.
-		if err = repo.recalculateAccesses(sess); err != nil {
-			return fmt.Errorf("recalculateAccesses: %v", err)
-		}
+		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	// Update repository count.

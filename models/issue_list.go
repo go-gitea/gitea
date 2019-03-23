@@ -152,7 +152,7 @@ func (issues IssueList) loadLabels(e Engine) error {
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
 		rows.Close()
-		left = left - limit
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
@@ -191,7 +191,7 @@ func (issues IssueList) loadMilestones(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		milestoneIDs = milestoneIDs[limit:]
 	}
 
@@ -239,7 +239,7 @@ func (issues IssueList) loadAssignees(e Engine) error {
 		}
 		rows.Close()
 
-		left = left - limit
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 

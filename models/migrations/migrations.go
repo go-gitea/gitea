@@ -651,7 +651,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if _, err = sess.Id(org.ID).Update(org); err != nil {
+		if _, err = sess.ID(org.ID).Update(org); err != nil {
 			return err
 		}
 	}

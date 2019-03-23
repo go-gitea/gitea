@@ -2,7 +2,6 @@ linters:
   enable:
     - gosimple
     - deadcode
-    - ineffassign
     - typecheck
     - govet
     - errcheck
@@ -20,6 +19,12 @@ linters:
   disable-all: true
   fast: false
 
+linters-settings:
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+      - singleCaseSwitch # Every time this occured in the code, there  was no other way.
+
 issues:
   exclude-rules:
     # Exclude some linters from running on tests files.
@@ -30,6 +35,7 @@ issues:
         - dupl
         - gosec
         - unparam
+        - staticcheck
     - path: models/migrations/v
       linters:
         - gocyclo
@@ -57,3 +63,16 @@ issues:
     - path: models/migrations/
       linters:
         - errcheck
+    - path: routers/routes/routes.go
+      linters:
+        - dupl
+    - path: routers/repo/view.go
+      linters:
+        - dupl
+    - path: models/migrations/
+      linters:
+        - unused
+    - linters:
+        - staticcheck
+      text: "argument x is overwritten before first use"
+

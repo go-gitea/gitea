@@ -200,10 +200,8 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error(4, "UpdateAccessToken:  %v", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error(4, "GetAccessTokenBySha: %v", err)
 			}
 
 			if u == nil {

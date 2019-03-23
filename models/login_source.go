@@ -164,8 +164,7 @@ func Cell2Int64(val xorm.Cell) int64 {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
-	switch colName {
-	case "type":
+	if colName == "type" {
 		switch LoginType(Cell2Int64(val)) {
 		case LoginLDAP, LoginDLDAP:
 			source.Cfg = new(LDAPConfig)

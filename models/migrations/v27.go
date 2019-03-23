@@ -64,7 +64,7 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 			mirror.Interval = setting.Mirror.DefaultInterval
 		}
 		log.Debug("Mirror interval set to %v for repo id %v", mirror.Interval, mirror.RepoID)
-		_, err := sess.Id(mirror.ID).Cols("interval").Update(mirror)
+		_, err := sess.ID(mirror.ID).Cols("interval").Update(mirror)
 		if err != nil {
 			return fmt.Errorf("update mirror interval failed: %v", err)
 		}

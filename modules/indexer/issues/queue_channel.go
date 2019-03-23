@@ -34,20 +34,20 @@ func (c *ChannelQueue) Run() error {
 		select {
 		case data := <-c.queue:
 			if data.IsDelete {
-				c.indexer.Delete(data.IDs...)
+				_ = c.indexer.Delete(data.IDs...)
 				continue
 			}
 
 			datas = append(datas, data)
 			if len(datas) >= c.batchNumber {
-				c.indexer.Index(datas)
+				_ = c.indexer.Index(datas)
 				// TODO: save the point
 				datas = make([]*IndexerData, 0, c.batchNumber)
 			}
 		case <-time.After(time.Millisecond * 100):
 			i++
 			if i >= 3 && len(datas) > 0 {
-				c.indexer.Index(datas)
+				_ = c.indexer.Index(datas)
 				// TODO: save the point
 				datas = make([]*IndexerData, 0, c.batchNumber)
 			}
