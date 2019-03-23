@@ -44,7 +44,10 @@ func newLogService() {
 	}
 
 	if !useConsole {
-		log.DelLogger("console")
+		err := log.DelLogger("console")
+		if err != nil {
+			log.Fatal(4, "DelLogger: %v", err)
+		}
 	}
 
 	for i, mode := range LogModes {

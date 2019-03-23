@@ -461,7 +461,6 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(net, ad
 		if err != nil {
 			return nil, err
 		}
-		conn.SetDeadline(time.Now().Add(rwTimeout))
-		return conn, nil
+		return conn, conn.SetDeadline(time.Now().Add(rwTimeout))
 	}
 }

@@ -32,7 +32,7 @@ func DiscardXORMLogger() {
 // NewXORMLogger generate logger for xorm FIXME: configable
 func NewXORMLogger(bufferlen int64, mode, config string) {
 	logger := newLogger(bufferlen)
-	logger.SetLogger(mode, config)
+	_ = logger.SetLogger(mode, config)
 	if XORMLogger == nil {
 		XORMLogger = &XORMLogBridge{
 			showSQL: true,

@@ -192,7 +192,7 @@ func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 // Log takes a given string and logs it at the set log-level
 func (l *LoggerAsWriter) Log(msg string) {
 	for _, logger := range loggers {
-		logger.writerMsg(0, l.level, msg)
+		_ = logger.writerMsg(0, l.level, msg)
 	}
 }
 

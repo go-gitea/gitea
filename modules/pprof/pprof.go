@@ -34,9 +34,15 @@ func DumpCPUProfileForUsername(pprofDataPath, username string) func() {
 		log.GitLogger.Fatal(4, "Could not create cpu profile: %v", err)
 	}
 
-	pprof.StartCPUProfile(f)
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		log.GitLogger.Fatal(4, "StartCPUProfile: %v", err)
+	}
 	return func() {
 		pprof.StopCPUProfile()
-		f.Close()
+		err = f.Close()
+		if err != nil {
+			log.GitLogger.Fatal(4, "StopCPUProfile Close: %v", err)
+		}
 	}
 }

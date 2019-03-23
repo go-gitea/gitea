@@ -180,8 +180,8 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(statusCode)
-	io.Copy(ctx.Resp, content)
-	content.Close()
+	_, _ = io.Copy(ctx.Resp, content)
+	_ = content.Close()
 	logRequest(ctx.Req, statusCode)
 }
 
@@ -198,7 +198,7 @@ func getMetaHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" {
 		enc := json.NewEncoder(ctx.Resp)
-		enc.Encode(Represent(rv, meta, true, false))
+		_ = enc.Encode(Represent(rv, meta, true, false))
 	}
 
 	logRequest(ctx.Req, 200)
@@ -251,7 +251,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.WriteHeader(sentStatus)
 
 	enc := json.NewEncoder(ctx.Resp)
-	enc.Encode(Represent(rv, meta, meta.Existing, true))
+	_ = enc.Encode(Represent(rv, meta, meta.Existing, true))
 	logRequest(ctx.Req, sentStatus)
 }
 
@@ -315,7 +315,7 @@ func BatchHandler(ctx *context.Context) {
 	respobj := &BatchResponse{Objects: responseObjects}
 
 	enc := json.NewEncoder(ctx.Resp)
-	enc.Encode(respobj)
+	_ = enc.Encode(respobj)
 	logRequest(ctx.Req, 200)
 }
 

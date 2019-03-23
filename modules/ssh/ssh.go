@@ -37,7 +37,10 @@ func cleanCommand(cmd string) string {
 func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 	for newChan := range chans {
 		if newChan.ChannelType() != "session" {
-			newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
+			err := newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
+			if err != nil {
+				log.Error(3, "Error rejecting channel: %v", err)
+			}
 			continue
 		}
 

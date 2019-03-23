@@ -54,6 +54,9 @@ issues:
     - path: routers/api/v1/swagger/
       linters:
         - deadcode
+    - linters:
+        - deadcode
+      text: "swagger"
     - path: contrib/pr/checkout.go
       linters:
         - errcheck
@@ -61,6 +64,9 @@ issues:
       linters:
         - errcheck
     - path: models/migrations/
+      linters:
+        - errcheck
+    - path: modules/log/log.go
       linters:
         - errcheck
     - path: routers/routes/routes.go
