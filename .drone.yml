@@ -71,12 +71,10 @@ pipeline:
     commands:
       - make clean
       - make generate
-      - make vet
+      - make golangci-lint
       - make lint
-      - make fmt-check
       - make swagger-check
       - make swagger-validate
-      - make misspell-check
       - make test-vendor
       - make build
     when:

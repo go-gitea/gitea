@@ -440,3 +440,10 @@ generate-images:
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)
+
+.PHONY: golangci-lint
+golangci-lint:
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.15.0; \
+	fi
+	golangci-lint run

@@ -1,0 +1,29 @@
+linters:
+  enable:
+    - gosimple
+    - deadcode
+    - ineffassign
+    - typecheck
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - structcheck
+    - varcheck
+    - golint
+    - gosec
+    - interfacer
+    - dupl
+    - goconst
+    - gocyclo
+    - gofmt
+    - maligned
+    - misspell
+    - scopelint
+    - gocritic
+
+  enable-all: false
+  presets:
+    - bugs
+    - unused
+  fast: false
