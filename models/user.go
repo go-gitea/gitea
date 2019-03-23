@@ -1718,7 +1718,7 @@ func SyncExternalUsers() {
 			if sshKeysNeedUpdate {
 				err = RewriteAllPublicKeys()
 				if err != nil {
-					log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+					log.Error(4, "RewriteAllPublicKeys: %v", err)
 				}
 			}
 
