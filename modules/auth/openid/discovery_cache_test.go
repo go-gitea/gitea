@@ -39,7 +39,7 @@ func TestTimedDiscoveryCache(t *testing.T) {
 		t.Errorf("Expected nil, got %v", di)
 	}
 
-	// Sleep one second and try retrive again
+	// Sleep one second and try retrieve again
 	time.Sleep(1 * time.Second)
 
 	if di := dc.Get("foo"); di != nil {
