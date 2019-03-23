@@ -169,7 +169,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GITEA_ROOT=${CURDIR} $(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
