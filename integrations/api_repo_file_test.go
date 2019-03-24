@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repofiles"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileResponse {
+func getExpectedFileResponseForCreate(commitID, treePath, port string) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	return &api.FileResponse{
 		Content: &api.FileContentResponse{
@@ -50,23 +51,23 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			Path:        treePath,
 			SHA:         sha,
 			Size:        16,
-			URL:         "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     "http://localhost:3003/user2/repo1/blob/master/" + treePath,
-			GitURL:      "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: "http://localhost:3003/user2/repo1/raw/branch/master/" + treePath,
+			URL:         "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+			HTMLURL:     "http://localhost:"+ port + "/user2/repo1/blob/master/" + treePath,
+			GitURL:      "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+			DownloadURL: "http://localhost:"+ port + "/user2/repo1/raw/branch/master/" + treePath,
 			Type:        "blob",
 			Links: &api.FileLinksResponse{
-				Self:    "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-				GitURL:  "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: "http://localhost:3003/user2/repo1/blob/master/" + treePath,
+				Self:    "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+				GitURL:  "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+				HTMLURL: "http://localhost:"+ port + "/user2/repo1/blob/master/" + treePath,
 			},
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: "http://localhost:3003/api/v1/repos/user2/repo1/git/commits/" + commitID,
+				URL: "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
-			HTMLURL: "http://localhost:3003/user2/repo1/commit/" + commitID,
+			HTMLURL: "http://localhost:"+ port + "/user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "Jane Doe",
@@ -99,7 +100,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileResponse {
+func getExpectedFileResponseForUpdate(commitID, treePath, port string) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	return &api.FileResponse{
 		Content: &api.FileContentResponse{
@@ -107,23 +108,23 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 			Path:        treePath,
 			SHA:         sha,
 			Size:        20,
-			URL:         "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     "http://localhost:3003/user2/repo1/blob/master/" + treePath,
-			GitURL:      "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: "http://localhost:3003/user2/repo1/raw/branch/master/" + treePath,
+			URL:         "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+			HTMLURL:     "http://localhost:"+ port + "/user2/repo1/blob/master/" + treePath,
+			GitURL:      "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+			DownloadURL: "http://localhost:"+ port + "/user2/repo1/raw/branch/master/" + treePath,
 			Type:        "blob",
 			Links: &api.FileLinksResponse{
-				Self:    "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-				GitURL:  "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: "http://localhost:3003/user2/repo1/blob/master/" + treePath,
+				Self:    "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+				GitURL:  "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+				HTMLURL: "http://localhost:"+ port + "/user2/repo1/blob/master/" + treePath,
 			},
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: "http://localhost:3003/api/v1/repos/user2/repo1/git/commits/" + commitID,
+				URL: "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
-			HTMLURL: "http://localhost:3003/user2/repo1/commit/" + commitID,
+			HTMLURL: "http://localhost:"+ port + "/user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "Jane Doe",
@@ -147,7 +148,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 	}
 }
 
-func getExpectedFileContentResponseForFileContents(branch string) *api.FileContentResponse {
+func getExpectedFileContentResponseForFileContents(branch, port string) *api.FileContentResponse {
 	treePath := "README.md"
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	return &api.FileContentResponse{
@@ -155,15 +156,15 @@ func getExpectedFileContentResponseForFileContents(branch string) *api.FileConte
 		Path:        treePath,
 		SHA:         sha,
 		Size:        30,
-		URL:         "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-		HTMLURL:     "http://localhost:3003/user2/repo1/blob/" + branch + "/" + treePath,
-		GitURL:      "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-		DownloadURL: "http://localhost:3003/user2/repo1/raw/branch/" + branch + "/" + treePath,
+		URL:         "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+		HTMLURL:     "http://localhost:"+ port + "/user2/repo1/blob/" + branch + "/" + treePath,
+		GitURL:      "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+		DownloadURL: "http://localhost:"+ port + "/user2/repo1/raw/branch/" + branch + "/" + treePath,
 		Type:        "blob",
 		Links: &api.FileLinksResponse{
-			Self:    "http://localhost:3003/api/v1/repos/user2/repo1/contents/" + treePath,
-			GitURL:  "http://localhost:3003/api/v1/repos/user2/repo1/git/blobs/" + sha,
-			HTMLURL: "http://localhost:3003/user2/repo1/blob/" + branch + "/" + treePath,
+			Self:    "http://localhost:"+ port + "/api/v1/repos/user2/repo1/contents/" + treePath,
+			GitURL:  "http://localhost:"+ port + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
+			HTMLURL: "http://localhost:"+ port + "/user2/repo1/blob/" + branch + "/" + treePath,
 		},
 	}
 }
@@ -220,7 +221,7 @@ func TestAPICreateFile(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusCreated)
 		gitRepo, _ := git.OpenRepository(repo1.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-		expectedFileResponse := getExpectedFileResponseForCreate(commitID, treePath)
+		expectedFileResponse := getExpectedFileResponseForCreate(commitID, treePath, setting.HTTPPort)
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -343,7 +344,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		gitRepo, _ := git.OpenRepository(repo1.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-		expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath)
+		expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, setting.HTTPPort)
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -566,7 +567,7 @@ func TestAPIGetFileContents(t *testing.T) {
 	var fileContentResponse api.FileContentResponse
 	DecodeJSON(t, resp, &fileContentResponse)
 	assert.NotNil(t, fileContentResponse)
-	expectedFileContentResponse := getExpectedFileContentResponseForFileContents(branch)
+	expectedFileContentResponse := getExpectedFileContentResponseForFileContents(branch, setting.HTTPPort)
 	assert.EqualValues(t, *expectedFileContentResponse, fileContentResponse)
 
 	// No ref
@@ -574,7 +575,7 @@ func TestAPIGetFileContents(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &fileContentResponse)
 	assert.NotNil(t, fileContentResponse)
-	expectedFileContentResponse = getExpectedFileContentResponseForFileContents(repo1.DefaultBranch)
+	expectedFileContentResponse = getExpectedFileContentResponseForFileContents(repo1.DefaultBranch, setting.HTTPPort)
 	assert.EqualValues(t, *expectedFileContentResponse, fileContentResponse)
 
 	// ref is master2
@@ -583,7 +584,7 @@ func TestAPIGetFileContents(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &fileContentResponse)
 	assert.NotNil(t, fileContentResponse)
-	expectedFileContentResponse = getExpectedFileContentResponseForFileContents("master2")
+	expectedFileContentResponse = getExpectedFileContentResponseForFileContents("master2", setting.HTTPPort)
 	assert.EqualValues(t, *expectedFileContentResponse, fileContentResponse)
 
 	// Test file contents a file with the wrong branch
