@@ -17,20 +17,46 @@ import (
 
 // GetRandomString generate random string by specify chars.
 func GetRandomString(n int) (string, error) {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
+	const lower = "abcdefghijklmnopqrstuvwxyz"
+	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const digit = "0123456789"
+	const spec = "!@#$%^&*()_-+=[]'\";:/?.>,<`~"
+	var h int = (n - 2) / 2
+	var m int = (n) % 2
 	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(alphanum)))
+	maxLower := big.NewInt(int64(len(lower)))
+	maxUpper := big.NewInt(int64(len(upper)))
+	maxDigit := big.NewInt(int64(len(digit)))
+	maxSpec := big.NewInt(int64(len(spec)))
 
-	for i := 0; i < n; i++ {
-		index, err := randomInt(max)
+	for i := 0; i < h; i++ {
+		index, err := randomInt(maxLower)
 		if err != nil {
 			return "", err
 		}
 
-		buffer[i] = alphanum[index]
+		buffer[i] = lower[index]
+	}
+	for i := h; i < 2*h+m; i++ {
+		index, err := randomInt(maxUpper)
+		if err != nil {
+			return "", err
+		}
+
+		buffer[i] = upper[index]
 	}
 
+	index, err := randomInt(maxDigit)
+	if err != nil {
+		return "", err
+	}
+	buffer[n-2] = digit[index]
+
+	index, err = randomInt(maxSpec)
+	if err != nil {
+		return "", err
+	}
+	buffer[n-1] = spec[index]
 	return string(buffer), nil
 }
 
