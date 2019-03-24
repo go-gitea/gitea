@@ -161,6 +161,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
+	// FIXME: Why is this check needed?
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Context, errs)
 
@@ -260,9 +261,24 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.LocalURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
 	// TODO document SESSION <=> FORM
-	ctx.Session.Set("client_id", app.ClientID)
-	ctx.Session.Set("redirect_uri", form.RedirectURI)
-	ctx.Session.Set("state", form.State)
+	err = ctx.Session.Set("client_id", app.ClientID)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(3, err.Error())
+		return
+	}
+	err = ctx.Session.Set("redirect_uri", form.RedirectURI)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(3, err.Error())
+		return
+	}
+	err = ctx.Session.Set("state", form.State)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(3, err.Error())
+		return
+	}
 	ctx.HTML(200, tplGrantAccess)
 }
 

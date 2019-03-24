@@ -6,6 +6,7 @@ package misc
 
 import (
 	api "code.gitea.io/sdk/gitea"
+	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -47,12 +48,24 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 		md := []byte(form.Text)
 		context := util.URLJoin(setting.AppURL, form.Context)
 		if form.Wiki {
-			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
+			_, err := ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
 		} else {
-			ctx.Write(markdown.Render(md, context, nil))
+			_, err := ctx.Write(markdown.Render(md, context, nil))
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
 		}
 	default:
-		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
+		_, err := ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
 	}
 }
 
@@ -82,5 +95,9 @@ func MarkdownRaw(ctx *context.APIContext) {
 		ctx.Error(422, "", err)
 		return
 	}
-	ctx.Write(markdown.RenderRaw(body, "", false))
+	_, err = ctx.Write(markdown.RenderRaw(body, "", false))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
 }

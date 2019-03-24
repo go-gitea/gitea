@@ -95,5 +95,4 @@ func U2FDelete(ctx *context.Context, form auth.U2FDeleteForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
-	return
 }

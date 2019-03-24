@@ -19,7 +19,7 @@ const (
 
 var (
 	// GitRefNamePattern is regular expression with unallowed characters in git reference name
-	GitRefNamePattern = regexp.MustCompile("[^\\d\\w-_\\./]")
+	GitRefNamePattern = regexp.MustCompile(`[^\d\w-_\\./]`)
 )
 
 // AddBindingRules adds additional binding rules

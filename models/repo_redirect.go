@@ -38,7 +38,10 @@ func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) err
 	}
 
 	if err := deleteRepoRedirect(sess, ownerID, newRepoName); err != nil {
-		sess.Rollback()
+		err = sess.Rollback()
+		if err != nil {
+			return err
+		}
 		return err
 	}
 
@@ -47,7 +50,10 @@ func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) err
 		LowerName:      oldRepoName,
 		RedirectRepoID: repoID,
 	}); err != nil {
-		sess.Rollback()
+		err = sess.Rollback()
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	return sess.Commit()

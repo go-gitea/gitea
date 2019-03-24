@@ -142,6 +142,9 @@ func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
 func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
 	has, err := e.ID(id).Get(app)
+	if err != nil {
+		return nil, err
+	}
 	if !has {
 		return nil, ErrOAuthApplicationNotFound{ID: id}
 	}

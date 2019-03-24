@@ -157,7 +157,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	}
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	data := make(map[string]interface{}, 10)
+	var data = make(map[string]interface{}, 10)
 	if comment != nil {
 		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
 	} else {

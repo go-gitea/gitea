@@ -29,7 +29,7 @@ func GetRepository(ctx *macaron.Context) {
 	}
 
 	if repository.IsFork {
-		repository.GetBaseRepo()
+		err = repository.GetBaseRepo()
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"err": err.Error(),

@@ -179,10 +179,8 @@ func HTTP(ctx *context.Context) {
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error(4, "GetAccessTokenBySha: %v", err)
 			}
 
 			if authUser == nil {
@@ -366,7 +364,9 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 }
 
 func serviceRPC(h serviceHandler, service string) {
-	defer h.r.Body.Close()
+	defer func() {
+		_ = h.r.Body.Close()
+	}()
 
 	if !hasAccess(service, h, true) {
 		h.w.WriteHeader(http.StatusUnauthorized)
@@ -442,9 +442,9 @@ func getInfoRefs(h serviceHandler) {
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
 		h.w.WriteHeader(http.StatusOK)
-		h.w.Write(packetWrite("# service=git-" + service + "\n"))
-		h.w.Write([]byte("0000"))
-		h.w.Write(refs)
+		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
+		_, _ = h.w.Write([]byte("0000"))
+		_, _ = h.w.Write(refs)
 	} else {
 		updateServerInfo(h.dir)
 		h.sendFile("text/plain; charset=utf-8")
@@ -497,16 +497,25 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 				if setting.Repository.DisableHTTPGit {
 					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					if err != nil {
+						log.GitLogger.Error(4, err.Error())
+					}
 					return
 				}
 				if route.method != r.Method {
 					if r.Proto == "HTTP/1.1" {
 						w.WriteHeader(http.StatusMethodNotAllowed)
-						w.Write([]byte("Method Not Allowed"))
+						_, err := w.Write([]byte("Method Not Allowed"))
+						if err != nil {
+							log.GitLogger.Error(4, err.Error())
+						}
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request"))
+						_, err := w.Write([]byte("Bad Request"))
+						if err != nil {
+							log.GitLogger.Error(4, err.Error())
+						}
 					}
 					return
 				}

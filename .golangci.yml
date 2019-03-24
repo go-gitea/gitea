@@ -51,10 +51,8 @@ issues:
     - path: modules/templates/helper.go
       linters:
         - gocritic
-    - path: routers/api/v1/swagger/
-      linters:
-        - deadcode
     - linters:
+        - unused
         - deadcode
       text: "swagger"
     - path: contrib/pr/checkout.go
@@ -66,7 +64,7 @@ issues:
     - path: models/migrations/
       linters:
         - errcheck
-    - path: modules/log/log.go
+    - path: modules/log/
       linters:
         - errcheck
     - path: routers/routes/routes.go
@@ -81,4 +79,6 @@ issues:
     - linters:
         - staticcheck
       text: "argument x is overwritten before first use"
-
+    - path: modules/httplib/httplib.go
+      linters:
+        - staticcheck

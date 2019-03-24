@@ -146,7 +146,7 @@ type postProcessError struct {
 }
 
 func (p *postProcessError) Error() string {
-	return "PostProcess: " + p.context + ", " + p.Error()
+	return "PostProcess: " + p.context
 }
 
 type processor func(ctx *postProcessCtx, node *html.Node)

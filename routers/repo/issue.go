@@ -917,7 +917,15 @@ func ViewIssue(ctx *context.Context) {
 
 	// Get Dependencies
 	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	if err != nil {
+		ctx.ServerError("BlockedByDependencies", err)
+		return
+	}
 	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	if err != nil {
+		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)

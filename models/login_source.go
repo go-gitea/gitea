@@ -281,6 +281,9 @@ func CreateLoginSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+		if err != nil {
+			return err
+		}
 
 		// remove the LoginSource in case of errors while registering OAuth2 providers
 		_, err = x.Delete(source)
@@ -322,6 +325,9 @@ func UpdateSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+		if err != nil {
+			return err
+		}
 
 		// restore original values since we cannot update the provider it self
 		_, err = x.ID(source.ID).AllCols().Update(originalLoginSource)

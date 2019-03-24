@@ -126,7 +126,10 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
 	log.Trace("Form-passed openid-remember: %s", form.Remember)
-	ctx.Session.Set("openid_signin_remember", form.Remember)
+	err = ctx.Session.Set("openid_signin_remember", form.Remember)
+	if err != nil {
+		log.Error(1, "SignInOpenIDPost: Could not set session: %v", err.Error())
+	}
 
 	ctx.Redirect(url)
 }
@@ -220,15 +223,24 @@ func signInOpenIDVerify(ctx *context.Context) {
 		}
 	}
 
-	ctx.Session.Set("openid_verified_uri", id)
+	err = ctx.Session.Set("openid_verified_uri", id)
+	if err != nil {
+		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
-	ctx.Session.Set("openid_determined_email", email)
+	err = ctx.Session.Set("openid_determined_email", email)
+	if err != nil {
+		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
 	if u != nil {
 		nickname = u.LowerName
 	}
 
-	ctx.Session.Set("openid_determined_username", nickname)
+	err = ctx.Session.Set("openid_determined_username", nickname)
+	if err != nil {
+		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
@@ -348,7 +360,11 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		ctx.Req.ParseForm()
+		err := ctx.Req.ParseForm()
+		if err != nil {
+			ctx.ServerError("", err)
+			return
+		}
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true

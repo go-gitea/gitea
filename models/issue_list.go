@@ -146,12 +146,18 @@ func (issues IssueList) loadLabels(e Engine) error {
 			var labelIssue LabelIssue
 			err = rows.Scan(&labelIssue)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
-		rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -231,13 +237,19 @@ func (issues IssueList) loadAssignees(e Engine) error {
 			var assigneeIssue AssigneeIssue
 			err = rows.Scan(&assigneeIssue)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
-		rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -283,14 +295,19 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 			var pr PullRequest
 			err = rows.Scan(&pr)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
-
-		rows.Close()
-		left = left - limit
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -325,14 +342,19 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 			var attachment Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
 		}
-
-		rows.Close()
-		left = left - limit
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -368,13 +390,19 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 			var comment Comment
 			err = rows.Scan(&comment)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
 		}
-		rows.Close()
-		left = left - limit
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -422,13 +450,19 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			var totalTime totalTimesByIssue
 			err = rows.Scan(&totalTime)
 			if err != nil {
-				rows.Close()
+				err = rows.Close()
+				if err != nil {
+					return err
+				}
 				return err
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
-		rows.Close()
-		left = left - limit
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
+		left -= limit
 		ids = ids[limit:]
 	}
 
