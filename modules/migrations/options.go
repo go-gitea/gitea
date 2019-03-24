@@ -24,15 +24,16 @@ type MigrateOptions struct {
 	Name         string
 	Description  string
 
-	Wiki         bool
-	Issues       bool
-	Milestones   bool
-	Labels       bool
-	Releases     bool
-	Comments     bool
-	PullRequests bool
-	Private      bool
-	Mirror       bool
+	Wiki              bool
+	Issues            bool
+	Milestones        bool
+	Labels            bool
+	Releases          bool
+	Comments          bool
+	PullRequests      bool
+	Private           bool
+	Mirror            bool
+	IgnoreIssueAuthor bool // if true will not add original author information before issues or comments content.
 }
 
 // Source returns the migration source

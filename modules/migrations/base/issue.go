@@ -16,6 +16,7 @@ type Issue struct {
 	Content     string
 	Milestone   string
 	State       string // closed, open
+	IsLocked    bool
 	Created     time.Time
 	Closed      *time.Time
 	Labels      []*Label

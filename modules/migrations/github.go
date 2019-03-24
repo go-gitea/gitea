@@ -282,6 +282,7 @@ func (g *GithubDownloaderV3) GetIssues(start, limit int) ([]*base.Issue, error) 
 				Labels:      labels,
 				Reactions:   reactions,
 				Closed:      issue.ClosedAt,
+				IsLocked:    *issue.Locked,
 			})
 			if len(allIssues) >= limit {
 				return allIssues, nil
@@ -375,33 +376,43 @@ func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequ
 				email = *pr.User.Email
 			}
 			var merged bool
-			if pr.Merged != nil {
-				merged = *pr.Merged
+			// ? pr.Merged is not valid, so use MergedAt to test if it's merged
+			if pr.MergedAt != nil {
+				merged = true
 			}
 
 			var headRepoName string
+			var cloneURL string
 			if pr.Head.Repo != nil {
 				headRepoName = *pr.Head.Repo.Name
+				cloneURL = *pr.Head.Repo.CloneURL
+			}
+			var mergeCommitSHA string
+			if pr.MergeCommitSHA != nil {
+				mergeCommitSHA = *pr.MergeCommitSHA
 			}
 
 			allPRs = append(allPRs, &base.PullRequest{
-				Title:       *pr.Title,
-				Number:      int64(*pr.Number),
-				PosterName:  *pr.User.Login,
-				PosterEmail: email,
-				Content:     body,
-				Milestone:   milestone,
-				State:       *pr.State,
-				Created:     *pr.CreatedAt,
-				Closed:      pr.ClosedAt,
-				Labels:      labels,
-				Merged:      merged,
+				Title:          *pr.Title,
+				Number:         int64(*pr.Number),
+				PosterName:     *pr.User.Login,
+				PosterEmail:    email,
+				Content:        body,
+				Milestone:      milestone,
+				State:          *pr.State,
+				Created:        *pr.CreatedAt,
+				Closed:         pr.ClosedAt,
+				Labels:         labels,
+				Merged:         merged,
+				MergeCommitSHA: mergeCommitSHA,
+				MergedTime:     pr.MergedAt,
+				IsLocked:       pr.ActiveLockReason != nil,
 				Head: base.PullRequestBranch{
 					Ref:       *pr.Head.Ref,
 					SHA:       *pr.Head.SHA,
 					RepoName:  headRepoName,
 					OwnerName: *pr.Head.User.Login,
-					CloneURL:  *pr.Head.Repo.CloneURL,
+					CloneURL:  cloneURL,
 				},
 				Base: base.PullRequestBranch{
 					Ref:       *pr.Base.Ref,

@@ -12,22 +12,25 @@ import (
 
 // PullRequest defines a standard pull request information
 type PullRequest struct {
-	Number      int64
-	Title       string
-	PosterName  string
-	PosterEmail string
-	Content     string
-	Milestone   string
-	State       string
-	Created     time.Time
-	Closed      *time.Time
-	Labels      []*Label
-	PatchURL    string
-	Merged      bool
-	Head        PullRequestBranch
-	Base        PullRequestBranch
-	Assignee    string
-	Assignees   []string
+	Number         int64
+	Title          string
+	PosterName     string
+	PosterEmail    string
+	Content        string
+	Milestone      string
+	State          string
+	Created        time.Time
+	Closed         *time.Time
+	Labels         []*Label
+	PatchURL       string
+	Merged         bool
+	MergedTime     *time.Time
+	MergeCommitSHA string
+	Head           PullRequestBranch
+	Base           PullRequestBranch
+	Assignee       string
+	Assignees      []string
+	IsLocked       bool
 }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository

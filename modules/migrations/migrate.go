@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -51,7 +52,10 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
-		return uploader.Rollback()
+		if err1 := uploader.Rollback(); err1 != nil {
+			log.Error(4, "rollback failed: %v", err1)
+		}
+		return err
 	}
 
 	return nil
@@ -121,6 +125,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 		for _, issue := range issues {
+			if !opts.IgnoreIssueAuthor {
+				issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
+			}
+
 			if err := uploader.CreateIssue(issue); err != nil {
 				return err
 			}
@@ -134,6 +142,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 			for _, comment := range comments {
+				if !opts.IgnoreIssueAuthor {
+					comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+				}
 				if err := uploader.CreateComment(issue.Number, comment); err != nil {
 					return err
 				}
@@ -149,6 +160,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 
 		for _, pr := range prs {
+			if !opts.IgnoreIssueAuthor {
+				pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
+			}
 			if err := uploader.CreatePullRequest(pr); err != nil {
 				return err
 			}
@@ -161,6 +175,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 			for _, comment := range comments {
+				if !opts.IgnoreIssueAuthor {
+					comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+				}
 				if err := uploader.CreateComment(pr.Number, comment); err != nil {
 					return err
 				}

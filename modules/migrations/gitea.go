@@ -11,12 +11,14 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -30,22 +32,24 @@ var (
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
-	doer       *models.User
-	repoOwner  string
-	repoName   string
-	repo       *models.Repository
-	labels     sync.Map
-	milestones sync.Map
-	issues     sync.Map
-	gitRepo    *git.Repository
+	doer        *models.User
+	repoOwner   string
+	repoName    string
+	repo        *models.Repository
+	labels      sync.Map
+	milestones  sync.Map
+	issues      sync.Map
+	gitRepo     *git.Repository
+	prHeadCache map[string]struct{}
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
 func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
-		doer:      doer,
-		repoOwner: repoOwner,
-		repoName:  repoName,
+		doer:        doer,
+		repoOwner:   repoOwner,
+		repoName:    repoName,
+		prHeadCache: make(map[string]struct{}),
 	}
 }
 
@@ -205,8 +209,9 @@ func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
 		Index:       issue.Number,
 		PosterID:    g.doer.ID,
 		Title:       issue.Title,
-		Content:     fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content),
+		Content:     issue.Content,
 		IsClosed:    issue.State == "closed",
+		IsLocked:    issue.IsLocked,
 		MilestoneID: milestoneID,
 		CreatedUnix: util.TimeStamp(issue.Created.Unix()),
 	}
@@ -238,12 +243,10 @@ func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comm
 	}
 
 	var cm = models.Comment{
-		IssueID:  issueID,
-		Type:     models.CommentTypeComment,
-		PosterID: g.doer.ID,
-		Content: fmt.Sprintf("Author: @%s \n\n%s",
-			comment.PosterName,
-			comment.Content),
+		IssueID:     issueID,
+		Type:        models.CommentTypeComment,
+		PosterID:    g.doer.ID,
+		Content:     comment.Content,
 		CreatedUnix: util.TimeStamp(comment.Created.Unix()),
 	}
 	err := models.InsertComment(&cm)
@@ -271,18 +274,79 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 		milestoneID = milestone.(int64)
 	}
 
-	var head string
+	// download patch file
+	resp, err := http.Get(pr.PatchURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
+	if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+		return err
+	}
+	f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	// set head information
+	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
+	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
+		return err
+	}
+	p, err := os.Create(filepath.Join(pullHead, "head"))
+	if err != nil {
+		return err
+	}
+	defer p.Close()
+	_, err = p.WriteString(pr.Head.SHA)
+	if err != nil {
+		return err
+	}
+
+	var head = "unknown repository"
 	if pr.IsForkPullRequest() {
-		headPrefix := fmt.Sprintf("%s/%s", pr.Head.OwnerName, pr.Head.RepoName)
+		if pr.Head.OwnerName != "" {
+			remote := pr.Head.OwnerName
+			_, ok := g.prHeadCache[remote]
+			if !ok {
+				// git remote add
+				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+				if err != nil {
+					log.Error(4, "AddRemote failed: %s", err)
+				} else {
+					g.prHeadCache[remote] = struct{}{}
+					ok = true
+				}
+			}
 
-		// TODO: clone the remote creates special branches\
-		// git remote add
-		err := g.gitRepo.AddRemote(headPrefix, pr.Head.CloneURL, true)
-		if err != nil {
-			return fmt.Errorf("AddRemote failed: %s", err)
+			if ok {
+				_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
+				if err != nil {
+					log.Error(4, "Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+				} else {
+					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+						return err
+					}
+					b, err := os.Create(headBranch)
+					if err != nil {
+						return err
+					}
+					defer b.Close()
+					_, err = b.WriteString(pr.Head.SHA)
+					if err != nil {
+						return err
+					}
+					head = pr.Head.OwnerName + "/" + pr.Head.Ref
+				}
+			}
 		}
-
-		head = "remotes/" + headPrefix + "/" + pr.Head.Ref
 	} else {
 		head = pr.Head.Ref
 	}
@@ -293,7 +357,9 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 		HeadUserName: g.repoOwner,
 		BaseRepoID:   g.repo.ID,
 		BaseBranch:   pr.Base.Ref,
+		MergeBase:    pr.Base.SHA,
 		Index:        pr.Number,
+		HasMerged:    pr.Merged,
 
 		Issue: &models.Issue{
 			RepoID:      g.repo.ID,
@@ -301,10 +367,11 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 			Title:       pr.Title,
 			Index:       pr.Number,
 			PosterID:    g.doer.ID,
-			Content:     fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content),
+			Content:     pr.Content,
 			MilestoneID: milestoneID,
 			IsPull:      true,
 			IsClosed:    pr.State == "closed",
+			IsLocked:    pr.IsLocked,
 			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
 		},
 	}
@@ -312,14 +379,16 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {
 		pullRequest.Issue.ClosedUnix = util.TimeStamp(pr.Closed.Unix())
 	}
+	if pullRequest.HasMerged && pr.MergedTime != nil {
+		pullRequest.MergedUnix = util.TimeStamp(pr.MergedTime.Unix())
+		pullRequest.MergedCommitID = pr.MergeCommitSHA
+		pullRequest.MergerID = g.doer.ID
+	}
 
-	// TODO: islocked
 	// TODO: reactions
-	// TODO: replace internal link github.com/xxx/xxx#<index> to #xxx/xxx#<index>
 	// TODO: assignees
 
-	err := models.InsertPullRequest(&pullRequest, labelIDs)
-	return err
+	return models.InsertPullRequest(&pullRequest, labelIDs)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
