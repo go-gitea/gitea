@@ -5,10 +5,14 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/util"
+	"gopkg.in/macaron.v1"
 
 	"github.com/Unknwon/com"
 )
@@ -143,6 +147,28 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 
 	_, err = x.Insert(transfer)
 	return err
+}
+
+// SendRepoTransferNotifyMail triggers a notification e-mail when a repository
+// transfer is initiated
+func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
+	data := map[string]interface{}{
+		"Subject":  c.Tr("mail.repo_transfer_notify"),
+		"RepoName": repo.FullName(),
+		"Link":     repo.HTMLURL(),
+	}
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+		log.Error(3, "Template: %v", err)
+		return
+	}
+
+	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.repo_transfer_notify"), content.String())
+	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
+
+	mailer.SendAsync(msg)
 }
 
 // TransferOwnership transfers all corresponding setting from one user to

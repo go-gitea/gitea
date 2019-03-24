@@ -7,6 +7,7 @@ package repo
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -303,7 +304,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusUnauthorized)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -312,12 +313,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		newOwner := ctx.Query("new_owner_name")
-		isExist, err := models.IsUserExist(0, newOwner)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if !isExist {
+		u, err := models.GetUserByName(newOwner)
+		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			return
+		} else if err != nil {
+			ctx.ServerError("GetUserByName", err)
 			return
 		}
 
@@ -329,13 +330,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
+
 			return
 		}
 
-		err = models.NewRepoRedirect(oldOwnerID, repo.ID, repo.Name, repo.Name)
-		if err != nil {
-			ctx.ServerError("NewRepoRedirect", err)
-			return
+		if setting.Service.EnableNotifyMail {
+			models.SendRepoTransferNotifyMail(ctx.Context, u, ctx.Repo.Repository)
 		}
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
@@ -345,7 +345,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	case "cancel_transfer":
 
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusUnauthorized)
 			return
 		}
 
@@ -374,6 +374,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.abort_transfer_success", repoTransfer.Recipient.Name))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+
 	case "delete":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(404)
