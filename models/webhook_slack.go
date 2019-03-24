@@ -42,9 +42,6 @@ type SlackAttachment struct {
 	Text     string `json:"text"`
 }
 
-// SetSecret sets the slack secret
-func (p *SlackPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the SlackPayload to json
 func (p *SlackPayload) JSONPayload() ([]byte, error) {
 	data, err := json.MarshalIndent(p, "", "  ")

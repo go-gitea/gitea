@@ -80,9 +80,6 @@ var (
 	failedColor  = color("ff3232")
 )
 
-// SetSecret sets the discord secret
-func (p *DiscordPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the DiscordPayload to json
 func (p *DiscordPayload) JSONPayload() ([]byte, error) {
 	data, err := json.MarshalIndent(p, "", "  ")

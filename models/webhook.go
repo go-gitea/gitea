@@ -6,7 +6,10 @@
 package models
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -529,6 +532,7 @@ type HookTask struct {
 	UUID            string
 	Type            HookTaskType
 	URL             string `xorm:"TEXT"`
+	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	ContentType     HookContentType
@@ -653,8 +657,18 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
 	default:
-		p.SetSecret(w.Secret)
 		payloader = p
+	}
+
+	var signature string
+	if len(w.Secret) > 0 {
+		data, err := payloader.JSONPayload()
+		if err != nil {
+			log.Error(2, "prepareWebhooks.JSONPayload: %v", err)
+		}
+		sig := hmac.New(sha256.New, []byte(w.Secret))
+		sig.Write(data)
+		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
 	if err = createHookTask(e, &HookTask{
@@ -662,6 +676,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		HookID:      w.ID,
 		Type:        w.HookTaskType,
 		URL:         w.URL,
+		Signature:   signature,
 		Payloader:   payloader,
 		ContentType: w.ContentType,
 		EventType:   event,
@@ -713,6 +728,8 @@ func (t *HookTask) deliver() {
 		Header("X-Gitea-Delivery", t.UUID).
 		Header("X-Gitea-Event", string(t.EventType)).
 		Header("X-Gogs-Delivery", t.UUID).
+		Header("X-Gogs-Signature", t.Signature).
+		Header("X-Hub-Signature", "sha256=" + t.Signature).
 		Header("X-Gogs-Event", string(t.EventType)).
 		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
 		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
