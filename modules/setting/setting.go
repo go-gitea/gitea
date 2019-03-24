@@ -741,7 +741,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
-  
+
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
 
@@ -768,8 +768,8 @@ func NewContext() {
 			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 		}
 	}
-  InternalToken = loadInternalToken(sec)
-	PasswordComplexity = Cfg.Section("security.PASSWORD_COMPLEXITY").KeysHash()	
+	InternalToken = loadInternalToken(sec)
+	PasswordComplexity = Cfg.Section("security.PASSWORD_COMPLEXITY").KeysHash()
 
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
