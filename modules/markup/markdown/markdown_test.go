@@ -106,11 +106,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
 `,
-		`<h2>What is Wine Staging?</h2>
+		`<h2 id="what-is-wine-staging">What is Wine Staging?</h2>
 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 
-<h2>Quick Links</h2>
+<h2 id="quick-links">Quick Links</h2>
 
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 
@@ -138,6 +138,42 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li>Perform a test run by hitting the Run! button.
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
+
+<h2 id="custom-id">More tests</h2>
+
+<p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
+
+<h3 id="definition-list">Definition list</h3>
+
+<dl>
+<dt>First Term</dt>
+<dd>This is the definition of the first term.</dd>
+<dt>Second Term</dt>
+<dd>This is one definition of the second term.</dd>
+<dd>This is another definition of the second term.</dd>
+</dl>
+
+<h3 id="footnotes">Footnotes</h3>
+
+<p>Here is a simple footnote,<sup id="fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+<div>
+
+<hr/>
+
+<ol>
+<li id="fn:1">This is the first footnote.
+</li>
+
+<li id="fn:bignote"><p>Here is one with multiple paragraphs and code.</p>
+
+<p>Indent paragraphs to include them in the footnote.</p>
+
+<p><code>{ my code }</code></p>
+
+<p>Add as many paragraphs as you like.</p>
+</li>
+</ol>
+</div>
 `,
 	}
 }
@@ -172,7 +208,35 @@ Here are some links to the most important topics. You can find the full list of 
 1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
 [[images/1.png]]
 2. Perform a test run by hitting the Run! button.
-[[images/2.png]]`,
+[[images/2.png]]
+
+## More tests {#custom-id}
+
+(from https://www.markdownguide.org/extended-syntax/)
+
+### Definition list
+
+First Term
+: This is the definition of the first term.
+
+Second Term
+: This is one definition of the second term.
+: This is another definition of the second term.
+
+### Footnotes
+
+Here is a simple footnote,[^1] and here is a longer one.[^bignote]
+
+[^1]: This is the first footnote.
+
+[^bignote]: Here is one with multiple paragraphs and code.
+
+    Indent paragraphs to include them in the footnote.
+
+    ` + "`{ my code }`" + `
+
+    Add as many paragraphs as you like.
+`,
 }
 
 func TestTotal_RenderWiki(t *testing.T) {

@@ -146,7 +146,7 @@ func GetIssue(ctx *context.APIContext) {
 	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -283,7 +283,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -316,7 +316,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Add/delete assignees
 
-	// Deleting is done the Github way (quote from their api documentation):
+	// Deleting is done the GitHub way (quote from their api documentation):
 	// https://developer.github.com/v3/issues/#edit-an-issue
 	// "assignees" (array): Logins for Users to assign to this issue.
 	// Pass one or more user logins to replace the set of assignees on this Issue.
@@ -412,7 +412,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -478,7 +478,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -547,7 +547,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}

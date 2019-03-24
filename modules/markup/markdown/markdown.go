@@ -128,7 +128,11 @@ const (
 		blackfriday.EXTENSION_TABLES |
 		blackfriday.EXTENSION_FENCED_CODE |
 		blackfriday.EXTENSION_STRIKETHROUGH |
-		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
+		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
+		blackfriday.EXTENSION_DEFINITION_LISTS |
+		blackfriday.EXTENSION_FOOTNOTES |
+		blackfriday.EXTENSION_HEADER_IDS |
+		blackfriday.EXTENSION_AUTO_HEADER_IDS
 	blackfridayHTMLFlags = 0 |
 		blackfriday.HTML_SKIP_STYLE |
 		blackfriday.HTML_OMIT_CONTENTS |
