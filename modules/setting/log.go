@@ -54,9 +54,16 @@ func getLogLevel(section *ini.Section, key string, defaultValue string) string {
 	return log.FromString(value).String()
 }
 
+func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
+	value := section.Key(key).MustString("none")
+	return log.FromString(value).String()
+}
+
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, config, levelName string) {
 	levelName = getLogLevel(sec, "LEVEL", LogLevel)
 	level := log.FromString(levelName)
+	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
+	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
 	keys := sec.Keys()
 	logPath := defaults.filename
@@ -79,10 +86,11 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	}
 
 	jsonConfig := map[string]interface{}{
-		"level":      level.String(),
-		"expression": expression,
-		"prefix":     prefix,
-		"flags":      flags,
+		"level":           level.String(),
+		"expression":      expression,
+		"prefix":          prefix,
+		"flags":           flags,
+		"stacktraceLevel": stacktraceLevel.String(),
 	}
 
 	// Generate log configuration.
@@ -217,7 +225,6 @@ func newLogService() {
 	}
 
 	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
-	//LogDescriptions["default"].Configs = make([]string, len(LogDescriptions["default"].Sections))
 
 	useConsole := false
 	for i := 0; i < len(sections); i++ {

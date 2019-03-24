@@ -1,3 +1,4 @@
+
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -526,6 +527,8 @@ ACCESS_LOG_TEMPLATE = {{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/J
 ACCESS = file
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
 LEVEL = Info
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "None"
+STACKTRACE_LEVEL = None
 FLAGS = 0
 EXPRESSION =
 PREFIX =

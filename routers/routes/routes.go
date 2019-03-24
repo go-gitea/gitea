@@ -90,7 +90,7 @@ func setupAccessLogger(m *macaron.Macaron) {
 			ResponseWriter: &rw,
 		})
 
-		logger.SendLog(log.INFO, "", "", 0, buf.String())
+		logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
 	})
 }
 

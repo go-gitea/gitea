@@ -46,12 +46,13 @@ type BaseLogger struct {
 	out io.WriteCloser
 	mu  sync.Mutex
 
-	Level      Level  `json:"level"`
-	Flags      int    `json:"flags"`
-	Prefix     string `json:"prefix"`
-	Colorize   bool   `json:"colorize"`
-	Expression string `json:"expression"`
-	regexp     *regexp.Regexp
+	Level           Level  `json:"level"`
+	StacktraceLevel Level  `json:"stacktraceLevel"`
+	Flags           int    `json:"flags"`
+	Prefix          string `json:"prefix"`
+	Colorize        bool   `json:"colorize"`
+	Expression      string `json:"expression"`
+	regexp          *regexp.Regexp
 }
 
 func (b *BaseLogger) createLogger(out io.WriteCloser, level ...Level) {
@@ -83,6 +84,11 @@ func (b *BaseLogger) createExpression() {
 // GetLevel returns the logging level for this logger
 func (b *BaseLogger) GetLevel() Level {
 	return b.Level
+}
+
+// GetStacktraceLevel returns the stacktrace logging level for this logger
+func (b *BaseLogger) GetStacktraceLevel() Level {
+	return b.StacktraceLevel
 }
 
 // Copy of cheap integer to fixed-width decimal to ascii from logger.
@@ -209,9 +215,19 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	*buf = append(*buf, lines[0]...)
 	if len(lines) > 1 {
 		for _, line := range lines[1:] {
-			*buf = append(*buf, "\n        "...)
+			*buf = append(*buf, "\n\t"...)
 			*buf = append(*buf, line...)
 		}
+	}
+	if event.stacktrace != "" && b.StacktraceLevel <= event.level {
+		lines := bytes.Split([]byte(event.stacktrace), []byte("\n"))
+		if len(lines) > 1 {
+			for _, line := range lines {
+				*buf = append(*buf, "\n\t"...)
+				*buf = append(*buf, line...)
+			}
+		}
+		*buf = append(*buf, '\n')
 	}
 	*buf = append(*buf, '\n')
 }

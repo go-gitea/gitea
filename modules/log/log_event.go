@@ -12,12 +12,13 @@ import (
 
 // Event represents a logging event
 type Event struct {
-	level    Level
-	msg      string
-	caller   string
-	filename string
-	line     int
-	time     time.Time
+	level      Level
+	msg        string
+	caller     string
+	filename   string
+	line       int
+	time       time.Time
+	stacktrace string
 }
 
 // EventLogger represents the behaviours of a logger
@@ -26,6 +27,7 @@ type EventLogger interface {
 	Close()
 	Flush()
 	GetLevel() Level
+	GetStacktraceLevel() Level
 	GetName() string
 }
 
@@ -36,14 +38,16 @@ type ChannelledLog struct {
 	queue          chan *Event
 	loggerProvider LoggerProvider
 	flush          chan bool
+	closed         chan bool
 }
 
 // CreateChannelledLog a new logger instance with given logger provider and config.
 func CreateChannelledLog(name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
 	if log, ok := providers[provider]; ok {
 		l := &ChannelledLog{
-			queue: make(chan *Event, bufferLength),
-			flush: make(chan bool),
+			queue:  make(chan *Event, bufferLength),
+			flush:  make(chan bool),
+			closed: make(chan bool),
 		}
 		l.loggerProvider = log()
 		if err := l.loggerProvider.Init(config); err != nil {
@@ -63,13 +67,13 @@ func (l *ChannelledLog) Start() {
 		select {
 		case event, ok := <-l.queue:
 			if !ok {
-				l.loggerProvider.Close()
+				l.closeLogger()
 				return
 			}
 			l.loggerProvider.LogEvent(event)
 		case _, ok := <-l.flush:
 			if !ok {
-				l.loggerProvider.Close()
+				l.closeLogger()
 				return
 			}
 			l.loggerProvider.Flush()
@@ -91,10 +95,18 @@ func (l *ChannelledLog) LogEvent(event *Event) error {
 	}
 }
 
+func (l *ChannelledLog) closeLogger() {
+	l.loggerProvider.Flush()
+	l.loggerProvider.Close()
+	l.closed <- true
+	return
+}
+
 // Close this ChannelledLog
 func (l *ChannelledLog) Close() {
 	close(l.queue)
 	close(l.flush)
+	<-l.closed
 }
 
 // Flush this ChannelledLog
@@ -107,6 +119,11 @@ func (l *ChannelledLog) GetLevel() Level {
 	return l.loggerProvider.GetLevel()
 }
 
+// GetStacktraceLevel gets the level of this ChannelledLog
+func (l *ChannelledLog) GetStacktraceLevel() Level {
+	return l.loggerProvider.GetStacktraceLevel()
+}
+
 // GetName returns the name of this ChannelledLog
 func (l *ChannelledLog) GetName() string {
 	return l.name
@@ -114,25 +131,29 @@ func (l *ChannelledLog) GetName() string {
 
 // MultiChannelledLog represents a cached channel to a LoggerProvider
 type MultiChannelledLog struct {
-	name         string
-	bufferLength int64
-	queue        chan *Event
-	mutex        sync.Mutex
-	loggers      map[string]EventLogger
-	flush        chan bool
-	started      bool
-	level        Level
+	name            string
+	bufferLength    int64
+	queue           chan *Event
+	mutex           sync.Mutex
+	loggers         map[string]EventLogger
+	flush           chan bool
+	started         bool
+	level           Level
+	stacktraceLevel Level
+	closed          chan bool
 }
 
 // CreateMultiChannelledLog a new logger instance with given logger provider and config.
 func CreateMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog {
 	m := &MultiChannelledLog{
-		name:         name,
-		queue:        make(chan *Event, bufferLength),
-		flush:        make(chan bool),
-		bufferLength: bufferLength,
-		loggers:      make(map[string]EventLogger),
-		level:        NONE,
+		name:            name,
+		queue:           make(chan *Event, bufferLength),
+		flush:           make(chan bool),
+		bufferLength:    bufferLength,
+		loggers:         make(map[string]EventLogger),
+		level:           NONE,
+		stacktraceLevel: NONE,
+		closed:          make(chan bool),
 	}
 	return m
 }
@@ -148,6 +169,9 @@ func (m *MultiChannelledLog) AddLogger(logger EventLogger) error {
 	m.loggers[name] = logger
 	if logger.GetLevel() < m.level {
 		m.level = logger.GetLevel()
+	}
+	if logger.GetStacktraceLevel() < m.stacktraceLevel {
+		m.stacktraceLevel = logger.GetStacktraceLevel()
 	}
 	m.mutex.Unlock()
 	go m.Start()
@@ -193,9 +217,11 @@ func (m *MultiChannelledLog) GetEventLoggerNames() []string {
 func (m *MultiChannelledLog) closeLoggers() {
 	m.mutex.Lock()
 	for _, logger := range m.loggers {
+		logger.Flush()
 		logger.Close()
 	}
 	m.mutex.Unlock()
+	m.closed <- true
 	return
 }
 
@@ -255,6 +281,7 @@ func (m *MultiChannelledLog) LogEvent(event *Event) error {
 func (m *MultiChannelledLog) Close() {
 	close(m.queue)
 	close(m.flush)
+	<-m.closed
 }
 
 // Flush this ChannelledLog
@@ -267,12 +294,21 @@ func (m *MultiChannelledLog) GetLevel() Level {
 	return m.level
 }
 
+// GetStacktraceLevel gets the level of this MultiChannelledLog
+func (m *MultiChannelledLog) GetStacktraceLevel() Level {
+	return m.stacktraceLevel
+}
+
 func (m *MultiChannelledLog) internalResetLevel() Level {
 	m.level = NONE
 	for _, logger := range m.loggers {
 		level := logger.GetLevel()
 		if level < m.level {
 			m.level = level
+		}
+		level = logger.GetStacktraceLevel()
+		if level < m.stacktraceLevel {
+			m.stacktraceLevel = level
 		}
 	}
 	return m.level

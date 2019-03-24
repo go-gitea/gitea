@@ -90,6 +90,11 @@ func GetLevel() Level {
 	return NamedLoggers[DEFAULT].GetLevel()
 }
 
+// GetStacktraceLevel returns the minimum logger level
+func GetStacktraceLevel() Level {
+	return NamedLoggers[DEFAULT].GetStacktraceLevel()
+}
+
 // Trace records trace log
 func Trace(format string, v ...interface{}) {
 	Log(1, TRACE, format, v...)
@@ -192,25 +197,9 @@ func Close() {
 // Log a message with defined skip and at logging level
 // A skip of 0 refers to the caller of this command
 func Log(skip int, level Level, format string, v ...interface{}) {
-	if GetLevel() > level {
-		return
-	}
-	caller := "?()"
-	pc, filename, line, ok := runtime.Caller(skip + 1)
-	if ok {
-		// Get caller function name.
-		fn := runtime.FuncForPC(pc)
-		if fn != nil {
-			caller = fn.Name() + "()"
-		}
-	}
-	msg := format
-	if len(v) > 0 {
-		msg = fmt.Sprintf(format, v...)
-	}
 	l, ok := NamedLoggers[DEFAULT]
 	if ok {
-		l.SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
+		l.Log(skip+1, level, format, v...)
 	}
 }
 

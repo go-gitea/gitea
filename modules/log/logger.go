@@ -97,21 +97,26 @@ func (l *Logger) Log(skip int, level Level, format string, v ...interface{}) err
 	if len(v) > 0 {
 		msg = fmt.Sprintf(format, v...)
 	}
-	return l.SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg)
+	stack := ""
+	if l.GetStacktraceLevel() <= level {
+		stack = Stack(skip + 1)
+	}
+	return l.SendLog(level, caller, strings.TrimPrefix(filename, prefix), line, msg, stack)
 }
 
 // SendLog sends a log event at the provided level with the information given
-func (l *Logger) SendLog(level Level, caller, filename string, line int, msg string) error {
+func (l *Logger) SendLog(level Level, caller, filename string, line int, msg string, stack string) error {
 	if l.GetLevel() > level {
 		return nil
 	}
 	event := &Event{
-		level:    level,
-		caller:   caller,
-		filename: filename,
-		line:     line,
-		msg:      msg,
-		time:     time.Now(),
+		level:      level,
+		caller:     caller,
+		filename:   filename,
+		line:       line,
+		msg:        msg,
+		time:       time.Now(),
+		stacktrace: stack,
 	}
 	l.LogEvent(event)
 	return nil

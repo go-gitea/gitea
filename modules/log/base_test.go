@@ -196,10 +196,11 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 	}
 	prefix := ""
 	b := BaseLogger{
-		Level:      DEBUG,
-		Flags:      -1,
-		Prefix:     prefix,
-		Expression: "FILENAME",
+		Level:           DEBUG,
+		StacktraceLevel: ERROR,
+		Flags:           -1,
+		Prefix:          prefix,
+		Expression:      "FILENAME",
 	}
 	b.createLogger(c)
 
@@ -263,10 +264,11 @@ func TestBrokenRegexp(t *testing.T) {
 	}
 
 	b := BaseLogger{
-		Level:      DEBUG,
-		Flags:      -1,
-		Prefix:     prefix,
-		Expression: "\\",
+		Level:           DEBUG,
+		StacktraceLevel: ERROR,
+		Flags:           -1,
+		Prefix:          prefix,
+		Expression:      "\\",
 	}
 	b.createLogger(c)
 	assert.Empty(t, b.regexp)

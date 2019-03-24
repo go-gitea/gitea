@@ -259,6 +259,7 @@ var (
 
 	// Log settings
 	LogLevel           string
+	StacktraceLogLevel string
 	LogRootPath        string
 	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
@@ -404,7 +405,7 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t}`, !IsWindows))
+	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, !IsWindows))
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
@@ -507,6 +508,7 @@ func NewContext() {
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
 	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
+	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
