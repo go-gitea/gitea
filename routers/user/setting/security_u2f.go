@@ -42,7 +42,11 @@ func U2FRegister(ctx *context.Context, form auth.U2FRegistrationForm) {
 			return
 		}
 	}
-	ctx.Session.Set("u2fName", form.Name)
+	err = ctx.Session.Set("u2fName", form.Name)
+	if err != nil {
+		ctx.ServerError("", err)
+		return
+	}
 	ctx.JSON(200, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
 }
 
