@@ -218,6 +218,8 @@ var migrations = []Migration{
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
 	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
+	// v83 -> v84
 	NewMigration("create repo transfer table", addRepoTransfer),
 }
 

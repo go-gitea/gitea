@@ -3,19 +3,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0a001725d6e1b35faccf15cbc4f782b67a0d77f4bbf56e51a4b244f92e7c60ca"
+  digest = "1:e1fa64238b0a2dbf1edf98c4af8d1b8cb65179e286d7f28006b50fa9f508ee9d"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "0aea7f12d36ed49bcac560b61301cff88e478e5c"
+  revision = "74d7c14dd4a3ed9c5def0dc3c1aeede399ddc5c5"
 
 [[projects]]
   branch = "master"
-  digest = "1:dbf849e6552740945ac1c6c6acba590fbc594e4efa80cf05568dec8579ae0dab"
+  digest = "1:6fb0a860db126f973204b4b05ed08d338d485a74c19c15f0e5cf0f49352a8ef1"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "e4effe4df2b895ca51482d24edb8748704326f1a"
+  revision = "a669487e86e0cc5833a2867e6476da6327244a1a"
 
 [[projects]]
   digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
@@ -1331,6 +1331,9 @@
     "gopkg.in/ini.v1",
     "gopkg.in/ldap.v3",
     "gopkg.in/macaron.v1",
+    "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/config",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/testfixtures.v2",
     "strk.kbt.io/projects/go/libravatar",
   ]

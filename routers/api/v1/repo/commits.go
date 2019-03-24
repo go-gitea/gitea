@@ -97,14 +97,18 @@ func GetSingleCommit(ctx *context.APIContext) {
 		RepoCommit: &api.RepoCommit{
 			URL: setting.AppURL + ctx.Link[1:],
 			Author: &api.CommitUser{
-				Name:  commit.Author.Name,
-				Email: commit.Author.Email,
-				Date:  commit.Author.When.Format(time.RFC3339),
+				Identity: api.Identity{
+					Name:  commit.Author.Name,
+					Email: commit.Author.Email,
+				},
+				Date: commit.Author.When.Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Name:  commit.Committer.Name,
-				Email: commit.Committer.Email,
-				Date:  commit.Committer.When.Format(time.RFC3339),
+				Identity: api.Identity{
+					Name:  commit.Committer.Name,
+					Email: commit.Committer.Email,
+				},
+				Date: commit.Committer.When.Format(time.RFC3339),
 			},
 			Message: commit.Summary(),
 			Tree: &api.CommitMeta{
