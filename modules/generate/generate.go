@@ -8,11 +8,11 @@ package generate
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
+	"github.com/dgrijalva/jwt-go"
 	"io"
 	"math/big"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 // GetRandomString generate random string by specify chars.
@@ -21,8 +21,13 @@ func GetRandomString(n int) (string, error) {
 	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	const digit = "0123456789"
 	const spec = "!@#$%^&*()_-+=[]'\";:/?.>,<`~"
-	var h int = (n - 2) / 2
-	var m int = (n) % 2
+	var h, m int
+	if n < 3 {
+		return "", errors.New("Error generate random string")
+	}
+
+	h = (n - 2) / 2
+	m = (n) % 2
 	buffer := make([]byte, n)
 	maxLower := big.NewInt(int64(len(lower)))
 	maxUpper := big.NewInt(int64(len(upper)))
