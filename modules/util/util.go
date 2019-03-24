@@ -5,15 +5,11 @@
 package util
 
 import (
-	"net/url"
-	"path"
 	"regexp"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
 )
 
 // OptionalBool a boolean that can be "null"
