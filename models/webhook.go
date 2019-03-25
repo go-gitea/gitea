@@ -658,7 +658,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
 	default:
-		//p.SetSecret(w.Secret)
+		p.SetSecret(w.Secret)
 		payloader = p
 	}
 
