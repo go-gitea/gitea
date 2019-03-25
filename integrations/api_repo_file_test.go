@@ -242,10 +242,10 @@ func TestAPICreateFile(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
-	expectedSHA := "fb0f060af38fb6bcffbd546d766e9debd232c78e"
+	expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	expectedHTMLURL := fmt.Sprintf("http://localhost:3003/user2/repo1/blob/new_branch/new/file%d.txt", fileID)
 	expectedDownloadURL := fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
-	assert.EqualValues(t, expectedSHA, fileResponse.Commit.SHA)
+	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
 
