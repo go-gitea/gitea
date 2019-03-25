@@ -231,12 +231,30 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
 	}
 
-	// Test trying to create a file that already exists, should fail
+	// Test creating a file in a new branch
 	createFileOptions := getCreateFileOptions()
-	treePath := "README.md"
+	createFileOptions.BranchName = repo1.DefaultBranch
+	createFileOptions.NewBranchName = "new_branch"
+	fileID++
+	treePath := fmt.Sprintf("new/file%d.txt", fileID)
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 	req := NewRequestWithJSON(t, "POST", url, &createFileOptions)
-	resp := session.MakeRequest(t, req, http.StatusInternalServerError)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	var fileResponse api.FileResponse
+	DecodeJSON(t, resp, &fileResponse)
+	expectedSHA := "fb0f060af38fb6bcffbd546d766e9debd232c78e"
+	expectedHTMLURL := fmt.Sprintf("http://localhost:3003/user2/repo1/blob/new_branch/new/file%d.txt", fileID)
+	expectedDownloadURL := fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
+	assert.EqualValues(t, expectedSHA, fileResponse.Commit.SHA)
+	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
+	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+
+	// Test trying to create a file that already exists, should fail
+	createFileOptions = getCreateFileOptions()
+	treePath = "README.md"
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+	req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
+	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 	expectedAPIError := context.APIError{
 		Message: "repository file already exists [path: " + treePath + "]",
 		URL:     base.DocURL,
@@ -354,16 +372,54 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
 	}
 
-	// Test updating a file with the wrong SHA
+	// Test updating a file in a new branch
+	updateFileOptions := getUpdateFileOptions()
+	updateFileOptions.BranchName = repo1.DefaultBranch
+	updateFileOptions.NewBranchName = "new_branch"
 	fileID++
 	treePath := fmt.Sprintf("update/file%d.txt", fileID)
 	createFile(user2, repo1, treePath)
-	updateFileOptions := getUpdateFileOptions()
-	correctSHA := updateFileOptions.SHA
-	updateFileOptions.SHA = "badsha"
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 	req := NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
-	resp := session.MakeRequest(t, req, http.StatusInternalServerError)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var fileResponse api.FileResponse
+	DecodeJSON(t, resp, &fileResponse)
+	expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
+	expectedHTMLURL := fmt.Sprintf("http://localhost:3003/user2/repo1/blob/new_branch/update/file%d.txt", fileID)
+	expectedDownloadURL := fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
+	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
+	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
+	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+
+	// Test updating a file and renaming it
+	updateFileOptions = getUpdateFileOptions()
+	updateFileOptions.BranchName = repo1.DefaultBranch
+	fileID++
+	treePath = fmt.Sprintf("update/file%d.txt", fileID)
+	createFile(user2, repo1, treePath)
+	updateFileOptions.FromPath = treePath
+	treePath = "rename/" + treePath
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+	req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &fileResponse)
+	expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
+	expectedHTMLURL = fmt.Sprintf("http://localhost:3003/user2/repo1/blob/master/rename/update/file%d.txt", fileID)
+	expectedDownloadURL = fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
+	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
+	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+
+	// Test updating a file with the wrong SHA
+	fileID++
+	treePath = fmt.Sprintf("update/file%d.txt", fileID)
+	createFile(user2, repo1, treePath)
+	updateFileOptions = getUpdateFileOptions()
+	correctSHA := updateFileOptions.SHA
+	updateFileOptions.SHA = "badsha"
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+	req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
+	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 	expectedAPIError := context.APIError{
 		Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
 		URL:     base.DocURL,
@@ -465,16 +521,31 @@ func TestAPIDeleteFile(t *testing.T) {
 		assert.Nil(t, fileResponse.Content)
 	}
 
-	// Test deleting a file with the wrong SHA
+	// Test deleting file and making the delete in a new branch
 	fileID++
 	treePath := fmt.Sprintf("delete/file%d.txt", fileID)
 	createFile(user2, repo1, treePath)
 	deleteFileOptions := getDeleteFileOptions()
-	correctSHA := deleteFileOptions.SHA
-	deleteFileOptions.SHA = "badsha"
+	deleteFileOptions.BranchName = repo1.DefaultBranch
+	deleteFileOptions.NewBranchName = "new_branch"
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 	req := NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
-	resp := session.MakeRequest(t, req, http.StatusInternalServerError)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var fileResponse api.FileResponse
+	DecodeJSON(t, resp, &fileResponse)
+	assert.NotNil(t, fileResponse)
+	assert.Nil(t, fileResponse.Content)
+
+	// Test deleting a file with the wrong SHA
+	fileID++
+	treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+	createFile(user2, repo1, treePath)
+	deleteFileOptions = getDeleteFileOptions()
+	correctSHA := deleteFileOptions.SHA
+	deleteFileOptions.SHA = "badsha"
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+	req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
+	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 	expectedAPIError := context.APIError{
 		Message: "sha does not match [given: " + deleteFileOptions.SHA + ", expected: " + correctSHA + "]",
 		URL:     base.DocURL,
