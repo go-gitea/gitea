@@ -11,14 +11,14 @@ import (
 )
 
 func TestCommitsCount(t *testing.T) {
-	commitsCount, _ := CommitsCount(".", "d86a90f801dbe279db095437a8c7ea42c60e8d98")
+	commitsCount, _ := CommitsCount(".", "4836fea8767c38f175f59f8f66579e76fe6354f5")
 	assert.Equal(t, int64(3), commitsCount)
 }
 
 func TestGetFullCommitID(t *testing.T) {
-	id, err := GetFullCommitID(".", "d86a90f8")
+	id, err := GetFullCommitID(".", "4836fea8")
 	assert.NoError(t, err)
-	assert.Equal(t, "d86a90f801dbe279db095437a8c7ea42c60e8d98", id)
+	assert.Equal(t, "4836fea8767c38f175f59f8f66579e76fe6354f5", id)
 }
 
 func TestGetFullCommitIDError(t *testing.T) {

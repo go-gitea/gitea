@@ -20,7 +20,7 @@ var repoSelf = &Repository{
 var testBlob = &Blob{
 	repo: repoSelf,
 	TreeEntry: &TreeEntry{
-		ID: MustIDFromString("176d8dfe018c850d01851b05fb8a430096247353"),
+		ID: MustIDFromString("a8d4b49dd073a4a38a7e58385eeff7cc52568697"),
 		ptree: &Tree{
 			repo: repoSelf,
 		},
@@ -28,7 +28,8 @@ var testBlob = &Blob{
 }
 
 func TestBlob_Data(t *testing.T) {
-	output := `Copyright (c) 2015 All Gogs Contributors
+	output := `Copyright (c) 2016 The Gitea Authors
+Copyright (c) 2015 The Gogs Authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +47,8 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.`
+THE SOFTWARE.
+`
 
 	r, err := testBlob.Data()
 	assert.NoError(t, err)
