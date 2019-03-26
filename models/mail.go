@@ -30,6 +30,7 @@ const (
 	mailIssueMention base.TplName = "issue/mention"
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
+	mailRepoTransferNotify              = "notify/repo_transfer"
 )
 
 var templates *template.Template

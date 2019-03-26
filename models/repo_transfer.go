@@ -153,14 +153,16 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 // transfer is initiated
 func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
 	data := map[string]interface{}{
-		"Subject":  c.Tr("mail.repo_transfer_notify"),
-		"RepoName": repo.FullName(),
-		"Link":     repo.HTMLURL(),
+		"Subject":             c.Tr("mail.repo_transfer_notify"),
+		"RepoName":            repo.FullName(),
+		"Link":                repo.HTMLURL(),
+		"AcceptTransferLink":  repo.HTMLURL() + "/settings/transfer/accept",
+		"DeclineTransferLink": repo.HTMLURL() + "/settings/transfer/decline",
 	}
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+	if err := templates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		log.Error(3, "Template: %v", err)
 		return
 	}
