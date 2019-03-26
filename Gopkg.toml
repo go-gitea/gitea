@@ -7,12 +7,14 @@ ignored = ["google.golang.org/appengine*"]
   non-go = true
 
 [[constraint]]
-  branch = "master"
+  branch = "git-hook"
   name = "code.gitea.io/git"
+    source = "https://github.com/codeocean/gitea-git.git"
 
 [[constraint]]
-  branch = "master"
+  branch = "git-hook"
   name = "code.gitea.io/sdk"
+  source = "https://github.com/codeocean/gitea-go-sdk.git"
 
 [[constraint]]
   revision = "05d86ea8f6e30456949f612cf68cf4a27ce8c9c5"

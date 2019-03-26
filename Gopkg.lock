@@ -2,20 +2,22 @@
 
 
 [[projects]]
-  branch = "master"
-  digest = "1:e1fa64238b0a2dbf1edf98c4af8d1b8cb65179e286d7f28006b50fa9f508ee9d"
+  branch = "git-hook"
+  digest = "1:c9d067f4a653795e8f174ce92bcdf4213dc02d19d6000f5bd35c5e8698d3dd81"
   name = "code.gitea.io/git"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "74d7c14dd4a3ed9c5def0dc3c1aeede399ddc5c5"
+  revision = "b7ba65db85225b53b479469d927e0d8436ae3299"
+  source = "https://github.com/codeocean/gitea-git.git"
 
 [[projects]]
-  branch = "master"
-  digest = "1:6fb0a860db126f973204b4b05ed08d338d485a74c19c15f0e5cf0f49352a8ef1"
+  branch = "git-hook"
+  digest = "1:dde6184f9c4461f752d2e13a4fc9d0c0e2cbd7f45111fb51f015e4578e56bf1f"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
   pruneopts = "NUT"
-  revision = "a669487e86e0cc5833a2867e6476da6327244a1a"
+  revision = "611b506053f88f6a367c977d91fd4a086457a71f"
+  source = "https://github.com/codeocean/gitea-go-sdk.git"
 
 [[projects]]
   digest = "1:5d72bbcc9c8667b11c3dc3cbe681c5a6f71e5096744c0bf7726ab5c6425d5dc4"
