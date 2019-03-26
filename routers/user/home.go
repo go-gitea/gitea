@@ -276,9 +276,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	if len(repoIDs) > 0 {
-		if len(repoIDs) == 1 {
-			repoID = repoIDs[0]
-		}
 		opts.RepoIDs = repoIDs
 	}
 
