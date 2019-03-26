@@ -1,3 +1,5 @@
+# code.gitea.io/git v0.0.0-20190207030847-0aea7f12d36e
+code.gitea.io/git
 # code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
 code.gitea.io/sdk/gitea
 # github.com/BurntSushi/toml v0.3.1
@@ -294,7 +296,6 @@ github.com/src-d/gcfg/types
 github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.2.2
 github.com/stretchr/testify/assert
-github.com/stretchr/testify/require
 # github.com/syndtr/goleveldb v0.0.0-20190203031304-2f17a3356c66
 github.com/syndtr/goleveldb/leveldb
 github.com/syndtr/goleveldb/leveldb/cache

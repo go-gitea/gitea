@@ -72,19 +72,12 @@ func (state *getCommitsInfoState) getTargetedEntryPath() string {
 }
 
 // repeatedly perform targeted searches for unpopulated entries
-func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommitCache) {
+func targetedSearch(state *getCommitsInfoState, done chan error) {
 	for {
 		entryPath := state.getTargetedEntryPath()
 		if len(entryPath) == 0 {
 			done <- nil
 			return
-		}
-		if cache != nil {
-			commit, err := cache.Get(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath)
-			if err == nil && commit != nil {
-				state.update(entryPath, commit)
-				continue
-			}
 		}
 		command := NewCommand("rev-list", "-1", state.headCommit.ID.String(), "--", entryPath)
 		output, err := command.RunInDir(state.headCommit.repo.Path)
@@ -103,9 +96,6 @@ func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommi
 			return
 		}
 		state.update(entryPath, commit)
-		if cache != nil {
-			cache.Put(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath, commit)
-		}
 	}
 }
 
@@ -128,9 +118,9 @@ func initGetCommitInfoState(entries Entries, headCommit *Commit, treePath string
 }
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, error) {
+func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interface{}, error) {
 	state := initGetCommitInfoState(tes, commit, treePath)
-	if err := getCommitsInfo(state, cache); err != nil {
+	if err := getCommitsInfo(state); err != nil {
 		return nil, err
 	}
 	if len(state.commits) < len(state.entryPaths) {
@@ -198,7 +188,7 @@ func (state *getCommitsInfoState) update(entryPath string, commit *Commit) bool 
 
 const getCommitsInfoPretty = "--pretty=format:%H %ct %s"
 
-func getCommitsInfo(state *getCommitsInfoState, cache LastCommitCache) error {
+func getCommitsInfo(state *getCommitsInfoState) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
@@ -225,7 +215,7 @@ func getCommitsInfo(state *getCommitsInfoState, cache LastCommitCache) error {
 	numThreads := runtime.NumCPU()
 	done := make(chan error, numThreads)
 	for i := 0; i < numThreads; i++ {
-		go targetedSearch(state, done, cache)
+		go targetedSearch(state, done)
 	}
 
 	scanner := bufio.NewScanner(readCloser)

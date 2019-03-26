@@ -1,0 +1,3 @@
+pattern = "(?)LGTM"
+self_approval_off = true
+ignore_maintainers_file = true
