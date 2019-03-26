@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -296,14 +297,15 @@ func Action(ctx *context.Context) {
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
-	case "acknowledge_transfer":
+	case "accept_transfer":
 		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
 		}
 
 		if repoTransfer.RecipientID != ctx.User.ID {
-			ctx.Status(404)
+			ctx.NotFound("RecipientID", errors.New("User IDs don't match"))
 			return
 		}
 

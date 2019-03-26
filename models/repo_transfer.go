@@ -156,8 +156,8 @@ func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
 		"Subject":             c.Tr("mail.repo_transfer_notify"),
 		"RepoName":            repo.FullName(),
 		"Link":                repo.HTMLURL(),
-		"AcceptTransferLink":  repo.HTMLURL() + "/settings/transfer/accept",
-		"DeclineTransferLink": repo.HTMLURL() + "/settings/transfer/decline",
+		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
+		"DeclineTransferLink": repo.HTMLURL() + "/settings/decline_transfer",
 	}
 
 	var content bytes.Buffer
