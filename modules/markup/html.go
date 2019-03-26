@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/mvdan/xurls"
+	"mvdan.cc/xurls/v2"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
