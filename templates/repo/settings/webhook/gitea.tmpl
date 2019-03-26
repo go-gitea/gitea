@@ -22,7 +22,6 @@
 		<div class="field {{if .Err_Secret}}error{{end}}">
 			<label for="secret">{{.i18n.Tr "repo.settings.secret"}}</label>
 			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
-			<p class="text grey desc">{{.i18n.Tr "repo.settings.secret_desc" | Safe}}</p>
 		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>
