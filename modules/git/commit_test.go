@@ -11,18 +11,19 @@ import (
 )
 
 func TestCommitsCount(t *testing.T) {
-	commitsCount, _ := CommitsCount("./", "4836fea8767c38f175f59f8f66579e76fe6354f5")
+	commitsCount, err := CommitsCount("", "4836fea8767c38f175f59f8f66579e76fe6354f5")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(3), commitsCount)
 }
 
 func TestGetFullCommitID(t *testing.T) {
-	id, err := GetFullCommitID("./", "4836fea8")
+	id, err := GetFullCommitID("", "4836fea8")
 	assert.NoError(t, err)
 	assert.Equal(t, "4836fea8767c38f175f59f8f66579e76fe6354f5", id)
 }
 
 func TestGetFullCommitIDError(t *testing.T) {
-	id, err := GetFullCommitID("./", "unknown")
+	id, err := GetFullCommitID("", "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
