@@ -72,6 +72,37 @@ func (r *RepoTransfer) LoadAttributes() error {
 	return nil
 }
 
+// IsTransferForUser checks if the user has the rights to accept/decline a repo
+// transfer.
+// For organizations, this check if the user is a member of the owners team
+func (r *RepoTransfer) IsTransferForUser(u *User) bool {
+	if err := r.LoadAttributes(); err != nil {
+		return false
+	}
+
+	if !r.Recipient.IsOrganization() {
+		return r.RecipientID == u.ID
+	}
+
+	t, err := r.Recipient.getOwnerTeam(x)
+	if err != nil {
+		return false
+	}
+
+	if err := t.GetMembers(); err != nil {
+		return false
+	}
+
+	for k := range t.Members {
+		fmt.Println(t.Members[k].ID, u.ID)
+		if t.Members[k].ID == u.ID {
+			return true
+		}
+	}
+
+	return false
+}
+
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {

@@ -300,17 +300,21 @@ func Action(ctx *context.Context) {
 	case "accept_transfer":
 		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
-			return
-		}
-
-		if repoTransfer.RecipientID != ctx.User.ID {
-			ctx.NotFound("RecipientID", errors.New("User IDs don't match"))
+			if models.IsErrNoPendingTransfer(err) {
+				ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+			} else {
+				ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			}
 			return
 		}
 
 		if err := repoTransfer.LoadAttributes(); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		if !repoTransfer.IsTransferForUser(ctx.User) {
+			ctx.NotFound("IsTransferForUser", errors.New("user does not have enough permissions"))
 			return
 		}
 
@@ -327,6 +331,36 @@ func Action(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 		ctx.Redirect(repo.HTMLURL())
+		return
+
+	case "decline_transfer":
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		if err := repoTransfer.LoadAttributes(); err != nil {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			return
+		}
+
+		if !repoTransfer.IsTransferForUser(ctx.User) {
+			ctx.NotFound("IsTransferForUser", errors.New("user does not have enough permissions"))
+			return
+		}
+
+		if err := models.CancelRepositoryTransfer(repoTransfer); err != nil {
+			if models.IsErrNoPendingTransfer(err) {
+				ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+			} else {
+				ctx.ServerError("CancelRepositoryTransfer", err)
+			}
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
 
