@@ -246,8 +246,6 @@ github.com/mrjones/oauth
 github.com/mschoch/smat
 # github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 github.com/msteinert/pam
-# github.com/mvdan/xurls v1.1.0
-github.com/mvdan/xurls
 # github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 github.com/nfnt/resize
 # github.com/pelletier/go-buffruneio v0.2.0
@@ -456,5 +454,7 @@ gopkg.in/testfixtures.v2
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
+# mvdan.cc/xurls/v2 v2.0.0
+mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 strk.kbt.io/projects/go/libravatar
