@@ -21,7 +21,7 @@ func Version() string {
 var (
 	// Debug enables verbose logging on everything.
 	// This should be false in case Gogs starts in SSH mode.
-	Debug = true
+	Debug = false
 	// Prefix the log prefix
 	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
