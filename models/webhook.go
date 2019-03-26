@@ -104,6 +104,7 @@ type Webhook struct {
 	RepoID       int64  `xorm:"INDEX"`
 	OrgID        int64  `xorm:"INDEX"`
 	URL          string `xorm:"url TEXT"`
+	Signature    string `xorm:"TEXT"`
 	ContentType  HookContentType
 	Secret       string `xorm:"TEXT"`
 	Events       string `xorm:"TEXT"`
@@ -727,10 +728,12 @@ func (t *HookTask) deliver() {
 	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
 		Header("X-Gitea-Delivery", t.UUID).
 		Header("X-Gitea-Event", string(t.EventType)).
+		Header("X-Gitea-Signature", t.Signature).
 		Header("X-Gogs-Delivery", t.UUID).
 		Header("X-Gogs-Signature", t.Signature).
 		Header("X-Hub-Signature", "sha256=" + t.Signature).
 		Header("X-Gogs-Event", string(t.EventType)).
+		Header("X-Gogs-Signature", t.Signature).
 		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
 		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})

@@ -427,16 +427,17 @@ generate-images:
 	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
 	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
 	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
+	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
+	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
+	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
+	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
 	rm -f $(TMPDIR)/images/*-*.png
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
 	rm -rf $(TMPDIR)/images
-	
+	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)
