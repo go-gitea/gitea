@@ -731,7 +731,7 @@ func (t *HookTask) deliver() {
 		Header("X-Gitea-Signature", t.Signature).
 		Header("X-Gogs-Delivery", t.UUID).
 		Header("X-Gogs-Signature", t.Signature).
-		Header("X-Hub-Signature", "sha256=" + t.Signature).
+		Header("X-Hub-Signature", "sha256="+t.Signature).
 		Header("X-Gogs-Event", string(t.EventType)).
 		Header("X-Gogs-Signature", t.Signature).
 		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
