@@ -307,6 +307,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Error(http.StatusUnauthorized)
 			return
 		}
+
+		if ctx.Repo.Repository.IsArchived {
+			ctx.Flash.Error(ctx.Tr("repo.archive.repo_transfer"))
+			ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
+			return
+		}
+
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
