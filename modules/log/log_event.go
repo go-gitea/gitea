@@ -38,6 +38,7 @@ type ChannelledLog struct {
 	queue          chan *Event
 	loggerProvider LoggerProvider
 	flush          chan bool
+	close          chan bool
 	closed         chan bool
 }
 
@@ -47,6 +48,7 @@ func CreateChannelledLog(name, provider, config string, bufferLength int64) (*Ch
 		l := &ChannelledLog{
 			queue:  make(chan *Event, bufferLength),
 			flush:  make(chan bool),
+			close:  make(chan bool),
 			closed: make(chan bool),
 		}
 		l.loggerProvider = log()
@@ -77,6 +79,9 @@ func (l *ChannelledLog) Start() {
 				return
 			}
 			l.loggerProvider.Flush()
+		case _, _ = <-l.close:
+			l.closeLogger()
+			return
 		}
 	}
 }
@@ -104,8 +109,7 @@ func (l *ChannelledLog) closeLogger() {
 
 // Close this ChannelledLog
 func (l *ChannelledLog) Close() {
-	close(l.queue)
-	close(l.flush)
+	l.close <- true
 	<-l.closed
 }
 
@@ -137,6 +141,7 @@ type MultiChannelledLog struct {
 	mutex           sync.Mutex
 	loggers         map[string]EventLogger
 	flush           chan bool
+	close           chan bool
 	started         bool
 	level           Level
 	stacktraceLevel Level
@@ -153,6 +158,7 @@ func CreateMultiChannelledLog(name string, bufferLength int64) *MultiChannelledL
 		loggers:         make(map[string]EventLogger),
 		level:           NONE,
 		stacktraceLevel: NONE,
+		close:           make(chan bool),
 		closed:          make(chan bool),
 	}
 	return m
@@ -259,6 +265,9 @@ func (m *MultiChannelledLog) Start() {
 				logger.Flush()
 			}
 			m.mutex.Unlock()
+		case <-m.close:
+			m.closeLoggers()
+			return
 		}
 	}
 }
@@ -279,8 +288,7 @@ func (m *MultiChannelledLog) LogEvent(event *Event) error {
 
 // Close this MultiChannelledLog
 func (m *MultiChannelledLog) Close() {
-	close(m.queue)
-	close(m.flush)
+	m.close <- true
 	<-m.closed
 }
 

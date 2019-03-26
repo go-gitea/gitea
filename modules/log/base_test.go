@@ -219,7 +219,7 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 
 	assert.Equal(t, DEBUG, b.GetLevel())
 
-	expected := "TEST\n        MESSAGE\n        TEST\n"
+	expected := "TEST\n\tMESSAGE\n\tTEST\n"
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)
@@ -246,7 +246,7 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 		line:     1,
 		time:     date,
 	}
-	expected = "TEST\n        FILENAME\n        TEST\n"
+	expected = "TEST\n\tFILENAME\n\tTEST\n"
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
 	assert.Equal(t, false, closed)

@@ -96,7 +96,7 @@ func TestNewLoggger(t *testing.T) {
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
 	assert.Equal(t, false, <-closed)
 
-	DelLogger("console")
+	go DelLogger("console")
 	line = <-written
 	assert.Equal(t, "", string(line))
 	assert.Equal(t, true, <-closed)
