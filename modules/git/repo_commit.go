@@ -32,7 +32,14 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(TagPrefix + name)
+	stdout, err := NewCommand("rev-list", "-n", "1", name).RunInDir(repo.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "unknown revision or path") {
+			return "", ErrNotExist{name, ""}
+		}
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw
@@ -94,7 +101,11 @@ l:
 				sig, err := newGPGSignatureFromCommitline(data, (nextline+1)+sigindex, true)
 				if err == nil && sig != nil {
 					// remove signature from commit message
-					cm = cm[:sigindex-1]
+					if sigindex == 0 {
+						cm = ""
+					} else {
+						cm = cm[:sigindex-1]
+					}
 					commit.Signature = sig
 				}
 			}
@@ -146,13 +157,14 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
 	if len(commitID) != 40 {
 		var err error
-		commitID, err = NewCommand("rev-parse", commitID).RunInDir(repo.Path)
+		actualCommitID, err := NewCommand("rev-parse", commitID).RunInDir(repo.Path)
 		if err != nil {
 			if strings.Contains(err.Error(), "unknown revision or path") {
 				return nil, ErrNotExist{commitID, ""}
 			}
 			return nil, err
 		}
+		commitID = actualCommitID
 	}
 	id, err := NewIDFromString(commitID)
 	if err != nil {

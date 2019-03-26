@@ -1,4 +1,4 @@
-# code.gitea.io/git v0.0.0-20190207030847-0aea7f12d36e
+# code.gitea.io/git v0.0.0-20190321155013-ec4d631f8de6
 code.gitea.io/git
 # code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
 code.gitea.io/sdk/gitea
