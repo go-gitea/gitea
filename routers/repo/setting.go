@@ -124,8 +124,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
 		interval, err := time.ParseDuration(form.Interval)
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
@@ -136,6 +141,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
@@ -160,6 +166,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "advanced":
 		var units []models.RepoUnit
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
 
 		for _, tp := range models.MustRepoUnits {
 			units = append(units, models.RepoUnit{
