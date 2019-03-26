@@ -5,32 +5,26 @@
 package git
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCommitsCount(t *testing.T) {
-	p, err := filepath.Abs("../../")
+	// TODO: since drone will only git clone -depth=50, this should be moved to recent commit id
+	commitsCount, err := CommitsCount("", "22d3d029e6f7e6359f3a6fbe8b7827b579ac7445")
 	assert.NoError(t, err)
-	commitsCount, err := CommitsCount(p, "a30e5bcaf83a82f5f7d1c89a6f9f7e52036d74af")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(6), commitsCount)
+	assert.Equal(t, int64(7287), commitsCount)
 }
 
 func TestGetFullCommitID(t *testing.T) {
-	p, err := filepath.Abs("../../")
+	id, err := GetFullCommitID("", "22d3d029")
 	assert.NoError(t, err)
-	id, err := GetFullCommitID(p, "a30e5bca")
-	assert.NoError(t, err)
-	assert.Equal(t, "a30e5bcaf83a82f5f7d1c89a6f9f7e52036d74af", id)
+	assert.Equal(t, "22d3d029e6f7e6359f3a6fbe8b7827b579ac7445", id)
 }
 
 func TestGetFullCommitIDError(t *testing.T) {
-	p, err := filepath.Abs("../../")
-	assert.NoError(t, err)
-	id, err := GetFullCommitID(p, "unknown")
+	id, err := GetFullCommitID("", "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
