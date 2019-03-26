@@ -243,8 +243,8 @@ func TestAPICreateFile(t *testing.T) {
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
 	expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
-	expectedHTMLURL := fmt.Sprintf("http://localhost:3003/user2/repo1/blob/new_branch/new/file%d.txt", fileID)
-	expectedDownloadURL := fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
+	expectedHTMLURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/blob/new_branch/new/file%d.txt", fileID)
+	expectedDownloadURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
@@ -385,8 +385,8 @@ func TestAPIUpdateFile(t *testing.T) {
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
 	expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
-	expectedHTMLURL := fmt.Sprintf("http://localhost:3003/user2/repo1/blob/new_branch/update/file%d.txt", fileID)
-	expectedDownloadURL := fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
+	expectedHTMLURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/blob/new_branch/update/file%d.txt", fileID)
+	expectedDownloadURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
 	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
@@ -404,8 +404,8 @@ func TestAPIUpdateFile(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &fileResponse)
 	expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-	expectedHTMLURL = fmt.Sprintf("http://localhost:3003/user2/repo1/blob/master/rename/update/file%d.txt", fileID)
-	expectedDownloadURL = fmt.Sprintf("http://localhost:3003/user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+	expectedHTMLURL = fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/blob/master/rename/update/file%d.txt", fileID)
+	expectedDownloadURL = fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
 	assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 	assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 	assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
