@@ -167,7 +167,25 @@ func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.repo_transfer_notify"), content.String())
+	var email = u.Email
+
+	if u.IsOrganization() && u.Email == "" {
+		t, err := u.getOwnerTeam(x)
+		if err != nil {
+			log.Error(3, "Could not retrieve owners team for organization", err)
+			return
+		}
+
+		if err := t.GetMembers(); err != nil {
+			log.Error(3, "Could not retrieve members of the owners team", err)
+			return
+		}
+
+		// Just use the email address of the first user
+		email = t.Members[0].Email
+	}
+
+	msg := mailer.NewMessage([]string{email}, c.Tr("mail.repo_transfer_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
 
 	mailer.SendAsync(msg)
