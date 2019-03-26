@@ -347,7 +347,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "cancel_transfer":
 
@@ -380,7 +380,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.abort_transfer_success", repoTransfer.Recipient.Name))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
