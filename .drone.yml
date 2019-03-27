@@ -72,7 +72,7 @@ pipeline:
       - make clean
       - make generate
       - make golangci-lint
-      - make lint
+      - make revive
       - make swagger-check
       - make swagger-validate
       - make test-vendor
