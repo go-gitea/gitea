@@ -7,14 +7,13 @@ package convert
 import (
 	"fmt"
 
-	"github.com/Unknwon/com"
-
-	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email

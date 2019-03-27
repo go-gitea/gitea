@@ -13,11 +13,12 @@ import (
 
 	"github.com/go-macaron/csrf"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/paginater"
 	macaron "gopkg.in/macaron.v1"
 )
