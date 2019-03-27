@@ -990,6 +990,17 @@ func (issue *Issue) GetLastEventLabel() string {
 	return "repo.issues.opened_by"
 }
 
+// GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
+func (issue *Issue) GetLastEventLabelFake() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by_fake"
+		}
+		return "repo.issues.closed_by_fake"
+	}
+	return "repo.issues.opened_by_fake"
+}
+
 // NewIssueOptions represents the options of a new issue.
 type NewIssueOptions struct {
 	Repo        *Repository

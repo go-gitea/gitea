@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.8.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc2) - 2019-03-27
+* BUGFIXES
+  * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
+  * Make sure units of a team are returned (#6379) (#6381)
+  * Don't Unescape redirect_to cookie value (#6399) (#6401)
+  * Fix dump table name error and add some test for dump database (#6394) (#6402)
+  * Fix migration v82 to ignore unsynced tags between database and git data; Add missing is_archived column on repository table (#6387) (#6403)
+  * Display correct error for invalid mirror interval (#6414) (#6429)
+  * Clean up ref name rules (#6437) (#6439)
+  * Fix Hook & HookList in Swagger (#6432) (#6440)
+  * Change order that PostProcess Processors are run (#6445) (#6447)
+
 ## [1.8.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc1) - 2019-03-18
 * BREAKING
   * Add "ghost" and "notifications" to list of reserved user names. (#6208)
@@ -210,7 +222,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing GET teams endpoints (#5382)
   * Migrate database if app.ini found (#5290)
 
-## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12
+## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27  
+* BUGFIXES
+  * Fix unitTypeCode not being used in accessLevelUnit (#6419) (#6423)
+  * Fix bug where manifest.json was being requested without cookies and continuously creating new sessions (#6372) (#6383) 
+  * Fix ParsePatch function to work with quoted diff --git strings (#6323) (#6332)
+
+## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
