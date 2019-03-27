@@ -82,11 +82,20 @@ func (h *Hook) Name() string {
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
 		if isExist(h.path) {
-			return os.Remove(h.path)
+			err := os.Remove(h.path)
+			if err != nil {
+				return err
+			}
 		}
+		h.IsActive = false
 		return nil
 	}
-	return ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
+	err := ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	h.IsActive = true
+	return nil
 }
 
 // ListHooks returns a list of Git hooks of given repository.
