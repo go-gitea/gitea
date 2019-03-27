@@ -1,0 +1,125 @@
+workspace:
+  base: /go
+  path: src/github.com/go-xorm/xorm
+
+clone:
+  git:
+    image: plugins/git:next
+    depth: 50
+    tags: true
+
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_DATABASE=xorm_test
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    when:
+      event: [ push, tag, pull_request ]
+
+  pgsql:
+    image: postgres:9.5
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=xorm_test
+    when:
+      event: [ push, tag, pull_request ]
+
+  #mssql:
+  #  image: microsoft/mssql-server-linux:2017-CU11
+  #  environment:
+  #    - ACCEPT_EULA=Y
+  #    - SA_PASSWORD=yourStrong(!)Password
+  #    - MSSQL_PID=Developer
+  #  commands:
+  #    - echo 'CREATE DATABASE xorm_test' > create.sql
+  #    - /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P yourStrong(!)Password -i "create.sql"
+
+matrix:
+  GO_VERSION:
+    - 1.8
+    - 1.9
+    - 1.10
+    - 1.11
+
+pipeline:
+  init_postgres:
+    image: postgres:9.5
+    commands:
+      # wait for postgres service to become available
+      - |
+        until psql -U postgres -d xorm_test -h pgsql \
+         -c "SELECT 1;" >/dev/null 2>&1; do sleep 1; done
+      # query the database
+      - |
+        psql -U postgres -d xorm_test -h pgsql \
+          -c "create schema xorm;"
+
+  build:
+    image: golang:${GO_VERSION}
+    commands:
+      - go get -t -d -v ./...
+      - go get -u github.com/go-xorm/core
+      - go get -u github.com/go-xorm/builder
+      - go build -v
+    when:
+      event: [ push, pull_request ]
+
+  test-sqlite:
+    image: golang:${GO_VERSION}
+    commands:
+      - go get -u github.com/wadey/gocovmerge
+      - go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1-1.txt -covermode=atomic
+      - go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+
+  test-mysql:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test" -coverprofile=coverage2-1.txt -covermode=atomic
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+
+  test-mysql-utf8mb4:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test?charset=utf8mb4" -coverprofile=coverage2.1-1.txt -covermode=atomic
+      - go test -v -race -db="mysql" -conn_str="root:@tcp(mysql)/xorm_test?charset=utf8mb4" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+
+  test-mymysql:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="mymysql" -conn_str="tcp:mysql:3306*xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
+      - go test -v -race -db="mymysql" -conn_str="tcp:mysql:3306*xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+
+  test-postgres:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -coverprofile=coverage4-1.txt -covermode=atomic
+      - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic
+    when:
+      event: [ push, pull_request ]
+  
+  test-postgres-schema:
+    image: golang:${GO_VERSION}
+    commands:
+      - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic
+      - go test -v -race -db="postgres" -conn_str="postgres://postgres:@pgsql/xorm_test?sslmode=disable" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic
+      - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+    when:
+      event: [ push, pull_request ]
+
+  #coverage:
+  #  image: robertstettner/drone-codecov
+  #  secrets: [ codecov_token ]
+  #  files:
+  #    - coverage.txt
+  #  when:
+  #    event: [ push, pull_request ]
+  #    branch: [ master ]

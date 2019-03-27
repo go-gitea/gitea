@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.10.x
+  - 1.11.x
+
+go_import_path: mvdan.cc/xurls
+
+env:
+  - GO111MODULE=on
+
+install: true
+
+script:
+  - go get -t -d ./...
+  - go build ./...
+  - go test ./...
