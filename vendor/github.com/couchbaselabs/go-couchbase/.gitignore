@@ -1,0 +1,14 @@
+#*
+*.6
+*.a
+*~
+*.swp
+/examples/basic/basic
+/hello/hello
+/populate/populate
+/tools/view2go/view2go
+/tools/loadfile/loadfile
+gotags.files
+TAGS
+6.out
+_*

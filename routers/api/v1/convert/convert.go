@@ -7,14 +7,13 @@ package convert
 import (
 	"fmt"
 
-	"github.com/Unknwon/com"
-
-	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -31,6 +30,22 @@ func ToBranch(repo *models.Repository, b *models.Branch, c *git.Commit) *api.Bra
 	return &api.Branch{
 		Name:   b.Name,
 		Commit: ToCommit(repo, c),
+	}
+}
+
+// ToTag convert a tag to an api.Tag
+func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+	return &api.Tag{
+		Name: t.Name,
+		Commit: struct {
+			SHA string `json:"sha"`
+			URL string `json:"url"`
+		}{
+			SHA: t.ID.String(),
+			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
+		},
+		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.Link(), "archive", t.Name+".tar.gz"),
 	}
 }
 

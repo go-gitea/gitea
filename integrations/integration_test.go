@@ -35,6 +35,23 @@ import (
 
 var mac *macaron.Macaron
 
+type NilResponseRecorder struct {
+	httptest.ResponseRecorder
+	Length int
+}
+
+func (n *NilResponseRecorder) Write(b []byte) (int, error) {
+	n.Length = n.Length + len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseRecorder() *NilResponseRecorder {
+	return &NilResponseRecorder{
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	initIntegrationTest()
 	mac = routes.NewMacaron()
@@ -192,6 +209,22 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	return resp
 }
 
+func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
 const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
@@ -300,6 +333,18 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	recorder := NewNilResponseRecorder()
+	mac.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
 	}
 	return recorder

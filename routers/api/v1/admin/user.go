@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -55,12 +56,16 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	u := &models.User{
-		Name:      form.Username,
-		FullName:  form.FullName,
-		Email:     form.Email,
-		Passwd:    form.Password,
-		IsActive:  true,
-		LoginType: models.LoginPlain,
+		Name:               form.Username,
+		FullName:           form.FullName,
+		Email:              form.Email,
+		Passwd:             form.Password,
+		MustChangePassword: true,
+		IsActive:           true,
+		LoginType:          models.LoginPlain,
+	}
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
@@ -132,6 +137,10 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			return
 		}
 		u.HashPassword(form.Password)
+	}
+
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	u.LoginName = form.LoginName
@@ -279,7 +288,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
@@ -290,4 +299,28 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	log.Trace("Key deleted by admin(%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Status(204)
+}
+
+//GetAllUsers API for getting information of all the users
+func GetAllUsers(ctx *context.APIContext) {
+	// swagger:operation GET /admin/users admin adminGetAllUsers
+	// ---
+	// summary: List all users
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	users, _, err := models.SearchUsers(&models.SearchUserOptions{
+		Type:     models.UserTypeIndividual,
+		OrderBy:  models.SearchOrderByAlphabetically,
+		PageSize: -1,
+	})
+	if err != nil {
+		ctx.Error(500, "SearchUsers", err)
+		return
+	}
+	ctx.JSON(200, &users)
 }

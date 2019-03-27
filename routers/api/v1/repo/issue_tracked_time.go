@@ -47,13 +47,13 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.Error(404, "IsTimetrackerEnabled", "Timetracker is diabled")
+		ctx.NotFound("Timetracker is disabled")
 		return
 	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Error(404, "GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -109,7 +109,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Error(404, "GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -165,14 +165,14 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404, "GetUserByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetUserByName", err)
 		}
 		return
 	}
 	if user == nil {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{

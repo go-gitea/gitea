@@ -7,6 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -45,7 +46,7 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := release.LoadAttributes(); err != nil {
@@ -53,6 +54,20 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(200, release.APIFormat())
+}
+
+func getPagesInfo(ctx *context.APIContext) (int, int) {
+	page := ctx.QueryInt("page")
+	if page == 0 {
+		page = 1
+	}
+	perPage := ctx.QueryInt("per_page")
+	if perPage == 0 {
+		perPage = setting.API.DefaultPagingNum
+	} else if perPage > setting.API.MaxResponseItems {
+		perPage = setting.API.MaxResponseItems
+	}
+	return page, perPage
 }
 
 // ListReleases list a repository's releases
@@ -73,13 +88,22 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page wants to load
+	//   type: integer
+	// - name: per_page
+	//   in: query
+	//   description: items count every page wants to load
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	page, limit := getPagesInfo(ctx)
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
-	}, 1, 2147483647)
+	}, page, limit)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return
@@ -127,6 +151,10 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		if !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
 			return
+		}
+		// If target is not provided use default branch
+		if len(form.Target) == 0 {
+			form.Target = ctx.Repo.Repository.DefaultBranch
 		}
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
@@ -213,7 +241,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	}
 	if err != nil && models.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 
@@ -285,7 +313,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	}
 	if err != nil && models.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := models.DeleteReleaseByID(id, ctx.User, false); err != nil {

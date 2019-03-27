@@ -57,7 +57,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
@@ -98,7 +98,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := release.LoadAttributes(); err != nil {
@@ -150,7 +150,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if attachments are enabled
 	if !setting.AttachmentEnabled {
-		ctx.Error(404, "AttachmentEnabled", errors.New("attachment is not enabled"))
+		ctx.NotFound("Attachment is not enabled")
 		return
 	}
 
@@ -262,7 +262,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
@@ -319,7 +319,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests

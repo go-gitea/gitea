@@ -12,7 +12,7 @@
 				<div class="text">{{.LangName}}</div>
 				<div class="menu">
 					{{range .AllLangs}}
-						<a class="item {{if eq $.Lang .Lang}}active selected{{end}}" href="{{if eq $.Lang .Lang}}#{{else}}{{$.Link}}?lang={{.Lang}}{{end}}">{{.Name}}</a>
+						<a lang="{{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}" href="{{if eq $.Lang .Lang}}#{{else}}{{$.Link}}?lang={{.Lang}}{{end}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
