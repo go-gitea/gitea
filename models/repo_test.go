@@ -154,26 +154,34 @@ func TestRepoLocalCopyPath(t *testing.T) {
 	assert.Equal(t, expected, repo.LocalCopyPath())
 }
 
-func TestTransferOwnership(t *testing.T) {
+func TestRepositoryTransfer(t *testing.T) {
+
 	assert.NoError(t, PrepareTestDatabase())
 
 	doer := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	newOwner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	repo.Owner = AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
-	assert.NoError(t, TransferOwnership(doer, newOwner, repo))
 
-	transferredRepo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	assert.EqualValues(t, 2, transferredRepo.OwnerID)
+	transfer, err := GetPendingRepositoryTransfer(repo)
+	assert.Error(t, err)
+	assert.Nil(t, transfer)
+	assert.True(t, IsErrNoPendingTransfer(err))
 
-	assert.False(t, com.IsExist(RepoPath("user3", "repo3")))
-	assert.True(t, com.IsExist(RepoPath("user2", "repo3")))
-	AssertExistsAndLoadBean(t, &Action{
-		OpType:    ActionTransferRepo,
-		ActUserID: 3,
-		RepoID:    3,
-		Content:   "user2/repo3",
-	})
+	assert.NoError(t, StartRepositoryTransfer(doer, "user2", repo))
 
-	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
+	transfer, err = GetPendingRepositoryTransfer(repo)
+	assert.Nil(t, err)
+	assert.NoError(t, transfer.LoadAttributes())
+	assert.Equal(t, "user2", transfer.Recipient.Name)
+
+	// Only transfer can be started at any given time
+	err = StartRepositoryTransfer(doer, "user6", repo)
+	assert.Error(t, err)
+	assert.True(t, IsErrRepoTransferInProgress(err))
+
+	// Unkown user
+	err = StartRepositoryTransfer(doer, "user1000", repo)
+	assert.Error(t, err)
+
+	// Cancel transfer
+	assert.NoError(t, CancelRepositoryTransfer(transfer))
 }

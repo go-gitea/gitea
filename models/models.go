@@ -129,6 +129,7 @@ func init() {
 		new(OAuth2Application),
 		new(OAuth2AuthorizationCode),
 		new(OAuth2Grant),
+		new(RepoTransfer),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

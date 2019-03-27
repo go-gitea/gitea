@@ -15,6 +15,7 @@ import (
 	"gopkg.in/macaron.v1"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
 )
 
 // TransferStatus determines the current state of a transfer
@@ -94,7 +95,6 @@ func (r *RepoTransfer) IsTransferForUser(u *User) bool {
 	}
 
 	for k := range t.Members {
-		fmt.Println(t.Members[k].ID, u.ID)
 		if t.Members[k].ID == u.ID {
 			return true
 		}
@@ -121,8 +121,8 @@ func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	return transfer, nil
 }
 
-func acceptRepositoryTransfer(repo *Repository) error {
-	_, err := x.Where("repo_id = ?", repo.ID).Cols("status").Update(&RepoTransfer{
+func acceptRepositoryTransfer(sess *xorm.Session, repo *Repository) error {
+	_, err := sess.Where("repo_id = ?", repo.ID).Cols("status").Update(&RepoTransfer{
 		Status: Accepted,
 	})
 	return err
@@ -252,7 +252,7 @@ func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 		return fmt.Errorf("update owner: %v", err)
 	}
 
-	if err := acceptRepositoryTransfer(repo); err != nil {
+	if err := acceptRepositoryTransfer(sess, repo); err != nil {
 		return err
 	}
 
