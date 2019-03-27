@@ -120,7 +120,6 @@ func TestRender_links(t *testing.T) {
 		"https://username:password@gitea.com",
 		`<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`)
 
-
 	// Test that should *not* be turned into URL
 	test(
 		"www.example.com",
