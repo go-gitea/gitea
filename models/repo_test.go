@@ -157,10 +157,11 @@ func TestRepoLocalCopyPath(t *testing.T) {
 func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	newOwner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	repo.Owner = AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
-	assert.NoError(t, TransferOwnership(doer, "user2", repo))
+	assert.NoError(t, TransferOwnership(doer, newOwner, repo))
 
 	transferredRepo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
@@ -169,9 +170,9 @@ func TestTransferOwnership(t *testing.T) {
 	assert.True(t, com.IsExist(RepoPath("user2", "repo3")))
 	AssertExistsAndLoadBean(t, &Action{
 		OpType:    ActionTransferRepo,
-		ActUserID: 2,
+		ActUserID: 3,
 		RepoID:    3,
-		Content:   "user3/repo3",
+		Content:   "user2/repo3",
 	})
 
 	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
