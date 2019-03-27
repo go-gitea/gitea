@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
