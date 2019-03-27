@@ -5,7 +5,7 @@
 package models
 
 import (
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 )
 
 // GetTagsByPath returns repo tags by it's path

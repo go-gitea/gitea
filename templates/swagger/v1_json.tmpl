@@ -7557,6 +7557,50 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Hook": {
+      "description": "Hook a hook is a web hook when one repository changed",
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "x-go-name": "Active"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Config"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Events"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Issue": {
       "description": "Issue represents an issue in a repository",
       "type": "object",
@@ -8825,10 +8869,7 @@
     "Hook": {
       "description": "Hook",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/Branch"
-        }
+        "$ref": "#/definitions/Hook"
       }
     },
     "HookList": {
@@ -8836,7 +8877,7 @@
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/Branch"
+          "$ref": "#/definitions/Hook"
         }
       }
     },

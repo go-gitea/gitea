@@ -1,5 +1,6 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
+export GO111MODULE=off
 
 GO ?= go
 SED_INPLACE := sed -i
@@ -169,7 +170,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -184,10 +185,7 @@ unit-test-coverage:
 
 .PHONY: vendor
 vendor:
-	@hash dep > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/golang/dep/cmd/dep; \
-	fi
-	dep ensure -vendor-only
+	GO111MODULE=on $(GO) mod tidy && GO111MODULE=on $(GO) mod vendor
 
 .PHONY: test-vendor
 test-vendor: vendor
@@ -197,7 +195,6 @@ test-vendor: vendor
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
-#TODO add dep status -missing when implemented
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
@@ -284,13 +281,13 @@ integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.test
 migrations.test: $(SOURCES)
@@ -311,7 +308,7 @@ install: $(wildcard *.go)
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
@@ -427,16 +424,17 @@ generate-images:
 	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
 	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
 	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
+	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
+	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
+	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
+	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
 	rm -f $(TMPDIR)/images/*-*.png
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
 	rm -rf $(TMPDIR)/images
-	
+	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)

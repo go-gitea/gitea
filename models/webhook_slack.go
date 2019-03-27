@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 )
