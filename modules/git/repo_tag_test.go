@@ -5,6 +5,7 @@
 package git
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -25,8 +26,13 @@ func TestRepository_GetTags(t *testing.T) {
 }
 
 func TestRepository_GetTag(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+
+	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
+	assert.NoError(t, err)
+	defer os.RemoveAll(clonedPath)
+
+	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
 
 	tag, err := bareRepo1.GetTag("test")

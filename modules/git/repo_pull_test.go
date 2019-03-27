@@ -6,19 +6,25 @@ package git
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetFormatPatch(t *testing.T) {
-	repo, err := OpenRepository(".")
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestGetFormatPatch")
 	assert.NoError(t, err)
-	rd, err := repo.GetFormatPatch("cdb43f0e^", "cdb43f0e")
+	defer os.RemoveAll(clonedPath)
+	repo, err := OpenRepository(clonedPath)
+	assert.NoError(t, err)
+	rd, err := repo.GetFormatPatch("8d92fc95^", "8d92fc95")
 	assert.NoError(t, err)
 	patchb, err := ioutil.ReadAll(rd)
 	assert.NoError(t, err)
 	patch := string(patchb)
-	assert.Regexp(t, "^From cdb43f0e", patch)
-	assert.Regexp(t, "Subject: .PATCH. add @daviian as maintainer", patch)
+	assert.Regexp(t, "^From 8d92fc95", patch)
+	assert.Contains(t, patch, "Subject: [PATCH] Add file2.txt")
 }

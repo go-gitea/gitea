@@ -72,8 +72,9 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	assert.NoError(t, err)
 	testGetCommitsInfo(t, bareRepo1)
 
-	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1")
+	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestEntries_GetCommitsInfo")
 	assert.NoError(t, err)
+	defer os.RemoveAll(clonedPath)
 	clonedRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
 	testGetCommitsInfo(t, clonedRepo1)
