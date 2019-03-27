@@ -178,7 +178,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrRepoTransferInProgress(err))
 
-	// Unkown user
+	// Unknown user
 	err = StartRepositoryTransfer(doer, "user1000", repo)
 	assert.Error(t, err)
 
