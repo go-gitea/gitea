@@ -396,6 +396,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
+	getBranchData(ctx, issue)
 	ctx.HTML(200, tplPullCommits)
 }
 
@@ -519,6 +520,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
+	getBranchData(ctx, issue)
 	ctx.HTML(200, tplPullFiles)
 }
 
@@ -1183,4 +1185,36 @@ func DownloadPullPatch(ctx *context.Context) {
 		ctx.ServerError("io.Copy", err)
 		return
 	}
+}
+
+// UpdatePullRequestTarget change pull request's target branch
+func UpdatePullRequestTarget(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	pr := issue.PullRequest
+	if !issue.IsPull {
+		return
+	}
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
+	targetBranch := ctx.QueryTrim("target_branch")
+	if len(targetBranch) == 0 {
+		ctx.Error(204)
+		return
+	}
+
+	if err := pr.ChangeTargetBranch(ctx.User, targetBranch); err != nil {
+		ctx.ServerError("UpdatePullRequestTarget", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"base_branch": pr.BaseBranch,
+	})
 }

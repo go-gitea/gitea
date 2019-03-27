@@ -1410,6 +1410,50 @@ func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
 	return err
 }
 
+// ChangeTargetBranch changes the target branch of this pull request, as the given user.
+func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err error) {
+	oldBranch := pr.BaseBranch
+	if oldBranch == targetBranch {
+		return nil
+	}
+	pr.BaseBranch = targetBranch
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(pr.ID).Cols("base_branch").Update(pr); err != nil {
+		return fmt.Errorf("update pull request: %v", err)
+	}
+
+	issue := pr.Issue
+
+	if _, err = createChangePullRequestTargetBranchComment(sess, doer, issue.Repo, issue, oldBranch, targetBranch); err != nil {
+		return fmt.Errorf("createChangePullRequestTargetBranchComment: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	mode, _ := AccessLevel(issue.Poster, issue.Repo)
+	err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueEdited,
+		Index:       issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  issue.Repo.APIFormat(mode),
+		Sender:      doer.APIFormat(),
+	})
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: true]: %v", err)
+	} else {
+		go HookQueue.Add(issue.RepoID)
+	}
+	return nil
+}
+
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func (pr *PullRequest) checkAndUpdateStatus() {

@@ -786,28 +786,62 @@ function initRepository() {
             $issueTitle.toggle();
             $('.not-in-edit').toggle();
             $('#edit-title-input').toggle();
+            $('#pull-desc').toggle();
+            $('#pull-desc-edit').toggle();
             $('.in-edit').toggle();
             $editInput.focus();
             return false;
         };
+
+        var changeBranchSelect = function () {
+            var selectionTextField = $('#pull-target-branch');
+
+            var baseName = selectionTextField.data('basename');
+            var branchNameNew = $(this).data('branch');
+            var branchNameOld = selectionTextField.data('branch');
+
+            // Replace branch name to keep translation from HTML template
+            selectionTextField.html(selectionTextField.html().replace(baseName + ':' + branchNameOld, baseName + ':' + branchNameNew));
+            selectionTextField.data('branch', branchNameNew); // update branch name in setting
+        };
+        $('#branch-select > .item').click(changeBranchSelect);
+
         $('#edit-title').click(editTitleToggle);
         $('#cancel-edit-title').click(editTitleToggle);
         $('#save-edit-title').click(editTitleToggle).click(function () {
-            if ($editInput.val().length == 0 ||
-                $editInput.val() == $issueTitle.text()) {
-                $editInput.val($issueTitle.text());
-                return false;
-            }
 
-            $.post($(this).data('update-url'), {
-                    "_csrf": csrf,
-                    "title": $editInput.val()
-                },
-                function (data) {
-                    $editInput.val(data.title);
-                    $issueTitle.text(data.title);
-                    reload();
-                });
+            var pullrequest_targetbranch_change = function(update_url) {
+                var target_branch = $('#pull-target-branch').data('branch');
+                if (target_branch === $('#branch_target').text()) {
+                    $editInput.val($issueTitle.text());
+                    return false;
+                }
+                $.post(update_url, {
+                        "_csrf": csrf,
+                        "target_branch": target_branch
+                    },
+                    function (data) {
+                        $('#branch_target').text(data.base_branch);
+                        reload();
+                    });
+            };
+
+            var pullrequest_target_update_url = $(this).data('target-update-url');
+            if ($editInput.val().length === 0 ||
+                $editInput.val() === $issueTitle.text()) {
+                $editInput.val($issueTitle.text());
+                pullrequest_targetbranch_change(pullrequest_target_update_url);
+            } else {
+                $.post($(this).data('update-url'), {
+                        "_csrf": csrf,
+                        "title": $editInput.val()
+                    },
+                    function (data) {
+                        $editInput.val(data.title);
+                        $issueTitle.text(data.title);
+                        pullrequest_targetbranch_change(pullrequest_target_update_url);
+                    });
+            }
             return false;
         });
 

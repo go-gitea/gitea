@@ -84,6 +84,8 @@ const (
 	CommentTypeLock
 	// Unlocks a previously locked issue
 	CommentTypeUnlock
+	// Change pull request's target branch
+	CommentTypeChangeTargetBranch
 )
 
 // CommentTag defines comment tag type
@@ -116,6 +118,8 @@ type Comment struct {
 	Assignee         *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
+	OldBranch        string
+	NewBranch        string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -525,6 +529,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
+		OldBranch:        opts.OldBranch,
+		NewBranch:        opts.NewBranch,
 		DependentIssueID: opts.DependentIssueID,
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
@@ -737,6 +743,17 @@ func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, iss
 	})
 }
 
+func createChangePullRequestTargetBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldBranch string, newBranch string) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:      CommentTypeChangeTargetBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		OldBranch: oldBranch,
+		NewBranch: newBranch,
+	})
+}
+
 func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, branchName string) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
 		Type:      CommentTypeDeleteBranch,
@@ -798,6 +815,8 @@ type CreateCommentOptions struct {
 	RemovedAssignee  bool
 	OldTitle         string
 	NewTitle         string
+	OldBranch        string
+	NewBranch        string
 	CommitID         int64
 	CommitSHA        string
 	Patch            string

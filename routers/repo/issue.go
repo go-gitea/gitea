@@ -589,6 +589,28 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	return models.CommentTagNone, nil
 }
 
+func getBranchData(ctx *context.Context, issue *models.Issue) {
+	ctx.Data["BaseBranch"] = nil
+	ctx.Data["HeadBranch"] = nil
+	ctx.Data["HeadUserName"] = nil
+	ctx.Data["BaseName"] = ctx.Repo.Repository.OwnerName
+	if issue.IsPull {
+		pull := issue.PullRequest
+		ctx.Data["BaseBranch"] = pull.BaseBranch
+		ctx.Data["HeadBranch"] = pull.HeadBranch
+		ctx.Data["HeadUserName"] = pull.HeadUserName
+
+		headUser, err := models.GetUserByName(pull.HeadUserName)
+		if headUser.ID == ctx.Repo.Owner.ID {
+			ctx.Data["BaseName"] = headUser.Name
+		}
+		if err != nil {
+			ctx.ServerError("getBranchData", err)
+			return
+		}
+	}
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -848,6 +870,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	getBranchData(ctx, issue)
 	if issue.IsPull {
 		pull := issue.PullRequest
 		pull.Issue = issue
