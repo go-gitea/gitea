@@ -7,7 +7,6 @@ package repo
 
 import (
 	"errors"
-	"net/http"
 	"strings"
 	"time"
 
@@ -314,7 +313,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(http.StatusUnauthorized)
+			ctx.Error(404)
 			return
 		}
 
@@ -362,7 +361,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	case "cancel_transfer":
 
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(http.StatusUnauthorized)
+			ctx.Error(404)
 			return
 		}
 
