@@ -350,8 +350,6 @@ golang.org/x/net/context/ctxhttp
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
-golang.org/x/sync/syncmap
 # golang.org/x/sys v0.0.0-20181026144532-2772b66316d2
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows
