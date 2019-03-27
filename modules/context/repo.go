@@ -475,8 +475,10 @@ const (
 	RepoRefBranch
 	// RepoRefTag tag
 	RepoRefTag
-	// RepoRefCommit commit
+	// RepoRefCommit short or long commit
 	RepoRefCommit
+	// RepoRefFullCommit long commit only
+	RepoRefFullCommit
 	// RepoRefBlob blob
 	RepoRefBlob
 )
@@ -511,7 +513,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
+		if refName := getRefName(ctx, RepoRefFullCommit); len(refName) > 0 {
 			return refName
 		}
 		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
@@ -523,9 +525,15 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
 	case RepoRefTag:
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
-	case RepoRefCommit:
+	case RepoRefFullCommit:
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) == 40 {
+			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			return parts[0]
+		}
+	case RepoRefCommit:
+		parts := strings.Split(path, "/")
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -611,7 +619,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) == 40 {
+			} else if len(refName) >= 7 && len(refName) <= 40 {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
