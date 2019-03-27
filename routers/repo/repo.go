@@ -323,14 +323,14 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		repo, err := models.GetRepositoryByID(ctx.Repo.Repository.ID)
+		err = models.NewRepoRedirect(repoTransfer.User.ID, ctx.Repo.Repository.ID, ctx.Repo.Repository.Name, ctx.Repo.Repository.Name)
 		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+			ctx.ServerError("NewRepoRedirect", err)
 			return
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
-		ctx.Redirect(repo.HTMLURL())
+		ctx.Redirect(ctx.Repo.Repository.HTMLURL())
 		return
 
 	case "decline_transfer":
