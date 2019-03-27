@@ -39,7 +39,9 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
-		defer repo.RemoveRemote(tmpRemote)
+		defer func() {
+			_ = repo.RemoveRemote(tmpRemote)
+		}()
 
 		remoteBranch = "remotes/" + tmpRemote + "/" + baseBranch
 	} else {

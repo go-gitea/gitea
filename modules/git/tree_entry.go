@@ -39,8 +39,6 @@ type TreeEntry struct {
 
 	ptree *Tree
 
-	committed bool
-
 	size  int64
 	sized bool
 }

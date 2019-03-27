@@ -92,7 +92,7 @@ func (c *Commit) ParentCount() int {
 
 func isImageFile(data []byte) (string, bool) {
 	contentType := http.DetectContentType(data)
-	if strings.Index(contentType, "image/") != -1 {
+	if strings.Contains(contentType, "image/") {
 		return contentType, true
 	}
 	return contentType, false
@@ -165,8 +165,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 }
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
-	var cmd *Command
-	cmd = NewCommand("rev-list", "--count")
+	cmd := NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)

@@ -104,7 +104,11 @@ func targetedSearch(state *getCommitsInfoState, done chan error, cache LastCommi
 		}
 		state.update(entryPath, commit)
 		if cache != nil {
-			cache.Put(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath, commit)
+			err = cache.Put(state.headCommit.repo.Path, state.headCommit.ID.String(), entryPath, commit)
+			if err != nil {
+				done <- err
+				return
+			}
 		}
 	}
 }
@@ -220,7 +224,9 @@ func getCommitsInfo(state *getCommitsInfoState, cache LastCommitCache) error {
 	// it's okay to ignore the error returned by cmd.Wait(); we expect the
 	// subprocess to sometimes have a non-zero exit status, since we may
 	// prematurely close stdout, resulting in a broken pipe.
-	defer cmd.Wait()
+	defer func() {
+		_ = cmd.Wait()
+	}()
 
 	numThreads := runtime.NumCPU()
 	done := make(chan error, numThreads)

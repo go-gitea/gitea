@@ -49,7 +49,10 @@ func (c cmdReadCloser) Read(p []byte) (int, error) {
 }
 
 func (c cmdReadCloser) Close() error {
-	io.Copy(ioutil.Discard, c.stdout)
+	_, err := io.Copy(ioutil.Discard, c.stdout)
+	if err != nil {
+		return err
+	}
 	return c.cmd.Wait()
 }
 

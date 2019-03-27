@@ -669,7 +669,10 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 			log.Error(2, "prepareWebhooks.JSONPayload: %v", err)
 		}
 		sig := hmac.New(sha256.New, []byte(w.Secret))
-		sig.Write(data)
+		_, err = sig.Write(data)
+		if err != nil {
+			log.Error(2, "prepareWebhooks.sigWrite: %v", err)
+		}
 		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
