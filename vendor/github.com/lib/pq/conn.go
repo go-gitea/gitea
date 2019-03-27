@@ -35,8 +35,12 @@ var (
 	errNoLastInsertID  = errors.New("no LastInsertId available after the empty statement")
 )
 
+// Driver is the Postgres database driver.
 type Driver struct{}
 
+// Open opens a new connection to the database. name is a connection string.
+// Most users should only use it through database/sql package from the standard
+// library.
 func (d *Driver) Open(name string) (driver.Conn, error) {
 	return Open(name)
 }
@@ -78,6 +82,8 @@ func (s transactionStatus) String() string {
 	panic("not reached")
 }
 
+// Dialer is the dialer interface. It can be used to obtain more control over
+// how pq creates network connections.
 type Dialer interface {
 	Dial(network, address string) (net.Conn, error)
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
@@ -238,10 +244,14 @@ func (cn *conn) writeBuf(b byte) *writeBuf {
 	}
 }
 
+// Open opens a new connection to the database. name is a connection string.
+// Most users should only use it through database/sql package from the standard
+// library.
 func Open(name string) (_ driver.Conn, err error) {
 	return DialOpen(defaultDialer{}, name)
 }
 
+// DialOpen opens a new connection to the database using a dialer.
 func DialOpen(d Dialer, name string) (_ driver.Conn, err error) {
 	// Handle any panics during connection initialization.  Note that we
 	// specifically do *not* want to use errRecover(), as that would turn any
@@ -329,7 +339,20 @@ func DialOpen(d Dialer, name string) (_ driver.Conn, err error) {
 	if err != nil {
 		return nil, err
 	}
-	cn.ssl(o)
+
+	err = cn.ssl(o)
+	if err != nil {
+		return nil, err
+	}
+
+	// cn.startup panics on error. Make sure we don't leak cn.c.
+	panicking := true
+	defer func() {
+		if panicking {
+			cn.c.Close()
+		}
+	}()
+
 	cn.buf = bufio.NewReader(cn.c)
 	cn.startup(o)
 
@@ -337,6 +360,7 @@ func DialOpen(d Dialer, name string) (_ driver.Conn, err error) {
 	if timeout, ok := o["connect_timeout"]; ok && timeout != "0" {
 		err = cn.c.SetDeadline(time.Time{})
 	}
+	panicking = false
 	return cn, err
 }
 
@@ -1009,30 +1033,35 @@ func (cn *conn) recv1() (t byte, r *readBuf) {
 	return t, r
 }
 
-func (cn *conn) ssl(o values) {
-	upgrade := ssl(o)
+func (cn *conn) ssl(o values) error {
+	upgrade, err := ssl(o)
+	if err != nil {
+		return err
+	}
+
 	if upgrade == nil {
 		// Nothing to do
-		return
+		return nil
 	}
 
 	w := cn.writeBuf(0)
 	w.int32(80877103)
-	if err := cn.sendStartupPacket(w); err != nil {
-		panic(err)
+	if err = cn.sendStartupPacket(w); err != nil {
+		return err
 	}
 
 	b := cn.scratch[:1]
-	_, err := io.ReadFull(cn.c, b)
+	_, err = io.ReadFull(cn.c, b)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if b[0] != 'S' {
-		panic(ErrSSLNotSupported)
+		return ErrSSLNotSupported
 	}
 
-	cn.c = upgrade(cn.c)
+	cn.c, err = upgrade(cn.c)
+	return err
 }
 
 // isDriverSetting returns true iff a setting is purely for configuring the
@@ -1432,7 +1461,8 @@ func (rs *rows) NextResultSet() error {
 //
 //    tblname := "my_table"
 //    data := "my_data"
-//    err = db.Exec(fmt.Sprintf("INSERT INTO %s VALUES ($1)", pq.QuoteIdentifier(tblname)), data)
+//    quoted := pq.QuoteIdentifier(tblname)
+//    err := db.Exec(fmt.Sprintf("INSERT INTO %s VALUES ($1)", quoted), data)
 //
 // Any double quotes in name will be escaped.  The quoted identifier will be
 // case sensitive when used in a query.  If the input string contains a zero

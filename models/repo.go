@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -722,10 +722,12 @@ var (
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener noreferrer">%[1]s</a>`, s)
+	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	if err != nil {
+		log.Error(4, "Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
+		return template.HTML(markup.Sanitize(repo.Description))
 	}
-	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
+	return template.HTML(markup.Sanitize(string(desc)))
 }
 
 // LocalCopyPath returns the local repository copy path.
@@ -836,7 +838,7 @@ type CloneLink struct {
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
 func ComposeHTTPSCloneURL(owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.QueryEscape(owner), url.QueryEscape(repo))
+	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
@@ -1362,6 +1364,10 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	}
 	if err = newRepoAction(e, doer, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
+	}
+
+	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
+		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
 	}
 
 	return nil

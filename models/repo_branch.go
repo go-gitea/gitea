@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -110,10 +110,6 @@ func (repo *Repository) CheckBranchName(name string) error {
 		return err
 	}
 
-	if _, err := gitRepo.GetTag(name); err == nil {
-		return ErrTagAlreadyExists{name}
-	}
-
 	branches, err := repo.GetBranches()
 	if err != nil {
 		return err
@@ -127,6 +123,11 @@ func (repo *Repository) CheckBranchName(name string) error {
 			return ErrBranchNameConflict{branch.Name}
 		}
 	}
+
+	if _, err := gitRepo.GetTag(name); err == nil {
+		return ErrTagAlreadyExists{name}
+	}
+
 	return nil
 }
 

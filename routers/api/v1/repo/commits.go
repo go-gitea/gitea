@@ -8,12 +8,11 @@ package repo
 import (
 	"time"
 
-	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetSingleCommit get a commit via
@@ -97,14 +96,18 @@ func GetSingleCommit(ctx *context.APIContext) {
 		RepoCommit: &api.RepoCommit{
 			URL: setting.AppURL + ctx.Link[1:],
 			Author: &api.CommitUser{
-				Name:  commit.Author.Name,
-				Email: commit.Author.Email,
-				Date:  commit.Author.When.Format(time.RFC3339),
+				Identity: api.Identity{
+					Name:  commit.Author.Name,
+					Email: commit.Author.Email,
+				},
+				Date: commit.Author.When.Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Name:  commit.Committer.Name,
-				Email: commit.Committer.Email,
-				Date:  commit.Committer.When.Format(time.RFC3339),
+				Identity: api.Identity{
+					Name:  commit.Committer.Name,
+					Email: commit.Committer.Email,
+				},
+				Date: commit.Committer.When.Format(time.RFC3339),
 			},
 			Message: commit.Summary(),
 			Tree: &api.CommitMeta{

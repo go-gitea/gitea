@@ -1,5 +1,6 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
+export GO111MODULE=off
 
 GO ?= go
 SED_INPLACE := sed -i
@@ -25,14 +26,14 @@ EXTRA_GOFLAGS ?=
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
-	GITEA_VERSION := $(VERSION)
+	GITEA_VERSION ?= $(VERSION)
 else
 	ifneq ($(DRONE_BRANCH),)
 		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
 	else
 		VERSION ?= master
 	endif
-	GITEA_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+	GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 endif
 
 LDFLAGS := -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
@@ -52,6 +53,10 @@ TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
+TEST_MYSQL8_HOST ?= mysql8:3306
+TEST_MYSQL8_DBNAME ?= testgitea
+TEST_MYSQL8_USERNAME ?= root
+TEST_MYSQL8_PASSWORD ?=
 TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
@@ -80,9 +85,9 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
 		integrations*.test \
-		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/gitea-integration-mssql/ \
-		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql \
-		integrations/mysql.ini integrations/pgsql.ini integrations/mssql.ini
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
+		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
+		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini
 
 .PHONY: fmt
 fmt:
@@ -165,7 +170,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -180,10 +185,7 @@ unit-test-coverage:
 
 .PHONY: vendor
 vendor:
-	@hash dep > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/golang/dep/cmd/dep; \
-	fi
-	dep ensure -vendor-only
+	GO111MODULE=on $(GO) mod tidy && GO111MODULE=on $(GO) mod vendor
 
 .PHONY: test-vendor
 test-vendor: vendor
@@ -193,7 +195,6 @@ test-vendor: vendor
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
-#TODO add dep status -missing when implemented
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
@@ -209,6 +210,11 @@ generate-ini:
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
+	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
+		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
+		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
+		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
+			integrations/mysql8.ini.tmpl > integrations/mysql8.ini
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
@@ -228,6 +234,14 @@ test-mysql: integrations.test generate-ini
 test-mysql-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.test
 
+.PHONY: test-mysql8
+test-mysql8: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.test
+
+.PHONY: test-mysql8-migration
+test-mysql8-migration: migrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.test
+
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
@@ -235,7 +249,6 @@ test-pgsql: integrations.test generate-ini
 .PHONY: test-pgsql-migration
 test-pgsql-migration: migrations.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.test
-
 
 .PHONY: test-mssql
 test-mssql: integrations.test generate-ini
@@ -268,13 +281,13 @@ integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.test
 migrations.test: $(SOURCES)
@@ -295,7 +308,7 @@ install: $(wildcard *.go)
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
@@ -307,7 +320,7 @@ release-dirs:
 .PHONY: release-windows
 release-windows:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -317,7 +330,7 @@ endif
 .PHONY: release-linux
 release-linux:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -327,7 +340,7 @@ endif
 .PHONY: release-darwin
 release-darwin:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/karalabe/xgo; \
+		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -411,12 +424,17 @@ generate-images:
 	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
 	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
 	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
+	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
+	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
+	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
+	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
 	rm -f $(TMPDIR)/images/*-*.png
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
 	rm -rf $(TMPDIR)/images
+	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+
+.PHONY: pr
+pr:
+	$(GO) run contrib/pr/checkout.go $(PR)

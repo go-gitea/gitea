@@ -51,8 +51,9 @@ type Engine interface {
 }
 
 var (
-	x      *xorm.Engine
-	tables []interface{}
+	x                  *xorm.Engine
+	supportedDatabases = []string{"mysql", "postgres", "mssql"}
+	tables             []interface{}
 
 	// HasEngine specifies if we have a xorm.Engine
 	HasEngine bool
@@ -125,6 +126,9 @@ func init() {
 		new(U2FRegistration),
 		new(TeamUnit),
 		new(Review),
+		new(OAuth2Application),
+		new(OAuth2AuthorizationCode),
+		new(OAuth2Grant),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -347,7 +351,9 @@ func Ping() error {
 func DumpDatabase(filePath string, dbType string) error {
 	var tbs []*core.Table
 	for _, t := range tables {
-		tbs = append(tbs, x.TableInfo(t).Table)
+		t := x.TableInfo(t)
+		t.Table.Name = t.Name
+		tbs = append(tbs, t.Table)
 	}
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))

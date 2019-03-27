@@ -9,6 +9,13 @@ import (
 	"fmt"
 )
 
+// Identity for a person's identity like an author or committer
+type Identity struct {
+	Name string `json:"name" binding:"MaxSize(100)"`
+	// swagger:strfmt email
+	Email string `json:"email" binding:"MaxSize(254)"`
+}
+
 // CommitMeta contains meta information of a commit in terms of API.
 type CommitMeta struct {
 	URL string `json:"url"`
@@ -17,9 +24,8 @@ type CommitMeta struct {
 
 // CommitUser contains information of a user in the context of a commit.
 type CommitUser struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Date  string `json:"date"`
+	Identity
+	Date string `json:"date"`
 }
 
 // RepoCommit contains information of a commit in the context of a repository.
