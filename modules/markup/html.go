@@ -152,15 +152,15 @@ func (p *postProcessError) Error() string {
 type processor func(ctx *postProcessCtx, node *html.Node)
 
 var defaultProcessors = []processor{
-	mentionProcessor,
-	shortLinkProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	shortLinkProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 type postProcessCtx struct {
@@ -194,14 +194,14 @@ func PostProcess(
 }
 
 var commitMessageProcessors = []processor{
-	mentionProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
