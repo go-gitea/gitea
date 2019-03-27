@@ -1,0 +1,51 @@
+version: '{build}'
+
+clone_folder: C:\GOPATH\src\gopkg.in\testfixtures.v2
+
+build: false
+deploy: false
+
+services:
+  - postgresql96
+  - mysql
+  - mssql2017
+
+environment:
+  POSTGRES_PATH: C:\Program Files\PostgreSQL\9.6
+  PGUSER: postgres
+  PGPASSWORD: Password12!
+  PG_CONN_STRING: 'user=postgres password=Password12! dbname=testfixtures_test sslmode=disable'
+
+  MYSQL_PATH: C:\Program Files\MySql\MySQL Server 5.7
+  MYSQL_PWD: Password12!
+  MYSQL_CONN_STRING: 'root:Password12!@/testfixtures_test?multiStatements=true'
+
+  SQLITE_CONN_STRING: 'testdb.sqlite3'
+
+  SQLSERVER_CONN_STRING: 'server=localhost;database=testfixtures_test;user id=sa;password=Password12!;encrypt=disable'
+
+  MINGW_PATH: C:\MinGW
+
+  GOPATH: C:\GOPATH
+  GOVERSION: 1.10.3
+
+install:
+  - SET PATH=%POSTGRES_PATH%\bin;%MYSQL_PATH%\bin;%MINGW_PATH%\bin;%PATH%
+
+  - rmdir C:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-386.msi
+  - msiexec /i go%GOVERSION%.windows-386.msi /q
+  - go version
+
+build_script:
+  - createdb testfixtures_test
+  - mysql -e "CREATE DATABASE testfixtures_test;" --user=root
+  - sqlcmd -S localhost,1433 -U sa -P Password12! -Q "CREATE DATABASE testfixtures_test" -d "master"
+
+test_script:
+  - go get -t -tags "sqlite postgresql mysql sqlserver" ./...
+  - go install -v ./...
+  - go test -v -tags postgresql
+  - go test -v -tags mysql
+  - go test -v -tags sqlserver
+  - go test -v -tags sqlite
