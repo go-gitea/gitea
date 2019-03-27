@@ -57,7 +57,6 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-<<<<<<< HEAD
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
 				<div class="fitted item">
 					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{ if .Repository.IsFork }}{{.Repository.Owner.Name}}:{{ else if .HasForkedRepo }}{{ .SignedUserName }}:{{ end }}{{.BranchName | EscapePound}}">
@@ -65,8 +64,6 @@
 					</a>
 				</div>
 			{{end}}
-=======
->>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 			{{template "repo/branch_dropdown" .}}
 			{{ $n := len .TreeNames}}
 			{{ $l := Subtract $n 1}}
