@@ -14,7 +14,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Display correct error for invalid mirror interval (#6414) (#6429)
   * Clean up ref name rules (#6437) (#6439)
   * Fix Hook & HookList in Swagger (#6432) (#6440)
-  * Change order that PostProcess Processors are run (#6445) (#)
+  * Change order that PostProcess Processors are run (#6445) (#6447)
 
 ## [1.8.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc1) - 2019-03-18
 * BREAKING
