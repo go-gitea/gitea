@@ -29,8 +29,7 @@ Let's start with an example that shows the sessions API in a nutshell:
 	var store = sessions.NewCookieStore([]byte("something-very-secret"))
 
 	func MyHandler(w http.ResponseWriter, r *http.Request) {
-		// Get a session. We're ignoring the error resulted from decoding an
-		// existing session: Get() always returns a session, even if empty.
+		// Get a session. Get() always returns a session, even if empty.
 		session, err := store.Get(r, "session-name")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,7 +79,7 @@ flashes, call session.Flashes(). Here is an example:
 			return
 		}
 
-		// Get the previously flashes, if any.
+		// Get the previous flashes, if any.
 		if flashes := session.Flashes(); len(flashes) > 0 {
 			// Use the flash values.
 		} else {

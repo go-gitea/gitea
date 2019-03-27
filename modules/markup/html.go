@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/mvdan/xurls"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"mvdan.cc/xurls/v2"
 )
 
 // Issue name styles
