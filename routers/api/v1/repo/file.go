@@ -8,9 +8,8 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/routers/repo"
-
-	"code.gitea.io/git"
 )
 
 // GetRawFile get a file by path on a repository

@@ -7,8 +7,8 @@ package uploader
 import (
 	"fmt"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
