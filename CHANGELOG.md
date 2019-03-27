@@ -4,7 +4,13 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
+## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27
+* BUGFIXES
+  * Fixed unitTypeCode not being used (#6423) (#6419)
+  * Fix bug with manifest.json request with cookie so that session will not created every request (#6372) (#6383)
+  * Fix ParsePatch function to work with quoted diff --git strings (#6323) (#6323)
+
+## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
