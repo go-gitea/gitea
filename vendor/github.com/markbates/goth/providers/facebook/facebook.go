@@ -37,6 +37,7 @@ func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 		providerName: "facebook",
 	}
 	p.config = newConfig(p, scopes)
+	p.Fields = "email,first_name,last_name,link,about,id,name,picture,location"
 	return p
 }
 
@@ -46,6 +47,7 @@ type Provider struct {
 	Secret       string
 	CallbackURL  string
 	HTTPClient   *http.Client
+	Fields       string
 	config       *oauth2.Config
 	providerName string
 }
@@ -58,6 +60,16 @@ func (p *Provider) Name() string {
 // SetName is to update the name of the provider (needed in case of multiple providers of 1 type)
 func (p *Provider) SetName(name string) {
 	p.providerName = name
+}
+
+// SetCustomFields sets the fields used to return information
+// for a user.
+//
+// A list of available field values can be found at
+// https://developers.facebook.com/docs/graph-api/reference/user
+func (p *Provider) SetCustomFields(fields []string) *Provider {
+	p.Fields = strings.Join(fields, ",")
+	return p
 }
 
 func (p *Provider) Client() *http.Client {
@@ -99,7 +111,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 
 	reqUrl := fmt.Sprint(
 		endpointProfile,
-		strings.Join(p.config.Scopes, ","),
+		p.Fields,
 		"&access_token=",
 		url.QueryEscape(sess.AccessToken),
 		"&appsecret_proof=",
@@ -177,31 +189,17 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 		},
 		Scopes: []string{
 			"email",
-			"first_name",
-			"last_name",
-			"link",
-			"about",
-			"id",
-			"name",
-			"picture",
-			"location",
 		},
 	}
 
-	// creates possibility to invoke field method like 'picture.type(large)'
-	var found bool
-	for _, sc := range scopes {
-		sc := sc
-		for i, defScope := range c.Scopes {
-			if defScope == strings.Split(sc, ".")[0] {
-				c.Scopes[i] = sc
-				found = true
-			}
+	defaultScopes := map[string]struct{}{
+		"email": {},
+	}
+
+	for _, scope := range scopes {
+		if _, exists := defaultScopes[scope]; !exists {
+			c.Scopes = append(c.Scopes, scope)
 		}
-		if !found {
-			c.Scopes = append(c.Scopes, sc)
-		}
-		found = false
 	}
 
 	return c

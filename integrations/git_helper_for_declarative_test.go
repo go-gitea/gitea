@@ -12,20 +12,33 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+<<<<<<< HEAD
 	"os/exec"
+=======
+>>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 	"path/filepath"
 	"testing"
 	"time"
 
+<<<<<<< HEAD
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
+=======
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/ssh"
+>>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	keyFile := filepath.Join(setting.AppDataPath, keyname)
+<<<<<<< HEAD
 	err := exec.Command("ssh-keygen", "-f", keyFile, "-t", "rsa", "-N", "").Run()
+=======
+	err := ssh.GenKeyPair(keyFile)
+>>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 	assert.NoError(t, err)
 
 	//Setup ssh wrapper

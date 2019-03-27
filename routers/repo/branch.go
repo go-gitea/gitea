@@ -8,12 +8,13 @@ package repo
 import (
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -250,5 +251,5 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + form.NewBranchName)
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName))
 }

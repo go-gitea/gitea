@@ -24,7 +24,7 @@ func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*models.Webhook, 
 	w, err := models.GetWebhookByOrgID(orgID, hookID)
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetWebhookByOrgID", err)
 		}
@@ -39,7 +39,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 	w, err := models.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetWebhookByID", err)
 		}

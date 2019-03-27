@@ -12,9 +12,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -57,12 +57,21 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch
+	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
 	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanCreateBranch()
+}
+
+// RepoMustNotBeArchived checks if a repo is archived
+func RepoMustNotBeArchived() macaron.Handler {
+	return func(ctx *Context) {
+		if ctx.Repo.Repository.IsArchived {
+			ctx.NotFound("IsArchived", fmt.Errorf(ctx.Tr("repo.archive.title")))
+		}
+	}
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
@@ -163,7 +172,11 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
+<<<<<<< HEAD
 	return path.Join(setting.Domain, setting.AppSubURL, url.QueryEscape(owner), url.QueryEscape(repo))
+=======
+	return path.Join(setting.Domain, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
+>>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -195,7 +208,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", ownerName, repo.Name),
+		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
 	ctx.Redirect(redirectPath)
@@ -203,6 +216,17 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
 	var err error
+	if err = repo.GetOwner(); err != nil {
+		ctx.ServerError("GetOwner", err)
+		return
+	}
+
+	if repo.Owner.IsOrganization() {
+		if !models.HasOrgVisible(repo.Owner, ctx.User) {
+			ctx.NotFound("HasOrgVisible", nil)
+			return
+		}
+	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
@@ -235,7 +259,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
-	ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
+	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
 // RepoIDAssignment returns a macaron handler which assigns the repo to the context.
@@ -328,6 +352,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 		ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
+		unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil {
+			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
+		}
+
 		tags, err := ctx.Repo.GitRepo.GetTags()
 		if err != nil {
 			ctx.ServerError("GetTags", err)
@@ -371,8 +400,8 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
-		// repo is bare and display enable
-		if ctx.Repo.Repository.IsBare {
+		// repo is empty and display enable
+		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
@@ -521,7 +550,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 func RepoRefByType(refType RepoRefType) macaron.Handler {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsBare {
+		if ctx.Repo.Repository.IsEmpty {
 			return
 		}
 
@@ -550,7 +579,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					ctx.ServerError("GetBranches", err)
 					return
 				} else if len(brs) == 0 {
-					err = fmt.Errorf("No branches in non-bare repository %s",
+					err = fmt.Errorf("No branches in non-empty repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.ServerError("GetBranches", err)
 					return

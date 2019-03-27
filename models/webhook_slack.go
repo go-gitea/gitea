@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 )
@@ -301,12 +301,12 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &SlackPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = SlackLinkFormatter(setting.AppURL+user.UserName, user.UserName)
 		}
 		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", p.Repository.FullName,
-			SlackLinkFormatter(setting.AppURL+list, list),
+			strings.Join(list, ", "),
 			titleLink, senderLink)
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", p.Repository.FullName, titleLink, senderLink)

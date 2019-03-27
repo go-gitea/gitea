@@ -11,10 +11,10 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -340,6 +340,7 @@ func runCreateUser(c *cli.Context) error {
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Theme:              setting.UI.DefaultTheme,
 	}); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}

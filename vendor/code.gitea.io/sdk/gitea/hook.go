@@ -160,6 +160,9 @@ type PayloadCommit struct {
 	Verification *PayloadCommitVerification `json:"verification"`
 	// swagger:strfmt date-time
 	Timestamp time.Time `json:"timestamp"`
+	Added     []string  `json:"added"`
+	Removed   []string  `json:"removed"`
+	Modified  []string  `json:"modified"`
 }
 
 // PayloadCommitVerification represents the GPG verification of a commit
@@ -371,6 +374,7 @@ type PushPayload struct {
 	After      string           `json:"after"`
 	CompareURL string           `json:"compare_url"`
 	Commits    []*PayloadCommit `json:"commits"`
+	HeadCommit *PayloadCommit   `json:"head_commit"`
 	Repo       *Repository      `json:"repository"`
 	Pusher     *User            `json:"pusher"`
 	Sender     *User            `json:"sender"`

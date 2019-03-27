@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/csrf"
@@ -121,6 +122,7 @@ func (ctx *Context) NotFound(title string, err error) {
 		}
 	}
 
+	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
 }
@@ -136,7 +138,7 @@ func (ctx *Context) ServerError(title string, err error) {
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(404, base.TplName("status/500"))
+	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -193,6 +195,7 @@ func Contexter() macaron.Handler {
 			},
 			Org: &Organization{},
 		}
+		ctx.Data["Language"] = ctx.Locale.Language()
 		c.Data["Link"] = ctx.Link
 		ctx.Data["PageStartTime"] = time.Now()
 		// Quick responses appropriate go-get meta with status 200
@@ -209,7 +212,11 @@ func Contexter() macaron.Handler {
 			if err == nil && len(repo.DefaultBranch) > 0 {
 				branchName = repo.DefaultBranch
 			}
+<<<<<<< HEAD
 			prefix := setting.AppURL + path.Join(url.QueryEscape(ownerName), url.QueryEscape(repoName), "src", "branch", branchName)
+=======
+			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+>>>>>>> a1b0e27f271761bdd599a1dcdc7d1ebae6583ea7
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
 			c.Write([]byte(com.Expand(`<!doctype html>

@@ -15,20 +15,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
-
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/git"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -56,6 +56,23 @@ var (
 		".github/issue_template.md",
 	}
 )
+
+// MustAllowUserComment checks to make sure if an issue is locked.
+// If locked and user has permissions to write to the repository,
+// then the comment is allowed, else it is blocked
+func MustAllowUserComment(ctx *context.Context) {
+
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(issue.HTMLURL())
+		return
+	}
+}
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
@@ -112,8 +129,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	repo := ctx.Repo.Repository
+	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
-
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
 	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
@@ -123,7 +147,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		if err != nil {
+			ctx.ServerError("issueIndexer.Search", err)
+			return
+		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true
 		}
@@ -176,7 +204,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
-			Labels:      selectLabels,
+			LabelIDs:    labelIDs,
 			SortType:    sortType,
 			IssueIDs:    issueIDs,
 		})
@@ -210,7 +238,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs)
+	}
 	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
 
 	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
@@ -259,6 +291,13 @@ func Issues(ctx *context.Context) {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
 	}
+
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssuesOrPulls"] = perm.CanWriteIssuesOrPulls(isPullList)
 
 	ctx.HTML(200, tplIssues)
 }
@@ -363,6 +402,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	body := ctx.Query("body")
+	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
 	milestone, err := models.GetMilestoneByID(milestoneID)
@@ -885,6 +926,9 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
+	ctx.Data["IsRepoIssuesWriter"] = ctx.IsSigned && (ctx.Repo.CanWrite(models.UnitTypeIssues) || ctx.User.IsAdmin)
+	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.HTML(200, tplIssueView)
 }
 
@@ -1105,6 +1149,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(403)
+	}
+
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
+		ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 		return
 	}
 
@@ -1168,6 +1217,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 						return
 					}
 				} else {
+
+					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+						ctx.ServerError("CreateOrStopIssueStopwatch", err)
+						return
+					}
+
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
 					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
@@ -1237,6 +1292,8 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 	})
@@ -1267,6 +1324,8 @@ func DeleteComment(ctx *context.Context) {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
+
+	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }
