@@ -529,6 +529,9 @@ ACCESS = file
 LEVEL = Info
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "None"
 STACKTRACE_LEVEL = None
+
+; Generic log modes
+[log.x]
 FLAGS = 0
 EXPRESSION =
 PREFIX =
@@ -537,6 +540,7 @@ COLORIZE = false
 ; For "console" mode only
 [log.console]
 LEVEL =
+STDERR = false
 
 ; For "file" mode only
 [log.file]

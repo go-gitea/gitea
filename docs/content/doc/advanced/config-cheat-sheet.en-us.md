@@ -320,7 +320,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Console log mode (`log.console`, `log.*.console`, or `MODE=console`)
 
-- The console log mode has no special log options just the default options. `COLORIZE` will default to `true` if not on windows.
+- For the console logger `COLORIZE` will default to `true` if not on windows.
+- `STDERR`: **false**: Use Stderr instead of Stdout.
 
 ### File log mode (`log.file`, `log.*.file` or `MODE=file`)
 

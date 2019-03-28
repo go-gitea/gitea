@@ -97,7 +97,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	switch mode {
 	case "console":
 		jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
-		// No-op
+		jsonConfig["stderr"] = sec.Key("STDERR").MustBool(false)
 	case "file":
 		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 			panic(err.Error())
