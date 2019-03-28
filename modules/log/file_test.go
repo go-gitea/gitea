@@ -40,7 +40,7 @@ func TestFileLoggerFails(t *testing.T) {
 	assert.Error(t, err)
 
 	// Fail if the file isn't a filename
-	err = fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\"}", prefix, level.String(), flags, tmpDir))
+	err = fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\"}", prefix, level.String(), flags, filepath.ToSlash(tmpDir)))
 	assert.Error(t, err)
 
 }
@@ -76,7 +76,7 @@ func TestFileLogger(t *testing.T) {
 
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 
-	fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\",\"maxsize\":%d,\"compress\":false}", prefix, level.String(), flags, filename, len(expected)*2))
+	fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\",\"maxsize\":%d,\"compress\":false}", prefix, level.String(), flags, filepath.ToSlash(filename), len(expected)*2))
 
 	assert.Equal(t, flags, realFileLogger.Flags)
 	assert.Equal(t, level, realFileLogger.Level)
@@ -181,7 +181,7 @@ func TestCompressFileLogger(t *testing.T) {
 
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 
-	fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\",\"maxsize\":%d,\"compress\":true}", prefix, level.String(), flags, filename, len(expected)*2))
+	fileLogger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"filename\":\"%s\",\"maxsize\":%d,\"compress\":true}", prefix, level.String(), flags, filepath.ToSlash(filename), len(expected)*2))
 
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
