@@ -19,6 +19,12 @@ const AppURL = "http://localhost:3000/"
 const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
+// these values should match the Repo const above
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_StandardLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
@@ -245,7 +251,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderWiki([]byte(sameCases[i]), AppSubURL, nil)
+		line := RenderWiki([]byte(sameCases[i]), AppSubURL, localMetas)
 		assert.Equal(t, answers[i], line)
 	}
 
@@ -272,7 +278,7 @@ func TestTotal_RenderString(t *testing.T) {
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), nil)
+		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), localMetas)
 		assert.Equal(t, answers[i], line)
 	}
 

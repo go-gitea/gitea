@@ -53,6 +53,12 @@ var alphanumericMetas = map[string]string{
 	"style":  IssueNameStyleAlphanumeric,
 }
 
+// these values should match the Repo const above
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
@@ -90,7 +96,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), index)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, nil)
+		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
 		for i, index := range indices {
 			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", index)
@@ -168,6 +174,7 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *post
 	if ctx.urlPrefix == "" {
 		ctx.urlPrefix = AppSubURL
 	}
+
 	res, err := ctx.postProcess([]byte(input))
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(res))
@@ -178,10 +185,10 @@ func TestRender_AutoLink(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer, err := PostProcess([]byte(input), setting.AppSubURL, nil, false)
+		buffer, err := PostProcess([]byte(input), setting.AppSubURL, localMetas, false)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer, err = PostProcess([]byte(input), setting.AppSubURL, nil, true)
+		buffer, err = PostProcess([]byte(input), setting.AppSubURL, localMetas, true)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
@@ -211,6 +218,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		if ctx.urlPrefix == "" {
 			ctx.urlPrefix = AppSubURL
 		}
+		ctx.metas = localMetas
 		result, err := ctx.postProcess([]byte(input))
 		assert.NoError(t, err)
 		assert.Equal(t, expected, string(result))

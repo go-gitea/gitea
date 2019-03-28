@@ -534,6 +534,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 }
 
 func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -547,15 +550,7 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	matchOrg := linkParts[len(linkParts)-4]
 	matchRepo := linkParts[len(linkParts)-3]
 
-	// extract the current org and repo from ctx URL like
-	// http://localhost:3000/gituser/myrepo/
-	url := strings.Replace(ctx.urlPrefix, setting.AppURL, "", -1)
-	urlParts := strings.Split(path.Clean(url), "/")
-
-	currentOrg := urlParts[0]
-	currentRepo := urlParts[1]
-
-	if matchOrg == currentOrg && matchRepo == currentRepo {
+	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
 		replaceContent(node, m[0], m[1], createLink(link, id))
@@ -567,8 +562,9 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 }
 
 func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	prefix := cutoutVerbosePrefix(ctx.urlPrefix)
-
+	if ctx.metas == nil {
+		return
+	}
 	// default to numeric pattern, unless alphanumeric is requested.
 	pattern := issueNumericPattern
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
@@ -579,11 +575,10 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if match == nil {
 		return
 	}
+
 	id := node.Data[match[2]:match[3]]
 	var link *html.Node
-	if ctx.metas == nil {
-		link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
-	} else {
+	if _, ok := ctx.metas["format"]; ok {
 		// Support for external issue tracker
 		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
 			ctx.metas["index"] = id
@@ -591,6 +586,8 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			ctx.metas["index"] = id[1:]
 		}
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
+	} else {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id)
 	}
 	replaceContent(node, match[2], match[3], link)
 }

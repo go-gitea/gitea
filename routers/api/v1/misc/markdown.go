@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"mvdan.cc/xurls/v2"
 )
 
 // Markdown render markdown document to HTML
@@ -50,9 +52,12 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 		urlPrefix := form.Context
 		var meta map[string]string
 		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
-			// This is still incorrect...
-			// Need to check if urlPrefix is an url - if so no join
-			urlPrefix = util.URLJoin(setting.AppURL, form.Context)
+			// check if urlPrefix is already set to a URL
+			linkRegex, _ := xurls.StrictMatchingScheme("https?://")
+			m := linkRegex.FindStringIndex(urlPrefix)
+			if m == nil {
+				urlPrefix = util.URLJoin(setting.AppURL, form.Context)
+			}
 		}
 		if ctx.Repo != nil && ctx.Repo.Repository != nil {
 			meta = ctx.Repo.Repository.ComposeMetas()
