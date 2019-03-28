@@ -7,8 +7,8 @@ package gitdata
 import (
 	"fmt"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 )

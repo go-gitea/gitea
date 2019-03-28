@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
 )
 

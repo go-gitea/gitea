@@ -7,10 +7,10 @@ package repofiles
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetDiffPreview(t *testing.T) {

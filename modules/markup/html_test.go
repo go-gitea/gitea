@@ -113,6 +113,12 @@ func TestRender_links(t *testing.T) {
 	test(
 		"https://foo_bar.example.com/",
 		`<p><a href="https://foo_bar.example.com/" rel="nofollow">https://foo_bar.example.com/</a></p>`)
+	test(
+		"https://stackoverflow.com/questions/2896191/what-is-go-used-fore",
+		`<p><a href="https://stackoverflow.com/questions/2896191/what-is-go-used-fore" rel="nofollow">https://stackoverflow.com/questions/2896191/what-is-go-used-fore</a></p>`)
+	test(
+		"https://username:password@gitea.com",
+		`<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(

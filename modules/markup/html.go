@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/mvdan/xurls"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"mvdan.cc/xurls/v2"
 )
 
 // Issue name styles
@@ -152,15 +152,15 @@ func (p *postProcessError) Error() string {
 type processor func(ctx *postProcessCtx, node *html.Node)
 
 var defaultProcessors = []processor{
-	mentionProcessor,
-	shortLinkProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	shortLinkProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 type postProcessCtx struct {
@@ -194,14 +194,14 @@ func PostProcess(
 }
 
 var commitMessageProcessors = []processor{
-	mentionProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable

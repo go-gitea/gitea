@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"

@@ -9,7 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
 )
