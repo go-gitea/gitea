@@ -12,9 +12,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -172,7 +172,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, url.QueryEscape(owner), url.QueryEscape(repo))
+	return path.Join(setting.Domain, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -204,7 +204,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", ownerName, repo.Name),
+		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
 	ctx.Redirect(redirectPath)
@@ -212,6 +212,17 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *models.Repository) {
 	var err error
+	if err = repo.GetOwner(); err != nil {
+		ctx.ServerError("GetOwner", err)
+		return
+	}
+
+	if repo.Owner.IsOrganization() {
+		if !models.HasOrgVisible(repo.Owner, ctx.User) {
+			ctx.NotFound("HasOrgVisible", nil)
+			return
+		}
+	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
@@ -336,6 +347,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Repo.RepoLink = repo.Link()
 		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 		ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
+
+		unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil {
+			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
+		}
 
 		tags, err := ctx.Repo.GitRepo.GetTags()
 		if err != nil {

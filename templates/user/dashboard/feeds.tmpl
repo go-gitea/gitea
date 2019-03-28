@@ -7,7 +7,11 @@
 			<div class="ui fourteen wide column">
 				<div class="{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}push news{{end}}">
 					<p>
-						<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetActFullName}}">{{.ShortActUserName}}</a>
+						{{if gt .ActUser.ID 0}}
+							<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetActFullName}}">{{.ShortActUserName}}</a>
+						{{else}}
+							{{.ShortActUserName}}
+						{{end}}
 						{{if eq .GetOpType 1}}
 							{{$.i18n.Tr "action.create_repo" .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 2}}

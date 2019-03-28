@@ -51,8 +51,9 @@ type Engine interface {
 }
 
 var (
-	x      *xorm.Engine
-	tables []interface{}
+	x                  *xorm.Engine
+	supportedDatabases = []string{"mysql", "postgres", "mssql"}
+	tables             []interface{}
 
 	// HasEngine specifies if we have a xorm.Engine
 	HasEngine bool
@@ -125,6 +126,9 @@ func init() {
 		new(U2FRegistration),
 		new(TeamUnit),
 		new(Review),
+		new(OAuth2Application),
+		new(OAuth2AuthorizationCode),
+		new(OAuth2Grant),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -156,21 +160,8 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
-	if !filepath.IsAbs(setting.Indexer.IssuePath) {
-		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
-	}
-	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
-	if !filepath.IsAbs(setting.Indexer.RepoPath) {
-		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
-	}
-	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
-	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
@@ -360,7 +351,9 @@ func Ping() error {
 func DumpDatabase(filePath string, dbType string) error {
 	var tbs []*core.Table
 	for _, t := range tables {
-		tbs = append(tbs, x.TableInfo(t).Table)
+		t := x.TableInfo(t)
+		t.Table.Name = t.Name
+		tbs = append(tbs, t.Table)
 	}
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))

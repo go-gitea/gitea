@@ -6,6 +6,7 @@ package admin
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -211,6 +212,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
 	ctx.Data["GitVersion"] = setting.Git.Version
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
+	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
 	ctx.Data["LogRootPath"] = setting.LogRootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
@@ -239,6 +241,20 @@ func Config(ctx *context.Context) {
 	ctx.Data["EnableFederatedAvatar"] = setting.EnableFederatedAvatar
 
 	ctx.Data["Git"] = setting.Git
+
+	type envVar struct {
+		Name, Value string
+	}
+
+	envVars := map[string]*envVar{}
+	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
+		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
+	}
+	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
+		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
+	}
+
+	ctx.Data["EnvVars"] = envVars
 
 	type logger struct {
 		Mode, Config string

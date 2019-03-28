@@ -8,16 +8,16 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -239,7 +239,7 @@ func runHookPostReceive(c *cli.Context) error {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
 				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
-				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), url.QueryEscape(baseRepo.DefaultBranch), url.QueryEscape(branch))
+				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch))
 			} else {
 				fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
 				fmt.Fprintf(os.Stderr, "  %s/pulls/%d\n", baseRepo.HTMLURL(), pr.Index)

@@ -2,11 +2,8 @@
     @mega-octicon-width: 30px;
 
     padding-top: 15px;
-    padding-bottom: @footer-margin * 2;
 
-    .header-grid {
-        padding-top: 5px;
-        padding-bottom: 5px;
+    .repo-header {
         .ui.compact.menu {
             margin-left: 1rem;
         }
@@ -19,10 +16,10 @@
         }
         .ui.huge.breadcrumb {
             font-weight: 400;
-            font-size: 1.7rem;
+            font-size: 1.5rem;
         }
         .fork-flag {
-            margin-left: @mega-octicon-width + 8px;
+            margin-left: @mega-octicon-width + 6px;
             margin-top: 3px;
             display: block;
             font-size: 12px;
@@ -333,7 +330,7 @@
             .code-view {
                 * {
                     font-size: 12px;
-                    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                    font-family: @monospaced-fonts, monospace;
                     line-height: 20px;
                 }
 
@@ -346,9 +343,6 @@
                     color: #999;
                     background: #f5f5f5;
                     width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
                     user-select: none;
 
                     span {
@@ -369,9 +363,12 @@
                         padding: 0 !important;
                         li {
                             display: block;
-                            padding: 0 .25em;
+                            width: 100%;
                             &.active {
                                 background: #ffffdd;
+                            }
+                            &:before {
+                                content: ' ';
                             }
                         }
                     }
@@ -433,7 +430,7 @@
                     .branch-name {
                         display: inline-block;
                         padding: 3px 6px;
-                        font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                        font: 12px @monospaced-fonts, monospace;
                         color: rgba(0,0,0,0.65);
                         background-color: rgba(209,227,237,0.45);
                         border-radius: 3px;
@@ -702,7 +699,7 @@
                     }
                     textarea {
                         height: 200px;
-                        font-family: "Consolas", monospace;
+                        font-family: @monospaced-fonts, monospace;
                     }
                 }
 
@@ -805,7 +802,7 @@
             }
             textarea {
                 height: 200px;
-                                font-family: "Consolas", monospace;
+                                font-family: @monospaced-fonts, monospace;
             }
         }
     }
@@ -1056,9 +1053,6 @@
                 color: #A7A7A7;
                 background: #fafafa;
                 width: 1%;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                -webkit-user-select: none;
                 user-select: none;
                 vertical-align: top;
 
@@ -1352,7 +1346,7 @@
         &.new {
             .CodeMirror {
                 .CodeMirror-code {
-                    font-family: "Consolas", monospace;
+                    font-family: @monospaced-fonts, monospace;
                     .cm-comment {
                         background: inherit;
                     }
@@ -1585,13 +1579,24 @@
     }
 }
 
-#issue-actions {
+#issue-filters.hide {
     display: none;
+}
+
+#issue-actions {
+  margin-top: -1rem !important; // counteract padding from Semantic
+}
+
+#issue-actions.hide {
+    display: none;
+}
+
+.ui.checkbox.issue-checkbox {
+    vertical-align: middle;
 }
 
 .issue.list {
     list-style: none;
-    padding-top: 15px;
     >.item {
         padding-top: 15px;
         padding-bottom: 10px;
@@ -1797,7 +1802,6 @@
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
     .tab-size-@{i} {
         tab-size: @i !important;
-        -moz-tab-size: @i !important;
     }
     .generate-tab-size(@n, (@i + 1));
 }
@@ -1867,8 +1871,27 @@ tbody.commit-list {
     flex-wrap: wrap;
 }
 
-.repo-header .repo-title,
 .repo-header .repo-buttons {
     display: flex;
     align-items: center;
+}
+
+.repo-buttons .disabled-repo-button .label {
+  opacity: .5;
+}
+
+.repo-buttons .disabled-repo-button a.button {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.repo-buttons .disabled-repo-button a.button:hover {
+  background: none !important;
+  color: rgba(0,0,0,.6) !important;
+  box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset !important;
+}
+
+.repo-buttons .ui.labeled.button > .label {
+  border-left: none !important;
+  margin: 0 !important;
 }

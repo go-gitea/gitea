@@ -10,15 +10,14 @@ import (
 	"container/list"
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -633,10 +632,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		infoPath   string
 		err        error
 	)
-	infoPath, err = url.QueryUnescape(ctx.Params("*"))
-	if err != nil {
-		ctx.NotFound("QueryUnescape", err)
-	}
+	infoPath = ctx.Params("*")
 	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
@@ -692,8 +688,10 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if isSameRepo {
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
+		ctx.Data["BaseName"] = headUser.Name
 	} else {
 		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		ctx.Data["BaseName"] = baseRepo.OwnerName
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil, nil, nil, nil, "", ""

@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -53,7 +53,7 @@ const (
 )
 
 var (
-	// Same as Github. See
+	// Same as GitHub. See
 	// https://help.github.com/articles/closing-issues-via-commit-messages
 	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
 	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
@@ -539,7 +539,8 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		}
 
 		// Change issue status only if the commit has been pushed to the default branch.
-		if repo.DefaultBranch != branchName {
+		// and if the repo is configured to allow only that
+		if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
 			continue
 		}
 

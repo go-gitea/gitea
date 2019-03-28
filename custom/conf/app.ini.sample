@@ -36,6 +36,8 @@ DISABLE_HTTP_GIT = false
 ACCESS_CONTROL_ALLOW_ORIGIN = 
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
+; Close issues as long as a commit on any branch marks it as fixed
+DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -66,6 +68,10 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+
+[repository.issue]
+; List of reasons why a Pull Request or Issue can be locked
+LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
 [ui]
 ; Number of repositories that are displayed on one explore page
@@ -247,9 +253,19 @@ DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
 
-
 [indexer]
+; Issue indexer type, currently support: bleve or db, default is bleve
+ISSUE_INDEXER_TYPE = bleve
+; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
+; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
+ISSUE_INDEXER_QUEUE_TYPE = levelqueue
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path, 
+; default is indexers/issues.queue
+ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
+; Batch queue number, default is 20
+ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
@@ -349,6 +365,11 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Either "public", "limited" or "private", default is "public"
+; Limited is for signed user only
+; Private is only for member of the organization
+; Public is for everyone
+DEFAULT_ORG_VISIBILITY = public
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
@@ -610,6 +631,7 @@ GC_ARGS =
 
 ; Operation timeout in seconds
 [git.timeout]
+DEFAULT = 360
 MIGRATE = 600
 MIRROR = 300
 CLONE = 300
@@ -629,6 +651,18 @@ ENABLE_SWAGGER = true
 MAX_RESPONSE_ITEMS = 50
 ; Default paging number of api
 DEFAULT_PAGING_NUM = 30
+; Default and maximum number of items per page for git trees api
+DEFAULT_GIT_TREES_PER_PAGE = 1000
+
+[oauth2]
+; Enables OAuth2 provider
+ENABLED = true
+; Lifetime of an OAuth2 access token in seconds
+ACCESS_TOKEN_EXPIRATION_TIME=3600
+; Lifetime of an OAuth2 access token in hours
+REFRESH_TOKEN_EXPIRATION_TIME=730
+; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
@@ -660,11 +694,12 @@ sv-SE = sv
 ko-KR = ko
 
 [U2F]
+; NOTE: THE DEFAULT VALUES HERE WILL NEED TO BE CHANGED
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+;APP_ID = http://localhost:3000/
+; Comma seperated list of trusted facets
+;TRUSTED_FACETS = http://localhost:3000/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini

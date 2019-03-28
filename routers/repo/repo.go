@@ -10,17 +10,16 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Unknwon/com"
-
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
 )
 
 const (
@@ -253,6 +252,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
+		return
+	}
+
+	if models.IsErrRepoAlreadyExist(err) {
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
 		return
 	}
 

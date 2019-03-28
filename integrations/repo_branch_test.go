@@ -58,7 +58,7 @@ func TestCreateBranch(t *testing.T) {
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "feature=test1",
 			ExpectedStatus: http.StatusFound,
-			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.git_ref_name_error"),
+			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature=test1"),
 		},
 		{
 			OldRefSubURL:   "branch/master",

@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
@@ -90,7 +91,9 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		models.InitIssueIndexer()
+		if err := issue_indexer.InitIssueIndexer(false); err != nil {
+			log.Fatal(4, "Failed to initialize issue indexer: %v", err)
+		}
 		models.InitRepoIndexer()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
