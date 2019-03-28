@@ -16,7 +16,7 @@
 					</div>
 
 					<div class="inline field {{if .Err_OrgVisibility}}error{{end}}">
-						<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
+						<span class="inline required field"><label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label></span>
 						<div class="ui radio checkbox">
 							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultOrgVisibilityMode.IsPublic}}checked{{end}}/>
 							<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
