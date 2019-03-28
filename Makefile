@@ -170,11 +170,7 @@ fmt-check:
 
 .PHONY: test
 test:
-<<<<<<< HEAD
-	GITEA_ROOT=${CURDIR} $(GO) test -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
-=======
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
->>>>>>> upstream/master
+	GITEA_ROOT=${CURDIR} GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
