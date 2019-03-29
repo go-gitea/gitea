@@ -115,7 +115,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 			}
 
 			release.PublisherID = u.ID
-			if _, err := sess.ID(release.ID).Update(release); err != nil {
+			if _, err := sess.ID(release.ID).Cols("publisher_id").Update(release); err != nil {
 				return err
 			}
 		}
