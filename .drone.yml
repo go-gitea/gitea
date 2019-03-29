@@ -655,7 +655,4 @@ trigger:
   status:
   - success
   - failure
-
-depends_on:
-- release
 ...
