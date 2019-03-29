@@ -654,14 +654,11 @@ steps:
       from_secret: discord_webhook_id
     DISCORD_WEBHOOK_TOKEN:
       from_secret: discord_webhook_token
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-    status:
-    - changed
-    - failure
+
+trigger:
+  status:
+  - success
+  - failure
 
 depends_on:
 - release
