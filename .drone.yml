@@ -140,10 +140,8 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - make generate
-  - make build
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
-    TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
 
 - name: test-sqlite
@@ -185,10 +183,8 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - make generate
-  - make build
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
-    TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
 
 - name: test-mysql
@@ -261,10 +257,8 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - make generate
-  - make build
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
-    TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
 
 - name: test-mysql8
@@ -314,10 +308,8 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - make generate
-  - make build
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
-    TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
 
 - name: test-pgsql
@@ -366,10 +358,8 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - make generate
-  - make build
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
-    TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
 
 - name: test-mssql
