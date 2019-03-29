@@ -642,6 +642,9 @@ depends_on:
 kind: pipeline
 name: notifications
 
+clone:
+  disable: true
+
 steps:
 - name: discord
   pull: always
