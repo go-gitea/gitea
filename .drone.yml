@@ -519,7 +519,7 @@ steps:
     - tag
 
 depends_on:
-- coverage
+- docs
 
 ---
 kind: pipeline
