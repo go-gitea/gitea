@@ -329,10 +329,6 @@ depends_on:
 kind: pipeline
 name: test-mssql
 
-platform:
-  os: linux
-  arch: amd64
-
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -655,4 +651,7 @@ trigger:
   status:
   - success
   - failure
+
+depends_on:
+- docker-x86
 ...
