@@ -54,7 +54,7 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 }
 
 // CreateRepo creates a repository
-func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
+func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool) error {
 	owner, err := models.GetUserByName(g.repoOwner)
 	if err != nil {
 		return err
@@ -66,6 +66,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository) error {
 		IsMirror:    repo.IsMirror,
 		RemoteAddr:  repo.CloneURL,
 		IsPrivate:   repo.IsPrivate,
+		NoWiki:      !includeWiki,
 	})
 	if err != nil {
 		return err

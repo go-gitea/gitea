@@ -10,22 +10,77 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
-	if uploadToken == nil || *uploadToken == "" {
-		t.Skipf("Gitea token is not provided and the test ignored")
-		return
-	}
+	models.PrepareTestEnv(t)
 
-	var user = &models.User{
-		ID: 1,
-	}
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
-	err := MigrateRepository(user, "xorm", MigrateOptions{
-		RemoteURL: "https://github.com/go-xorm/builder",
-		Name:      "builder-" + time.Now().Format("2006-01-02-15-04-05"),
+	repoName := "builder-" + time.Now().Format("2006-01-02-15-04-05")
+	err := MigrateRepository(user, user.Name, MigrateOptions{
+		RemoteURL:    "https://github.com/go-xorm/builder",
+		Name:         repoName,
+		AuthUsername: "45f1294fa6d90e0b420bfaf343445906ef157201",
+
+		Wiki:              true,
+		Issues:            true,
+		Milestones:        true,
+		Labels:            true,
+		Releases:          true,
+		Comments:          true,
+		PullRequests:      true,
+		Private:           true,
+		Mirror:            false,
+		IgnoreIssueAuthor: false,
 	})
 	assert.NoError(t, err)
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
+	assert.True(t, repo.HasWiki())
+
+	milestones, err := models.GetMilestones(repo.ID, 0, false, "")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(milestones))
+
+	milestones, err = models.GetMilestones(repo.ID, 0, true, "")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, len(milestones))
+
+	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 11, len(labels))
+
+	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		IncludeTags: true,
+	}, 0, 10)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 8, len(releases))
+
+	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		IncludeTags: false,
+	}, 0, 10)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(releases))
+
+	issues, err := models.Issues(&models.IssuesOptions{
+		RepoIDs:  []int64{repo.ID},
+		IsPull:   util.OptionalBoolFalse,
+		SortType: "oldest",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 14, len(issues))
+	assert.NoError(t, issues[0].LoadDiscussComments())
+	assert.EqualValues(t, 0, len(issues[0].Comments))
+
+	pulls, _, err := models.PullRequests(repo.ID, &models.PullRequestsOptions{
+		SortType: "oldest",
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 34, len(pulls))
+	assert.NoError(t, pulls[0].LoadIssue())
+	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
+	assert.EqualValues(t, 2, len(pulls[0].Issue.Comments))
 }

@@ -41,6 +41,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		}
 	}
 	if downloader == nil {
+		opts.Wiki = true
 		opts.Milestones = false
 		opts.Labels = false
 		opts.Releases = false
@@ -48,7 +49,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		opts.Issues = false
 		opts.PullRequests = false
 		downloader = NewPlainGitDownloader(ownerName, opts.Name, opts.RemoteURL)
-		log.Trace("Will migrate from git")
+		log.Trace("Will migrate from git: %s", opts.RemoteURL)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
@@ -72,7 +73,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
 	log.Trace("migrating git data")
-	if err := uploader.CreateRepo(repo); err != nil {
+	if err := uploader.CreateRepo(repo, opts.Wiki); err != nil {
 		return err
 	}
 

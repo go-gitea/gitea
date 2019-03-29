@@ -6,14 +6,12 @@
 package migrations
 
 import (
-	"flag"
+	"path/filepath"
 	"testing"
-)
 
-var (
-	uploadToken = flag.String("upload-token", "", "token for uploading")
+	"code.gitea.io/gitea/models"
 )
 
 func TestMain(m *testing.M) {
-	m.Run()
+	models.MainTest(m, filepath.Join("..", ".."))
 }

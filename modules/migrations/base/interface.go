@@ -18,7 +18,7 @@ type Downloader interface {
 
 // Uploader uploads all the informations
 type Uploader interface {
-	CreateRepo(*Repository) error
+	CreateRepo(repo *Repository, includeWiki bool) error
 	CreateMilestone(milestone *Milestone) error
 	CreateRelease(release *Release) error
 	CreateLabel(label *Label) error

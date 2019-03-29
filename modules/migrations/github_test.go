@@ -328,6 +328,12 @@ something like in the latest 15days could be enough don't you think ?
 		closed2 = time.Date(2016, 11, 03, 8, 06, 27, 0, time.UTC)
 		closed3 = time.Date(2016, 11, 02, 18, 22, 31, 0, time.UTC)
 	)
+
+	var (
+		merged1 = time.Date(2016, 11, 02, 18, 22, 21, 0, time.UTC)
+		merged2 = time.Date(2016, 11, 03, 8, 06, 27, 0, time.UTC)
+		merged3 = time.Date(2016, 11, 02, 18, 22, 31, 0, time.UTC)
+	)
 	assert.EqualValues(t, []*base.PullRequest{
 		{
 			Number:     1,
@@ -359,7 +365,10 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
-			Closed: &closed1,
+			Closed:         &closed1,
+			Merged:         true,
+			MergedTime:     &merged1,
+			MergeCommitSHA: "142d35e8d2baec230ddb565d1265940d59141fab",
 		},
 		{
 			Number:     2,
@@ -385,6 +394,7 @@ something like in the latest 15days could be enough don't you think ?
 				SHA:       "af03d00780a6ee70c58e135c6679542cde4f8d50",
 				RepoName:  "gogs",
 				OwnerName: "strk",
+				CloneURL:  "https://github.com/strk/gogs.git",
 			},
 			Base: base.PullRequestBranch{
 				Ref:       "develop",
@@ -392,7 +402,10 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
-			Closed: &closed2,
+			Closed:         &closed2,
+			Merged:         true,
+			MergedTime:     &merged2,
+			MergeCommitSHA: "d8de2beb5b92d02a0597ba7c7803839380666653",
 		},
 		{
 			Number:     3,
@@ -418,6 +431,7 @@ something like in the latest 15days could be enough don't you think ?
 				SHA:       "d59a48a2550abd4129b96d38473941b895a4859b",
 				RepoName:  "gogs",
 				OwnerName: "strk",
+				CloneURL:  "https://github.com/strk/gogs.git",
 			},
 			Base: base.PullRequestBranch{
 				Ref:       "develop",
@@ -425,7 +439,10 @@ something like in the latest 15days could be enough don't you think ?
 				OwnerName: "go-gitea",
 				RepoName:  "gitea",
 			},
-			Closed: &closed3,
+			Closed:         &closed3,
+			Merged:         true,
+			MergedTime:     &merged3,
+			MergeCommitSHA: "5c5424301443ffa3659737d12de48ab1dfe39a00",
 		},
 	}, prs)
 }
