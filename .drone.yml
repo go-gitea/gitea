@@ -140,7 +140,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -ldflags '-s' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
@@ -184,7 +184,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -ldflags '-s' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
@@ -259,7 +259,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -ldflags '-s' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
@@ -311,7 +311,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -ldflags '-s' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
@@ -362,7 +362,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -ldflags '-s' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     TAGS: bindata sqlite sqlite_unlock_notify
     GO111MODULE: on
