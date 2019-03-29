@@ -653,5 +653,9 @@ trigger:
   - failure
 
 depends_on:
-- docker-x86
+- test-sqlite
+- test-mysql
+- test-mysql8
+- test-pgsql
+- test-mssql
 ...
