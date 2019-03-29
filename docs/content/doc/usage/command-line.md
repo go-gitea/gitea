@@ -84,13 +84,13 @@ Admin operations:
             - Options:
                 - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
             - Examples:
-                - `gitea auth list`
+                - `gitea admin auth list`
         - `delete`:
             - Options:
                 - `--id`: ID of source to be deleted. Required.
                 - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
             - Examples:
-                - `gitea auth delete --id 1`
+                - `gitea admin auth delete --id 1`
         - `add-oauth`:
             - Options:
                 - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
@@ -105,7 +105,7 @@ Admin operations:
                 - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
                 - `--custom-email-url`: Use a custom Email URL (option for GitHub).
             - Examples:
-                - `gitea auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
+                - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
         - `update-oauth`:
             - Options:
                 - `--id`: ID of source to be updated. Required.
@@ -121,7 +121,7 @@ Admin operations:
                 - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
                 - `--custom-email-url`: Use a custom Email URL (option for GitHub).
             - Examples:
-                - `gitea auth update-oauth --id 1 --name external-github-updated`
+                - `gitea admin auth update-oauth --id 1 --name external-github-updated`
 
 #### cert
 
