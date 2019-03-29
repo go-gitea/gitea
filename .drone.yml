@@ -59,10 +59,6 @@ trigger:
 kind: pipeline
 name: default    
 
-platform:
-  os: linux
-  arch: amd64
-
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -170,10 +166,6 @@ depends_on:
 kind: pipeline
 name: test-mysql
 
-platform:
-  os: linux
-  arch: amd64
-
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -244,10 +236,6 @@ depends_on:
 kind: pipeline
 name: test-mysql8
 
-platform:
-  os: linux
-  arch: amd64
-
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
@@ -294,10 +282,6 @@ depends_on:
 ---
 kind: pipeline
 name: test-pgsql
-
-platform:
-  os: linux
-  arch: amd64
 
 workspace:
   base: /go
@@ -427,8 +411,12 @@ depends_on:
 kind: pipeline
 name: coverage
 
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
 steps:
-- name: unit-test
+- name: unit-test-coverage
   pull: always
   image: golang:1.12
   commands:
@@ -469,6 +457,10 @@ depends_on:
 ---
 kind: pipeline
 name: docker-x86
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
 
 steps:
 - name: docker-dryrun
@@ -524,6 +516,10 @@ depends_on:
 ---
 kind: pipeline
 name: release
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
 
 steps:
 - name: static
