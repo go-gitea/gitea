@@ -421,11 +421,7 @@ steps:
     TAGS: bindata
   commands:
   - make unit-test-coverage
-
-- name: generate-coverage
-  pull: always
-  image: golang:1.12
-  commands:
+  - make integration-test-coverage
   - make coverage
   environment:
     TAGS: bindata
