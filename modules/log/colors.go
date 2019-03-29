@@ -76,7 +76,7 @@ const (
 	BgHiWhite
 )
 
-var _ColorAttributeToString = map[ColorAttribute]string{
+var colorAttributeToString = map[ColorAttribute]string{
 	Reset:        "Reset",
 	Bold:         "Bold",
 	Faint:        "Faint",
@@ -122,15 +122,15 @@ var _ColorAttributeToString = map[ColorAttribute]string{
 }
 
 func (c *ColorAttribute) String() string {
-	return _ColorAttributeToString[*c]
+	return colorAttributeToString[*c]
 }
 
-var _ColorAttributeFromString = map[string]ColorAttribute{}
+var colorAttributeFromString = map[string]ColorAttribute{}
 
 // ColorAttributeFromString will return a ColorAttribute given a string
 func ColorAttributeFromString(from string) ColorAttribute {
 	lowerFrom := strings.TrimSpace(strings.ToLower(from))
-	return _ColorAttributeFromString[lowerFrom]
+	return colorAttributeFromString[lowerFrom]
 }
 
 // ColorString converts a list of ColorAttributes to a color string
@@ -171,7 +171,7 @@ var statusToColor = map[int]string{
 }
 
 func init() {
-	for attr, from := range _ColorAttributeToString {
-		_ColorAttributeFromString[strings.ToLower(from)] = attr
+	for attr, from := range colorAttributeToString {
+		colorAttributeFromString[strings.ToLower(from)] = attr
 	}
 }
