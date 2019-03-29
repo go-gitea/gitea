@@ -122,9 +122,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		jsonConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
 		jsonConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
 		jsonConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
-	case "database":
-		jsonConfig["driver"] = sec.Key("DRIVER").String()
-		jsonConfig["conn"] = sec.Key("CONN").String()
 	}
 
 	jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)

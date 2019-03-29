@@ -586,14 +586,6 @@ PASSWD =
 ; Receivers, can be one or more, e.g. 1@example.com,2@example.com
 RECEIVERS =
 
-; For "database" mode only
-[log.database]
-LEVEL =
-; Either "mysql" or "postgres"
-DRIVER =
-; Based on xorm, e.g.: root:root@localhost/gitea?charset=utf8
-CONN =
-
 [cron]
 ; Enable running cron tasks periodically.
 ENABLED = true
