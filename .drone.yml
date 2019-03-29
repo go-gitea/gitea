@@ -642,7 +642,7 @@ steps:
     - tag
 
 depends_on:
-- docker
+- docker-x86
 
 ---
 kind: pipeline
