@@ -428,6 +428,16 @@ kind: pipeline
 name: coverage
 
 steps:
+- name: unit-test
+  pull: always
+  image: golang:1.12
+  commands:
+  - make coverage
+  environment:
+    TAGS: bindata
+  commands:
+  - make unit-test-coverage
+
 - name: generate-coverage
   pull: always
   image: golang:1.12
