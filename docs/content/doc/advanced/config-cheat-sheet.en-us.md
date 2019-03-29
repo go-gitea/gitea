@@ -325,7 +325,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### File log mode (`log.file`, `log.*.file` or `MODE=file`)
 
-- `FILE_NAME`: Set the file name for this logger. Defaults as described above.
+- `FILE_NAME`: Set the file name for this logger. Defaults as described above. If relative will be relative to the `ROOT_PATH`
 - `LOG_ROTATE`: **true**: Rotate the log files.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.

@@ -78,7 +78,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			logPath = key.MustString(defaults.filename)
 			forcePathSeparator(logPath)
 			if !filepath.IsAbs(logPath) {
-				logPath = filepath.Join(LogRootPath, logPath)
+				logPath = path.Join(LogRootPath, logPath)
 			}
 		case "FLAGS":
 			flags = key.MustInt(defaults.flags)

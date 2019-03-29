@@ -545,6 +545,9 @@ STDERR = false
 ; For "file" mode only
 [log.file]
 LEVEL =
+; Set the file_name for the logger. If this is a relative path this
+; will be relative to ROOT_PATH
+FILE_NAME =
 ; This enables automated log rotate(switch of following options), default is true
 LOG_ROTATE = true
 ; Max number of lines in a single file, default is 1000000
