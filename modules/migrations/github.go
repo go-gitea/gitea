@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/migrations/base"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"
 )
 
