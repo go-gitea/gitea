@@ -243,7 +243,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	err = migrations.MigrateRepository(ctx.User, ctxUser.Name, migrations.MigrateOptions{
+	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, migrations.MigrateOptions{
 		RemoteURL:    remoteAddr,
 		Name:         form.RepoName,
 		Description:  form.Description,
@@ -251,18 +251,17 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Mirror:       form.Mirror,
 		AuthUsername: form.AuthUsername,
 		AuthPassword: form.AuthPassword,
-		Wiki:         true,
-		Issues:       true,
-		Milestones:   true,
-		Labels:       true,
+		Wiki:         form.Wiki,
+		Issues:       form.Issues,
+		Milestones:   form.Milestones,
+		Labels:       form.Labels,
 		Comments:     true,
-		PullRequests: true,
-		Releases:     true,
+		PullRequests: form.PullRequests,
+		Releases:     form.Releases,
 	})
 
 	if err == nil {
-		// TODO: trace
-		//log.Trace("Repository migrated [%d]: %s/%s", repo.ID, ctxUser.Name, form.RepoName)
+		log.Trace("Repository migrated [%d]: %s/%s sucessfully", repo.ID, ctxUser.Name, form.RepoName)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
 		return
 	}

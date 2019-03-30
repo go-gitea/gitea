@@ -14,15 +14,15 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
-// MigrateRepository migrate
-func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions) error {
+// MigrateRepository migrate repository according MigrateOptions
+func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions) (*models.Repository, error) {
 	source, err := opts.Source()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	url, err := opts.URL()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var (
@@ -56,10 +56,10 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error(4, "rollback failed: %v", err1)
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return uploader.repo, nil
 }
 
 // migrateRepository will download informations and upload to Uploader, this is a simple

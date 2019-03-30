@@ -55,6 +55,13 @@ type MigrateRepoForm struct {
 	Mirror      bool   `json:"mirror"`
 	Private     bool   `json:"private"`
 	Description string `json:"description" binding:"MaxSize(255)"`
+
+	Wiki         bool `json:"wiki"`
+	Milestones   bool `json:"milestones"`
+	Labels       bool `json:"labels"`
+	Issues       bool `json:"issues"`
+	PullRequests bool `json:"pull_requests"`
+	Releases     bool `json:"releases"`
 }
 
 // Validate validates the fields
