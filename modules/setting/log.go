@@ -100,8 +100,14 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	// Generate log configuration.
 	switch mode {
 	case "console":
-		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
-		logConfig["stderr"] = sec.Key("STDERR").MustBool(false)
+		useStderr := sec.Key("STDERR").MustBool(false)
+		logConfig["stderr"] = useStderr
+		if useStderr {
+			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStderr)
+		} else {
+			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStdout)
+		}
+
 	case "file":
 		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 			panic(err.Error())

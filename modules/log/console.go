@@ -11,6 +11,15 @@ import (
 	"os"
 )
 
+// CanColorStdout reports if we can color the Stdout
+// Although we could do terminal sniffing and the like - in reality
+// most tools on *nix are happy to display ansi colors.
+// We will terminal sniff on Windows in console_windows.go
+var CanColorStdout = true
+
+// CanColorStderr reports if we can color the Stderr
+var CanColorStderr = true
+
 type nopWriteCloser struct {
 	w io.WriteCloser
 }
