@@ -89,7 +89,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		}
 	}
 
-	jsonConfig := map[string]interface{}{
+	logConfig := map[string]interface{}{
 		"level":           level.String(),
 		"expression":      expression,
 		"prefix":          prefix,
@@ -100,39 +100,39 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	// Generate log configuration.
 	switch mode {
 	case "console":
-		jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
-		jsonConfig["stderr"] = sec.Key("STDERR").MustBool(false)
+		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
+		logConfig["stderr"] = sec.Key("STDERR").MustBool(false)
 	case "file":
 		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 			panic(err.Error())
 		}
 
-		jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
-		jsonConfig["filename"] = logPath
-		jsonConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
-		jsonConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
-		jsonConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
-		jsonConfig["maxdays"] = sec.Key("MAX_DAYS").MustInt(7)
-		jsonConfig["compress"] = sec.Key("COMPRESS").MustBool(true)
-		jsonConfig["compressionLevel"] = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
+		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
+		logConfig["filename"] = logPath
+		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
+		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
+		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
+		logConfig["maxdays"] = sec.Key("MAX_DAYS").MustInt(7)
+		logConfig["compress"] = sec.Key("COMPRESS").MustBool(true)
+		logConfig["compressionLevel"] = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
 	case "conn":
-		jsonConfig["reconnectOnMsg"] = sec.Key("RECONNECT_ON_MSG").MustBool()
-		jsonConfig["reconnect"] = sec.Key("RECONNECT").MustBool()
-		jsonConfig["net"] = sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
-		jsonConfig["addr"] = sec.Key("ADDR").MustString(":7020")
+		logConfig["reconnectOnMsg"] = sec.Key("RECONNECT_ON_MSG").MustBool()
+		logConfig["reconnect"] = sec.Key("RECONNECT").MustBool()
+		logConfig["net"] = sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
+		logConfig["addr"] = sec.Key("ADDR").MustString(":7020")
 	case "smtp":
-		jsonConfig["username"] = sec.Key("USER").MustString("example@example.com")
-		jsonConfig["password"] = sec.Key("PASSWD").MustString("******")
-		jsonConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
-		jsonConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
-		jsonConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
+		logConfig["username"] = sec.Key("USER").MustString("example@example.com")
+		logConfig["password"] = sec.Key("PASSWD").MustString("******")
+		logConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
+		logConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
+		logConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
 	}
 
-	jsonConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
+	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 
-	byteConfig, err := json.Marshal(jsonConfig)
+	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
-		log.Error("Failed to marshal log configuration: %v %v", jsonConfig, err)
+		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
 		return
 	}
 	config = string(byteConfig)
