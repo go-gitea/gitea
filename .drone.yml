@@ -420,6 +420,7 @@ steps:
   environment:
     TAGS: bindata
   commands:
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   - make unit-test-coverage
   - make integration-test-coverage
   - make coverage
