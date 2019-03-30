@@ -136,8 +136,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     GO111MODULE: on
 
@@ -176,8 +175,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     GO111MODULE: on
 
@@ -247,8 +245,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     GO111MODULE: on
 
@@ -295,8 +292,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     GO111MODULE: on
 
@@ -342,8 +338,7 @@ steps:
   pull: always
   image: golang:1.12
   commands:
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   environment:
     GO111MODULE: on
 
@@ -427,8 +422,7 @@ steps:
   commands:
   - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
   - apt-get install -y git-lfs
-  - go generate code.gitea.io/gitea/modules/public code.gitea.io/gitea/modules/templates
-  - go build -mod=vendor -tags 'bindata sqlite sqlite_unlock_notify' -o gitea
+  - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   - make unit-test-coverage
   - make integration-test-coverage
   - make coverage
