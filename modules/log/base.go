@@ -207,11 +207,17 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 		}
 		*buf = append(*buf, ' ')
 	}
-	// Now we need to prevent log spoofing:
-	if len(event.msg) > 0 && event.msg[len(event.msg)-1] == '\n' {
-		event.msg = event.msg[:len(event.msg)-1]
+
+	var msg = []byte(event.msg)
+	if !b.Colorize {
+		msg = removeColors(msg)
 	}
-	lines := bytes.Split([]byte(event.msg), []byte("\n"))
+
+	// Now we need to prevent log spoofing:
+	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
+		msg = msg[:len(msg)-1]
+	}
+	lines := bytes.Split(msg, []byte("\n"))
 	*buf = append(*buf, lines[0]...)
 	if len(lines) > 1 {
 		for _, line := range lines[1:] {

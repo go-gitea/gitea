@@ -6,10 +6,13 @@ package log
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 const escape = "\033"
+
+var colorRegexp = regexp.MustCompile(escape + `\[\d*(;\d*)*m`)
 
 // ColorAttribute defines a single SGR Code
 type ColorAttribute int
@@ -168,6 +171,10 @@ var statusToColor = map[int]string{
 	403: ColorString(Underline, FgRed),
 	404: ColorString(Bold, FgRed),
 	500: ColorString(Bold, BgRed),
+}
+
+func removeColors(msg []byte) []byte {
+	return colorRegexp.ReplaceAll(msg, []byte{})
 }
 
 func init() {

@@ -6,20 +6,10 @@ package log
 
 import (
 	"net/http"
-	"runtime"
 	"time"
 
 	macaron "gopkg.in/macaron.v1"
 )
-
-// ColorLog sets this logger to print in color
-var (
-	ColorLog = true
-)
-
-func init() {
-	ColorLog = runtime.GOOS != "windows"
-}
 
 // SetupRouterLogger will setup macaron to routing to the main gitea log
 func SetupRouterLogger(m *macaron.Macaron, level Level) {
@@ -38,12 +28,7 @@ func RouterHandler(level Level) func(ctx *macaron.Context) {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		ctx.Next()
 
-		color := ""
-		reset := ""
-		if ColorLog {
-			reset = resetString
-			color = statusToColor[rw.Status()]
-		}
-		GetLogger("router").Log(0, level, "%sCompleted %s %s %v %s in %v%s", color, ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start), reset)
+		color := statusToColor[rw.Status()]
+		GetLogger("router").Log(0, level, "%sCompleted %s %s %v %s in %v%s", color, ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start), resetString)
 	}
 }
