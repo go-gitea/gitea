@@ -261,7 +261,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	})
 
 	if err == nil {
-		log.Trace("Repository migrated [%d]: %s/%s sucessfully", repo.ID, ctxUser.Name, form.RepoName)
+		log.Trace("Repository migrated [%d]: %s/%s successfully", repo.ID, ctxUser.Name, form.RepoName)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
 		return
 	}
