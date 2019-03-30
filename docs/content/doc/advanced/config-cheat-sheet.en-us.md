@@ -293,12 +293,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger or the default logger.
-- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.macaron.modename\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
+- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.macaron\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
 - `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
-NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect.
+NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
-- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.access.modename\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
+- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
   - `Ctx`: the `macaron.Context` of the request.
@@ -308,7 +308,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
 - `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
-### Log subsections (`log.name`, `log.*.name`)
+### Log subsections (`log.name`, `log.name.*`)
 
 - `LEVEL`: **log.LEVEL**: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
 - `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
@@ -318,12 +318,12 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
 - `COLORIZE`: **false**: Colorize the log lines by default
 
-### Console log mode (`log.console`, `log.*.console`, or `MODE=console`)
+### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
 
 - For the console logger `COLORIZE` will default to `true` if not on windows.
 - `STDERR`: **false**: Use Stderr instead of Stdout.
 
-### File log mode (`log.file`, `log.*.file` or `MODE=file`)
+### File log mode (`log.file`, `log.file.*` or `MODE=file`)
 
 - `FILE_NAME`: Set the file name for this logger. Defaults as described above. If relative will be relative to the `ROOT_PATH`
 - `LOG_ROTATE`: **true**: Rotate the log files.
@@ -334,14 +334,14 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `COMPRESS`: **true**: Compress old log files by default with gzip
 - `COMPRESSION_LEVEL`: **-1**: Compression level
 
-### Conn log mode (`log.conn`, `log.*.conn` or `MODE=conn`)
+### Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`)
 
 - `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 - `RECONNECT`: **false**: Try to reconnect when connection is lost.
 - `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 - `ADDR`: **:7020**: Sets the address to connect to.
 
-### SMTP log mode (`log.smtp`, `log.*.smtp` or `MODE=smtp`)
+### SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`)
 
 - `USER`: User email address to send from.
 - `PASSWD`: Password for the smtp server.
