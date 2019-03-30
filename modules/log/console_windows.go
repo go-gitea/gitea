@@ -21,5 +21,5 @@ func enableVTMode(console windows.Handle) bool {
 
 func init() {
 	CanColorStdout = enableVTMode(windows.Stdout)
-	CanColorStd = enableVTMode(windows.Stderr)
+	CanColorStderr = enableVTMode(windows.Stderr)
 }
