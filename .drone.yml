@@ -427,6 +427,7 @@ steps:
   - make coverage
   environment:
     TAGS: bindata
+    GO111MODULE: on
 
 - name: coverage
   pull: default
