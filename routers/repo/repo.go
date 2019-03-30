@@ -196,6 +196,12 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
+	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
+	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
+	ctx.Data["labels"] = ctx.Query("labels") == "1"
+	ctx.Data["issues"] = ctx.Query("issues") == "1"
+	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
+	ctx.Data["releases"] = ctx.Query("releases") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
