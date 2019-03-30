@@ -420,6 +420,8 @@ steps:
   environment:
     TAGS: bindata
   commands:
+  - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+  - apt-get install -y git-lfs
   - go build -mod=vendor -tags 'sqlite sqlite_unlock_notify' -o gitea
   - make unit-test-coverage
   - make integration-test-coverage
