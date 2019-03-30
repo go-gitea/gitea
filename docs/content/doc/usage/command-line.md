@@ -148,6 +148,7 @@ in the current directory.
 
 - Options:
     - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+    - `--file name`, `-f name`: Name of the dump file with will be created. Optional. (default: gitea-dump-[timestamp].zip).
     - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
     - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
     - `--database`, `-d`: Specify the database SQL syntax. Optional.
