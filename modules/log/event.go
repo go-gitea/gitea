@@ -42,8 +42,8 @@ type ChannelledLog struct {
 	closed         chan bool
 }
 
-// CreateChannelledLog a new logger instance with given logger provider and config.
-func CreateChannelledLog(name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
+// NewChannelledLog a new logger instance with given logger provider and config.
+func NewChannelledLog(name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
 	if log, ok := providers[provider]; ok {
 		l := &ChannelledLog{
 			queue:  make(chan *Event, bufferLength),
@@ -148,8 +148,8 @@ type MultiChannelledLog struct {
 	closed          chan bool
 }
 
-// CreateMultiChannelledLog a new logger instance with given logger provider and config.
-func CreateMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog {
+// NewMultiChannelledLog a new logger instance with given logger provider and config.
+func NewMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog {
 	m := &MultiChannelledLog{
 		name:            name,
 		queue:           make(chan *Event, bufferLength),

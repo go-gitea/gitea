@@ -15,37 +15,32 @@ import (
 // Logger is default logger in the Gitea application.
 // it can contain several providers and log message into all providers.
 type Logger struct {
-	EventLogger
+	*MultiChannelledLog
 	bufferLength int64
 }
 
 // newLogger initializes and returns a new logger.
 func newLogger(name string, buffer int64) *Logger {
 	l := &Logger{
-		EventLogger:  CreateMultiChannelledLog(name, buffer),
-		bufferLength: buffer,
+		MultiChannelledLog: NewMultiChannelledLog(name, buffer),
+		bufferLength:       buffer,
 	}
 	return l
 }
 
 // SetLogger sets new logger instance with given logger provider and config.
 func (l *Logger) SetLogger(name, provider, config string) error {
-	m, ok := l.EventLogger.(*MultiChannelledLog)
-	if !ok {
-		return fmt.Errorf("Unable to add to this logger")
-	}
-	eventLogger, err := CreateChannelledLog(name, provider, config, l.bufferLength)
+	eventLogger, err := NewChannelledLog(name, provider, config, l.bufferLength)
 	if err != nil {
 		return fmt.Errorf("Failed to create sublogger (%s): %v", name, err)
 	}
 
-	m.DelLogger(name)
+	l.MultiChannelledLog.DelLogger(name)
 
-	err = m.AddLogger(eventLogger)
+	err = l.MultiChannelledLog.AddLogger(eventLogger)
 	if err != nil {
 		if IsErrDuplicateName(err) {
-
-			return fmt.Errorf("Duplicate named sublogger %s %v", name, m.GetEventLoggerNames())
+			return fmt.Errorf("Duplicate named sublogger %s %v", name, l.MultiChannelledLog.GetEventLoggerNames())
 		}
 		return fmt.Errorf("Failed to add sublogger (%s): %v", name, err)
 	}
@@ -55,28 +50,7 @@ func (l *Logger) SetLogger(name, provider, config string) error {
 
 // DelLogger deletes a sublogger from this logger.
 func (l *Logger) DelLogger(name string) (bool, error) {
-	m, ok := l.EventLogger.(*MultiChannelledLog)
-	if !ok {
-		return false, fmt.Errorf("Unable to delete from this logger")
-	}
-	return m.DelLogger(name), nil
-}
-
-// GetLogger gets sublogger from this logger and wraps it as Logger.
-// NB you should not close this logger
-func (l *Logger) GetLogger(name string) *Logger {
-	m, ok := l.EventLogger.(*MultiChannelledLog)
-	if !ok {
-		return nil
-	}
-	eventLogger := m.GetEventLogger(name)
-	if eventLogger == nil {
-		return nil
-	}
-	return &Logger{
-		EventLogger:  eventLogger,
-		bufferLength: l.bufferLength,
-	}
+	return l.MultiChannelledLog.DelLogger(name), nil
 }
 
 // Log msg at the provided level with the provided caller defined by skip (0 being the function that calls this function)
