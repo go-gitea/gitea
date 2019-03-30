@@ -59,7 +59,7 @@ func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string
 	return log.FromString(value).String()
 }
 
-func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, config, levelName string) {
+func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	levelName = getLogLevel(sec, "LEVEL", LogLevel)
 	level := log.FromString(levelName)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
@@ -135,7 +135,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
 		return
 	}
-	config = string(byteConfig)
+	jsonConfig = string(byteConfig)
 	return
 }
 
