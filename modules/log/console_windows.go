@@ -4,9 +4,17 @@
 
 package log
 
-import "golang.org/x/sys/windows"
+import (
+	"os"
 
-const ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+	"github.com/mattn/go-isatty"
+	"golang.org/x/sys/windows"
+)
+
+// EnableVirtualTerminalProcessing is the console mode to allow ANSI code
+// interpretation on the console. SeeL
+// https://docs.microsoft.com/en-us/windows/console/setconsolemode
+const EnableVirtualTerminalProcessing = 0x0004
 
 func enableVTMode(console windows.Handle) bool {
 	mode := uint32(0)
@@ -14,12 +22,21 @@ func enableVTMode(console windows.Handle) bool {
 	if err != nil {
 		return false
 	}
-	mode = mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+	mode = mode | EnableVirtualTerminalProcessing
 	err = windows.SetConsoleMode(console, mode)
 	return err == nil
 }
 
 func init() {
-	CanColorStdout = enableVTMode(windows.Stdout)
-	CanColorStderr = enableVTMode(windows.Stderr)
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		CanColorStdout = enableVTMode(windows.Stdout)
+	} else {
+		CanColorStdout = isatty.IsCygwinTerminal(os.Stderr.Fd())
+	}
+
+	if isatty.IsTerminal(os.Stderr.Fd()) {
+		CanColorStderr = enableVTMode(windows.Stderr)
+	} else {
+		CanColorStderr = isatty.IsCygwinTerminal(os.Stderr.Fd())
+	}
 }
