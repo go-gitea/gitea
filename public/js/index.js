@@ -2980,3 +2980,17 @@ function cancelCodeComment(btn) {
         form.closest('.comment-code-cloud').remove()
     }
 }
+function onOAuthLoginClick() {
+    var oauthLoader = $('#oauth2-login-loader');
+    var oauthNav = $('#oauth2-login-navigator');
+
+    oauthNav.hide();
+    oauthLoader.removeClass('disabled');
+
+    setTimeout(function(){
+        // recover previous content to let user try again
+        // usually redirection will be performed before this action
+        oauthLoader.addClass('disabled');
+        oauthNav.show();
+    },5000);
+}
