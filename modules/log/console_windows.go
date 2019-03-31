@@ -12,7 +12,7 @@ import (
 )
 
 // EnableVirtualTerminalProcessing is the console mode to allow ANSI code
-// interpretation on the console. SeeL
+// interpretation on the console. See:
 // https://docs.microsoft.com/en-us/windows/console/setconsolemode
 const EnableVirtualTerminalProcessing = 0x0004
 
