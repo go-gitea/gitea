@@ -5,8 +5,11 @@
 package log
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -138,11 +141,24 @@ func ColorAttributeFromString(from string) ColorAttribute {
 
 // ColorString converts a list of ColorAttributes to a color string
 func ColorString(attrs ...ColorAttribute) string {
-	format := make([]string, len(attrs))
-	for i, a := range attrs {
-		format[i] = fmt.Sprintf("%d", a)
+	return string(ColorBytes(attrs...))
+}
+
+// ColorBytes converts a list of ColorAttributes to a byte array
+func ColorBytes(attrs ...ColorAttribute) []byte {
+	bytes := make([]byte, 0, 20)
+	bytes = append(bytes, escape[0], '[')
+	if len(attrs) > 0 {
+		bytes = append(bytes, strconv.Itoa(int(attrs[0]))...)
+		for _, a := range attrs[1:] {
+			bytes = append(bytes, ';')
+			bytes = append(bytes, strconv.Itoa(int(a))...)
+		}
+	} else {
+		bytes = append(bytes, strconv.Itoa(int(Bold))...)
 	}
-	return fmt.Sprintf("%s[%sm", escape, strings.Join(format, ";"))
+	bytes = append(bytes, 'm')
+	return bytes
 }
 
 var levelToColor = map[Level]string{
@@ -156,25 +172,256 @@ var levelToColor = map[Level]string{
 	NONE:     ColorString(Reset),
 }
 
-var resetString = ColorString(Reset)
-var fgCyanString = ColorString(FgCyan)
-var fgGreenString = ColorString(FgGreen)
-
-var statusToColor = map[int]string{
-	200: ColorString(Bold, FgGreen),
-	201: ColorString(Bold, FgGreen),
-	202: ColorString(Bold, FgGreen),
-	301: ColorString(Bold, FgWhite),
-	302: ColorString(Bold, FgWhite),
-	304: ColorString(Bold, FgYellow),
-	401: ColorString(Underline, FgRed),
-	403: ColorString(Underline, FgRed),
-	404: ColorString(Bold, FgRed),
-	500: ColorString(Bold, BgRed),
-}
+var resetBytes = ColorBytes(Reset)
+var fgCyanBytes = ColorBytes(FgCyan)
+var fgGreenBytes = ColorBytes(FgGreen)
+var fgBoldBytes = ColorBytes(Bold)
 
 func removeColors(msg []byte) []byte {
 	return colorRegexp.ReplaceAll(msg, []byte{})
+}
+
+type ansiSpoofWriter struct {
+	w io.Writer
+}
+
+// Write will protect against unusual characters
+func (c *ansiSpoofWriter) Write(bytes []byte) (int, error) {
+	end := len(bytes)
+	totalWritten := 0
+	for i := 0; i < end; {
+		lasti := i
+		for i < end && (bytes[i] >= ' ' || bytes[i] == '\n') {
+			i++
+		}
+		if i > lasti {
+			written, err := c.w.Write(bytes[lasti:i])
+			totalWritten = totalWritten + written
+			if err != nil {
+				return totalWritten, err
+			}
+
+		}
+		if i >= end {
+			break
+		}
+
+		// Process naughty character
+		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+			return totalWritten, err
+		}
+		i++
+		totalWritten++
+	}
+	return totalWritten, nil
+}
+
+func cleanBytesAllowColor(b []byte) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	_, err := (&ansiSpoofAllowColorWriter{w: buf}).Write(b)
+	return buf.Bytes(), err
+}
+
+type ansiSpoofAllowColorWriter struct {
+	w io.Writer
+}
+
+// Write will protect against unusual characters but allow Color sequences
+func (c *ansiSpoofAllowColorWriter) Write(bytes []byte) (int, error) {
+	end := len(bytes)
+	totalWritten := 0
+normalLoop:
+	for i := 0; i < end; {
+		lasti := i
+		for i < end && bytes[i] >= ' ' {
+			i++
+		}
+		if i > lasti {
+			written, err := c.w.Write(bytes[lasti:i])
+			totalWritten = totalWritten + written
+			if err != nil {
+				return totalWritten, err
+			}
+
+		}
+		if i >= end {
+			break
+		}
+
+		if bytes[i] == '\n' {
+			written, err := c.w.Write([]byte{'\n', '\t'})
+			if written > 0 {
+				totalWritten++
+			}
+			if err != nil {
+				return totalWritten, err
+			}
+			i++
+			continue normalLoop
+		}
+
+		if bytes[i] == escape[0] && i+1 < end && bytes[i+1] == '[' {
+			for j := i + 2; j < end; j++ {
+				if bytes[j] >= '0' && bytes[j] <= '9' {
+					continue
+				}
+				if bytes[j] == ';' {
+					continue
+				}
+				if bytes[j] == 'm' {
+					written, err := c.w.Write(bytes[i : j+1])
+					totalWritten = totalWritten + written
+					if err != nil {
+						return totalWritten, err
+					}
+					i = j + 1
+					continue normalLoop
+				}
+				break
+			}
+		}
+
+		// Process naughty character
+		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+			return totalWritten, err
+		}
+		i++
+		totalWritten++
+	}
+	return totalWritten, nil
+}
+
+type ansiSpoofRemoveColorWriter struct {
+	w io.Writer
+}
+
+// Write will protect against unusual characters but allow Color sequences
+func (c *ansiSpoofRemoveColorWriter) Write(bytes []byte) (int, error) {
+	end := len(bytes)
+	totalWritten := 0
+normalLoop:
+	for i := 0; i < end; {
+		lasti := i
+		for i < end && (bytes[i] >= ' ') {
+			i++
+		}
+		if i > lasti {
+			written, err := c.w.Write(bytes[lasti:i])
+			totalWritten = totalWritten + written
+			if err != nil {
+				return totalWritten, err
+			}
+
+		}
+		if i >= end {
+			break
+		}
+
+		if bytes[i] == '\n' {
+			written, err := c.w.Write([]byte{'\n', '\t'})
+			if written > 0 {
+				totalWritten++
+			}
+			if err != nil {
+				return totalWritten, err
+			}
+			i++
+			continue normalLoop
+		}
+
+		if bytes[i] == escape[0] && i+1 < end && bytes[i+1] == '[' {
+			for j := i + 2; j < end; j++ {
+				if bytes[j] >= '0' && bytes[j] <= '9' {
+					continue
+				}
+				if bytes[j] == ';' {
+					continue
+				}
+				if bytes[j] == 'm' {
+					totalWritten = j
+					i = j + 1
+					continue normalLoop
+				}
+				break
+			}
+		}
+
+		// Process naughty character
+		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+			return totalWritten, err
+		}
+		i++
+		totalWritten++
+	}
+	return totalWritten, nil
+}
+
+// ColoredValue will Color the provided value
+type ColoredValue struct {
+	ColorBytes *[]byte
+	ResetBytes *[]byte
+	Value      *interface{}
+}
+
+// NewColoredValue is a helper function to create a ColoredValue
+// If no color is provided it defaults to Bold with standard Reset
+// If a ColoredValue is provided it is not changed
+func NewColoredValue(value *interface{}, color ...ColorAttribute) *ColoredValue {
+	if val, ok := (*value).(*ColoredValue); ok {
+		return val
+	}
+	if len(color) > 0 {
+		bytes := ColorBytes(color...)
+		return &ColoredValue{
+			ColorBytes: &bytes,
+			ResetBytes: &resetBytes,
+			Value:      value,
+		}
+	}
+	return &ColoredValue{
+		ColorBytes: &fgBoldBytes,
+		ResetBytes: &resetBytes,
+		Value:      value,
+	}
+
+}
+
+// NewColoredValueBytes creates a value from the provided value with color bytes
+// If a ColoredValue is provided it is not changed
+func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
+	if val, ok := value.(*ColoredValue); ok {
+		return val
+	}
+	return &ColoredValue{
+		ColorBytes: colorBytes,
+		ResetBytes: &resetBytes,
+		Value:      &value,
+	}
+}
+
+// Format will format the provided value and protect against ANSI spoofing within the value
+func (cv *ColoredValue) Format(s fmt.State, c rune) {
+	s.Write([]byte(*cv.ColorBytes))
+	fmt.Fprintf(&ansiSpoofWriter{s}, fmtString(s, c), *(cv.Value))
+	s.Write([]byte(*cv.ResetBytes))
+}
+
+func fmtString(s fmt.State, c rune) string {
+	var width, precision string
+	base := make([]byte, 0, 8)
+	base = append(base, '%')
+	for _, c := range []byte(" +-#0") {
+		if s.Flag(int(c)) {
+			base = append(base, c)
+		}
+	}
+	if w, ok := s.Width(); ok {
+		width = strconv.Itoa(w)
+	}
+	if p, ok := s.Precision(); ok {
+		precision = "." + strconv.Itoa(p)
+	}
+	return fmt.Sprintf("%s%s%s%c", base, width, precision, c)
 }
 
 func init() {

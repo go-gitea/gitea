@@ -228,7 +228,7 @@ func newLogService() {
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 
 	description := LogDescription{
-		Name: "default",
+		Name: log.DEFAULT,
 	}
 
 	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
@@ -265,7 +265,7 @@ func newLogService() {
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
-	LogDescriptions["default"] = &description
+	LogDescriptions[log.DEFAULT] = &description
 
 	// Finally redirect the default golog to here
 	golog.SetFlags(0)

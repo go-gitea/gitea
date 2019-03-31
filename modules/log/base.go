@@ -41,6 +41,13 @@ const (
 	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial
 )
 
+type byteArrayWriter []byte
+
+func (b *byteArrayWriter) Write(p []byte) (int, error) {
+	*b = append(*b, p...)
+	return len(p), nil
+}
+
 // BaseLogger represent a basic logger for Gitea
 type BaseLogger struct {
 	out io.WriteCloser
@@ -112,7 +119,7 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	t := event.time
 	if b.Flags&(Ldate|Ltime|Lmicroseconds) != 0 {
 		if b.Colorize {
-			*buf = append(*buf, fgCyanString...)
+			*buf = append(*buf, fgCyanBytes...)
 		}
 		if b.Flags&LUTC != 0 {
 			t = t.UTC()
@@ -140,13 +147,13 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 			*buf = append(*buf, ' ')
 		}
 		if b.Colorize {
-			*buf = append(*buf, resetString...)
+			*buf = append(*buf, resetBytes...)
 		}
 
 	}
 	if b.Flags&(Lshortfile|Llongfile) != 0 {
 		if b.Colorize {
-			*buf = append(*buf, fgGreenString...)
+			*buf = append(*buf, fgGreenBytes...)
 		}
 		file := event.filename
 		if b.Flags&Lmedfile == Lmedfile {
@@ -167,14 +174,14 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 			*buf = append(*buf, ':')
 		} else {
 			if b.Colorize {
-				*buf = append(*buf, resetString...)
+				*buf = append(*buf, resetBytes...)
 			}
 			*buf = append(*buf, ' ')
 		}
 	}
 	if b.Flags&(Lfuncname|Lshortfuncname) != 0 {
 		if b.Colorize {
-			*buf = append(*buf, fgGreenString...)
+			*buf = append(*buf, fgGreenBytes...)
 		}
 		funcname := event.caller
 		if b.Flags&Lshortfuncname != 0 {
@@ -185,7 +192,7 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 		}
 		*buf = append(*buf, funcname...)
 		if b.Colorize {
-			*buf = append(*buf, resetString...)
+			*buf = append(*buf, resetBytes...)
 		}
 		*buf = append(*buf, ' ')
 
@@ -203,27 +210,23 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 		}
 		*buf = append(*buf, ']')
 		if b.Colorize {
-			*buf = append(*buf, resetString...)
+			*buf = append(*buf, resetBytes...)
 		}
 		*buf = append(*buf, ' ')
 	}
 
 	var msg = []byte(event.msg)
-	if !b.Colorize {
-		msg = removeColors(msg)
-	}
-
-	// Now we need to prevent log spoofing:
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}
-	lines := bytes.Split(msg, []byte("\n"))
-	*buf = append(*buf, lines[0]...)
-	if len(lines) > 1 {
-		for _, line := range lines[1:] {
-			*buf = append(*buf, "\n\t"...)
-			*buf = append(*buf, line...)
-		}
+	if b.Colorize {
+		baw := byteArrayWriter(*buf)
+		(&ansiSpoofAllowColorWriter{&baw}).Write([]byte(msg))
+		*buf = baw
+	} else {
+		baw := byteArrayWriter(*buf)
+		(&ansiSpoofRemoveColorWriter{&baw}).Write([]byte(msg))
+		*buf = baw
 	}
 	if event.stacktrace != "" && b.StacktraceLevel <= event.level {
 		lines := bytes.Split([]byte(event.stacktrace), []byte("\n"))
