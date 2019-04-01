@@ -107,14 +107,34 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	if len(keyword) == 0 {
+	query := strings.Trim(ctx.Query("q"), " ")
+	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
+
+	var keywords, authors, committers []string
+	var after, before string
+
+	fields := strings.Fields(query)
+	for _, k := range fields {
+		switch {
+		case strings.HasPrefix(k, "author:"):
+			authors = append(authors, strings.TrimPrefix(k, "author:"))
+		case strings.HasPrefix(k, "committer:"):
+			committers = append(committers, strings.TrimPrefix(k, "committer:"))
+		case strings.HasPrefix(k, "after:"):
+			after = strings.TrimPrefix(k, "after:")
+		case strings.HasPrefix(k, "before:"):
+			before = strings.TrimPrefix(k, "before:")
+		default:
+			keywords = append(keywords, k)
+		}
+	}
+
 	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
+	commits, err := ctx.Repo.Commit.SearchCommits(keywords, authors, committers, after, before, all)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -124,7 +144,7 @@ func SearchCommits(ctx *context.Context) {
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = query
 	if all {
 		ctx.Data["All"] = "checked"
 	}
