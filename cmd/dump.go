@@ -35,6 +35,11 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.StringFlag{
+			Name:  "file, f",
+			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
+			Usage: "Name of the dump file which will be created.",
+		},
 		cli.BoolFlag{
 			Name:  "verbose, v",
 			Usage: "Show process details",
@@ -85,7 +90,7 @@ func runDump(ctx *cli.Context) error {
 
 	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
 
-	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
+	fileName := ctx.String("file")
 	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
