@@ -36,7 +36,7 @@ func GetBlob(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/GitBlobResponse"
+	//     "$ref": "#/responses/BlobResponse"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

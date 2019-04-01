@@ -152,7 +152,7 @@ type swaggerGitTreeResponse struct {
 // swagger:response GitBlobResponse
 type swaggerGitBlobResponse struct {
 	//in: body
-	Body api.GitBlobResponse `json:"body"`
+	Body api.BlobResponse `json:"body"`
 }
 
 // Commit

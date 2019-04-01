@@ -5,6 +5,9 @@
 package integrations
 
 import (
+	"encoding/json"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -31,7 +34,12 @@ func TestAPIReposGitBlobs(t *testing.T) {
 
 	// Test a public repo that anyone can GET the blob of
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo1.Name, repo1ReadmeSHA)
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	body, _ := ioutil.ReadAll(resp.Body)
+	var jsonData map[string]interface{}
+	json.Unmarshal(body, &jsonData)
+	expectedContent := "Y29tbWl0IDY1ZjFiZjI3YmMzYmY3MGY2NDY1NzY1ODYzNWU2NjA5NGVkYmNiNGQKQXV0aG9yOiB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+CkRhdGU6ICAgU3VuIE1hciAxOSAxNjo0Nzo1OSAyMDE3IC0wNDAwCgogICAgSW5pdGlhbCBjb21taXQKCmRpZmYgLS1naXQgYS9SRUFETUUubWQgYi9SRUFETUUubWQKbmV3IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMC4uNGI0ODUxYQotLS0gL2Rldi9udWxsCisrKyBiL1JFQURNRS5tZApAQCAtMCwwICsxLDMgQEAKKyMgcmVwbzEKKworRGVzY3JpcHRpb24gZm9yIHJlcG8xClwgTm8gbmV3bGluZSBhdCBlbmQgb2YgZmlsZQo="
+	assert.Equal(t, expectedContent, jsonData["content"])
 
 	// Tests a private repo with no token so will fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo16.Name, repo16ReadmeSHA)

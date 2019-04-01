@@ -5,17 +5,13 @@
 package gitdata
 
 import (
-	"encoding/base64"
-	"io"
-	"io/ioutil"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
 )
 
-// GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
+// GetBlobBySHA get the BlobResponse of a repository using a sha hash.
+func GetBlobBySHA(repo *models.Repository, sha string) (*api.BlobResponse, error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -24,43 +20,14 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	if err != nil {
 		return nil, err
 	}
-	blob := new(api.GitBlobResponse)
-	blob.SHA = gitBlob.ID.String()
-	blob.URL = repo.APIURL() + "/git/blobs/" + blob.SHA
-	blob.Size = gitBlob.Size()
-	blob.Encoding = "base64"
-	blob.Content, err = GetBlobContentBase64(gitBlob)
-	if err != nil {
-		return nil, err
+	br := &api.BlobResponse{
+		Content: &api.BlobContentResponse{
+			Blob: gitBlob,
+		},
+		SHA:      gitBlob.ID.String(),
+		URL:      repo.APIURL() + "/git/blobs/" + gitBlob.ID.String(),
+		Size:     gitBlob.Size(),
+		Encoding: "base64",
 	}
-	return blob, nil
-}
-
-// GetBlobContentBase64 Reads the blob with a base64 encode and returns the encoded string
-func GetBlobContentBase64(blob *git.Blob) (string, error) {
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return "", err
-	}
-	defer dataRc.Close()
-
-	pr, pw := io.Pipe()
-	encoder := base64.NewEncoder(base64.StdEncoding, pw)
-
-	go func() {
-		_, err := io.Copy(encoder, dataRc)
-		encoder.Close()
-
-		if err != nil {
-			pw.CloseWithError(err)
-		} else {
-			pw.Close()
-		}
-	}()
-
-	out, err := ioutil.ReadAll(pr)
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
+	return br, nil
 }

@@ -1850,7 +1850,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/GitBlobResponse"
+            "$ref": "#/responses/BlobResponse"
           }
         }
       }
@@ -6565,6 +6565,55 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Blob": {
+      "type": "object",
+      "title": "Blob represents a Git object.",
+      "properties": {
+        "ID": {
+          "$ref": "#/definitions/SHA1"
+        },
+        "Type": {
+          "$ref": "#/definitions/ObjectType"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/git"
+    },
+    "BlobContentResponse": {
+      "type": "object",
+      "properties": {
+        "Blob": {
+          "$ref": "#/definitions/Blob"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "BlobResponse": {
+      "description": "GitBlobResponse represents a git blob",
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/definitions/BlobContentResponse"
+        },
+        "encoding": {
+          "type": "string",
+          "x-go-name": "Encoding"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Branch": {
       "description": "Branch represents a repository branch",
       "type": "object",
@@ -7899,34 +7948,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
-    "GitBlobResponse": {
-      "description": "GitBlobResponse represents a git blob",
-      "type": "object",
-      "properties": {
-        "content": {
-          "type": "string",
-          "x-go-name": "Content"
-        },
-        "encoding": {
-          "type": "string",
-          "x-go-name": "Encoding"
-        },
-        "sha": {
-          "type": "string",
-          "x-go-name": "SHA"
-        },
-        "size": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Size"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
-    },
     "GitEntry": {
       "description": "GitEntry represents a git tree",
       "type": "object",
@@ -8346,6 +8367,11 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "ObjectType": {
+      "description": "ObjectType git object type",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/git"
     },
     "Organization": {
       "description": "Organization represents an organization",
@@ -8928,6 +8954,15 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "SHA1": {
+      "description": "SHA1 a git commit name",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint8"
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/git"
+    },
     "SearchResults": {
       "description": "SearchResults results of a successful search",
       "type": "object",
@@ -9391,7 +9426,7 @@
     "GitBlobResponse": {
       "description": "GitBlobResponse",
       "schema": {
-        "$ref": "#/definitions/GitBlobResponse"
+        "$ref": "#/definitions/BlobResponse"
       }
     },
     "GitTreeResponse": {
