@@ -43,11 +43,11 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	//c, ok := repo.commitCache.Get(id.String())
-	//if ok {
-	//	log("Hit cache: %s", id)
-	//	return c.(*Commit), nil
-	//}
+	c, ok := repo.commitCache.Get(id.String())
+	if ok {
+		log("Hit cache: %s", id)
+		return c.(*Commit), nil
+	}
 
 	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
 	if err != nil {
@@ -72,7 +72,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
 	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
-	//repo.commitCache.Set(id.String(), commit)
+	repo.commitCache.Set(id.String(), commit)
 
 	return commit, nil
 }

@@ -27,7 +27,8 @@ import (
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache
+	commitCache *ObjectCache
+	tagCache    *ObjectCache
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
@@ -95,6 +96,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
+		commitCache:  newObjectCache(),
 		tagCache:     newObjectCache(),
 	}, nil
 }
