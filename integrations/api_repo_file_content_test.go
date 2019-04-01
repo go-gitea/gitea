@@ -26,15 +26,15 @@ func getExpectedFileContentResponseForFileContents(branch string) *api.FileConte
 		Path:        treePath,
 		SHA:         sha,
 		Size:        30,
-		URL:         "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/contents/" + treePath,
-		HTMLURL:     "http://localhost:" + setting.HTTPPort + "/user2/repo1/blob/" + branch + "/" + treePath,
-		GitURL:      "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
-		DownloadURL: "http://localhost:" + setting.HTTPPort + "/user2/repo1/raw/branch/" + branch + "/" + treePath,
+		URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+		HTMLURL:     setting.AppURL + "user2/repo1/blob/" + branch + "/" + treePath,
+		GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+		DownloadURL: setting.AppURL + "user2/repo1/raw/branch/" + branch + "/" + treePath,
 		Type:        "blob",
 		Links: &api.FileLinksResponse{
-			Self:    "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/contents/" + treePath,
-			GitURL:  "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
-			HTMLURL: "http://localhost:" + setting.HTTPPort + "/user2/repo1/blob/" + branch + "/" + treePath,
+			Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+			GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+			HTMLURL: setting.AppURL + "user2/repo1/blob/" + branch + "/" + treePath,
 		},
 	}
 }

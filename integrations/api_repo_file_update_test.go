@@ -38,23 +38,23 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 			Path:        treePath,
 			SHA:         sha,
 			Size:        20,
-			URL:         "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     "http://localhost:" + setting.HTTPPort + "/user2/repo1/blob/master/" + treePath,
-			GitURL:      "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: "http://localhost:" + setting.HTTPPort + "/user2/repo1/raw/branch/master/" + treePath,
+			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/" + treePath,
+			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
 			Type:        "blob",
 			Links: &api.FileLinksResponse{
-				Self:    "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/contents/" + treePath,
-				GitURL:  "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: "http://localhost:" + setting.HTTPPort + "/user2/repo1/blob/master/" + treePath,
+				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+				HTMLURL: setting.AppURL + "user2/repo1/blob/master/" + treePath,
 			},
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: "http://localhost:" + setting.HTTPPort + "/api/v1/repos/user2/repo1/git/commits/" + commitID,
+				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
 				SHA: commitID,
 			},
-			HTMLURL: "http://localhost:" + setting.HTTPPort + "/user2/repo1/commit/" + commitID,
+			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "Jane Doe",
