@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"

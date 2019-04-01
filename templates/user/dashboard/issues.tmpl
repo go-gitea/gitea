@@ -86,7 +86,11 @@
 							{{end}}
 
 							<p class="desc">
-								{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+								{{if gt .Poster.ID 0}}
+									{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+								{{else}}
+									{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+								{{end}}
 								{{if .Assignee}}
 									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
 										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">

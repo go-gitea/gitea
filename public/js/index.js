@@ -1892,6 +1892,10 @@ $(document).ready(function () {
 
     // Show exact time
     $('.time-since').each(function () {
+        var time = new Date($(this).attr('title'))
+        if (!isNaN(time)){
+            $(this).attr('title', time.toLocaleString())
+        }
         $(this).addClass('poping up').attr('data-content', $(this).attr('title')).attr('data-variation', 'inverted tiny').attr('title', '');
     });
 
@@ -2975,4 +2979,18 @@ function cancelCodeComment(btn) {
     } else {
         form.closest('.comment-code-cloud').remove()
     }
+}
+function onOAuthLoginClick() {
+    var oauthLoader = $('#oauth2-login-loader');
+    var oauthNav = $('#oauth2-login-navigator');
+
+    oauthNav.hide();
+    oauthLoader.removeClass('disabled');
+
+    setTimeout(function(){
+        // recover previous content to let user try again
+        // usually redirection will be performed before this action
+        oauthLoader.addClass('disabled');
+        oauthNav.show();
+    },5000);
 }

@@ -25,10 +25,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -104,6 +104,7 @@ type User struct {
 	Rands       string `xorm:"VARCHAR(10)"`
 	Salt        string `xorm:"VARCHAR(10)"`
 	Language    string `xorm:"VARCHAR(5)"`
+	Description string
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -134,12 +135,11 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	Description string
-	NumTeams    int
-	NumMembers  int
-	Teams       []*Team             `xorm:"-"`
-	Members     []*User             `xorm:"-"`
-	Visibility  structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams   int
+	NumMembers int
+	Teams      []*Team             `xorm:"-"`
+	Members    []*User             `xorm:"-"`
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`

@@ -15,7 +15,7 @@ menu:
 
 # HTTPS setup to encrypt connections to Gitea
 
- ## Using the built-in server
+## Using the built-in server
 
 Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
