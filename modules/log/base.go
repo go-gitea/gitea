@@ -219,15 +219,19 @@ func (b *BaseLogger) createMsg(buf *[]byte, event *Event) {
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}
-	if b.Colorize {
-		baw := byteArrayWriter(*buf)
-		(&ansiSpoofAllowColorWriter{&baw}).Write([]byte(msg))
-		*buf = baw
-	} else {
-		baw := byteArrayWriter(*buf)
-		(&ansiSpoofRemoveColorWriter{&baw}).Write([]byte(msg))
-		*buf = baw
+
+	pawMode := allowColor
+	if !b.Colorize {
+		pawMode = removeColor
 	}
+
+	baw := byteArrayWriter(*buf)
+	(&protectedANSIWriter{
+		w:    &baw,
+		mode: pawMode,
+	}).Write([]byte(msg))
+	*buf = baw
+
 	if event.stacktrace != "" && b.StacktraceLevel <= event.level {
 		lines := bytes.Split([]byte(event.stacktrace), []byte("\n"))
 		if len(lines) > 1 {
