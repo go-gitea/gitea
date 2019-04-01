@@ -131,7 +131,7 @@ func (repo *Repository) GetTags() ([]string, error) {
 
 	tags, err := repo.gogitRepo.Tags()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	tags.ForEach(func(tag *plumbing.Reference) error {

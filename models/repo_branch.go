@@ -263,13 +263,14 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 
 // GetCommit returns all the commits of a branch
 func (branch *Branch) GetCommit() (*git.Commit, error) {
-	if branch.gitRepo != nil {
-		return branch.gitRepo.GetBranchCommit(branch.Name)
+	var err error
+
+	if branch.gitRepo == nil {
+		branch.gitRepo, err = git.OpenRepository(branch.Path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	gitRepo, err := git.OpenRepository(branch.Path)
-	if err != nil {
-		return nil, err
-	}
-	return gitRepo.GetBranchCommit(branch.Name)
+	return branch.gitRepo.GetBranchCommit(branch.Name)
 }
