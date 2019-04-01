@@ -189,94 +189,103 @@ func reqBasicAuth() macaron.Handler {
 	}
 }
 
+func isSiteAdmin(ctx *context.Context) bool {
+	return ctx.IsSigned && ctx.User.IsAdmin
+}
+
+func isRepoOwner(ctx *context.Context) bool {
+	return ctx.Repo.IsOwner()
+}
+
+func isRepoAdmin(ctx *context.Context) bool {
+	return ctx.Repo.IsAdmin()
+}
+
+func isRepoWriter(ctx *context.Context, unitTypes []models.UnitType) bool {
+	for _, unitType := range unitTypes {
+		if ctx.Repo.CanWrite(unitType) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isRepoReaderSpecific(ctx *context.Context, unitType models.UnitType) bool {
+	return ctx.Repo.CanRead(unitType)
+}
+
+func isRepoReaderAny(ctx *context.Context) bool {
+	return ctx.Repo.HasAccess()
+}
+
 // reqSiteAdmin user should be the site admin
 func reqSiteAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.IsSigned || !ctx.User.IsAdmin {
+		if !isSiteAdmin(ctx) {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-// reqOwner user should be the owner of the repo.
+// reqOwner user should be the owner of the repo or site admin.
 func reqOwner() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.IsOwner() {
+		if !isRepoOwner(ctx) && !isSiteAdmin(ctx) {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-// reqAdmin user should be an owner or a collaborator with admin write of a repository
+// reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
 func reqAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.IsAdmin() {
+		if !isRepoAdmin(ctx) && !isSiteAdmin(ctx) {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-func reqRepoReader(unitType models.UnitType) macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.Repo.CanRead(unitType) {
-			ctx.Error(403)
-			return
-		}
-	}
-}
-
-func reqAnyRepoReader() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.Repo.HasAccess() {
-			ctx.Error(403)
-			return
-		}
-	}
-}
-
+// reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanWrite(unitType) {
-				return
-			}
-		}
-
-		ctx.Error(403)
-	}
-}
-
-func reqOrgMembership() macaron.Handler {
-	return func(ctx *context.APIContext) {
-		var orgID int64
-		if ctx.Org.Organization != nil {
-			orgID = ctx.Org.Organization.ID
-		} else if ctx.Org.Team != nil {
-			orgID = ctx.Org.Team.OrgID
-		} else {
-			ctx.Error(500, "", "reqOrgMembership: unprepared context")
-			return
-		}
-
-		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
-			ctx.Error(500, "IsOrganizationMember", err)
-			return
-		} else if !isMember {
-			if ctx.Org.Organization != nil {
-				ctx.Error(403, "", "Must be an organization member")
-			} else {
-				ctx.NotFound()
-			}
+		if !isRepoWriter(ctx, unitTypes) && !isRepoAdmin(ctx) && !isSiteAdmin(ctx) {
+			ctx.Error(403)
 			return
 		}
 	}
 }
 
+// reqRepoReader user should have specific read permission or be a repo admin or a site admin
+func reqRepoReader(unitType models.UnitType) macaron.Handler {
+	return func(ctx *context.Context) {
+		if !isRepoReaderSpecific(ctx, unitType) && !isRepoAdmin(ctx) && !isSiteAdmin(ctx) {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+// reqAnyRepoReader user should have any permission to read repository or permissions of site admin
+func reqAnyRepoReader() macaron.Handler {
+	return func(ctx *context.Context) {
+		if !isRepoReaderAny(ctx) && !isSiteAdmin(ctx) {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+// reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() macaron.Handler {
 	return func(ctx *context.APIContext) {
+		if isSiteAdmin(ctx.Context) {
+			return
+		}
+
 		var orgID int64
 		if ctx.Org.Organization != nil {
 			orgID = ctx.Org.Organization.ID
@@ -293,6 +302,37 @@ func reqOrgOwnership() macaron.Handler {
 		} else if !isOwner {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization owner")
+			} else {
+				ctx.NotFound()
+			}
+			return
+		}
+	}
+}
+
+// reqOrgMembership user should be an organization member, or a site admin
+func reqOrgMembership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if isSiteAdmin(ctx.Context) {
+			return
+		}
+
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			ctx.Error(500, "", "reqOrgMembership: unprepared context")
+			return
+		}
+
+		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsOrganizationMember", err)
+			return
+		} else if !isMember {
+			if ctx.Org.Organization != nil {
+				ctx.Error(403, "", "Must be an organization member")
 			} else {
 				ctx.NotFound()
 			}
