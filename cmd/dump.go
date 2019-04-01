@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -38,7 +37,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		},
 		cli.StringFlag{
 			Name:  "file, f",
-			Value: "gitea-dump-%d.zip",
+			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
 			Usage: "Name of the dump file which will be created.",
 		},
 		cli.BoolFlag{
@@ -91,7 +90,7 @@ func runDump(ctx *cli.Context) error {
 
 	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
 
-	fileName := getDumpFileName(ctx)
+	fileName := ctx.String("file")
 	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
@@ -168,16 +167,6 @@ func runDump(ctx *cli.Context) error {
 	log.Printf("Finish dumping in file %s", fileName)
 
 	return nil
-}
-
-func getDumpFileName(ctx *cli.Context) string {
-	fmtString := ctx.String("file")
-
-	if strings.Count(fmtString, "%d") > 0 {
-		fmtString = fmt.Sprintf(fmtString, time.Now().Unix())
-	}
-
-	return fmtString
 }
 
 // zipAddDirectoryExclude zips absPath to specified zipPath inside z excluding excludeAbsPath
