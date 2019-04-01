@@ -7,7 +7,6 @@ package user
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -191,7 +190,15 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	repoID := ctx.QueryInt64("repo")
+	repoIDStrings := ctx.QueryStrings("repos[]")
+	var repoIDs []int64
+	for _, IDString := range repoIDStrings {
+		IDint64, err := strconv.ParseInt(IDString, 10, 64)
+		if err == nil {
+			repoIDs = append(repoIDs, IDint64)
+		}
+	}
+
 	isShowClosed := ctx.Query("state") == "closed"
 
 	// Get repositories.
@@ -231,8 +238,8 @@ func Issues(ctx *context.Context) {
 
 	switch filterMode {
 	case models.FilterModeAll:
-		if repoID > 0 {
-			if !com.IsSliceContainsInt64(userRepoIDs, repoID) {
+		if len(repoIDs) == 1 {
+			if !com.IsSliceContainsInt64(userRepoIDs, repoIDs[0]) {
 				// force an empty result
 				opts.RepoIDs = []int64{-1}
 			}
@@ -266,15 +273,6 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
-	repoIDStrings := ctx.QueryStrings("repos[]")
-	var repoIDs []int64
-	for _, IDString := range repoIDStrings {
-		IDint64, err := strconv.ParseInt(IDString, 10, 64)
-		if err == nil {
-			repoIDs = append(repoIDs, IDint64)
-		}
-	}
-
 	if len(repoIDs) > 0 {
 		opts.RepoIDs = repoIDs
 	}
@@ -295,33 +293,6 @@ func Issues(ctx *context.Context) {
 		showReposMap[repoID] = repo
 	}
 
-	if repoID > 0 {
-		if _, ok := showReposMap[repoID]; !ok {
-			repo, err := models.GetRepositoryByID(repoID)
-			if models.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", err)
-				return
-			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
-				return
-			}
-			showReposMap[repoID] = repo
-		}
-
-		repo := showReposMap[repoID]
-
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(repo, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			ctx.Status(404)
-			return
-		}
-	}
-
 	showRepos := models.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 	if err = showRepos.LoadAttributes(); err != nil {
@@ -335,7 +306,6 @@ func Issues(ctx *context.Context) {
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
-		RepoID:      repoID,
 		RepoIDs:     repoIDs,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
@@ -361,7 +331,6 @@ func Issues(ctx *context.Context) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoID"] = repoID
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
