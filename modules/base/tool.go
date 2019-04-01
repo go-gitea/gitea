@@ -11,12 +11,15 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"go/build"
 	"html/template"
 	"io"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -602,4 +605,22 @@ func EntryIcon(entry *git.TreeEntry) string {
 	}
 
 	return "file-text"
+}
+
+// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
+func SetupGiteaRoot() string {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
+		goPath := os.Getenv("GOPATH")
+		if goPath == "" {
+			goPath = build.Default.GOPATH
+		}
+		giteaRoot = filepath.Join(goPath, "src", "code.gitea.io", "gitea")
+		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
+			giteaRoot = ""
+		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
+			giteaRoot = ""
+		}
+	}
+	return giteaRoot
 }

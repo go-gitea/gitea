@@ -170,7 +170,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	GITEA_ROOT=${CURDIR} GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -181,7 +181,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	GITEA_ROOT=${CURDIR} $(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	$(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -198,7 +198,7 @@ test-vendor: vendor
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
+	GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite-migration
 test-sqlite-migration:  migrations.sqlite.test

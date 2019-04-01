@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/modules/base"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -94,7 +95,7 @@ func TestMain(m *testing.M) {
 }
 
 func initIntegrationTest() {
-	giteaRoot := os.Getenv("GITEA_ROOT")
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)

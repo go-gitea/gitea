@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/base"
 	"compress/gzip"
 	"database/sql"
 	"fmt"
@@ -27,8 +28,8 @@ import (
 var currentEngine *xorm.Engine
 
 func initMigrationTest() {
-	giteaRoot := os.Getenv("GITEA_ROOT")
-	if giteaRoot == "" {
+	giteaRoot, err := base.GetGiteaRoot()
+	if err != nil || giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
