@@ -7,6 +7,7 @@ package gitdata
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -21,13 +22,13 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.BlobResponse, error
 		return nil, err
 	}
 	br := &api.BlobResponse{
-		Content: &api.BlobContentResponse{
-			Blob: gitBlob,
-		},
 		SHA:      gitBlob.ID.String(),
 		URL:      repo.APIURL() + "/git/blobs/" + gitBlob.ID.String(),
 		Size:     gitBlob.Size(),
 		Encoding: "base64",
+	}
+	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
+		br.Content = &api.BlobContentResponse{Blob: gitBlob}
 	}
 	return br, nil
 }

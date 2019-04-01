@@ -288,11 +288,13 @@ var (
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
+		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
+		DefaultMaxBlobSize:     104858000,
 	}
 
 	OAuth2 = struct {

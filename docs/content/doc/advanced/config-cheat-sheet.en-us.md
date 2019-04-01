@@ -344,6 +344,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees api.
+- `DEFAULT_MAX_BLOB_SIZE`: **104858000**: Default max size of a blob that can be return by the blobs API.
 
 ## OAuth2 (`oauth2`)
 

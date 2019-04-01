@@ -216,6 +216,7 @@ menu:
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认和最大项数.
+- `DEFAULT_MAX_BLOB_SIZE`: **104858000**: Default max size of a blob that can be return by the blobs API.
 
 ## Markup (`markup`)
 
