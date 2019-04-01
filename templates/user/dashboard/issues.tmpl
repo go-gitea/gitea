@@ -20,6 +20,10 @@
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
+					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}">							
+						<span class="text truncate">All</span>
+						<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{len .Repos}}</div>
+					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
 							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}
