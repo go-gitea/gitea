@@ -204,7 +204,7 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 			default:
 				// The file is present on more than one of the parent paths, so this is
 				// a merge. We have to examine all the parent trees to find out where
-				// the change occured. pathChanged[i] would tell us that the file was
+				// the change occurred. pathChanged[i] would tell us that the file was
 				// changed during the merge, but it wouldn't tell us the relevant commit
 				// that introduced it.
 				remainingPaths = append(remainingPaths, path)
