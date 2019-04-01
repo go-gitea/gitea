@@ -12,25 +12,23 @@ import (
 )
 
 var statusToColor = map[int][]byte{
-	200: ColorBytes(Bold, FgGreen),
-	201: ColorBytes(Bold, FgGreen),
-	202: ColorBytes(Bold, FgGreen),
-	301: ColorBytes(Bold, FgWhite),
-	302: ColorBytes(Bold, FgWhite),
-	304: ColorBytes(Bold, FgYellow),
-	401: ColorBytes(Underline, FgRed),
-	403: ColorBytes(Underline, FgRed),
-	404: ColorBytes(Bold, FgRed),
+	100: ColorBytes(Bold),
+	200: ColorBytes(FgGreen),
+	300: ColorBytes(FgYellow),
+	304: ColorBytes(FgCyan),
+	400: ColorBytes(Bold, FgRed),
+	401: ColorBytes(Bold, FgMagenta),
+	403: ColorBytes(Bold, FgMagenta),
 	500: ColorBytes(Bold, BgRed),
 }
 
 func coloredStatus(status int, s ...string) *ColoredValue {
 	color, ok := statusToColor[status]
 	if !ok {
-		if len(s) > 0 {
-			return NewColoredValueBytes(s[0], &fgBoldBytes)
-		}
-		return NewColoredValueBytes(status, &fgBoldBytes)
+		color, ok = statusToColor[(status/100)*100]
+	}
+	if !ok {
+		color = fgBoldBytes
 	}
 	if len(s) > 0 {
 		return NewColoredValueBytes(s[0], &color)
@@ -64,7 +62,7 @@ var durations = []time.Duration{
 }
 
 var durationColors = [][]byte{
-	ColorBytes(Bold, FgGreen),
+	ColorBytes(FgGreen),
 	ColorBytes(Bold),
 	ColorBytes(FgYellow),
 	ColorBytes(FgRed, Bold),
