@@ -28,8 +28,8 @@ import (
 var currentEngine *xorm.Engine
 
 func initMigrationTest() {
-	giteaRoot, err := base.GetGiteaRoot()
-	if err != nil || giteaRoot == "" {
+	giteaRoot := base.SetupGiteaRoot()
+	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
