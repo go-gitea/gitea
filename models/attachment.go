@@ -24,7 +24,7 @@ type Attachment struct {
 	UUID          string `xorm:"uuid UNIQUE"`
 	IssueID       int64  `xorm:"INDEX"`
 	ReleaseID     int64  `xorm:"INDEX"`
-	UploaderID    int64  `xorm:"INDEX"`
+	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
 	DownloadCount int64          `xorm:"DEFAULT 0"`
