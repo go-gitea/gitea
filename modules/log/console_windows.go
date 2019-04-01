@@ -11,18 +11,19 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// EnableVirtualTerminalProcessing is the console mode to allow ANSI code
-// interpretation on the console. See:
-// https://docs.microsoft.com/en-us/windows/console/setconsolemode
-const EnableVirtualTerminalProcessing = 0x0004
-
 func enableVTMode(console windows.Handle) bool {
 	mode := uint32(0)
 	err := windows.GetConsoleMode(console, &mode)
 	if err != nil {
 		return false
 	}
-	mode = mode | EnableVirtualTerminalProcessing
+
+	// EnableVirtualTerminalProcessing is the console mode to allow ANSI code
+	// interpretation on the console. See:
+	// https://docs.microsoft.com/en-us/windows/console/setconsolemode
+	// It only works on windows 10. Earlier terminals will fail with an err which we will
+	// handle to say don't color
+	mode = mode | windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING
 	err = windows.SetConsoleMode(console, mode)
 	return err == nil
 }
