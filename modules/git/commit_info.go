@@ -87,9 +87,8 @@ func getFullPath(treePath, path string) string {
 	if treePath != "" {
 		if path != "" {
 			return treePath + "/" + path
-		} else {
-			return treePath
 		}
+		return treePath
 	}
 	return path
 }

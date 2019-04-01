@@ -265,11 +265,11 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 func (branch *Branch) GetCommit() (*git.Commit, error) {
 	if branch.gitRepo != nil {
 		return branch.gitRepo.GetBranchCommit(branch.Name)
-	} else {
-		gitRepo, err := git.OpenRepository(branch.Path)
-		if err != nil {
-			return nil, err
-		}
-		return gitRepo.GetBranchCommit(branch.Name)
 	}
+
+	gitRepo, err := git.OpenRepository(branch.Path)
+	if err != nil {
+		return nil, err
+	}
+	return gitRepo.GetBranchCommit(branch.Name)
 }
