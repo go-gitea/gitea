@@ -41,6 +41,35 @@ const (
 	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial
 )
 
+var flagFromString = map[string]int{
+	"none":          0,
+	"date":          Ldate,
+	"time":          Ltime,
+	"microseconds":  Lmicroseconds,
+	"longfile":      Llongfile,
+	"shortfile":     Lshortfile,
+	"funcname":      Lfuncname,
+	"shortfuncname": Lshortfuncname,
+	"utc":           LUTC,
+	"levelinitial":  Llevelinitial,
+	"level":         Llevel,
+	"medfile":       Lmedfile,
+	"stdflags":      LstdFlags,
+}
+
+// FlagsFromString takes a comma separated list of flags and returns
+// the flags for this string
+func FlagsFromString(from string) int {
+	flags := 0
+	for _, flag := range strings.Split(strings.ToLower(from), ",") {
+		f, ok := flagFromString[strings.TrimSpace(flag)]
+		if ok {
+			flags = flags | f
+		}
+	}
+	return flags
+}
+
 type byteArrayWriter []byte
 
 func (b *byteArrayWriter) Write(p []byte) (int, error) {

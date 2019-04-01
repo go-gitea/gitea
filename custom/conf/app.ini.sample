@@ -532,7 +532,7 @@ STACKTRACE_LEVEL = None
 
 ; Generic log modes
 [log.x]
-FLAGS = 0
+FLAGS = stdflags
 EXPRESSION =
 PREFIX =
 COLORIZE = false

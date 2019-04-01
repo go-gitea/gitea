@@ -20,7 +20,7 @@ import (
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
-	flags          int
+	flags          string
 	filename       string //path.Join(LogRootPath, "gitea.log")
 	bufferLength   int64
 	disableConsole bool
@@ -29,7 +29,7 @@ type defaultLogOptions struct {
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
 		levelName:      LogLevel,
-		flags:          0,
+		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
 		disableConsole: false,
@@ -67,7 +67,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	mode = name
 	keys := sec.Keys()
 	logPath := defaults.filename
-	flags := defaults.flags
+	flags := log.FlagsFromString(defaults.flags)
 	expression := ""
 	prefix := ""
 	for _, key := range keys {
@@ -81,7 +81,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 				logPath = path.Join(LogRootPath, logPath)
 			}
 		case "FLAGS":
-			flags = key.MustInt(defaults.flags)
+			flags = log.FlagsFromString(key.MustString(defaults.flags))
 		case "EXPRESSION":
 			expression = key.MustString("")
 		case "PREFIX":
@@ -203,7 +203,7 @@ func newAccessLogService() {
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
-		options.flags = -1 // For the router we don't want any prefixed flags
+		options.flags = "" // For the router we don't want any prefixed flags
 		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 		generateNamedLogger("access", options)
 	}
@@ -215,7 +215,7 @@ func newRouterLogService() {
 	if !DisableRouterLog && RedirectMacaronLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
-		options.flags = 3 // For the router we don't want any prefixed flags
+		options.flags = "date,time" // For the router we don't want any prefixed flags
 		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 		generateNamedLogger("router", options)
 	}
