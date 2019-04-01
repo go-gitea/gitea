@@ -220,7 +220,12 @@
 
 					<p class="desc">
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-						{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+
+						{{if gt .Poster.ID 0}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{else}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+						{{end}}
 
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
