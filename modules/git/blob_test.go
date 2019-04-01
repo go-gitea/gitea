@@ -5,7 +5,6 @@
 package git
 
 import (
-	"bytes"
 	"io/ioutil"
 	"testing"
 
@@ -50,9 +49,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 `
 
-	r, err := testBlob.Data()
+	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
 	require.NotNil(t, r)
+	defer r.Close()
 
 	data, err := ioutil.ReadAll(r)
 	assert.NoError(t, err)
@@ -61,20 +61,11 @@ THE SOFTWARE.
 
 func Benchmark_Blob_Data(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		r, err := testBlob.Data()
+		r, err := testBlob.DataAsync()
 		if err != nil {
 			b.Fatal(err)
 		}
+		defer r.Close()
 		ioutil.ReadAll(r)
-	}
-}
-
-func Benchmark_Blob_DataPipeline(b *testing.B) {
-	stdout := new(bytes.Buffer)
-	for i := 0; i < b.N; i++ {
-		stdout.Reset()
-		if err := testBlob.DataPipeline(stdout, nil); err != nil {
-			b.Fatal(err)
-		}
 	}
 }
