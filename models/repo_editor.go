@@ -13,13 +13,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Unknwon/com"
-
-	"code.gitea.io/git"
-
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
 )
 
 // ___________    .___.__  __    ___________.__.__
