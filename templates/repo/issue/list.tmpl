@@ -203,6 +203,12 @@
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
+                    {{if .IsPull }}
+                        {{if (index $.CommitStatus .ID)}}
+                            {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+						{{end}}
+					{{end}}
+
 					{{if .Ref}}
 						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
 					{{end}}
