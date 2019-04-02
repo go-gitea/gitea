@@ -116,6 +116,8 @@ github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193 h1:z/nqwd+ql/r6
 github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193/go.mod h1:ScEJm9Gk+ez5JJTml5WlBIqavAfuE5nF8e4Gvyz/X+A=
 github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90 h1:3wYKrRg9IjUMfaf3H0Hh7M5Li9ge79Y7aw2yujHa2jQ=
 github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90/go.mod h1:Ut/NmkIMGVYlEdJBzEZgWVWG5ZpYS9BLmUgXfAgi+qM=
+github.com/go-redis/redis v6.15.2+incompatible h1:9SpNVG76gr6InJGxoZ6IuuxaCOQwDAhzyXg+Bs+0Sb4=
+github.com/go-redis/redis v6.15.2+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f h1:fbIzwEaXt5b2bl9mm+PIufKTSGKk6ZuwSSTQ7iZj7Lo=
 github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-xorm/builder v0.3.2/go.mod h1:v8mE3MFBgtL+RGFNfUnAMUqqfk/Y4W5KuwCFQIEpQLk=

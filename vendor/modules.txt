@@ -143,6 +143,14 @@ github.com/go-macaron/session/postgres
 github.com/go-macaron/session/redis
 # github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 github.com/go-macaron/toolbox
+# github.com/go-redis/redis v6.15.2+incompatible
+github.com/go-redis/redis
+github.com/go-redis/redis/internal
+github.com/go-redis/redis/internal/consistenthash
+github.com/go-redis/redis/internal/hashtag
+github.com/go-redis/redis/internal/pool
+github.com/go-redis/redis/internal/proto
+github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 github.com/go-sql-driver/mysql
 # github.com/go-xorm/builder v0.3.3
