@@ -7,6 +7,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -15,7 +16,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -90,7 +90,6 @@ var (
 	RedirectOtherPort    bool
 	PortToRedirect       string
 	OfflineMode          bool
-	DisableRouterLog     bool
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
@@ -259,10 +258,16 @@ var (
 
 	// Log settings
 	LogLevel           string
+	StacktraceLogLevel string
 	LogRootPath        string
-	LogModes           []string
-	LogConfigs         []string
+	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
+	DisableRouterLog   bool
+	RouterLogLevel     log.Level
+	RouterLogMode      string
+	EnableAccessLog    bool
+	AccessLogTemplate  string
+	EnableXORMLog      bool
 
 	// Attachment settings
 	AttachmentPath         string
@@ -398,19 +403,19 @@ func getWorkPath(appPath string) string {
 }
 
 func init() {
-	IsWindows = runtime.GOOS == "windows"
-	log.NewLogger(0, "console", `{"level": 0}`)
+	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
+	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
-		log.Fatal(4, "Failed to get app path: %v", err)
+		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
 }
 
 func forcePathSeparator(path string) {
 	if strings.Contains(path, "\\") {
-		log.Fatal(4, "Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
+		log.Fatal("Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
 	}
 }
 
@@ -430,16 +435,16 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 func createPIDFile(pidPath string) {
 	currentPid := os.Getpid()
 	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
-		log.Fatal(4, "Failed to create PID folder: %v", err)
+		log.Fatal("Failed to create PID folder: %v", err)
 	}
 
 	file, err := os.Create(pidPath)
 	if err != nil {
-		log.Fatal(4, "Failed to create PID file: %v", err)
+		log.Fatal("Failed to create PID file: %v", err)
 	}
 	defer file.Close()
 	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
-		log.Fatal(4, "Failed to write PID information: %v", err)
+		log.Fatal("Failed to write PID information: %v", err)
 	}
 }
 
@@ -451,12 +456,12 @@ func CheckLFSVersion() {
 
 		binVersion, err := git.BinVersion()
 		if err != nil {
-			log.Fatal(4, "Error retrieving git version: %v", err)
+			log.Fatal("Error retrieving git version: %v", err)
 		}
 
 		if !version.Compare(binVersion, "2.1.2", ">=") {
 			LFS.StartServer = false
-			log.Error(4, "LFS server support needs at least Git v2.1.2")
+			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {
 			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
 				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
@@ -488,7 +493,7 @@ func NewContext() {
 
 	if com.IsFile(CustomConf) {
 		if err := Cfg.Append(CustomConf); err != nil {
-			log.Fatal(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
@@ -497,14 +502,16 @@ func NewContext() {
 
 	homeDir, err := com.HomeDir()
 	if err != nil {
-		log.Fatal(4, "Failed to get home directory: %v", err)
+		log.Fatal("Failed to get home directory: %v", err)
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
-	LogLevel = getLogLevel("log", "LEVEL", "Info")
+	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
+	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 	RedirectMacaronLog = Cfg.Section("log").Key("REDIRECT_MACARON_LOG").MustBool(false)
+	RouterLogLevel = log.FromString(Cfg.Section("log").Key("ROUTER_LOG_LEVEL").MustString("Info"))
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -521,7 +528,7 @@ func NewContext() {
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {
-			log.Fatal(4, "Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
@@ -547,7 +554,7 @@ func NewContext() {
 	// Check if has app suburl.
 	url, err := url.Parse(AppURL)
 	if err != nil {
-		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
+		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
@@ -616,7 +623,7 @@ func NewContext() {
 	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
-		log.Fatal(4, "Failed to map SSH settings: %v", err)
+		log.Fatal("Failed to map SSH settings: %v", err)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
@@ -630,9 +637,9 @@ func NewContext() {
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", SSH.RootPath, err)
+			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
 		} else if err = os.MkdirAll(SSH.KeyTestPath, 0644); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", SSH.KeyTestPath, err)
+			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 	}
 
@@ -650,7 +657,7 @@ func NewContext() {
 
 	sec = Cfg.Section("server")
 	if err = sec.MapTo(&LFS); err != nil {
-		log.Fatal(4, "Failed to map LFS settings: %v", err)
+		log.Fatal("Failed to map LFS settings: %v", err)
 	}
 	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 	if !filepath.IsAbs(LFS.ContentPath) {
@@ -661,7 +668,7 @@ func NewContext() {
 
 	if LFS.StartServer {
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", LFS.ContentPath, err)
+			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
 		}
 
 		LFS.JWTSecretBytes = make([]byte, 32)
@@ -670,7 +677,7 @@ func NewContext() {
 		if err != nil || n != 32 {
 			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
-				log.Fatal(4, "Error generating JWT Secret for custom config: %v", err)
+				log.Fatal("Error generating JWT Secret for custom config: %v", err)
 				return
 			}
 
@@ -679,24 +686,24 @@ func NewContext() {
 			if com.IsFile(CustomConf) {
 				// Keeps custom settings if there is already something.
 				if err := cfg.Append(CustomConf); err != nil {
-					log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
 				}
 			}
 
 			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 
 			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+				log.Fatal("Failed to create '%s': %v", CustomConf, err)
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
 				return
 			}
 		}
 	}
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
-		log.Fatal(4, "Failed to OAuth2 settings: %v", err)
+		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return
 	}
 
@@ -707,24 +714,24 @@ func NewContext() {
 		if err != nil || n != 32 {
 			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
-				log.Fatal(4, "error generating JWT secret: %v", err)
+				log.Fatal("error generating JWT secret: %v", err)
 				return
 			}
 			cfg := ini.Empty()
 			if com.IsFile(CustomConf) {
 				if err := cfg.Append(CustomConf); err != nil {
-					log.Error(4, "failed to load custom conf %s: %v", CustomConf, err)
+					log.Error("failed to load custom conf %s: %v", CustomConf, err)
 					return
 				}
 			}
 			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
 
 			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal(4, "failed to create '%s': %v", CustomConf, err)
+				log.Fatal("failed to create '%s': %v", CustomConf, err)
 				return
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal(4, "error saving generating JWT secret to custom config: %v", err)
+				log.Fatal("error saving generating JWT secret to custom config: %v", err)
 				return
 			}
 		}
@@ -780,7 +787,7 @@ func NewContext() {
 		TimeFormat = TimeFormatKey
 		TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-			log.Fatal(4, "Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+			log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
 		}
 		log.Trace("Custom TimeFormat: %s", TimeFormat)
 	}
@@ -790,7 +797,7 @@ func NewContext() {
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
-			log.Fatal(4, "Expect user '%s' but current user is: %s", RunUser, currentUser)
+			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
 		}
 	}
 
@@ -828,7 +835,7 @@ func NewContext() {
 	if EnableFederatedAvatar || !DisableGravatar {
 		GravatarSourceURL, err = url.Parse(GravatarSource)
 		if err != nil {
-			log.Fatal(4, "Failed to parse Gravatar URL(%s): %v",
+			log.Fatal("Failed to parse Gravatar URL(%s): %v",
 				GravatarSource, err)
 		}
 	}
@@ -845,15 +852,15 @@ func NewContext() {
 	}
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
-		log.Fatal(4, "Failed to map UI settings: %v", err)
+		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
-		log.Fatal(4, "Failed to map Markdown settings: %v", err)
+		log.Fatal("Failed to map Markdown settings: %v", err)
 	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
-		log.Fatal(4, "Fail to map Admin settings: %v", err)
+		log.Fatal("Fail to map Admin settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
-		log.Fatal(4, "Failed to map API settings: %v", err)
+		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
-		log.Fatal(4, "Failed to map Metrics settings: %v", err)
+		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
 
 	newCron()
@@ -909,35 +916,35 @@ func loadInternalToken(sec *ini.Section) string {
 	}
 	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal(4, "Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
+		log.Fatal("Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
 	}
 	switch tempURI.Scheme {
 	case "file":
 		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
 		if err != nil {
-			log.Fatal(4, "Failed to open InternalTokenURI (%s): %v", uri, err)
+			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
 		}
 		defer fp.Close()
 
 		buf, err := ioutil.ReadAll(fp)
 		if err != nil {
-			log.Fatal(4, "Failed to read InternalTokenURI (%s): %v", uri, err)
+			log.Fatal("Failed to read InternalTokenURI (%s): %v", uri, err)
 		}
 		// No token in the file, generate one and store it.
 		if len(buf) == 0 {
 			token, err := generate.NewInternalToken()
 			if err != nil {
-				log.Fatal(4, "Error generate internal token: %v", err)
+				log.Fatal("Error generate internal token: %v", err)
 			}
 			if _, err := io.WriteString(fp, token); err != nil {
-				log.Fatal(4, "Error writing to InternalTokenURI (%s): %v", uri, err)
+				log.Fatal("Error writing to InternalTokenURI (%s): %v", uri, err)
 			}
 			return token
 		}
 
 		return string(buf)
 	default:
-		log.Fatal(4, "Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
 	return ""
 }
@@ -948,7 +955,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	if len(token) == 0 {
 		token, err = generate.NewInternalToken()
 		if err != nil {
-			log.Fatal(4, "Error generate internal token: %v", err)
+			log.Fatal("Error generate internal token: %v", err)
 		}
 
 		// Save secret
@@ -956,17 +963,17 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 		if com.IsFile(CustomConf) {
 			// Keeps custom settings if there is already something.
 			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+				log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
 			}
 		}
 
 		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
 
 		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+			log.Fatal("Failed to create '%s': %v", CustomConf, err)
 		}
 		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal(4, "Error saving generated INTERNAL_TOKEN to custom config: %v", err)
+			log.Fatal("Error saving generated INTERNAL_TOKEN to custom config: %v", err)
 		}
 	}
 	return token
@@ -976,6 +983,9 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 func NewServices() {
 	newService()
 	newLogService()
+	newMacaronLogService()
+	newAccessLogService()
+	newRouterLogService()
 	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()

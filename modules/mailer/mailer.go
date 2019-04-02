@@ -258,7 +258,7 @@ func processMailQueue() {
 		case msg := <-mailQueue:
 			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
 			if err := gomail.Send(Sender, msg.Message); err != nil {
-				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
+				log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
 			}

@@ -35,7 +35,7 @@ func newCacheService() {
 	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
 	default:
-		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
+		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
 	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
 
