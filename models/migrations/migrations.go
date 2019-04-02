@@ -219,6 +219,8 @@ var migrations = []Migration{
 	NewMigration("update U2F counter type", changeU2FCounterType),
 	// v82 -> v83
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
+	// v83 -> v84
+	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
 }
 
 // Migrate database to current version
