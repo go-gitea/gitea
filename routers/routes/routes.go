@@ -480,8 +480,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 		})
-		m.Post("/attachments", repo.UploadAttachment)
 	}, ignSignIn)
+
+	m.Group("", func() {
+		m.Post("/attachments", repo.UploadAttachment)
+	}, reqSignIn)
 
 	m.Group("/:username", func() {
 		m.Get("/action/:action", user.Action)
