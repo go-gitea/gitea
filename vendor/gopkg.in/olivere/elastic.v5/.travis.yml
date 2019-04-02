@@ -1,0 +1,26 @@
+sudo: required
+language: go
+go:
+- "1.10.x"
+- "1.11.x"
+#- tip
+env:
+- GO111MODULE=on
+- GO111MODULE=off
+matrix:
+  allow_failures:
+  - go: tip
+services:
+- docker
+before_install:
+# Install netcat
+- if [[ "$TRAVIS_OS_NAME" == "linux" && ! $(which nc)     ]] ; then sudo apt-get install -y netcat ; fi
+- sudo sysctl -w vm.max_map_count=262144
+- docker run --rm --privileged=true -p 9200:9200 -p 9300:9300 -e "bootstrap.memory_lock=true" -e "ES_JAVA_OPTS=-Xms1g -Xmx1g" docker.elastic.co/elasticsearch/elasticsearch:5.6.14 elasticsearch -Expack.security.enabled=false -Escript.inline=true -Escript.stored=true -Escript.file=true -Enetwork.host=_local_,_site_ -Enetwork.publish_host=_local_ >& /dev/null &
+- go get -u github.com/fortytw2/leaktest
+- go get . ./aws/... ./config/... ./uritemplates/...
+# Wait for Elasticsearch
+- while ! nc -z localhost 9200; do sleep 1; done
+install: true
+script:
+- go test -race -v . ./aws/... ./config/... ./uritemplates/...

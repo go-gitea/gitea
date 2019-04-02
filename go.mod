@@ -123,6 +123,7 @@ require (
 	gopkg.in/ini.v1 v1.42.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/macaron.v1 v1.3.2
+	gopkg.in/olivere/elastic.v5 v5.0.79
 	gopkg.in/redis.v2 v2.3.2 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0
 	gopkg.in/src-d/go-git.v4 v4.12.0

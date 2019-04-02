@@ -226,6 +226,11 @@ github.com/lunny/nodb/config
 github.com/lunny/nodb/store
 github.com/lunny/nodb/store/driver
 github.com/lunny/nodb/store/goleveldb
+# github.com/mailru/easyjson v0.0.0-20180730094502-03f2033d19d5
+github.com/mailru/easyjson
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+github.com/mailru/easyjson/buffer
 # github.com/markbates/goth v1.49.0
 github.com/markbates/goth
 github.com/markbates/goth/gothic
@@ -423,6 +428,10 @@ gopkg.in/ini.v1
 gopkg.in/ldap.v3
 # gopkg.in/macaron.v1 v1.3.2
 gopkg.in/macaron.v1
+# gopkg.in/olivere/elastic.v5 v5.0.79
+gopkg.in/olivere/elastic.v5
+gopkg.in/olivere/elastic.v5/config
+gopkg.in/olivere/elastic.v5/uritemplates
 # gopkg.in/redis.v2 v2.3.2
 gopkg.in/redis.v2
 # gopkg.in/src-d/go-billy.v4 v4.3.0
