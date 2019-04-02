@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 	ini "gopkg.in/ini.v1"
 )
