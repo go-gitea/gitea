@@ -650,11 +650,6 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
-// DisplayUsername returns username
-func (u *User) DisplayUsername() string {
-	return u.Name
-}
-
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
