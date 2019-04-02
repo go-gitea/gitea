@@ -56,7 +56,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 	app.Action = cmd.CmdWeb.Action
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)
+		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
 }
 

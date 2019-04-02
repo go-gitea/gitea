@@ -5,40 +5,238 @@
 package setting
 
 import (
-	"fmt"
+	"encoding/json"
+	golog "log"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"github.com/go-xorm/core"
+
+	ini "gopkg.in/ini.v1"
 )
 
-var logLevels = map[string]string{
-	"Trace":    "0",
-	"Debug":    "1",
-	"Info":     "2",
-	"Warn":     "3",
-	"Error":    "4",
-	"Critical": "5",
+type defaultLogOptions struct {
+	levelName      string // LogLevel
+	flags          string
+	filename       string //path.Join(LogRootPath, "gitea.log")
+	bufferLength   int64
+	disableConsole bool
 }
 
-func getLogLevel(section string, key string, defaultValue string) string {
-	validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
-	return Cfg.Section(section).Key(key).In(defaultValue, validLevels)
+func newDefaultLogOptions() defaultLogOptions {
+	return defaultLogOptions{
+		levelName:      LogLevel,
+		flags:          "stdflags",
+		filename:       filepath.Join(LogRootPath, "gitea.log"),
+		bufferLength:   10000,
+		disableConsole: false,
+	}
+}
+
+// SubLogDescription describes a sublogger
+type SubLogDescription struct {
+	Name     string
+	Provider string
+	Config   string
+}
+
+// LogDescription describes a named logger
+type LogDescription struct {
+	Name               string
+	SubLogDescriptions []SubLogDescription
+}
+
+func getLogLevel(section *ini.Section, key string, defaultValue string) string {
+	value := section.Key(key).MustString("info")
+	return log.FromString(value).String()
+}
+
+func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
+	value := section.Key(key).MustString("none")
+	return log.FromString(value).String()
+}
+
+func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
+	levelName = getLogLevel(sec, "LEVEL", LogLevel)
+	level := log.FromString(levelName)
+	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
+	stacktraceLevel := log.FromString(stacktraceLevelName)
+	mode = name
+	keys := sec.Keys()
+	logPath := defaults.filename
+	flags := log.FlagsFromString(defaults.flags)
+	expression := ""
+	prefix := ""
+	for _, key := range keys {
+		switch key.Name() {
+		case "MODE":
+			mode = key.MustString(name)
+		case "FILE_NAME":
+			logPath = key.MustString(defaults.filename)
+			forcePathSeparator(logPath)
+			if !filepath.IsAbs(logPath) {
+				logPath = path.Join(LogRootPath, logPath)
+			}
+		case "FLAGS":
+			flags = log.FlagsFromString(key.MustString(defaults.flags))
+		case "EXPRESSION":
+			expression = key.MustString("")
+		case "PREFIX":
+			prefix = key.MustString("")
+		}
+	}
+
+	logConfig := map[string]interface{}{
+		"level":           level.String(),
+		"expression":      expression,
+		"prefix":          prefix,
+		"flags":           flags,
+		"stacktraceLevel": stacktraceLevel.String(),
+	}
+
+	// Generate log configuration.
+	switch mode {
+	case "console":
+		useStderr := sec.Key("STDERR").MustBool(false)
+		logConfig["stderr"] = useStderr
+		if useStderr {
+			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStderr)
+		} else {
+			logConfig["colorize"] = sec.Key("COLORIZE").MustBool(log.CanColorStdout)
+		}
+
+	case "file":
+		if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+			panic(err.Error())
+		}
+
+		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
+		logConfig["filename"] = logPath
+		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
+		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
+		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
+		logConfig["maxdays"] = sec.Key("MAX_DAYS").MustInt(7)
+		logConfig["compress"] = sec.Key("COMPRESS").MustBool(true)
+		logConfig["compressionLevel"] = sec.Key("COMPRESSION_LEVEL").MustInt(-1)
+	case "conn":
+		logConfig["reconnectOnMsg"] = sec.Key("RECONNECT_ON_MSG").MustBool()
+		logConfig["reconnect"] = sec.Key("RECONNECT").MustBool()
+		logConfig["net"] = sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"})
+		logConfig["addr"] = sec.Key("ADDR").MustString(":7020")
+	case "smtp":
+		logConfig["username"] = sec.Key("USER").MustString("example@example.com")
+		logConfig["password"] = sec.Key("PASSWD").MustString("******")
+		logConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
+		logConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
+		logConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
+	}
+
+	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
+
+	byteConfig, err := json.Marshal(logConfig)
+	if err != nil {
+		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
+		return
+	}
+	jsonConfig = string(byteConfig)
+	return
+}
+
+func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
+	description := LogDescription{
+		Name: key,
+	}
+
+	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
+
+	//description.Configs = make([]string, len(description.Sections))
+
+	for i := 0; i < len(sections); i++ {
+		sections[i] = strings.TrimSpace(sections[i])
+	}
+
+	for _, name := range sections {
+		if len(name) == 0 || (name == "console" && options.disableConsole) {
+			continue
+		}
+		sec, err := Cfg.GetSection("log." + name + "." + key)
+		if err != nil {
+			sec, _ = Cfg.NewSection("log." + name + "." + key)
+		}
+
+		provider, config, levelName := generateLogConfig(sec, name, options)
+
+		log.NewNamedLogger(key, options.bufferLength, name, provider, config)
+
+		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
+			Name:     name,
+			Provider: provider,
+			Config:   config,
+		})
+		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
+	}
+
+	LogDescriptions[key] = &description
+
+	return &description
+}
+
+func newMacaronLogService() {
+	options := newDefaultLogOptions()
+	options.filename = filepath.Join(LogRootPath, "macaron.log")
+	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+
+	Cfg.Section("log").Key("MACARON").MustString("file")
+	if RedirectMacaronLog {
+		generateNamedLogger("macaron", options)
+	}
+}
+
+func newAccessLogService() {
+	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
+	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
+	Cfg.Section("log").Key("ACCESS").MustString("file")
+	if EnableAccessLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(LogRootPath, "access.log")
+		options.flags = "" // For the router we don't want any prefixed flags
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		generateNamedLogger("access", options)
+	}
+}
+
+func newRouterLogService() {
+	Cfg.Section("log").Key("ROUTER").MustString("console")
+
+	if !DisableRouterLog && RedirectMacaronLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(LogRootPath, "router.log")
+		options.flags = "date,time" // For the router we don't want any prefixed flags
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		generateNamedLogger("router", options)
+	}
 }
 
 func newLogService() {
 	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
-	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
-	LogConfigs = make([]string, len(LogModes))
+	options := newDefaultLogOptions()
+	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+
+	description := LogDescription{
+		Name: log.DEFAULT,
+	}
+
+	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 
 	useConsole := false
-	for i := 0; i < len(LogModes); i++ {
-		LogModes[i] = strings.TrimSpace(LogModes[i])
-		if LogModes[i] == "console" {
+	for i := 0; i < len(sections); i++ {
+		sections[i] = strings.TrimSpace(sections[i])
+		if sections[i] == "console" {
 			useConsole = true
 		}
 	}
@@ -47,140 +245,47 @@ func newLogService() {
 		log.DelLogger("console")
 	}
 
-	for i, mode := range LogModes {
-		sec, err := Cfg.GetSection("log." + mode)
+	for _, name := range sections {
+		if len(name) == 0 {
+			continue
+		}
+
+		sec, err := Cfg.GetSection("log." + name)
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + mode)
+			sec, _ = Cfg.NewSection("log." + name)
 		}
 
-		// Log level.
-		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
-		level, ok := logLevels[levelName]
-		if !ok {
-			log.Fatal(4, "Unknown log level: %s", levelName)
-		}
-
-		// Generate log configuration.
-		switch mode {
-		case "console":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s}`, level)
-		case "file":
-			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "gitea.log"))
-			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
-				panic(err.Error())
-			}
-
-			LogConfigs[i] = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
-				logPath,
-				sec.Key("LOG_ROTATE").MustBool(true),
-				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
-				sec.Key("DAILY_ROTATE").MustBool(true),
-				sec.Key("MAX_DAYS").MustInt(7))
-		case "conn":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
-				sec.Key("RECONNECT_ON_MSG").MustBool(),
-				sec.Key("RECONNECT").MustBool(),
-				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
-				sec.Key("ADDR").MustString(":7020"))
-		case "smtp":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":["%s"],"subject":"%s"}`, level,
-				sec.Key("USER").MustString("example@example.com"),
-				sec.Key("PASSWD").MustString("******"),
-				sec.Key("HOST").MustString("127.0.0.1:25"),
-				strings.Replace(sec.Key("RECEIVERS").MustString("example@example.com"), ",", "\",\"", -1),
-				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
-		case "database":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
-				sec.Key("DRIVER").String(),
-				sec.Key("CONN").String())
-		}
-
-		log.NewLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, LogConfigs[i])
-		log.Info("Log Mode: %s(%s)", strings.Title(mode), levelName)
+		provider, config, levelName := generateLogConfig(sec, name, options)
+		log.NewLogger(options.bufferLength, name, provider, config)
+		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
+			Name:     name,
+			Provider: provider,
+			Config:   config,
+		})
+		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
+
+	LogDescriptions[log.DEFAULT] = &description
+
+	// Finally redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 }
 
 // NewXORMLogService initializes xorm logger service
 func NewXORMLogService(disableConsole bool) {
-	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
-	var logConfigs string
-	for _, mode := range logModes {
-		mode = strings.TrimSpace(mode)
+	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
+	if EnableXORMLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(LogRootPath, "xorm.log")
+		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		options.disableConsole = disableConsole
 
-		if disableConsole && mode == "console" {
-			continue
-		}
-
-		sec, err := Cfg.GetSection("log." + mode)
-		if err != nil {
-			sec, _ = Cfg.NewSection("log." + mode)
-		}
-
-		// Log level.
-		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
-		level, ok := logLevels[levelName]
-		if !ok {
-			log.Fatal(4, "Unknown log level: %s", levelName)
-		}
-
-		// Generate log configuration.
-		switch mode {
-		case "console":
-			logConfigs = fmt.Sprintf(`{"level":%s}`, level)
-		case "file":
-			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "xorm.log"))
-			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
-				panic(err.Error())
-			}
-			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
-
-			logConfigs = fmt.Sprintf(
-				`{"level":%s,"filename":"%s","rotate":%v,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
-				logPath,
-				sec.Key("LOG_ROTATE").MustBool(true),
-				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
-				sec.Key("DAILY_ROTATE").MustBool(true),
-				sec.Key("MAX_DAYS").MustInt(7))
-		case "conn":
-			logConfigs = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
-				sec.Key("RECONNECT_ON_MSG").MustBool(),
-				sec.Key("RECONNECT").MustBool(),
-				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
-				sec.Key("ADDR").MustString(":7020"))
-		case "smtp":
-			logConfigs = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
-				sec.Key("USER").MustString("example@example.com"),
-				sec.Key("PASSWD").MustString("******"),
-				sec.Key("HOST").MustString("127.0.0.1:25"),
-				sec.Key("RECEIVERS").MustString("[]"),
-				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
-		case "database":
-			logConfigs = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
-				sec.Key("DRIVER").String(),
-				sec.Key("CONN").String())
-		}
-
-		log.NewXORMLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, logConfigs)
-		if !disableConsole {
-			log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
-		}
-
-		var lvl core.LogLevel
-		switch levelName {
-		case "Trace", "Debug":
-			lvl = core.LOG_DEBUG
-		case "Info":
-			lvl = core.LOG_INFO
-		case "Warn":
-			lvl = core.LOG_WARNING
-		case "Error", "Critical":
-			lvl = core.LOG_ERR
-		}
-		log.XORMLogger.SetLevel(lvl)
-	}
-
-	if len(logConfigs) == 0 {
-		log.DiscardXORMLogger()
+		Cfg.Section("log").Key("XORM").MustString(",")
+		generateNamedLogger("xorm", options)
+		log.InitXORMLogger(LogSQL)
+	} else {
+		log.InitXORMLogger(false)
 	}
 }
