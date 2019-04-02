@@ -47,7 +47,8 @@ func SendTestMail(email string) error {
 // SendUserMail sends a mail to the user
 func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
-		"Username":          u.DisplayName(),
+		"DisplayName":       u.DisplayName(),
+		"Username":          u.DisplayUsername(),
 		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
 		"Code":              code,
