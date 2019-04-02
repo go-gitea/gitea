@@ -299,7 +299,15 @@ func (b *BaseLogger) Match(event *Event) bool {
 	if b.regexp.Match([]byte(fmt.Sprintf("%s:%d:%s", event.filename, event.line, event.caller))) {
 		return true
 	}
-	if b.regexp.Match([]byte(event.msg)) {
+	// Match on the non-colored msg - therefore strip out colors
+	var msg []byte
+	baw := byteArrayWriter(msg)
+	(&protectedANSIWriter{
+		w:    &baw,
+		mode: removeColor,
+	}).Write([]byte(event.msg))
+	msg = baw
+	if b.regexp.Match(msg) {
 		return true
 	}
 	return false
