@@ -6,6 +6,8 @@ package issues
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -22,6 +24,7 @@ var (
 type ElesticSearchIndexer struct {
 	client      *elastic.Client
 	indexerName string
+	typeName    string
 }
 
 // NewElesticSearchIndexer creates a new elestic search indexer
@@ -30,11 +33,11 @@ func NewElesticSearchIndexer(url, indexerName string) (*ElesticSearchIndexer, er
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
 		elastic.SetHealthcheckInterval(10*time.Second),
-		elastic.SetGzip(true),
-		elastic.SetErrorLog(log.New(os.Stderr, "ELASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "", log.LstdFlags)),
+		elastic.SetGzip(false),
+		elastic.SetErrorLog(log.New(os.Stderr, "[ELASTIC] ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "[ELASTIC] ", log.LstdFlags)),
+		//elastic.SetTraceLog(log.New(os.Stdout, "[ELASTIC] ", log.LstdFlags)),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +45,7 @@ func NewElesticSearchIndexer(url, indexerName string) (*ElesticSearchIndexer, er
 	return &ElesticSearchIndexer{
 		client:      client,
 		indexerName: indexerName,
+		typeName:    "indexer_data",
 	}, nil
 }
 
@@ -52,6 +56,7 @@ func (b *ElesticSearchIndexer) Init() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	if !exists {
 		mapping := `{
 			"settings":{
@@ -62,16 +67,20 @@ func (b *ElesticSearchIndexer) Init() (bool, error) {
 				"indexer_data":{
 					"properties":{
 						"repo_id":{
-							"type":"number"
+							"type":"integer",
+							"index": true
 						},
 						"title":{
-							"type":"string"
+							"type":"text",
+							"index": true
 						},
 						"content":{
-							"type":"string"
+							"type":"text",
+							"index": true
 						},
-						"comment":{
-							"type":"string"
+						"comments":{
+							"type" : "text", 
+							"index": true
 						}
 					}
 				}
@@ -83,22 +92,28 @@ func (b *ElesticSearchIndexer) Init() (bool, error) {
 			return false, err
 		}
 		if !createIndex.Acknowledged {
+			return false, errors.New("init failed")
 		}
 
-		return true, nil
+		return false, nil
 	}
-	return false, nil
+	return true, nil
 }
 
 // Index will save the index data
 func (b *ElesticSearchIndexer) Index(issues []*IndexerData) error {
 	for _, issue := range issues {
-		//tweet1 := Tweet{User: "olivere", Message: "Take Five", Retweets: 0}
 		_, err := b.client.Index().
 			Index(b.indexerName).
-			Type("indexer_data").
+			Type(b.typeName).
 			Id(fmt.Sprintf("%d", issue.ID)).
-			BodyJson(issue).
+			BodyJson(map[string]interface{}{
+				"id":       issue.ID,
+				"repo_id":  issue.RepoID,
+				"title":    issue.Title,
+				"content":  issue.Content,
+				"comments": issue.Comments,
+			}).
 			Do(context.Background())
 		if err != nil {
 			return err
@@ -112,7 +127,7 @@ func (b *ElesticSearchIndexer) Delete(ids ...int64) error {
 	for _, id := range ids {
 		_, err := b.client.Delete().
 			Index(b.indexerName).
-			Type("tweindexer_dataet").
+			Type(b.typeName).
 			Id(fmt.Sprintf("%d", id)).
 			Do(context.Background())
 		if err != nil {
@@ -125,20 +140,39 @@ func (b *ElesticSearchIndexer) Delete(ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *ElesticSearchIndexer) Search(keyword string, repoID int64, limit, start int) (*SearchResult, error) {
-	termQuery := elastic.NewTermQuery("title", keyword)
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
+	query := elastic.NewBoolQuery()
+	query = query.Filter(kwQuery)
+	if repoID > 0 {
+		repoQuery := elastic.NewTermQuery("repo_id", repoID)
+		query = query.Filter(repoQuery)
+	}
 	searchResult, err := b.client.Search().
-		Index(b.indexerName).    // search in index "twitter"
-		Query(termQuery).        // specify the query
-		Sort("id", true).        // sort by "user" field, ascending
-		From(start).Size(limit). // take documents 0-9
-		Pretty(true).            // pretty print request and response JSON
-		Do(context.Background()) // execute
+		Index(b.indexerName).
+		Type(b.typeName).
+		Query(query).
+		Sort("id", true).
+		From(start).Size(limit).
+		Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(searchResult)
+
+	hits := make([]Match, 0, limit)
+	for _, hit := range searchResult.Hits.Hits {
+		items := make(map[string]interface{})
+		err := json.Unmarshal(*hit.Source, &items)
+		if err != nil {
+			return nil, err
+		}
+		hits = append(hits, Match{
+			ID:     int64(items["id"].(float64)),
+			RepoID: int64(items["repo_id"].(float64)),
+		})
+	}
 
 	return &SearchResult{
-		Hits: []Match{},
+		Total: searchResult.TotalHits(),
+		Hits:  hits,
 	}, nil
 }

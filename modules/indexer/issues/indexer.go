@@ -69,7 +69,7 @@ func InitIssueIndexer(syncReindex bool) error {
 		}
 		populate = !exist
 	case "elasticsearch":
-		issueIndexer, err = NewElesticSearchIndexer(setting.Indexer.IssueQueueConnStr, "test")
+		issueIndexer, err = NewElesticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
 		if err != nil {
 			return err
 		}
@@ -84,6 +84,8 @@ func InitIssueIndexer(syncReindex bool) error {
 	default:
 		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
 	}
+
+	log.Trace("Init issue index: %s", setting.Indexer.IssueType)
 
 	if dummyQueue {
 		issueIndexerQueue = &DummyQueue{}
@@ -122,6 +124,7 @@ func InitIssueIndexer(syncReindex bool) error {
 	}()
 
 	if populate {
+		log.Trace("Issue index will be populated")
 		if syncReindex {
 			populateIssueIndexer()
 		} else {

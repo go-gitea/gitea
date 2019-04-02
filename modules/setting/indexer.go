@@ -19,8 +19,10 @@ const (
 var (
 	// Indexer settings
 	Indexer = struct {
-		IssueType             string
-		IssuePath             string
+		IssueType    string
+		IssuePath    string
+		IssueConnStr string
+
 		IssueQueueType        string
 		IssueQueueDir         string
 		IssueQueueConnStr     string
@@ -33,6 +35,7 @@ var (
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
+		IssueConnStr:          "",
 		IssueQueueType:        LevelQueueType,
 		IssueQueueDir:         "indexers/issues.queue",
 		IssueQueueConnStr:     "",
