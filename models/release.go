@@ -199,7 +199,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 
 	if !rel.IsDraft {
 		if err := rel.LoadAttributes(); err != nil {
-			log.Error(2, "LoadAttributes: %v", err)
+			log.Error("LoadAttributes: %v", err)
 		} else {
 			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
@@ -208,7 +208,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 				Repository: rel.Repo.APIFormat(mode),
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
-				log.Error(2, "PrepareWebhooks: %v", err)
+				log.Error("PrepareWebhooks: %v", err)
 			} else {
 				go HookQueue.Add(rel.Repo.ID)
 			}
@@ -409,7 +409,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err1 != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}
@@ -464,7 +464,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}

@@ -12,7 +12,6 @@ import (
 
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
-	loggers []*Logger
 	showSQL bool
 	level   core.LogLevel
 }
@@ -22,110 +21,80 @@ var (
 	XORMLogger *XORMLogBridge
 )
 
-// DiscardXORMLogger inits a blank logger for xorm
-func DiscardXORMLogger() {
+// InitXORMLogger inits a log bridge for xorm
+func InitXORMLogger(showSQL bool) {
 	XORMLogger = &XORMLogBridge{
-		showSQL: false,
+		showSQL: showSQL,
 	}
 }
 
-// NewXORMLogger generate logger for xorm FIXME: configable
-func NewXORMLogger(bufferlen int64, mode, config string) {
-	logger := newLogger(bufferlen)
-	logger.SetLogger(mode, config)
-	if XORMLogger == nil {
-		XORMLogger = &XORMLogBridge{
-			showSQL: true,
-		}
-	}
-	XORMLogger.loggers = append(XORMLogger.loggers, logger)
+// GetGiteaLevel returns the minimum Gitea logger level
+func (l *XORMLogBridge) GetGiteaLevel() Level {
+	return GetLogger("xorm").GetLevel()
 }
 
-func (l *XORMLogBridge) writerMsg(skip, level int, msg string) error {
-	for _, logger := range l.loggers {
-		if err := logger.writerMsg(skip, level, msg); err != nil {
-			return err
-		}
-	}
-	return nil
+// Log a message with defined skip and at logging level
+func (l *XORMLogBridge) Log(skip int, level Level, format string, v ...interface{}) error {
+	return GetLogger("xorm").Log(skip+1, level, format, v...)
 }
 
 // Debug show debug log
 func (l *XORMLogBridge) Debug(v ...interface{}) {
-	if l.level <= core.LOG_DEBUG {
-		msg := fmt.Sprint(v...)
-		l.writerMsg(0, DEBUG, "[D]"+msg)
-	}
+	l.Log(2, DEBUG, fmt.Sprint(v...))
 }
 
 // Debugf show debug log
 func (l *XORMLogBridge) Debugf(format string, v ...interface{}) {
-	if l.level <= core.LOG_DEBUG {
-		for _, logger := range l.loggers {
-			logger.Debug(format, v...)
-		}
-	}
+	l.Log(2, DEBUG, format, v...)
 }
 
 // Error show error log
 func (l *XORMLogBridge) Error(v ...interface{}) {
-	if l.level <= core.LOG_ERR {
-		msg := fmt.Sprint(v...)
-		l.writerMsg(0, ERROR, "[E]"+msg)
-	}
+	l.Log(2, ERROR, fmt.Sprint(v...))
 }
 
 // Errorf show error log
 func (l *XORMLogBridge) Errorf(format string, v ...interface{}) {
-	if l.level <= core.LOG_ERR {
-		for _, logger := range l.loggers {
-			logger.Error(0, format, v...)
-		}
-	}
+	l.Log(2, ERROR, format, v...)
 }
 
 // Info show information level log
 func (l *XORMLogBridge) Info(v ...interface{}) {
-	if l.level <= core.LOG_INFO {
-		msg := fmt.Sprint(v...)
-		l.writerMsg(0, INFO, "[I]"+msg)
-	}
+	l.Log(2, INFO, fmt.Sprint(v...))
 }
 
 // Infof show information level log
 func (l *XORMLogBridge) Infof(format string, v ...interface{}) {
-	if l.level <= core.LOG_INFO {
-		for _, logger := range l.loggers {
-			logger.Info(format, v...)
-		}
-	}
+	l.Log(2, INFO, format, v...)
 }
 
 // Warn show warning log
 func (l *XORMLogBridge) Warn(v ...interface{}) {
-	if l.level <= core.LOG_WARNING {
-		msg := fmt.Sprint(v...)
-		l.writerMsg(0, WARN, "[W] "+msg)
-	}
+	l.Log(2, WARN, fmt.Sprint(v...))
 }
 
 // Warnf show warnning log
 func (l *XORMLogBridge) Warnf(format string, v ...interface{}) {
-	if l.level <= core.LOG_WARNING {
-		for _, logger := range l.loggers {
-			logger.Warn(format, v...)
-		}
-	}
+	l.Log(2, WARN, format, v...)
 }
 
 // Level get logger level
 func (l *XORMLogBridge) Level() core.LogLevel {
-	return l.level
+	switch l.GetGiteaLevel() {
+	case TRACE, DEBUG:
+		return core.LOG_DEBUG
+	case INFO:
+		return core.LOG_INFO
+	case WARN:
+		return core.LOG_WARNING
+	case ERROR, CRITICAL:
+		return core.LOG_ERR
+	}
+	return core.LOG_OFF
 }
 
-// SetLevel set logger level
-func (l *XORMLogBridge) SetLevel(level core.LogLevel) {
-	l.level = level
+// SetLevel set the logger level
+func (l *XORMLogBridge) SetLevel(lvl core.LogLevel) {
 }
 
 // ShowSQL set if record SQL

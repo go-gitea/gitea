@@ -48,7 +48,7 @@ func migrateProtectedBranchStruct(x *xorm.Engine) error {
 			log.Warn("DROP COLUMN can_push (skipping): %v", err)
 		}
 	default:
-		log.Fatal(4, "Unrecognized DB")
+		log.Fatal("Unrecognized DB")
 	}
 
 	return nil
