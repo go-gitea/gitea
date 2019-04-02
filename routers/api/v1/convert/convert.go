@@ -55,14 +55,14 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
 	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	verif := models.ParseCommitWithSignature(c)

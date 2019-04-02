@@ -129,7 +129,7 @@ func (issue *Issue) mailParticipants(e Engine) (err error) {
 	}
 
 	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, issue.Content, nil, mentions); err != nil {
-		log.Error(4, "mailIssueCommentToParticipants: %v", err)
+		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 
 	return nil

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,29 +7,45 @@ package log
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/smtp"
 	"strings"
-	"time"
 )
 
 const (
 	subjectPhrase = "Diagnostic message from server"
 )
 
-// SMTPWriter implements LoggerInterface and is used to send emails via given SMTP-server.
-type SMTPWriter struct {
-	Username           string   `json:"Username"`
-	Password           string   `json:"password"`
-	Host               string   `json:"Host"`
-	Subject            string   `json:"subject"`
-	RecipientAddresses []string `json:"sendTos"`
-	Level              int      `json:"level"`
+type smtpWriter struct {
+	owner *SMTPLogger
 }
 
-// NewSMTPWriter creates smtp writer.
-func NewSMTPWriter() LoggerInterface {
-	return &SMTPWriter{Level: TRACE}
+// Write sends the message as an email
+func (s *smtpWriter) Write(p []byte) (int, error) {
+	return s.owner.sendMail(p)
+}
+
+// Close does nothing
+func (s *smtpWriter) Close() error {
+	return nil
+}
+
+// SMTPLogger implements LoggerProvider and is used to send emails via given SMTP-server.
+type SMTPLogger struct {
+	BaseLogger
+	Username           string   `json:"Username"`
+	Password           string   `json:"password"`
+	Host               string   `json:"host"`
+	Subject            string   `json:"subject"`
+	RecipientAddresses []string `json:"sendTos"`
+	sendMailFn         func(string, smtp.Auth, string, []string, []byte) error
+}
+
+// NewSMTPLogger creates smtp writer.
+func NewSMTPLogger() LoggerProvider {
+	s := &SMTPLogger{}
+	s.Level = TRACE
+	s.sendMailFn = smtp.SendMail
+	return s
 }
 
 // Init smtp writer with json config.
@@ -41,49 +58,54 @@ func NewSMTPWriter() LoggerInterface {
 //		"sendTos":["email1","email2"],
 //		"level":LevelError
 //	}
-func (sw *SMTPWriter) Init(jsonconfig string) error {
-	return json.Unmarshal([]byte(jsonconfig), sw)
+func (log *SMTPLogger) Init(jsonconfig string) error {
+	err := json.Unmarshal([]byte(jsonconfig), log)
+	if err != nil {
+		return err
+	}
+	log.createLogger(&smtpWriter{
+		owner: log,
+	})
+	log.sendMailFn = smtp.SendMail
+	return nil
 }
 
 // WriteMsg writes message in smtp writer.
 // it will send an email with subject and only this message.
-func (sw *SMTPWriter) WriteMsg(msg string, skip, level int) error {
-	if level < sw.Level {
-		return nil
-	}
-
-	hp := strings.Split(sw.Host, ":")
+func (log *SMTPLogger) sendMail(p []byte) (int, error) {
+	hp := strings.Split(log.Host, ":")
 
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
 		"",
-		sw.Username,
-		sw.Password,
+		log.Username,
+		log.Password,
 		hp[0],
 	)
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
 	contentType := "Content-Type: text/plain" + "; charset=UTF-8"
-	mailmsg := []byte("To: " + strings.Join(sw.RecipientAddresses, ";") + "\r\nFrom: " + sw.Username + "<" + sw.Username +
-		">\r\nSubject: " + sw.Subject + "\r\n" + contentType + "\r\n\r\n" + fmt.Sprintf(".%s", time.Now().Format("2006-01-02 15:04:05")) + msg)
-
-	return smtp.SendMail(
-		sw.Host,
+	mailmsg := []byte("To: " + strings.Join(log.RecipientAddresses, ";") + "\r\nFrom: " + log.Username + "<" + log.Username +
+		">\r\nSubject: " + log.Subject + "\r\n" + contentType + "\r\n\r\n")
+	mailmsg = append(mailmsg, p...)
+	return len(p), log.sendMailFn(
+		log.Host,
 		auth,
-		sw.Username,
-		sw.RecipientAddresses,
+		log.Username,
+		log.RecipientAddresses,
 		mailmsg,
 	)
 }
 
 // Flush when log should be flushed
-func (sw *SMTPWriter) Flush() {
+func (log *SMTPLogger) Flush() {
 }
 
-// Destroy when writer is destroy
-func (sw *SMTPWriter) Destroy() {
+// GetName returns the default name for this implementation
+func (log *SMTPLogger) GetName() string {
+	return "smtp"
 }
 
 func init() {
-	Register("smtp", NewSMTPWriter)
+	Register("smtp", NewSMTPLogger)
 }

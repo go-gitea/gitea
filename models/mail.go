@@ -56,7 +56,7 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func SendRegisterNotifyMail(c *macaron.Context, u *User) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -165,7 +165,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	var mailBody bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 	}
 
 	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())

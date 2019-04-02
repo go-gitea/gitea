@@ -29,7 +29,7 @@ func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {
-				log.Error(4, "LoadComments failed: %v", err)
+				log.Error("LoadComments failed: %v", err)
 				return
 			}
 		} else {
@@ -63,7 +63,7 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 
 		if !found {
 			if err := c.Issue.LoadDiscussComments(); err != nil {
-				log.Error(4, "LoadComments failed: %v", err)
+				log.Error("LoadComments failed: %v", err)
 				return
 			}
 		}
@@ -87,7 +87,7 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 		if !found {
 			if err := comment.Issue.LoadDiscussComments(); err != nil {
-				log.Error(4, "LoadComments failed: %v", err)
+				log.Error("LoadComments failed: %v", err)
 				return
 			}
 		}

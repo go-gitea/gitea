@@ -1,3 +1,4 @@
+
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -33,7 +34,7 @@ PREFERRED_LICENSES = Apache License 2.0,MIT License
 DISABLE_HTTP_GIT = false
 ; Value for Access-Control-Allow-Origin header, default is not to present
 ; WARNING: This maybe harmful to you website if you do not give it a right value.
-ACCESS_CONTROL_ALLOW_ORIGIN = 
+ACCESS_CONTROL_ALLOW_ORIGIN =
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
@@ -260,7 +261,7 @@ ISSUE_INDEXER_TYPE = bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
 ISSUE_INDEXER_QUEUE_TYPE = levelqueue
-; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path, 
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
 ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ; Batch queue number, default is 20
@@ -390,8 +391,8 @@ NO_REPLY_ADDRESS = noreply.example.org
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
 ; Default value for AutoWatchNewRepos
-; When adding a repo to a team or creating a new repo all team members will watch the 
-; repo automatically if enabled 
+; When adding a repo to a team or creating a new repo all team members will watch the
+; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
@@ -516,17 +517,37 @@ ROOT_PATH =
 MODE = console
 ; Buffer length of the channel, keep it as it is if you don't know what it is.
 BUFFER_LEN = 10000
-; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
-LEVEL = Trace
 REDIRECT_MACARON_LOG = false
+MACARON = file
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Info"
+ROUTER_LOG_LEVEL = Info
+ROUTER = console
+ENABLE_ACCESS_LOG = false
+ACCESS_LOG_TEMPLATE = {{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"
+ACCESS = file
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
+LEVEL = Info
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "None"
+STACKTRACE_LEVEL = None
+
+; Generic log modes
+[log.x]
+FLAGS = stdflags
+EXPRESSION =
+PREFIX =
+COLORIZE = false
 
 ; For "console" mode only
 [log.console]
 LEVEL =
+STDERR = false
 
 ; For "file" mode only
 [log.file]
 LEVEL =
+; Set the file_name for the logger. If this is a relative path this
+; will be relative to ROOT_PATH
+FILE_NAME =
 ; This enables automated log rotate(switch of following options), default is true
 LOG_ROTATE = true
 ; Max number of lines in a single file, default is 1000000
@@ -537,6 +558,10 @@ MAX_SIZE_SHIFT = 28
 DAILY_ROTATE = true
 ; delete the log file after n days, default is 7
 MAX_DAYS = 7
+; compress logs with gzip
+COMPRESS = true
+; compression level see godoc for compress/gzip
+COMPRESSION_LEVEL = -1
 
 ; For "conn" mode only
 [log.conn]
@@ -563,14 +588,6 @@ USER =
 PASSWD =
 ; Receivers, can be one or more, e.g. 1@example.com,2@example.com
 RECEIVERS =
-
-; For "database" mode only
-[log.database]
-LEVEL =
-; Either "mysql" or "postgres"
-DRIVER =
-; Based on xorm, e.g.: root:root@localhost/gitea?charset=utf8
-CONN =
 
 [cron]
 ; Enable running cron tasks periodically.

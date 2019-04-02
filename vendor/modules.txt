@@ -228,6 +228,8 @@ github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/gplus
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
+# github.com/mattn/go-isatty v0.0.7
+github.com/mattn/go-isatty
 # github.com/mattn/go-sqlite3 v1.10.0
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -350,11 +352,9 @@ golang.org/x/net/context/ctxhttp
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
-golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20181026144532-2772b66316d2
-golang.org/x/sys/windows/svc
+# golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
 golang.org/x/sys/windows
+golang.org/x/sys/windows/svc
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/transform

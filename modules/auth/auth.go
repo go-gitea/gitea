@@ -63,13 +63,13 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 			t, err := models.GetAccessTokenBySHA(tokenSHA)
 			if err != nil {
 				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySHA: %v", err)
+					log.Error("GetAccessTokenBySHA: %v", err)
 				}
 				return 0
 			}
 			t.UpdatedUnix = util.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
-				log.Error(4, "UpdateAccessToken: %v", err)
+				log.Error("UpdateAccessToken: %v", err)
 			}
 			ctx.Data["IsApiToken"] = true
 			return t.UID
@@ -92,7 +92,7 @@ func checkOAuthAccessToken(accessToken string) int64 {
 	}
 	token, err := models.ParseOAuth2Token(accessToken)
 	if err != nil {
-		log.Trace("ParseOAuth2Token", err)
+		log.Trace("ParseOAuth2Token: %v", err)
 		return 0
 	}
 	var grant *models.OAuth2Grant
@@ -120,7 +120,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 		if err == nil {
 			return user, false
 		} else if !models.IsErrUserNotExist(err) {
-			log.Error(4, "GetUserById: %v", err)
+			log.Error("GetUserById: %v", err)
 		}
 	}
 
@@ -130,7 +130,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			u, err := models.GetUserByName(webAuthUser)
 			if err != nil {
 				if !models.IsErrUserNotExist(err) {
-					log.Error(4, "GetUserByName: %v", err)
+					log.Error("GetUserByName: %v", err)
 					return nil, false
 				}
 
@@ -151,7 +151,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 					}
 					if err = models.CreateUser(u); err != nil {
 						// FIXME: should I create a system notice?
-						log.Error(4, "CreateUser: %v", err)
+						log.Error("CreateUser: %v", err)
 						return nil, false
 					}
 					return u, false
@@ -183,13 +183,13 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				if isUsernameToken {
 					u, err = models.GetUserByID(token.UID)
 					if err != nil {
-						log.Error(4, "GetUserByID:  %v", err)
+						log.Error("GetUserByID:  %v", err)
 						return nil, false
 					}
 				} else {
 					u, err = models.GetUserByName(uname)
 					if err != nil {
-						log.Error(4, "GetUserByID:  %v", err)
+						log.Error("GetUserByID:  %v", err)
 						return nil, false
 					}
 					if u.ID != token.UID {
@@ -198,11 +198,11 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				}
 				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
-					log.Error(4, "UpdateAccessToken:  %v", err)
+					log.Error("UpdateAccessToken:  %v", err)
 				}
 			} else {
 				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
+					log.Error("GetAccessTokenBySha: %v", err)
 				}
 			}
 
@@ -210,7 +210,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				u, err = models.UserSignIn(uname, passwd)
 				if err != nil {
 					if !models.IsErrUserNotExist(err) {
-						log.Error(4, "UserSignIn: %v", err)
+						log.Error("UserSignIn: %v", err)
 					}
 					return nil, false
 				}

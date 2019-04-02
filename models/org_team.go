@@ -69,7 +69,7 @@ func (t *Team) IsOwnerTeam() bool {
 func (t *Team) IsMember(userID int64) bool {
 	isMember, err := IsTeamMember(t.OrgID, t.ID, userID)
 	if err != nil {
-		log.Error(4, "IsMember: %v", err)
+		log.Error("IsMember: %v", err)
 		return false
 	}
 	return isMember

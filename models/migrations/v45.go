@@ -21,7 +21,7 @@ func removeIndexColumnFromRepoUnitTable(x *xorm.Engine) (err error) {
 			log.Warn("DROP COLUMN index: %v", err)
 		}
 	default:
-		log.Fatal(4, "Unrecognized DB")
+		log.Fatal("Unrecognized DB")
 	}
 
 	return nil
