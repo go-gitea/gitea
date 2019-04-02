@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 
 	"gopkg.in/olivere/elastic.v5"
 )
@@ -27,17 +27,34 @@ type ElesticSearchIndexer struct {
 	typeName    string
 }
 
+type elasticLogger struct {
+	*log.Logger
+}
+
+func (l elasticLogger) Printf(format string, args ...interface{}) {
+	l.Logger.Log(2, l.Logger.GetLevel(), format, args...)
+}
+
 // NewElesticSearchIndexer creates a new elestic search indexer
 func NewElesticSearchIndexer(url, indexerName string) (*ElesticSearchIndexer, error) {
-	client, err := elastic.NewClient(
+	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
-		elastic.SetHealthcheckInterval(10*time.Second),
+		elastic.SetHealthcheckInterval(10 * time.Second),
 		elastic.SetGzip(false),
-		elastic.SetErrorLog(log.New(os.Stderr, "[ELASTIC] ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "[ELASTIC] ", log.LstdFlags)),
-		//elastic.SetTraceLog(log.New(os.Stdout, "[ELASTIC] ", log.LstdFlags)),
-	)
+	}
+
+	logger := log.GetLogger("elastic")
+
+	if logger.GetLevel() == log.TRACE || logger.GetLevel() == log.DEBUG {
+		opts = append(opts, elastic.SetTraceLog(elasticLogger{logger}))
+	} else if logger.GetLevel() == log.ERROR || logger.GetLevel() == log.CRITICAL || logger.GetLevel() == log.FATAL {
+		opts = append(opts, elastic.SetErrorLog(elasticLogger{logger}))
+	} else if logger.GetLevel() == log.INFO || logger.GetLevel() == log.WARN {
+		opts = append(opts, elastic.SetInfoLog(elasticLogger{logger}))
+	}
+
+	client, err := elastic.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
