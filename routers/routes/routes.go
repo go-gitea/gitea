@@ -5,11 +5,12 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/gob"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -46,7 +47,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
-func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
+/*func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 
@@ -57,6 +58,40 @@ func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
 	}
+}*/
+
+type routerLoggerOptions struct {
+	Ctx            *macaron.Context
+	Identity       *string
+	Start          *time.Time
+	ResponseWriter *macaron.ResponseWriter
+}
+
+func setupAccessLogger(m *macaron.Macaron) {
+	logger := log.GetLogger("access")
+
+	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
+	m.Use(func(ctx *macaron.Context) {
+		start := time.Now()
+		ctx.Next()
+		identity := "-"
+		if val, ok := ctx.Data["SignedUserName"]; ok {
+			if stringVal, ok := val.(string); ok && stringVal != "" {
+				identity = stringVal
+			}
+		}
+		rw := ctx.Resp.(macaron.ResponseWriter)
+
+		buf := bytes.NewBuffer([]byte{})
+		logTemplate.Execute(buf, routerLoggerOptions{
+			Ctx:            ctx,
+			Identity:       &identity,
+			Start:          &start,
+			ResponseWriter: &rw,
+		})
+
+		logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
+	})
 }
 
 // NewMacaron initializes Macaron instance.
@@ -64,16 +99,20 @@ func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
 	var m *macaron.Macaron
 	if setting.RedirectMacaronLog {
-		loggerAsWriter := log.NewLoggerAsWriter("INFO")
+		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
-		if !setting.DisableRouterLog {
-			m.Use(giteaLogger(loggerAsWriter))
+		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
+			log.SetupRouterLogger(m, setting.RouterLogLevel)
 		}
 	} else {
 		m = macaron.New()
 		if !setting.DisableRouterLog {
 			m.Use(macaron.Logger())
 		}
+	}
+	// Access Logger is similar to Router Log but more configurable and by default is more like the NCSA Common Log format
+	if setting.EnableAccessLog {
+		setupAccessLogger(m)
 	}
 	m.Use(macaron.Recovery())
 	if setting.EnableGzip {
@@ -110,7 +149,7 @@ func NewMacaron() *macaron.Macaron {
 	localeNames, err := options.Dir("locale")
 
 	if err != nil {
-		log.Fatal(4, "Failed to list locale files: %v", err)
+		log.Fatal("Failed to list locale files: %v", err)
 	}
 
 	localFiles := make(map[string][]byte)
@@ -119,7 +158,7 @@ func NewMacaron() *macaron.Macaron {
 		localFiles[name], err = options.Locale(name)
 
 		if err != nil {
-			log.Fatal(4, "Failed to load %s locale file. %v", name, err)
+			log.Fatal("Failed to load %s locale file. %v", name, err)
 		}
 	}
 

@@ -113,7 +113,7 @@ func populateRepoIndexer(maxRepoID int64) {
 			Limit(RepositoryListDefaultPageSize).
 			Find(&repos)
 		if err != nil {
-			log.Error(4, "populateRepoIndexer: %v", err)
+			log.Error("populateRepoIndexer: %v", err)
 			return
 		} else if len(repos) == 0 {
 			break
@@ -314,11 +314,11 @@ func processRepoIndexerOperationQueue() {
 		op := <-repoIndexerOperationQueue
 		if op.deleted {
 			if err := indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
-				log.Error(4, "DeleteRepoFromIndexer: %v", err)
+				log.Error("DeleteRepoFromIndexer: %v", err)
 			}
 		} else {
 			if err := updateRepoIndexer(op.repo); err != nil {
-				log.Error(4, "updateRepoIndexer: %v", err)
+				log.Error("updateRepoIndexer: %v", err)
 			}
 		}
 	}

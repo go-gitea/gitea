@@ -135,7 +135,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 		var err error
 		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
-			log.Error(4, "GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 			return ""
 		}
 	}
@@ -145,7 +145,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
 func (pr *PullRequest) GetDefaultSquashMessage() string {
 	if err := pr.LoadIssue(); err != nil {
-		log.Error(4, "LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return ""
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
@@ -172,21 +172,21 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		err        error
 	)
 	if err = pr.Issue.loadRepo(e); err != nil {
-		log.Error(log.ERROR, "loadRepo[%d]: %v", pr.ID, err)
+		log.Error("loadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
 	apiIssue := pr.Issue.apiFormat(e)
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
 		if err != nil {
-			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
+			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
 		}
 	}
 	if pr.HeadRepo == nil {
 		pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
 		if err != nil {
-			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
+			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
 		}
 	}
@@ -581,11 +581,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	pr.MergerID = doer.ID
 
 	if err = pr.setMerged(); err != nil {
-		log.Error(4, "setMerged [%d]: %v", pr.ID, err)
+		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
 	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
+		log.Error("MergePullRequestAction [%d]: %v", pr.ID, err)
 	}
 
 	// Reset cached commit count
@@ -593,7 +593,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 
 	// Reload pull request information.
 	if err = pr.LoadAttributes(); err != nil {
-		log.Error(4, "LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %v", err)
 		return nil
 	}
 
@@ -605,14 +605,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		Repository:  pr.Issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
 	if err != nil {
-		log.Error(4, "CommitsBetweenIDs: %v", err)
+		log.Error("CommitsBetweenIDs: %v", err)
 		return nil
 	}
 
@@ -621,7 +621,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	// to avoid strange diff commits produced.
 	mergeCommit, err := baseGitRepo.GetBranchCommit(pr.BaseBranch)
 	if err != nil {
-		log.Error(4, "GetBranchCommit: %v", err)
+		log.Error("GetBranchCommit: %v", err)
 		return nil
 	}
 	if mergeStyle == MergeStyleMerge {
@@ -639,7 +639,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		Sender:     doer.APIFormat(),
 	}
 	if err = PrepareWebhooks(pr.BaseRepo, HookEventPush, p); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(pr.BaseRepo.ID)
 	}
@@ -692,7 +692,7 @@ func (pr *PullRequest) setMerged() (err error) {
 func (pr *PullRequest) manuallyMerged() bool {
 	commit, err := pr.getMergeCommit()
 	if err != nil {
-		log.Error(4, "PullRequest[%d].getMergeCommit: %v", pr.ID, err)
+		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)
 		return false
 	}
 	if commit != nil {
@@ -705,7 +705,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 		if merger == nil {
 			if pr.BaseRepo.Owner == nil {
 				if err = pr.BaseRepo.getOwner(x); err != nil {
-					log.Error(4, "BaseRepo.getOwner[%d]: %v", pr.ID, err)
+					log.Error("BaseRepo.getOwner[%d]: %v", pr.ID, err)
 					return false
 				}
 			}
@@ -715,7 +715,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 		pr.MergerID = merger.ID
 
 		if err = pr.setMerged(); err != nil {
-			log.Error(4, "PullRequest[%d].setMerged : %v", pr.ID, err)
+			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
@@ -936,7 +936,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %v", err)
 	}
 
 	pr.Issue = pull
@@ -949,7 +949,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		Repository:  repo.APIFormat(mode),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(repo.ID)
 	}
@@ -997,12 +997,12 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	countSession, err := listPullRequestStatement(baseRepoID, opts)
 	if err != nil {
-		log.Error(4, "listPullRequestStatement", err)
+		log.Error("listPullRequestStatement: %v", err)
 		return nil, 0, err
 	}
 	maxResults, err := countSession.Count(new(PullRequest))
 	if err != nil {
-		log.Error(4, "Count PRs", err)
+		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
 	}
 
@@ -1010,7 +1010,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType)
 	if err != nil {
-		log.Error(4, "listPullRequestStatement", err)
+		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
 	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
@@ -1215,7 +1215,7 @@ func (pr *PullRequest) AddToTaskQueue() {
 	go pullRequestQueue.AddFunc(pr.ID, func() {
 		pr.Status = PullRequestStatusChecking
 		if err := pr.UpdateCols("status"); err != nil {
-			log.Error(5, "AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		}
 	})
 }
@@ -1290,10 +1290,10 @@ func addHeadRepoTasks(prs []*PullRequest) {
 	for _, pr := range prs {
 		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
 		if err := pr.UpdatePatch(); err != nil {
-			log.Error(4, "UpdatePatch: %v", err)
+			log.Error("UpdatePatch: %v", err)
 			continue
 		} else if err := pr.PushToBaseRepo(); err != nil {
-			log.Error(4, "PushToBaseRepo: %v", err)
+			log.Error("PushToBaseRepo: %v", err)
 			continue
 		}
 
@@ -1307,23 +1307,23 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
 	prs, err := GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 	if err != nil {
-		log.Error(4, "Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
+		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
 		return
 	}
 
 	if isSync {
 		requests := PullRequestList(prs)
 		if err = requests.LoadAttributes(); err != nil {
-			log.Error(4, "PullRequestList.LoadAttributes: %v", err)
+			log.Error("PullRequestList.LoadAttributes: %v", err)
 		}
 		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
-			log.Error(4, "checkForInvalidation: %v", invalidationErr)
+			log.Error("checkForInvalidation: %v", invalidationErr)
 		}
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
 				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error(4, "LoadAttributes: %v", err)
+					log.Error("LoadAttributes: %v", err)
 					continue
 				}
 				if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -1333,7 +1333,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 					Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
 					Sender:      doer.APIFormat(),
 				}); err != nil {
-					log.Error(4, "PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
 					continue
 				}
 				go HookQueue.Add(pr.Issue.Repo.ID)
@@ -1347,7 +1347,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
 	prs, err = GetUnmergedPullRequestsByBaseInfo(repoID, branch)
 	if err != nil {
-		log.Error(4, "Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
+		log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
 		return
 	}
 	for _, pr := range prs {
@@ -1367,7 +1367,7 @@ func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, br
 	go func() {
 		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
 		if err != nil {
-			log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
+			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
 		}
 	}()
 	return nil
@@ -1396,7 +1396,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
 		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
-			log.Error(4, "Update[%d]: %v", pr.ID, err)
+			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
 }
@@ -1404,7 +1404,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
 func (pr *PullRequest) IsWorkInProgress() bool {
 	if err := pr.LoadIssue(); err != nil {
-		log.Error(4, "LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return false
 	}
 
@@ -1425,7 +1425,7 @@ func (pr *PullRequest) IsFilesConflicted() bool {
 // It returns an empty string when none were found
 func (pr *PullRequest) GetWorkInProgressPrefix() string {
 	if err := pr.LoadIssue(); err != nil {
-		log.Error(4, "LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return ""
 	}
 
@@ -1444,7 +1444,7 @@ func TestPullRequests() {
 
 	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
 	if err != nil {
-		log.Error(3, "Find Checking PRs", err)
+		log.Error("Find Checking PRs: %v", err)
 		return
 	}
 
@@ -1454,14 +1454,14 @@ func TestPullRequests() {
 	for _, pr := range prs {
 		checkedPRs[pr.ID] = struct{}{}
 		if err := pr.GetBaseRepo(); err != nil {
-			log.Error(3, "GetBaseRepo: %v", err)
+			log.Error("GetBaseRepo: %v", err)
 			continue
 		}
 		if pr.manuallyMerged() {
 			continue
 		}
 		if err := pr.testPatch(x); err != nil {
-			log.Error(3, "testPatch: %v", err)
+			log.Error("testPatch: %v", err)
 			continue
 		}
 
@@ -1480,12 +1480,12 @@ func TestPullRequests() {
 
 		pr, err := GetPullRequestByID(id)
 		if err != nil {
-			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
+			log.Error("GetPullRequestByID[%s]: %v", prID, err)
 			continue
 		} else if pr.manuallyMerged() {
 			continue
 		} else if err = pr.testPatch(x); err != nil {
-			log.Error(4, "testPatch[%d]: %v", pr.ID, err)
+			log.Error("testPatch[%d]: %v", pr.ID, err)
 			continue
 		}
 
