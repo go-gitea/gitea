@@ -97,7 +97,7 @@ func (b *ElesticSearchIndexer) Index(issues []*IndexerData) error {
 		_, err := b.client.Index().
 			Index(b.indexerName).
 			Type("indexer_data").
-			Id(fmt.Sprintf("%s", issue.ID)).
+			Id(fmt.Sprintf("%d", issue.ID)).
 			BodyJson(issue).
 			Do(context.Background())
 		if err != nil {
