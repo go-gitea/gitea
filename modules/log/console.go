@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,75 +7,72 @@ package log
 
 import (
 	"encoding/json"
-	"log"
+	"io"
 	"os"
-	"runtime"
 )
 
-// Brush brush type
-type Brush func(string) string
+// CanColorStdout reports if we can color the Stdout
+// Although we could do terminal sniffing and the like - in reality
+// most tools on *nix are happy to display ansi colors.
+// We will terminal sniff on Windows in console_windows.go
+var CanColorStdout = true
 
-// NewBrush create a brush according color
-func NewBrush(color string) Brush {
-	pre := "\033["
-	reset := "\033[0m"
-	return func(text string) string {
-		return pre + color + "m" + text + reset
-	}
+// CanColorStderr reports if we can color the Stderr
+var CanColorStderr = true
+
+type nopWriteCloser struct {
+	w io.WriteCloser
 }
 
-var colors = []Brush{
-	NewBrush("1;36"), // Trace      cyan
-	NewBrush("1;34"), // Debug      blue
-	NewBrush("1;32"), // Info       green
-	NewBrush("1;33"), // Warn       yellow
-	NewBrush("1;31"), // Error      red
-	NewBrush("1;35"), // Critical   purple
-	NewBrush("1;31"), // Fatal      red
+func (n *nopWriteCloser) Write(p []byte) (int, error) {
+	return n.w.Write(p)
 }
 
-// ConsoleWriter implements LoggerInterface and writes messages to terminal.
-type ConsoleWriter struct {
-	lg    *log.Logger
-	Level int `json:"level"`
+func (n *nopWriteCloser) Close() error {
+	return nil
 }
 
-// NewConsole create ConsoleWriter returning as LoggerInterface.
-func NewConsole() LoggerInterface {
-	return &ConsoleWriter{
-		lg:    log.New(os.Stdout, "", log.Ldate|log.Ltime),
-		Level: TRACE,
-	}
+// ConsoleLogger implements LoggerProvider and writes messages to terminal.
+type ConsoleLogger struct {
+	BaseLogger
+	Stderr bool `json:"stderr"`
+}
+
+// NewConsoleLogger create ConsoleLogger returning as LoggerProvider.
+func NewConsoleLogger() LoggerProvider {
+	log := &ConsoleLogger{}
+	log.createLogger(&nopWriteCloser{
+		w: os.Stdout,
+	})
+	return log
 }
 
 // Init inits connection writer with json config.
 // json config only need key "level".
-func (cw *ConsoleWriter) Init(config string) error {
-	return json.Unmarshal([]byte(config), cw)
-}
-
-// WriteMsg writes message in console.
-// if OS is windows, ignore colors.
-func (cw *ConsoleWriter) WriteMsg(msg string, skip, level int) error {
-	if cw.Level > level {
-		return nil
+func (log *ConsoleLogger) Init(config string) error {
+	err := json.Unmarshal([]byte(config), log)
+	if err != nil {
+		return err
 	}
-	if runtime.GOOS == "windows" {
-		cw.lg.Println(msg)
+	if log.Stderr {
+		log.createLogger(&nopWriteCloser{
+			w: os.Stderr,
+		})
 	} else {
-		cw.lg.Println(colors[level](msg))
+		log.createLogger(log.out)
 	}
 	return nil
 }
 
 // Flush when log should be flushed
-func (cw *ConsoleWriter) Flush() {
+func (log *ConsoleLogger) Flush() {
 }
 
-// Destroy when writer is destroy
-func (cw *ConsoleWriter) Destroy() {
+// GetName returns the default name for this implementation
+func (log *ConsoleLogger) GetName() string {
+	return "console"
 }
 
 func init() {
-	Register("console", NewConsole)
+	Register("console", NewConsoleLogger)
 }

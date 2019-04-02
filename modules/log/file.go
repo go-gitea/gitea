@@ -5,10 +5,11 @@
 package log
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,10 +17,10 @@ import (
 	"time"
 )
 
-// FileLogWriter implements LoggerInterface.
+// FileLogger implements LoggerProvider.
 // It writes messages by lines limit, file size limit, or time frequency.
-type FileLogWriter struct {
-	*log.Logger
+type FileLogger struct {
+	BaseLogger
 	mw *MuxWriter
 	// The opened file
 	Filename string `json:"filename"`
@@ -35,47 +36,57 @@ type FileLogWriter struct {
 
 	Rotate bool `json:"rotate"`
 
-	startLock sync.Mutex // Only one log can write to the file
+	Compress         bool `json:"compress"`
+	CompressionLevel int  `json:"compressionLevel"`
 
-	Level int `json:"level"`
+	startLock sync.Mutex // Only one log can write to the file
 }
 
 // MuxWriter an *os.File writer with locker.
 type MuxWriter struct {
-	sync.Mutex
-	fd *os.File
+	mu    sync.Mutex
+	fd    *os.File
+	owner *FileLogger
 }
 
 // Write writes to os.File.
-func (l *MuxWriter) Write(b []byte) (int, error) {
-	l.Lock()
-	defer l.Unlock()
-	return l.fd.Write(b)
+func (mw *MuxWriter) Write(b []byte) (int, error) {
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
+	mw.owner.docheck(len(b))
+	return mw.fd.Write(b)
+}
+
+// Close the internal writer
+func (mw *MuxWriter) Close() error {
+	return mw.fd.Close()
 }
 
 // SetFd sets os.File in writer.
-func (l *MuxWriter) SetFd(fd *os.File) {
-	if l.fd != nil {
-		l.fd.Close()
+func (mw *MuxWriter) SetFd(fd *os.File) {
+	if mw.fd != nil {
+		mw.fd.Close()
 	}
-	l.fd = fd
+	mw.fd = fd
 }
 
-// NewFileWriter create a FileLogWriter returning as LoggerInterface.
-func NewFileWriter() LoggerInterface {
-	w := &FileLogWriter{
-		Filename: "",
-		Maxsize:  1 << 28, //256 MB
-		Daily:    true,
-		Maxdays:  7,
-		Rotate:   true,
-		Level:    TRACE,
+// NewFileLogger create a FileLogger returning as LoggerProvider.
+func NewFileLogger() LoggerProvider {
+	log := &FileLogger{
+		Filename:         "",
+		Maxsize:          1 << 28, //256 MB
+		Daily:            true,
+		Maxdays:          7,
+		Rotate:           true,
+		Compress:         true,
+		CompressionLevel: gzip.DefaultCompression,
 	}
+	log.Level = TRACE
 	// use MuxWriter instead direct use os.File for lock write when rotate
-	w.mw = new(MuxWriter)
-	// set MuxWriter as Logger's io.Writer
-	w.Logger = log.New(w.mw, "", log.Ldate|log.Ltime)
-	return w
+	log.mw = new(MuxWriter)
+	log.mw.owner = log
+
+	return log
 }
 
 // Init file logger with json config.
@@ -87,109 +98,131 @@ func NewFileWriter() LoggerInterface {
 //	"maxdays":15,
 //	"rotate":true
 //	}
-func (w *FileLogWriter) Init(config string) error {
-	if err := json.Unmarshal([]byte(config), w); err != nil {
+func (log *FileLogger) Init(config string) error {
+	if err := json.Unmarshal([]byte(config), log); err != nil {
 		return err
 	}
-	if len(w.Filename) == 0 {
+	if len(log.Filename) == 0 {
 		return errors.New("config must have filename")
 	}
-	return w.StartLogger()
+	// set MuxWriter as Logger's io.Writer
+	log.createLogger(log.mw)
+	return log.StartLogger()
 }
 
 // StartLogger start file logger. create log file and set to locker-inside file writer.
-func (w *FileLogWriter) StartLogger() error {
-	fd, err := w.createLogFile()
+func (log *FileLogger) StartLogger() error {
+	fd, err := log.createLogFile()
 	if err != nil {
 		return err
 	}
-	w.mw.SetFd(fd)
-	return w.initFd()
+	log.mw.SetFd(fd)
+	return log.initFd()
 }
 
-func (w *FileLogWriter) docheck(size int) {
-	w.startLock.Lock()
-	defer w.startLock.Unlock()
-	if w.Rotate && ((w.Maxsize > 0 && w.maxsizeCursize >= w.Maxsize) ||
-		(w.Daily && time.Now().Day() != w.dailyOpenDate)) {
-		if err := w.DoRotate(); err != nil {
-			fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
+func (log *FileLogger) docheck(size int) {
+	log.startLock.Lock()
+	defer log.startLock.Unlock()
+	if log.Rotate && ((log.Maxsize > 0 && log.maxsizeCursize >= log.Maxsize) ||
+		(log.Daily && time.Now().Day() != log.dailyOpenDate)) {
+		if err := log.DoRotate(); err != nil {
+			fmt.Fprintf(os.Stderr, "FileLogger(%q): %s\n", log.Filename, err)
 			return
 		}
 	}
-	w.maxsizeCursize += size
+	log.maxsizeCursize += size
 }
 
-// WriteMsg writes logger message into file.
-func (w *FileLogWriter) WriteMsg(msg string, skip, level int) error {
-	if level < w.Level {
-		return nil
-	}
-	n := 24 + len(msg) // 24 stand for the length "2013/06/23 21:00:22 [T] "
-	w.docheck(n)
-	w.Logger.Println(msg)
-	return nil
-}
-
-func (w *FileLogWriter) createLogFile() (*os.File, error) {
+func (log *FileLogger) createLogFile() (*os.File, error) {
 	// Open the log file
-	return os.OpenFile(w.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
 }
 
-func (w *FileLogWriter) initFd() error {
-	fd := w.mw.fd
+func (log *FileLogger) initFd() error {
+	fd := log.mw.fd
 	finfo, err := fd.Stat()
 	if err != nil {
 		return fmt.Errorf("get stat: %v", err)
 	}
-	w.maxsizeCursize = int(finfo.Size())
-	w.dailyOpenDate = time.Now().Day()
+	log.maxsizeCursize = int(finfo.Size())
+	log.dailyOpenDate = time.Now().Day()
 	return nil
 }
 
 // DoRotate means it need to write file in new file.
 // new file name like xx.log.2013-01-01.2
-func (w *FileLogWriter) DoRotate() error {
-	_, err := os.Lstat(w.Filename)
+func (log *FileLogger) DoRotate() error {
+	_, err := os.Lstat(log.Filename)
 	if err == nil { // file exists
 		// Find the next available number
 		num := 1
 		fname := ""
 		for ; err == nil && num <= 999; num++ {
-			fname = w.Filename + fmt.Sprintf(".%s.%03d", time.Now().Format("2006-01-02"), num)
+			fname = log.Filename + fmt.Sprintf(".%s.%03d", time.Now().Format("2006-01-02"), num)
 			_, err = os.Lstat(fname)
+			if log.Compress && err != nil {
+				_, err = os.Lstat(fname + ".gz")
+			}
 		}
 		// return error if the last file checked still existed
 		if err == nil {
-			return fmt.Errorf("rotate: cannot find free log number to rename %s", w.Filename)
+			return fmt.Errorf("rotate: cannot find free log number to rename %s", log.Filename)
 		}
 
-		// block Logger's io.Writer
-		w.mw.Lock()
-		defer w.mw.Unlock()
-
-		fd := w.mw.fd
+		fd := log.mw.fd
 		fd.Close()
 
 		// close fd before rename
 		// Rename the file to its newfound home
-		if err = os.Rename(w.Filename, fname); err != nil {
+		if err = os.Rename(log.Filename, fname); err != nil {
 			return fmt.Errorf("Rotate: %v", err)
 		}
 
+		if log.Compress {
+			go compressOldLogFile(fname, log.CompressionLevel)
+		}
+
 		// re-start logger
-		if err = w.StartLogger(); err != nil {
+		if err = log.StartLogger(); err != nil {
 			return fmt.Errorf("Rotate StartLogger: %v", err)
 		}
 
-		go w.deleteOldLog()
+		go log.deleteOldLog()
 	}
 
 	return nil
 }
 
-func (w *FileLogWriter) deleteOldLog() {
-	dir := filepath.Dir(w.Filename)
+func compressOldLogFile(fname string, compressionLevel int) error {
+	reader, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	buffer := bufio.NewReader(reader)
+	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0660)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+	zw, err := gzip.NewWriterLevel(fw, compressionLevel)
+	if err != nil {
+		return err
+	}
+	defer zw.Close()
+	_, err = buffer.WriteTo(zw)
+	if err != nil {
+		zw.Close()
+		fw.Close()
+		os.Remove(fname + ".gz")
+		return err
+	}
+	reader.Close()
+	return os.Remove(fname)
+}
+
+func (log *FileLogger) deleteOldLog() {
+	dir := filepath.Dir(log.Filename)
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -197,8 +230,8 @@ func (w *FileLogWriter) deleteOldLog() {
 			}
 		}()
 
-		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*w.Maxdays) {
-			if strings.HasPrefix(filepath.Base(path), filepath.Base(w.Filename)) {
+		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*log.Maxdays) {
+			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
 
 				if err := os.Remove(path); err != nil {
 					returnErr = fmt.Errorf("Failed to remove %s: %v", path, err)
@@ -209,18 +242,18 @@ func (w *FileLogWriter) deleteOldLog() {
 	})
 }
 
-// Destroy destroy file logger, close file writer.
-func (w *FileLogWriter) Destroy() {
-	w.mw.fd.Close()
-}
-
 // Flush flush file logger.
 // there are no buffering messages in file logger in memory.
 // flush file means sync file from disk.
-func (w *FileLogWriter) Flush() {
-	w.mw.fd.Sync()
+func (log *FileLogger) Flush() {
+	log.mw.fd.Sync()
+}
+
+// GetName returns the default name for this implementation
+func (log *FileLogger) GetName() string {
+	return "file"
 }
 
 func init() {
-	Register("file", NewFileWriter)
+	Register("file", NewFileLogger)
 }

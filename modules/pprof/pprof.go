@@ -17,12 +17,12 @@ import (
 func DumpMemProfileForUsername(pprofDataPath, username string) {
 	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("memprofile_%s_", username))
 	if err != nil {
-		log.GitLogger.Fatal(4, "Could not create memory profile: %v", err)
+		log.GitLogger.Fatal("Could not create memory profile: %v", err)
 	}
 	defer f.Close()
 	runtime.GC() // get up-to-date statistics
 	if err := pprof.WriteHeapProfile(f); err != nil {
-		log.GitLogger.Fatal(4, "Could not write memory profile: %v", err)
+		log.GitLogger.Fatal("Could not write memory profile: %v", err)
 	}
 }
 
@@ -31,7 +31,7 @@ func DumpMemProfileForUsername(pprofDataPath, username string) {
 func DumpCPUProfileForUsername(pprofDataPath, username string) func() {
 	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("cpuprofile_%s_", username))
 	if err != nil {
-		log.GitLogger.Fatal(4, "Could not create cpu profile: %v", err)
+		log.GitLogger.Fatal("Could not create cpu profile: %v", err)
 	}
 
 	pprof.StartCPUProfile(f)

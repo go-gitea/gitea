@@ -119,6 +119,6 @@ var (
 
 func newCron() {
 	if err := Cfg.Section("cron").MapTo(&Cron); err != nil {
-		log.Fatal(4, "Failed to map Cron settings: %v", err)
+		log.Fatal("Failed to map Cron settings: %v", err)
 	}
 }
