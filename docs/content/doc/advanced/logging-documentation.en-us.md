@@ -27,7 +27,7 @@ log groups:
 * The Router logger
 * The Access logger
 * The XORM logger
-* A logger for the use during the hooks called the `GitLogger`
+* A logger called the `GitLogger` which used during hooks.
 
 There is also the go log logger.
 
@@ -182,7 +182,7 @@ which will not be inherited from the `[log]` or relevant
 
 ### The Hook and Serv "GitLoggers"
 
-These are less well defined loggers. Essentially this should only be
+These are less well defined loggers. Essentially these should only be
 used within Gitea's subsystems and cannot be configured at present.
 
 They will write log files in:
