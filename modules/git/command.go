@@ -52,9 +52,9 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
+// RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -69,6 +69,7 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	cmd.Env = env
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -83,12 +84,24 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 	return ctx.Err()
 }
 
+// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+	return c.RunInDirTimeoutEnvPipeline(nil, timeout, dir, stdout, stderr)
+}
+
 // RunInDirTimeout executes the command in given directory with given timeout,
 // and returns stdout in []byte and error (combined with stderr).
 func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
+	return c.RunInDirTimeoutEnv(nil, timeout, dir)
+}
+
+// RunInDirTimeoutEnv executes the command in given directory with given timeout,
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir string) ([]byte, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := c.RunInDirTimeoutPipeline(timeout, dir, stdout, stderr); err != nil {
+	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
 		return nil, concatenateError(err, stderr.String())
 	}
 
@@ -113,7 +126,13 @@ func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
 // RunInDir executes the command in given directory
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) RunInDir(dir string) (string, error) {
-	stdout, err := c.RunInDirTimeout(-1, dir)
+	return c.RunInDirWithEnv(dir, nil)
+}
+
+// RunInDirWithEnv executes the command in given directory
+// and returns stdout in string and error (combined with stderr).
+func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
+	stdout, err := c.RunInDirTimeoutEnv(env, -1, dir)
 	if err != nil {
 		return "", err
 	}

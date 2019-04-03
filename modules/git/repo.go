@@ -167,6 +167,7 @@ type PushOptions struct {
 	Remote string
 	Branch string
 	Force  bool
+	Env    []string
 }
 
 // Push pushs local commits to given remote branch.
@@ -176,7 +177,7 @@ func Push(repoPath string, opts PushOptions) error {
 		cmd.AddArguments("-f")
 	}
 	cmd.AddArguments(opts.Remote, opts.Branch)
-	_, err := cmd.RunInDir(repoPath)
+	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }
 
