@@ -204,8 +204,8 @@ test-vendor: vendor
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
-.PHONY: test-sqlite-%
-test-sqlite-%: integrations.sqlite.test
+.PHONY: test-sqlite\#%
+test-sqlite\#%: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.run $*
 
 .PHONY: test-sqlite-migration
