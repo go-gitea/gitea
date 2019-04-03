@@ -86,11 +86,13 @@ func OpenRepository(repoPath string) (*Repository, error) {
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout time.Duration
-	Mirror  bool
-	Bare    bool
-	Quiet   bool
-	Branch  string
+	Timeout    time.Duration
+	Mirror     bool
+	Bare       bool
+	Quiet      bool
+	Branch     string
+	Shared     bool
+	NoCheckout bool
 }
 
 // Clone clones original repository to target path.
@@ -110,10 +112,17 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	if opts.Quiet {
 		cmd.AddArguments("--quiet")
 	}
+	if opts.Shared {
+		cmd.AddArguments("-s")
+	}
+	if opts.NoCheckout {
+		cmd.AddArguments("--no-checkout")
+	}
+
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments(from, to)
+	cmd.AddArguments("--", from, to)
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
