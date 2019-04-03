@@ -27,7 +27,7 @@ log groups:
 * The Router logger
 * The Access logger
 * The XORM logger
-* A logger called the `GitLogger` which used during hooks.
+* A logger called the `GitLogger` which is used during hooks.
 
 There is also the go log logger.
 
