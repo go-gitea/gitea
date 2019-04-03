@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -133,34 +134,47 @@ func (repo *Repository) CheckBranchName(name string) error {
 
 // CreateNewBranch creates a new repository branch
 func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
 	// Check if branch name can be used
 	if err := repo.CheckBranchName(branchName); err != nil {
 		return err
 	}
 
-	localPath := repo.LocalCopyPath()
-
-	if err = discardLocalRepoBranchChanges(localPath, oldBranchName); err != nil {
-		return fmt.Errorf("discardLocalRepoChanges: %v", err)
-	} else if err = repo.UpdateLocalCopyBranch(oldBranchName); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
+	if !git.IsBranchExist(repo.RepoPath(), oldBranchName) {
+		return ErrBranchNotExist{
+			Name: oldBranchName,
+		}
 	}
 
-	if err = repo.CheckoutNewBranch(oldBranchName, branchName); err != nil {
-		return fmt.Errorf("CreateNewBranch: %v", err)
-	}
+	return WithTemporaryPath("branch-maker", func(basePath string) error {
+		if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
+			Bare:   true,
+			Shared: true,
+		}); err != nil {
+			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		}
 
-	if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
-	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
-	}
+		gitRepo, err := git.OpenRepository(basePath)
+		if err != nil {
+			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+		}
 
-	return nil
+		if err = gitRepo.CreateBranch(branchName, oldBranchName); err != nil {
+			log.Error("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
+			return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
+		}
+
+		if err = git.Push(basePath, git.PushOptions{
+			Remote: "origin",
+			Branch: branchName,
+			Env:    PushingEnvironment(doer, repo),
+		}); err != nil {
+			return fmt.Errorf("Push: %v", err)
+		}
+
+		return nil
+	})
 }
 
 // updateLocalCopyToCommit pulls latest changes of given commit from repoPath to localPath.
@@ -198,32 +212,40 @@ func (repo *Repository) updateLocalCopyToCommit(commit string) error {
 
 // CreateNewBranchFromCommit creates a new repository branch
 func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName string) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
 	// Check if branch name can be used
 	if err := repo.CheckBranchName(branchName); err != nil {
 		return err
 	}
+	return WithTemporaryPath("branch-maker", func(basePath string) error {
+		if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
+			Bare:   true,
+			Shared: true,
+		}); err != nil {
+			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		}
 
-	localPath := repo.LocalCopyPath()
+		gitRepo, err := git.OpenRepository(basePath)
+		if err != nil {
+			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+		}
 
-	if err = repo.updateLocalCopyToCommit(commit); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
-	}
+		if err = gitRepo.CreateBranch(branchName, commit); err != nil {
+			log.Error("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
+			return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
+		}
 
-	if err = repo.CheckoutNewBranch(commit, branchName); err != nil {
-		return fmt.Errorf("CheckoutNewBranch: %v", err)
-	}
+		if err = git.Push(basePath, git.PushOptions{
+			Remote: "origin",
+			Branch: branchName,
+			Env:    PushingEnvironment(doer, repo),
+		}); err != nil {
+			return fmt.Errorf("Push: %v", err)
+		}
 
-	if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
-	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // GetCommit returns all the commits of a branch

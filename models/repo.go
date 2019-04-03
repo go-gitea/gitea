@@ -730,14 +730,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
-// LocalCopyPath returns the local repository copy path.
-func LocalCopyPath() string {
-	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return setting.Repository.Local.LocalCopyPath
-	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
-}
-
 // LocalCopyPath returns the local repository copy path for the given repo.
 func (repo *Repository) LocalCopyPath() string {
 	return path.Join(LocalCopyPath(), com.ToStr(repo.ID))
