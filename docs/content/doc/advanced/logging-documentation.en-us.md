@@ -13,7 +13,7 @@ menu:
     identifier: "logging-configuration"
 ---
 
-# Loggging Configuration
+# Logging Configuration
 
 The logging framework has been revamped in Gitea 1.9.0.
 
