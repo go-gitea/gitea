@@ -193,7 +193,7 @@ They will write log files in:
 * `%(ROOT_PATH)/serv.log`
 * `%(ROOT_PATH)/http.log`
 
-In future these logs may be rationalised.
+In the future these logs may be rationalised.
 
 ## Log outputs
 
@@ -213,8 +213,8 @@ from `[log.sublogger]`.
 a stacktrace. This value is inherited.
 * `MODE` is the mode of the log output. It will default to the sublogger
 name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will generally default to `false` except as described
-below.
+* `COLORIZE` will default to `true` for `file` and `console` as
+described, otherwise it will default to `false`.
 
 ### Non-inherited default values
 
@@ -251,7 +251,7 @@ zone.
 * `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
 * `level` - Provided level in brackets `[INFO]`
 * `medfile` - Last 20 characters of the filename - equivalent to
-`shortfile` and `longfile`.
+`shortfile,longfile`.
 * `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
 
 ### Console mode
