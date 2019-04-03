@@ -48,7 +48,6 @@ func SendTestMail(email string) error {
 func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"Username":          u.Name,
 		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
 		"Code":              code,
@@ -81,7 +80,6 @@ func SendResetPasswordMail(c *macaron.Context, u *User) {
 func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"Username":        u.Name,
 		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
