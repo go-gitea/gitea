@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,7 +24,6 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	sel := doc.doc.Find("#commits-table tbody tr td.sha a")
-	fmt.Printf("commits:%d text:%s\n", sel.Size(), sel.Text())
 	assert.EqualValues(t, commit, strings.TrimSpace(sel.Text()))
 }
 
