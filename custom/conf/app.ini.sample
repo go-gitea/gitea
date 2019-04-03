@@ -810,6 +810,6 @@ ENABLED = false
 TOKEN =
 
 [task]
-QUEUE_TYPE = redis
+QUEUE_TYPE = channel
 QUEUE_LENGTH = 1000
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
