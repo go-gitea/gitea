@@ -69,7 +69,7 @@ func InitIssueIndexer(syncReindex bool) error {
 		}
 		populate = !exist
 	case "elasticsearch":
-		issueIndexer, err = NewElesticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
+		issueIndexer, err = NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
 		if err != nil {
 			return err
 		}
@@ -213,7 +213,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
+	res, err := issueIndexer.Search(keyword, repoID, 50, 0)
 	if err != nil {
 		return nil, err
 	}
