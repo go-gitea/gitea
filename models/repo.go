@@ -168,7 +168,7 @@ type Repository struct {
 	IsArchived bool `xorm:"INDEX"`
 	IsMirror   bool `xorm:"INDEX"`
 	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus
+	Status     RepositoryStatus `xorm:"NOT NULL"`
 
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
