@@ -81,7 +81,7 @@ strip-suffix = $(firstword $(subst ., ,$(1)))
 .PHONY: all
 all: build
 
-include docker/Makefile
+-include docker/Makefile
 
 .PHONY: clean
 clean:
