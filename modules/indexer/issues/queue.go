@@ -23,3 +23,29 @@ func (b *DummyQueue) Run() error {
 func (b *DummyQueue) Push(*IndexerData) error {
 	return nil
 }
+
+// NoQueue represents a direct index
+type NoQueue struct {
+	indexer Indexer
+}
+
+// NewNoQueue creates a noqueue object
+func NewNoQueue(indexer Indexer) *NoQueue {
+	return &NoQueue{
+		indexer: indexer,
+	}
+}
+
+// Run starts to run the queue
+func (b *NoQueue) Run() error {
+	return nil
+}
+
+// Push pushes data to indexer
+func (b *NoQueue) Push(data *IndexerData) error {
+	if data.IsDelete {
+		return b.indexer.Delete(data.IDs...)
+	}
+
+	return b.indexer.Index([]*IndexerData{data})
+}

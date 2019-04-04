@@ -133,6 +133,15 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	val = htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
 
+	if setting.Indexer.IssueType == "elasticsearch" {
+		req := NewRequest(t, "GET", path.Join(user, repo, "issues?type=all&state=open&labels=0&milestone=0&assignee=0&q=template"))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		text := htmlDoc.doc.Find("issue list").Find("title has-emoji").Text()
+		assert.EqualValues(t, text, "The template has changed")
+	}
+
 	return issueURL
 }
 

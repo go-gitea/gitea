@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,9 +23,10 @@ var (
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client      *elastic.Client
-	indexerName string
-	typeName    string
+	client                *elastic.Client
+	indexerName           string
+	typeName              string
+	customMappingFilePath string
 }
 
 type elasticLogger struct {
@@ -36,7 +38,7 @@ func (l elasticLogger) Printf(format string, args ...interface{}) {
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
-func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, error) {
+func NewElasticSearchIndexer(url, indexerName, customMappingFilePath string) (*ElasticSearchIndexer, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
@@ -60,11 +62,47 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 	}
 
 	return &ElasticSearchIndexer{
-		client:      client,
-		indexerName: indexerName,
-		typeName:    "indexer_data",
+		client:                client,
+		indexerName:           indexerName,
+		typeName:              "indexer_data",
+		customMappingFilePath: customMappingFilePath,
 	}, nil
 }
+
+const (
+	defaultMapping = `{
+		"settings":{
+			"number_of_shards":1,
+			"number_of_replicas":0
+		},
+		"mappings":{
+			"indexer_data":{
+				"properties":{
+					"id":{
+						"type":"integer",
+						"index": false
+					},
+					"repo_id":{
+						"type":"integer",
+						"index": true
+					},
+					"title":{
+						"type":"text",
+						"index": true
+					},
+					"content":{
+						"type":"text",
+						"index": true
+					},
+					"comments":{
+						"type" : "text", 
+						"index": true
+					}
+				}
+			}
+		}
+	}`
+)
 
 // Init will initial the indexer
 func (b *ElasticSearchIndexer) Init() (bool, error) {
@@ -75,38 +113,14 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 	}
 
 	if !exists {
-		mapping := `{
-			"settings":{
-				"number_of_shards":1,
-				"number_of_replicas":0
-			},
-			"mappings":{
-				"indexer_data":{
-					"properties":{
-						"id":{
-							"type":"integer",
-							"index": false
-						},
-						"repo_id":{
-							"type":"integer",
-							"index": true
-						},
-						"title":{
-							"type":"text",
-							"index": true
-						},
-						"content":{
-							"type":"text",
-							"index": true
-						},
-						"comments":{
-							"type" : "text", 
-							"index": true
-						}
-					}
-				}
+		var mapping = defaultMapping
+		if len(b.customMappingFilePath) > 0 {
+			bs, err := ioutil.ReadFile(b.customMappingFilePath)
+			if err != nil {
+				return false, err
 			}
-		}`
+			mapping = string(bs)
+		}
 
 		createIndex, err := b.client.CreateIndex(b.indexerName).BodyString(mapping).Do(ctx)
 		if err != nil {

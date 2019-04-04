@@ -14,14 +14,16 @@ const (
 	LevelQueueType   = "levelqueue"
 	ChannelQueueType = "channel"
 	RedisQueueType   = "redis"
+	NoQueueType      = "noqueue"
 )
 
 var (
 	// Indexer settings
 	Indexer = struct {
-		IssueType    string
-		IssuePath    string
-		IssueConnStr string
+		IssueType                string
+		IssuePath                string
+		IssueConnStr             string
+		IssueESCustomMappingPath string
 
 		IssueQueueType        string
 		IssueQueueDir         string
@@ -33,9 +35,11 @@ var (
 		UpdateQueueLength  int
 		MaxIndexerFileSize int64
 	}{
-		IssueType:             "bleve",
-		IssuePath:             "indexers/issues.bleve",
-		IssueConnStr:          "",
+		IssueType:                "bleve",
+		IssuePath:                "indexers/issues.bleve",
+		IssueConnStr:             "",
+		IssueESCustomMappingPath: "",
+
 		IssueQueueType:        LevelQueueType,
 		IssueQueueDir:         "indexers/issues.queue",
 		IssueQueueConnStr:     "",
@@ -55,6 +59,9 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.IssuePath) {
 		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
 	}
+	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString("")
+	Indexer.IssueESCustomMappingPath = sec.Key("ISSUE_ES_CUSTOM_MAPPING_PATH").MustString("")
+
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
 	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))

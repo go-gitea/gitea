@@ -69,7 +69,7 @@ func InitIssueIndexer(syncReindex bool) error {
 		}
 		populate = !exist
 	case "elasticsearch":
-		issueIndexer, err = NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
+		issueIndexer, err = NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues", setting.Indexer.IssueESCustomMappingPath)
 		if err != nil {
 			return err
 		}
@@ -112,6 +112,8 @@ func InitIssueIndexer(syncReindex bool) error {
 		if err != nil {
 			return err
 		}
+	case setting.NoQueueType:
+		issueIndexerQueue = NewNoQueue(issueIndexer)
 	default:
 		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueQueueType)
 	}

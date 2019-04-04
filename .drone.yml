@@ -43,6 +43,10 @@ services:
     pull: default
     image: gitea/test-openldap:latest
 
+  - name: elasticsearch
+    pull: default
+    image: elastic/elasticsearch:5.6.16
+
 steps:
   - name: fetch-tags
     pull: default
