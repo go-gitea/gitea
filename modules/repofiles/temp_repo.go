@@ -17,15 +17,17 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 )
 
-// TemporaryUploadRepository is a type to wrap our upload repositories
+// TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
 type TemporaryUploadRepository struct {
 	repo     *models.Repository
+	gitRepo  *git.Repository
 	basePath string
 }
 
@@ -72,6 +74,11 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		} else {
 			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
+	}
+	if gitRepo, err := git.OpenRepository(t.basePath); err != nil {
+		return err
+	} else {
+		t.gitRepo = gitRepo
 	}
 	return nil
 }
@@ -231,12 +238,20 @@ func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 
 // GetLastCommit gets the last commit ID SHA of the repo
 func (t *TemporaryUploadRepository) GetLastCommit() (string, error) {
+	return t.GetLastCommitByRef("HEAD")
+}
+
+// GetLastCommitByRef gets the last commit ID SHA of the repo by ref
+func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, error) {
+	if ref == "" {
+		ref = "HEAD"
+	}
 	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
 		t.basePath,
-		fmt.Sprintf("GetLastCommit (git rev-parse): %s", t.basePath),
-		"git", "rev-parse", "HEAD")
+		fmt.Sprintf("GetLastCommit (git rev-parse %s): %s", ref, t.basePath),
+		"git", "rev-parse", ref)
 	if err != nil {
-		return "", fmt.Errorf("git rev-parse HEAD: %s", stderr)
+		return "", fmt.Errorf("git rev-parse %s: %s", ref, stderr)
 	}
 	return strings.TrimSpace(treeHash), nil
 }
@@ -394,4 +409,20 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	}
 
 	return name2attribute2info, err
+}
+
+func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
+	if t.gitRepo != nil {
+		return t.gitRepo.GetBranchCommit(branch)
+	} else {
+		return nil, fmt.Errorf("repository has not been cloned")
+	}
+}
+
+func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
+	if t.gitRepo != nil {
+		return t.gitRepo.GetCommit(commitID)
+	} else {
+		return nil, fmt.Errorf("repository has not been cloned")
+	}
 }

@@ -117,23 +117,15 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	if opts.LastCommitID == "" {
-		commitID, err := t.GetLastCommit()
-		if err != nil {
-			return nil, err
-		}
-		opts.LastCommitID = commitID
-	}
-
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-
 	// Get the commit of the original branch
-	commit, err := gitRepo.GetBranchCommit(opts.OldBranch)
+	commit, err := t.GetBranchCommit(opts.OldBranch)
 	if err != nil {
 		return nil, err // Couldn't get a commit for the branch
+	}
+
+	// Assigned LastCommitID in opts if it hasn't been set
+	if opts.LastCommitID == "" {
+		opts.LastCommitID = commit.ID.String()
 	}
 
 	if !opts.IsNewFile {
@@ -342,7 +334,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 	models.UpdateRepoIndexer(repo)
 
-	commit, err = gitRepo.GetCommit(commitHash)
+	commit, err = t.GetCommit(commitHash)
 	if err != nil {
 		return nil, err
 	}
