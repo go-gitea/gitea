@@ -6,6 +6,7 @@
 package mailer
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -39,6 +40,7 @@ func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body str
 	msg.SetHeader("To", to...)
 	msg.SetHeader("Subject", subject)
 	msg.SetDateHeader("Date", time.Now())
+	msg.SetHeader("X-Auto-Response-Suppress", "All")
 
 	plainBody, err := html2text.FromString(body)
 	if err != nil || setting.MailService.SendAsPlainText {
@@ -237,13 +239,27 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
+// Sender sendmail mail sender
+type dummySender struct {
+}
+
+// Send send email
+func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
+	buf := bytes.Buffer{}
+	if _, err := msg.WriteTo(&buf); err != nil {
+		return err
+	}
+	log.Info("Mail From: %s To: %v Body: %s", from, to, buf.String())
+	return nil
+}
+
 func processMailQueue() {
 	for {
 		select {
 		case msg := <-mailQueue:
 			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
 			if err := gomail.Send(Sender, msg.Message); err != nil {
-				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
+				log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
 			}
@@ -265,10 +281,13 @@ func NewContext() {
 		return
 	}
 
-	if setting.MailService.UseSendmail {
-		Sender = &sendmailSender{}
-	} else {
+	switch setting.MailService.MailerType {
+	case "smtp":
 		Sender = &smtpSender{}
+	case "sendmail":
+		Sender = &sendmailSender{}
+	case "dummy":
+		Sender = &dummySender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)

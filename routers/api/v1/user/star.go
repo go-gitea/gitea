@@ -96,7 +96,7 @@ func IsStarring(ctx *context.APIContext) {
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

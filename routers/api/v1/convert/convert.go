@@ -7,14 +7,13 @@ package convert
 import (
 	"fmt"
 
-	"github.com/Unknwon/com"
-
-	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -34,20 +33,36 @@ func ToBranch(repo *models.Repository, b *models.Branch, c *git.Commit) *api.Bra
 	}
 }
 
+// ToTag convert a tag to an api.Tag
+func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+	return &api.Tag{
+		Name: t.Name,
+		Commit: struct {
+			SHA string `json:"sha"`
+			URL string `json:"url"`
+		}{
+			SHA: t.ID.String(),
+			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
+		},
+		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.Link(), "archive", t.Name+".tar.gz"),
+	}
+}
+
 // ToCommit convert a commit to api.PayloadCommit
 func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
 	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	verif := models.ParseCommitWithSignature(c)

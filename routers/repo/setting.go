@@ -6,15 +6,15 @@
 package repo
 
 import (
+	"errors"
 	"strings"
 	"time"
-
-	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -36,6 +36,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -94,6 +95,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
+		// when ForcePrivate enabled, you could change public repo to private, but could not change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private {
+			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
+			return
+		}
+
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
@@ -103,7 +110,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if isNameChanged {
 			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error(4, "RenameRepoAction: %v", err)
+				log.Error("RenameRepoAction: %v", err)
 			}
 		}
 
@@ -116,8 +123,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
 		interval, err := time.ParseDuration(form.Interval)
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
@@ -128,6 +140,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
@@ -152,6 +165,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "advanced":
 		var units []models.RepoUnit
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
 
 		for _, tp := range models.MustRepoUnits {
 			units = append(units, models.RepoUnit{
@@ -250,12 +267,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-			if err := models.UpdateRepository(repo, false); err != nil {
-				ctx.ServerError("UpdateRepository", err)
-				return
-			}
-			log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+		}
+
+		if err := models.UpdateRepository(repo, false); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -307,6 +330,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		oldOwnerID := ctx.Repo.Owner.ID
 		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
@@ -315,6 +339,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			return
 		}
+
+		err = models.NewRepoRedirect(oldOwnerID, repo.ID, repo.Name, repo.Name)
+		if err != nil {
+			ctx.ServerError("NewRepoRedirect", err)
+			return
+		}
+
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
 		ctx.Redirect(setting.AppSubURL + "/" + newOwner + "/" + repo.Name)
@@ -367,7 +398,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(true); err != nil {
-			log.Error(4, "Tried to archive a repo: %s", err)
+			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -384,7 +415,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(false); err != nil {
-			log.Error(4, "Tried to unarchive a repo: %s", err)
+			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -471,7 +502,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.QueryInt64("uid"),
 		models.AccessMode(ctx.QueryInt("mode"))); err != nil {
-		log.Error(4, "ChangeCollaborationAccessMode: %v", err)
+		log.Error("ChangeCollaborationAccessMode: %v", err)
 	}
 }
 
@@ -622,6 +653,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case models.IsErrKeyAlreadyExist(err):
+			ctx.Data["Err_Content"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)

@@ -33,6 +33,11 @@ type Team struct {
 	Units       []*TeamUnit `xorm:"-"`
 }
 
+// GetUnits return a list of available units for a team
+func (t *Team) GetUnits() error {
+	return t.getUnits(x)
+}
+
 func (t *Team) getUnits(e Engine) (err error) {
 	if t.Units != nil {
 		return nil
@@ -64,7 +69,7 @@ func (t *Team) IsOwnerTeam() bool {
 func (t *Team) IsMember(userID int64) bool {
 	isMember, err := IsTeamMember(t.OrgID, t.ID, userID)
 	if err != nil {
-		log.Error(4, "IsMember: %v", err)
+		log.Error("IsMember: %v", err)
 		return false
 	}
 	return isMember

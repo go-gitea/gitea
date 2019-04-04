@@ -1622,6 +1622,49 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the commit hash",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -1732,6 +1775,24 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "show all directories and files",
+            "name": "recursive",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number; the 'truncated' field in the response will be true if there are still more items after this page, false if the last page",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE",
+            "name": "per_page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2014,6 +2075,12 @@
             "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "name": "labels",
             "in": "query"
           },
           {
@@ -2871,6 +2938,112 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/start": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Start stopwatch on an issue.",
+        "operationId": "issueStartStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to create the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot start a stopwatch again if it already exists"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/stop": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Stop an issue's existing stopwatch.",
+        "operationId": "issueStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot stop a non existent stopwatch"
           }
         }
       }
@@ -3758,6 +3931,13 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MergePullRequestOption"
+            }
           }
         ],
         "responses": {
@@ -4504,6 +4684,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tags": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's tags",
+        "operationId": "repoListTags",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TagList"
           }
         }
       }
@@ -6174,6 +6387,76 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Commit": {
+      "type": "object",
+      "title": "Commit contains information generated from a Git commit.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/User"
+        },
+        "commit": {
+          "$ref": "#/definitions/RepoCommit"
+        },
+        "committer": {
+          "$ref": "#/definitions/User"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitMeta"
+          },
+          "x-go-name": "Parents"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitMeta": {
+      "type": "object",
+      "title": "CommitMeta contains meta information of a commit in terms of API.",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "CommitUser": {
+      "type": "object",
+      "title": "CommitUser contains information of a user in the context of a commit.",
+      "properties": {
+        "date": {
+          "type": "string",
+          "x-go-name": "Date"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "x-go-name": "Email"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -6642,6 +6925,10 @@
           "type": "string",
           "x-go-name": "LoginName"
         },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
+        },
         "password": {
           "type": "string",
           "x-go-name": "Password"
@@ -7060,6 +7347,10 @@
           "format": "int64",
           "x-go-name": "MaxRepoCreation"
         },
+        "must_change_password": {
+          "type": "boolean",
+          "x-go-name": "MustChangePassword"
+        },
         "password": {
           "type": "string",
           "x-go-name": "Password"
@@ -7234,9 +7525,19 @@
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
       "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Page"
+        },
         "sha": {
           "type": "string",
           "x-go-name": "SHA"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         },
         "tree": {
           "type": "array",
@@ -7252,6 +7553,50 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "Hook": {
+      "description": "Hook a hook is a web hook when one repository changed",
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "x-go-name": "Active"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Config"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Events"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7415,6 +7760,32 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "MergePullRequestOption": {
+      "description": "MergePullRequestForm form for merging Pull Request",
+      "type": "object",
+      "required": [
+        "Do"
+      ],
+      "properties": {
+        "Do": {
+          "type": "string",
+          "enum": [
+            "merge",
+            "rebase",
+            "rebase-merge",
+            "squash"
+          ]
+        },
+        "MergeMessageField": {
+          "type": "string"
+        },
+        "MergeTitleField": {
+          "type": "string"
+        }
+      },
+      "x-go-name": "MergePullRequestForm",
+      "x-go-package": "code.gitea.io/gitea/modules/auth"
+    },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository",
       "type": "object",
@@ -7570,6 +7941,13 @@
       "description": "PayloadCommit represents a commit",
       "type": "object",
       "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Added"
+        },
         "author": {
           "$ref": "#/definitions/PayloadUser"
         },
@@ -7584,6 +7962,20 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Modified"
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Removed"
         },
         "timestamp": {
           "type": "string",
@@ -7931,6 +8323,30 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "RepoCommit": {
+      "type": "object",
+      "title": "RepoCommit contains information of a commit in the context of a repository.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "committer": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "tree": {
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Repository": {
       "description": "Repository represents a repository",
       "type": "object",
@@ -8122,6 +8538,39 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Tag": {
+      "description": "Tag represents a repository tag",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "object",
+          "properties": {
+            "sha": {
+              "type": "string",
+              "x-go-name": "SHA"
+            },
+            "url": {
+              "type": "string",
+              "x-go-name": "URL"
+            }
+          },
+          "x-go-name": "Commit"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "tarball_url": {
+          "type": "string",
+          "x-go-name": "TarballURL"
+        },
+        "zipball_url": {
+          "type": "string",
+          "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Team": {
       "description": "Team represents a team in an organization",
       "type": "object",
@@ -8235,6 +8684,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_admin": {
+          "description": "Is the user an administrator",
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
         },
         "language": {
           "description": "User locale",
@@ -8361,6 +8815,12 @@
         }
       }
     },
+    "Commit": {
+      "description": "Commit",
+      "schema": {
+        "$ref": "#/definitions/Commit"
+      }
+    },
     "DeployKey": {
       "description": "DeployKey",
       "schema": {
@@ -8409,10 +8869,7 @@
     "Hook": {
       "description": "Hook",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/Branch"
-        }
+        "$ref": "#/definitions/Hook"
       }
     },
     "HookList": {
@@ -8420,7 +8877,7 @@
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/Branch"
+          "$ref": "#/definitions/Hook"
         }
       }
     },
@@ -8592,6 +9049,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Status"
+        }
+      }
+    },
+    "TagList": {
+      "description": "TagList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Tag"
         }
       }
     },

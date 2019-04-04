@@ -275,7 +275,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 2,
 				AssignCount:           0,
 				CreateCount:           2,
-				OpenCount:             1,
+				OpenCount:             2,
 				ClosedCount:           2,
 			},
 		},
@@ -294,4 +294,29 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, ms.loadTotalTimes(x))
 	assert.Equal(t, int64(3662), ms.TotalTrackedTime)
+}
+
+func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	total, ids, err := SearchIssueIDsByKeyword("issue2", 1, 10, 0)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.EqualValues(t, []int64{2}, ids)
+
+	total, ids, err = SearchIssueIDsByKeyword("first", 1, 10, 0)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.EqualValues(t, []int64{1}, ids)
+
+	total, ids, err = SearchIssueIDsByKeyword("for", 1, 10, 0)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 4, total)
+	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+
+	// issue1's comment id 2
+	total, ids, err = SearchIssueIDsByKeyword("good", 1, 10, 0)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.EqualValues(t, []int64{1}, ids)
 }

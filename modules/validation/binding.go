@@ -19,7 +19,9 @@ const (
 
 var (
 	// GitRefNamePattern is regular expression with unallowed characters in git reference name
-	GitRefNamePattern = regexp.MustCompile("[^\\d\\w-_\\./]")
+	// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
+	// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
+	GitRefNamePattern = regexp.MustCompile(`[\000-\037\177 \\~^:?*[]+`)
 )
 
 // AddBindingRules adds additional binding rules
@@ -44,7 +46,8 @@ func addGitRefNameBindingRule() {
 			// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
 			if strings.HasPrefix(str, "/") || strings.HasSuffix(str, "/") ||
 				strings.HasSuffix(str, ".") || strings.Contains(str, "..") ||
-				strings.Contains(str, "//") {
+				strings.Contains(str, "//") || strings.Contains(str, "@{") ||
+				str == "@" {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
