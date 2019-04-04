@@ -166,6 +166,7 @@ func initIntegrationTest() {
 }
 
 func prepareTestEnv(t testing.TB) {
+	SetTestForLogger(&t)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
