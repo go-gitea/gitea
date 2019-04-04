@@ -45,7 +45,11 @@ func (w *testLoggerWriterCloser) Close() error {
 func SetTestForLogger(t *testing.TB) {
 	_, filename, line, _ := runtime.Caller(2)
 
-	fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", log.NewColoredValue((*t).Name()), strings.TrimPrefix(filename, prefix), line)
+	if log.CanColorStdout {
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", log.NewColoredValue((*t).Name()), strings.TrimPrefix(filename, prefix), line)
+	} else {
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", (*t).Name(), strings.TrimPrefix(filename, prefix), line)
+	}
 	writerCloser.t = t
 }
 
