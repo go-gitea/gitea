@@ -2,11 +2,11 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>{{.Username}}, please verify your e-mail address</title>
+	<title>{{.DisplayName}}, please verify your e-mail address</title>
 </head>
 
 <body>
-	<p>Hi <b>{{.Username}}</b>,</p>
+	<p>Hi <b>{{.DisplayName}}</b>,</p>
 	<p>Please click the following link to verify your email address within <b>{{.ActiveCodeLives}}</b>:</p>
 	<p><a href="{{AppUrl}}user/activate_email?code={{.Code}}&email={{.Email}}">{{AppUrl}}user/activate_email?code={{.Code}}&email={{.Email}}</a></p>
 	<p>Not working? Try copying and pasting it to your browser.</p>
