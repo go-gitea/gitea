@@ -23,11 +23,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Version holds the current Gitea version
-var Version = "1.5.0-dev"
-
-// Tags holds the build tags used
-var Tags = ""
+var (
+	// Version holds the current Gitea version
+	Version = "1.9.0-dev"
+	// Tags holds the build tags used
+	Tags = ""
+	// MakeVersion holds the current Make version if built with make
+	MakeVersion = ""
+)
 
 func init() {
 	setting.AppVer = Version
@@ -60,10 +63,14 @@ arguments - which can alternatively be run by running the subcommand web.`
 	}
 }
 
-func formatBuiltWith(Tags string) string {
+func formatBuiltWith(makeTags string) string {
+	var version = runtime.Version()
+	if len(MakeVersion) > 0 {
+		version = MakeVersion + ", " + runtime.Version()
+	}
 	if len(Tags) == 0 {
-		return " built with " + runtime.Version()
+		return " built with " + version
 	}
 
-	return " built with " + runtime.Version() + " : " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with " + version + " : " + strings.Replace(Tags, " ", ", ", -1)
 }
