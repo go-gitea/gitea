@@ -28,6 +28,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [Preventing spammers](#preventing-spammers)
   * [Only allow/block certain email domains](#only-allow-block-certain-email-domains)
   * [Issue only users](#issue-only-users)
+  * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
 * [Gitea is running slow](#why-is-gitea-running-slow)
@@ -107,6 +108,10 @@ If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in y
 
 ### Issue only users
 The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
+
+### Enable Fail2ban
+
+Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts and other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
