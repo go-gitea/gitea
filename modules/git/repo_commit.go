@@ -13,6 +13,7 @@ import (
 	"github.com/mcuadros/go-version"
 
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -43,6 +44,8 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+	var tagObject *object.Tag
+
 	c, ok := repo.commitCache.Get(id.String())
 	if ok {
 		log("Hit cache: %s", id)
@@ -50,12 +53,25 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	}
 
 	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	if err == plumbing.ErrObjectNotFound {
+		tagObject, err = repo.gogitRepo.TagObject(plumbing.Hash(id))
+		if err == nil {
+			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	commit := convertCommit(gogitCommit)
 	commit.repo = repo
+
+	if tagObject != nil {
+		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
+		commit.Author = &tagObject.Tagger
+		// FIXME: Add Payload
+		commit.Signature = &CommitGPGSignature{Signature: tagObject.PGPSignature}
+	}
 
 	tree, err := gogitCommit.Tree()
 	if err != nil {

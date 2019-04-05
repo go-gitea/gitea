@@ -86,6 +86,13 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}
 
 	fs := osfs.New(repoPath)
+	_, err = fs.Stat(".git")
+	if err == nil {
+		fs, err = fs.Chroot(".git")
+		if err != nil {
+			return nil, err
+		}
+	}
 	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true})
 	gogitRepo, err := gogit.Open(storage, fs)
 	if err != nil {

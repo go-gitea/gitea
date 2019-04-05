@@ -23,7 +23,7 @@ type Tree struct {
 	ptree *Tree
 }
 
-// NewTree create a new tree according the repository and commit id
+// NewTree create a new tree according the repository and tree id
 func NewTree(repo *Repository, id SHA1) *Tree {
 	return &Tree{
 		ID:   id,
@@ -61,12 +61,7 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 }
 
 func (t *Tree) loadTreeObject() error {
-	commitObject, err := t.repo.gogitRepo.CommitObject(plumbing.Hash(t.ID))
-	if err != nil {
-		return err
-	}
-
-	gogitTree, err := commitObject.Tree()
+	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID))
 	if err != nil {
 		return err
 	}

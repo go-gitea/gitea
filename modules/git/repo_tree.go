@@ -9,12 +9,7 @@ import (
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
-	if err != nil {
-		return nil, err
-	}
-
-	gogitTree, err := commitObject.Tree()
+	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id))
 	if err != nil {
 		return nil, err
 	}
@@ -39,5 +34,9 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return repo.getTree(id)
+	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	if err != nil {
+		return nil, err
+	}
+	return repo.getTree(SHA1(commitObject.TreeHash))
 }

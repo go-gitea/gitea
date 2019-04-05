@@ -17,7 +17,7 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	gogitBlob, err := b.repo.gogitRepo.BlobObject(b.gogitTreeEntry.Hash)
+	gogitBlob, err := b.repo.gogitRepo.BlobObject(b.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -12,17 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var repoSelf = &Repository{
-	Path: "./",
-}
-
 var testBlob = &Blob{
-	repo: repoSelf,
 	TreeEntry: &TreeEntry{
 		ID: MustIDFromString("a8d4b49dd073a4a38a7e58385eeff7cc52568697"),
-		ptree: &Tree{
-			repo: repoSelf,
-		},
 	},
 }
 
@@ -48,6 +40,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 `
+	repo, err := OpenRepository("../../.git")
+	assert.NoError(t, err)
+	testBlob.repo = repo
 
 	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
@@ -60,6 +55,12 @@ THE SOFTWARE.
 }
 
 func Benchmark_Blob_Data(b *testing.B) {
+	repo, err := OpenRepository("../../.git")
+	if err != nil {
+		b.Fatal(err)
+	}
+	testBlob.repo = repo
+
 	for i := 0; i < b.N; i++ {
 		r, err := testBlob.DataAsync()
 		if err != nil {
