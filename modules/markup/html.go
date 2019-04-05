@@ -54,7 +54,7 @@ var (
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anySHA1Pattern allows to split url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})/?([^#\s]+)?(?:#(\S+))?`)
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})(/[^#\s]+)?(#\S+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -594,31 +594,46 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if m == nil {
 		return
 	}
-	// take out what's relevant
+
 	urlFull := node.Data[m[0]:m[1]]
-	hash := node.Data[m[2]:m[3]]
+	text := base.ShortSha(node.Data[m[2]:m[3]])
 
-	var subtree, line string
-
-	// optional, we do them depending on the length.
-	if m[7] > 0 {
-		line = node.Data[m[6]:m[7]]
-	}
+	// 3rd capture group matches a optional path
+	subpath := ""
 	if m[5] > 0 {
-		subtree = node.Data[m[4]:m[5]]
+		subpath = node.Data[m[4]:m[5]]
 	}
 
-	text := base.ShortSha(hash)
-	if subtree != "" {
-		text += "/" + subtree
-	}
-	if line != "" {
-		text += " ("
-		text += line
-		text += ")"
+	// 4th capture group matches a optional url hash
+	hash := ""
+	if m[7] > 0 {
+		hash = node.Data[m[6]:m[7]][1:]
 	}
 
-	replaceContent(node, m[0], m[1], createLink(urlFull, text))
+	start := m[0]
+	end := m[1]
+
+	// If url ends in '.', it's very likely that it is not part of the
+	// actual url but used to finish a sentence.
+	if strings.HasSuffix(urlFull, ".") {
+		end--
+		urlFull = urlFull[:len(urlFull)-1]
+		if hash != "" {
+			hash = hash[:len(hash)-1]
+		} else if subpath != "" {
+			subpath = subpath[:len(subpath)-1]
+		}
+	}
+
+	if subpath != "" {
+		text += subpath
+	}
+
+	if hash != "" {
+		text += " (" + hash + ")"
+	}
+
+	replaceContent(node, start, end, createLink(urlFull, text))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
