@@ -81,8 +81,9 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 
 ## Custom Templates not loading or working incorrectly
 Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
+The correct path for the template(s) will be relative to the `CustomPath`
 
-1. To find the correct path, look for Custom File Root Path in Site Administration -> Configuration 
+1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration 
   * If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
