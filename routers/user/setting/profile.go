@@ -142,7 +142,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		// generate a random one when needed.
 		if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
 			if err := ctxUser.GenerateRandomAvatar(); err != nil {
-				log.Error(4, "GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
+				log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 			}
 		}
 	}

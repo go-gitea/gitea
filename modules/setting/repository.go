@@ -132,7 +132,7 @@ var (
 func newRepository() {
 	homeDir, err := com.HomeDir()
 	if err != nil {
-		log.Fatal(4, "Failed to get home directory: %v", err)
+		log.Fatal("Failed to get home directory: %v", err)
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
@@ -151,15 +151,15 @@ func newRepository() {
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
-		log.Fatal(4, "Failed to map Repository settings: %v", err)
+		log.Fatal("Failed to map Repository settings: %v", err)
 	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
-		log.Fatal(4, "Failed to map Repository.Editor settings: %v", err)
+		log.Fatal("Failed to map Repository.Editor settings: %v", err)
 	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
-		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
+		log.Fatal("Failed to map Repository.Upload settings: %v", err)
 	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
-		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
+		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
-		log.Fatal(4, "Failed to map Repository.PullRequest settings: %v", err)
+		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
