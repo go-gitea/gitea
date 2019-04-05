@@ -18,6 +18,13 @@ menu:
 - [Discord](https://discord.gg/NsatcWJ)
 - [Discourse Forum](https://discourse.gitea.io/)
 
+**NOTE:** When asking for support, it may be a good idea to have the following available so that the person helping has all the info they need:
+
+1. Your `app.ini` (with any sensitive data scrubbed as necessary)
+2. The `gitea.log` (and any other appropriate log files for the situation)
+  * e.g. If the error is related to the database, the `xorm.log` might be helpful
+3. Any error messages you are seeing
+
 ## Bugs
 
 If you found a bug, please create an [issue on GitHub](https://github.com/go-gitea/gitea/issues).

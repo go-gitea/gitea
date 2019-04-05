@@ -72,16 +72,19 @@ There are a few places that could make this show incorrectly.
 1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})
 2. Make sure you have correctly set `ROOT_URL` in the `server` section of your `app.ini`
 
+If certain clone options aren't showing up (HTTP/S or SSH), the following options can be checked in your `app.ini`
+
+`DISABLE_HTTP_GIT`: if set to true, there will be no HTTP/HTTPS link  
+`DISABLE_SSH`: if set to true, there will be no SSH link  
+`SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users  
+
+
 ## Custom Templates not loading or working incorrectly
 Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
-To find the correct path, follow these steps:
 
-1. Check if the environment variable is set:  
-```
-echo $GITEA_CUSTOM
-```
-
-2. If not, the default can be [found above](#where-does-gitea-store-x-file)
+1. To find the correct path, look for Custom File Root Path in Site Administration -> Configuration 
+  * If that doesn't exist, you can try `echo $GITEA_CUSTOM`
+2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
 ## Active user vs login prohibited user
