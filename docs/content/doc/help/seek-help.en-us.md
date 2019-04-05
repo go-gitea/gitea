@@ -24,6 +24,8 @@ menu:
 2. The `gitea.log` (and any other appropriate log files for the situation)
   * e.g. If the error is related to the database, the `xorm.log` might be helpful
 3. Any error messages you are seeing
+4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
+  * This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
 
 ## Bugs
 
