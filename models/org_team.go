@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -548,6 +549,9 @@ func getTeamMembers(e Engine, teamID int64) (_ []*User, err error) {
 		}
 		members[i] = member
 	}
+	sort.Slice(members, func(i, j int) bool {
+		return members[i].DisplayName() < members[j].DisplayName()
+	})
 	return members, nil
 }
 
