@@ -77,7 +77,9 @@ func (t *Team) IsMember(userID int64) bool {
 
 func (t *Team) getRepositories(e Engine) error {
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
+		Where("team_repo.team_id=?", t.ID).
+		OrderBy("repository.name").
+		Find(&t.Repos)
 }
 
 // GetRepositories returns all repositories in team of organization.
