@@ -309,7 +309,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@ANT_123",
 		"@xxx-DiN0-z-A..uru..s-xxx",
 		"   @lol   ",
-		" @Te/st",
+		" @Te-st",
 	}
 	falseTestCases := []string{
 		"@ 0",
