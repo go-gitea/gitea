@@ -34,6 +34,7 @@ directory. There should be some output similar to the following:
 
 Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
+* `app.ini` - Optional copy of configuration file if originally stored outside of the default `custom/` directory
 * `custom` - All config or customerize files in `custom/`.
 * `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, sqlite file if you are using sqlite.
 * `gitea-db.sql` - SQL dump of database
@@ -53,7 +54,7 @@ Example:
 apt-get install gitea
 unzip gitea-dump-1482906742.zip
 cd gitea-dump-1482906742
-mv custom/conf/app.ini /etc/gitea/conf/app.ini
+mv custom/conf/app.ini /etc/gitea/conf/app.ini # or mv app.ini /etc/gitea/conf/app.ini
 unzip gitea-repo.zip
 mv gitea-repo/* /var/lib/gitea/repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea/repositories/

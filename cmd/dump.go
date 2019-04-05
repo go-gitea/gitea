@@ -125,6 +125,14 @@ func runDump(ctx *cli.Context) error {
 	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
 		log.Fatalf("Failed to include gitea-db.sql: %v", err)
 	}
+
+	if len(setting.CustomConf) > 0 {
+		log.Printf("Adding custom configuration file from %s", setting.CustomConf)
+		if err := z.AddFile("app.ini", setting.CustomConf); err != nil {
+			log.Fatalf("Failed to include specified app.ini: %v", err)
+		}
+	}
+
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
 		if err := z.AddDir("custom", setting.CustomPath); err != nil {
