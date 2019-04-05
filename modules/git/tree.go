@@ -60,15 +60,28 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	return g, nil
 }
 
+func (t *Tree) loadTreeObject() error {
+	commitObject, err := t.repo.gogitRepo.CommitObject(plumbing.Hash(t.ID))
+	if err != nil {
+		return err
+	}
+
+	gogitTree, err := commitObject.Tree()
+	if err != nil {
+		return err
+	}
+
+	t.gogitTree = gogitTree
+	return nil
+}
+
 // ListEntries returns all entries of current tree.
 func (t *Tree) ListEntries() (Entries, error) {
 	if t.gogitTree == nil {
-		gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID))
+		err := t.loadTreeObject()
 		if err != nil {
 			return nil, err
 		}
-
-		t.gogitTree = gogitTree
 	}
 
 	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
@@ -86,12 +99,10 @@ func (t *Tree) ListEntries() (Entries, error) {
 // ListEntriesRecursive returns all entries of current tree recursively including all subtrees
 func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	if t.gogitTree == nil {
-		gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID))
+		err := t.loadTreeObject()
 		if err != nil {
 			return nil, err
 		}
-
-		t.gogitTree = gogitTree
 	}
 
 	var entries []*TreeEntry

@@ -4,10 +4,17 @@
 
 package git
 
-import "gopkg.in/src-d/go-git.v4/plumbing"
+import (
+	"gopkg.in/src-d/go-git.v4/plumbing"
+)
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id))
+	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	if err != nil {
+		return nil, err
+	}
+
+	gogitTree, err := commitObject.Tree()
 	if err != nil {
 		return nil, err
 	}

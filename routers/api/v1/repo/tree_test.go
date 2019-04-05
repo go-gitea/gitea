@@ -5,8 +5,9 @@
 package repo
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -44,5 +45,5 @@ func TestGetTreeBySHA(t *testing.T) {
 		TotalCount: 1,
 	}
 
-	assert.EqualValues(t, tree, expectedTree)
+	assert.EqualValues(t, expectedTree, tree)
 }

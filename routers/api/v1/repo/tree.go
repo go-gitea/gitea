@@ -130,7 +130,7 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 		i := e - rangeStart
 
 		tree.Entries[e].Path = entries[e].Name()
-		tree.Entries[e].Mode = fmt.Sprintf("%06x", entries[e].Mode())
+		tree.Entries[e].Mode = fmt.Sprintf("%06o", entries[e].Mode())
 
 		if entries[e].Mode() == git.EntryModeCommit {
 			tree.Entries[e].Type = "commit"
