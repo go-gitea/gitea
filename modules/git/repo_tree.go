@@ -38,5 +38,10 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return repo.getTree(SHA1(commitObject.TreeHash))
+	treeObject, err := repo.getTree(SHA1(commitObject.TreeHash))
+	if err != nil {
+		return nil, err
+	}
+	treeObject.CommitID = id
+	return treeObject, nil
 }

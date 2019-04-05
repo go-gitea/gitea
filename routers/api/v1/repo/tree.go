@@ -76,7 +76,7 @@ func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
 	}
 	tree := new(gitea.GitTreeResponse)
 	repoID := strings.TrimRight(setting.AppURL, "/") + "/api/v1/repos/" + ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
-	tree.SHA = gitTree.ID.String()
+	tree.SHA = gitTree.CommitID.String()
 	tree.URL = repoID + "/git/trees/" + tree.SHA
 	var entries git.Entries
 	if ctx.QueryBool("recursive") {

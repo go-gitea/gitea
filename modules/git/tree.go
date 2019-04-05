@@ -14,8 +14,9 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID   SHA1
-	repo *Repository
+	ID       SHA1
+	CommitID SHA1
+	repo     *Repository
 
 	gogitTree *object.Tree
 
