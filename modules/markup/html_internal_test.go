@@ -273,12 +273,12 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 	testCases := map[string][]string{
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
 			"a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			"test/unit/event.js",
-			"L2703",
+			"/test/unit/event.js",
+			"#L2703",
 		},
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": {
 			"a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			"test/unit/event.js",
+			"/test/unit/event.js",
 			"",
 		},
 		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
@@ -288,13 +288,13 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 		},
 		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": {
 			"0705be475092aede1eddae01319ec931fb9c65fc",
-			"src",
+			"/src",
 			"",
 		},
 		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
 			"d8a994ef243349f321568f9e36d5c3f444b99cae",
 			"",
-			"diff-2",
+			"#diff-2",
 		},
 	}
 
