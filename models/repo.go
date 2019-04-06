@@ -730,11 +730,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
-// LocalCopyPath returns the local repository copy path for the given repo.
-func (repo *Repository) LocalCopyPath() string {
-	return path.Join(LocalCopyPath(), com.ToStr(repo.ID))
-}
-
 // PatchPath returns corresponding patch file path of repository by given issue ID.
 func (repo *Repository) PatchPath(index int64) (string, error) {
 	return repo.patchPath(x, index)
@@ -1516,7 +1511,6 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
-	removeAllWithNotice(sess, "Delete repository local copy", repo.LocalCopyPath())
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(owner.Name, repo.Name)
@@ -1564,14 +1558,6 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 	newRepoPath := RepoPath(u.Name, newRepoName)
 	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
-	}
-
-	localPath := repo.LocalCopyPath()
-	if com.IsExist(localPath) {
-		_, err := git.NewCommand("remote", "set-url", "origin", newRepoPath).RunInDir(localPath)
-		if err != nil {
-			return fmt.Errorf("git remote set-url origin %s: %v", newRepoPath, err)
-		}
 	}
 
 	wikiPath := repo.WikiPath()
