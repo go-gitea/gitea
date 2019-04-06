@@ -414,12 +414,12 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}()
 
 	// Clone base repo.
-	return WithTemporaryPath("merge", func(tmpBasePath string) error {
-		return pr.doPullRequestMerge(tmpBasePath, doer, baseGitRepo, mergeStyle, message)
-	})
-}
+	tmpBasePath, err := CreateTemporaryPath("merge")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(tmpBasePath)
 
-func (pr *PullRequest) doPullRequestMerge(tmpBasePath string, doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle, message string) error {
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
 	if err := git.Clone(baseGitRepo.Path, tmpBasePath, git.CloneRepoOptions{

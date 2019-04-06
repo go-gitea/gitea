@@ -126,111 +126,115 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 
 	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
 
-	return WithTemporaryPath("update-wiki", func(basePath string) error {
-		cloneOpts := git.CloneRepoOptions{
-			Bare:   true,
-			Shared: true,
-		}
+	basePath, err := CreateTemporaryPath("update-wiki")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
 
-		if hasMasterBranch {
-			cloneOpts.Branch = "master"
-		}
+	cloneOpts := git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}
 
-		if err := git.Clone(repo.WikiPath(), basePath, cloneOpts); err != nil {
-			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		}
+	if hasMasterBranch {
+		cloneOpts.Branch = "master"
+	}
 
-		gitRepo, err := git.OpenRepository(basePath)
+	if err := git.Clone(repo.WikiPath(), basePath, cloneOpts); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+	}
+
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
+
+	if hasMasterBranch {
+		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+			return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		}
+	}
+
+	newWikiPath := WikiNameToFilename(newWikiName)
+	if isNew {
+		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
 		if err != nil {
-			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+			log.Error("%v", err)
+			return err
 		}
-
-		if hasMasterBranch {
-			if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
-				log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-				return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		for _, file := range filesInIndex {
+			if file == newWikiPath {
+				return ErrWikiAlreadyExist{newWikiPath}
 			}
 		}
-
-		newWikiPath := WikiNameToFilename(newWikiName)
-		if isNew {
-			filesInIndex, err := gitRepo.LsFiles(newWikiPath)
+	} else {
+		oldWikiPath := WikiNameToFilename(oldWikiName)
+		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		found := false
+		for _, file := range filesInIndex {
+			if file == oldWikiPath {
+				found = true
+				break
+			}
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
 				log.Error("%v", err)
 				return err
 			}
-			for _, file := range filesInIndex {
-				if file == newWikiPath {
-					return ErrWikiAlreadyExist{newWikiPath}
-				}
-			}
-		} else {
-			oldWikiPath := WikiNameToFilename(oldWikiName)
-			filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
-			if err != nil {
-				log.Error("%v", err)
-				return err
-			}
-			found := false
-			for _, file := range filesInIndex {
-				if file == oldWikiPath {
-					found = true
-					break
-				}
-			}
-			if found {
-				err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
-				if err != nil {
-					log.Error("%v", err)
-					return err
-				}
-			}
 		}
+	}
 
-		// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
+	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-		objectHash, err := gitRepo.HashObject(strings.NewReader(content))
-		if err != nil {
-			log.Error("%v", err)
-			return err
-		}
+	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
+	if err != nil {
+		log.Error("%v", err)
+		return err
+	}
 
-		if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
-			log.Error("%v", err)
-			return err
-		}
+	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+		log.Error("%v", err)
+		return err
+	}
 
-		tree, err := gitRepo.WriteTree()
-		if err != nil {
-			log.Error("%v", err)
-			return err
-		}
+	tree, err := gitRepo.WriteTree()
+	if err != nil {
+		log.Error("%v", err)
+		return err
+	}
 
-		commitTreeOpts := git.CommitTreeOpts{
-			Message: message,
-		}
-		if hasMasterBranch {
-			commitTreeOpts.Parents = []string{"HEAD"}
-		}
-		commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
-		if err != nil {
-			log.Error("%v", err)
-			return err
-		}
+	commitTreeOpts := git.CommitTreeOpts{
+		Message: message,
+	}
+	if hasMasterBranch {
+		commitTreeOpts.Parents = []string{"HEAD"}
+	}
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+	if err != nil {
+		log.Error("%v", err)
+		return err
+	}
 
-		if err := git.Push(basePath, git.PushOptions{
-			Remote: "origin",
-			Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-			Env:    PushingEnvironment(doer, repo),
-		}); err != nil {
-			log.Error("%v", err)
-			return fmt.Errorf("Push: %v", err)
-		}
+	if err := git.Push(basePath, git.PushOptions{
+		Remote: "origin",
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Env:    PushingEnvironment(doer, repo),
+	}); err != nil {
+		log.Error("%v", err)
+		return fmt.Errorf("Push: %v", err)
+	}
 
-		return nil
-	})
+	return nil
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
@@ -253,69 +257,73 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	return WithTemporaryPath("update-wiki", func(basePath string) error {
-		if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
-			Bare:   true,
-			Shared: true,
-			Branch: "master",
-		}); err != nil {
-			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		}
+	basePath, err := CreateTemporaryPath("update-wiki")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
 
-		gitRepo, err := git.OpenRepository(basePath)
-		if err != nil {
-			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
-		}
+	if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+		Branch: "master",
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+	}
 
-		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
-			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-			return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
-		}
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
 
-		wikiPath := WikiNameToFilename(wikiName)
-		filesInIndex, err := gitRepo.LsFiles(wikiPath)
-		found := false
-		for _, file := range filesInIndex {
-			if file == wikiPath {
-				found = true
-				break
-			}
-		}
-		if found {
-			err := gitRepo.RemoveFilesFromIndex(wikiPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			return os.ErrNotExist
-		}
+	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+	}
 
-		// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
-
-		tree, err := gitRepo.WriteTree()
+	wikiPath := WikiNameToFilename(wikiName)
+	filesInIndex, err := gitRepo.LsFiles(wikiPath)
+	found := false
+	for _, file := range filesInIndex {
+		if file == wikiPath {
+			found = true
+			break
+		}
+	}
+	if found {
+		err := gitRepo.RemoveFilesFromIndex(wikiPath)
 		if err != nil {
 			return err
 		}
-		message := "Delete page '" + wikiName + "'"
+	} else {
+		return os.ErrNotExist
+	}
 
-		commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, git.CommitTreeOpts{
-			Message: message,
-			Parents: []string{"HEAD"},
-		})
-		if err != nil {
-			return err
-		}
+	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-		if err := git.Push(basePath, git.PushOptions{
-			Remote: "origin",
-			Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-			Env:    PushingEnvironment(doer, repo),
-		}); err != nil {
-			return fmt.Errorf("Push: %v", err)
-		}
+	tree, err := gitRepo.WriteTree()
+	if err != nil {
+		return err
+	}
+	message := "Delete page '" + wikiName + "'"
 
-		return nil
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, git.CommitTreeOpts{
+		Message: message,
+		Parents: []string{"HEAD"},
 	})
+	if err != nil {
+		return err
+	}
+
+	if err := git.Push(basePath, git.PushOptions{
+		Remote: "origin",
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Env:    PushingEnvironment(doer, repo),
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
 }

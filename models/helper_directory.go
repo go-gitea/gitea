@@ -35,16 +35,10 @@ func CreateTemporaryPath(prefix string) (string, error) {
 	return basePath, nil
 }
 
-// WithTemporaryPath takes a prefix and callback function to run with a temporary path
-func WithTemporaryPath(prefix string, callback func(string) error) error {
-	basePath, err := CreateTemporaryPath(prefix)
-	if err != nil {
-		return err
+// RemoveTemporaryPath removes the temporary path
+func RemoveTemporaryPath(basePath string) error {
+	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
+		return os.RemoveAll(basePath)
 	}
-	defer func() {
-		if _, err := os.Stat(basePath); !os.IsNotExist(err) {
-			os.RemoveAll(basePath)
-		}
-	}()
-	return callback(basePath)
+	return nil
 }
