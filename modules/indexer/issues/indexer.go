@@ -116,7 +116,7 @@ func populateIssueIndexer() {
 			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
-			log.Error(4, "SearchRepositoryByName: %v", err)
+			log.Error("SearchRepositoryByName: %v", err)
 			continue
 		}
 		if len(repos) == 0 {
@@ -130,11 +130,11 @@ func populateIssueIndexer() {
 				IsPull:   util.OptionalBoolNone,
 			})
 			if err != nil {
-				log.Error(4, "Issues: %v", err)
+				log.Error("Issues: %v", err)
 				continue
 			}
 			if err = models.IssueList(is).LoadDiscussComments(); err != nil {
-				log.Error(4, "LoadComments: %v", err)
+				log.Error("LoadComments: %v", err)
 				continue
 			}
 			for _, issue := range is {
@@ -166,7 +166,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 	var ids []int64
 	ids, err := models.GetIssueIDsByRepoID(repo.ID)
 	if err != nil {
-		log.Error(4, "getIssueIDsByRepoID failed: %v", err)
+		log.Error("getIssueIDsByRepoID failed: %v", err)
 		return
 	}
 

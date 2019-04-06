@@ -1058,7 +1058,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch is not protected
 	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
 		if err != nil {
-			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
+			log.Error("HeadRepo.IsProtectedBranch: %v", err)
 		}
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
@@ -1067,13 +1067,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		log.Error(4, "GetRefCommitID: %v", err)
+		log.Error("GetRefCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
-		log.Error(4, "GetBranchCommitID: %v", err)
+		log.Error("GetBranchCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
@@ -1085,14 +1085,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 
 	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))

@@ -100,7 +100,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.ProdMode {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
-		log.GitLogger.Fatal(3, logMessage, args...)
+		log.GitLogger.Fatal(logMessage, args...)
 		return
 	}
 

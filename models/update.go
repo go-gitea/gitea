@@ -215,7 +215,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	}
 
 	if err = repo.UpdateSize(); err != nil {
-		log.Error(4, "Failed to update size for repository: %v", err)
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	var commits = &PushCommits{}
