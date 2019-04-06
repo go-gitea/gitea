@@ -282,27 +282,8 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 
 // Push the provided commitHash to the repository branch by the provided user
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
-	isWiki := "false"
-	if strings.HasSuffix(t.repo.Name, ".wiki") {
-		isWiki = "true"
-	}
-
-	sig := doer.NewGitSig()
-
-	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because calls hooks we need to pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
-		models.EnvRepoName+"="+t.repo.Name,
-		models.EnvRepoUsername+"="+t.repo.OwnerName,
-		models.EnvRepoIsWiki+"="+isWiki,
-		models.EnvPusherName+"="+doer.Name,
-		models.EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
-		models.ProtectedBranchRepoID+"="+fmt.Sprintf("%d", t.repo.ID),
-	)
+	env := models.PushingEnvironment(doer, t.repo)
 
 	if _, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
 		t.basePath,

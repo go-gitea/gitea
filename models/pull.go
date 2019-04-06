@@ -588,10 +588,12 @@ func (pr *PullRequest) doPullRequestMerge(tmpBasePath string, doer *User, baseGi
 		return ErrInvalidMergeStyle{pr.BaseRepo.ID, mergeStyle}
 	}
 
+	env := PushingEnvironment(doer, pr.BaseRepo)
+
 	// Push back to upstream.
-	if _, stderr, err := process.GetManager().ExecDir(-1, tmpBasePath,
+	if _, stderr, err := process.GetManager().ExecDirEnv(-1, tmpBasePath,
 		fmt.Sprintf("PullRequest.Merge (git push): %s", tmpBasePath),
-		"git", "push", baseGitRepo.Path, pr.BaseBranch); err != nil {
+		env, "git", "push", baseGitRepo.Path, pr.BaseBranch); err != nil {
 		return fmt.Errorf("git push: %s", stderr)
 	}
 

@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"testing"
@@ -35,6 +36,10 @@ func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubU
 }
 
 func TestCreateBranch(t *testing.T) {
+	onGiteaRun(t, testCreateBranches)
+}
+
+func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 	tests := []struct {
 		OldRefSubURL   string
 		NewBranch      string
