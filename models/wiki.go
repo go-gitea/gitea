@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 
 	"github.com/Unknwon/com"
@@ -87,19 +85,6 @@ func (repo *Repository) InitWiki() error {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil
-}
-
-// LocalWikiPath returns the local wiki repository copy path.
-func LocalWikiPath() string {
-	if filepath.IsAbs(setting.Repository.Local.LocalWikiPath) {
-		return setting.Repository.Local.LocalWikiPath
-	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalWikiPath)
-}
-
-// LocalWikiPath returns the path to the local wiki repository (?).
-func (repo *Repository) LocalWikiPath() string {
-	return path.Join(LocalWikiPath(), com.ToStr(repo.ID))
 }
 
 // nameAllowed checks if a wiki name is allowed

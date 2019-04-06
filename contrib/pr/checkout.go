@@ -107,7 +107,6 @@ func runPR() {
 	models.LoadFixtures()
 	os.RemoveAll(setting.RepoRootPath)
 	os.RemoveAll(models.LocalCopyPath())
-	os.RemoveAll(models.LocalWikiPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
