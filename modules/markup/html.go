@@ -63,7 +63,7 @@ var (
 	// well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(?:\\s|$|\\)|\\])")
+	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
@@ -641,12 +641,12 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
 func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emailRegex.FindStringIndex(node.Data)
+	m := emailRegex.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
-	mail := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createLink("mailto:"+mail, mail))
+	mail := node.Data[m[2]:m[3]]
+	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
