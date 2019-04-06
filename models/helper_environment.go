@@ -30,6 +30,7 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 		EnvPusherName+"="+doer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
 		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
+		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 
 }
