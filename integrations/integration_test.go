@@ -165,8 +165,12 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t testing.TB) {
-	PrintCurrentTest(t, 2)
+func prepareTestEnv(t testing.TB, skip ...int) {
+	ourSkip := 2
+	if len(skip) > 0 {
+		ourSkip += skip[0]
+	}
+	PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
