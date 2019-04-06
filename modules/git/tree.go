@@ -60,19 +60,25 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	return g, nil
 }
 
-// ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
-	if t.entriesParsed {
+// ListEntries returns all entries of current tree or those that match the provided filenames
+func (t *Tree) ListEntries(filenames ...string) (Entries, error) {
+	if t.entriesParsed && len(filenames) == 0 {
 		return t.entries, nil
 	}
 
-	stdout, err := NewCommand("ls-tree", t.ID.String()).RunInDirBytes(t.repo.Path)
+	cmd := NewCommand("ls-tree", t.ID.String())
+	if len(filenames) > 0 {
+		cmd.AddArguments("--")
+		cmd.AddArguments(filenames...)
+	}
+
+	stdout, err := cmd.RunInDirBytes(t.repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	t.entries, err = parseTreeEntries(stdout, t)
-	if err == nil {
+	if err == nil && len(filenames) == 0 {
 		t.entriesParsed = true
 	}
 

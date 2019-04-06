@@ -6,6 +6,7 @@ package git
 
 import (
 	"io"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -115,6 +116,8 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 
 	lnk := string(buf)
 	t := te.ptree
+
+	lnk = path.Clean(path.Join(path.Dir(te.name), lnk))
 
 	// traverse up directories
 	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {

@@ -499,7 +499,7 @@ func (repo *Repository) DeleteWiki() error {
 }
 
 func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath(), repo.LocalWikiPath()}
+	wikiPaths := []string{repo.WikiPath()}
 	for _, wikiPath := range wikiPaths {
 		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
 	}
@@ -1513,7 +1513,6 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(owner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
-		removeAllWithNotice(sess, "Delete repository wiki local copy", repo.LocalWikiPath())
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -1563,7 +1562,6 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		if err = os.Rename(wikiPath, WikiPath(u.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
 	sess := x.NewSession()

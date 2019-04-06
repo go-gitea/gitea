@@ -5,6 +5,7 @@
 package git
 
 import (
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func TestFollowLink(t *testing.T) {
 	// should be able to dereference to target
 	target, err := lnk.FollowLink()
 	assert.NoError(t, err)
-	assert.Equal(t, target.Name(), "hello")
+	assert.Equal(t, path.Base(target.Name()), "hello")
 	assert.False(t, target.IsLink())
 	assert.Equal(t, target.ID.String(), "b14df6442ea5a1b382985a6549b85d435376c351")
 
@@ -81,18 +82,18 @@ func TestFollowLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, target.IsLink())
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "broken_link: broken link")
+	assert.Equal(t, err.Error(), "foo/broken_link: broken link")
 
 	// should error for external links
 	target, err = commit.Tree.GetTreeEntryByPath("foo/outside_repo")
 	assert.NoError(t, err)
 	assert.True(t, target.IsLink())
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "outside_repo: points outside of repo")
+	assert.Equal(t, err.Error(), "foo/outside_repo: points outside of repo")
 
 	// testing fix for short link bug
 	target, err = commit.Tree.GetTreeEntryByPath("foo/link_short")
 	assert.NoError(t, err)
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "link_short: broken link")
+	assert.Equal(t, err.Error(), "foo/link_short: broken link")
 }
