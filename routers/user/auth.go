@@ -490,11 +490,11 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	_ = ctx.Session.Delete("linkAccount")
 	err := ctx.Session.Set("uid", u.ID)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 	err = ctx.Session.Set("uname", u.Name)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
 	// Language setting of the user overwrites the one previously set
@@ -589,7 +589,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 		// no existing user is found, request attach or new account
 		err = ctx.Session.Set("linkAccountGothUser", gothUser)
 		if err != nil {
-			log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
 		}
 		ctx.Redirect(setting.AppSubURL + "/user/link_account")
 		return
@@ -602,11 +602,11 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 		if models.IsErrTwoFactorNotEnrolled(err) {
 			err = ctx.Session.Set("uid", u.ID)
 			if err != nil {
-				log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
 			}
 			err = ctx.Session.Set("uname", u.Name)
 			if err != nil {
-				log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
 			}
 
 			// Clear whatever CSRF has right now, force to generate a new one
@@ -635,11 +635,11 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	// User needs to use 2FA, save data and redirect to 2FA page.
 	err = ctx.Session.Set("twofaUid", u.ID)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 	err = ctx.Session.Set("twofaRemember", false)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
@@ -799,15 +799,15 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	// User needs to use 2FA, save data and redirect to 2FA page.
 	err = ctx.Session.Set("twofaUid", u.ID)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 	err = ctx.Session.Set("twofaRemember", signInForm.Remember)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 	err = ctx.Session.Set("linkAccount", true)
 	if err != nil {
-		log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
@@ -1129,11 +1129,11 @@ func Activate(ctx *context.Context) {
 
 		err = ctx.Session.Set("uid", user.ID)
 		if err != nil {
-			log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
 		}
 		err = ctx.Session.Set("uname", user.Name)
 		if err != nil {
-			log.Error(4, fmt.Sprintf("Error setting session: %v", err))
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
 		}
 		ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 		ctx.Redirect(setting.AppSubURL + "/")

@@ -225,12 +225,12 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	err = ctx.Session.Set("openid_verified_uri", id)
 	if err != nil {
-		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
 	}
 
 	err = ctx.Session.Set("openid_determined_email", email)
 	if err != nil {
-		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
 	}
 
 	if u != nil {
@@ -239,7 +239,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	err = ctx.Session.Set("openid_determined_username", nickname)
 	if err != nil {
-		log.Error(1, "signInOpenIDVerify: Could not set session: %v", err.Error())
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
 	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp {

@@ -1632,7 +1632,7 @@ func SyncExternalUsers() {
 				And("login_source = ?", s.ID).
 				Find(&users)
 			if err != nil {
-				log.Error(4, "SyncExternalUsers: %v", err)
+				log.Error("SyncExternalUsers: %v", err)
 				return
 			}
 
@@ -1718,7 +1718,7 @@ func SyncExternalUsers() {
 			if sshKeysNeedUpdate {
 				err = RewriteAllPublicKeys()
 				if err != nil {
-					log.Error(4, "RewriteAllPublicKeys: %v", err)
+					log.Error("RewriteAllPublicKeys: %v", err)
 				}
 			}
 

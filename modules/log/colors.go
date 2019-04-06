@@ -206,7 +206,7 @@ normalLoop:
 
 		if i > lasti {
 			written, err := c.w.Write(bytes[lasti:i])
-			totalWritten = totalWritten + written
+			totalWritten += written
 			if err != nil {
 				return totalWritten, err
 			}
@@ -241,7 +241,7 @@ normalLoop:
 					if bytes[j] == 'm' {
 						if c.mode == allowColor {
 							written, err := c.w.Write(bytes[i : j+1])
-							totalWritten = totalWritten + written
+							totalWritten += written
 							if err != nil {
 								return totalWritten, err
 							}

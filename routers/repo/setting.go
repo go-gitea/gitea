@@ -381,7 +381,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		err := repo.DeleteWiki()
 		if err != nil {
-			log.Error(3, "Delete Wiki: %v", err.Error())
+			log.Error("Delete Wiki: %v", err.Error())
 		}
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 

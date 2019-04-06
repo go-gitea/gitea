@@ -72,5 +72,5 @@ func formatBuiltWith(makeTags string) string {
 		return " built with " + version
 	}
 
-	return " built with " + version + " : " + strings.Replace(tags, " ", ", ", -1)
+	return " built with " + version + " : " + strings.Replace(makeTags, " ", ", ", -1)
 }

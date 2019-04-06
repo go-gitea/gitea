@@ -39,7 +39,7 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 		if newChan.ChannelType() != "session" {
 			err := newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
 			if err != nil {
-				log.Error(3, "Error rejecting channel: %v", err)
+				log.Error("Error rejecting channel: %v", err)
 			}
 			continue
 		}
@@ -54,7 +54,7 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 			defer func() {
 				err = ch.Close()
 				if err != nil {
-					log.Error(3, "Close: %v", err)
+					log.Error("Close: %v", err)
 				}
 			}()
 			for req := range in {
@@ -109,21 +109,21 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 
 					err = req.Reply(true, nil)
 					if err != nil {
-						log.Error(3, "SSH: Reply: %v", err)
+						log.Error("SSH: Reply: %v", err)
 					}
 					go func() {
 						_, err = io.Copy(input, ch)
 						if err != nil {
-							log.Error(3, "SSH: Copy: %v", err)
+							log.Error("SSH: Copy: %v", err)
 						}
 					}()
 					_, err = io.Copy(ch, stdout)
 					if err != nil {
-						log.Error(3, "SSH: Copy: %v", err)
+						log.Error("SSH: Copy: %v", err)
 					}
 					_, err = io.Copy(ch.Stderr(), stderr)
 					if err != nil {
-						log.Error(3, "SSH: Copy: %v", err)
+						log.Error("SSH: Copy: %v", err)
 					}
 
 					if err = cmd.Wait(); err != nil {
@@ -133,7 +133,7 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 
 					_, err = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
 					if err != nil {
-						log.Error(3, "SSH: SendRequest: %v", err)
+						log.Error("SSH: SendRequest: %v", err)
 					}
 					return
 				default:
@@ -243,7 +243,7 @@ func GenKeyPair(keyPath string) error {
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error(3, "Close: %v", err)
+			log.Error("Close: %v", err)
 		}
 	}()
 
@@ -265,7 +265,7 @@ func GenKeyPair(keyPath string) error {
 	defer func() {
 		err = p.Close()
 		if err != nil {
-			log.Error(3, "Close: %v", err)
+			log.Error("Close: %v", err)
 		}
 	}()
 	_, err = p.Write(public)

@@ -46,7 +46,7 @@ func (l *LevelQueue) Run() error {
 		if len(datas) > l.batchNumber || (len(datas) > 0 && i > 3) {
 			err := l.indexer.Index(datas)
 			if err != nil {
-				log.Error(4, "Index: %v", err)
+				log.Error("Index: %v", err)
 			}
 			datas = make([]*IndexerData, 0, l.batchNumber)
 			i = 0

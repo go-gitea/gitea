@@ -13,7 +13,6 @@ import (
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
 	showSQL bool
-	level   core.LogLevel
 }
 
 var (

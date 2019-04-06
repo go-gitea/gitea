@@ -264,19 +264,19 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	err = ctx.Session.Set("client_id", app.ClientID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
-		log.Error(3, err.Error())
+		log.Error(err.Error())
 		return
 	}
 	err = ctx.Session.Set("redirect_uri", form.RedirectURI)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
-		log.Error(3, err.Error())
+		log.Error(err.Error())
 		return
 	}
 	err = ctx.Session.Set("state", form.State)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
-		log.Error(3, err.Error())
+		log.Error(err.Error())
 		return
 	}
 	ctx.HTML(200, tplGrantAccess)

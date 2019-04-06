@@ -47,19 +47,6 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
-/*func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
-	return func(ctx *macaron.Context) {
-		start := time.Now()
-
-		l.Log(fmt.Sprintf("[Macaron] Started %s %s for %s", ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr()))
-
-		ctx.Next()
-
-		rw := ctx.Resp.(macaron.ResponseWriter)
-		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
-	}
-}*/
-
 type routerLoggerOptions struct {
 	Ctx            *macaron.Context
 	Identity       *string
@@ -83,14 +70,20 @@ func setupAccessLogger(m *macaron.Macaron) {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 
 		buf := bytes.NewBuffer([]byte{})
-		logTemplate.Execute(buf, routerLoggerOptions{
+		err := logTemplate.Execute(buf, routerLoggerOptions{
 			Ctx:            ctx,
 			Identity:       &identity,
 			Start:          &start,
 			ResponseWriter: &rw,
 		})
+		if err != nil {
+			log.Error("Could not set up macaron access logger: %v", err.Error())
+		}
 
-		logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
+		err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
+		if err != nil {
+			log.Error("Could not set up macaron access logger: %v", err.Error())
+		}
 	})
 }
 

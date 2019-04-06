@@ -152,8 +152,6 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 
-	//description.Configs = make([]string, len(description.Sections))
-
 	for i := 0; i < len(sections); i++ {
 		sections[i] = strings.TrimSpace(sections[i])
 	}
@@ -169,7 +167,10 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, options.bufferLength, name, provider, config)
+		if err := log.NewNamedLogger(key, options.bufferLength, name, provider, config); err != nil {
+			// Maybe panic here?
+			log.Error("Could not create new named logger: %v", err.Error())
+		}
 
 		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
 			Name:     name,
@@ -244,7 +245,7 @@ func newLogService() {
 	if !useConsole {
 		err := log.DelLogger("console")
 		if err != nil {
-			log.Fatal(4, "DelLogger: %v", err)
+			log.Fatal("DelLogger: %v", err)
 		}
 	}
 

@@ -154,7 +154,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	subject := issue.mailSubject()
 	err := issue.LoadRepo()
 	if err != nil {
-		log.Error(3, "LoadRepo: %v", err)
+		log.Error("LoadRepo: %v", err)
 	}
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 

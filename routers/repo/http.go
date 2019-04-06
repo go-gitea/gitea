@@ -499,7 +499,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 					w.WriteHeader(http.StatusForbidden)
 					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
 					if err != nil {
-						log.GitLogger.Error(4, err.Error())
+						log.GitLogger.Error(err.Error())
 					}
 					return
 				}
@@ -508,13 +508,13 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 						w.WriteHeader(http.StatusMethodNotAllowed)
 						_, err := w.Write([]byte("Method Not Allowed"))
 						if err != nil {
-							log.GitLogger.Error(4, err.Error())
+							log.GitLogger.Error(err.Error())
 						}
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
 						_, err := w.Write([]byte("Bad Request"))
 						if err != nil {
-							log.GitLogger.Error(4, err.Error())
+							log.GitLogger.Error(err.Error())
 						}
 					}
 					return

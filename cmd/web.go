@@ -197,7 +197,7 @@ func runWeb(ctx *cli.Context) error {
 		defer listener.Close()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 		if err != nil {
-			log.Fatal(4, "Failed to serve %v", err)
+			log.Fatal("Failed to serve %v", err)
 		}
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {

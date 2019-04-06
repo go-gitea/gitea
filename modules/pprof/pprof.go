@@ -36,13 +36,13 @@ func DumpCPUProfileForUsername(pprofDataPath, username string) func() {
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		log.GitLogger.Fatal(4, "StartCPUProfile: %v", err)
+		log.GitLogger.Fatal("StartCPUProfile: %v", err)
 	}
 	return func() {
 		pprof.StopCPUProfile()
 		err = f.Close()
 		if err != nil {
-			log.GitLogger.Fatal(4, "StopCPUProfile Close: %v", err)
+			log.GitLogger.Fatal("StopCPUProfile Close: %v", err)
 		}
 	}
 }

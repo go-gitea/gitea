@@ -64,7 +64,7 @@ func FlagsFromString(from string) int {
 	for _, flag := range strings.Split(strings.ToLower(from), ",") {
 		f, ok := flagFromString[strings.TrimSpace(flag)]
 		if ok {
-			flags = flags | f
+			flags |= f
 		}
 	}
 	return flags
@@ -302,15 +302,15 @@ func (b *BaseLogger) Match(event *Event) bool {
 	// Match on the non-colored msg - therefore strip out colors
 	var msg []byte
 	baw := byteArrayWriter(msg)
-	(&protectedANSIWriter{
+	_, err := (&protectedANSIWriter{
 		w:    &baw,
 		mode: removeColor,
 	}).Write([]byte(event.msg))
-	msg = baw
-	if b.regexp.Match(msg) {
-		return true
+	if err != nil {
+		Error("Match: %v", err.Error())
 	}
-	return false
+	msg = baw
+	return b.regexp.Match(msg)
 }
 
 // Close the base logger
