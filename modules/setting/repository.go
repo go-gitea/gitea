@@ -53,7 +53,6 @@ var (
 		// Repository local settings
 		Local struct {
 			LocalCopyPath string
-			LocalWikiPath string
 		} `ini:"-"`
 
 		// Pull request settings
@@ -105,10 +104,8 @@ var (
 		// Repository local settings
 		Local: struct {
 			LocalCopyPath string
-			LocalWikiPath string
 		}{
 			LocalCopyPath: "tmp/local-repo",
-			LocalWikiPath: "tmp/local-wiki",
 		},
 
 		// Pull request settings
