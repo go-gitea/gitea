@@ -55,6 +55,12 @@ func (c *Command) AddArguments(args ...string) *Command {
 // RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+	return c.RunInDirTimeoutEnvFullPipeline(env, timeout, dir, stdout, stderr, nil)
+}
+
+// RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
+func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -73,6 +79,7 @@ func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	cmd.Stdin = stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -88,6 +95,12 @@ func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
 	return c.RunInDirTimeoutEnvPipeline(nil, timeout, dir, stdout, stderr)
+}
+
+// RunInDirTimeoutFullPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer, and stdin from the given io.Reader
+func (c *Command) RunInDirTimeoutFullPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutEnvFullPipeline(nil, timeout, dir, stdout, stderr, stdin)
 }
 
 // RunInDirTimeout executes the command in given directory with given timeout,
@@ -114,7 +127,13 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 // RunInDirPipeline executes the command in given directory,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutPipeline(-1, dir, stdout, stderr)
+	return c.RunInDirFullPipeline(dir, stdout, stderr, nil)
+}
+
+// RunInDirFullPipeline executes the command in given directory,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirFullPipeline(dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutFullPipeline(-1, dir, stdout, stderr, stdin)
 }
 
 // RunInDirBytes executes the command in given directory
