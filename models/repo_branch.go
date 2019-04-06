@@ -101,36 +101,40 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 		}
 	}
 
-	return WithTemporaryPath("branch-maker", func(basePath string) error {
-		if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
-			Bare:   true,
-			Shared: true,
-		}); err != nil {
-			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		}
+	basePath, err := CreateTemporaryPath("branch-maker")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
 
-		gitRepo, err := git.OpenRepository(basePath)
-		if err != nil {
-			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
-		}
+	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+	}
 
-		if err = gitRepo.CreateBranch(branchName, oldBranchName); err != nil {
-			log.Error("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
-			return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
-		}
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
 
-		if err = git.Push(basePath, git.PushOptions{
-			Remote: "origin",
-			Branch: branchName,
-			Env:    PushingEnvironment(doer, repo),
-		}); err != nil {
-			return fmt.Errorf("Push: %v", err)
-		}
+	if err = gitRepo.CreateBranch(branchName, oldBranchName); err != nil {
+		log.Error("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
+		return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
+	}
 
-		return nil
-	})
+	if err = git.Push(basePath, git.PushOptions{
+		Remote: "origin",
+		Branch: branchName,
+		Env:    PushingEnvironment(doer, repo),
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
@@ -139,36 +143,40 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 	if err := repo.CheckBranchName(branchName); err != nil {
 		return err
 	}
-	return WithTemporaryPath("branch-maker", func(basePath string) error {
-		if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
-			Bare:   true,
-			Shared: true,
-		}); err != nil {
-			log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-			return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		}
+	basePath, err := CreateTemporaryPath("branch-maker")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
 
-		gitRepo, err := git.OpenRepository(basePath)
-		if err != nil {
-			log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-			return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
-		}
+	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+	}
 
-		if err = gitRepo.CreateBranch(branchName, commit); err != nil {
-			log.Error("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
-			return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
-		}
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
 
-		if err = git.Push(basePath, git.PushOptions{
-			Remote: "origin",
-			Branch: branchName,
-			Env:    PushingEnvironment(doer, repo),
-		}); err != nil {
-			return fmt.Errorf("Push: %v", err)
-		}
+	if err = gitRepo.CreateBranch(branchName, commit); err != nil {
+		log.Error("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
+		return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
+	}
 
-		return nil
-	})
+	if err = git.Push(basePath, git.PushOptions{
+		Remote: "origin",
+		Branch: branchName,
+		Env:    PushingEnvironment(doer, repo),
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
 }
 
 // GetCommit returns all the commits of a branch
