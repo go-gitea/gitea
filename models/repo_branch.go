@@ -6,63 +6,10 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/com"
 )
-
-// checkoutNewBranch checks out to a new branch from the a branch name.
-func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
-	if err := git.Checkout(localPath, git.CheckoutOptions{
-		Timeout:   time.Duration(setting.Git.Timeout.Pull) * time.Second,
-		Branch:    newBranch,
-		OldBranch: oldBranch,
-	}); err != nil {
-		return fmt.Errorf("git checkout -b %s %s: %v", newBranch, oldBranch, err)
-	}
-	return nil
-}
-
-// CheckoutNewBranch checks out a new branch
-func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
-	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
-}
-
-// deleteLocalBranch deletes a branch from a local repo cache
-// First checks out default branch to avoid trying to delete the currently checked out branch
-func deleteLocalBranch(localPath, defaultBranch, deleteBranch string) error {
-	if !com.IsExist(localPath) {
-		return nil
-	}
-
-	if !git.IsBranchExist(localPath, deleteBranch) {
-		return nil
-	}
-
-	// Must NOT have branch currently checked out
-	// Checkout default branch first
-	if err := git.Checkout(localPath, git.CheckoutOptions{
-		Timeout: time.Duration(setting.Git.Timeout.Pull) * time.Second,
-		Branch:  defaultBranch,
-	}); err != nil {
-		return fmt.Errorf("git checkout %s: %v", defaultBranch, err)
-	}
-
-	cmd := git.NewCommand("branch")
-	cmd.AddArguments("-D")
-	cmd.AddArguments(deleteBranch)
-	_, err := cmd.RunInDir(localPath)
-	return err
-}
-
-// DeleteLocalBranch deletes a branch from the local repo
-func (repo *Repository) DeleteLocalBranch(branchName string) error {
-	return deleteLocalBranch(repo.LocalCopyPath(), repo.DefaultBranch, branchName)
-}
 
 // Branch holds the branch information
 type Branch struct {
@@ -184,39 +131,6 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 
 		return nil
 	})
-}
-
-// updateLocalCopyToCommit pulls latest changes of given commit from repoPath to localPath.
-// It creates a new clone if local copy does not exist.
-// This function checks out target commit by default, it is safe to assume subsequent
-// operations are operating against target commit when caller has confidence for no race condition.
-func updateLocalCopyToCommit(repoPath, localPath, commit string) error {
-	if !com.IsExist(localPath) {
-		if err := git.Clone(repoPath, localPath, git.CloneRepoOptions{
-			Timeout: time.Duration(setting.Git.Timeout.Clone) * time.Second,
-		}); err != nil {
-			return fmt.Errorf("git clone: %v", err)
-		}
-	} else {
-		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
-		if err != nil {
-			return fmt.Errorf("git fetch origin: %v", err)
-		}
-		if err := git.ResetHEAD(localPath, true, "HEAD"); err != nil {
-			return fmt.Errorf("git reset --hard HEAD: %v", err)
-		}
-	}
-	if err := git.Checkout(localPath, git.CheckoutOptions{
-		Branch: commit,
-	}); err != nil {
-		return fmt.Errorf("git checkout %s: %v", commit, err)
-	}
-	return nil
-}
-
-// updateLocalCopyToCommit makes sure local copy of repository is at given commit.
-func (repo *Repository) updateLocalCopyToCommit(commit string) error {
-	return updateLocalCopyToCommit(repo.RepoPath(), repo.LocalCopyPath(), commit)
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
