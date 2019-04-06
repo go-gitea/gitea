@@ -17,6 +17,7 @@ import (
 
 var prefix string
 
+// TestLogger is a logger which will write to the testing log
 type TestLogger struct {
 	log.WriterLogger
 }
@@ -24,7 +25,7 @@ type TestLogger struct {
 var writerCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
-	t *testing.TB
+	t testing.TB
 }
 
 func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
@@ -32,7 +33,7 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 		if len(p) > 0 && p[len(p)-1] == '\n' {
 			p = p[:len(p)-1]
 		}
-		(*w.t).Log(string(p))
+		w.t.Log(string(p))
 		return len(p), nil
 	}
 	return len(p), nil
@@ -42,17 +43,33 @@ func (w *testLoggerWriterCloser) Close() error {
 	return nil
 }
 
-func SetTestForLogger(t *testing.TB) {
-	_, filename, line, _ := runtime.Caller(2)
+// PrintCurrentTest prints the current test to os.Stdout
+func PrintCurrentTest(t testing.TB, skip ...int) {
+	actualSkip := 1
+	if len(skip) > 0 {
+		actualSkip = skip[0]
+	}
+	_, filename, line, _ := runtime.Caller(actualSkip)
 
 	if log.CanColorStdout {
-		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", log.NewColoredValue((*t).Name()), strings.TrimPrefix(filename, prefix), line)
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
 	} else {
-		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", (*t).Name(), strings.TrimPrefix(filename, prefix), line)
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
 	writerCloser.t = t
 }
 
+// Printf takes a format and args and prints the string to os.Stdout
+func Printf(format string, args ...interface{}) {
+	if log.CanColorStdout {
+		for i := 0; i < len(args); i++ {
+			args[i] = log.NewColoredValue(args[i])
+		}
+	}
+	fmt.Fprintf(os.Stdout, "\t"+format, args...)
+}
+
+// NewTestLogger creates a TestLogger as a log.LoggerProvider
 func NewTestLogger() log.LoggerProvider {
 	logger := &TestLogger{}
 	logger.Colorize = log.CanColorStdout
@@ -83,5 +100,5 @@ func (log *TestLogger) GetName() string {
 func init() {
 	log.Register("test", NewTestLogger)
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "integrations/logger_for_test.go")
+	prefix = strings.TrimSuffix(filename, "integrations/testlogger.go")
 }
