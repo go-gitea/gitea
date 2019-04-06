@@ -27,7 +27,7 @@ func LocalCopyPath() string {
 // CreateTemporaryPath creates a temporary path
 func CreateTemporaryPath(prefix string) (string, error) {
 	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
-	basePath := filepath.Join(LocalCopyPath(), prefix+"-"+timeStr+".git")
+	basePath := path.Join(LocalCopyPath(), prefix+"-"+timeStr+".git")
 	if err := os.MkdirAll(filepath.Dir(basePath), os.ModePerm); err != nil {
 		log.Error("Unable to create temporary directory: %s (%v)", basePath, err)
 		return "", fmt.Errorf("Failed to create dir %s: %v", basePath, err)
