@@ -6,9 +6,11 @@ package repo
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"html"
 	gotemplate "html/template"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
@@ -151,10 +154,14 @@ func RefBlame(ctx *context.Context) {
 		blameParts = append(blameParts, *blamePart)
 	}
 
-	commitNames := make(map[string]string)
+	commitNames := make(map[string]models.UserCommit)
+	commits := list.New()
 
 	for _, part := range blameParts {
 		sha := part.Sha
+		if _, ok := commitNames[sha]; ok {
+			continue
+		}
 
 		commit, err := ctx.Repo.GitRepo.GetCommit(sha)
 		if err != nil {
@@ -166,8 +173,17 @@ func RefBlame(ctx *context.Context) {
 			return
 		}
 
-		commitNames[sha] = commit.CommitMessage
+		commits.PushBack(commit)
 
+		commitNames[commit.ID.String()] = models.UserCommit{}
+	}
+
+	commits = models.ValidateCommitsWithEmails(commits)
+
+	for e := commits.Front(); e != nil; e = e.Next() {
+		c := e.Value.(models.UserCommit)
+
+		commitNames[c.ID.String()] = c
 	}
 
 	renderBlame(ctx, blameParts, commitNames)
@@ -175,35 +191,40 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]models.UserCommit) {
 
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0, 0)
-
-	for _, part := range blameParts {
-		for _, line := range part.Lines {
-			lines = append(lines, line)
-		}
-	}
 
 	var commitInfo bytes.Buffer
 	var lineNumbers bytes.Buffer
 	var codeLines bytes.Buffer
 
 	var i = 0
-
 	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
+			lines = append(lines, line)
 
-			//Commit info
 			var attr = ""
 			if index == len(part.Lines)-1 {
 				attr = " class=\"bottom-line\""
 			}
+			commit := commitNames[part.Sha]
 			if index == 0 {
-				commitInfo.WriteString(fmt.Sprintf(`<span%s><a href="%s/commit/%s" title="%[4]s">%[4]s</a></span>`, attr, repoLink, part.Sha, html.EscapeString(commitNames[part.Sha])))
+				// User avatar image
+				avatar := ""
+				if commit.User != nil {
+					if len(commit.User.FullName) > 0 {
+						avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(commit.User.FullName))
+					} else {
+						avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(commit.Author.Name))
+					}
+				} else {
+					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(base.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
+				}
+				commitInfo.WriteString(fmt.Sprintf(`<span%s>%s<a href="%s/commit/%s" title="%[5]s">%[5]s</a></span>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage)))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<span%s>&#8203;</span>`, attr))
 			}
