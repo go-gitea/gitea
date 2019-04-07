@@ -6,6 +6,7 @@ theme: gitea
 defaultContentLanguage: en-us
 defaultContentLanguageInSubdir: true
 enableMissingTranslationPlaceholders: true
+enableEmoji: true
 
 permalinks:
   post: /:year/:month/:title/
