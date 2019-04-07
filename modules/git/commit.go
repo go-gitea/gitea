@@ -214,9 +214,17 @@ func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 	return c.repo.CommitsBetween(c, endCommit)
 }
 
+// SearchCommitsOptions specify the parameters for SearchCommits
+type SearchCommitsOptions struct {
+	Keywords            []string
+	Authors, Committers []string
+	After, Before       string
+	All                 bool
+}
+
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(keywords, authors, committers []string, after, before string, all bool) (*list.List, error) {
-	return c.repo.searchCommits(c.ID, keywords, authors, committers, after, before, all)
+func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
+	return c.repo.searchCommits(c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision

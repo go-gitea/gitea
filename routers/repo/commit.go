@@ -134,7 +134,15 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keywords, authors, committers, after, before, all)
+	opts := git.SearchCommitsOptions{
+		Keywords:   keywords,
+		Authors:    authors,
+		Committers: committers,
+		After:      after,
+		Before:     before,
+		All:        all,
+	}
+	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return

@@ -237,30 +237,30 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id SHA1, keywords, authors, committers []string, after, before string, all bool) (*list.List, error) {
+func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
 	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
-	if len(keywords) > 0 {
-		for _, v := range keywords {
+	if len(opts.Keywords) > 0 {
+		for _, v := range opts.Keywords {
 			cmd.AddArguments("--grep=" + v)
 		}
 	}
-	if len(authors) > 0 {
-		for _, v := range authors {
+	if len(opts.Authors) > 0 {
+		for _, v := range opts.Authors {
 			cmd.AddArguments("--author=" + v)
 		}
 	}
-	if len(committers) > 0 {
-		for _, v := range committers {
+	if len(opts.Committers) > 0 {
+		for _, v := range opts.Committers {
 			cmd.AddArguments("--committer=" + v)
 		}
 	}
-	if after != "" {
-		cmd.AddArguments("--after=" + after)
+	if opts.After != "" {
+		cmd.AddArguments("--after=" + opts.After)
 	}
-	if before != "" {
-		cmd.AddArguments("--before=" + before)
+	if opts.Before != "" {
+		cmd.AddArguments("--before=" + opts.Before)
 	}
-	if all {
+	if opts.All {
 		cmd.AddArguments("--all")
 	}
 	stdout, err := cmd.RunInDirBytes(repo.Path)
