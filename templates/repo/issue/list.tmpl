@@ -203,6 +203,12 @@
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
+                    {{if .IsPull }}
+                        {{if (index $.CommitStatus .ID)}}
+                            {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+						{{end}}
+					{{end}}
+
 					{{if .Ref}}
 						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
 					{{end}}
@@ -220,7 +226,12 @@
 
 					<p class="desc">
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-						{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+
+						{{if gt .Poster.ID 0}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{else}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+						{{end}}
 
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}

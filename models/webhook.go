@@ -123,7 +123,7 @@ type Webhook struct {
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
-		log.Error(3, "Unmarshal[%d]: %v", w.ID, err)
+		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
 }
 
@@ -131,7 +131,7 @@ func (w *Webhook) AfterLoad() {
 func (w *Webhook) GetSlackHook() *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error(4, "webhook.GetSlackHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetSlackHook(%d): %v", w.ID, err)
 	}
 	return s
 }
@@ -140,7 +140,7 @@ func (w *Webhook) GetSlackHook() *SlackMeta {
 func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	s := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error(4, "webhook.GetDiscordHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
 	}
 	return s
 }
@@ -572,13 +572,13 @@ func (t *HookTask) AfterLoad() {
 
 	t.RequestInfo = &HookRequest{}
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
-		log.Error(3, "Unmarshal RequestContent[%d]: %v", t.ID, err)
+		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
 	}
 
 	if len(t.ResponseContent) > 0 {
 		t.ResponseInfo = &HookResponse{}
 		if err := json.Unmarshal([]byte(t.ResponseContent), t.ResponseInfo); err != nil {
-			log.Error(3, "Unmarshal ResponseContent[%d]: %v", t.ID, err)
+			log.Error("Unmarshal ResponseContent[%d]: %v", t.ID, err)
 		}
 	}
 }
@@ -586,7 +586,7 @@ func (t *HookTask) AfterLoad() {
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 	p, err := json.Marshal(v)
 	if err != nil {
-		log.Error(3, "Marshal [%d]: %v", t.ID, err)
+		log.Error("Marshal [%d]: %v", t.ID, err)
 	}
 	return string(p)
 }
@@ -666,7 +666,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 	if len(w.Secret) > 0 {
 		data, err := payloader.JSONPayload()
 		if err != nil {
-			log.Error(2, "prepareWebhooks.JSONPayload: %v", err)
+			log.Error("prepareWebhooks.JSONPayload: %v", err)
 		}
 		sig := hmac.New(sha256.New, []byte(w.Secret))
 		sig.Write(data)
@@ -765,13 +765,13 @@ func (t *HookTask) deliver() {
 		}
 
 		if err := UpdateHookTask(t); err != nil {
-			log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
+			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
 		w, err := GetWebhookByID(t.HookID)
 		if err != nil {
-			log.Error(5, "GetWebhookByID: %v", err)
+			log.Error("GetWebhookByID: %v", err)
 			return
 		}
 		if t.IsSucceed {
@@ -780,7 +780,7 @@ func (t *HookTask) deliver() {
 			w.LastStatus = HookStatusFail
 		}
 		if err = UpdateWebhookLastStatus(w); err != nil {
-			log.Error(5, "UpdateWebhookLastStatus: %v", err)
+			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
 	}()
@@ -813,7 +813,7 @@ func DeliverHooks() {
 	tasks := make([]*HookTask, 0, 10)
 	err := x.Where("is_delivered=?", false).Find(&tasks)
 	if err != nil {
-		log.Error(4, "DeliverHooks: %v", err)
+		log.Error("DeliverHooks: %v", err)
 		return
 	}
 
@@ -829,13 +829,13 @@ func DeliverHooks() {
 
 		repoID, err := com.StrTo(repoIDStr).Int64()
 		if err != nil {
-			log.Error(4, "Invalid repo ID: %s", repoIDStr)
+			log.Error("Invalid repo ID: %s", repoIDStr)
 			continue
 		}
 
 		tasks = make([]*HookTask, 0, 5)
 		if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
-			log.Error(4, "Get repository [%s] hook tasks: %v", repoID, err)
+			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
 			continue
 		}
 		for _, t := range tasks {

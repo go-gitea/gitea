@@ -39,7 +39,7 @@ func (ns *notificationService) Run() {
 		select {
 		case opts := <-ns.issueQueue:
 			if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
-				log.Error(4, "Was unable to create issue notification: %v", err)
+				log.Error("Was unable to create issue notification: %v", err)
 			}
 		}
 	}

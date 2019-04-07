@@ -66,6 +66,12 @@
 							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
+                            {{if .IsPull }}
+                                {{if (index $.CommitStatus .ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{end}}
+                            {{end}}
+
 							{{with .Labels}}
 								{{/* If we have any labels, we should show them
 								with a 2.5 line height, this way they don't look
@@ -86,7 +92,11 @@
 							{{end}}
 
 							<p class="desc">
-								{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+								{{if gt .Poster.ID 0}}
+									{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+								{{else}}
+									{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+								{{end}}
 								{{if .Assignee}}
 									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
 										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">

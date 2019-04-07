@@ -37,25 +37,25 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 	}
 
 	if err := comment.MailParticipants(act, issue); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
+		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
 	if err := issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
+		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 	if err := issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
+		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 	if err := pr.Issue.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
+		log.Error("MailParticipants: %v", err)
 	}
 }
 
@@ -69,6 +69,6 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 		act = models.ActionCommentIssue
 	}
 	if err := comment.MailParticipants(act, pr.Issue); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
+		log.Error("MailParticipants: %v", err)
 	}
 }

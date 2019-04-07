@@ -40,6 +40,7 @@ func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body str
 	msg.SetHeader("To", to...)
 	msg.SetHeader("Subject", subject)
 	msg.SetDateHeader("Date", time.Now())
+	msg.SetHeader("X-Auto-Response-Suppress", "All")
 
 	plainBody, err := html2text.FromString(body)
 	if err != nil || setting.MailService.SendAsPlainText {
@@ -258,7 +259,7 @@ func processMailQueue() {
 		case msg := <-mailQueue:
 			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
 			if err := gomail.Send(Sender, msg.Message); err != nil {
-				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
+				log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
 			}
