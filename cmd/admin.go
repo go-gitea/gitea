@@ -300,7 +300,7 @@ func runCreateUser(c *cli.Context) error {
 		return errors.New("Cannot set both --name and --username flags")
 	}
 	if !c.IsSet("name") && !c.IsSet("username") {
-		return errors.New("One of --name and --username flags must be set")
+		return errors.New("One of --name or --username flags must be set")
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
