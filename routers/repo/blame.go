@@ -7,6 +7,7 @@ package repo
 import (
 	"bytes"
 	"fmt"
+	"html"
 	gotemplate "html/template"
 	"strings"
 
@@ -88,7 +89,7 @@ func RefBlame(ctx *context.Context) {
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
 	if err != nil {
-		log.Error(3, "GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	// Get current entry user currently looking at.
@@ -197,18 +198,14 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 			i++
 
 			//Commit info
+			var attr = ""
+			if index == len(part.Lines)-1 {
+				attr = " class=\"bottom-line\""
+			}
 			if index == 0 {
-				if index == len(part.Lines)-1 {
-					commitInfo.WriteString(fmt.Sprintf(`<span class="bottom-line"><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
-				} else {
-					commitInfo.WriteString(fmt.Sprintf(`<span><a href="%s/commit/%s">%s</a></span>`, repoLink, part.Sha, commitNames[part.Sha]))
-				}
+				commitInfo.WriteString(fmt.Sprintf(`<span%s><a href="%s/commit/%s" title="%s">%s</a></span>`, attr, repoLink, part.Sha, html.EscapeString(commitNames[part.Sha]), commitNames[part.Sha]))
 			} else {
-				if index == len(part.Lines)-1 {
-					commitInfo.WriteString(`<span class="bottom-line"><a>&#8203;</a></span>`)
-				} else {
-					commitInfo.WriteString(`<span><a>&#8203;</a></span>`)
-				}
+				commitInfo.WriteString(fmt.Sprintf(`<span%s>&#8203;</span>`, attr))
 			}
 
 			//Line number
