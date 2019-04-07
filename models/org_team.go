@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -77,7 +78,9 @@ func (t *Team) IsMember(userID int64) bool {
 
 func (t *Team) getRepositories(e Engine) error {
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
+		Where("team_repo.team_id=?", t.ID).
+		OrderBy("repository.name").
+		Find(&t.Repos)
 }
 
 // GetRepositories returns all repositories in team of organization.
@@ -546,6 +549,9 @@ func getTeamMembers(e Engine, teamID int64) (_ []*User, err error) {
 		}
 		members[i] = member
 	}
+	sort.Slice(members, func(i, j int) bool {
+		return members[i].DisplayName() < members[j].DisplayName()
+	})
 	return members, nil
 }
 
