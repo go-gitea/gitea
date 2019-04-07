@@ -25,7 +25,7 @@ import (
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // Context represents context of a request.
@@ -44,6 +44,36 @@ type Context struct {
 
 	Repo *Repository
 	Org  *Organization
+}
+
+func (ctx *Context) IsUserSiteAdmin() bool {
+	return ctx.IsSigned && ctx.User.IsAdmin
+}
+
+func (ctx *Context) IsUserRepoOwner() bool {
+	return ctx.Repo.IsOwner()
+}
+
+func (ctx *Context) IsUserRepoAdmin() bool {
+	return ctx.Repo.IsAdmin()
+}
+
+func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+	for _, unitType := range unitTypes {
+		if ctx.Repo.CanWrite(unitType) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+	return ctx.Repo.CanRead(unitType)
+}
+
+func (ctx *Context) IsUserRepoReaderAny() bool {
+	return ctx.Repo.HasAccess()
 }
 
 // HasAPIError returns true if error occurs in form validation.
