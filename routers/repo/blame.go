@@ -216,11 +216,11 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 				// User avatar image
 				avatar := ""
 				if commit.User != nil {
+					authorName := commit.Author.Name
 					if len(commit.User.FullName) > 0 {
-						avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(commit.User.FullName))
-					} else {
-						avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(commit.Author.Name))
+						authorName = commit.User.FullName
 					}
+					avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(authorName))
 				} else {
 					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(base.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
 				}
