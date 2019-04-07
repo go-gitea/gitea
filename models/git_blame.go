@@ -12,7 +12,7 @@ import (
 	"os/exec"
 	"regexp"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/process"
 )
 
