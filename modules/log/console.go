@@ -34,14 +34,14 @@ func (n *nopWriteCloser) Close() error {
 
 // ConsoleLogger implements LoggerProvider and writes messages to terminal.
 type ConsoleLogger struct {
-	BaseLogger
+	WriterLogger
 	Stderr bool `json:"stderr"`
 }
 
 // NewConsoleLogger create ConsoleLogger returning as LoggerProvider.
 func NewConsoleLogger() LoggerProvider {
 	log := &ConsoleLogger{}
-	log.createLogger(&nopWriteCloser{
+	log.NewWriterLogger(&nopWriteCloser{
 		w: os.Stdout,
 	})
 	return log
@@ -55,11 +55,11 @@ func (log *ConsoleLogger) Init(config string) error {
 		return err
 	}
 	if log.Stderr {
-		log.createLogger(&nopWriteCloser{
+		log.NewWriterLogger(&nopWriteCloser{
 			w: os.Stderr,
 		})
 	} else {
-		log.createLogger(log.out)
+		log.NewWriterLogger(log.out)
 	}
 	return nil
 }
