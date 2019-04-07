@@ -203,7 +203,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 				attr = " class=\"bottom-line\""
 			}
 			if index == 0 {
-				commitInfo.WriteString(fmt.Sprintf(`<span%s><a href="%s/commit/%s" title="%s">%s</a></span>`, attr, repoLink, part.Sha, html.EscapeString(commitNames[part.Sha]), commitNames[part.Sha]))
+				commitInfo.WriteString(fmt.Sprintf(`<span%s><a href="%s/commit/%s" title="%[4]s">%[4]s</a></span>`, attr, repoLink, part.Sha, html.EscapeString(commitNames[part.Sha])))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<span%s>&#8203;</span>`, attr))
 			}
