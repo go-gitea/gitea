@@ -72,6 +72,10 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplCommits)
 }
 
@@ -133,6 +137,10 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()
 	ctx.Data["Branch"] = ctx.Repo.BranchName
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplCommits)
 }
 
@@ -177,6 +185,10 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = branchName
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplCommits)
 }
 
@@ -243,6 +255,10 @@ func Diff(ctx *context.Context) {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
 	}
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplDiff)
 }
 

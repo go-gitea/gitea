@@ -30,6 +30,9 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:          models.UserTypeIndividual,
 		PageSize:      setting.UI.Admin.UserPagingNum,

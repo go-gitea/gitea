@@ -123,6 +123,10 @@ func Releases(ctx *context.Context) {
 	pager := paginater.New(int(count), limit, page, 5)
 	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releases
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplReleases)
 }
 

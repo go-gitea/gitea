@@ -40,6 +40,9 @@ func Notices(ctx *context.Context) {
 	ctx.Data["Notices"] = notices
 
 	ctx.Data["Total"] = total
+
+	context.ClearPaginationParam(ctx) // No pagination link params
+
 	ctx.HTML(200, tplNotices)
 }
 

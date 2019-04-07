@@ -81,6 +81,10 @@ func Notifications(c *context.Context) {
 	c.Data["Status"] = status
 	c.Data["Notifications"] = notifications
 	c.Data["Page"] = paginater.New(int(total), perPage, page, 5)
+
+	// Pagination link params
+	context.DefaultPaginationParams(c)
+
 	c.HTML(200, tplNotification)
 }
 

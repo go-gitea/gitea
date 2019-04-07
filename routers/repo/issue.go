@@ -307,6 +307,15 @@ func Issues(ctx *context.Context) {
 	}
 	ctx.Data["CanWriteIssuesOrPulls"] = perm.CanWriteIssuesOrPulls(isPullList)
 
+	context.ClearPaginationParam(ctx)
+	context.AddPaginationParam(ctx, "q", "Keyword")
+	context.AddPaginationParam(ctx, "type", "ViewType")
+	context.AddPaginationParam(ctx, "sort", "SortType")
+	context.AddPaginationParam(ctx, "state", "State")
+	context.AddPaginationParam(ctx, "labels", "SelectLabels")
+	context.AddPaginationParam(ctx, "milestone", "MilestoneID")
+	context.AddPaginationParam(ctx, "assignee", "AssigneeID")
+
 	ctx.HTML(200, tplIssues)
 }
 

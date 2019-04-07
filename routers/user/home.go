@@ -365,6 +365,16 @@ func Issues(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
+	// Pagination link params
+	context.ClearPaginationParam(ctx)
+	context.AddPaginationParam(ctx, "type", "ViewType")
+	context.AddPaginationParam(ctx, "repo", "RepoID")
+	context.AddPaginationParam(ctx, "sort", "SortType")
+	context.AddPaginationParam(ctx, "state", "State")
+	context.AddPaginationParam(ctx, "labels", "SelectLabels")
+	context.AddPaginationParam(ctx, "milestone", "MilestoneID")
+	context.AddPaginationParam(ctx, "assignee", "AssigneeID")
+
 	ctx.HTML(200, tplIssues)
 }
 
@@ -496,6 +506,9 @@ func showOrgProfile(ctx *context.Context) {
 	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	ctx.Data["Members"] = org.Members
 	ctx.Data["Teams"] = org.Teams
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
 
 	ctx.HTML(200, tplOrgHome)
 }

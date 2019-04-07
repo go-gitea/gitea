@@ -43,5 +43,9 @@ func Search(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplSearch)
 }

@@ -239,6 +239,9 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplProfile)
 }
 
@@ -252,6 +255,7 @@ func Followers(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("user.followers")
 	ctx.Data["PageIsFollowers"] = true
 	ctx.Data["Owner"] = u
+	context.ClearPaginationParam(ctx) // No pagination link params
 	repo.RenderUserCards(ctx, u.NumFollowers, u.GetFollowers, tplFollowers)
 }
 
@@ -265,6 +269,7 @@ func Following(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("user.following")
 	ctx.Data["PageIsFollowing"] = true
 	ctx.Data["Owner"] = u
+	context.ClearPaginationParam(ctx) // No pagination link params
 	repo.RenderUserCards(ctx, u.NumFollowing, u.GetFollowing, tplFollowers)
 }
 

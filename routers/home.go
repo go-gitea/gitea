@@ -155,6 +155,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, opts.TplName)
 }
 
@@ -227,6 +230,9 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplName)
 }
 
@@ -236,6 +242,9 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeIndividual,
@@ -369,6 +378,10 @@ func ExploreCode(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
+
+	// Pagination link params
+	context.DefaultPaginationParams(ctx)
+
 	ctx.HTML(200, tplExploreCode)
 }
 
