@@ -38,7 +38,7 @@ func TestBaseLogger(t *testing.T) {
 		},
 	}
 	prefix := "TestPrefix "
-	b := BaseLogger{
+	b := WriterLogger{
 		out:    c,
 		Level:  INFO,
 		Flags:  LstdFlags | LUTC,
@@ -115,7 +115,7 @@ func TestBaseLoggerDated(t *testing.T) {
 		},
 	}
 	prefix := ""
-	b := BaseLogger{
+	b := WriterLogger{
 		out:    c,
 		Level:  WARN,
 		Flags:  Ldate | Ltime | Lmicroseconds | Lshortfile | Llevel,
@@ -195,14 +195,14 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 		},
 	}
 	prefix := ""
-	b := BaseLogger{
+	b := WriterLogger{
 		Level:           DEBUG,
 		StacktraceLevel: ERROR,
 		Flags:           -1,
 		Prefix:          prefix,
 		Expression:      "FILENAME",
 	}
-	b.createLogger(c)
+	b.NewWriterLogger(c)
 
 	location, _ := time.LoadLocation("EST")
 
@@ -263,14 +263,14 @@ func TestBrokenRegexp(t *testing.T) {
 		},
 	}
 
-	b := BaseLogger{
+	b := WriterLogger{
 		Level:           DEBUG,
 		StacktraceLevel: ERROR,
 		Flags:           -1,
 		Prefix:          prefix,
 		Expression:      "\\",
 	}
-	b.createLogger(c)
+	b.NewWriterLogger(c)
 	assert.Empty(t, b.regexp)
 	b.Close()
 	assert.Equal(t, true, closed)

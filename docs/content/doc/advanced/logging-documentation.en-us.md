@@ -357,10 +357,10 @@ attributes should be cached if this is a commonly used log message.
 of bytes representing the color.
 
 These functions will not double wrap a `log.ColoredValue`. They will
-also set the ResetBytes to the cached resetBytes.
+also set the `resetBytes` to the cached `resetBytes`.
 
-Be careful not to change the contents of resetBytes or boldBytes as this
-will break rendering of logging elsewhere. You have been warned.
+The `colorBytes` and `resetBytes` are not exported to prevent
+accidental overwriting of internal values.
 
 ## Log Spoofing protection
 
