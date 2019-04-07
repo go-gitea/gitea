@@ -273,6 +273,15 @@ func newLogService() {
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 }
 
+// NewLogServices creates all the log services
+func NewLogServices(disableConsole bool) {
+	newLogService()
+	newMacaronLogService()
+	newRouterLogService()
+	newAccessLogService()
+	NewXORMLogService(disableConsole)
+}
+
 // NewXORMLogService initializes xorm logger service
 func NewXORMLogService(disableConsole bool) {
 	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
