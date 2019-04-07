@@ -52,7 +52,7 @@ func (key *GPGKey) BeforeInsert() {
 func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
 	if err != nil {
-		log.Error(3, "Find Sub GPGkeys[%d]: %v", key.KeyID, err)
+		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
 	}
 }
 
@@ -364,7 +364,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		//Parsing signature
 		sig, err := extractSignature(c.Signature.Signature)
 		if err != nil { //Skipping failed to extract sign
-			log.Error(3, "SignatureRead err: %v", err)
+			log.Error("SignatureRead err: %v", err)
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.extract_sign",
@@ -377,7 +377,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
 			if !IsErrUserNotExist(err) {
-				log.Error(3, "GetUserByEmail: %v", err)
+				log.Error("GetUserByEmail: %v", err)
 			}
 			return &CommitVerification{
 				Verified: false,
@@ -387,7 +387,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 		keys, err := ListGPGKeys(committer.ID)
 		if err != nil { //Skipping failed to get gpg keys of user
-			log.Error(3, "ListGPGKeys: %v", err)
+			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.failed_retrieval_gpg_keys",
@@ -411,7 +411,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			//Generating hash of commit
 			hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 			if err != nil { //Skipping ailed to generate hash
-				log.Error(3, "PopulateHash: %v", err)
+				log.Error("PopulateHash: %v", err)
 				return &CommitVerification{
 					Verified: false,
 					Reason:   "gpg.error.generate_hash",
@@ -432,7 +432,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				//Generating hash of commit
 				hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 				if err != nil { //Skipping ailed to generate hash
-					log.Error(3, "PopulateHash: %v", err)
+					log.Error("PopulateHash: %v", err)
 					return &CommitVerification{
 						Verified: false,
 						Reason:   "gpg.error.generate_hash",
