@@ -51,7 +51,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	branchName := ctx.Query("name")
 	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
 	if err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
 		return
 	}
@@ -71,6 +71,12 @@ func DeleteBranchPost(ctx *context.Context) {
 		return
 	}
 
+	// Delete branch in local copy if it exists
+	if err := ctx.Repo.Repository.DeleteLocalBranch(branchName); err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
+		return
+	}
+
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", branchName))
 }
 
@@ -83,7 +89,7 @@ func RestoreBranchPost(ctx *context.Context) {
 
 	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
 	if err != nil {
-		log.Error(4, "GetDeletedBranchByID: %v", err)
+		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
 		return
 	}
@@ -93,13 +99,13 @@ func RestoreBranchPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
 		}
-		log.Error(4, "CreateBranch: %v", err)
+		log.Error("CreateBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
 
 	if err := ctx.Repo.Repository.RemoveDeletedBranch(deletedBranch.ID); err != nil {
-		log.Error(4, "RemoveDeletedBranch: %v", err)
+		log.Error("RemoveDeletedBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
@@ -116,14 +122,14 @@ func redirect(ctx *context.Context) {
 func deleteBranch(ctx *context.Context, branchName string) error {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(branchName)
 	if err != nil {
-		log.Error(4, "GetBranchCommit: %v", err)
+		log.Error("GetBranchCommit: %v", err)
 		return err
 	}
 
 	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 		return err
 	}
 
@@ -137,7 +143,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		RepoUserName: ctx.Repo.Owner.Name,
 		RepoName:     ctx.Repo.Repository.Name,
 	}); err != nil {
-		log.Error(4, "Update: %v", err)
+		log.Error("Update: %v", err)
 	}
 
 	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID.String(), ctx.User.ID); err != nil {
