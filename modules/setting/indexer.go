@@ -13,26 +13,29 @@ import (
 const (
 	LevelQueueType   = "levelqueue"
 	ChannelQueueType = "channel"
+	RedisQueueType   = "redis"
 )
 
 var (
 	// Indexer settings
 	Indexer = struct {
-		IssueType                    string
-		IssuePath                    string
-		RepoIndexerEnabled           bool
-		RepoPath                     string
-		UpdateQueueLength            int
-		MaxIndexerFileSize           int64
-		IssueIndexerQueueType        string
-		IssueIndexerQueueDir         string
-		IssueIndexerQueueBatchNumber int
+		IssueType             string
+		IssuePath             string
+		RepoIndexerEnabled    bool
+		RepoPath              string
+		UpdateQueueLength     int
+		MaxIndexerFileSize    int64
+		IssueQueueType        string
+		IssueQueueDir         string
+		IssueQueueConnStr     string
+		IssueQueueBatchNumber int
 	}{
-		IssueType:                    "bleve",
-		IssuePath:                    "indexers/issues.bleve",
-		IssueIndexerQueueType:        LevelQueueType,
-		IssueIndexerQueueDir:         "indexers/issues.queue",
-		IssueIndexerQueueBatchNumber: 20,
+		IssueType:             "bleve",
+		IssuePath:             "indexers/issues.bleve",
+		IssueQueueType:        LevelQueueType,
+		IssueQueueDir:         "indexers/issues.queue",
+		IssueQueueConnStr:     "",
+		IssueQueueBatchNumber: 20,
 	}
 )
 
@@ -50,7 +53,8 @@ func newIndexerService() {
 	}
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
-	Indexer.IssueIndexerQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
-	Indexer.IssueIndexerQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
-	Indexer.IssueIndexerQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
+	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
+	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
+	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
+	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 }

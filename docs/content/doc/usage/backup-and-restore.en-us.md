@@ -44,6 +44,19 @@ Inside the `gitea-dump-1482906742.zip` file, will be the following:
 Intermediate backup files are created in a temporary directory specified either with the
 `--tempdir` command-line parameter or the `TMPDIR` environment variable.
 
+### Using Docker (`dump`)
+There are a few caveats for using the `dump` command with Docker.
+
+The command has to be executed with the `RUN_USER = <OS_USERNAME>` specified in `gitea/conf/app.ini`; and, for the zipping of the backup folder to occur without permission error the command `docker exec` must be executed inside of the `--tempdir`.
+
+Example:
+
+```docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf "name=<NAME_OF_DOCKER_CONTAINER>") bash -c '/app/gitea/gitea dump -c </path/to/app.ini>'```
+
+*Note: `--tempdir` refers to the temporary directory of the docker enviroment used by gitea; if you have not specified a custom `--tempdir`, then gitea uses `/tmp` or the `TMPDIR` enviromental variable of the docker container. For `--tempdir` adjust your `docker exec` command options accordingly.
+
+The result should be a file, stored in the `--tempdir` specified, along the lines of: `gitea-dump-1482906742.zip`
+
 ## Restore Command (`restore`)
 
 There is currently no support for a recovery command. It is a manual process that mostly
