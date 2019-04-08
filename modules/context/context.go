@@ -25,7 +25,7 @@ import (
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // Context represents context of a request.
@@ -44,6 +44,42 @@ type Context struct {
 
 	Repo *Repository
 	Org  *Organization
+}
+
+// IsUserSiteAdmin returns true if current user is a site admin
+func (ctx *Context) IsUserSiteAdmin() bool {
+	return ctx.IsSigned && ctx.User.IsAdmin
+}
+
+// IsUserRepoOwner returns true if current user owns current repo
+func (ctx *Context) IsUserRepoOwner() bool {
+	return ctx.Repo.IsOwner()
+}
+
+// IsUserRepoAdmin returns true if current user is admin in current repo
+func (ctx *Context) IsUserRepoAdmin() bool {
+	return ctx.Repo.IsAdmin()
+}
+
+// IsUserRepoWriter returns true if current user has write privilege in current repo
+func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+	for _, unitType := range unitTypes {
+		if ctx.Repo.CanWrite(unitType) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
+func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+	return ctx.Repo.CanRead(unitType)
+}
+
+// IsUserRepoReaderAny returns true if current user can read any part of current repo
+func (ctx *Context) IsUserRepoReaderAny() bool {
+	return ctx.Repo.HasAccess()
 }
 
 // HasAPIError returns true if error occurs in form validation.
