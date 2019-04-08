@@ -24,6 +24,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Custom Templates not loading or working incorrectly](#custom-templates-not-loading-or-working-incorrectly)
 * [Active user vs login prohibited user](#active-user-vs-login-prohibited-user)
 * [Setting up logging](#setting-up-logging)
+* [What is Swagger?](#what-is-swagger)
 * [Adjusting your server for public/private use](#adjusting-your-server-for-public-private-use)
   * [Preventing spammers](#preventing-spammers)
   * [Only allow/block certain email domains](#only-allow-block-certain-email-domains)
@@ -32,6 +33,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
 * [Gitea is running slow](#why-is-gitea-running-slow)
+* [Can't create repositories/files](#cant-create-repositories-files)
 * [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
 * [SSH Issues](#ssh-issues)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
@@ -59,6 +61,12 @@ https://github.com/loganinak/MigrateGitlabToGogs
 * CustomPath (custom templates)
   * Environment variable `GITEA_CUSTOM`
   * Else `%(WorkPath)/custom`
+* HomeDir
+  * Unix: Environment variable `HOME`
+  * Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
+* RepoRootPath
+  * `ROOT` in `app.ini`
+  * Else `%(HomeDir)/gitea-repositories`
 * INI (config file)
   * `-c` flag
   * Else `%(CustomPath)/conf/app.ini`
@@ -95,6 +103,13 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 ## Setting up logging 
 * [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
 
+## What is Swagger?
+[Swagger](https://swagger.io/) is what Gitea uses for its API.  
+All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
+For more information, refer to Gitea's [API docs]({{< relref "doc/advanced/api-usage.en-us.md" >}})
+
+[Swagger Example](https://try.gitea.io/api/swagger)
+
 ## Adjusting your server for public/private use
 
 ### Preventing spammers
@@ -103,8 +118,6 @@ There are multiple things you can combine to prevent spammers.
 1. By only whitelisting certain domains with OpenID (see below)
 2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
-
-[API Example](https://try.gitea.io/api/swagger)
 
 ### Only allow/block certain email domains
 If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`  
@@ -133,6 +146,14 @@ Gitea also provides its own SSH server, for usage when SSHD is not available.
 The most common culprit for this is loading federated avatars.  
 This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`  
 Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `true` in your `app.ini`
+
+## Can't create repositories/files
+Make sure that Gitea has sufficient permissions to write to its home directory and data directory.  
+See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
+
+**Note for Arch users:** At the time of writing this, there is an issue with the Arch package's systemd file including this line:
+`ReadWritePaths=/etc/gitea/app.ini`  
+Which makes all other paths non-writeable to Gitea.
 
 ## Translation is incorrect/how to add more translations
 Our translations are currently crowd-sourced on our [Crowding project](https://crowdin.com/project/gitea)  
