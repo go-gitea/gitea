@@ -64,7 +64,6 @@ Admin operations:
             - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
         - Examples:
-            - `gitea admin create-user --name myname --password asecurepassword --email me@example.com`
             - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
     - `change-password`
         - Options:
