@@ -89,7 +89,7 @@ func (r *RedisQueue) Run() error {
 	for {
 		bs, err := r.client.LPop(r.queueName).Bytes()
 		if err != nil && err != redis.Nil {
-			log.Error(4, "LPop faile: %v", err)
+			log.Error("LPop faile: %v", err)
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}
@@ -109,7 +109,7 @@ func (r *RedisQueue) Run() error {
 		var data IndexerData
 		err = json.Unmarshal(bs, &data)
 		if err != nil {
-			log.Error(4, "Unmarshal: %v", err)
+			log.Error("Unmarshal: %v", err)
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}
@@ -119,11 +119,11 @@ func (r *RedisQueue) Run() error {
 		if data.IsDelete {
 			if data.ID > 0 {
 				if err = r.indexer.Delete(data.ID); err != nil {
-					log.Error(4, "indexer.Delete: %v", err)
+					log.Error("indexer.Delete: %v", err)
 				}
 			} else if len(data.IDs) > 0 {
 				if err = r.indexer.Delete(data.IDs...); err != nil {
-					log.Error(4, "indexer.Delete: %v", err)
+					log.Error("indexer.Delete: %v", err)
 				}
 			}
 			time.Sleep(time.Millisecond * 100)
