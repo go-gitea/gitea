@@ -982,11 +982,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 // NewServices initializes the services
 func NewServices() {
 	newService()
-	newLogService()
-	newMacaronLogService()
-	newAccessLogService()
-	newRouterLogService()
-	NewXORMLogService(false)
+	NewLogServices(false)
 	newCacheService()
 	newSessionService()
 	newMailService()
