@@ -11,15 +11,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/com"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories
@@ -30,10 +28,9 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepository, error) {
-	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
-	basePath := path.Join(models.LocalCopyPath(), "upload-"+timeStr+".git")
-	if err := os.MkdirAll(path.Dir(basePath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("Failed to create dir %s: %v", basePath, err)
+	basePath, err := models.CreateTemporaryPath("upload")
+	if err != nil {
+		return nil, err
 	}
 	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
 	return t, nil
@@ -41,8 +38,8 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
-	if _, err := os.Stat(t.basePath); !os.IsNotExist(err) {
-		os.RemoveAll(t.basePath)
+	if err := models.RemoveTemporaryPath(t.basePath); err != nil {
+		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
 	}
 }
 
