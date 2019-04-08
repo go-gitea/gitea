@@ -15,7 +15,7 @@ menu:
 
 # Support Options
 
-- [Discord](https://discord.gg/NsatcWJ)
+- [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
 
 **NOTE:** When asking for support, it may be a good idea to have the following available so that the person helping has all the info they need:
