@@ -327,22 +327,39 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 }
 
 func createLink(href, content string) *html.Node {
-	textNode := &html.Node{
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
+	}
+	text := &html.Node{
 		Type: html.TextNode,
 		Data: content,
 	}
-	linkNode := &html.Node{
-		FirstChild: textNode,
-		LastChild:  textNode,
-		Type:       html.ElementNode,
-		Data:       "a",
-		DataAtom:   atom.A,
-		Attr: []html.Attribute{
-			{Key: "href", Val: href},
-		},
+
+	a.AppendChild(text)
+	return a
+}
+
+func createCodeLink(href, content string) *html.Node {
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
-	textNode.Parent = linkNode
-	return linkNode
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+
+	code := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Code.String(),
+	}
+
+	code.AppendChild(text)
+	a.AppendChild(code)
+	return a
 }
 
 // replaceContent takes a text node, and in its content it replaces a section of
@@ -633,7 +650,7 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		text += " (" + hash + ")"
 	}
 
-	replaceContent(node, start, end, createLink(urlFull, text))
+	replaceContent(node, start, end, createCodeLink(urlFull, text))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
@@ -651,7 +668,7 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
 	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
