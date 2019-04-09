@@ -195,13 +195,13 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
 
 	// render other commit URLs
 	tmp = "https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
