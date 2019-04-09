@@ -51,7 +51,8 @@ Admin operations:
 - Commands:
     - `create-user`
         - Options:
-            - `--name value`: Username. Required.
+            - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
+            - `--username value`: Username. Required. New in gitea 1.9.0.
             - `--password value`: Password. Required.
             - `--email value`: Email. Required.
             - `--admin`: If provided, this makes the user an admin. Optional.
@@ -63,7 +64,7 @@ Admin operations:
             - `--random-password-length`: If provided, it will be used to configure the length of the randomly
 	    generated password. Optional. (default: 12)
         - Examples:
-            - `gitea admin create-user --name myname --password asecurepassword --email me@example.com`
+            - `gitea admin create-user --username myname --password asecurepassword --email me@example.com`
     - `change-password`
         - Options:
             - `--username value`, `-u value`: Username. Required.
