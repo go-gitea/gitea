@@ -510,6 +510,15 @@ pre, code {
     .branch-tag-choice {
         line-height: 20px;
     }
+
+    &.pagination.menu {
+        @media only screen and (max-width:767px) {
+            .item:not(.active):not(.navigation),
+            .item.navigation span.navigation_label{
+                display: none;
+            }
+        }
+    }
 }
 
 .file-comment {
