@@ -33,6 +33,27 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 		if len(p) > 0 && p[len(p)-1] == '\n' {
 			p = p[:len(p)-1]
 		}
+
+		defer func() {
+			err := recover()
+			if err == nil {
+				return
+			}
+			var errString string
+			errErr, ok := err.(error)
+			if ok {
+				errString = errErr.Error()
+			} else {
+				errString, ok = err.(string)
+			}
+			if !ok {
+				panic(err)
+			}
+			if !strings.HasPrefix(errString, "Log in goroutine after ") {
+				panic(err)
+			}
+		}()
+
 		w.t.Log(string(p))
 		return len(p), nil
 	}
