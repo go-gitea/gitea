@@ -151,8 +151,12 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
 func (ctx *Context) NotFound(title string, err error) {
+	ctx.notFoundInternal(title, err)
+}
+
+func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
-		log.Error("%s: %v", title, err)
+		log.ErrorWithSkip(2, "%s: %v", title, err)
 		if macaron.Env != macaron.PROD {
 			ctx.Data["ErrorMsg"] = err
 		}
@@ -166,8 +170,12 @@ func (ctx *Context) NotFound(title string, err error) {
 // ServerError displays a 500 (Internal Server Error) page and prints the given
 // error, if any.
 func (ctx *Context) ServerError(title string, err error) {
+	ctx.serverErrorInternal(title, err)
+}
+
+func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
-		log.Error("%s: %v", title, err)
+		log.ErrorWithSkip(2, "%s: %v", title, err)
 		if macaron.Env != macaron.PROD {
 			ctx.Data["ErrorMsg"] = err
 		}
@@ -182,11 +190,11 @@ func (ctx *Context) ServerError(title string, err error) {
 // or error context description for logging purpose of 500 server error.
 func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, err error) {
 	if errck(err) {
-		ctx.NotFound(title, err)
+		ctx.notFoundInternal(title, err)
 		return
 	}
 
-	ctx.ServerError(title, err)
+	ctx.serverErrorInternal(title, err)
 }
 
 // HandleText handles HTTP status code
