@@ -27,10 +27,9 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	}
 	content := ""
 	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
-		if c, err := GetBlobContentBase64(gitBlob); err != nil {
+		content, err = GetBlobContentBase64(gitBlob)
+		if err != nil {
 			return nil, err
-		} else {
-			content = c
 		}
 	}
 	return &api.GitBlobResponse{

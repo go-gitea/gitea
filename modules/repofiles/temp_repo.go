@@ -75,11 +75,11 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
 	}
-	if gitRepo, err := git.OpenRepository(t.basePath); err != nil {
+	gitRepo, err := git.OpenRepository(t.basePath)
+	if err != nil {
 		return err
-	} else {
-		t.gitRepo = gitRepo
 	}
+	t.gitRepo = gitRepo
 	return nil
 }
 
@@ -411,18 +411,18 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	return name2attribute2info, err
 }
 
+// GetBranchCommit Gets the commit object of the given branch
 func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
-	if t.gitRepo != nil {
-		return t.gitRepo.GetBranchCommit(branch)
-	} else {
+	if t.gitRepo == nil {
 		return nil, fmt.Errorf("repository has not been cloned")
 	}
+	return t.gitRepo.GetBranchCommit(branch)
 }
 
+// GetCommit Gets the commit object of the given commit ID
 func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
-	if t.gitRepo != nil {
-		return t.gitRepo.GetCommit(commitID)
-	} else {
+	if t.gitRepo == nil {
 		return nil, fmt.Errorf("repository has not been cloned")
 	}
+	return t.gitRepo.GetCommit(commitID)
 }
