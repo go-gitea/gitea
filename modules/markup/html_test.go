@@ -30,12 +30,12 @@ func TestRender_Commits(t *testing.T) {
 	var subtree = util.URLJoin(commit, "src")
 	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow">b6dd621</a></p>`)
-	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow">b6dd6210ea/src</a></p>`)
-	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>b6dd621</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>b6dd6210ea/src</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 
 }
