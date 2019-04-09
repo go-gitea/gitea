@@ -117,6 +117,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	for _, file := range filesInIndex {
 		if file == opts.TreePath {
 			inFilelist = true
+			break
 		}
 	}
 	if !inFilelist {
