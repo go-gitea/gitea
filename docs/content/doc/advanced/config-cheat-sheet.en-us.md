@@ -158,9 +158,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
-- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently support: channel or levelqueue
-- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path
-- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the queue will be saved path.
+- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.

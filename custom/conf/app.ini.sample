@@ -264,6 +264,8 @@ ISSUE_INDEXER_QUEUE_TYPE = levelqueue
 ; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
 ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
+; When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
+ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
 

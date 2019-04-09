@@ -192,65 +192,102 @@ func reqBasicAuth() macaron.Handler {
 // reqSiteAdmin user should be the site admin
 func reqSiteAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.IsSigned || !ctx.User.IsAdmin {
+		if !ctx.IsUserSiteAdmin() {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-// reqOwner user should be the owner of the repo.
+// reqOwner user should be the owner of the repo or site admin.
 func reqOwner() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.IsOwner() {
+		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-// reqAdmin user should be an owner or a collaborator with admin write of a repository
+// reqAdmin user should be an owner or a collaborator with admin write of a repository, or site admin
 func reqAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
-		if !ctx.Repo.IsAdmin() {
+		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(403)
 			return
 		}
 	}
 }
 
-func reqRepoReader(unitType models.UnitType) macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.Repo.CanRead(unitType) {
-			ctx.Error(403)
-			return
-		}
-	}
-}
-
-func reqAnyRepoReader() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.Repo.HasAccess() {
-			ctx.Error(403)
-			return
-		}
-	}
-}
-
+// reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanWrite(unitType) {
-				return
-			}
+		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.Error(403)
+			return
 		}
-
-		ctx.Error(403)
 	}
 }
 
+// reqRepoReader user should have specific read permission or be a repo admin or a site admin
+func reqRepoReader(unitType models.UnitType) macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+// reqAnyRepoReader user should have any permission to read repository or permissions of site admin
+func reqAnyRepoReader() macaron.Handler {
+	return func(ctx *context.Context) {
+		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
+			ctx.Error(403)
+			return
+		}
+	}
+}
+
+// reqOrgOwnership user should be an organization owner, or a site admin
+func reqOrgOwnership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if ctx.Context.IsUserSiteAdmin() {
+			return
+		}
+
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			ctx.Error(500, "", "reqOrgOwnership: unprepared context")
+			return
+		}
+
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+			return
+		} else if !isOwner {
+			if ctx.Org.Organization != nil {
+				ctx.Error(403, "", "Must be an organization owner")
+			} else {
+				ctx.NotFound()
+			}
+			return
+		}
+	}
+}
+
+// reqOrgMembership user should be an organization member, or a site admin
 func reqOrgMembership() macaron.Handler {
 	return func(ctx *context.APIContext) {
+		if ctx.Context.IsUserSiteAdmin() {
+			return
+		}
+
 		var orgID int64
 		if ctx.Org.Organization != nil {
 			orgID = ctx.Org.Organization.ID
@@ -267,32 +304,6 @@ func reqOrgMembership() macaron.Handler {
 		} else if !isMember {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization member")
-			} else {
-				ctx.NotFound()
-			}
-			return
-		}
-	}
-}
-
-func reqOrgOwnership() macaron.Handler {
-	return func(ctx *context.APIContext) {
-		var orgID int64
-		if ctx.Org.Organization != nil {
-			orgID = ctx.Org.Organization.ID
-		} else if ctx.Org.Team != nil {
-			orgID = ctx.Org.Team.OrgID
-		} else {
-			ctx.Error(500, "", "reqOrgOwnership: unprepared context")
-			return
-		}
-
-		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOrganizationOwner", err)
-		} else if !isOwner {
-			if ctx.Org.Organization != nil {
-				ctx.Error(403, "", "Must be an organization owner")
 			} else {
 				ctx.NotFound()
 			}
