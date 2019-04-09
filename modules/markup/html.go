@@ -35,20 +35,20 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\W)(@[0-9a-zA-Z-_\.]+)`)
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\W)(#[0-9]+)\b`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\W)([A-Z]{1,10}-[1-9][0-9]*)\b`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\W)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)\b`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\W)([0-9a-f]{7,40})\b`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
@@ -63,7 +63,7 @@ var (
 	// well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
+	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
@@ -327,22 +327,39 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 }
 
 func createLink(href, content string) *html.Node {
-	textNode := &html.Node{
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
+	}
+	text := &html.Node{
 		Type: html.TextNode,
 		Data: content,
 	}
-	linkNode := &html.Node{
-		FirstChild: textNode,
-		LastChild:  textNode,
-		Type:       html.ElementNode,
-		Data:       "a",
-		DataAtom:   atom.A,
-		Attr: []html.Attribute{
-			{Key: "href", Val: href},
-		},
+
+	a.AppendChild(text)
+	return a
+}
+
+func createCodeLink(href, content string) *html.Node {
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
-	textNode.Parent = linkNode
-	return linkNode
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+
+	code := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Code.String(),
+	}
+
+	code.AppendChild(text)
+	a.AppendChild(code)
+	return a
 }
 
 // replaceContent takes a text node, and in its content it replaces a section of
@@ -633,7 +650,7 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		text += " (" + hash + ")"
 	}
 
-	replaceContent(node, start, end, createLink(urlFull, text))
+	replaceContent(node, start, end, createCodeLink(urlFull, text))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
@@ -651,17 +668,17 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
 	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
 func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emailRegex.FindStringIndex(node.Data)
+	m := emailRegex.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
-	mail := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createLink("mailto:"+mail, mail))
+	mail := node.Data[m[2]:m[3]]
+	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
