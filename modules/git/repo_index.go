@@ -6,20 +6,18 @@ package git
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"strings"
 )
 
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string) error {
-	if len(treeish) != 40 {
-		res, err := NewCommand("rev-parse", treeish).RunInDir(repo.Path)
-		if err != nil {
-			return err
-		}
-		if len(res) > 0 {
-			treeish = res[:len(res)-1]
-		}
+	treeish, err := GetFullCommitID(repo.Path, treeish)
+	if err != nil {
+		return err
 	}
+
 	id, err := NewIDFromString(treeish)
 	if err != nil {
 		return err
@@ -77,7 +75,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	return cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, bytes.NewReader(buffer.Bytes()))
 }
 
-// AddObjectToIndex adds the provided object hash to the index at the provided filename
+// AddObjectToIndex adds and replaces if necessary the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
 	cmd := NewCommand("update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
 	_, err := cmd.RunInDir(repo.Path)
@@ -95,4 +93,61 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 		return nil, err
 	}
 	return NewTree(repo, id), nil
+}
+
+// CheckAttribute checks the given attribute of the provided files, use "--all" for all attributes
+func (repo *Repository) CheckAttribute(fromIndex bool, attribute string, args ...string) (map[string]map[string]string, error) {
+	cmd := NewCommand("check-attr", "-z", attribute)
+
+	if fromIndex {
+		cmd.AddArguments("--cached")
+	}
+	cmd.AddArguments("--")
+	for _, arg := range args {
+		if arg != "" {
+			cmd.AddArguments(arg)
+		}
+	}
+
+	res, err := cmd.RunInDirBytes(repo.Path)
+	if err != nil {
+		err = fmt.Errorf("Failed to get attribute %s in repo %s for files %v. Error: %v", attribute, repo.Path, args, err)
+		return nil, err
+	}
+
+	fields := bytes.Split(res, []byte{'\000'})
+
+	if len(fields)%3 != 1 {
+		return nil, fmt.Errorf("Wrong number of fields in return from check-attr")
+	}
+
+	var name2attribute2info = make(map[string]map[string]string)
+
+	for i := 0; i < (len(fields) / 3); i++ {
+		filename := string(fields[3*i])
+		attribute := string(fields[3*i+1])
+		info := string(fields[3*i+2])
+		attribute2info := name2attribute2info[filename]
+		if attribute2info == nil {
+			attribute2info = make(map[string]string)
+		}
+		attribute2info[attribute] = info
+		name2attribute2info[filename] = attribute2info
+	}
+
+	return name2attribute2info, err
+}
+
+// DiffIndex diffs the current index to a provided tree. It returns a reader of the raw patch
+func (repo *Repository) DiffIndex(treeish string) (io.Reader, error) {
+	treeish, err := GetFullCommitID(repo.Path, treeish)
+	if err != nil {
+		return nil, err
+	}
+	cmd := NewCommand("diff-index", "--cached", "-p", treeish)
+
+	stdoutReader, stdoutWriter := io.Pipe()
+	stderr := new(bytes.Buffer)
+	err = cmd.RunInDirPipeline(repo.Path, stdoutWriter, stderr)
+	return stdoutReader, err
 }
