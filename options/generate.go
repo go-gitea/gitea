@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-//go:generate go-bindata -tags "bindata" -ignore "TRANSLATORS" -pkg "options" -o "../modules/options/bindata.go" ./...
+//go:generate go run -mod vendor github.com/jteeuwen/go-bindata/go-bindata -tags "bindata" -ignore "TRANSLATORS" -pkg "options" -o "../modules/options/bindata.go" ./...
 //go:generate go fmt ../modules/options/bindata.go
 
 package generate

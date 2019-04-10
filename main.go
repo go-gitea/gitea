@@ -1,4 +1,4 @@
-//go:generate go run -mod vendor ./tools/version/version.go
+//go:generate go run ./tools/version/version.go
 
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
