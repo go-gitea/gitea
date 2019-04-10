@@ -1,3 +1,5 @@
+//go:generate go run ./tools/version/version.go
+
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
@@ -24,6 +26,7 @@ import (
 )
 
 var (
+	// These will be initialized in ameta.go via go generate
 	// Version holds the current Gitea version
 	Version = "1.9.0-dev"
 	// Tags holds the build tags used

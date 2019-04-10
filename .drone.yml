@@ -59,6 +59,8 @@ pipeline:
     image: golang:1.10 # this step is kept as the lowest version of golang that we support
     pull: true
     commands:
+      - go get
+      - go generate .
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     when:
       event: [ push, tag, pull_request ]
