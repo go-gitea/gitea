@@ -1,6 +1,5 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
-export GO111MODULE=off
 
 GO ?= go
 SED_INPLACE := sed -i
@@ -100,7 +99,7 @@ vet:
 
 .PHONY: generate
 generate:
-	$(GO) generate $(PACKAGES)
+	$(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -169,7 +168,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -180,11 +179,11 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	$(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
-	GO111MODULE=on $(GO) mod tidy && GO111MODULE=on $(GO) mod vendor
+	$(GO) mod tidy && $(GO) mod vendor
 
 .PHONY: test-vendor
 test-vendor: vendor
@@ -284,34 +283,34 @@ integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.test: $(SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.test
+	$(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	$(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.test
 migrations.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.test
+	$(GO) test -mod=vendor -c code.gitea.io/gitea/integrations/migration-test -o migrations.test
 
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test -mod=vendor -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
 
 .PHONY: install
 install: $(wildcard *.go)
-	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
+	$(GO) install -mod=vendor -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	$(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
@@ -440,4 +439,4 @@ generate-images:
 
 .PHONY: pr
 pr:
-	$(GO) run contrib/pr/checkout.go $(PR)
+	$(GO) run -mod=vendor contrib/pr/checkout.go $(PR)
