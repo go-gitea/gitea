@@ -32,7 +32,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
-* [Gitea is running slow](#why-is-gitea-running-slow)
+* [Gitea is running slow](#gitea-is-running-slow)
 * [Can't create repositories/files](#cant-create-repositories-files)
 * [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
 * [SSH Issues](#ssh-issues)
@@ -142,7 +142,7 @@ Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.
 SSHD is the built-in SSH server on most Unix systems.  
 Gitea also provides its own SSH server, for usage when SSHD is not available.
 
-## Why is Gitea running slow?
+## Gitea is running slow
 The most common culprit for this is loading federated avatars.  
 This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`  
 Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `true` in your `app.ini`
@@ -232,6 +232,7 @@ batch response: Authentication required: Authorization error: <GITEA_LFS_URL>/in
 Check that you have proper access to the repository
 error: failed to push some refs to '<GIT_REPO_URL>'
 ```
-Have you checked the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file? By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
+Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.  
+By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
 
 You may want to set this value to `60m` or `120m`.
