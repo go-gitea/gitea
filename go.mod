@@ -54,6 +54,7 @@ require (
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
+	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.0
 	github.com/go-xorm/builder v0.3.3
 	github.com/go-xorm/core v0.6.0
