@@ -19,7 +19,11 @@
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
+							{{if .IsAdmin}}
+							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
+							{{else}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
+							{{end}}
 							<label>{{.i18n.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
