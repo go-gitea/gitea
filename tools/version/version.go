@@ -83,6 +83,5 @@ package main
 func init() {
 	Version = "{{ .Version }}"
 	Tags = "{{ .Tags }}"
-	MakeVersion = ""
 }
 `))
