@@ -156,7 +156,7 @@ See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
 Which makes all other paths non-writeable to Gitea.
 
 ## Translation is incorrect/how to add more translations
-Our translations are currently crowd-sourced on our [Crowding project](https://crowdin.com/project/gitea)  
+Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
 ## SSH issues
