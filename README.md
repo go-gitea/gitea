@@ -29,7 +29,8 @@ This project has been
 
 From the root of the source tree, run:
 
-    TAGS="bindata" make generate all
+    go generate -mod vendor ./...
+    go build -mod=vendor -tags 'bindata'
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 
