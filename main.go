@@ -25,8 +25,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+// These will be initialized in about.go via go generate
 var (
-	// These will be initialized in ameta.go via go generate
 	// Version holds the current Gitea version
 	Version = "1.9.0-dev"
 	// Tags holds the build tags used
