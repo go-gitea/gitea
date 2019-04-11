@@ -257,7 +257,7 @@ func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
 	return strings.Split(string(stdout), "\n"), nil
 }
 
-// FileChangedBetweenCommits Returns true if the file changed beween commit IDs id1 and id2
+// FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
 func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
 	stdout, err := NewCommand("diff", "--name-only", "-z", id1, id2, "--", filename).RunInDirBytes(repo.Path)
 	if err != nil {
