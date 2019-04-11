@@ -38,6 +38,7 @@ func testGit(t *testing.T, u *url.URL) {
 	u.Path = baseAPITestContext.GitPath()
 
 	t.Run("HTTP", func(t *testing.T) {
+		PrintCurrentTest(t)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
 
@@ -47,6 +48,7 @@ func testGit(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
 		t.Run("Standard", func(t *testing.T) {
+			PrintCurrentTest(t)
 			ensureAnonymousClone(t, u)
 
 			t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
@@ -57,16 +59,21 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("Clone", doGitClone(dstPath, u))
 
 			t.Run("PushCommit", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("Little", func(t *testing.T) {
+					PrintCurrentTest(t)
 					little = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					PrintCurrentTest(t)
 					big = commitAndPush(t, bigSize, dstPath)
 				})
 			})
 		})
 		t.Run("LFS", func(t *testing.T) {
+			PrintCurrentTest(t)
 			t.Run("PushCommit", func(t *testing.T) {
+				PrintCurrentTest(t)
 				//Setup git LFS
 				_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 				assert.NoError(t, err)
@@ -76,17 +83,21 @@ func testGit(t *testing.T, u *url.URL) {
 				assert.NoError(t, err)
 
 				t.Run("Little", func(t *testing.T) {
+					PrintCurrentTest(t)
 					littleLFS = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					PrintCurrentTest(t)
 					bigLFS = commitAndPush(t, bigSize, dstPath)
 				})
 			})
 			t.Run("Locks", func(t *testing.T) {
+				PrintCurrentTest(t)
 				lockTest(t, u.String(), dstPath)
 			})
 		})
 		t.Run("Raw", func(t *testing.T) {
+			PrintCurrentTest(t)
 			session := loginUser(t, "user2")
 
 			// Request raw paths
@@ -110,6 +121,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		})
 		t.Run("Media", func(t *testing.T) {
+			PrintCurrentTest(t)
 			session := loginUser(t, "user2")
 
 			// Request media paths
@@ -132,12 +144,14 @@ func testGit(t *testing.T, u *url.URL) {
 
 	})
 	t.Run("SSH", func(t *testing.T) {
+		PrintCurrentTest(t)
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
 		//Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
+			PrintCurrentTest(t)
 
 			//Setup remote link
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
@@ -149,6 +163,7 @@ func testGit(t *testing.T, u *url.URL) {
 			var little, big, littleLFS, bigLFS string
 
 			t.Run("Standard", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("CreateRepo", doAPICreateRepository(sshContext, false))
 
 				//TODO get url from api
@@ -156,16 +171,21 @@ func testGit(t *testing.T, u *url.URL) {
 
 				//time.Sleep(5 * time.Minute)
 				t.Run("PushCommit", func(t *testing.T) {
+					PrintCurrentTest(t)
 					t.Run("Little", func(t *testing.T) {
+						PrintCurrentTest(t)
 						little = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
+						PrintCurrentTest(t)
 						big = commitAndPush(t, bigSize, dstPath)
 					})
 				})
 			})
 			t.Run("LFS", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("PushCommit", func(t *testing.T) {
+					PrintCurrentTest(t)
 					//Setup git LFS
 					_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 					assert.NoError(t, err)
@@ -175,17 +195,21 @@ func testGit(t *testing.T, u *url.URL) {
 					assert.NoError(t, err)
 
 					t.Run("Little", func(t *testing.T) {
+						PrintCurrentTest(t)
 						littleLFS = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
+						PrintCurrentTest(t)
 						bigLFS = commitAndPush(t, bigSize, dstPath)
 					})
 				})
 				t.Run("Locks", func(t *testing.T) {
+					PrintCurrentTest(t)
 					lockTest(t, u.String(), dstPath)
 				})
 			})
 			t.Run("Raw", func(t *testing.T) {
+				PrintCurrentTest(t)
 				session := loginUser(t, "user2")
 
 				// Request raw paths
@@ -209,6 +233,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 			})
 			t.Run("Media", func(t *testing.T) {
+				PrintCurrentTest(t)
 				session := loginUser(t, "user2")
 
 				// Request media paths

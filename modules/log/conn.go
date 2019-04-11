@@ -80,7 +80,7 @@ func (i *connWriter) connect() error {
 // ConnLogger implements LoggerProvider.
 // it writes messages in keep-live tcp connection.
 type ConnLogger struct {
-	BaseLogger
+	WriterLogger
 	ReconnectOnMsg bool   `json:"reconnectOnMsg"`
 	Reconnect      bool   `json:"reconnect"`
 	Net            string `json:"net"`
@@ -101,7 +101,7 @@ func (log *ConnLogger) Init(jsonconfig string) error {
 	if err != nil {
 		return err
 	}
-	log.createLogger(&connWriter{
+	log.NewWriterLogger(&connWriter{
 		ReconnectOnMsg: log.ReconnectOnMsg,
 		Reconnect:      log.Reconnect,
 		Net:            log.Net,

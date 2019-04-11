@@ -268,8 +268,8 @@ normalLoop:
 
 // ColoredValue will Color the provided value
 type ColoredValue struct {
-	ColorBytes *[]byte
-	ResetBytes *[]byte
+	colorBytes *[]byte
+	resetBytes *[]byte
 	Value      *interface{}
 }
 
@@ -290,14 +290,14 @@ func NewColoredValuePointer(value *interface{}, color ...ColorAttribute) *Colore
 	if len(color) > 0 {
 		bytes := ColorBytes(color...)
 		return &ColoredValue{
-			ColorBytes: &bytes,
-			ResetBytes: &resetBytes,
+			colorBytes: &bytes,
+			resetBytes: &resetBytes,
 			Value:      value,
 		}
 	}
 	return &ColoredValue{
-		ColorBytes: &fgBoldBytes,
-		ResetBytes: &resetBytes,
+		colorBytes: &fgBoldBytes,
+		resetBytes: &resetBytes,
 		Value:      value,
 	}
 
@@ -310,17 +310,37 @@ func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
 		return val
 	}
 	return &ColoredValue{
-		ColorBytes: colorBytes,
-		ResetBytes: &resetBytes,
+		colorBytes: colorBytes,
+		resetBytes: &resetBytes,
 		Value:      &value,
 	}
 }
 
 // Format will format the provided value and protect against ANSI spoofing within the value
 func (cv *ColoredValue) Format(s fmt.State, c rune) {
-	s.Write([]byte(*cv.ColorBytes))
+	s.Write([]byte(*cv.colorBytes))
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
-	s.Write([]byte(*cv.ResetBytes))
+	s.Write([]byte(*cv.resetBytes))
+}
+
+// SetColorBytes will allow a user to set the colorBytes of a colored value
+func (cv *ColoredValue) SetColorBytes(colorBytes []byte) {
+	cv.colorBytes = &colorBytes
+}
+
+// SetColorBytesPointer will allow a user to set the colorBytes pointer of a colored value
+func (cv *ColoredValue) SetColorBytesPointer(colorBytes *[]byte) {
+	cv.colorBytes = colorBytes
+}
+
+// SetResetBytes will allow a user to set the resetBytes pointer of a colored value
+func (cv *ColoredValue) SetResetBytes(resetBytes []byte) {
+	cv.resetBytes = &resetBytes
+}
+
+// SetResetBytesPointer will allow a user to set the resetBytes pointer of a colored value
+func (cv *ColoredValue) SetResetBytesPointer(resetBytes *[]byte) {
+	cv.resetBytes = resetBytes
 }
 
 func fmtString(s fmt.State, c rune) string {

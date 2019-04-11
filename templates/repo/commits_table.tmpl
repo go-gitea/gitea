@@ -1,9 +1,13 @@
 <h4 class="ui top attached header">
 	<div class="ui stackable grid">
-		<div class="six wide column">
-			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
+		<div class="ten wide column">
+			{{if or .PageIsCommits (gt .CommitCount 0)}}
+				{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
+			{{else}}
+				{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}({{.Branch}}){{end}}
+			{{end}}
 		</div>
-		<div class="ten wide right aligned column">
+		<div class="six wide right aligned column">
 			{{if .PageIsCommits}}
 				<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL | EscapePound}}/search">
 					<div class="ui tiny search input">
@@ -23,7 +27,7 @@
 	</div>
 </h4>
 
-{{if .Commits}}
+{{if and .Commits (gt .CommitCount 0)}}
 	<div class="ui attached table segment">
 		<table class="ui very basic striped fixed table single line" id="commits-table">
 			<thead>
