@@ -113,35 +113,8 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 
-	var keywords, authors, committers []string
-	var after, before string
-
-	fields := strings.Fields(query)
-	for _, k := range fields {
-		switch {
-		case strings.HasPrefix(k, "author:"):
-			authors = append(authors, strings.TrimPrefix(k, "author:"))
-		case strings.HasPrefix(k, "committer:"):
-			committers = append(committers, strings.TrimPrefix(k, "committer:"))
-		case strings.HasPrefix(k, "after:"):
-			after = strings.TrimPrefix(k, "after:")
-		case strings.HasPrefix(k, "before:"):
-			before = strings.TrimPrefix(k, "before:")
-		default:
-			keywords = append(keywords, k)
-		}
-	}
-
 	all := ctx.QueryBool("all")
-
-	opts := git.SearchCommitsOptions{
-		Keywords:   keywords,
-		Authors:    authors,
-		Committers: committers,
-		After:      after,
-		Before:     before,
-		All:        all,
-	}
+	opts := git.NewSearchCommitsOptions(query, all)
 	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
