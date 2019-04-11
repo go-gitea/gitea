@@ -294,7 +294,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// test #1 - bad branch
+	// test - bad branch
 	opts := getUpdateRepoFileOptions(repo)
 	opts.OldBranch = "bad_branch"
 	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
@@ -303,7 +303,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// test #2 - bad SHA
+	// test - bad SHA
 	opts = getUpdateRepoFileOptions(repo)
 	origSHA := opts.SHA
 	opts.SHA = "bad_sha"
@@ -313,7 +313,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// test #3 - new branch already exists
+	// test - new branch already exists
 	opts = getUpdateRepoFileOptions(repo)
 	opts.NewBranch = "develop"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
@@ -322,31 +322,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "branch already exists [name: " + opts.NewBranch + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// test #4 - repo is nil
-	opts = getUpdateRepoFileOptions(repo)
-	fileResponse, err = CreateOrUpdateRepoFile(nil, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "repo cannot be nil"
-	assert.EqualError(t, err, expectedError)
-
-	// test #5 - doer is nil
-	opts = getUpdateRepoFileOptions(repo)
-	fileResponse, err = CreateOrUpdateRepoFile(repo, nil, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "doer cannot be nil"
-	assert.EqualError(t, err, expectedError)
-
-	// test #6 - opts is nil:
-	opts = getUpdateRepoFileOptions(repo)
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, nil)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "opts cannot be nil"
-	assert.EqualError(t, err, expectedError)
-
-	// test #7 - treePath is empty:
+	// test - treePath is empty:
 	opts = getUpdateRepoFileOptions(repo)
 	opts.TreePath = ""
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
@@ -355,7 +331,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "path contains a malformed path component [path: ]"
 	assert.EqualError(t, err, expectedError)
 
-	// test #8 - treePath is a git directory:
+	// test - treePath is a git directory:
 	opts = getUpdateRepoFileOptions(repo)
 	opts.TreePath = ".git"
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
@@ -364,7 +340,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	expectedError = "path contains a malformed path component [path: " + opts.TreePath + "]"
 	assert.EqualError(t, err, expectedError)
 
-	// test #9 - create file that already exists
+	// test - create file that already exists
 	opts = getCreateRepoFileOptions(repo)
 	opts.TreePath = "README.md" //already exists
 	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)

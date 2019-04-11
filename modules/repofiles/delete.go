@@ -27,16 +27,6 @@ type DeleteRepoFileOptions struct {
 
 // DeleteRepoFile deletes a file in the given repository
 func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
-	if repo == nil {
-		return nil, fmt.Errorf("repo cannot be nil")
-	}
-	if doer == nil {
-		return nil, fmt.Errorf("doer cannot be nil")
-	}
-	if opts == nil {
-		return nil, fmt.Errorf("opts cannot be nil")
-	}
-
 	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
