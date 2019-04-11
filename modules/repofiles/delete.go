@@ -146,16 +146,12 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
 			// CommitIDs don't match, but we don't want to throw a ErrCommitIDDoesNotMatch unless
 			// this specific file has been edited since opts.LastCommitID
-			files, err := commit.GetFilesChangedSinceCommit(opts.LastCommitID)
-			if err != nil {
+			if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
 				return nil, err
-			}
-			for _, file := range files {
-				if file == treePath {
-					return nil, models.ErrCommitIDDoesNotMatch{
-						GivenCommitID:   opts.LastCommitID,
-						CurrentCommitID: opts.LastCommitID,
-					}
+			} else if changed {
+				return nil, models.ErrCommitIDDoesNotMatch{
+					GivenCommitID:   opts.LastCommitID,
+					CurrentCommitID: opts.LastCommitID,
 				}
 			}
 			// The file wasn't modified, so we are good to delete it

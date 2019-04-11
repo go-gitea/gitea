@@ -143,24 +143,19 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				}
 			}
 		} else if opts.LastCommitID != "" {
+			fmt.Printf("HEEEEEEEEEERE: %s %s\n", opts.LastCommitID, commit.ID.String())
 			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
-				// CommitIDs don't match, but we don't want to throw a ErrCommitIDDoesNotMatch unless
-				// this specific file has been edited since opts.LastCommitID
-				files, err := commit.GetFilesChangedSinceCommit(opts.LastCommitID)
-				if err != nil {
+				if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
 					return nil, err
-				}
-				for _, file := range files {
-					if file == fromTreePath {
-						return nil, models.ErrCommitIDDoesNotMatch{
-							GivenCommitID:   opts.LastCommitID,
-							CurrentCommitID: opts.LastCommitID,
-						}
+				} else if changed {
+					return nil, models.ErrCommitIDDoesNotMatch{
+						GivenCommitID:   opts.LastCommitID,
+						CurrentCommitID: opts.LastCommitID,
 					}
 				}
-				// The file wasn't modified, so we are good to update it
+				// The file wasn't modified, so we are good to delete it
 			}
 		} else {
 			// When updating a file, a lastCommitID or SHA needs to be given to make sure other commits
