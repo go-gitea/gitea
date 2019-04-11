@@ -11,7 +11,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"go/build"
 	"html/template"
 	"io"
 	"math"
@@ -20,6 +19,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -611,11 +611,15 @@ func EntryIcon(entry *git.TreeEntry) string {
 func SetupGiteaRoot() string {
 	giteaRoot := os.Getenv("GITEA_ROOT")
 	if giteaRoot == "" {
-		goPath := os.Getenv("GOPATH")
-		if goPath == "" {
-			goPath = build.Default.GOPATH
+		_, filename, _, _ := runtime.Caller(0)
+		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
+		wd, err := os.Getwd()
+		if err != nil {
+			rel, err := filepath.Rel(giteaRoot, wd)
+			if err != nil && strings.HasPrefix(filepath.ToSlash(rel), "../") {
+				giteaRoot = wd
+			}
 		}
-		giteaRoot = filepath.Join(goPath, "src", "code.gitea.io", "gitea")
 		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
 			giteaRoot = ""
 		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
