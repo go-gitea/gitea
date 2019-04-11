@@ -203,7 +203,7 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 	// test without invalidation
 	setting.OAuth2.InvalidateRefreshTokens = false
 
-	refreshReq := NewRequestWithValues(t, "POST", "/login/oauht/access_token", map[string]string{
+	refreshReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "refresh_token",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
