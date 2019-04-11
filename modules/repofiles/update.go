@@ -143,7 +143,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				}
 			}
 		} else if opts.LastCommitID != "" {
-			fmt.Printf("HEEEEEEEEEERE: %s %s\n", opts.LastCommitID, commit.ID.String())
 			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
