@@ -153,28 +153,16 @@ pre, code {
         overflow: auto;
     }
     &.wrap {
-        white-space: pre-wrap;       /* CSS 3 */
-//      white-space: -moz-normal;    /* Mozilla, since 1999 */
-//      white-space: -normal;        /* Opera 4-6 */
-//      white-space: -o-normal;      /* Opera 7 */
-
-        -ms-word-break: break-all;
+        white-space: pre-wrap;
         word-break: break-all;
-
-        /* These are technically the same, but use both */
         overflow-wrap: break-word;
         word-wrap: break-word;
     }
 }
 .dont-break-out {
-    /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
-
-    -ms-word-break: break-all;
     word-break: break-all;
-
-    /* Adds a hyphen where the word breaks, if supported (No Blink) */
     hyphens: auto;
 }
 .full.height {
@@ -184,8 +172,7 @@ pre, code {
 .following.bar {
     z-index: 900;
     left: 0;
-    width: 100%;
-    margin: 0;
+    margin: 0 !important;
     &.light {
         background-color: white;
         border-bottom: 1px solid #DDDDDD;
@@ -229,6 +216,7 @@ pre, code {
     }
     #navbar {
         width: 100vw;
+        min-height: 52px;
         padding: 0 .5rem;
     }
     #navbar .brand {
