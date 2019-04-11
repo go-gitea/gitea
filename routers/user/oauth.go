@@ -366,7 +366,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	}
 
 	// check if token got already used
-	if grant.Counter != token.Counter || token.Counter == 0 {
+	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
