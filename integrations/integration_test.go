@@ -81,6 +81,8 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
+	writerCloser.t = nil
+
 	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("os.RemoveAll: %v\n", err)
 		os.Exit(1)
