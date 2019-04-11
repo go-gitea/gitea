@@ -254,10 +254,10 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 			cmd.AddArguments("--committer=" + v)
 		}
 	}
-	if opts.After != "" {
+	if len(opts.After) > 0 {
 		cmd.AddArguments("--after=" + opts.After)
 	}
-	if opts.Before != "" {
+	if len(opts.Before) > 0 {
 		cmd.AddArguments("--before=" + opts.Before)
 	}
 	if opts.All {
