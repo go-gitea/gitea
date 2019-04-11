@@ -293,7 +293,7 @@ var (
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
-		DefaultMaxBlobSize     int64
+		DefaultMaxBlobSize     int
 	}{
 		EnableSwagger:          true,
 		MaxResponseItems:       50,
