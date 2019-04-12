@@ -466,6 +466,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 36
