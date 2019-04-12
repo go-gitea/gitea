@@ -151,7 +151,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 		}
-		// Validate the form.MirrorAddress
 
 		// Validate the form.MirrorAddress
 		u, err := url.Parse(form.MirrorAddress)
