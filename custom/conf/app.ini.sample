@@ -680,6 +680,8 @@ ENABLED = true
 ACCESS_TOKEN_EXPIRATION_TIME=3600
 ; Lifetime of an OAuth2 access token in hours
 REFRESH_TOKEN_EXPIRATION_TIME=730
+; Check if refresh token got already used
+INVALIDATE_REFRESH_TOKENS=false
 ; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 

@@ -215,5 +215,6 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
+	MakeRequest(t, refreshReq, 200)
 	MakeRequest(t, refreshReq, 400)
 }
