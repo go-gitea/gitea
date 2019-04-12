@@ -106,7 +106,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 				Email: commit.Committer.Email,
 				Date:  commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Summary(),
+			Message: commit.Message(),
 			Tree: &api.CommitMeta{
 				URL: ctx.Repo.Repository.APIURL() + "/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),
