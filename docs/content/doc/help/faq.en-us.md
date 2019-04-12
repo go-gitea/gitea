@@ -35,6 +35,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Gitea is running slow](#gitea-is-running-slow)
 * [Can't create repositories/files](#cant-create-repositories-files)
 * [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
+* [Hooks aren't running](#hooks-aren-t-running)
 * [SSH Issues](#ssh-issues)
   * [SSH Common Errors](#ssh-common-errors)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
@@ -160,17 +161,25 @@ Which makes all other paths non-writeable to Gitea.
 Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## SSH issues
+## Hooks aren't running
+If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
+See [SSH Issues](#ssh-issues) for more information.  
+  
+You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
 
+## SSH issues
 If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
 
 First, make sure you can access Gitea via SSH.  
 `ssh -i ~/.ssh/<keyfile> git@myremote.example`  
+
 If the connection is successful, you should receive an error message like the following:
 ```
 Hi there, You've successfully authenticated, but Gitea does not provide shell access.
 If this is unexpected, please log in with password and setup Gitea under another user.
 ```
+
+If you do not get the above message, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
 
 ### SSH Common Errors
 
