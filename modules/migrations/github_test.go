@@ -60,7 +60,7 @@ func assertLabelEqual(t *testing.T, name, color string, label *base.Label) {
 }
 
 func TestGitHubDownloadRepo(t *testing.T) {
-	downloader := NewGithubDownloaderV3("", "go-gitea", "gitea")
+	downloader := NewGithubDownloaderV3("", "", "go-gitea", "gitea")
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
