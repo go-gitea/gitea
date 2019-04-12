@@ -214,9 +214,48 @@ func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 	return c.repo.CommitsBetween(c, endCommit)
 }
 
+// SearchCommitsOptions specify the parameters for SearchCommits
+type SearchCommitsOptions struct {
+	Keywords            []string
+	Authors, Committers []string
+	After, Before       string
+	All                 bool
+}
+
+// NewSearchCommitsOptions contruct a SearchCommitsOption from a space-delimited search string
+func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommitsOptions {
+	var keywords, authors, committers []string
+	var after, before string
+
+	fields := strings.Fields(searchString)
+	for _, k := range fields {
+		switch {
+		case strings.HasPrefix(k, "author:"):
+			authors = append(authors, strings.TrimPrefix(k, "author:"))
+		case strings.HasPrefix(k, "committer:"):
+			committers = append(committers, strings.TrimPrefix(k, "committer:"))
+		case strings.HasPrefix(k, "after:"):
+			after = strings.TrimPrefix(k, "after:")
+		case strings.HasPrefix(k, "before:"):
+			before = strings.TrimPrefix(k, "before:")
+		default:
+			keywords = append(keywords, k)
+		}
+	}
+
+	return SearchCommitsOptions{
+		Keywords:   keywords,
+		Authors:    authors,
+		Committers: committers,
+		After:      after,
+		Before:     before,
+		All:        forAllRefs,
+	}
+}
+
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(keyword string, all bool) (*list.List, error) {
-	return c.repo.searchCommits(c.ID, keyword, all)
+func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
+	return c.repo.searchCommits(c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision

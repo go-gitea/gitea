@@ -172,7 +172,6 @@ type AccessTokenForm struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
-	// TODO Specify authentication code length to prevent against birthday attacks
 	Code         string
 	RefreshToken string
 
