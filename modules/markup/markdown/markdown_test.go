@@ -19,6 +19,12 @@ const AppURL = "http://localhost:3000/"
 const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
+// these values should match the Repo const above
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_StandardLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
@@ -100,7 +106,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>Ideas and codes</p>
 
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">ocornut/imgui#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
@@ -188,6 +195,7 @@ var sameCases = []string{
 Ideas and codes
 
 - Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
+- Bezier widget (by @r-lyeh) ` + AppURL + `gogits/gogs/issues/786
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
@@ -243,7 +251,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderWiki([]byte(sameCases[i]), AppSubURL, nil)
+		line := RenderWiki([]byte(sameCases[i]), AppSubURL, localMetas)
 		assert.Equal(t, answers[i], line)
 	}
 
@@ -270,7 +278,7 @@ func TestTotal_RenderString(t *testing.T) {
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), nil)
+		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), localMetas)
 		assert.Equal(t, answers[i], line)
 	}
 
