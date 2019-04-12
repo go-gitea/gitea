@@ -430,3 +430,14 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+
+-
+  id: 36
+  owner_id: 2
+  lower_name: commits_search_test
+  name: commits_search_test
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false

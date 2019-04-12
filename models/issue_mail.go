@@ -118,17 +118,25 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func (issue *Issue) MailParticipants() (err error) {
-	return issue.mailParticipants(x)
+func (issue *Issue) MailParticipants(opType ActionType) (err error) {
+	return issue.mailParticipants(x, opType)
 }
 
-func (issue *Issue) mailParticipants(e Engine) (err error) {
+func (issue *Issue) mailParticipants(e Engine, opType ActionType) (err error) {
 	mentions := markup.FindAllMentions(issue.Content)
 	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, issue.Content, nil, mentions); err != nil {
+	var content = issue.Content
+	switch opType {
+	case ActionCloseIssue, ActionClosePullRequest:
+		content = fmt.Sprintf("Closed #%d", issue.Index)
+	case ActionReopenIssue, ActionReopenPullRequest:
+		content = fmt.Sprintf("Reopened #%d", issue.Index)
+	}
+
+	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, content, nil, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 
