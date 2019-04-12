@@ -22,8 +22,6 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
 
-	// Pagination link params
-	context.DefaultPaginationParams(ctx)
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.Admin.OrgPagingNum,

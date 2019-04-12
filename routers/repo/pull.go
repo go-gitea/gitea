@@ -396,9 +396,6 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
-	// Pagination link params
-	context.DefaultPaginationParams(ctx)
-
 	ctx.HTML(200, tplPullCommits)
 }
 
@@ -836,10 +833,6 @@ func CompareAndPullRequest(ctx *context.Context) {
 	} else {
 		ctx.Data["HasPullRequest"] = true
 		ctx.Data["PullRequest"] = pr
-
-		// Pagination link params
-		context.DefaultPaginationParams(ctx)
-
 		ctx.HTML(200, tplComparePull)
 		return
 	}

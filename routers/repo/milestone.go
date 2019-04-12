@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -51,7 +50,6 @@ func Milestones(ctx *context.Context) {
 	} else {
 		total = int(closedCount)
 	}
-	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 
 	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
@@ -78,8 +76,10 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	context.ClearPaginationParam(ctx)
-	context.AddPaginationParam(ctx, "state", "State")
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "state", "State")
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplMilestone)
 }
 
@@ -270,15 +270,6 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	}
 	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = perm.CanWriteIssuesOrPulls(true)
-
-	context.ClearPaginationParam(ctx)
-	context.AddPaginationParam(ctx, "q", "Keyword")
-	context.AddPaginationParam(ctx, "type", "ViewType")
-	context.AddPaginationParam(ctx, "sort", "SortType")
-	context.AddPaginationParam(ctx, "state", "State")
-	context.AddPaginationParam(ctx, "labels", "SelectLabels")
-	context.AddPaginationParam(ctx, "milestone", "MilestoneID")
-	context.AddPaginationParam(ctx, "assignee", "AssigneeID")
 
 	ctx.HTML(200, tplMilestoneIssues)
 }

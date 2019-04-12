@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -187,8 +186,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	} else {
 		total = int(issueStats.ClosedCount)
 	}
-	pager := paginater.New(total, setting.UI.IssuePagingNum, page, 5)
-	ctx.Data["Page"] = pager
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
 	var issues []*models.Issue
 	if forceEmpty {
@@ -200,7 +198,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
-			Page:        pager.Current(),
+			Page:        pager.Paginater.Current(),
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
@@ -269,6 +267,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	} else {
 		ctx.Data["State"] = "open"
 	}
+
+	pager.AddParam(ctx, "q", "Keyword")
+	pager.AddParam(ctx, "type", "ViewType")
+	pager.AddParam(ctx, "sort", "SortType")
+	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "labels", "SelectLabels")
+	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "assignee", "AssigneeID")
+	ctx.Data["Page"] = pager
 }
 
 // Issues render issues page
@@ -306,15 +313,6 @@ func Issues(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CanWriteIssuesOrPulls"] = perm.CanWriteIssuesOrPulls(isPullList)
-
-	context.ClearPaginationParam(ctx)
-	context.AddPaginationParam(ctx, "q", "Keyword")
-	context.AddPaginationParam(ctx, "type", "ViewType")
-	context.AddPaginationParam(ctx, "sort", "SortType")
-	context.AddPaginationParam(ctx, "state", "State")
-	context.AddPaginationParam(ctx, "labels", "SelectLabels")
-	context.AddPaginationParam(ctx, "milestone", "MilestoneID")
-	context.AddPaginationParam(ctx, "assignee", "AssigneeID")
 
 	ctx.HTML(200, tplIssues)
 }

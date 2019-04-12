@@ -23,8 +23,6 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	// Pagination link params
-	context.DefaultPaginationParams(ctx)
 	routers.RenderRepoSearch(ctx, &routers.RepoSearchOptions{
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,
