@@ -350,6 +350,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLED`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
 ## i18n (`i18n`)
