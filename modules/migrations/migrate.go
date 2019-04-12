@@ -32,11 +32,11 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 
 	switch source {
 	case MigrateFromGithub:
-		if opts.AuthUsername != "" && opts.AuthPassword == "" {
+		if opts.AuthUsername != "" {
 			fields := strings.Split(url.Path, "/")
 			oldOwner := fields[1]
 			oldName := strings.TrimSuffix(fields[2], ".git")
-			downloader = NewGithubDownloaderV3(opts.AuthUsername, oldOwner, oldName)
+			downloader = NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName)
 			log.Trace("Will migrate from github: %s/%s", oldOwner, oldName)
 		}
 	}

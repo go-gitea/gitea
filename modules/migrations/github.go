@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/migrations/base"
 
@@ -27,37 +28,40 @@ type GithubDownloaderV3 struct {
 	client    *github.Client
 	repoOwner string
 	repoName  string
-	token     string
+	userName  string
+	password  string
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(token, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *GithubDownloaderV3 {
 	var downloader = GithubDownloaderV3{
-		token:     token,
+		userName:  userName,
+		password:  password,
 		ctx:       context.Background(),
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}
 
 	var client *http.Client
-	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		client = oauth2.NewClient(downloader.ctx, ts)
+	if userName != "" {
+		if password == "" {
+			ts := oauth2.StaticTokenSource(
+				&oauth2.Token{AccessToken: userName},
+			)
+			client = oauth2.NewClient(downloader.ctx, ts)
+		} else {
+			client = &http.Client{
+				Transport: &http.Transport{
+					Proxy: func(req *http.Request) (*url.URL, error) {
+						req.SetBasicAuth(userName, password)
+						return nil, nil
+					},
+				},
+			}
+		}
 	}
 	downloader.client = github.NewClient(client)
 	return &downloader
-}
-
-// NewGithubDownloaderV3WithClient creates a github Downloader via github v3 API with exsting client
-func NewGithubDownloaderV3WithClient(ghClient *github.Client, repoOwner, repoName string) *GithubDownloaderV3 {
-	return &GithubDownloaderV3{
-		ctx:       context.Background(),
-		repoOwner: repoOwner,
-		repoName:  repoName,
-		client:    ghClient,
-	}
 }
 
 // GetRepoInfo returns a repository information
@@ -179,8 +183,10 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
+		u, _ := url.Parse(*asset.BrowserDownloadURL)
+		u.User = url.UserPassword(g.userName, g.password)
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:           *asset.BrowserDownloadURL + "?access_token=" + g.token,
+			URL:           u.String(),
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,

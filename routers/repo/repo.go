@@ -249,7 +249,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, migrations.MigrateOptions{
+	var opts = migrations.MigrateOptions{
 		RemoteURL:    remoteAddr,
 		Name:         form.RepoName,
 		Description:  form.Description,
@@ -264,7 +264,17 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		Comments:     true,
 		PullRequests: form.PullRequests,
 		Releases:     form.Releases,
-	})
+	}
+	if opts.Mirror {
+		opts.Issues = false
+		opts.Milestones = false
+		opts.Labels = false
+		opts.Comments = false
+		opts.PullRequests = false
+		opts.Releases = false
+	}
+
+	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
 
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s successfully", repo.ID, ctxUser.Name, form.RepoName)

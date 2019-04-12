@@ -989,7 +989,8 @@ var toggleMigrations = function(){
 }
 
 function initMigration() {
-    $('#migrate_items').hide();
+    toggleMigrations();
+
     $('#clone_addr').on('input', toggleMigrations)
     $('#auth_username').on('input', toggleMigrations)
     $('#mirror').on('change', toggleMigrations)
