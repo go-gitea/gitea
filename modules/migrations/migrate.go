@@ -54,7 +54,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
-			log.Error(4, "rollback failed: %v", err1)
+			log.Error("rollback failed: %v", err1)
 		}
 		return nil, err
 	}

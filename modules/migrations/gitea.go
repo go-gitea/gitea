@@ -319,7 +319,7 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 				// git remote add
 				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
 				if err != nil {
-					log.Error(4, "AddRemote failed: %s", err)
+					log.Error("AddRemote failed: %s", err)
 				} else {
 					g.prHeadCache[remote] = struct{}{}
 					ok = true
@@ -329,7 +329,7 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 			if ok {
 				_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
 				if err != nil {
-					log.Error(4, "Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
 					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
 					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
