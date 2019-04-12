@@ -162,7 +162,7 @@ Whether you want to change a translation or add a new one, it will need to be th
 
 ## SSH issues
 
-If you cannot reach repositories over `ssh`, but `https` based git repository access works fine, consider looking into the following.
+If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
 
 First, make sure you can access Gitea via SSH.  
 `ssh -i ~/.ssh/<keyfile> git@myremote.example`  
