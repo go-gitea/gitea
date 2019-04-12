@@ -36,6 +36,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Can't create repositories/files](#cant-create-repositories-files)
 * [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
 * [SSH Issues](#ssh-issues)
+  * [SSH Common Errors](#ssh-common-errors)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
 * [LFS Issues](#lfs-issues)
 
@@ -128,7 +129,7 @@ The current way to achieve this is to create/modify a user with a max repo creat
 
 ### Enable Fail2ban
 
-Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts and other malicious behavior based on log patterns
+Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
@@ -161,8 +162,17 @@ Whether you want to change a translation or add a new one, it will need to be th
 
 ## SSH issues
 
-For issues reaching repositories over `ssh` while the Gitea web front-end, but
-`https` based git repository access works fine, consider looking into the following.
+If you cannot reach repositories over `ssh`, but `https` based git repository access works fine, consider looking into the following.
+
+First, make sure you can access Gitea via SSH.  
+`ssh -i ~/.ssh/<keyfile> git@myremote.example`  
+If the connection is successful, you should receive an error message like the following:
+```
+Hi there, You've successfully authenticated, but Gitea does not provide shell access.
+If this is unexpected, please log in with password and setup Gitea under another user.
+```
+
+### SSH Common Errors
 
 ```
 Permission denied (publickey).
@@ -177,12 +187,10 @@ following things:
   * Make sure there are no issues in the remote url. In particular, ensure the name of the
     git user (before the `@`) is spelled correctly.
   * Ensure public and private ssh keys are correct on client machine.
-  * Try to connect using ssh (ssh git@myremote.example) to ensure a connection
-    can be made.
 * On the server:
   * Make sure the repository exists and is correctly named.
   * Check the permissions of the `.ssh` directory in the system user's home directory.
-  * Verify that the correct public keys are added to `.ssh/authorized_keys`.
+  * Verify that the correct public keys are added to `.ssh/authorized_keys`.  
     Try to run `Rewrite '.ssh/authorized_keys' file (for Gitea SSH keys)` on the
     Gitea admin panel.
   * Read Gitea logs.
