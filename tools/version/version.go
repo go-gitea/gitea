@@ -34,15 +34,15 @@ func main() {
 
 	// Create or overwrite the go file from template
 	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, v); nil != err {
+	if err := tpl.Execute(&buf, v); err != nil {
 		panic(err)
 	}
 	src, err := format.Source(buf.Bytes())
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	f, err := os.Create(file)
-	if nil != err {
+	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
@@ -56,15 +56,15 @@ type meta struct {
 
 func getVersion(gitea, drone, verenv string) string {
 	// GITEA_VERSION takes priority, always
-	if 0 != len(gitea) {
+	if len(gitea) != 0 {
 		return gitea
 	}
 
 	// DRONE_TAG version comes next
-	if 0 != len(drone) {
+	if len(drone) != 0 {
 		// Only when DRONE_TAG is set does VERSION takes precedence
 		// over both DRONE_TAG and the GIT DESCRIPTION
-		if 0 != len(verenv) {
+		if len(verenv) != 0 {
 			return verenv
 		}
 		return strings.TrimLeft(drone, "v")
@@ -74,7 +74,7 @@ func getVersion(gitea, drone, verenv string) string {
 	tagcmd := strings.Split("git describe --tags --always", " ")
 	cmd := exec.Command(tagcmd[0], tagcmd[1:]...)
 	out, err := cmd.CombinedOutput()
-	if nil != err {
+	if err != nil {
 		panic(strings.Join(tagcmd, " ") + ": " + err.Error() + "\n" + string(out))
 	}
 	desc := strings.TrimSpace(string(out))
