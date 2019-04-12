@@ -79,14 +79,14 @@ func TestDeleteRepoFile(t *testing.T) {
 	doer := ctx.User
 	opts := getDeleteRepoFileOptions(repo)
 
-	t.Run("Delete README.md file", func (t *testing.T) {
+	t.Run("Delete README.md file", func(t *testing.T) {
 		fileResponse, err := DeleteRepoFile(repo, doer, opts)
 		assert.Nil(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse()
 		assert.EqualValues(t, expectedFileResponse, fileResponse)
 	})
 
-	t.Run("Verify README.md has been deleted", func (t *testing.T) {
+	t.Run("Verify README.md has been deleted", func(t *testing.T) {
 		fileResponse, err := DeleteRepoFile(repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
@@ -110,7 +110,7 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 	opts.OldBranch = ""
 	opts.NewBranch = ""
 
-	t.Run("Delete README.md without Branch Name", func (t *testing.T) {
+	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
 		fileResponse, err := DeleteRepoFile(repo, doer, opts)
 		assert.Nil(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse()

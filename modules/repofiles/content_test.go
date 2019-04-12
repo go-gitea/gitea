@@ -47,7 +47,6 @@ func TestGetFileContents(t *testing.T) {
 		},
 	}
 
-
 	t.Run("Get README.md contents", func(t *testing.T) {
 		fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
