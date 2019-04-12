@@ -171,7 +171,7 @@ You can also try logging into the administration panel and running the `Resynchr
 If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
 
 First, make sure you can access Gitea via SSH.  
-`ssh -i ~/.ssh/<keyfile> git@myremote.example`  
+`ssh git@myremote.example`  
 
 If the connection is successful, you should receive an error message like the following:
 ```
@@ -179,7 +179,10 @@ Hi there, You've successfully authenticated, but Gitea does not provide shell ac
 If this is unexpected, please log in with password and setup Gitea under another user.
 ```
 
-If you do not get the above message, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
+If you do not get the above message but still connect, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
+
+If you cannot connect at all, your SSH key may not be configured correctly locally. 
+This is specific to SSH and not Gitea, so will not be covered here. 
 
 ### SSH Common Errors
 
