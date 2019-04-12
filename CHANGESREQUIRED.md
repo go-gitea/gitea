@@ -2,7 +2,7 @@
 
 https://github.com/go-gitea/gitea/issues/5964
 
-- [ ] `models/webhook_msteams.go`
+- [X] `models/webhook_msteams.go`
 - [ ] `templates/repo/settings/webhook/discord.tmpl`
 - [ ] `templates/org/settings/hook_new.tmpl`
 - [ ] `templates/repo/settings/webhook/new.tmpl`
@@ -18,3 +18,5 @@ https://github.com/go-gitea/gitea/issues/5964
 - [ ] `CHANGELOG.md`
 - [ ] `options/locale/*.ini`
 - [ ] `templates/swagger/v1_json.tmpl` ?
+
+Use https://messagecardplayground.azurewebsites.net/

@@ -456,6 +456,7 @@ const (
 	GITEA
 	DISCORD
 	DINGTALK
+	MSTEAMS
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -464,6 +465,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"slack":    SLACK,
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
+	"teams":    MSTEAMS,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -484,6 +486,8 @@ func (t HookTaskType) Name() string {
 		return "discord"
 	case DINGTALK:
 		return "dingtalk"
+	case MSTEAMS:
+		return "teams"
 	}
 	return ""
 }
