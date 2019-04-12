@@ -47,14 +47,18 @@ func TestGetFileContents(t *testing.T) {
 		},
 	}
 
-	fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref)
-	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
-	assert.Nil(t, err)
 
-	// test with ref as empty string (should then use the repo's default branch)
-	fileContentResponse, _ = GetFileContents(ctx.Repo.Repository, treePath, "")
-	assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
-	assert.Nil(t, err)
+	t.Run("Get README.md contents", func(t *testing.T) {
+		fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref)
+		assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch)", func(t *testing.T) {
+		fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, "")
+		assert.EqualValues(t, expectedFileContentResponse, fileContentResponse)
+		assert.Nil(t, err)
+	})
 }
 
 func TestGetFileContentsErrors(t *testing.T) {
@@ -69,30 +73,19 @@ func TestGetFileContentsErrors(t *testing.T) {
 	treePath := "README.md"
 	ref := repo.DefaultBranch
 
-	// nil repo
-	fileContentResponse, err := GetFileContents(nil, treePath, ref)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "repo cannot be nil")
-	assert.Nil(t, fileContentResponse)
+	t.Run("bad treePath", func(t *testing.T) {
+		badTreePath := "bad/tree.md"
+		fileContentResponse, err := GetFileContents(repo, badTreePath, ref)
+		assert.Error(t, err)
+		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
+		assert.Nil(t, fileContentResponse)
+	})
 
-	// empty treePath
-	badTreePath := ""
-	fileContentResponse, err = GetFileContents(repo, badTreePath, ref)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "treePath cannot be empty")
-	assert.Nil(t, fileContentResponse)
-
-	// bad treePath
-	badTreePath = "bad/tree.md"
-	fileContentResponse, err = GetFileContents(repo, badTreePath, ref)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
-	assert.Nil(t, fileContentResponse)
-
-	// bad ref
-	badRef := "bad_ref"
-	fileContentResponse, err = GetFileContents(repo, treePath, badRef)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
-	assert.Nil(t, fileContentResponse)
+	t.Run("bad ref", func(t *testing.T) {
+		badRef := "bad_ref"
+		fileContentResponse, err := GetFileContents(repo, treePath, badRef)
+		assert.Error(t, err)
+		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
+		assert.Nil(t, fileContentResponse)
+	})
 }

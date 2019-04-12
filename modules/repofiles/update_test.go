@@ -294,58 +294,64 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// test - bad branch
-	opts := getUpdateRepoFileOptions(repo)
-	opts.OldBranch = "bad_branch"
-	fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Error(t, err)
-	assert.Nil(t, fileResponse)
-	expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("bad branch", func(t *testing.T) {
+		opts := getUpdateRepoFileOptions(repo)
+		opts.OldBranch = "bad_branch"
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Error(t, err)
+		assert.Nil(t, fileResponse)
+		expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - bad SHA
-	opts = getUpdateRepoFileOptions(repo)
-	origSHA := opts.SHA
-	opts.SHA = "bad_sha"
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("bad SHA", func(t *testing.T) {
+		opts := getUpdateRepoFileOptions(repo)
+		origSHA := opts.SHA
+		opts.SHA = "bad_sha"
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - new branch already exists
-	opts = getUpdateRepoFileOptions(repo)
-	opts.NewBranch = "develop"
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "branch already exists [name: " + opts.NewBranch + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("new branch already exists", func(t *testing.T) {
+		opts := getUpdateRepoFileOptions(repo)
+		opts.NewBranch = "develop"
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "branch already exists [name: " + opts.NewBranch + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - treePath is empty:
-	opts = getUpdateRepoFileOptions(repo)
-	opts.TreePath = ""
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "path contains a malformed path component [path: ]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("treePath is empty:", func(t *testing.T) {
+		opts := getUpdateRepoFileOptions(repo)
+		opts.TreePath = ""
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "path contains a malformed path component [path: ]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - treePath is a git directory:
-	opts = getUpdateRepoFileOptions(repo)
-	opts.TreePath = ".git"
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "path contains a malformed path component [path: " + opts.TreePath + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("treePath is a git directory:", func(t *testing.T) {
+		opts := getUpdateRepoFileOptions(repo)
+		opts.TreePath = ".git"
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - create file that already exists
-	opts = getCreateRepoFileOptions(repo)
-	opts.TreePath = "README.md" //already exists
-	fileResponse, err = CreateOrUpdateRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "repository file already exists [path: " + opts.TreePath + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("create file that already exists", func(t *testing.T) {
+		opts := getCreateRepoFileOptions(repo)
+		opts.TreePath = "README.md" //already exists
+		fileResponse, err := CreateOrUpdateRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "repository file already exists [path: " + opts.TreePath + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 }

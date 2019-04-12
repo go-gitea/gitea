@@ -97,15 +97,17 @@ func TestGetDiffPreview(t *testing.T) {
 		IsIncomplete: false,
 	}
 
-	// Test with given branch
-	diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
-	assert.Nil(t, err)
-	assert.EqualValues(t, expectedDiff, diff)
+	t.Run("with given branch", func(t *testing.T) {
+		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
+		assert.Nil(t, err)
+		assert.EqualValues(t, expectedDiff, diff)
+	})
 
-	// Test empty branch, same results
-	diff, err = GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
-	assert.Nil(t, err)
-	assert.EqualValues(t, expectedDiff, diff)
+	t.Run("empty branch, same results", func(t *testing.T) {
+		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
+		assert.Nil(t, err)
+		assert.EqualValues(t, expectedDiff, diff)
+	})
 }
 
 func TestGetDiffPreviewErrors(t *testing.T) {
@@ -120,24 +122,22 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	treePath := "README.md"
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
-	// Test nil repo
-	diff, err := GetDiffPreview(nil, branch, treePath, content)
-	assert.Nil(t, diff)
-	assert.EqualError(t, err, "repository cannot be nil")
+	t.Run("empty repo", func(t *testing.T) {
+		diff, err := GetDiffPreview(&models.Repository{}, branch, treePath, content)
+		assert.Nil(t, diff)
+		assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
+	})
 
-	// Test empty repo
-	diff, err = GetDiffPreview(&models.Repository{}, branch, treePath, content)
-	assert.Nil(t, diff)
-	assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
+	t.Run("bad branch", func(t *testing.T) {
+		badBranch := "bad_branch"
+		diff, err := GetDiffPreview(ctx.Repo.Repository, badBranch, treePath, content)
+		assert.Nil(t, diff)
+		assert.EqualError(t, err, "branch does not exist [name: "+badBranch+"]")
+	})
 
-	// Test bad branch
-	badBranch := "bad_branch"
-	diff, err = GetDiffPreview(ctx.Repo.Repository, badBranch, treePath, content)
-	assert.Nil(t, diff)
-	assert.EqualError(t, err, "branch does not exist [name: "+badBranch+"]")
-
-	// Test empty treePath
-	diff, err = GetDiffPreview(ctx.Repo.Repository, branch, "", content)
-	assert.Nil(t, diff)
-	assert.EqualError(t, err, "path is invalid [path: ]")
+	t.Run("empty treePath", func(t *testing.T) {
+		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, "", content)
+		assert.Nil(t, diff)
+		assert.EqualError(t, err, "path is invalid [path: ]")
+	})
 }

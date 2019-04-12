@@ -38,9 +38,6 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 	if err := os.MkdirAll(path.Dir(basePath), os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create dir %s: %v", basePath, err)
 	}
-	if repo == nil {
-		return nil, fmt.Errorf("repository cannot be nil")
-	}
 	if repo.RepoPath() == "" {
 		return nil, fmt.Errorf("no path to repository on system")
 	}

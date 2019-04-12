@@ -79,20 +79,19 @@ func TestDeleteRepoFile(t *testing.T) {
 	doer := ctx.User
 	opts := getDeleteRepoFileOptions(repo)
 
-	// test - Delete the README.md file
-	// actual test
-	fileResponse, err := DeleteRepoFile(repo, doer, opts)
+	t.Run("Delete README.md file", func (t *testing.T) {
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, err)
+		expectedFileResponse := getExpectedDeleteFileResponse()
+		assert.EqualValues(t, expectedFileResponse, fileResponse)
+	})
 
-	// asserts
-	assert.Nil(t, err)
-	expectedFileResponse := getExpectedDeleteFileResponse()
-	assert.EqualValues(t, expectedFileResponse, fileResponse)
-
-	// test - Verify deleted by trying to delete again
-	fileResponse, err = DeleteRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("Verify README.md has been deleted", func (t *testing.T) {
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 }
 
 // Test opts with branch names removed, same results
@@ -111,13 +110,12 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 	opts.OldBranch = ""
 	opts.NewBranch = ""
 
-	// test - Delete README.md file
-	fileResponse, err := DeleteRepoFile(repo, doer, opts)
-
-	// asserts
-	assert.Nil(t, err)
-	expectedFileResponse := getExpectedDeleteFileResponse()
-	assert.EqualValues(t, expectedFileResponse, fileResponse)
+	t.Run("Delete README.md without Branch Name", func (t *testing.T) {
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, err)
+		expectedFileResponse := getExpectedDeleteFileResponse()
+		assert.EqualValues(t, expectedFileResponse, fileResponse)
+	})
 }
 
 func TestDeleteRepoFileErrors(t *testing.T) {
@@ -132,49 +130,54 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 
-	// test - bad branch
-	opts := getDeleteRepoFileOptions(repo)
-	opts.OldBranch = "bad_branch"
-	fileResponse, err := DeleteRepoFile(repo, doer, opts)
-	assert.Error(t, err)
-	assert.Nil(t, fileResponse)
-	expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("Bad branch", func(t *testing.T) {
+		opts := getDeleteRepoFileOptions(repo)
+		opts.OldBranch = "bad_branch"
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Error(t, err)
+		assert.Nil(t, fileResponse)
+		expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - bad SHA
-	opts = getDeleteRepoFileOptions(repo)
-	origSHA := opts.SHA
-	opts.SHA = "bad_sha"
-	fileResponse, err = DeleteRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("Bad SHA", func(t *testing.T) {
+		opts := getDeleteRepoFileOptions(repo)
+		origSHA := opts.SHA
+		opts.SHA = "bad_sha"
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - new branch already exists
-	opts = getDeleteRepoFileOptions(repo)
-	opts.NewBranch = "develop"
-	fileResponse, err = DeleteRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "branch already exists [name: " + opts.NewBranch + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("New branch already exists", func(t *testing.T) {
+		opts := getDeleteRepoFileOptions(repo)
+		opts.NewBranch = "develop"
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "branch already exists [name: " + opts.NewBranch + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - treePath is empty:
-	opts = getDeleteRepoFileOptions(repo)
-	opts.TreePath = ""
-	fileResponse, err = DeleteRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "path contains a malformed path component [path: ]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("TreePath is empty:", func(t *testing.T) {
+		opts := getDeleteRepoFileOptions(repo)
+		opts.TreePath = ""
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "path contains a malformed path component [path: ]"
+		assert.EqualError(t, err, expectedError)
+	})
 
-	// test - treePath is a git directory:
-	opts = getDeleteRepoFileOptions(repo)
-	opts.TreePath = ".git"
-	fileResponse, err = DeleteRepoFile(repo, doer, opts)
-	assert.Nil(t, fileResponse)
-	assert.Error(t, err)
-	expectedError = "path contains a malformed path component [path: " + opts.TreePath + "]"
-	assert.EqualError(t, err, expectedError)
+	t.Run("TreePath is a git directory:", func(t *testing.T) {
+		opts := getDeleteRepoFileOptions(repo)
+		opts.TreePath = ".git"
+		fileResponse, err := DeleteRepoFile(repo, doer, opts)
+		assert.Nil(t, fileResponse)
+		assert.Error(t, err)
+		expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"
+		assert.EqualError(t, err, expectedError)
+	})
 }

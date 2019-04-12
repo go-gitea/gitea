@@ -88,30 +88,3 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, expectedFileResponse, fileResponse)
 }
-
-// Test errors thrown by GetFileResponseFromCommit
-func TestGetFileResponseFromCommitErrors(t *testing.T) {
-	models.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
-	repo := ctx.Repo.Repository
-	branch := repo.DefaultBranch
-	treePath := "README.md"
-
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	commit, err := gitRepo.GetBranchCommit(branch)
-
-	// nil repo
-	fileResponse, err := GetFileResponseFromCommit(nil, commit, branch, treePath)
-	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "repo cannot be nil")
-
-	// nil commit
-	fileResponse, err = GetFileResponseFromCommit(repo, nil, branch, treePath)
-	assert.Nil(t, fileResponse)
-	assert.EqualError(t, err, "commit cannot be nil")
-}

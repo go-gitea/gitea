@@ -5,7 +5,6 @@
 package repofiles
 
 import (
-	"fmt"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -15,12 +14,6 @@ import (
 
 // GetFileContents gets the meta data on a file's contents
 func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileContentResponse, error) {
-	if repo == nil {
-		return nil, fmt.Errorf("repo cannot be nil")
-	}
-	if treePath == "" {
-		return nil, fmt.Errorf("treePath cannot be empty")
-	}
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
