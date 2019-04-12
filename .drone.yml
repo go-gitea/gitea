@@ -240,7 +240,6 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  docker:
   release-docker:
     image: plugins/docker:17.12
     pull: true
