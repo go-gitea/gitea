@@ -32,6 +32,7 @@ type GPGKey struct {
 	KeyID             string         `xorm:"INDEX CHAR(16) NOT NULL"`
 	PrimaryKeyID      string         `xorm:"CHAR(16)"`
 	Content           string         `xorm:"TEXT NOT NULL"`
+	Signature         string         `xorm:"TEXT"`
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	ExpiredUnix       util.TimeStamp
 	AddedUnix         util.TimeStamp
@@ -134,7 +135,7 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 	return key, sess.Commit()
 }
 
-//base64EncPubKey encode public kay content to base 64
+//base64EncPubKey encode public key content to base 64
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
@@ -144,9 +145,94 @@ func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
 }
 
+//TODO use interface
+//base64EncSig encode public key content to base 64
+func base64EncSig(sig *packet.Signature) (string, error) {
+	var w bytes.Buffer
+	err := sig.Serialize(&w)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
+}
+
+//base64DecPubKey decode public key content from base 64
+func base64DecPubKey(content string) (*packet.PublicKey, error) {
+	b, err := readerFromBase64(content)
+	if err != nil {
+		return nil, err
+	}
+	//Read key
+	p, err := packet.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	//Check type
+	pkey, ok := p.(*packet.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("key is not a public key")
+	}
+	return pkey, nil
+}
+
+//TODO use interface
+//base64DecSig decode public sig content from base 64
+func base64DecSig(content string) (*packet.Signature, error) {
+	b, err := readerFromBase64(content)
+	if err != nil {
+		return nil, err
+	}
+	//Read key
+	p, err := packet.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	//Check type
+	sig, ok := p.(*packet.Signature)
+	if !ok {
+		return nil, fmt.Errorf("key is not a signature")
+	}
+	return sig, nil
+}
+
+//GPGKeyToEntity convert (back) a db object to openpgp entity
+func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
+	priKey, err := base64DecPubKey(k.Content)
+	if err != nil {
+		return nil, err
+	}
+	subKeys := make([]openpgp.Subkey, 0)
+	for _, subK := range k.SubsKey {
+		if subK.Signature == "" {
+			continue //Skip key //TODO add comment on export
+		}
+		subKey, err := base64DecPubKey(subK.Content)
+		if err != nil {
+			return nil, err
+		}
+		subSig, err := base64DecSig(subK.Signature)
+		if err != nil {
+			return nil, err
+		}
+		subKeys = append(subKeys, openpgp.Subkey{
+			PublicKey: subKey,
+			Sig:       subSig,
+		})
+	}
+	return &openpgp.Entity{
+		PrimaryKey: priKey,
+		//Identities: make(map[string]*openpgp.Identity),
+		Subkeys: subKeys,
+	}, nil
+}
+
 //parseSubGPGKey parse a sub Key
-func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) (*GPGKey, error) {
+func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, sig *packet.Signature, expiry time.Time) (*GPGKey, error) {
 	content, err := base64EncPubKey(pubkey)
+	if err != nil {
+		return nil, err
+	}
+	sigContent, err := base64EncSig(sig)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +241,7 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      primaryID,
 		Content:           content,
+		Signature:         sigContent,
 		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
 		ExpiredUnix:       util.TimeStamp(expiry.Unix()),
 		CanSign:           pubkey.CanSign(),
@@ -186,7 +273,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	//Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
 	for i, k := range e.Subkeys {
-		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
+		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, k.Sig, expiry)
 		if err != nil {
 			return nil, err
 		}
@@ -339,22 +426,10 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 		return fmt.Errorf("key can not sign")
 	}
 	//Decode key
-	b, err := readerFromBase64(k.Content)
+	pkey, err := base64DecPubKey(k.Content)
 	if err != nil {
 		return err
 	}
-	//Read key
-	p, err := packet.Read(b)
-	if err != nil {
-		return err
-	}
-
-	//Check type
-	pkey, ok := p.(*packet.PublicKey)
-	if !ok {
-		return fmt.Errorf("key is not a public key")
-	}
-
 	return pkey.VerifySignature(h, s)
 }
 

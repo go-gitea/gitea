@@ -19,6 +19,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
+	"github.com/keybase/go-crypto/openpgp/armor"
 )
 
 const (
@@ -391,12 +392,58 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
-
+	//TODO return 404 for empty key list
 	var buf bytes.Buffer
-	for i := range keys {
-		buf.WriteString(keys[i])
-		buf.WriteString("\n")
+	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", nil)
+	for _, k := range keys {
+		/*
+			b, err := base64.StdEncoding.DecodeString(k.Content)
+			if err != nil {
+				ctx.ServerError("ShowGPGKeys", err)
+			}
+			for _, k := range k.SubsKey {
+				b, err := base64.StdEncoding.DecodeString(k.Content)
+				if err != nil {
+					ctx.ServerError("ShowGPGKeys", err)
+				}
+				_, err = writer.Write(b)
+			}
+			_, err = writer.Write(b)
+		*/
+		/*
+			//Decode key
+			b, err := models.ReaderFromBase64(k.Content)
+			if err != nil {
+				ctx.ServerError("ShowGPGKeys", err)
+			}
+			//Read key
+			p, err := packet.Read(b)
+			if err != nil {
+				ctx.ServerError("ShowGPGKeys", err)
+			}
+
+			//Check type
+			pkey, ok := p.(*packet.PublicKey)
+			if !ok {
+				ctx.ServerError("ShowGPGKeys", fmt.Errorf("key is not a public key"))
+			}
+			//Write
+			err = pkey.Serialize(writer)
+			if err != nil {
+				ctx.ServerError("ShowGPGKeys", err)
+			}
+		*/
+		e, err := models.GPGKeyToEntity(k)
+		if err != nil {
+			ctx.ServerError("ShowGPGKeys", err)
+		}
+		err = e.Serialize(writer)
+		if err != nil {
+			ctx.ServerError("ShowGPGKeys", err)
+		}
 	}
+	writer.Close()
+
 	ctx.PlainText(200, buf.Bytes())
 }
 
