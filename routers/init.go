@@ -7,13 +7,15 @@ package routers
 import (
 	"path"
 	"strings"
+	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
@@ -42,6 +44,24 @@ func NewServices() {
 	cache.NewContext()
 }
 
+// In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
+func initDBEngine() (err error) {
+	log.Info("Beginning ORM engine initialization.")
+	for i := 0; i < setting.DBConnectRetries; i++ {
+		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.DBConnectRetries)
+		if err = models.NewEngine(migrations.Migrate); err == nil {
+			break
+		} else if i == setting.DBConnectRetries-1 {
+			return err
+		}
+		log.Debug("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
+		log.Info("Backing off for %d seconds", int64(setting.DBConnectBackoff/time.Second))
+		time.Sleep(setting.DBConnectBackoff)
+	}
+	models.HasEngine = true
+	return nil
+}
+
 // GlobalInit is for global configuration reload-able.
 func GlobalInit() {
 	setting.NewContext()
@@ -56,13 +76,14 @@ func GlobalInit() {
 	if setting.InstallLock {
 		highlight.NewContext()
 		markup.Init()
-
-		if err := models.NewEngine(migrations.Migrate); err != nil {
-			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
+		if err := initDBEngine(); err == nil {
+			log.Info("ORM engine initialization successful!")
+		} else {
+			log.Fatal("ORM engine initialization failed: %v", err)
 		}
-		models.HasEngine = true
+
 		if err := models.InitOAuth2(); err != nil {
-			log.Fatal(4, "Failed to initialize OAuth2 support: %v", err)
+			log.Fatal("Failed to initialize OAuth2 support: %v", err)
 		}
 
 		models.LoadRepoConfig()
@@ -70,7 +91,9 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		models.InitIssueIndexer()
+		if err := issue_indexer.InitIssueIndexer(false); err != nil {
+			log.Fatal("Failed to initialize issue indexer: %v", err)
+		}
 		models.InitRepoIndexer()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()

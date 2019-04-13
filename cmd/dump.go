@@ -35,6 +35,11 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.StringFlag{
+			Name:  "file, f",
+			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
+			Usage: "Name of the dump file which will be created.",
+		},
 		cli.BoolFlag{
 			Name:  "verbose, v",
 			Usage: "Show process details",
@@ -47,6 +52,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.StringFlag{
 			Name:  "database, d",
 			Usage: "Specify the database SQL syntax",
+		},
+		cli.BoolFlag{
+			Name:  "skip-repository, R",
+			Usage: "Skip the repository dumping",
 		},
 	},
 }
@@ -79,13 +88,27 @@ func runDump(ctx *cli.Context) error {
 		os.Setenv("TMPDIR", tmpWorkDir)
 	}
 
-	reposDump := path.Join(tmpWorkDir, "gitea-repo.zip")
 	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
 
-	log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
+	fileName := ctx.String("file")
+	log.Printf("Packing dump files...")
+	z, err := zip.Create(fileName)
+	if err != nil {
+		log.Fatalf("Failed to create %s: %v", fileName, err)
+	}
 	zip.Verbose = ctx.Bool("verbose")
-	if err := zip.PackTo(setting.RepoRootPath, reposDump, true); err != nil {
-		log.Fatalf("Failed to dump local repositories: %v", err)
+
+	if ctx.IsSet("skip-repository") {
+		log.Printf("Skip dumping local repositories")
+	} else {
+		log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
+		reposDump := path.Join(tmpWorkDir, "gitea-repo.zip")
+		if err := zip.PackTo(setting.RepoRootPath, reposDump, true); err != nil {
+			log.Fatalf("Failed to dump local repositories: %v", err)
+		}
+		if err := z.AddFile("gitea-repo.zip", reposDump); err != nil {
+			log.Fatalf("Failed to include gitea-repo.zip: %v", err)
+		}
 	}
 
 	targetDBType := ctx.String("database")
@@ -99,19 +122,17 @@ func runDump(ctx *cli.Context) error {
 		log.Fatalf("Failed to dump database: %v", err)
 	}
 
-	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
-	log.Printf("Packing dump files...")
-	z, err := zip.Create(fileName)
-	if err != nil {
-		log.Fatalf("Failed to create %s: %v", fileName, err)
-	}
-
-	if err := z.AddFile("gitea-repo.zip", reposDump); err != nil {
-		log.Fatalf("Failed to include gitea-repo.zip: %v", err)
-	}
 	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
 		log.Fatalf("Failed to include gitea-db.sql: %v", err)
 	}
+
+	if len(setting.CustomConf) > 0 {
+		log.Printf("Adding custom configuration file from %s", setting.CustomConf)
+		if err := z.AddFile("app.ini", setting.CustomConf); err != nil {
+			log.Fatalf("Failed to include specified app.ini: %v", err)
+		}
+	}
+
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
 		if err := z.AddDir("custom", setting.CustomPath); err != nil {

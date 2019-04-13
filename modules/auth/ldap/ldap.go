@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/ldap.v2"
-
 	"code.gitea.io/gitea/modules/log"
+
+	ldap "gopkg.in/ldap.v3"
 )
 
 // SecurityProtocol protocol type
@@ -107,7 +107,7 @@ func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 
 	userDN := sr.Entries[0].DN
 	if userDN == "" {
-		log.Error(4, "LDAP search was successful, but found no DN!")
+		log.Error("LDAP search was successful, but found no DN!")
 		return "", false
 	}
 
@@ -162,9 +162,9 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 		sr, err := l.Search(search)
 
 		if err != nil {
-			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
+			log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
 		} else if len(sr.Entries) < 1 {
-			log.Error(4, "LDAP Admin Search failed")
+			log.Trace("LDAP Admin Search found no matching entries.")
 		} else {
 			return true
 		}
@@ -176,12 +176,12 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
 	if len(passwd) == 0 {
-		log.Debug("Auth. failed for %s, password cannot be empty")
+		log.Debug("Auth. failed for %s, password cannot be empty", name)
 		return nil
 	}
 	l, err := dial(ls)
 	if err != nil {
-		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
+		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
 		return nil
 	}
@@ -247,31 +247,41 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+
+	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if isAttributeSSHPublicKeySet {
+		attribs = append(attribs, ls.AttributeSSHPublicKey)
+	}
+
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey},
-		nil)
+		attribs, nil)
 
 	sr, err := l.Search(search)
 	if err != nil {
-		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Search failed unexpectedly! (%v)", err)
 		return nil
 	} else if len(sr.Entries) < 1 {
 		if directBind {
-			log.Error(4, "User filter inhibited user login.")
+			log.Trace("User filter inhibited user login.")
 		} else {
-			log.Error(4, "LDAP Search failed unexpectedly! (0 entries)")
+			log.Trace("LDAP Search found no matching entries.")
 		}
 
 		return nil
 	}
 
+	var sshPublicKey []string
+
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
-	sshPublicKey := sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
+	if isAttributeSSHPublicKeySet {
+		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
+	}
 	isAdmin := checkAdmin(l, ls, userDN)
 
 	if !directBind && ls.AttributesInBind {
@@ -301,7 +311,7 @@ func (ls *Source) UsePagedSearch() bool {
 func (ls *Source) SearchEntries() []*SearchResult {
 	l, err := dial(ls)
 	if err != nil {
-		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
+		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
 		return nil
 	}
@@ -320,11 +330,17 @@ func (ls *Source) SearchEntries() []*SearchResult {
 
 	userFilter := fmt.Sprintf(ls.Filter, "*")
 
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+
+	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if isAttributeSSHPublicKeySet {
+		attribs = append(attribs, ls.AttributeSSHPublicKey)
+	}
+
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
-		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey},
-		nil)
+		attribs, nil)
 
 	var sr *ldap.SearchResult
 	if ls.UsePagedSearch() {
@@ -333,7 +349,7 @@ func (ls *Source) SearchEntries() []*SearchResult {
 		sr, err = l.Search(search)
 	}
 	if err != nil {
-		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Search failed unexpectedly! (%v)", err)
 		return nil
 	}
 
@@ -341,12 +357,14 @@ func (ls *Source) SearchEntries() []*SearchResult {
 
 	for i, v := range sr.Entries {
 		result[i] = &SearchResult{
-			Username:     v.GetAttributeValue(ls.AttributeUsername),
-			Name:         v.GetAttributeValue(ls.AttributeName),
-			Surname:      v.GetAttributeValue(ls.AttributeSurname),
-			Mail:         v.GetAttributeValue(ls.AttributeMail),
-			SSHPublicKey: v.GetAttributeValues(ls.AttributeSSHPublicKey),
-			IsAdmin:      checkAdmin(l, ls, v.DN),
+			Username: v.GetAttributeValue(ls.AttributeUsername),
+			Name:     v.GetAttributeValue(ls.AttributeName),
+			Surname:  v.GetAttributeValue(ls.AttributeSurname),
+			Mail:     v.GetAttributeValue(ls.AttributeMail),
+			IsAdmin:  checkAdmin(l, ls, v.DN),
+		}
+		if isAttributeSSHPublicKeySet {
+			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
 	}
 

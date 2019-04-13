@@ -82,6 +82,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
 		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
+		m.Get("/repositories/:repoid/keys/:keyid", GetDeployKey)
 		m.Get("/repositories/:repoid/wiki/init", InitWiki)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)

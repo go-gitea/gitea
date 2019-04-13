@@ -1,0 +1,45 @@
+# LedisDB configuration
+
+# Server listen address
+addr = "127.0.0.1:6380"
+
+# Server http listen address, set empty to disable
+http_addr = "127.0.0.1:11181"
+
+# Data store path, all ledisdb's data will be saved here
+data_dir = "/tmp/ledis_server"
+
+# Log server command, set empty to disable
+access_log = ""
+
+# Set slaveof to enable replication from master, empty, no replication
+slaveof = ""
+
+# Choose which backend storage to use, now support:
+#
+#   leveldb
+#   rocksdb
+#   goleveldb
+#   lmdb
+#   boltdb
+#   hyperleveldb
+#   memory
+#   
+db_name = "leveldb"
+
+[leveldb]
+compression = false
+block_size = 32768
+write_buffer_size = 67108864
+cache_size = 524288000
+max_open_files = 1024
+
+[lmdb]
+map_size = 524288000
+nosync = true
+
+[binlog]
+max_file_size = 0
+max_file_num = 0
+
+

@@ -5,14 +5,15 @@
 package ui
 
 import (
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 )
 
 type (
 	notificationService struct {
+		base.NullNotifier
 		issueQueue chan issueNotificationOpts
 	}
 
@@ -38,7 +39,7 @@ func (ns *notificationService) Run() {
 		select {
 		case opts := <-ns.issueQueue:
 			if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
-				log.Error(4, "Was unable to create issue notification: %v", err)
+				log.Error("Was unable to create issue notification: %v", err)
 			}
 		}
 	}
@@ -85,50 +86,4 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 		pr.Issue,
 		r.Reviewer.ID,
 	}
-}
-
-func (ns *notificationService) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
-}
-
-func (ns *notificationService) NotifyDeleteComment(doer *models.User, c *models.Comment) {
-}
-
-func (ns *notificationService) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
-}
-
-func (ns *notificationService) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
-}
-
-func (ns *notificationService) NotifyNewRelease(rel *models.Release) {
-}
-
-func (ns *notificationService) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
-}
-
-func (ns *notificationService) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
-}
-
-func (ns *notificationService) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
-}
-
-func (ns *notificationService) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
-}
-
-func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
-}
-
-func (ns *notificationService) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
-}
-
-func (ns *notificationService) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
-}
-
-func (ns *notificationService) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
-}
-
-func (ns *notificationService) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
-}
-
-func (ns *notificationService) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }

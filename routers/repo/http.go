@@ -27,6 +27,30 @@ import (
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
+	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
+		allowedOrigin := setting.Repository.AccessControlAllowOrigin
+		// Set CORS headers for browser-based git clients
+		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
+
+		// Handle preflight OPTIONS request
+		if ctx.Req.Method == "OPTIONS" {
+			if allowedOrigin == "*" {
+				ctx.Status(http.StatusOK)
+			} else if allowedOrigin == "null" {
+				ctx.Status(http.StatusForbidden)
+			} else {
+				origin := ctx.Req.Header.Get("Origin")
+				if len(origin) > 0 && origin == allowedOrigin {
+					ctx.Status(http.StatusOK)
+				} else {
+					ctx.Status(http.StatusForbidden)
+				}
+			}
+			return
+		}
+	}
+
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
@@ -68,6 +92,12 @@ func HTTP(ctx *context.Context) {
 	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
+		return
+	}
+
+	// Don't allow pushing if the repo is archived
+	if repo.IsArchived && !isPull {
+		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -113,24 +143,24 @@ func HTTP(ctx *context.Context) {
 				return
 			}
 
-			authUser, err = models.UserSignIn(authUsername, authPasswd)
-			if err != nil {
-				if !models.IsErrUserNotExist(err) {
-					ctx.ServerError("UserSignIn error: %v", err)
-					return
-				}
+			// Check if username or password is a token
+			isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
+			// Assume username is token
+			authToken := authUsername
+			if !isUsernameToken {
+				// Assume password is token
+				authToken = authPasswd
 			}
-
-			if authUser == nil {
-				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
-
-				// Assume username is token
-				authToken := authUsername
-
-				if !isUsernameToken {
-					// Assume password is token
-					authToken = authPasswd
-
+			// Assume password is a token.
+			token, err := models.GetAccessTokenBySHA(authToken)
+			if err == nil {
+				if isUsernameToken {
+					authUser, err = models.GetUserByID(token.UID)
+					if err != nil {
+						ctx.ServerError("GetUserByID", err)
+						return
+					}
+				} else {
 					authUser, err = models.GetUserByName(authUsername)
 					if err != nil {
 						if models.IsErrUserNotExist(err) {
@@ -140,37 +170,37 @@ func HTTP(ctx *context.Context) {
 						}
 						return
 					}
-				}
-
-				// Assume password is a token.
-				token, err := models.GetAccessTokenBySHA(authToken)
-				if err != nil {
-					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+					if authUser.ID != token.UID {
 						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					} else {
-						ctx.ServerError("GetAccessTokenBySha", err)
-					}
-					return
-				}
-
-				if isUsernameToken {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.ServerError("GetUserByID", err)
 						return
 					}
-				} else if authUser.ID != token.UID {
-					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					return
 				}
-
 				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
 			} else {
-				_, err = models.GetTwoFactorByUID(authUser.ID)
+				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+					log.Error("GetAccessTokenBySha: %v", err)
+				}
+			}
 
+			if authUser == nil {
+				// Check username and password
+				authUser, err = models.UserSignIn(authUsername, authPasswd)
+				if err != nil {
+					if !models.IsErrUserNotExist(err) {
+						ctx.ServerError("UserSignIn error: %v", err)
+						return
+					}
+				}
+
+				if authUser == nil {
+					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					return
+				}
+
+				_, err = models.GetTwoFactorByUID(authUser.ID)
 				if err == nil {
 					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
@@ -294,7 +324,7 @@ func gitCommand(dir string, args ...string) []byte {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		log.GitLogger.Error(4, fmt.Sprintf("%v - %s", err, out))
+		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, out))
 	}
 	return out
 }
@@ -352,7 +382,7 @@ func serviceRPC(h serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.GitLogger.Error(2, "fail to create gzip reader: %v", err)
+			log.GitLogger.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -371,7 +401,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error(2, "fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.GitLogger.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
 		return
 	}
 }
@@ -484,7 +514,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
-					log.GitLogger.Error(4, err.Error())
+					log.GitLogger.Error(err.Error())
 					ctx.NotFound("HTTPBackend", err)
 					return
 				}

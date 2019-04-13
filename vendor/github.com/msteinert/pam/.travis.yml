@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.4
+  - 1.5
+  - tip
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq --no-install-recommends libpam0g-dev
+  - sudo useradd -d /tmp/test -p '$1$Qd8H95T5$RYSZQeoFbEB.gS19zS99A0' -s /bin/false test
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+
+script:
+  - sudo GOROOT=$GOROOT GOPATH=$GOPATH $(which go) test -v -covermode=count -coverprofile=coverage.out .
+  - goveralls -coverprofile=coverage.out -service travis-ci -repotoken $REPO_TOKEN

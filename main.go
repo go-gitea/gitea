@@ -8,6 +8,7 @@ package main // import "code.gitea.io/gitea"
 
 import (
 	"os"
+	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/cmd"
@@ -22,11 +23,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Version holds the current Gitea version
-var Version = "1.5.0-dev"
-
-// Tags holds the build tags used
-var Tags = ""
+var (
+	// Version holds the current Gitea version
+	Version = "1.9.0-dev"
+	// Tags holds the build tags used
+	Tags = ""
+	// MakeVersion holds the current Make version if built with make
+	MakeVersion = ""
+)
 
 func init() {
 	setting.AppVer = Version
@@ -55,14 +59,18 @@ arguments - which can alternatively be run by running the subcommand web.`
 	app.Action = cmd.CmdWeb.Action
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)
+		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
 }
 
-func formatBuiltWith(Tags string) string {
+func formatBuiltWith(makeTags string) string {
+	var version = runtime.Version()
+	if len(MakeVersion) > 0 {
+		version = MakeVersion + ", " + runtime.Version()
+	}
 	if len(Tags) == 0 {
-		return ""
+		return " built with " + version
 	}
 
-	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with " + version + " : " + strings.Replace(Tags, " ", ", ", -1)
 }

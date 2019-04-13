@@ -17,7 +17,7 @@ type U2FRegistration struct {
 	Name        string
 	UserID      int64 `xorm:"INDEX"`
 	Raw         []byte
-	Counter     uint32
+	Counter     uint32         `xorm:"BIGINT"`
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
@@ -52,7 +52,7 @@ func (list U2FRegistrationList) ToRegistrations() []u2f.Registration {
 	for _, reg := range list {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal(4, "parsing u2f registration: %v", err)
+			log.Fatal("parsing u2f registration: %v", err)
 			continue
 		}
 		regs = append(regs, *r)

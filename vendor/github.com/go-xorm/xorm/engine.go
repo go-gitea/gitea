@@ -481,7 +481,8 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 		}
 
 		cols := table.ColumnsSeq()
-		colNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
+		colNames := engine.dialect.Quote(strings.Join(cols, engine.dialect.Quote(", ")))
+		destColNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
 
 		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
 		if err != nil {
@@ -496,7 +497,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+colNames+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+destColNames+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -526,7 +527,11 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				} else if col.SQLType.IsNumeric() {
 					switch reflect.TypeOf(d).Kind() {
 					case reflect.Slice:
-						temp += fmt.Sprintf(", %s", string(d.([]byte)))
+						if col.SQLType.Name == core.Bool {
+							temp += fmt.Sprintf(", %v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
+						} else {
+							temp += fmt.Sprintf(", %s", string(d.([]byte)))
+						}
 					case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
 						if col.SQLType.Name == core.Bool {
 							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Int() > 0))
@@ -563,7 +568,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 
 		// FIXME: Hack for postgres
 		if string(dialect.DBType()) == core.POSTGRES && table.AutoIncrColumn() != nil {
-			_, err = io.WriteString(w, "SELECT setval('table_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
+			_, err = io.WriteString(w, "SELECT setval('"+table.Name+"_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") + 1 FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
 			if err != nil {
 				return err
 			}

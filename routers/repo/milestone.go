@@ -260,5 +260,13 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	issues(ctx, milestoneID, util.OptionalBoolNone)
 
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
+	ctx.Data["CanWritePulls"] = perm.CanWriteIssuesOrPulls(true)
+
 	ctx.HTML(200, tplMilestoneIssues)
 }

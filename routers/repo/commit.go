@@ -8,10 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -107,14 +107,15 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	if len(keyword) == 0 {
+	query := strings.Trim(ctx.Query("q"), " ")
+	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
-	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
+	all := ctx.QueryBool("all")
+	opts := git.NewSearchCommitsOptions(query, all)
+	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -124,7 +125,7 @@ func SearchCommits(ctx *context.Context) {
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = query
 	if all {
 		ctx.Data["All"] = "checked"
 	}
@@ -201,9 +202,9 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, commitID, 0)
 	if err != nil {
-		log.Error(3, "GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)

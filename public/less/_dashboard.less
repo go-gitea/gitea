@@ -1,6 +1,5 @@
 .dashboard {
     padding-top: 15px;
-    padding-bottom: @footer-margin * 2;
 
     &.feeds,
     &.issues {
@@ -61,6 +60,11 @@
     .dashboard-repos {
         margin: 0 1px;
     }
+
+    .dashboard-navbar {
+        width: 100vw;
+        padding: 0 .5rem;
+    }
 }
 
 &.feeds {
@@ -71,9 +75,6 @@
         }
         .ui.avatar {
             margin-top: 13px;
-        }
-        p {
-            line-height: 1em;
         }
         .time-since {
             font-size: 13px;
@@ -95,7 +96,7 @@
             }
         }
         .commit-id {
-            font-family: Consolas, monospace;
+            font-family: @monospaced-fonts, monospace;
         }
         code {
             padding: 1px;

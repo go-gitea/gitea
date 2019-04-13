@@ -81,6 +81,30 @@ func TestGetLabelInRepoByName(t *testing.T) {
 	assert.True(t, IsErrLabelNotExist(err))
 }
 
+func TestGetLabelInRepoByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
+}
+
+func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	// label3 doesn't exists.. See labels.yml
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2", "label3"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
+	assert.NoError(t, err)
+}
+
 func TestGetLabelInRepoByID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	label, err := GetLabelInRepoByID(1, 1)

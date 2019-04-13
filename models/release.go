@@ -9,12 +9,13 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
+
 	"github.com/go-xorm/builder"
 )
 
@@ -198,7 +199,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 
 	if !rel.IsDraft {
 		if err := rel.LoadAttributes(); err != nil {
-			log.Error(2, "LoadAttributes: %v", err)
+			log.Error("LoadAttributes: %v", err)
 		} else {
 			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
@@ -207,7 +208,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 				Repository: rel.Repo.APIFormat(mode),
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
-				log.Error(2, "PrepareWebhooks: %v", err)
+				log.Error("PrepareWebhooks: %v", err)
 			} else {
 				go HookQueue.Add(rel.Repo.ID)
 			}
@@ -280,6 +281,15 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize 
 		Limit(pageSize, (page-1)*pageSize).
 		Where(opts.toConds(repoID)).
 		Find(&rels)
+	return rels, err
+}
+
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
+func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = x.
+		Desc("created_unix").
+		In("tag_name", tagNames).
+		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
 
@@ -399,7 +409,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err1 != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}
@@ -454,7 +464,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}

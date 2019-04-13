@@ -74,7 +74,7 @@ func render(parser Parser, rawBytes []byte, urlPrefix string, metas map[string]s
 	// TODO: one day the error should be returned.
 	result, err := PostProcess(result, urlPrefix, metas, isWiki)
 	if err != nil {
-		log.Error(3, "PostProcess: %v", err)
+		log.Error("PostProcess: %v", err)
 	}
 	return SanitizeBytes(result)
 }
@@ -111,9 +111,14 @@ func IsMarkupFile(name, markup string) bool {
 }
 
 // IsReadmeFile reports whether name looks like a README file
-// based on its name.
-func IsReadmeFile(name string) bool {
+// based on its name. If an extension is provided, it will strictly
+// match that extension.
+// Note that the '.' should be provided in ext, e.g ".md"
+func IsReadmeFile(name string, ext ...string) bool {
 	name = strings.ToLower(name)
+	if len(ext) > 0 {
+		return name == "readme"+ext[0]
+	}
 	if len(name) < 6 {
 		return false
 	} else if len(name) == 6 {

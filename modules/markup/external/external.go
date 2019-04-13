@@ -67,7 +67,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 		// write to temp file
 		f, err := ioutil.TempFile("", "gitea_input")
 		if err != nil {
-			log.Error(4, "%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
+			log.Error("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 		defer os.Remove(f.Name())
@@ -75,13 +75,13 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 		_, err = io.Copy(f, rd)
 		if err != nil {
 			f.Close()
-			log.Error(4, "%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
+			log.Error("%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 
 		err = f.Close()
 		if err != nil {
-			log.Error(4, "%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
+			log.Error("%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 		args = append(args, f.Name())
@@ -98,7 +98,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	}
 	cmd.Stdout = buf
 	if err := cmd.Run(); err != nil {
-		log.Error(4, "%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
+		log.Error("%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
 		return []byte("")
 	}
 	return buf.Bytes()

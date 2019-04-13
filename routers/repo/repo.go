@@ -10,17 +10,16 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Unknwon/com"
-
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
 )
 
 const (
@@ -28,10 +27,10 @@ const (
 	tplMigrate base.TplName = "repo/migrate"
 )
 
-// MustBeNotBare render when a repo is a bare git dir
-func MustBeNotBare(ctx *context.Context) {
-	if ctx.Repo.Repository.IsBare {
-		ctx.NotFound("MustBeNotBare", nil)
+// MustBeNotEmpty render when a repo is a empty git dir
+func MustBeNotEmpty(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound("MustBeNotEmpty", nil)
 	}
 }
 
@@ -183,7 +182,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error(4, "DeleteRepository: %v", errDelete)
+			log.Error("DeleteRepository: %v", errDelete)
 		}
 	}
 
@@ -256,12 +255,17 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	if models.IsErrRepoAlreadyExist(err) {
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
+		return
+	}
+
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.URLSanitizedError(err, remoteAddr)
 
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error(4, "DeleteRepository: %v", errDelete)
+			log.Error("DeleteRepository: %v", errDelete)
 		}
 	}
 
@@ -308,6 +312,38 @@ func Action(ctx *context.Context) {
 	}
 
 	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
+}
+
+// RedirectDownload return a file based on the following infos:
+func RedirectDownload(ctx *context.Context) {
+	var (
+		vTag     = ctx.Params("vTag")
+		fileName = ctx.Params("fileName")
+	)
+	tagNames := []string{vTag}
+	curRepo := ctx.Repo.Repository
+	releases, err := models.GetReleasesByRepoIDAndNames(curRepo.ID, tagNames)
+	if err != nil {
+		if models.IsErrAttachmentNotExist(err) {
+			ctx.Error(404)
+			return
+		}
+		ctx.ServerError("RedirectDownload", err)
+		return
+	}
+	if len(releases) == 1 {
+		release := releases[0]
+		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		if err != nil {
+			ctx.Error(404)
+			return
+		}
+		if att != nil {
+			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+			return
+		}
+	}
+	ctx.Error(404)
 }
 
 // Download download an archive of a repository
