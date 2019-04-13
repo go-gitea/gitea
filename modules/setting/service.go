@@ -27,8 +27,8 @@ var Service struct {
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
 	EnableCaptcha                           bool
-	RequireExternalRegistrationCaptcha	bool
-	RequireExternalRegistrationPassword	bool
+	RequireExternalRegistrationCaptcha      bool
+	RequireExternalRegistrationPassword     bool
 	CaptchaType                             string
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
