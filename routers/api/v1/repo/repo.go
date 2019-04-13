@@ -213,6 +213,9 @@ func Search(ctx *context.APIContext) {
 
 // CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
+	if opt.AutoInit && opt.Readme == "" {
+		opt.Readme = "Default"
+	}
 	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
@@ -223,14 +226,15 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		AutoInit:    opt.AutoInit,
 	})
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) ||
-			models.IsErrNameReserved(err) ||
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(409, "", "The repository with the same name already exists.")
+		} else if models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(422, "", err)
 		} else {
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
-					log.Error(4, "DeleteRepository: %v", err)
+					log.Error("DeleteRepository: %v", err)
 				}
 			}
 			ctx.Error(500, "CreateRepository", err)
@@ -299,6 +303,11 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		} else {
 			ctx.Error(500, "GetOrgByName", err)
 		}
+		return
+	}
+
+	if !models.HasOrgVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
 		return
 	}
 
@@ -400,10 +409,15 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err != nil {
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(409, "", "The repository with the same name already exists.")
+			return
+		}
+
 		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-				log.Error(4, "DeleteRepository: %v", errDelete)
+				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
 		ctx.Error(500, "MigrateRepository", err)
@@ -458,7 +472,7 @@ func GetByID(ctx *context.APIContext) {
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetRepositoryByID", err)
 		}
@@ -470,7 +484,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
@@ -583,7 +597,7 @@ func TopicSearch(ctx *context.Context) {
 		Limit:   10,
 	})
 	if err != nil {
-		log.Error(2, "SearchTopics failed: %v", err)
+		log.Error("SearchTopics failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
 			"message": "Search topics failed.",
 		})

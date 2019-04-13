@@ -16,10 +16,10 @@ menu:
 # Custom files rendering configuration
 
 Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries, 
-it is just matter of:
+it is just a matter of:
 * installing external binaries
 * add some configuration to your `app.ini` file
-* restart your gitea instance
+* restart your Gitea instance
 
 ## Installing external binaries
 

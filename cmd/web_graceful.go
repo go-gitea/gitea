@@ -34,7 +34,7 @@ func runHTTPS(listenAddr, certFile, keyFile string, m http.Handler) error {
 	var err error
 	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Fatal(4, "Failed to load https cert file %s: %v", listenAddr, err)
+		log.Fatal("Failed to load https cert file %s: %v", listenAddr, err)
 	}
 
 	return gracehttp.Serve(&http.Server{

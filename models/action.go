@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -53,7 +53,7 @@ const (
 )
 
 var (
-	// Same as Github. See
+	// Same as GitHub. See
 	// https://help.github.com/articles/closing-issues-via-commit-messages
 	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
 	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
@@ -110,7 +110,7 @@ func (a *Action) loadActUser() {
 	} else if IsErrUserNotExist(err) {
 		a.ActUser = NewGhostUser()
 	} else {
-		log.Error(4, "GetUserByID(%d): %v", a.ActUserID, err)
+		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
 	}
 }
 
@@ -121,7 +121,7 @@ func (a *Action) loadRepo() {
 	var err error
 	a.Repo, err = GetRepositoryByID(a.RepoID)
 	if err != nil {
-		log.Error(4, "GetRepositoryByID(%d): %v", a.RepoID, err)
+		log.Error("GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
 }
 
@@ -256,7 +256,7 @@ func (a *Action) GetIssueTitle() string {
 	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
-		log.Error(4, "GetIssueByIndex: %v", err)
+		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
 	}
 	return issue.Title
@@ -268,7 +268,7 @@ func (a *Action) GetIssueContent() string {
 	index := com.StrTo(a.GetIssueInfos()[0]).MustInt64()
 	issue, err := GetIssueByIndex(a.RepoID, index)
 	if err != nil {
-		log.Error(4, "GetIssueByIndex: %v", err)
+		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
 	}
 	return issue.Content
@@ -419,7 +419,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		if err != nil {
 			pc.avatars[email] = base.AvatarLink(email)
 			if !IsErrUserNotExist(err) {
-				log.Error(4, "GetUserByEmail: %v", err)
+				log.Error("GetUserByEmail: %v", err)
 				return ""
 			}
 		} else {
@@ -491,15 +491,27 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 		return nil
 	}
 
+	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
+
+		if StopwatchExists(doer.ID, issue.ID) {
+			if err := CreateOrStopIssueStopwatch(doer, issue); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	issue.Repo = repo
 	if err = issue.ChangeStatus(doer, status); err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if IsErrDependenciesLeft(err) {
-			return nil
+			return stopTimerIfAvailable(doer, issue)
 		}
 		return err
 	}
-	return nil
+
+	return stopTimerIfAvailable(doer, issue)
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
@@ -527,7 +539,8 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		}
 
 		// Change issue status only if the commit has been pushed to the default branch.
-		if repo.DefaultBranch != branchName {
+		// and if the repo is configured to allow only that
+		if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
 			continue
 		}
 
@@ -606,7 +619,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
-			log.Error(4, "updateIssuesCommit: %v", err)
+			log.Error("updateIssuesCommit: %v", err)
 		}
 	}
 
@@ -648,12 +661,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if isNewBranch {
 			gitRepo, err := git.OpenRepository(repo.RepoPath())
 			if err != nil {
-				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+				log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
 			}
 
 			shaSum, err = gitRepo.GetBranchCommitID(refName)
 			if err != nil {
-				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
+				log.Error("GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
 			if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
@@ -684,11 +697,11 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 		gitRepo, err := git.OpenRepository(repo.RepoPath())
 		if err != nil {
-			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+			log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
 		}
 		shaSum, err = gitRepo.GetTagCommitID(refName)
 		if err != nil {
-			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
+			log.Error("GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
 		if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,

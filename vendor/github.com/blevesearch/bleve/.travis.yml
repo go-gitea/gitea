@@ -1,0 +1,24 @@
+sudo: false
+
+language: go
+
+go:
+ - "1.9.x"
+ - "1.10.x"
+ - "1.11.x"
+
+script:
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
+  - go get github.com/kisielk/errcheck
+  - go get -u github.com/FiloSottile/gvt
+  - gvt restore
+  - go test -race -v $(go list ./... | grep -v vendor/)
+  - go vet $(go list ./... | grep -v vendor/)
+  - errcheck -ignorepkg fmt $(go list ./... | grep -v vendor/)
+  - docs/project-code-coverage.sh
+  - docs/build_children.sh
+
+notifications:
+  email:
+    - marty.schoch@gmail.com

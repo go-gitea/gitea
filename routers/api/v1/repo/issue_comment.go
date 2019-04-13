@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -169,6 +170,11 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Error(403, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
+		return
+	}
+
 	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
@@ -262,7 +268,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}
@@ -355,7 +361,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}

@@ -1,4 +1,4 @@
-<div class="ui container">
+<div class="dashboard-navbar">
 	<div class="ui secondary stackable menu">
 		<div class="item">
 			<div class="ui floating dropdown link jump">
@@ -11,7 +11,7 @@
 					<div class="ui header">
 						{{.i18n.Tr "home.switch_dashboard_context"}}
 					</div>
-					<div class="items">
+					<div class="scrolling menu items">
 						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{end}}">
 							<img class="ui avatar image" src="{{.SignedUser.RelAvatarLink}}">
 							{{.SignedUser.Name}}
