@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.8.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc3) - 2019-04-12
+* SECURITY
+  * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
+* BUGFIXES
+  * Allow resend of confirmation email when logged in (#6482) (#6486)
+  * Fix mail notification when close/reopen issue (#6581) (#6588)
+  * Change API commit summary to full message (#6591) (#6592)
+  * Add option to disable refresh token invalidation (#6584) (#6587)
+  * Fix bug user search API pagesize didn't obey ExplorePagingNum (#6579) (#6586)
+  * Fix new repo alignment (#6583) (#6585)
+  * Prevent server 500 on compare branches with no common history (#6555) (#6558)
+  * Properly escape release attachment URL (#6512) (#6523)
+  * Hacky fix for alignment of the create-organization dialog (#6455) (#6462)
+
 ## [1.8.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc2) - 2019-03-27
 * BUGFIXES
   * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
@@ -222,13 +236,19 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing GET teams endpoints (#5382)
   * Migrate database if app.ini found (#5290)
 
-## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27  
+## [1.7.6](https://github.com/go-gitea/gitea/releases/tag/v1.7.6) - 2019-04-12
+* SECURITY
+  * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6595)
+* BUGFIXES
+  * Allow resend of confirmation email when logged in (#6482) (#6487)
+
+## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27
 * BUGFIXES
   * Fix unitTypeCode not being used in accessLevelUnit (#6419) (#6423)
   * Fix bug where manifest.json was being requested without cookies and continuously creating new sessions (#6372) (#6383) 
   * Fix ParsePatch function to work with quoted diff --git strings (#6323) (#6332)
 
-## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
+## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES
