@@ -980,7 +980,10 @@ function initRepository() {
 }
 
 var toggleMigrations = function(){
-    if (!$('#mirror').is(":checked") && $('#auth_username').val().length > 0 && ($('#clone_addr').val().startsWith("https://github.com") || $('#clone_addr').val().startsWith("http://github.com"))) {
+    var authUserName = $('#auth_username').val();
+    var cloneAddr = $('#clone_addr').val();
+    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0) 
+    && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
         $('#migrate_items').show();
     } else {
         $('#migrate_items').hide();

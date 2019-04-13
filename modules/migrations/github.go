@@ -68,7 +68,7 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	gr, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
-		return nil, fmt.Errorf("GHClient Repostiories Get: %v", err)
+		return nil, err
 	}
 
 	// convert github repo to stand Repo

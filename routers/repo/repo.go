@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
+	"github.com/google/go-github/v24/github"
 )
 
 const (
@@ -275,7 +276,6 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s successfully", repo.ID, ctxUser.Name, form.RepoName)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + form.RepoName)
@@ -287,10 +287,23 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	// rate limit by github
+	if _, ok := err.(*github.RateLimitError); ok {
+		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tplMigrate, &form)
+		return
+	}
+
+	if _, ok := err.(*github.TwoFactorAuthError); ok {
+		ctx.Data["Err_Auth"] = true
+		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tplMigrate, &form)
+		return
+	}
+
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.URLSanitizedError(err, remoteAddr)
 
 	if strings.Contains(err.Error(), "Authentication failed") ||
+		strings.Contains(err.Error(), "Bad credentials") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
 		ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
