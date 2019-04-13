@@ -157,7 +157,7 @@ func TestParsePatch(t *testing.T) {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
 	println(result)
-	
+
 	testCases := []struct {
 		result   error
 		files    int
