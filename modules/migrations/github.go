@@ -371,18 +371,15 @@ func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequ
 			for _, l := range pr.Labels {
 				labels = append(labels, convertGithubLabel(l))
 			}
+
 			// FIXME: This API missing reactions, we may need another extra request to get reactions
-			/*var reactions *Reactions
-			if pr.Reactions != nil {
-				reactions = convertGithubReactions(pr.Reactions)
-			}*/
 
 			var email string
 			if pr.User.Email != nil {
 				email = *pr.User.Email
 			}
 			var merged bool
-			// ? pr.Merged is not valid, so use MergedAt to test if it's merged
+			// pr.Merged is not valid, so use MergedAt to test if it's merged
 			if pr.MergedAt != nil {
 				merged = true
 			}
@@ -426,7 +423,6 @@ func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequ
 					RepoName:  *pr.Base.Repo.Name,
 					OwnerName: *pr.Base.User.Login,
 				},
-				//Reactions:   reactions,
 				PatchURL: *pr.PatchURL,
 			})
 			if len(allPRs) >= limit {

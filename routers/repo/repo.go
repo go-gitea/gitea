@@ -290,13 +290,6 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.URLSanitizedError(err, remoteAddr)
 
-	// TODO: remove
-	/*if repo != nil {
-		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error("DeleteRepository: %v", errDelete)
-		}
-	}*/
-
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true

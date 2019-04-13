@@ -980,7 +980,6 @@ function initRepository() {
 }
 
 var toggleMigrations = function(){
-    console.log("toggleMigrations")
     if (!$('#mirror').is(":checked") && $('#auth_username').val().length > 0 && ($('#clone_addr').val().startsWith("https://github.com") || $('#clone_addr').val().startsWith("http://github.com"))) {
         $('#migrate_items').show();
     } else {

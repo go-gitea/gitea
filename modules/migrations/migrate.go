@@ -121,67 +121,78 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
-		issues, err := downloader.GetIssues(0, 1000000)
-		if err != nil {
-			return err
-		}
-		for _, issue := range issues {
-			if !opts.IgnoreIssueAuthor {
-				issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
-			}
-
-			if err := uploader.CreateIssue(issue); err != nil {
-				return err
-			}
-
-			if !opts.Comments {
-				continue
-			}
-
-			comments, err := downloader.GetComments(issue.Number)
+		for {
+			issues, err := downloader.GetIssues(0, 100)
 			if err != nil {
 				return err
 			}
-			for _, comment := range comments {
+			for _, issue := range issues {
 				if !opts.IgnoreIssueAuthor {
-					comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+					issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
 				}
-				if err := uploader.CreateComment(issue.Number, comment); err != nil {
+
+				if err := uploader.CreateIssue(issue); err != nil {
 					return err
 				}
+
+				if !opts.Comments {
+					continue
+				}
+
+				comments, err := downloader.GetComments(issue.Number)
+				if err != nil {
+					return err
+				}
+				for _, comment := range comments {
+					if !opts.IgnoreIssueAuthor {
+						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+					}
+					if err := uploader.CreateComment(issue.Number, comment); err != nil {
+						return err
+					}
+				}
+			}
+
+			if len(issues) < 100 {
+				break
 			}
 		}
 	}
 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
-		prs, err := downloader.GetPullRequests(0, 1000000)
-		if err != nil {
-			return err
-		}
-
-		for _, pr := range prs {
-			if !opts.IgnoreIssueAuthor {
-				pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
-			}
-			if err := uploader.CreatePullRequest(pr); err != nil {
-				return err
-			}
-			if !opts.Comments {
-				continue
-			}
-
-			comments, err := downloader.GetComments(pr.Number)
+		for {
+			prs, err := downloader.GetPullRequests(0, 100)
 			if err != nil {
 				return err
 			}
-			for _, comment := range comments {
+
+			for _, pr := range prs {
 				if !opts.IgnoreIssueAuthor {
-					comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+					pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
 				}
-				if err := uploader.CreateComment(pr.Number, comment); err != nil {
+				if err := uploader.CreatePullRequest(pr); err != nil {
 					return err
 				}
+				if !opts.Comments {
+					continue
+				}
+
+				comments, err := downloader.GetComments(pr.Number)
+				if err != nil {
+					return err
+				}
+				for _, comment := range comments {
+					if !opts.IgnoreIssueAuthor {
+						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
+					}
+					if err := uploader.CreateComment(pr.Number, comment); err != nil {
+						return err
+					}
+				}
+			}
+			if len(prs) < 100 {
+				break
 			}
 		}
 	}
