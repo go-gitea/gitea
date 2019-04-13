@@ -435,11 +435,16 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		*/
 		e, err := models.GPGKeyToEntity(k)
 		if err != nil {
+			if models.IsErrGPGKeyImportNotExist(err) {
+				continue //Skip previous import without backup of imported armored key //TODO inform by comment
+			}
 			ctx.ServerError("ShowGPGKeys", err)
+			return
 		}
 		err = e.Serialize(writer)
 		if err != nil {
 			ctx.ServerError("ShowGPGKeys", err)
+			return
 		}
 	}
 	writer.Close()

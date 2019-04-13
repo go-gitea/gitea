@@ -32,7 +32,6 @@ type GPGKey struct {
 	KeyID             string         `xorm:"INDEX CHAR(16) NOT NULL"`
 	PrimaryKeyID      string         `xorm:"CHAR(16)"`
 	Content           string         `xorm:"TEXT NOT NULL"`
-	Signature         string         `xorm:"TEXT"`
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	ExpiredUnix       util.TimeStamp
 	AddedUnix         util.TimeStamp
@@ -42,6 +41,12 @@ type GPGKey struct {
 	CanEncryptComms   bool
 	CanEncryptStorage bool
 	CanCertify        bool
+}
+
+//GPGKeyImport the original import of key
+type GPGKeyImport struct {
+	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
+	Content string `xorm:"TEXT NOT NULL"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -75,6 +80,18 @@ func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	return key, nil
 }
 
+// GetGPGImportByKeyID returns the import public armored key by given KeyID.
+func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
+	key := new(GPGKeyImport)
+	has, err := x.ID(keyID).Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrGPGKeyImportNotExist{keyID}
+	}
+	return key, nil
+}
+
 // checkArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
 // The function returns the actual public key on success
 func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
@@ -85,15 +102,37 @@ func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
 	return list[0], nil
 }
 
-//addGPGKey add key and subkeys to database
-func addGPGKey(e Engine, key *GPGKey) (err error) {
+//addGPGKey add key, import and subkeys to database
+func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
+	//Add GPGKeyImport
+	if _, err = e.Insert(GPGKeyImport{
+		KeyID:   key.KeyID,
+		Content: content,
+	}); err != nil {
+		return err
+	}
 	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
 		return err
 	}
 	// Save GPG subs key.
 	for _, subkey := range key.SubsKey {
-		if err := addGPGKey(e, subkey); err != nil {
+		if err := addGPGSubKey(e, subkey); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//addGPGSubKey add subkeys to database
+func addGPGSubKey(e Engine, key *GPGKey) (err error) {
+	// Save GPG primary key.
+	if _, err = e.Insert(key); err != nil {
+		return err
+	}
+	// Save GPG subs key.
+	for _, subkey := range key.SubsKey {
+		if err := addGPGSubKey(e, subkey); err != nil {
 			return err
 		}
 	}
@@ -128,7 +167,7 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 		return nil, err
 	}
 
-	if err = addGPGKey(sess, key); err != nil {
+	if err = addGPGKey(sess, key, content); err != nil {
 		return nil, err
 	}
 
@@ -139,17 +178,6 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
-}
-
-//TODO use interface
-//base64EncSig encode public key content to base 64
-func base64EncSig(sig *packet.Signature) (string, error) {
-	var w bytes.Buffer
-	err := sig.Serialize(&w)
 	if err != nil {
 		return "", err
 	}
@@ -175,64 +203,18 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	return pkey, nil
 }
 
-//TODO use interface
-//base64DecSig decode public sig content from base 64
-func base64DecSig(content string) (*packet.Signature, error) {
-	b, err := readerFromBase64(content)
-	if err != nil {
-		return nil, err
-	}
-	//Read key
-	p, err := packet.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	//Check type
-	sig, ok := p.(*packet.Signature)
-	if !ok {
-		return nil, fmt.Errorf("key is not a signature")
-	}
-	return sig, nil
-}
-
-//GPGKeyToEntity convert (back) a db object to openpgp entity
+//GPGKeyToEntity retrieve the imported key and the traducted entity
 func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
-	priKey, err := base64DecPubKey(k.Content)
+	impKey, err := GetGPGImportByKeyID(k.KeyID)
 	if err != nil {
 		return nil, err
 	}
-	subKeys := make([]openpgp.Subkey, 0)
-	for _, subK := range k.SubsKey {
-		if subK.Signature == "" {
-			continue //Skip key //TODO add comment on export
-		}
-		subKey, err := base64DecPubKey(subK.Content)
-		if err != nil {
-			return nil, err
-		}
-		subSig, err := base64DecSig(subK.Signature)
-		if err != nil {
-			return nil, err
-		}
-		subKeys = append(subKeys, openpgp.Subkey{
-			PublicKey: subKey,
-			Sig:       subSig,
-		})
-	}
-	return &openpgp.Entity{
-		PrimaryKey: priKey,
-		//Identities: make(map[string]*openpgp.Identity),
-		Subkeys: subKeys,
-	}, nil
+	return checkArmoredGPGKeyString(impKey.Content)
 }
 
 //parseSubGPGKey parse a sub Key
-func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, sig *packet.Signature, expiry time.Time) (*GPGKey, error) {
+func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) (*GPGKey, error) {
 	content, err := base64EncPubKey(pubkey)
-	if err != nil {
-		return nil, err
-	}
-	sigContent, err := base64EncSig(sig)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +223,6 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, s
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      primaryID,
 		Content:           content,
-		Signature:         sigContent,
 		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
 		ExpiredUnix:       util.TimeStamp(expiry.Unix()),
 		CanSign:           pubkey.CanSign(),
@@ -273,7 +254,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	//Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
 	for i, k := range e.Subkeys {
-		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, k.Sig, expiry)
+		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
 		if err != nil {
 			return nil, err
 		}
@@ -330,6 +311,11 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 func deleteGPGKey(e *xorm.Session, keyID string) (int64, error) {
 	if keyID == "" {
 		return 0, fmt.Errorf("empty KeyId forbidden") //Should never happen but just to be sure
+	}
+	//Delete imported key
+	n, err := e.Where("key_id=?", keyID).Delete(new(GPGKeyImport))
+	if err != nil {
+		return n, err
 	}
 	return e.Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
 }
