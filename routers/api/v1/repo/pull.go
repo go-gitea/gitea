@@ -671,8 +671,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanReadIssuesOrPulls(true) {
-		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
+	if !perm.CanReadIssuesOrPulls(true) && !perm.CanWrite(models.UnitTypeCode) {
+		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests or write", baseRepo.ID)
 		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
