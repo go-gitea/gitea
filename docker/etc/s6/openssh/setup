@@ -24,6 +24,10 @@ if [ ! -f /data/ssh/ssh_host_ecdsa_key ]; then
     ssh-keygen -t ecdsa -b 256 -f /data/ssh/ssh_host_ecdsa_key -N "" > /dev/null
 fi
 
+if [ "${GITEA_CUSTOM}" != "/data/gitea" ]; then
+    sed -i "s#/data/gitea#${GITEA_CUSTOM}#" /etc/profile.d/gitea.sh
+fi
+
 chown root:root /data/ssh/*
 chmod 0700 /data/ssh
 chmod 0600 /data/ssh/*
