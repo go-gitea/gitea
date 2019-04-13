@@ -999,8 +999,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Allow cleanup only for merged PR
-	if !pr.HasMerged {
+	// Allow cleanup only for merged or closed PR
+	if !pr.HasMerged && !issue.IsClosed {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}

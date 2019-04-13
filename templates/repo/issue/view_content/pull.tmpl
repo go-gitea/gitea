@@ -58,8 +58,18 @@
 				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item text grey">
-					{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
+					{{if .IsPullRequestBroken}}
+						{{$.i18n.Tr "repo.pulls.cant_reopen_deleted_branch"}}
+					{{else}}
+						{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
+					{{end}}
 				</div>
+				{{if .IsPullBranchDeletable}}
+					<div class="ui divider"></div>
+					<div>
+						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
+					</div>
+				{{end}}
 			{{else if .IsPullFilesConflicted}}
 				<div class="item text grey">
 					<span class="octicon octicon-x"></span>
