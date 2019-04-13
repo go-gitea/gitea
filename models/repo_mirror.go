@@ -20,7 +20,6 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	"gopkg.in/ini.v1"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
@@ -71,11 +70,18 @@ func (m *Mirror) ScheduleNextUpdate() {
 }
 
 func remoteAddress(repoPath string) (string, error) {
-	cfg, err := ini.Load(GitConfigPath(repoPath))
+	cmd := git.NewCommand("remote", "get-url", "origin")
+	result, err := cmd.RunInDir(repoPath)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return "", nil
+		}
 		return "", err
 	}
-	return cfg.Section("remote \"origin\"").Key("url").Value(), nil
+	if len(result) > 0 {
+		return result[:len(result)-1], nil
+	}
+	return "", nil
 }
 
 func (m *Mirror) readAddress() {
@@ -115,14 +121,15 @@ func (m *Mirror) FullAddress() string {
 
 // SaveAddress writes new address to Git repository config.
 func (m *Mirror) SaveAddress(addr string) error {
-	configPath := m.Repo.GitConfigPath()
-	cfg, err := ini.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("Load: %v", err)
+	repoPath := m.Repo.RepoPath()
+	// Remove old origin
+	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return err
 	}
 
-	cfg.Section("remote \"origin\"").Key("url").SetValue(addr)
-	return cfg.SaveToIndent(configPath, "\t")
+	_, err = git.NewCommand("remote", "add", "origin", addr).RunInDir(repoPath)
+	return err
 }
 
 // gitShortEmptySha Git short empty SHA

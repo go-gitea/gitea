@@ -82,7 +82,7 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  test:
+  unit-test:
     image: golang:1.11
     pull: true
     group: test
@@ -94,7 +94,7 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test:
+  release-test:
     image: golang:1.11
     pull: true
     group: test
@@ -106,7 +106,7 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ release/* ]
 
-  test:
+  tag-test:
     image: golang:1.11
     pull: true
     group: test
@@ -146,7 +146,7 @@ pipeline:
       event: [ push, pull_request ]
       branch: [ master ]
 
-  test-mysql:
+  tag-test-mysql:
     image: golang:1.11
     pull: true
     group: test
@@ -240,12 +240,13 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  docker:
+  release-docker:
     image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
+    cache_from: gitea/gitea
     when:
       event: [ push ]
       branch: [ release/* ]
@@ -255,6 +256,7 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
+    cache_from: gitea/gitea
     default_tags: true
     when:
       event: [ push, tag ]
@@ -271,7 +273,7 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  release:
+  tag-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
@@ -285,7 +287,7 @@ pipeline:
     when:
       event: [ tag ]
 
-  release:
+  release-branch-release:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
