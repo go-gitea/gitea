@@ -46,12 +46,6 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	var tagObject *object.Tag
 
-	c, ok := repo.commitCache.Get(id.String())
-	if ok {
-		log("Hit cache: %s", id)
-		return c.(*Commit), nil
-	}
-
 	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
 	if err == plumbing.ErrObjectNotFound {
 		tagObject, err = repo.gogitRepo.TagObject(plumbing.Hash(id))
@@ -80,15 +74,6 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	commit.Tree.ID = tree.Hash
 	commit.Tree.gogitTree = tree
-
-	data, err := NewCommand("name-rev", id.String()).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
-	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
-	repo.commitCache.Set(id.String(), commit)
 
 	return commit, nil
 }
