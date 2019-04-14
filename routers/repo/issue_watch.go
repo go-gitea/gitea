@@ -33,7 +33,7 @@ func IssueWatch(ctx *context.Context) {
 					ctx.User,
 					log.NewColoredIDValue(issue.PosterID),
 					issueType,
-					ctx.Repo,
+					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Not logged in")

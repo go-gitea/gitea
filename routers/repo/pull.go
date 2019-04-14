@@ -64,6 +64,18 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			if forkRepo.IsEmpty {
+				log.Trace("Empty fork repository %-v", forkRepo)
+			} else {
+				log.Trace("Permission Denied: User %-v cannot read %-v of forkRepo %-v\n"+
+					"User in forkRepo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeCode,
+					ctx.Repo,
+					perm)
+			}
+		}
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}

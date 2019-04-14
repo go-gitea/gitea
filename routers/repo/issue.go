@@ -1167,7 +1167,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 					ctx.User,
 					log.NewColoredIDValue(issue.PosterID),
 					issueType,
-					ctx.Repo,
+					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Not logged in")
@@ -1375,7 +1375,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 					ctx.User,
 					log.NewColoredIDValue(issue.PosterID),
 					issueType,
-					ctx.Repo,
+					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Not logged in")
@@ -1472,7 +1472,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 					ctx.User,
 					log.NewColoredIDValue(comment.Issue.PosterID),
 					issueType,
-					ctx.Repo,
+					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Not logged in")

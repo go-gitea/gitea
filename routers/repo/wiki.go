@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/util"
@@ -32,6 +33,15 @@ const (
 func MustEnableWiki(ctx *context.Context) {
 	if !ctx.Repo.CanRead(models.UnitTypeWiki) &&
 		!ctx.Repo.CanRead(models.UnitTypeExternalWiki) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User %-v cannot read %-v or %-v of repo %-v\n"+
+				"User in repo has Permissions: %-+v",
+				ctx.User,
+				models.UnitTypeWiki,
+				models.UnitTypeExternalWiki,
+				ctx.Repo.Repository,
+				ctx.Repo.Permission)
+		}
 		ctx.NotFound("MustEnableWiki", nil)
 		return
 	}
