@@ -3,7 +3,6 @@ IMPORT := code.gitea.io/gitea
 
 GO ?= go
 SED_INPLACE := sed -i
-SHELL := bash
 SHASUM ?= shasum -a 256
 
 export PATH := $($(GO) env GOPATH)/bin:$(PATH)
@@ -358,7 +357,7 @@ release-copy:
 
 .PHONY: release-check
 release-check:
-	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do $(SHASUM) $${file:2} > $${file}.sha256; done;
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "checksumming $${file}" && $(SHASUM) `echo $${file} | sed 's/^..//'` > $${file}.sha256; done;
 
 .PHONY: release-compress
 release-compress:
