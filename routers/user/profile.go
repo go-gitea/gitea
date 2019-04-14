@@ -59,7 +59,7 @@ func Profile(ctx *context.Context) {
 	isShowKeys := false
 	if strings.HasSuffix(uname, ".keys") {
 		isShowKeys = true
-		uname = strings.TrimSuffix(uname, ".gpg")
+		uname = strings.TrimSuffix(uname, ".keys")
 	}
 
 	isShowGPG := false
