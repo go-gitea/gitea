@@ -221,7 +221,7 @@ type SearchCommitsOptions struct {
 	All                 bool
 }
 
-// NewSearchCommitsOptions contruct a SearchCommitsOption from a space-delimited search string
+// NewSearchCommitsOptions construct a SearchCommitsOption from a space-delimited search string
 func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommitsOptions {
 	var keywords, authors, committers []string
 	var after, before string

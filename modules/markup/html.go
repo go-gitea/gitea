@@ -108,24 +108,6 @@ func FindAllMentions(content string) []string {
 	return ret
 }
 
-// cutoutVerbosePrefix cutouts URL prefix including sub-path to
-// return a clean unified string of request URL path.
-func cutoutVerbosePrefix(prefix string) string {
-	if len(prefix) == 0 || prefix[0] != '/' {
-		return prefix
-	}
-	count := 0
-	for i := 0; i < len(prefix); i++ {
-		if prefix[i] == '/' {
-			count++
-		}
-		if count >= 3+setting.AppSubURLDepth {
-			return prefix[:i]
-		}
-	}
-	return prefix
-}
-
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
 	if strings.HasPrefix(s, "/") {
