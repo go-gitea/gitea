@@ -119,8 +119,8 @@ func (p *Permission) ColorFormat(s fmt.State) {
 			format += "\nUnits[%d]: ID: %d RepoID: %d Type: %-v Config: %s"
 			args = append(args,
 				log.NewColoredValueBytes(i, &noColor),
-				log.NewColoredValueBytes(unit.ID, &idColor),
-				log.NewColoredValueBytes(unit.RepoID, &idColor),
+				log.NewColoredIDValue(unit.ID),
+				log.NewColoredIDValue(unit.RepoID),
 				unit.Type,
 				config)
 		}

@@ -360,5 +360,3 @@ func DumpDatabase(filePath string, dbType string) error {
 	}
 	return x.DumpTablesToFile(tbs, filePath)
 }
-
-var idColor = log.ColorBytes(log.FgCyan)

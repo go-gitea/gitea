@@ -48,7 +48,7 @@ func (u UnitType) String() string {
 // ColorFormat provides a ColorFormatted version of this UnitType
 func (u UnitType) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredValueBytes(u, &idColor),
+		log.NewColoredIDValue(u),
 		u)
 }
 

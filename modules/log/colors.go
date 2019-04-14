@@ -351,6 +351,13 @@ func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
 	}
 }
 
+// NewColoredIDValue is a helper function to create a ColoredValue from a Value
+// The Value will be colored with FgCyan
+// If a ColoredValue is provided it is not changed
+func NewColoredIDValue(value interface{}) *ColoredValue {
+	return NewColoredValueBytes(&value, &fgCyanBytes)
+}
+
 // Format will format the provided value and protect against ANSI color spoofing within the value
 // If the wrapped value is ColorFormatted and the format is "%-v" then its ColorString will
 // be used. It is presumed that this ColorString is safe.

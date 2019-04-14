@@ -149,7 +149,7 @@ type User struct {
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredValueBytes(u.ID, &idColor),
+		log.NewColoredIDValue(u.ID),
 		log.NewColoredValue(u.Name))
 }
 

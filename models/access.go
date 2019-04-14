@@ -44,7 +44,7 @@ func (mode AccessMode) String() string {
 // ColorFormat provides a ColorFormatted version of this AccessMode
 func (mode AccessMode) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredValueBytes(mode, &idColor),
+		log.NewColoredIDValue(mode),
 		mode)
 }
 

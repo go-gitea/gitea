@@ -219,11 +219,11 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 	} else if repo.Owner != nil {
 		ownerName = repo.Owner.Name
 	} else {
-		ownerName = log.NewColoredValueBytes(repo.OwnerID, &idColor)
+		ownerName = log.NewColoredIDValue(repo.OwnerID)
 	}
 
 	log.ColorFprintf(s, "%d:%s/%s",
-		log.NewColoredValueBytes(repo.ID, &idColor),
+		log.NewColoredIDValue(repo.ID),
 		ownerName,
 		repo.Name)
 }
