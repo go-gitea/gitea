@@ -410,12 +410,12 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	var buf bytes.Buffer
 
 	headers := make(map[string]string)
-	if len(failedEntitiesID) > 0 {
+	if len(failedEntitiesID) > 0 { //If some key need re-import to be exported
 		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
 	}
 	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
 	for _, e := range entities {
-		err = e.Serialize(writer)
+		err = e.Serialize(writer) //TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
 		if err != nil {
 			ctx.ServerError("ShowGPGKeys", err)
 			return
