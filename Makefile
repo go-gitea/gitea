@@ -4,6 +4,8 @@ export GO111MODULE=off
 
 GO ?= go
 SED_INPLACE := sed -i
+SHELL ?= bash
+SHASUM ?= shasum -a 256
 
 export PATH := $($(GO) env GOPATH)/bin:$(PATH)
 
@@ -332,7 +334,7 @@ release-windows:
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
-	mv /build/* $(DIST)/binaries
+	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-linux
@@ -342,7 +344,7 @@ release-linux:
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
-	mv /build/* $(DIST)/binaries
+	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-darwin
@@ -352,23 +354,23 @@ release-darwin:
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
-	mv /build/* $(DIST)/binaries
+	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-copy
 release-copy:
-	$(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),cp $(file) $(DIST)/release/$(notdir $(file));)
+	cd $(DIST); for file in `find /build -type f -name "*"`; do cp $${file} ./release/; done;
 
 .PHONY: release-check
 release-check:
-	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/release/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do $(SHASUM) $${file:2} > $${file}.sha256; done;
 
 .PHONY: release-compress
 release-compress:
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
 	fi
-	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),gxz -k -9 $(notdir $(file));)
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: javascripts
 javascripts: public/js/index.js
