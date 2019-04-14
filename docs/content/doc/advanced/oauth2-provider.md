@@ -87,6 +87,6 @@ Response:
 
 The `CLIENT_SECRET` is the unique secret code generated for this application. Please note that the secret will only be visible after you created/registered the application with Gitea and cannot be recovered. If you lose the secret you must regenerate the secret via the application's settings.
 
-Just must make sure that the `REDIRECT_URI` in the `access_token` request matches the `REDIRECT_URI` in the `authorize` request.
+The `REDIRECT_URI` in the `access_token` request must match the `REDIRECT_URI` in the `authorize` request.
 
 3. Use the  `access_token` to make [API requests](https://docs.gitea.io/en-us/api-usage#oauth2) to access the user's resources.
