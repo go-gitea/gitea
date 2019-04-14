@@ -15,6 +15,7 @@ menu:
 
 
 # OAuth2 provider
+
 Gitea supports acting as an OAuth2 provider to allow third party applications to access its resources with the user's consent. This feature is available since release 1.8.0.
 
 ## Endpoints
@@ -27,15 +28,18 @@ Access Token Endpoint  | `/login/oauth/access_token`
 
 
 ## Supported OAuth2 Grants
-At the moment Gitea supports only the standard [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1). In addition Gitea supports the [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636) extension for the mentioned grant.
+
+At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636) extension.
  
 
 To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings.
 
 ## Scopes
+
 Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and his/her organizations.
 
 ## Example
+
 **Note:** This example does not use PKCE.
 
 1. Redirect to user to the authorization endpoint in order to get his/her consent for accessing the resources:
@@ -49,12 +53,13 @@ The `CLIENT_ID` can be obtained by registering an application in the settings. T
 
 ![Authorization Page](/authorize.png)
 
-The user will now be asked to authorize your application. If authorizes it the user will be redirected to the `REDIRECT_URL`, for example:
+The user will now be asked to authorize your application. If they authorize it, the user will be redirected to the `REDIRECT_URL`, for example:
+
 ```url
 https://[REDIRECT_URI]?code=RETURNED_CODE&state=STATE
 ```
 
-2. After you obtained to `code` from the redirect, you can request a new application and refresh token. The access token endpoints accepts POST requests with  `application/json` and `application/x-www-form-urlencoded` body, for example:
+2. Using the provided `code` from the redirect, you can request a new application and refresh token. The access token endpoints accepts POST requests with  `application/json` and `application/x-www-form-urlencoded` body, for example:
 
 ```curl
 POST https://[YOUR-GITEA-URL]/login/oauth/access_token
@@ -79,7 +84,8 @@ Response:
 "refresh_token":"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJnbnQiOjIsInR0IjoxLCJjbnQiOjEsImV4cCI6MTU1NzgwNDMxMiwiaWF0IjoxNTU1MTc2MzEyfQ.S_HZQBy4q9r5SEzNGNIoFClT43HPNDbUdHH-GYNYYdkRfft6XptJBkUQscZsGxOW975Yk6RbgtGvq1nkEcklOw"  
 }
 ```
-The `CLIENT_SECRET` can be obtained from the application's settings. Please note that the secret will only be visible after you created the application and cannot be recovered. If you lose the secret you must regenerate the secret via  application's settings.
+
+The `CLIENT_SECRET` is the unique secret code generated for this application. Please note that the secret will only be visible after you created/registered the application with Gitea and cannot be recovered. If you lose the secret you must regenerate the secret via the application's settings.
 
 Just must make sure that the `REDIRECT_URI` in the `access_token` request matches the `REDIRECT_URI` in the `authorize` request.
 
