@@ -48,14 +48,14 @@ Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea
 https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE
 ``` 
 
-The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to deny CSRF attacks.
+The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to prevent CSRF attacks.
 
 
 ![Authorization Page](/authorize.png)
 
 The user will now be asked to authorize your application. If they authorize it, the user will be redirected to the `REDIRECT_URL`, for example:
 
-```url
+```curl
 https://[REDIRECT_URI]?code=RETURNED_CODE&state=STATE
 ```
 
