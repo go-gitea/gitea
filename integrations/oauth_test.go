@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -176,4 +178,43 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
 	resp = MakeRequest(t, req, 400)
+}
+
+func TestRefreshTokenInvalidation(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+
+	// test without invalidation
+	setting.OAuth2.InvalidateRefreshTokens = false
+
+	refreshReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"refresh_token": parsed.RefreshToken,
+	})
+	MakeRequest(t, refreshReq, 200)
+	MakeRequest(t, refreshReq, 200)
+
+	// test with invalidation
+	setting.OAuth2.InvalidateRefreshTokens = true
+	MakeRequest(t, refreshReq, 200)
+	MakeRequest(t, refreshReq, 400)
 }
