@@ -896,7 +896,7 @@ type MigrateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	RemoteAddr  string
-	NoWiki      bool
+	Wiki        bool // include wiki repository
 }
 
 /*
@@ -918,7 +918,7 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates a existing repository from other project hosting.
+// MigrateRepository migrates an existing repository from other project hosting.
 func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
@@ -956,7 +956,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
-	if !opts.NoWiki {
+	if opts.Wiki {
 		wikiPath := WikiPath(u.Name, opts.Name)
 		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 		if len(wikiRemotePath) > 0 {

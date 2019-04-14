@@ -5,7 +5,11 @@
 
 package migrations
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/google/go-github/v24/github"
+)
 
 var (
 	// ErrNotImplemented returns the error not implemented
@@ -13,3 +17,15 @@ var (
 	// ErrNotSupported returns the error not supported
 	ErrNotSupported = errors.New("not supported")
 )
+
+// IsRateLimitError returns true if the err is github.RateLimitError
+func IsRateLimitError(err error) bool {
+	_, ok := err.(*github.RateLimitError)
+	return ok
+}
+
+// IsTwoFactorAuthError returns true if the err is github.TwoFactorAuthError
+func IsTwoFactorAuthError(err error) bool {
+	_, ok := err.(*github.TwoFactorAuthError)
+	return ok
+}

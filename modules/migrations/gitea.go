@@ -66,7 +66,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool)
 		IsMirror:    repo.IsMirror,
 		RemoteAddr:  repo.CloneURL,
 		IsPrivate:   repo.IsPrivate,
-		NoWiki:      !includeWiki,
+		Wiki:        includeWiki,
 	})
 	if err != nil {
 		return err
