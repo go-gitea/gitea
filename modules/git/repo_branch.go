@@ -39,6 +39,8 @@ func (repo *Repository) IsBranchExist(name string) bool {
 type Branch struct {
 	Name string
 	Path string
+
+	gitRepo *Repository
 }
 
 // GetHEADBranch returns corresponding branch of HEAD.
@@ -54,8 +56,9 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	}
 
 	return &Branch{
-		Name: stdout[len(BranchPrefix):],
-		Path: stdout,
+		Name:    stdout[len(BranchPrefix):],
+		Path:    stdout,
+		gitRepo: repo,
 	}, nil
 }
 
@@ -82,6 +85,42 @@ func (repo *Repository) GetBranches() ([]string, error) {
 	// TODO: Sort?
 
 	return branchNames, nil
+}
+
+// GetBranch returns a branch by it's name
+func (repo *Repository) GetBranch(branch string) (*Branch, error) {
+	if !repo.IsBranchExist(branch) {
+		return nil, ErrBranchNotExist{branch}
+	}
+	return &Branch{
+		Path:    repo.Path,
+		Name:    branch,
+		gitRepo: repo,
+	}, nil
+}
+
+// GetBranchesByPath returns a branch by it's path
+func GetBranchesByPath(path string) ([]*Branch, error) {
+	gitRepo, err := OpenRepository(path)
+	if err != nil {
+		return nil, err
+	}
+
+	brs, err := gitRepo.GetBranches()
+	if err != nil {
+		return nil, err
+	}
+
+	branches := make([]*Branch, len(brs))
+	for i := range brs {
+		branches[i] = &Branch{
+			Path:    path,
+			Name:    brs[i],
+			gitRepo: gitRepo,
+		}
+	}
+
+	return branches, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch
@@ -131,4 +170,9 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 func (repo *Repository) RemoveRemote(name string) error {
 	_, err := NewCommand("remote", "remove", name).RunInDir(repo.Path)
 	return err
+}
+
+// GetCommit returns the head commit of a branch
+func (branch *Branch) GetCommit() (*Commit, error) {
+	return branch.gitRepo.GetBranchCommit(branch.Name)
 }

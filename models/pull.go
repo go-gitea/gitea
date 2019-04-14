@@ -165,8 +165,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 
 func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 	var (
-		baseBranch *Branch
-		headBranch *Branch
+		baseBranch *git.Branch
+		headBranch *git.Branch
 		baseCommit *git.Commit
 		headCommit *git.Commit
 		err        error
