@@ -7,8 +7,12 @@ package repo
 
 import (
 	"errors"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
+
+	"mvdan.cc/xurls/v2"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -31,6 +35,8 @@ const (
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
+
+var validFormAddress *regexp.Regexp
 
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
@@ -95,8 +101,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but could not change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private {
+		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
 			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
 			return
 		}
@@ -145,7 +151,38 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 		}
-		if err := ctx.Repo.Mirror.SaveAddress(form.MirrorAddress); err != nil {
+
+		// Validate the form.MirrorAddress
+		u, err := url.Parse(form.MirrorAddress)
+		if err != nil {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.Opaque != "" || !(u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "git") {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		// Now use xurls
+		address := validFormAddress.FindString(form.MirrorAddress)
+		if address != form.MirrorAddress && form.MirrorAddress != "" {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.EscapedPath() == "" || u.Host == "" || !u.IsAbs() {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		address = u.String()
+
+		if err := ctx.Repo.Mirror.SaveAddress(address); err != nil {
 			ctx.ServerError("SaveAddress", err)
 			return
 		}
@@ -681,4 +718,12 @@ func DeleteDeployKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
+}
+
+func init() {
+	var err error
+	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
+	if err != nil {
+		panic(err)
+	}
 }

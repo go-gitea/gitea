@@ -71,6 +71,12 @@ func DeleteBranchPost(ctx *context.Context) {
 		return
 	}
 
+	// Delete branch in local copy if it exists
+	if err := ctx.Repo.Repository.DeleteLocalBranch(branchName); err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
+		return
+	}
+
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", branchName))
 }
 

@@ -14,7 +14,7 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{end}}

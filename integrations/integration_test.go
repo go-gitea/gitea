@@ -81,6 +81,8 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
+	writerCloser.t = nil
+
 	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("os.RemoveAll: %v\n", err)
 		os.Exit(1)
@@ -165,7 +167,12 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t testing.TB) {
+func prepareTestEnv(t testing.TB, skip ...int) {
+	ourSkip := 2
+	if len(skip) > 0 {
+		ourSkip += skip[0]
+	}
+	PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
