@@ -304,12 +304,14 @@ var (
 		Enable                     bool
 		AccessTokenExpirationTime  int64
 		RefreshTokenExpirationTime int64
+		InvalidateRefreshTokens    bool
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
+		InvalidateRefreshTokens:    false,
 	}
 
 	U2F = struct {
