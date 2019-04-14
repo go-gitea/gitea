@@ -41,7 +41,7 @@ func Dir(name string) ([]string, error) {
 		result = append(result, files...)
 	}
 
-	files, err := AssetDir(path.Join("..", "..", "options", name))
+	files, err := AssetDir(name)
 
 	if err != nil {
 		return []string{}, fmt.Errorf("Failed to read embedded directory. %v", err)
