@@ -403,5 +403,5 @@ func newNewoneLogService() {
 }
 ```
 
-You should then add `newOneLogService` to `NewServices()` in 
+You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`
