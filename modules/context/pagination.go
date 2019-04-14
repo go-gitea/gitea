@@ -7,6 +7,7 @@ package context
 import (
 	"fmt"
 	"html/template"
+	"net/url"
 
 	"github.com/Unknwon/paginater"
 )
@@ -31,7 +32,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 	if !exists {
 		return
 	}
-	p.paginationLinkParams = template.URL(fmt.Sprintf("%v%s=%v&", p.paginationLinkParams, paramKey, ctx.Data[ctxKey]))
+	p.paginationLinkParams = template.URL(fmt.Sprintf("%v%s=%v&", p.paginationLinkParams, url.QueryEscape(paramKey), url.QueryEscape(ctx.Data[ctxKey])))
 }
 
 // GetParams returns the configured URL params
