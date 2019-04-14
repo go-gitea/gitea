@@ -3,7 +3,7 @@ IMPORT := code.gitea.io/gitea
 
 GO ?= go
 SED_INPLACE := sed -i
-SHELL ?= bash
+SHELL := bash
 SHASUM ?= shasum -a 256
 
 export PATH := $($(GO) env GOPATH)/bin:$(PATH)
