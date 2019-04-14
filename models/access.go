@@ -4,7 +4,11 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
+)
 
 // AccessMode specifies the users access mode
 type AccessMode int
@@ -35,6 +39,13 @@ func (mode AccessMode) String() string {
 	default:
 		return "none"
 	}
+}
+
+// ColorFormat provides a ColorFormatted version of this AccessMode
+func (mode AccessMode) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredValueBytes(mode, &idColor),
+		mode)
 }
 
 // ParseAccessMode returns corresponding access mode to given permission string.
