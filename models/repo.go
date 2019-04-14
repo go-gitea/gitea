@@ -210,6 +210,24 @@ type Repository struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
+// ColorFormat returns a colored string to represent this repo
+func (repo *Repository) ColorFormat(s fmt.State) {
+	var ownerName interface{}
+
+	if repo.OwnerName != "" {
+		ownerName = repo.OwnerName
+	} else if repo.Owner != nil {
+		ownerName = repo.Owner.Name
+	} else {
+		ownerName = log.NewColoredValueBytes(repo.OwnerID, &idColor)
+	}
+
+	log.ColorFprintf(s, "%d:%s/%s",
+		log.NewColoredValueBytes(repo.ID, &idColor),
+		ownerName,
+		repo.Name)
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
