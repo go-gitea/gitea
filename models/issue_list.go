@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"fmt"
 
 	"github.com/go-xorm/builder"
@@ -146,9 +147,9 @@ func (issues IssueList) loadLabels(e Engine) error {
 			var labelIssue LabelIssue
 			err = rows.Scan(&labelIssue)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				errclose := rows.Close()
+				if errclose != nil {
+					log.Error("IssueList.loadLabels: %v", errclose)
 				}
 				return err
 			}
@@ -237,9 +238,9 @@ func (issues IssueList) loadAssignees(e Engine) error {
 			var assigneeIssue AssigneeIssue
 			err = rows.Scan(&assigneeIssue)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				errclose := rows.Close()
+				if errclose != nil {
+					log.Error("IssueList.loadAssignees: %v", errclose)
 				}
 				return err
 			}
@@ -342,9 +343,9 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 			var attachment Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				errclose := rows.Close()
+				if errclose != nil {
+					log.Error("IssueList.loadAttachments: %v", errclose)
 				}
 				return err
 			}
@@ -390,9 +391,9 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 			var comment Comment
 			err = rows.Scan(&comment)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				errclose := rows.Close()
+				if errclose != nil {
+					log.Error("IssueList.loadCommentsg: %v", errclose)
 				}
 				return err
 			}
@@ -450,9 +451,9 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			var totalTime totalTimesByIssue
 			err = rows.Scan(&totalTime)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				errclose := rows.Close()
+				if errclose != nil {
+					log.Error("IssueList.loadTotalTrackedTimes: %v", errclose)
 				}
 				return err
 			}
