@@ -12,8 +12,6 @@ import (
 )
 
 var (
-	// ErrNotImplemented returns the error not implemented
-	ErrNotImplemented = errors.New("not implemented")
 	// ErrNotSupported returns the error not supported
 	ErrNotSupported = errors.New("not supported")
 )

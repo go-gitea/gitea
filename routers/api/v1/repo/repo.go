@@ -436,7 +436,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(422, "", "The repository name is already used.")
+		ctx.Error(409, "", "The repository with the same name already exists.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(422, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
