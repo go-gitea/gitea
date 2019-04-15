@@ -248,7 +248,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	}
 	expiry := time.Time{}
 	if selfSig.KeyLifetimeSecs != nil {
-		expiry = selfSig.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
+		expiry = pubkey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
 
 	//Parse Subkeys
