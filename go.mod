@@ -74,7 +74,7 @@ require (
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
 	github.com/lafriks/xormstore v1.0.0
-	github.com/lib/pq v1.0.0
+	github.com/lib/pq v1.1.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
 	github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de // indirect
