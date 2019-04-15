@@ -81,7 +81,12 @@ func runHookPreReceive(c *cli.Context) error {
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userIDStr := os.Getenv(models.EnvPusherID)
-	repoPath := models.MakeRepoPath(username, reponame)
+
+	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	if err != nil {
+		fail("repository %s/%s does not exist: %v", username, reponame, err)
+	}
+	repoPath := repo.RepoPath()
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
