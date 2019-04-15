@@ -430,7 +430,7 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 		Rows(new(joinedOAuth2Grant)); err != nil {
 		return nil, err
 	}
-
+	defer results.Close()
 	grants := make([]*OAuth2Grant, 0)
 	for results.Next() {
 		joinedGrant := new(joinedOAuth2Grant)
@@ -443,7 +443,7 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 	return grants, nil
 }
 
-// DeleteOAuth2Grant deletes the grant with grantID and userID
+// RevokeOAuth2Grant deletes the grant with grantID and userID
 func DeleteOAuth2Grant(grantID, userID int64) error {
 	return deleteOAuth2Grant(x, grantID, userID)
 }
