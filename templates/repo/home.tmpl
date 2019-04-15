@@ -24,7 +24,7 @@
 			{{end}}
 		</div>
 		<div class="ui" id="repo-topics">
-		{{range .Topics}}<a class="ui repo-topic green basic label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
+		{{range .Topics}}<a class="ui repo-topic small label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
@@ -34,7 +34,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<div class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
+						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<i class="delete icon"></i></div>
 						{{end}}
 						<div class="text"></div>
 					</div>
