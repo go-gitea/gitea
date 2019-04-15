@@ -135,6 +135,22 @@ func TestOAuth2Grant_TableName(t *testing.T) {
 	assert.Equal(t, "oauth2_grant", new(OAuth2Grant).TableName())
 }
 
+func TestGetOAuth2GrantsByUserID(t *testing.T) {
+	result, err := GetOAuth2GrantsByUserID(1)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.NoError(t, PrepareTestDatabase())
+	result, err = GetOAuth2GrantsByUserID(1)
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, 1, result[0].ID)
+	assert.Equal(t, result[0].ApplicationID, result[0].Application.ID)
+
+	result, err = GetOAuth2GrantsByUserID(34134)
+	assert.NoError(t, err)
+	assert.Empty(t, result)
+}
+
 //////////////////// Authorization Code
 
 func TestGetOAuth2AuthorizationByCode(t *testing.T) {
