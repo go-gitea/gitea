@@ -75,7 +75,30 @@ func TestAccessTokenExchange(t *testing.T) {
 
 func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 	prepareTestEnv(t)
-	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+}
+
+func TestAccessTokenExchangeJSON(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
