@@ -145,18 +145,16 @@ func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
-			if log.IsTrace() {
-				if user == nil {
-					log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
-						repo,
-						perm)
-					return
-				}
-				log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
-					user,
+			if user == nil {
+				log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
 					repo,
 					perm)
+				return
 			}
+			log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
+				user,
+				repo,
+				perm)
 		}()
 	}
 	// anonymous user visit private repo.
