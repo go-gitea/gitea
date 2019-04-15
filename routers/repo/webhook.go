@@ -123,6 +123,12 @@ func WebhooksNew(ctx *context.Context) {
 			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
+	if hookType == "msteams" {
+		ctx.Data["MSTeamsHook"] = map[string]interface{}{
+			"Username": "Gitea",
+			"IconURL":  setting.AppURL + "img/favicon.png",
+		}
+	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
 	ctx.HTML(200, orCtx.NewTemplate)
@@ -316,6 +322,46 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
 		HookTaskType: models.DINGTALK,
+		Meta:         "",
+		OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
+// MSTeamsHooksNewPost response for creating MS Teams hook
+func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  models.ContentTypeJSON,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.MSTEAMS,
 		Meta:         "",
 		OrgID:        orCtx.OrgID,
 	}
@@ -617,6 +663,38 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 
 // DingtalkHooksEditPost response for editing discord hook
 func DingtalkHooksEditPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// MSTeamsHooksEditPost response for editing MS Teams hook
+func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true

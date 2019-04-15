@@ -465,7 +465,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"slack":    SLACK,
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
-	"teams":    MSTEAMS,
+	"msteams":  MSTEAMS,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -487,7 +487,7 @@ func (t HookTaskType) Name() string {
 	case DINGTALK:
 		return "dingtalk"
 	case MSTEAMS:
-		return "teams"
+		return "msteams"
 	}
 	return ""
 }
@@ -660,6 +660,11 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
+		}
+	case MSTEAMS:
+		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)

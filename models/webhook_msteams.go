@@ -6,7 +6,6 @@ package models
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -49,14 +48,9 @@ type (
 		Context         string           `json:"@context"`
 		ThemeColor      string           `json:"themeColor"`
 		Title           string           `json:"title"`
+		Summary         string           `json:"summary"`
 		Sections        []MSTeamsSection `json:"sections"`
 		PotentialAction []MSTeamsAction  `json:"potentialAction"`
-	}
-
-	// MSTeamsMeta contains the MSTeams metadata
-	MSTeamsMeta struct {
-		Username string `json:"username"`
-		IconURL  string `json:"icon_url"`
 	}
 )
 
@@ -72,7 +66,7 @@ func (p *MSTeamsPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
-func getMSTeamsCreatePayload(p *api.CreatePayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsCreatePayload(p *api.CreatePayload) (*MSTeamsPayload, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -82,6 +76,7 @@ func getMSTeamsCreatePayload(p *api.CreatePayload, meta *MSTeamsMeta) (*MSTeamsP
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", successColor),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -114,7 +109,7 @@ func getMSTeamsCreatePayload(p *api.CreatePayload, meta *MSTeamsMeta) (*MSTeamsP
 	}, nil
 }
 
-func getMSTeamsDeletePayload(p *api.DeletePayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsDeletePayload(p *api.DeletePayload) (*MSTeamsPayload, error) {
 	// deleted tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -124,6 +119,7 @@ func getMSTeamsDeletePayload(p *api.DeletePayload, meta *MSTeamsMeta) (*MSTeamsP
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", warnColor),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -156,7 +152,7 @@ func getMSTeamsDeletePayload(p *api.DeletePayload, meta *MSTeamsMeta) (*MSTeamsP
 	}, nil
 }
 
-func getMSTeamsForkPayload(p *api.ForkPayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
 	// fork
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
@@ -165,6 +161,7 @@ func getMSTeamsForkPayload(p *api.ForkPayload, meta *MSTeamsMeta) (*MSTeamsPaylo
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", successColor),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -197,7 +194,7 @@ func getMSTeamsForkPayload(p *api.ForkPayload, meta *MSTeamsMeta) (*MSTeamsPaylo
 	}, nil
 }
 
-func getMSTeamsPushPayload(p *api.PushPayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -233,6 +230,7 @@ func getMSTeamsPushPayload(p *api.PushPayload, meta *MSTeamsMeta) (*MSTeamsPaylo
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", successColor),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -265,7 +263,7 @@ func getMSTeamsPushPayload(p *api.PushPayload, meta *MSTeamsMeta) (*MSTeamsPaylo
 	}, nil
 }
 
-func getMSTeamsIssuesPayload(p *api.IssuePayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	url := fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
@@ -322,6 +320,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload, meta *MSTeamsMeta) (*MSTeamsPa
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -355,7 +354,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload, meta *MSTeamsMeta) (*MSTeamsPa
 	}, nil
 }
 
-func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload, MSTeams *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
 	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
 	content := ""
@@ -381,6 +380,7 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload, MSTeams *MSTeamsM
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -414,7 +414,7 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload, MSTeams *MSTeamsM
 	}, nil
 }
 
-func getMSTeamsPullRequestPayload(p *api.PullRequestPayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -480,6 +480,7 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload, meta *MSTeamsMeta) 
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -513,7 +514,7 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload, meta *MSTeamsMeta) 
 	}, nil
 }
 
-func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, meta *MSTeamsMeta, event HookEventType) (*MSTeamsPayload, error) {
+func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookEventType) (*MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -533,6 +534,7 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, meta *MSTea
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -566,7 +568,7 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, meta *MSTea
 	}, nil
 }
 
-func getMSTeamsRepositoryPayload(p *api.RepositoryPayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -584,6 +586,7 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload, meta *MSTeamsMeta) (*
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -612,7 +615,7 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload, meta *MSTeamsMeta) (*
 	}, nil
 }
 
-func getMSTeamsReleasePayload(p *api.ReleasePayload, meta *MSTeamsMeta) (*MSTeamsPayload, error) {
+func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -635,6 +638,7 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload, meta *MSTeamsMeta) (*MSTeam
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
 		Title:      title,
+		Summary:    title,
 		Sections: []MSTeamsSection{
 			MSTeamsSection{
 				ActivityTitle:    p.Sender.FullName,
@@ -672,32 +676,27 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload, meta *MSTeamsMeta) (*MSTeam
 func GetMSTeamsPayload(p api.Payloader, event HookEventType, meta string) (*MSTeamsPayload, error) {
 	s := new(MSTeamsPayload)
 
-	MSTeams := &MSTeamsMeta{}
-	if err := json.Unmarshal([]byte(meta), &MSTeams); err != nil {
-		return s, errors.New("GetMSTeamsPayload meta json:" + err.Error())
-	}
-
 	switch event {
 	case HookEventCreate:
-		return getMSTeamsCreatePayload(p.(*api.CreatePayload), MSTeams)
+		return getMSTeamsCreatePayload(p.(*api.CreatePayload))
 	case HookEventDelete:
-		return getMSTeamsDeletePayload(p.(*api.DeletePayload), MSTeams)
+		return getMSTeamsDeletePayload(p.(*api.DeletePayload))
 	case HookEventFork:
-		return getMSTeamsForkPayload(p.(*api.ForkPayload), MSTeams)
+		return getMSTeamsForkPayload(p.(*api.ForkPayload))
 	case HookEventIssues:
-		return getMSTeamsIssuesPayload(p.(*api.IssuePayload), MSTeams)
+		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
 	case HookEventIssueComment:
-		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload), MSTeams)
+		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload))
 	case HookEventPush:
-		return getMSTeamsPushPayload(p.(*api.PushPayload), MSTeams)
+		return getMSTeamsPushPayload(p.(*api.PushPayload))
 	case HookEventPullRequest:
-		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload), MSTeams)
+		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
 	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
-		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), MSTeams, event)
+		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case HookEventRepository:
-		return getMSTeamsRepositoryPayload(p.(*api.RepositoryPayload), MSTeams)
+		return getMSTeamsRepositoryPayload(p.(*api.RepositoryPayload))
 	case HookEventRelease:
-		return getMSTeamsReleasePayload(p.(*api.ReleasePayload), MSTeams)
+		return getMSTeamsReleasePayload(p.(*api.ReleasePayload))
 	}
 
 	return s, nil
