@@ -9,8 +9,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	api "code.gitea.io/sdk/gitea"
 )
@@ -329,14 +329,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = &api.User{
-			ID:        users[i].ID,
-			UserName:  users[i].Name,
-			AvatarURL: users[i].AvatarLink(),
-			FullName:  markup.Sanitize(users[i].FullName),
-			IsAdmin:   users[i].IsAdmin,
-			Email:     users[i].Email,
-		}
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
