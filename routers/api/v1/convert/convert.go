@@ -230,4 +230,5 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 	if signed && (!user.KeepEmailPrivate || admin) {
 		result.Email = user.Email
 	}
+	return result
 }
