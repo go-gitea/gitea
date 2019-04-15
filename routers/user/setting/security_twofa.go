@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"html/template"
 	"image/png"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -78,7 +79,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 		err = nil // clear the error, in case the URL was invalid
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
-			Issuer:      setting.AppName + " (" + strings.TrimRight(setting.AppURL, "/") + ")",
+			Issuer:      setting.AppName + " (" + url.PathEscape(strings.TrimRight(setting.AppURL, "/")) + ")",
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
