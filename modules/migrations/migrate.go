@@ -17,12 +17,12 @@ import (
 type MigrateOptions = base.MigrateOptions
 
 var (
-	factorys []base.DownloaderFactory
+	factories []base.DownloaderFactory
 )
 
 // RegisterDownloaderFactory registers a downloader factory
 func RegisterDownloaderFactory(factory base.DownloaderFactory) {
-	factorys = append(factorys, factory)
+	factories = append(factories, factory)
 }
 
 // MigrateRepository migrate repository according MigrateOptions
@@ -32,7 +32,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
 	)
 
-	for _, factory := range factorys {
+	for _, factory := range factories {
 		if match, err := factory.Match(opts); err != nil {
 			return nil, err
 		} else if match {
