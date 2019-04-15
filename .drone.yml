@@ -82,6 +82,18 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  build-docker-binary:
+    image: golang:1.12
+    pull: true
+    environment:
+      TAGS: bindata sqlite sqlite_unlock_notify
+      EXECUTABLE: gitea-docker
+      LDFLAGS: -X "code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea"
+    commands:
+      - make build
+    when:
+      event: [ push, tag, pull_request ]
+
   unit-test:
     image: golang:1.12
     pull: true

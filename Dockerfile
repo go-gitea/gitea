@@ -49,7 +49,6 @@ RUN addgroup \
   echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
-ENV GITEA_CUSTOM /data/gitea
 
 VOLUME ["/data"]
 
@@ -57,5 +56,5 @@ ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
-COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --from=build-env /go/src/code.gitea.io/gitea/gitea-docker /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea

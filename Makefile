@@ -71,9 +71,9 @@ TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 ifeq ($(OS), Windows_NT)
-	EXECUTABLE := gitea.exe
+	EXECUTABLE ?= gitea.exe
 else
-	EXECUTABLE := gitea
+	EXECUTABLE ?= gitea
 endif
 
 # $(call strip-suffix,filename)
