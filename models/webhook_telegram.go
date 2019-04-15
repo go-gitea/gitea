@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -33,7 +34,7 @@ func (p *TelegramPayload) SetSecret(_ string) {}
 // JSONPayload Marshals the TelegramPayload to json
 func (p *TelegramPayload) JSONPayload() ([]byte, error) {
 	p.ParseMode = "HTML"
-	p.Message = strings.Replace(p.Message, "<!--", "\\<!--", -1)
+	p.Message = markup.Sanitize(p.Message)
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return []byte{}, err

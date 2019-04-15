@@ -149,7 +149,7 @@ func (w *Webhook) GetDiscordHook() *DiscordMeta {
 func (w *Webhook) GetTelegramHook() *TelegramMeta {
 	s := &TelegramMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error(4, "webhook.GetTelegramHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
 	}
 	return s
 }

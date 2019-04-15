@@ -377,7 +377,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link + "/settings/hooks")
+	ctx.Redirect(orCtx.Link)
 }
 
 // SlackHooksNewPost response for creating slack hook
@@ -735,7 +735,7 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
 // TestWebhook test if web hook is work fine
