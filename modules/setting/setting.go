@@ -388,12 +388,12 @@ func getAppPath() (string, error) {
 }
 
 func getWorkPath(appPath string) string {
-	workPath := ""
-	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+	workPath := AppWorkPath
 
-	if len(giteaWorkPath) > 0 {
+	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
 		workPath = giteaWorkPath
-	} else {
+	}
+	if len(workPath) == 0 {
 		i := strings.LastIndex(appPath, "/")
 		if i == -1 {
 			workPath = appPath
@@ -476,7 +476,9 @@ func CheckLFSVersion() {
 func NewContext() {
 	Cfg = ini.Empty()
 
-	CustomPath = os.Getenv("GITEA_CUSTOM")
+	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
+		CustomPath = giteaCustom
+	}
 	if len(CustomPath) == 0 {
 		CustomPath = path.Join(AppWorkPath, "custom")
 	} else if !filepath.IsAbs(CustomPath) {
