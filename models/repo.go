@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -219,7 +220,7 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 	} else if repo.Owner != nil {
 		ownerName = repo.Owner.Name
 	} else {
-		ownerName = log.NewColoredIDValue(repo.OwnerID)
+		ownerName = log.NewColoredIDValue(strconv.Itoa(repo.OwnerID))
 	}
 
 	log.ColorFprintf(s, "%d:%s/%s",
