@@ -168,8 +168,8 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
 
-	assert.False(t, com.IsExist(RepoPath("user3", "repo3")))
-	assert.True(t, com.IsExist(RepoPath("user2", "repo3")))
+	assert.False(t, com.IsExist(MakeRepoPath("user3", "repo3")))
+	assert.True(t, com.IsExist(MakeRepoPath("user2", "repo3")))
 	AssertExistsAndLoadBean(t, &Action{
 		OpType:    ActionTransferRepo,
 		ActUserID: 2,

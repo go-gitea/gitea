@@ -324,7 +324,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		return nil
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(repo.Owner.Name, repo.Name),
+	prInfo, err := headGitRepo.GetPullRequestInfo(models.MakeRepoPath(repo.Owner.Name, repo.Name),
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
@@ -457,7 +457,7 @@ func ViewPullFiles(ctx *context.Context) {
 			return
 		}
 
-		headRepoPath := models.RepoPath(pull.HeadUserName, pull.HeadRepo.Name)
+		headRepoPath := models.MakeRepoPath(pull.HeadUserName, pull.HeadRepo.Name)
 
 		headGitRepo, err := git.OpenRepository(headRepoPath)
 		if err != nil {
@@ -690,7 +690,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		headGitRepo = ctx.Repo.GitRepo
 		ctx.Data["BaseName"] = headUser.Name
 	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = git.OpenRepository(models.MakeRepoPath(headUser.Name, headRepo.Name))
 		ctx.Data["BaseName"] = baseRepo.OwnerName
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
@@ -722,7 +722,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	prInfo, err := headGitRepo.GetPullRequestInfo(models.MakeRepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
 		ctx.ServerError("GetPullRequestInfo", err)
 		return nil, nil, nil, nil, "", ""
@@ -762,7 +762,7 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := models.GetDiffRange(models.MakeRepoPath(headUser.Name, headRepo.Name),
 		prInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {

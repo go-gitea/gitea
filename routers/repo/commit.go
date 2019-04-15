@@ -209,7 +209,7 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 
-	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
+	diff, err := models.GetDiffCommit(models.MakeRepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
@@ -249,7 +249,7 @@ func Diff(ctx *context.Context) {
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
 	if err := models.GetRawDiff(
-		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
+		models.MakeRepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
 		ctx.Params(":sha"),
 		models.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
@@ -274,7 +274,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	diff, err := models.GetDiffRange(models.RepoPath(userName, repoName), beforeCommitID,
+	diff, err := models.GetDiffRange(models.MakeRepoPath(userName, repoName), beforeCommitID,
 		afterCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {

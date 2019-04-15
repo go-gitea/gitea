@@ -81,7 +81,7 @@ func runHookPreReceive(c *cli.Context) error {
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userIDStr := os.Getenv(models.EnvPusherID)
-	repoPath := models.RepoPath(username, reponame)
+	repoPath := models.MakeRepoPath(username, reponame)
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)

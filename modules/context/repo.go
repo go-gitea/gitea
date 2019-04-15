@@ -338,9 +338,9 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+		gitRepo, err := git.OpenRepository(models.MakeRepoPath(userName, repoName))
 		if err != nil {
-			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+			ctx.ServerError("RepoAssignment Invalid repo "+models.MakeRepoPath(userName, repoName), err)
 			return
 		}
 		ctx.Repo.GitRepo = gitRepo
@@ -557,7 +557,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			repoPath := models.MakeRepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
 			if err != nil {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)

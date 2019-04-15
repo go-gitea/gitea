@@ -579,7 +579,7 @@ func (repo *Repository) getBaseRepo(e Engine) (err error) {
 }
 
 func (repo *Repository) repoPath(e Engine) string {
-	return RepoPath(repo.mustOwnerName(e), repo.Name)
+	return MakeRepoPath(repo.mustOwnerName(e), repo.Name)
 }
 
 // RepoPath returns the repository path
@@ -790,7 +790,7 @@ func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(RepoPath(repo.Owner.Name, repo.Name), "pulls", com.ToStr(index)+".patch"), nil
+	return filepath.Join(MakeRepoPath(repo.Owner.Name, repo.Name), "pulls", com.ToStr(index)+".patch"), nil
 }
 
 // SavePatch saves patch data to corresponding location by given issue ID.
@@ -821,7 +821,7 @@ func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
 	})
-	return has && com.IsDir(RepoPath(u.Name, repoName)), err
+	return has && com.IsDir(MakeRepoPath(u.Name, repoName)), err
 }
 
 // IsRepositoryExist returns true if the repository with given name under user has already existed.
@@ -910,7 +910,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return nil, err
 	}
 
-	repoPath := RepoPath(u.Name, opts.Name)
+	repoPath := MakeRepoPath(u.Name, opts.Name)
 	wikiPath := WikiPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
@@ -1404,7 +1404,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 
 	// No need for init mirror.
 	if !opts.IsMirror {
-		repoPath := RepoPath(u.Name, repo.Name)
+		repoPath := MakeRepoPath(u.Name, repo.Name)
 		if err = initRepository(sess, repoPath, u, repo, opts); err != nil {
 			if err2 := os.RemoveAll(repoPath); err2 != nil {
 				log.Error("initRepository: %v", err)
@@ -1456,8 +1456,8 @@ func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
 }
 
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string {
+// MakeRepoPath returns repository path by given user and repository name.
+func MakeRepoPath(userName, repoName string) string {
 	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
 }
 
@@ -1558,7 +1558,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err = os.Rename(MakeRepoPath(owner.Name, repo.Name), MakeRepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 	removeAllWithNotice(sess, "Delete repository local copy", repo.LocalCopyPath())
@@ -1606,7 +1606,7 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
-	newRepoPath := RepoPath(u.Name, newRepoName)
+	newRepoPath := MakeRepoPath(u.Name, newRepoName)
 	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
@@ -2268,7 +2268,7 @@ func GitGcRepos() error {
 				}
 				_, stderr, err := process.GetManager().ExecDir(
 					time.Duration(setting.Git.Timeout.GC)*time.Second,
-					RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
+					MakeRepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
 					"git", args...)
 				if err != nil {
 					return fmt.Errorf("%v: %v", err, stderr)
@@ -2454,7 +2454,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	repoPath := RepoPath(u.Name, repo.Name)
+	repoPath := MakeRepoPath(u.Name, repo.Name)
 	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
 		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
 		"git", "clone", "--bare", oldRepo.repoPath(sess), repoPath)

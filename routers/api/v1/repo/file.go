@@ -83,7 +83,7 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
-	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
+	repoPath := models.MakeRepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		ctx.Error(500, "OpenRepository", err)

@@ -659,7 +659,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = git.OpenRepository(models.MakeRepoPath(headUser.Name, headRepo.Name))
 		if err != nil {
 			ctx.Error(500, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -683,7 +683,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	prInfo, err := headGitRepo.GetPullRequestInfo(models.MakeRepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
 		ctx.Error(500, "GetPullRequestInfo", err)
 		return nil, nil, nil, nil, "", ""

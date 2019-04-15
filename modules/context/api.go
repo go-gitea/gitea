@@ -134,7 +134,7 @@ func ReferencesGitRepo() macaron.Handler {
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			repoPath := models.MakeRepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			gitRepo, err := git.OpenRepository(repoPath)
 			if err != nil {
 				ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)

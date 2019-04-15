@@ -413,7 +413,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 
-	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
+	headRepoPath := MakeRepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
 	// Clone base repo.
 	tmpBasePath := path.Join(LocalCopyPath(), "merge-"+com.ToStr(time.Now().Nanosecond())+".git")
@@ -1172,7 +1172,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 
 	// Add a temporary remote.
 	tmpRemote := com.ToStr(time.Now().UnixNano())
-	if err = headGitRepo.AddRemote(tmpRemote, RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
+	if err = headGitRepo.AddRemote(tmpRemote, MakeRepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
 		return fmt.Errorf("AddRemote: %v", err)
 	}
 	defer func() {

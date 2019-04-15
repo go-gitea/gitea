@@ -191,7 +191,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
-	repoPath := RepoPath(opts.RepoUserName, opts.RepoName)
+	repoPath := MakeRepoPath(opts.RepoUserName, opts.RepoName)
 
 	gitUpdate := exec.Command("git", "update-server-info")
 	gitUpdate.Dir = repoPath

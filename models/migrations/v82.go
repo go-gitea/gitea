@@ -87,7 +87,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = git.OpenRepository(models.RepoPath(user.Name, repo.Name))
+				gitRepo, err = git.OpenRepository(models.MakeRepoPath(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}

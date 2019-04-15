@@ -17,7 +17,7 @@ func TestRelease_Create(t *testing.T) {
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repoPath := RepoPath(user.Name, repo.Name)
+	repoPath := MakeRepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repoPath := RepoPath(user.Name, repo.Name)
+	repoPath := MakeRepoPath(user.Name, repo.Name)
 	migrationOptions := MigrateRepoOptions{
 		Name:        "test_mirror",
 		Description: "Test mirror",
