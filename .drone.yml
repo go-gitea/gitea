@@ -79,18 +79,7 @@ pipeline:
       - make misspell-check
       - make test-vendor
       - make build
-    when:
-      event: [ push, tag, pull_request ]
-
-  build-docker-binary:
-    image: golang:1.12
-    pull: true
-    environment:
-      TAGS: bindata sqlite sqlite_unlock_notify
-      EXECUTABLE: gitea-docker
-      LDFLAGS: -X "code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea"
-    commands:
-      - make build
+      - make build-docker-binary
     when:
       event: [ push, tag, pull_request ]
 

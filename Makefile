@@ -40,6 +40,7 @@ else
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+DOCKER_LDFLAGS := -X "code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea"
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
@@ -318,6 +319,12 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+
+.PHONY: build-docker-binary
+build-docker-binary: gitea-docker
+
+gitea-docker: $(SOURCES)
+	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS) $(DOCKER_LDFLAGS)' -o $@
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
