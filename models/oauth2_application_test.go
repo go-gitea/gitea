@@ -140,7 +140,7 @@ func TestGetOAuth2GrantsByUserID(t *testing.T) {
 	result, err := GetOAuth2GrantsByUserID(1)
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
-	assert.Equal(t, 1, result[0].ID)
+	assert.Equal(t, int64(1), result[0].ID)
 	assert.Equal(t, result[0].ApplicationID, result[0].Application.ID)
 
 	result, err = GetOAuth2GrantsByUserID(34134)
