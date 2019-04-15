@@ -136,11 +136,8 @@ func TestOAuth2Grant_TableName(t *testing.T) {
 }
 
 func TestGetOAuth2GrantsByUserID(t *testing.T) {
-	result, err := GetOAuth2GrantsByUserID(1)
-	assert.Error(t, err)
-	assert.Nil(t, result)
 	assert.NoError(t, PrepareTestDatabase())
-	result, err = GetOAuth2GrantsByUserID(1)
+	result, err := GetOAuth2GrantsByUserID(1)
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, 1, result[0].ID)
@@ -152,9 +149,6 @@ func TestGetOAuth2GrantsByUserID(t *testing.T) {
 }
 
 func TestDeleteOAuth2Grant(t *testing.T) {
-	err := DeleteOAuth2Grant(1, 1)
-	assert.Error(t, err)
-
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, DeleteOAuth2Grant(1, 1))
 	AssertNotExistsBean(t, &OAuth2Grant{ID: 1, UserID: 1})
