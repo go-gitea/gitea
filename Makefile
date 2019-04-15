@@ -314,17 +314,19 @@ check: test
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
+.PHONY: build-docker-binary
+build-docker-binary: gitea-docker
+
+.PHONY: gitea-docker
+gitea-docker: $(SOURCES)
+	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS) $(DOCKER_LDFLAGS)' -o gitea-docker
+
 .PHONY: build
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
-.PHONY: build-docker-binary
-build-docker-binary: gitea-docker
-
-gitea-docker: $(SOURCES)
-	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS) $(DOCKER_LDFLAGS)' -o $@
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check

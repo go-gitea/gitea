@@ -4,7 +4,6 @@ DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 LDFLAGS ?= $(LDFLAGS) -X "code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea"
-EXECUTABLE := gitea-docker
 
 
 .PHONY: docker
@@ -14,4 +13,4 @@ docker:
 
 .PHONY: docker-build
 docker-build:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" EXECUTABLE="$(EXECUTABLE)" LDFLAGS="$(LDFLAGS)" webhippie/golang:edge make clean generate build
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" EXECUTABLE="$(EXECUTABLE)" LDFLAGS="$(LDFLAGS)" webhippie/golang:edge make clean generate build-docker-binary
