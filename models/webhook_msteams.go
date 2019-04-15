@@ -78,16 +78,16 @@ func getMSTeamsCreatePayload(p *api.CreatePayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repo.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  fmt.Sprintf("%s:", p.RefType),
 						Value: refName,
 					},
@@ -95,11 +95,11 @@ func getMSTeamsCreatePayload(p *api.CreatePayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: p.Repo.HTMLURL + "/src/" + refName,
 					},
@@ -121,16 +121,16 @@ func getMSTeamsDeletePayload(p *api.DeletePayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repo.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  fmt.Sprintf("%s:", p.RefType),
 						Value: refName,
 					},
@@ -138,11 +138,11 @@ func getMSTeamsDeletePayload(p *api.DeletePayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: p.Repo.HTMLURL + "/src/" + refName,
 					},
@@ -163,16 +163,16 @@ func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Forkee:",
 						Value: p.Forkee.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repo.FullName,
 					},
@@ -180,11 +180,11 @@ func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: p.Repo.HTMLURL,
 					},
@@ -232,16 +232,16 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repo.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Commit count:",
 						Value: fmt.Sprintf("%d", len(p.Commits)),
 					},
@@ -249,11 +249,11 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: titleLink,
 					},
@@ -322,17 +322,17 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Text:             text,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Issue #:",
 						Value: fmt.Sprintf("%d", p.Issue.ID),
 					},
@@ -340,11 +340,11 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: url,
 					},
@@ -382,17 +382,17 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Text:             content,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Issue #:",
 						Value: fmt.Sprintf("%d", p.Issue.ID),
 					},
@@ -400,11 +400,11 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: url,
 					},
@@ -482,17 +482,17 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, e
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Text:             text,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Pull request #:",
 						Value: fmt.Sprintf("%d", p.PullRequest.ID),
 					},
@@ -500,11 +500,11 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, e
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: p.PullRequest.HTMLURL,
 					},
@@ -536,17 +536,17 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookE
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Text:             text,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Pull request #:",
 						Value: fmt.Sprintf("%d", p.PullRequest.ID),
 					},
@@ -554,11 +554,11 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookE
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: p.PullRequest.HTMLURL,
 					},
@@ -588,12 +588,12 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, err
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
@@ -601,11 +601,11 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, err
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: url,
 					},
@@ -640,17 +640,17 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 		Title:      title,
 		Summary:    title,
 		Sections: []MSTeamsSection{
-			MSTeamsSection{
+			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
 				Text:             p.Release.Note,
 				Facts: []MSTeamsFact{
-					MSTeamsFact{
+					{
 						Name:  "Repository:",
 						Value: p.Repository.FullName,
 					},
-					MSTeamsFact{
+					{
 						Name:  "Tag:",
 						Value: p.Release.TagName,
 					},
@@ -658,11 +658,11 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 			},
 		},
 		PotentialAction: []MSTeamsAction{
-			MSTeamsAction{
+			{
 				Type: "OpenUri",
 				Name: "View in Gitea",
 				Targets: []MSTeamsActionTarget{
-					MSTeamsActionTarget{
+					{
 						Os:  "default",
 						URI: url,
 					},
