@@ -221,6 +221,8 @@ var migrations = []Migration{
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 	// v83 -> v84
 	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
+	// v84 -> v85
+	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 }
 
 // Migrate database to current version

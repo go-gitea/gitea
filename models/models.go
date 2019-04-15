@@ -108,6 +108,7 @@ func init() {
 		new(LFSMetaObject),
 		new(TwoFactor),
 		new(GPGKey),
+		new(GPGKeyImport),
 		new(RepoUnit),
 		new(RepoRedirect),
 		new(ExternalLoginUser),
