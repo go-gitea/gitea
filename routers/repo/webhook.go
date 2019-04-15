@@ -123,12 +123,6 @@ func WebhooksNew(ctx *context.Context) {
 			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
-	if hookType == "msteams" {
-		ctx.Data["MSTeamsHook"] = map[string]interface{}{
-			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
-		}
-	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
 	ctx.HTML(200, orCtx.NewTemplate)
