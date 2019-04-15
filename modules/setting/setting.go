@@ -471,6 +471,9 @@ func CheckLFSVersion() {
 	}
 }
 
+// SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
+// GITEA_CUSTOM environment variable and with provided overrides before stepping
+// back to the default
 func SetCustomPathAndConf(providedCustom, providedConf string) {
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom
