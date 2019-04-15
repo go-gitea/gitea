@@ -410,11 +410,11 @@ func (pc *PushCommits) AvatarLink(email string) string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser    *User
-	RequestingUserID int64
-	IncludePrivate   bool // include private actions
-	OnlyPerformedBy  bool // only actions performed by requested user
-	IncludeDeleted   bool // include deleted actions
+	RequestedUser   *User // the user we want activity for
+	Actor           *User // the user viewing the activity
+	IncludePrivate  bool  // include private actions
+	OnlyPerformedBy bool  // only actions performed by requested user
+	IncludeDeleted  bool  // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -422,8 +422,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	cond := builder.NewCond()
 
 	var repoIDs []int64
+	var actorID int64
+
+	if opts.Actor != nil {
+		actorID = opts.Actor.ID
+	}
+
 	if opts.RequestedUser.IsOrganization() {
-		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
+		env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -432,6 +438,8 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		}
 
 		cond = cond.And(builder.In("repo_id", repoIDs))
+	} else if opts.Actor != nil {
+		cond = cond.And(builder.In("repo_id", opts.Actor.AccessibleRepoIDsQuery()))
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})

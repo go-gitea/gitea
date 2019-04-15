@@ -233,6 +233,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.MaxRepoCreation = form.MaxRepoCreation
 	u.IsActive = form.Active
 	u.IsAdmin = form.Admin
+	u.IsRestricted = form.Restricted
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization

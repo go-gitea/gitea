@@ -159,7 +159,7 @@ func LFSObjectAccessible(user *User, oid string) (bool, error) {
 		count, err := x.Count(&LFSMetaObject{Oid: oid})
 		return (count > 0), err
 	}
-	cond := accessibleRepositoryCondition(user.ID)
+	cond := accessibleRepositoryCondition(user)
 	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Oid: oid})
 	return (count > 0), err
 }
@@ -182,7 +182,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 	cond := builder.NewCond()
 	if !user.IsAdmin {
 		cond = builder.In("`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user.ID)))
+			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user)))
 	}
 	newMetas := make([]*LFSMetaObject, 0, len(metas))
 	if err := sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {

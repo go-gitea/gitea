@@ -75,3 +75,15 @@
   user_id: 20
   repo_id: 28
   mode: 4 # owner
+
+-
+  id: 14
+  user_id: 29
+  repo_id: 4
+  mode: 2 # write (collaborator)
+
+-
+  id: 15
+  user_id: 29
+  repo_id: 24
+  mode: 1 # read
