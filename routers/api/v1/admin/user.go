@@ -320,10 +320,7 @@ func GetAllUsers(ctx *context.APIContext) {
 		PageSize: -1,
 	})
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		ctx.Error(500, "GetAllUsers", err)
 		return
 	}
 
@@ -332,8 +329,5 @@ func GetAllUsers(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
-		"ok":   true,
-		"data": results,
-	})
+	ctx.JSON(200, &results)
 }
