@@ -138,3 +138,16 @@ func DeleteOAuth2Application(ctx *context.Context) {
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
+
+// DeleteOAuth2Grant deletes the grant with the given id
+func DeleteOAuth2Grant(ctx *context.Context) {
+	if err := models.DeleteOAuth2Grant(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+		ctx.ServerError("DeleteOAuth2Grant", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/applications",
+	})
+}

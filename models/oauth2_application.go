@@ -443,6 +443,16 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 	return grants, nil
 }
 
+// DeleteOAuth2Grant deletes the grant with grantID and userID
+func DeleteOAuth2Grant(grantID, userID int64) error {
+	return deleteOAuth2Grant(x, grantID, userID)
+}
+
+func deleteOAuth2Grant(e Engine, grantID, userID int64) error {
+	_, err := e.Delete(&OAuth2Grant{ID: grantID, UserID: userID})
+	return err
+}
+
 //////////////////////////////////////////////////////////////
 
 // OAuth2TokenType represents the type of token for an oauth application

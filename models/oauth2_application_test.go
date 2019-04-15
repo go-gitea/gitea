@@ -151,6 +151,15 @@ func TestGetOAuth2GrantsByUserID(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+func TestDeleteOAuth2Grant(t *testing.T) {
+	err := DeleteOAuth2Grant(1, 1)
+	assert.Error(t, err)
+
+	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, DeleteOAuth2Grant(1, 1))
+	AssertNotExistsBean(t, &OAuth2Grant{ID: 1, UserID: 1})
+}
+
 //////////////////// Authorization Code
 
 func TestGetOAuth2AuthorizationByCode(t *testing.T) {
