@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	api "code.gitea.io/sdk/gitea"
@@ -319,8 +320,27 @@ func GetAllUsers(ctx *context.APIContext) {
 		PageSize: -1,
 	})
 	if err != nil {
-		ctx.Error(500, "SearchUsers", err)
+		ctx.JSON(500, map[string]interface{}{
+			"ok":    false,
+			"error": err.Error(),
+		})
 		return
 	}
-	ctx.JSON(200, &users)
+
+	results := make([]*api.User, len(users))
+	for i := range users {
+		results[i] = &api.User{
+			ID:        users[i].ID,
+			UserName:  users[i].Name,
+			AvatarURL: users[i].AvatarLink(),
+			FullName:  markup.Sanitize(users[i].FullName),
+			IsAdmin:   users[i].IsAdmin,
+			Email:     users[i].Email,
+		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok":   true,
+		"data": results,
+	})
 }
