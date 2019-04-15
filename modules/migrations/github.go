@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 
 	"github.com/google/go-github/v24/github"
@@ -18,8 +20,43 @@ import (
 )
 
 var (
-	_ base.Downloader = &GithubDownloaderV3{}
+	_ base.Downloader        = &GithubDownloaderV3{}
+	_ base.DownloaderFactory = &GithubDownloaderV3Factory{}
 )
+
+func init() {
+	RegisterDownloaderFactory(&GithubDownloaderV3Factory{})
+}
+
+// GithubDownloaderV3Factory defines a github downloader v3 factory
+type GithubDownloaderV3Factory struct {
+}
+
+// Match returns ture if the migration remote URL matched this downloader factory
+func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error) {
+	u, err := url.Parse(opts.RemoteURL)
+	if err != nil {
+		return false, err
+	}
+
+	return u.Host == "github.com" && opts.AuthUsername != "", nil
+}
+
+// New returns a Downloader related to this factory according MigrateOptions
+func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
+	u, err := url.Parse(opts.RemoteURL)
+	if err != nil {
+		return nil, err
+	}
+
+	fields := strings.Split(u.Path, "/")
+	oldOwner := fields[1]
+	oldName := strings.TrimSuffix(fields[2], ".git")
+
+	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
+
+	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+}
 
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3

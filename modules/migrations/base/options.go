@@ -3,18 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package migrations
-
-import "net/url"
-
-// MigrationSource represents a migration source
-type MigrationSource string
-
-// enumerates all MigrationSources
-const (
-	MigrateFromPlainGit                 = "git"
-	MigrateFromGithub   MigrationSource = "github"
-)
+package base
 
 // MigrateOptions defines the way a repository gets migrated
 type MigrateOptions struct {
@@ -34,23 +23,4 @@ type MigrateOptions struct {
 	Private           bool
 	Mirror            bool
 	IgnoreIssueAuthor bool // if true will not add original author information before issues or comments content.
-}
-
-// Source returns the migration source
-func (opts MigrateOptions) Source() (MigrationSource, error) {
-	u, err := url.Parse(opts.RemoteURL)
-	if err != nil {
-		return "", err
-	}
-
-	switch u.Host {
-	case "github.com":
-		return MigrateFromGithub, nil
-	}
-	return MigrateFromPlainGit, nil
-}
-
-// URL return remote URL
-func (opts MigrateOptions) URL() (*url.URL, error) {
-	return url.Parse(opts.RemoteURL)
 }

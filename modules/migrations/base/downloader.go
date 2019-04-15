@@ -16,14 +16,8 @@ type Downloader interface {
 	GetPullRequests(start, limit int) ([]*PullRequest, error)
 }
 
-// Uploader uploads all the informations
-type Uploader interface {
-	CreateRepo(repo *Repository, includeWiki bool) error
-	CreateMilestone(milestone *Milestone) error
-	CreateRelease(release *Release) error
-	CreateLabel(label *Label) error
-	CreateIssue(issue *Issue) error
-	CreateComment(issueNumber int64, comment *Comment) error
-	CreatePullRequest(pr *PullRequest) error
-	Rollback() error
+// DownloaderFactory defines an interface to match a downloader implementation and create a downloader
+type DownloaderFactory interface {
+	Match(opts MigrateOptions) (bool, error)
+	New(opts MigrateOptions) (Downloader, error)
 }

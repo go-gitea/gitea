@@ -7,39 +7,43 @@ package migrations
 
 import (
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
-// MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions) (*models.Repository, error) {
-	source, err := opts.Source()
-	if err != nil {
-		return nil, err
-	}
-	url, err := opts.URL()
-	if err != nil {
-		return nil, err
-	}
+// MigrateOptions is equal to base.MigrateOptions
+type MigrateOptions = base.MigrateOptions
 
+var (
+	factorys []base.DownloaderFactory
+)
+
+// RegisterDownloaderFactory registers a downloader factory
+func RegisterDownloaderFactory(factory base.DownloaderFactory) {
+	factorys = append(factorys, factory)
+}
+
+// MigrateRepository migrate repository according MigrateOptions
+func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
 	)
 
-	switch source {
-	case MigrateFromGithub:
-		if opts.AuthUsername != "" {
-			fields := strings.Split(url.Path, "/")
-			oldOwner := fields[1]
-			oldName := strings.TrimSuffix(fields[2], ".git")
-			downloader = NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName)
-			log.Trace("Will migrate from github: %s/%s", oldOwner, oldName)
+	for _, factory := range factorys {
+		if match, err := factory.Match(opts); err != nil {
+			return nil, err
+		} else if match {
+			downloader, err = factory.New(opts)
+			if err != nil {
+				return nil, err
+			}
+			break
 		}
 	}
+
 	if downloader == nil {
 		opts.Wiki = true
 		opts.Milestones = false
@@ -65,7 +69,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts MigrateOptions)
 // migrateRepository will download informations and upload to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts MigrateOptions) error {
+func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
 		return err
