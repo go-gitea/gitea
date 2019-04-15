@@ -124,7 +124,7 @@ func (r *Repository) BranchNameSubURL() string {
 	case r.IsViewCommit:
 		return "commit/" + r.BranchName
 	}
-	log.Error(4, "Unknown view type for repo: %v", r)
+	log.Error("Unknown view type for repo: %v", r)
 	return ""
 }
 
@@ -536,7 +536,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		}
 		return path
 	default:
-		log.Error(4, "Unrecognized path type: %v", path)
+		log.Error("Unrecognized path type: %v", path)
 	}
 	return ""
 }

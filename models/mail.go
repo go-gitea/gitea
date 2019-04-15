@@ -47,7 +47,7 @@ func SendTestMail(email string) error {
 // SendUserMail sends a mail to the user
 func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
-		"Username":          u.DisplayName(),
+		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
 		"Code":              code,
@@ -56,7 +56,7 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func SendResetPasswordMail(c *macaron.Context, u *User) {
 // SendActivateEmailMail sends confirmation email to confirm new email address
 func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
-		"Username":        u.DisplayName(),
+		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
@@ -88,7 +88,7 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -101,13 +101,14 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(c *macaron.Context, u *User) {
 	data := map[string]interface{}{
-		"Username": u.DisplayName(),
+		"DisplayName": u.DisplayName(),
+		"Username":    u.Name,
 	}
 
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -131,7 +132,7 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -165,7 +166,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	var mailBody bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 	}
 
 	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())

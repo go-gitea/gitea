@@ -33,7 +33,7 @@ func addSizeToAttachment(x *xorm.Engine) error {
 		localPath := path.Join(setting.AttachmentPath, attach.UUID[0:1], attach.UUID[1:2], attach.UUID)
 		fi, err := os.Stat(localPath)
 		if err != nil {
-			log.Error(4, "calculate file size of attachment[UUID: %s]: %v", attach.UUID, err)
+			log.Error("calculate file size of attachment[UUID: %s]: %v", attach.UUID, err)
 			continue
 		}
 		attach.Size = fi.Size()
