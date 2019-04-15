@@ -43,6 +43,7 @@ func runPR() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	setting.SetCustomPathAndConf("", "")
 	setting.NewContext()
 
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")

@@ -41,8 +41,13 @@ and it takes care of all the other things for you`,
 			Usage: "Temporary port number to prevent conflict",
 		},
 		cli.StringFlag{
+			Name:  "custom-path, C",
+			Value: setting.CustomPath,
+			Usage: "Custom path file path",
+		},
+		cli.StringFlag{
 			Name:  "config, c",
-			Value: "custom/conf/app.ini",
+			Value: setting.CustomConf,
 			Usage: "Custom configuration file path",
 		},
 		cli.StringFlag{

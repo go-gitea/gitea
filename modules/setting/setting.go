@@ -471,13 +471,12 @@ func CheckLFSVersion() {
 	}
 }
 
-// NewContext initializes configuration context.
-// NOTE: do not print any log except error.
-func NewContext() {
-	Cfg = ini.Empty()
-
+func SetCustomPathAndConf(providedCustom, providedConf string) {
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom
+	}
+	if len(providedCustom) != 0 {
+		CustomPath = providedCustom
 	}
 	if len(CustomPath) == 0 {
 		CustomPath = path.Join(AppWorkPath, "custom")
@@ -485,14 +484,23 @@ func NewContext() {
 		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if len(providedConf) != 0 {
+		CustomConf = providedConf
 	}
-
 	if len(CustomConf) == 0 {
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+	}
+}
+
+// NewContext initializes configuration context.
+// NOTE: do not print any log except error.
+func NewContext() {
+	Cfg = ini.Empty()
+
+	if len(CustomPID) > 0 {
+		createPIDFile(CustomPID)
 	}
 
 	if com.IsFile(CustomConf) {
