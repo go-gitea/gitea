@@ -10,9 +10,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/go-macaron/binding"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -20,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -162,10 +160,6 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
-	// FIXME: Why is this check needed?
-	errs := binding.Errors{}
-	errs = form.Validate(ctx.Context, errs)
-
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		if models.IsErrOauthClientIDInvalid(err) {
