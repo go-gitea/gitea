@@ -5,6 +5,11 @@ if [ ! -d /data/git/.ssh ]; then
     chmod 700 /data/git/.ssh
 fi
 
+if [ ! -f /data/git/.ssh/environment ]; then
+    echo "GITEA_CUSTOM=/data/gitea" >| /data/git/.ssh/environment
+    chmod 600 /data/git/.ssh/environment
+fi
+
 if [ ! -f /data/gitea/conf/app.ini ]; then
     mkdir -p /data/gitea/conf
 
