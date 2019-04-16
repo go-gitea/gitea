@@ -7,6 +7,7 @@ package context
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+
 	macaron "gopkg.in/macaron.v1"
 )
 
