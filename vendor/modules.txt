@@ -209,9 +209,10 @@ github.com/klauspost/crc32
 # github.com/lafriks/xormstore v1.0.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.0.0
+# github.com/lib/pq v1.1.0
 github.com/lib/pq
 github.com/lib/pq/oid
+github.com/lib/pq/scram
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 github.com/lunny/dingtalk_webhook
 # github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
