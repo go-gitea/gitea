@@ -71,22 +71,33 @@
 <script>
 
 window.onload = function() {
-  // Build a system
-  const ui = SwaggerUIBundle({
-    url: "{{AppUrl}}swagger.{{.APIJSONVersion}}.json",
-    dom_id: '#swagger-ui',
-    deepLinking: true,
-    presets: [
-      SwaggerUIBundle.presets.apis,
-      SwaggerUIStandalonePreset
-    ],
-    plugins: [
-      SwaggerUIBundle.plugins.DownloadUrl
-    ],
-    layout: "StandaloneLayout"
-  })
+  // Fetch the Swagger JSON specs
+  var url = "{{AppUrl}}swagger.{{.APIJSONVersion}}.json"
+  fetch(url)
+  .then(function(response) {
+    response.json()
+    .then(function(spec) {
+      // Make the page's protocol be at the top of the schemes list
+      var protocol = window.location.protocol.slice(0, -1)
+      spec.schemes.sort(function(x,y){ return x == protocol ? -1 : y == protocol ? 1 : 0 })
+      // Build the Swagger UI
+      const ui = SwaggerUIBundle({
+        spec: spec,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      })
 
-  window.ui = ui
+      window.ui = ui
+    })
+  })
 }
 </script>
 </body>
