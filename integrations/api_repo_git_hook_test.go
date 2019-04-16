@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/sdk/gitea"
+
 	"github.com/stretchr/testify/assert"
 )
 
