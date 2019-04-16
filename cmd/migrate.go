@@ -19,20 +19,9 @@ var CmdMigrate = cli.Command{
 	Usage:       "Migrate the database",
 	Description: "This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.",
 	Action:      runMigrate,
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
-	},
 }
 
 func runMigrate(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}

@@ -31,11 +31,6 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
-		cli.StringFlag{
 			Name:  "file, f",
 			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
 			Usage: "Name of the dump file which will be created.",
@@ -61,9 +56,6 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 }
 
 func runDump(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
 	setting.NewContext()
 	setting.NewServices() // cannot access session settings otherwise
 	models.LoadConfigs()

@@ -41,16 +41,6 @@ and it takes care of all the other things for you`,
 			Usage: "Temporary port number to prevent conflict",
 		},
 		cli.StringFlag{
-			Name:  "custom-path, C",
-			Value: setting.CustomPath,
-			Usage: "Custom path file path",
-		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: setting.CustomConf,
-			Usage: "Custom configuration file path",
-		},
-		cli.StringFlag{
 			Name:  "pid, P",
 			Value: "/var/run/gitea.pid",
 			Usage: "Custom pid file path",
@@ -115,10 +105,6 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}

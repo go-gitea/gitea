@@ -39,11 +39,6 @@ var CmdServ = cli.Command{
 	Description: `Serv provide access auth for repositories`,
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 		cli.BoolFlag{
 			Name: "enable-pprof",
 		},
@@ -109,9 +104,6 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 }
 
 func runServ(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
 	setup("serv.log")
 
 	if setting.SSH.Disabled {

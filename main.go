@@ -32,13 +32,19 @@ var (
 	// MakeVersion holds the current Make version if built with make
 	MakeVersion = ""
 
-	originalHelpTemplate = ""
+	originalAppHelpTemplate        = ""
+	originalCommandHelpTemplate    = ""
+	originalSubcommandHelpTemplate = ""
 )
 
 func init() {
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith(Tags)
-	originalHelpTemplate = cli.AppHelpTemplate
+
+	// Grab the original help templates
+	originalAppHelpTemplate = cli.AppHelpTemplate
+	originalCommandHelpTemplate = cli.CommandHelpTemplate
+	originalSubcommandHelpTemplate = cli.SubcommandHelpTemplate
 }
 
 func main() {
@@ -59,16 +65,49 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
 	}
+	// Now adjust these commands to add our global configuration options
+
+	// First calculate the default paths and set the AppHelpTemplates in this context
+	setting.SetCustomPathAndConf("", "")
+	setAppHelpTemplates()
+
+	// default configuration flags
+	defaultFlags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "custom-path, C",
+			Value: setting.CustomPath,
+			Usage: "Custom path file path",
+		},
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: setting.CustomConf,
+			Usage: "Custom configuration file path",
+		},
+		cli.VersionFlag,
+	}
+
+	// Set the default to be equivalent to cmdWeb and add the default flags
 	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
+	app.Flags = append(app.Flags, defaultFlags...)
 	app.Action = cmd.CmdWeb.Action
+
+	// Add functions to set these paths and these flags to the commands
 	app.Before = establishCustomPath
 	for i := range app.Commands {
-		app.Commands[i].Before = establishCustomPath
+		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
+	}
+}
+
+func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Flag, before cli.BeforeFunc) {
+	command.Flags = append(command.Flags, defaultFlags...)
+	command.Before = establishCustomPath
+	for i := range command.Subcommands {
+		setFlagsAndBeforeOnSubcommands(&command.Subcommands[i], defaultFlags, before)
 	}
 }
 
@@ -95,16 +134,36 @@ func establishCustomPath(ctx *cli.Context) error {
 	}
 	setting.SetCustomPathAndConf(providedCustom, providedConf)
 
-	cli.AppHelpTemplate = fmt.Sprintf(`%s
+	setAppHelpTemplates()
 
-COMPUTED CONFIGURATION:
-     CustomPath:  %s
+	if ctx.IsSet("version") {
+		cli.ShowVersion(ctx)
+		os.Exit(0)
+	}
+
+	return nil
+}
+
+func setAppHelpTemplates() {
+	cli.AppHelpTemplate = adjustHelpTemplate(originalAppHelpTemplate)
+	cli.CommandHelpTemplate = adjustHelpTemplate(originalCommandHelpTemplate)
+	cli.SubcommandHelpTemplate = adjustHelpTemplate(originalSubcommandHelpTemplate)
+}
+
+func adjustHelpTemplate(originalTemplate string) string {
+	overrided := ""
+	if _, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
+		overrided = "(GITEA_CUSTOM)"
+	}
+
+	return fmt.Sprintf(`%s
+DEFAULT CONFIGURATION:
+     CustomPath:  %s %s
      CustomConf:  %s
      AppPath:     %s
      AppWorkPath: %s
 
-`, originalHelpTemplate, setting.CustomPath, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
-	return nil
+`, originalTemplate, setting.CustomPath, overrided, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
 }
 
 func formatBuiltWith(makeTags string) string {
