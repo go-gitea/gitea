@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
+	code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
@@ -138,6 +138,3 @@ replace (
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
 	github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 )
-
-// Temporary for CI, remove before merging
-replace code.gitea.io/sdk => github.com/codeocean/gitea-go-sdk v0.0.0-20190326134959-611b506053f8
