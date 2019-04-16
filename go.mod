@@ -138,3 +138,6 @@ replace (
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
 	github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 )
+
+// Temporary for CI, remove before merging
+replace code.gitea.io/sdk => github.com/codeocean/gitea-go-sdk v0.0.0-20190326134959-611b506053f8

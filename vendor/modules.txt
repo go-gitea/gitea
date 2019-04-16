@@ -1,4 +1,4 @@
-# code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
+# code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0 => github.com/codeocean/gitea-go-sdk v0.0.0-20190326134959-611b506053f8
 code.gitea.io/sdk/gitea
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml

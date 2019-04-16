@@ -1,6 +1,4 @@
 cloud.google.com/go v0.30.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0 h1:pIKKrTUox+0pGcZwFl19Glw9gKfoeNkA02EqeiSmLjs=
-code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0/go.mod h1:5bZt0dRznpn2JysytQnV0yCru3FwDv9O5G91jo+lDAk=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34 h1:UsHpWO0Elp6NaWVARdZHjiYwkhrspHVEGsyIKPb9OI8=
@@ -41,6 +39,8 @@ github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f h1:REH9VH5u
 github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f/go.mod h1:6QaC0vFoKWYDth94dHFNgRT2YkT5FHdQp/Yx15aAAi0=
 github.com/cockroachdb/apd v1.1.0 h1:3LFP3629v+1aKXU5Q37mxmRxX/pIu1nijXydLShEq5I=
 github.com/cockroachdb/apd v1.1.0/go.mod h1:8Sl8LxpKi29FqWXR16WEFZRNSz3SoPzUzeMeY4+DwBQ=
+github.com/codeocean/gitea-go-sdk v0.0.0-20190326134959-611b506053f8 h1:oru/i2c9E+jj0xotlCwAogNnOOvXtp6E2+tZeHcw/sg=
+github.com/codeocean/gitea-go-sdk v0.0.0-20190326134959-611b506053f8/go.mod h1:b2OWYvxzMXWa0j84j9fdgMEsR54YwNusbtQ8gLSO864=
 github.com/couchbase/gomemcached v0.0.0-20181122193126-5125a94a666c h1:K4FIibkr4//ziZKOKmt4RL0YImuTjLLBtwElf+F2lSQ=
 github.com/couchbase/gomemcached v0.0.0-20181122193126-5125a94a666c/go.mod h1:srVSlQLB8iXBVXHgnqemxUXqN6FCvClgCMPCsjBDR7c=
 github.com/couchbase/goutils v0.0.0-20180530154633-e865a1461c8a h1:Y5XsLCEhtEI8qbD9RP3Qlv5FXdTDHxZM9UPUnMRgBp8=
