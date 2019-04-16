@@ -5,6 +5,13 @@ export DATA_PATH=${DATA_PATH:-"/data/gitea"}
 export GITEA_CUSTOM=${GITEA_CUSTOM:-"/data/gitea"}
 export RUN_DIR=${RUN_DIR:-"/app/gitea"}
 
+
+# Set INSTALL_LOCK to true only if SECRET_KEY is not empty and
+# INSTALL_LOCK is empty
+if [ -n "$SECRET_KEY" ] && [ -z "$INSTALL_LOCK" ]; then
+    INSTALL_LOCK=true
+fi
+
 export APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"}
 export RUN_MODE=${RUN_MODE:-"dev"}
 export SSH_DOMAIN=${SSH_DOMAIN:-"localhost"}

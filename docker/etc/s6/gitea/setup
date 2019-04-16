@@ -13,12 +13,6 @@ fi
 if [ ! -f "${GITEA_CUSTOM}/conf/app.ini" ]; then
     mkdir -p "${GITEA_CUSTOM}/conf"
 
-    # Set INSTALL_LOCK to true only if SECRET_KEY is not empty and
-    # INSTALL_LOCK is empty
-    if [ -n "$SECRET_KEY" ] && [ -z "$INSTALL_LOCK" ]; then
-        INSTALL_LOCK=true
-    fi
-
     # Substitude the environment variables in the template
     envsubst < /etc/templates/app.ini > "${GITEA_CUSTOM}/conf/app.ini"
 fi
