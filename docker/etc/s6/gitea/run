@@ -1,4 +1,5 @@
 #!/bin/bash
+[[ -f ./default_env ]] && source ./default_env
 [[ -f ./setup ]] && source ./setup
 
 pushd "${RUN_DIR}" > /dev/null

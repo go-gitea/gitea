@@ -49,12 +49,6 @@ RUN addgroup \
   echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
-#Should later be move to /data/gitea/custom
-ENV GITEA_CUSTOM /data/gitea 
-#Should later maybe be move to /data/gitea (goal use is to use the default path relative to AppWorkPath for new folder)
-ENV RUN_DIR /app/gitea
-#Should stay to /data/gitea
-ENV DATA_PATH /data/gitea
 
 VOLUME ["/data"]
 

@@ -20,23 +20,6 @@ if [ ! -f "${GITEA_CUSTOM}/conf/app.ini" ]; then
     fi
 
     # Substitude the environment variables in the template
-    APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
-    RUN_MODE=${RUN_MODE:-"dev"} \
-    DATA_PATH=${DATA_PATH:-"/data/gitea"} \
-    SSH_DOMAIN=${SSH_DOMAIN:-"localhost"} \
-    HTTP_PORT=${HTTP_PORT:-"3000"} \
-    ROOT_URL=${ROOT_URL:-""} \
-    DISABLE_SSH=${DISABLE_SSH:-"false"} \
-    SSH_PORT=${SSH_PORT:-"22"} \
-    DB_TYPE=${DB_TYPE:-"sqlite3"} \
-    DB_HOST=${DB_HOST:-"localhost:3306"} \
-    DB_NAME=${DB_NAME:-"gitea"} \
-    DB_USER=${DB_USER:-"root"} \
-    DB_PASSWD=${DB_PASSWD:-""} \
-    INSTALL_LOCK=${INSTALL_LOCK:-"false"} \
-    DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"} \
-    REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"} \
-    SECRET_KEY=${SECRET_KEY:-""} \
     envsubst < /etc/templates/app.ini > "${GITEA_CUSTOM}/conf/app.ini"
 fi
 

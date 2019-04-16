@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Define the environment variables
+export DATA_PATH=${DATA_PATH:-"/data/gitea"}
+export GITEA_CUSTOM=${GITEA_CUSTOM:-"/data/gitea"}
+export RUN_DIR=${RUN_DIR:-"/app/gitea"}
+
+export APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"}
+export RUN_MODE=${RUN_MODE:-"dev"}
+export SSH_DOMAIN=${SSH_DOMAIN:-"localhost"}
+export HTTP_PORT=${HTTP_PORT:-"3000"}
+export ROOT_URL=${ROOT_URL:-""}
+export DISABLE_SSH=${DISABLE_SSH:-"false"}
+export SSH_PORT=${SSH_PORT:-"22"}
+export DB_TYPE=${DB_TYPE:-"sqlite3"}
+export DB_HOST=${DB_HOST:-"localhost:3306"}
+export DB_NAME=${DB_NAME:-"gitea"}
+export DB_USER=${DB_USER:-"root"}
+export DB_PASSWD=${DB_PASSWD:-""}
+export INSTALL_LOCK=${INSTALL_LOCK:-"false"}
+export DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"}
+export REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"}
+export SECRET_KEY=${SECRET_KEY:-""}
