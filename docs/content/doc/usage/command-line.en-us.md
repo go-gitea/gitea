@@ -23,11 +23,10 @@ menu:
 
 All global options can be placed at the command level.
 
- - `--help`, `-h`: Show help text and exit. Optional. 
- - `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version
-   1.1.0+218-g7b907ed built with: bindata, sqlite`).
- - `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: $PWD/custom).
- - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+- `--help`, `-h`: Show help text and exit. Optional.
+- `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version 1.1.0+218-g7b907ed built with: bindata, sqlite`).
+- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: $PWD/custom).
+- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
 
 ### Commands
 
