@@ -315,7 +315,7 @@ func reqOrgMembership() macaron.Handler {
 func reqGitHook() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.User.CanEditGitHook() {
-			ctx.NotFound("GitHookService", nil)
+			ctx.Error(403, "", "must be allowed to edit Git hooks")
 			return
 		}
 	}
