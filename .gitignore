@@ -40,7 +40,6 @@ coverage.all
 *.log
 
 /gitea
-/gitea-docker
 /debug
 /integrations.test
 

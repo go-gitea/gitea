@@ -79,7 +79,6 @@ pipeline:
       - make misspell-check
       - make test-vendor
       - make build
-      - make build-docker-binary
     when:
       event: [ push, tag, pull_request ]
 
