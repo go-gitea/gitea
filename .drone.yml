@@ -45,6 +45,8 @@ services:
 
   - name: elasticsearch
     pull: default
+    environment:
+      - "discovery.type=single-node"
     image: elastic/elasticsearch:5.6.16
 
 steps:
