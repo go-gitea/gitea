@@ -165,7 +165,7 @@ func (c *Comment) loadPoster(e Engine) (err error) {
 			c.PosterID = -1
 			c.Poster = NewGhostUser()
 		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+			log.Error("getUserByID[%d]: %v", c.ID, err)
 		}
 	}
 	return err
@@ -177,7 +177,7 @@ func (c *Comment) loadAttachments(e Engine) (err error) {
 	}
 	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
 	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return err
 }

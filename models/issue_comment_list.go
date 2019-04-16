@@ -248,6 +248,7 @@ func (comments CommentList) loadAssignees(e Engine) error {
 	return nil
 }
 
+// getIssueIDs returns all the issue ids on this comment list which issue hasn't been loaded
 func (comments CommentList) getIssueIDs() []int64 {
 	var ids = make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
@@ -266,8 +267,7 @@ func (comments CommentList) Issues() IssueList {
 	var issues = make(map[int64]*Issue, len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
-			_, ok := issues[comment.Issue.ID]
-			if !ok {
+			if _, ok := issues[comment.Issue.ID]; !ok {
 				issues[comment.Issue.ID] = comment.Issue
 			}
 		}
