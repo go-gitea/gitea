@@ -15,21 +15,21 @@ menu:
 
 # Migration Features
 
-The new migration features introduced in Gitea 1.9.0. It defined two interfaces to support migrating 
-repositories data from other git host platforms to gitea or in future migrating gitea data to other 
-git host platform. Currently, it only implements to migrate from github via APIv3 to Gitea.
+The new migration features were introduced in Gitea 1.9.0. It defines two interfaces to support migrating 
+repositories data from other git host platforms to gitea or, in the future migrating gitea data to other 
+git host platforms. Currently, only the migrations from github via APIv3 to Gitea is implemented.
 
-First of all, Gitea defines some standard objects, `Repository`, `Milestone`, `Release`, `Label`, `Issue`,
-`Comment`, `PullRequest`.
+First of all, Gitea defines some standard objects in packages `modules/migrations/base`. They are
+ `Repository`, `Milestone`, `Release`, `Label`, `Issue`, `Comment`, `PullRequest`.
 
 ## Downloader Interfaces
 
 To migrate from a new git host platform, there are two steps to be updated.
 
-- You should implement a Downloader which could get repository all kinds of informations.
-- You should implement a DownloaderFactory which could detect if the url should match the 
-factory and new a Downloader
-- You should RegisterDownloaderFactory when init
+- You should implement a `Downloader` which will get all kinds of repository informations.
+- You should implement a `DownloaderFactory` which is used to detect if the URL matches and 
+create a Downloader.
+- You'll need to register the `DownloaderFactory` via `RegisterDownloaderFactory` on init.
 
 ```Go
 type Downloader interface {
@@ -52,8 +52,9 @@ type DownloaderFactory interface {
 
 ## Uploader Interface
 
-Currently, we only implemented an Uploader `GiteaLocalUploader` so we only save downloaded 
-data via this `Uploader` and we haven't supported a new Uploader that will be in future.
+Currently, only a `GiteaLocalUploader` is implemented, so we only save downloaded 
+data via this `Uploader` on the local Gitea instance. Other uploaders are not supported
+and will be implemented in future.
 
 ```Go
 // Uploader uploads all the informations
