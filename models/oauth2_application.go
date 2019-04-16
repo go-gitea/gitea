@@ -444,11 +444,11 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 }
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
-func DeleteOAuth2Grant(grantID, userID int64) error {
-	return deleteOAuth2Grant(x, grantID, userID)
+func RevokeOAuth2Grant(grantID, userID int64) error {
+	return revokeOAuth2Grant(x, grantID, userID)
 }
 
-func deleteOAuth2Grant(e Engine, grantID, userID int64) error {
+func revokeOAuth2Grant(e Engine, grantID, userID int64) error {
 	_, err := e.Delete(&OAuth2Grant{ID: grantID, UserID: userID})
 	return err
 }

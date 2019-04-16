@@ -148,9 +148,9 @@ func TestGetOAuth2GrantsByUserID(t *testing.T) {
 	assert.Empty(t, result)
 }
 
-func TestDeleteOAuth2Grant(t *testing.T) {
+func TestRevokeOAuth2Grant(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, DeleteOAuth2Grant(1, 1))
+	assert.NoError(t, RevokeOAuth2Grant(1, 1))
 	AssertNotExistsBean(t, &OAuth2Grant{ID: 1, UserID: 1})
 }
 
