@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -52,6 +52,38 @@ func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
 // CheckoutNewBranch checks out a new branch
 func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
 	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
+}
+
+// deleteLocalBranch deletes a branch from a local repo cache
+// First checks out default branch to avoid trying to delete the currently checked out branch
+func deleteLocalBranch(localPath, defaultBranch, deleteBranch string) error {
+	if !com.IsExist(localPath) {
+		return nil
+	}
+
+	if !git.IsBranchExist(localPath, deleteBranch) {
+		return nil
+	}
+
+	// Must NOT have branch currently checked out
+	// Checkout default branch first
+	if err := git.Checkout(localPath, git.CheckoutOptions{
+		Timeout: time.Duration(setting.Git.Timeout.Pull) * time.Second,
+		Branch:  defaultBranch,
+	}); err != nil {
+		return fmt.Errorf("git checkout %s: %v", defaultBranch, err)
+	}
+
+	cmd := git.NewCommand("branch")
+	cmd.AddArguments("-D")
+	cmd.AddArguments(deleteBranch)
+	_, err := cmd.RunInDir(localPath)
+	return err
+}
+
+// DeleteLocalBranch deletes a branch from the local repo
+func (repo *Repository) DeleteLocalBranch(branchName string) error {
+	return deleteLocalBranch(repo.LocalCopyPath(), repo.DefaultBranch, branchName)
 }
 
 // Branch holds the branch information

@@ -236,7 +236,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if com.IsFile(setting.CustomConf) {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error(4, "Failed to load custom conf '%s': %v", setting.CustomConf, err)
+			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
 	cfg.Section("database").Key("DB_TYPE").SetValue(models.DbCfg.Type)

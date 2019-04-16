@@ -13,11 +13,12 @@ import (
 
 	"github.com/go-macaron/csrf"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/paginater"
 	macaron "gopkg.in/macaron.v1"
 )
@@ -71,7 +72,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	}
 
 	if status == 500 {
-		log.Error(4, "%s: %s", title, message)
+		log.Error("%s: %s", title, message)
 	}
 
 	ctx.JSON(status, APIError{

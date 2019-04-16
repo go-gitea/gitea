@@ -7,8 +7,9 @@ package setting
 import (
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
 	version "github.com/mcuadros/go-version"
 )
 
@@ -55,13 +56,13 @@ var (
 
 func newGit() {
 	if err := Cfg.Section("git").MapTo(&Git); err != nil {
-		log.Fatal(4, "Failed to map Git settings: %v", err)
+		log.Fatal("Failed to map Git settings: %v", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
 	binVersion, err := git.BinVersion()
 	if err != nil {
-		log.Fatal(4, "Error retrieving git version: %v", err)
+		log.Fatal("Error retrieving git version: %v", err)
 	}
 
 	if version.Compare(binVersion, "2.9", ">=") {

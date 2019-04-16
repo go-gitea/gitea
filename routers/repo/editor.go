@@ -11,11 +11,11 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -35,7 +35,7 @@ const (
 func renderCommitRights(ctx *context.Context) bool {
 	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
 	if err != nil {
-		log.Error(4, "CanCommitToBranch: %v", err)
+		log.Error("CanCommitToBranch: %v", err)
 	}
 	ctx.Data["CanCommitToBranch"] = canCommit
 	return canCommit
@@ -117,7 +117,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		buf = append(buf, d...)
 		if content, err := templates.ToUTF8WithErr(buf); err != nil {
 			if err != nil {
-				log.Error(4, "ToUTF8WithErr: %v", err)
+				log.Error("ToUTF8WithErr: %v", err)
 			}
 			ctx.Data["FileContent"] = string(buf)
 		} else {

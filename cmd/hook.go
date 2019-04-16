@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -204,14 +204,14 @@ func runHookPostReceive(c *cli.Context) error {
 			RepoUserName: repoUser,
 			RepoName:     repoName,
 		}); err != nil {
-			log.GitLogger.Error(2, "Update: %v", err)
+			log.GitLogger.Error("Update: %v", err)
 		}
 
 		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
 			repo, pullRequestAllowed, err := private.GetRepository(repoID)
 			if err != nil {
-				log.GitLogger.Error(2, "get repo: %v", err)
+				log.GitLogger.Error("get repo: %v", err)
 				break
 			}
 			if !pullRequestAllowed {
@@ -229,7 +229,7 @@ func runHookPostReceive(c *cli.Context) error {
 
 			pr, err := private.ActivePullRequest(baseRepo.ID, repo.ID, baseRepo.DefaultBranch, branch)
 			if err != nil {
-				log.GitLogger.Error(2, "get active pr: %v", err)
+				log.GitLogger.Error("get active pr: %v", err)
 				break
 			}
 

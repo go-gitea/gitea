@@ -68,7 +68,7 @@ func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) 
 	case RepoIndexerOpDelete:
 		return batch.Delete(id)
 	default:
-		log.Error(4, "Unrecognized repo indexer op: %d", update.Op)
+		log.Error("Unrecognized repo indexer op: %d", update.Op)
 	}
 	return nil
 }
@@ -78,17 +78,17 @@ func InitRepoIndexer(populateIndexer func() error) {
 	var err error
 	repoIndexer, err = openIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
 	if err != nil {
-		log.Fatal(4, "InitRepoIndexer: %v", err)
+		log.Fatal("InitRepoIndexer: %v", err)
 	}
 	if repoIndexer != nil {
 		return
 	}
 
 	if err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion); err != nil {
-		log.Fatal(4, "CreateRepoIndexer: %v", err)
+		log.Fatal("CreateRepoIndexer: %v", err)
 	}
 	if err = populateIndexer(); err != nil {
-		log.Fatal(4, "PopulateRepoIndex: %v", err)
+		log.Fatal("PopulateRepoIndex: %v", err)
 	}
 }
 
@@ -135,7 +135,7 @@ func filenameIndexerID(repoID int64, filename string) string {
 func filenameOfIndexerID(indexerID string) string {
 	index := strings.IndexByte(indexerID, '_')
 	if index == -1 {
-		log.Error(4, "Unexpected ID in repo indexer: %s", indexerID)
+		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
 	return indexerID[index+1:]
 }

@@ -8,12 +8,11 @@ package repo
 import (
 	"time"
 
-	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetSingleCommit get a commit via
@@ -110,7 +109,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 				},
 				Date: commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Summary(),
+			Message: commit.Message(),
 			Tree: &api.CommitMeta{
 				URL: ctx.Repo.Repository.APIURL() + "/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),
