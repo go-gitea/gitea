@@ -101,7 +101,12 @@ func InitIssueIndexer(syncReindex bool) error {
 		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueQueueType)
 	}
 
-	go issueIndexerQueue.Run()
+	go func() {
+		err = issueIndexerQueue.Run()
+		if err != nil {
+			log.Error("issueIndexerQueue.Run: %v", err)
+		}
+	}()
 
 	if populate {
 		if syncReindex {
