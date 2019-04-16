@@ -3,8 +3,6 @@
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
-LDFLAGS ?= $(LDFLAGS) -X "code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea"
-
 
 .PHONY: docker
 docker:
