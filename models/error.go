@@ -379,6 +379,21 @@ func (err ErrGPGKeyNotExist) Error() string {
 	return fmt.Sprintf("public gpg key does not exist [id: %d]", err.ID)
 }
 
+// ErrGPGKeyImportNotExist represents a "GPGKeyImportNotExist" kind of error.
+type ErrGPGKeyImportNotExist struct {
+	ID string
+}
+
+// IsErrGPGKeyImportNotExist checks if an error is a ErrGPGKeyImportNotExist.
+func IsErrGPGKeyImportNotExist(err error) bool {
+	_, ok := err.(ErrGPGKeyImportNotExist)
+	return ok
+}
+
+func (err ErrGPGKeyImportNotExist) Error() string {
+	return fmt.Sprintf("public gpg key import does not exist [id: %s]", err.ID)
+}
+
 // ErrGPGKeyIDAlreadyUsed represents a "GPGKeyIDAlreadyUsed" kind of error.
 type ErrGPGKeyIDAlreadyUsed struct {
 	KeyID string

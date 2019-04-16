@@ -198,6 +198,8 @@ github.com/lafriks/xormstore v1.0.0 h1:P/IJzNSIpjXl/Up3o2Td5ZU/x4v6DEKLMaPQJGtmJ
 github.com/lafriks/xormstore v1.0.0/go.mod h1:dD8vHNRfEp3Uy+JvX9cMi2SXcRKJ0x4pYKsZuy843Ic=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/lib/pq v1.1.0 h1:/5u4a+KGJptBRqGzPvYQL9p0d/tPR4S31+Tnzj9lEO4=
+github.com/lib/pq v1.1.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:uNwtsDp7ci48vBTTxDuwcoTXz4lwtDTe7TjCQ0noaWY=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:mmIfjCSQlGYXmJ95jFN84AkQFnVABtKuJL8IrzwvUKQ=
 github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e h1:GSprKUrG9wNgwQgROvjPGXmcZrg4OLslOuZGB0uJjx8=
