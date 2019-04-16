@@ -5,7 +5,6 @@
 package repofiles
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -14,10 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
-}
 
 func TestGetBlobBySHA(t *testing.T) {
 	models.PrepareTestEnv(t)
