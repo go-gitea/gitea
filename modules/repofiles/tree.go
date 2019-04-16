@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package gitdata
+package repofiles
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
-		return nil, models.ErrShaNotFound{
+		return nil, models.ErrSHANotFound{
 			SHA: sha,
 		}
 	}

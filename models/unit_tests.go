@@ -5,7 +5,6 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -15,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"

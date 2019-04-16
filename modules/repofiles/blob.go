@@ -2,13 +2,9 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package gitdata
+package repofiles
 
 import (
-	"encoding/base64"
-	"io"
-	"io/ioutil"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,7 +23,7 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	}
 	content := ""
 	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
-		content, err = GetBlobContentBase64(gitBlob)
+		content, err = gitBlob.GetBlobContentBase64()
 		if err != nil {
 			return nil, err
 		}
@@ -39,33 +35,4 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 		Encoding: "base64",
 		Content:  content,
 	}, nil
-}
-
-// GetBlobContentBase64 Reads the blob with a base64 encode and returns the encoded string
-func GetBlobContentBase64(blob *git.Blob) (string, error) {
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return "", err
-	}
-	defer dataRc.Close()
-
-	pr, pw := io.Pipe()
-	encoder := base64.NewEncoder(base64.StdEncoding, pw)
-
-	go func() {
-		_, err := io.Copy(encoder, dataRc)
-		encoder.Close()
-
-		if err != nil {
-			pw.CloseWithError(err)
-		} else {
-			pw.Close()
-		}
-	}()
-
-	out, err := ioutil.ReadAll(pr)
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
 }

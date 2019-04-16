@@ -124,7 +124,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if opts.SHA != "" {
 		// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
 		if opts.SHA != entry.ID.String() {
-			return nil, models.ErrShaDoesNotMatch{
+			return nil, models.ErrSHADoesNotMatch{
 				Path:       treePath,
 				GivenSHA:   opts.SHA,
 				CurrentSHA: entry.ID.String(),
@@ -149,7 +149,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	} else {
 		// When deleting a file, a lastCommitID or SHA needs to be given to make sure other commits haven't been
 		// made. We throw an error if one wasn't provided.
-		return nil, models.ErrShaOrCommitIDNotProvided{}
+		return nil, models.ErrSHAOrCommitIDNotProvided{}
 	}
 
 	// Remove the file from the index

@@ -949,35 +949,35 @@ func (err ErrTagAlreadyExists) Error() string {
 	return fmt.Sprintf("tag already exists [name: %s]", err.TagName)
 }
 
-// ErrShaDoesNotMatch represents a "ShaDoesNotMatch" kind of error.
-type ErrShaDoesNotMatch struct {
+// ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
+type ErrSHADoesNotMatch struct {
 	Path       string
 	GivenSHA   string
 	CurrentSHA string
 }
 
-// IsErrShaDoesNotMatch checks if an error is a ErrShaDoesNotMatch.
-func IsErrShaDoesNotMatch(err error) bool {
-	_, ok := err.(ErrShaDoesNotMatch)
+// IsErrSHADoesNotMatch checks if an error is a ErrSHADoesNotMatch.
+func IsErrSHADoesNotMatch(err error) bool {
+	_, ok := err.(ErrSHADoesNotMatch)
 	return ok
 }
 
-func (err ErrShaDoesNotMatch) Error() string {
+func (err ErrSHADoesNotMatch) Error() string {
 	return fmt.Sprintf("sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
 }
 
-// ErrShaNotFound represents a "ShaDoesNotMatch" kind of error.
-type ErrShaNotFound struct {
+// ErrSHANotFound represents a "SHADoesNotMatch" kind of error.
+type ErrSHANotFound struct {
 	SHA string
 }
 
-// IsErrShaNotFound checks if an error is a ErrShaNotFound.
-func IsErrShaNotFound(err error) bool {
-	_, ok := err.(ErrShaNotFound)
+// IsErrSHANotFound checks if an error is a ErrSHANotFound.
+func IsErrSHANotFound(err error) bool {
+	_, ok := err.(ErrSHANotFound)
 	return ok
 }
 
-func (err ErrShaNotFound) Error() string {
+func (err ErrSHANotFound) Error() string {
 	return fmt.Sprintf("sha not found [%s]", err.SHA)
 }
 
@@ -997,16 +997,16 @@ func (err ErrCommitIDDoesNotMatch) Error() string {
 	return fmt.Sprintf("file CommitID does not match [given: %s, expected: %s]", err.GivenCommitID, err.CurrentCommitID)
 }
 
-// ErrShaOrCommitIDNotProvided represents a "ShaOrCommitIDNotProvided" kind of error.
-type ErrShaOrCommitIDNotProvided struct{}
+// ErrSHAOrCommitIDNotProvided represents a "SHAOrCommitIDNotProvided" kind of error.
+type ErrSHAOrCommitIDNotProvided struct{}
 
-// IsErrShaOrCommitIDNotProvided checks if an error is a ErrShaOrCommitIDNotProvided.
-func IsErrShaOrCommitIDNotProvided(err error) bool {
-	_, ok := err.(ErrShaOrCommitIDNotProvided)
+// IsErrSHAOrCommitIDNotProvided checks if an error is a ErrSHAOrCommitIDNotProvided.
+func IsErrSHAOrCommitIDNotProvided(err error) bool {
+	_, ok := err.(ErrSHAOrCommitIDNotProvided)
 	return ok
 }
 
-func (err ErrShaOrCommitIDNotProvided) Error() string {
+func (err ErrSHAOrCommitIDNotProvided) Error() string {
 	return fmt.Sprintf("a SHA or commmit ID must be proved when updating a file")
 }
 
