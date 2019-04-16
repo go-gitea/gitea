@@ -301,7 +301,7 @@ github.com/src-d/gcfg/token
 github.com/src-d/gcfg/types
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
 github.com/steveyen/gtreap
-# github.com/stretchr/testify v1.2.2
+# github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/syndtr/goleveldb v0.0.0-20190203031304-2f17a3356c66
