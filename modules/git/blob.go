@@ -17,7 +17,6 @@ import (
 type Blob struct {
 	ID SHA1
 
-	repo      *Repository
 	gogitBlob *object.Blob
 	name      string
 }

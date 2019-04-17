@@ -16,7 +16,6 @@ func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
 
 	return &Blob{
 		ID:        id,
-		repo:      repo,
 		gogitBlob: gogitBlob,
 	}, nil
 }

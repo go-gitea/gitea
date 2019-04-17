@@ -13,12 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testBlob = &Blob{
-	TreeEntry: &TreeEntry{
-		ID: MustIDFromString("a8d4b49dd073a4a38a7e58385eeff7cc52568697"),
-	},
-}
-
 func TestBlob_Data(t *testing.T) {
 	output := `Copyright (c) 2016 The Gitea Authors
 Copyright (c) 2015 The Gogs Authors
@@ -43,7 +37,8 @@ THE SOFTWARE.
 `
 	repo, err := OpenRepository("../../.git")
 	assert.NoError(t, err)
-	testBlob.repo = repo
+	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+	assert.NoError(t, err)
 
 	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
@@ -60,7 +55,10 @@ func Benchmark_Blob_Data(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	testBlob.repo = repo
+	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	for i := 0; i < b.N; i++ {
 		r, err := testBlob.DataAsync()
