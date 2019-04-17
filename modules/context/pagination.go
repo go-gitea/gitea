@@ -14,7 +14,7 @@ import (
 
 // Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
 type Pagination struct {
-	Paginater            *paginater.Paginater
+	Paginater  *paginater.Paginater
 	linkParams template.URL
 }
 
