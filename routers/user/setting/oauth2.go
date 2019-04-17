@@ -143,8 +143,8 @@ func DeleteOAuth2Application(ctx *context.Context) {
 
 // RevokeOAuth2Grant revokes the grant with the given id
 func RevokeOAuth2Grant(ctx *context.Context) {
-	if ctx.User.ID == 0 {
-		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id is zero"))
+	if ctx.User.ID == 0 || ctx.QueryInt64("id") == 0 {
+		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
 		return
 	}
 	if err := models.RevokeOAuth2Grant(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
