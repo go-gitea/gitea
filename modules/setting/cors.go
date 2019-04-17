@@ -22,7 +22,7 @@ var (
 func newCORSService() {
 	sec := Cfg.Section("cors")
 	// Check cors setting.
-	if !sec.Key("ENABLED").MustBool() {
+	if !sec.Key("ENABLED").MustBool(true) {
 		return
 	}
 
