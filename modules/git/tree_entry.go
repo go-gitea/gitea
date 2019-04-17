@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
@@ -105,15 +106,15 @@ func (te *TreeEntry) IsRegular() bool {
 
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
-	gogitBlob, err := te.ptree.repo.gogitRepo.BlobObject(te.gogitTreeEntry.Hash)
+	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)
 	if err != nil {
 		return nil
 	}
 
 	return &Blob{
-		ID:        te.gogitTreeEntry.Hash,
-		gogitBlob: gogitBlob,
-		name:      te.Name(),
+		ID:              te.gogitTreeEntry.Hash,
+		gogitEncodedObj: encodedObj,
+		name:            te.Name(),
 	}
 }
 

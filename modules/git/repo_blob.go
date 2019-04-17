@@ -9,14 +9,14 @@ import (
 )
 
 func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
-	gogitBlob, err := repo.gogitRepo.BlobObject(plumbing.Hash(id))
+	encodedObj, err := repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, plumbing.Hash(id))
 	if err != nil {
 		return nil, ErrNotExist{id.String(), ""}
 	}
 
 	return &Blob{
-		ID:        id,
-		gogitBlob: gogitBlob,
+		ID:              id,
+		gogitEncodedObj: encodedObj,
 	}, nil
 }
 
