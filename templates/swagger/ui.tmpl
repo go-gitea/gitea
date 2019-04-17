@@ -4,7 +4,6 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Swagger UI</title>
-	<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Source+Code+Pro:300,600|Titillium+Web:400,600,700" rel="stylesheet">
 	<link rel="stylesheet" type="text/css" href="{{AppSubUrl}}/vendor/assets/swagger-ui/swagger-ui.css" >
 	<link rel="icon" type="image/png" href="{{AppSubUrl}}/vendor/assets/swagger-ui/favicon-32x32.png" sizes="32x32" />
 	<link rel="icon" type="image/png" href="{{AppSubUrl}}/vendor/assets/swagger-ui/favicon-16x16.png" sizes="16x16" />
@@ -80,7 +79,7 @@ window.onload = function() {
       // Make the page's protocol be at the top of the schemes list
       var protocol = window.location.protocol.slice(0, -1)
       spec.schemes.sort(function(x,y){ return x == protocol ? -1 : y == protocol ? 1 : 0 })
-      // Build the Swagger UI
+      // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
         spec: spec,
         dom_id: '#swagger-ui',
@@ -94,6 +93,7 @@ window.onload = function() {
         ],
         layout: "StandaloneLayout"
       })
+      // End Swagger UI call region
 
       window.ui = ui
     })
