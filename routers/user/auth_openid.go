@@ -155,7 +155,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	/* Now we should seek for the user and log him in, or prompt
 	 * to register if not found */
 
-	u, _ := models.GetUserByOpenID(id)
+	u, err := models.GetUserByOpenID(id)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
@@ -163,6 +163,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 			})
 			return
 		}
+		log.Error("signInOpenIDVerify: %v", err)
 	}
 	if u != nil {
 		log.Trace("User exists, logging in")
@@ -194,7 +195,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("User has email=" + email + " and nickname=" + nickname)
 
 	if email != "" {
-		u, _ = models.GetUserByEmail(email)
+		u, err = models.GetUserByEmail(email)
 		if err != nil {
 			if !models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
@@ -202,6 +203,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 				})
 				return
 			}
+			log.Error("signInOpenIDVerify: %v", err)
 		}
 		if u != nil {
 			log.Trace("Local user " + u.LowerName + " has OpenID provided email " + email)

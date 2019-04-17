@@ -879,7 +879,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
 		if err == nil {
 			commitID = commit.ID.String()
-		} else if err != nil && !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
+		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
 	}
