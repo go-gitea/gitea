@@ -1,6 +1,6 @@
 cloud.google.com/go v0.30.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0 h1:pIKKrTUox+0pGcZwFl19Glw9gKfoeNkA02EqeiSmLjs=
-code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0/go.mod h1:5bZt0dRznpn2JysytQnV0yCru3FwDv9O5G91jo+lDAk=
+code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498 h1:rcjwXMYIjYts88akPiyy/GB+imecpf159jojChciEEw=
+code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498/go.mod h1:5bZt0dRznpn2JysytQnV0yCru3FwDv9O5G91jo+lDAk=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34 h1:UsHpWO0Elp6NaWVARdZHjiYwkhrspHVEGsyIKPb9OI8=

@@ -1,4 +1,4 @@
-# code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
+# code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498
 code.gitea.io/sdk/gitea
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml

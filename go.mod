@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
+	code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect

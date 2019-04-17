@@ -180,6 +180,15 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	}
 }
 
+// ToGitHook convert git.Hook to api.GitHook
+func ToGitHook(h *git.Hook) *api.GitHook {
+	return &api.GitHook{
+		Name:     h.Name(),
+		IsActive: h.IsActive,
+		Content:  h.Content,
+	}
+}
+
 // ToDeployKey convert models.DeployKey to api.DeployKey
 func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
