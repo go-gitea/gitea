@@ -33,7 +33,7 @@ func newCORSService() {
 		AllowDomain:      sec.Key("ALLOW_DOMAIN").String(),
 		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
 		Methods:          sec.Key("METHODS").Strings(","),
-		MaxAgeSeconds:    maxAge.Seconds(),
+		MaxAgeSeconds:    int(maxAge.Seconds()),
 		AllowCredentials: sec.Key("ALLOW_CREDENTIALS").MustBool(),
 	}
 	EnableCORS = true
