@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 
+	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/packfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
@@ -18,6 +20,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/client"
 	"gopkg.in/src-d/go-git.v4/storage"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
@@ -149,7 +152,17 @@ func (r *Remote) PushContext(ctx context.Context, o *PushOptions) (err error) {
 	var hashesToPush []plumbing.Hash
 	// Avoid the expensive revlist operation if we're only doing deletes.
 	if !allDelete {
-		hashesToPush, err = revlist.Objects(r.s, objects, haves)
+		if r.c.IsFirstURLLocal() {
+			// If we're are pushing to a local repo, it might be much
+			// faster to use a local storage layer to get the commits
+			// to ignore, when calculating the object revlist.
+			localStorer := filesystem.NewStorage(
+				osfs.New(r.c.URLs[0]), cache.NewObjectLRUDefault())
+			hashesToPush, err = revlist.ObjectsWithStorageForIgnores(
+				r.s, localStorer, objects, haves)
+		} else {
+			hashesToPush, err = revlist.Objects(r.s, objects, haves)
+		}
 		if err != nil {
 			return err
 		}
