@@ -71,6 +71,20 @@ type swaggerResponseHookList struct {
 	Body []api.Hook `json:"body"`
 }
 
+// GitHook
+// swagger:response GitHook
+type swaggerResponseGitHook struct {
+	// in:body
+	Body api.GitHook `json:"body"`
+}
+
+// GitHookList
+// swagger:response GitHookList
+type swaggerResponseGitHookList struct {
+	// in:body
+	Body []api.GitHook `json:"body"`
+}
+
 // Release
 // swagger:response Release
 type swaggerResponseRelease struct {
