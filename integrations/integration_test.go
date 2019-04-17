@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/modules/base"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -23,6 +22,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"

@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"compress/gzip"
 	"database/sql"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
