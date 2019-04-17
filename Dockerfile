@@ -49,6 +49,7 @@ RUN addgroup \
   echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
+ENV GITEA_CUSTOM /data/gitea
 # See docker/etc/s6/gitea/default_env file for configurable env variable
 
 VOLUME ["/data"]
