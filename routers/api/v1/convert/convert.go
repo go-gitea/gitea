@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
@@ -215,4 +216,19 @@ func ToTeam(team *models.Team) *api.Team {
 		Permission:  team.Authorize.String(),
 		Units:       team.GetUnitNames(),
 	}
+}
+
+// ToUser convert models.User to api.User
+func ToUser(user *models.User, signed, admin bool) *api.User {
+	result := &api.User{
+		ID:        user.ID,
+		UserName:  user.Name,
+		AvatarURL: user.AvatarLink(),
+		FullName:  markup.Sanitize(user.FullName),
+		IsAdmin:   user.IsAdmin,
+	}
+	if signed && (!user.KeepEmailPrivate || admin) {
+		result.Email = user.Email
+	}
+	return result
 }
