@@ -340,12 +340,13 @@ func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2Authorizat
 
 // OAuth2Grant represents the permission of an user for a specifc application to access resources
 type OAuth2Grant struct {
-	ID            int64          `xorm:"pk autoincr"`
-	UserID        int64          `xorm:"INDEX unique(user_application)"`
-	ApplicationID int64          `xorm:"INDEX unique(user_application)"`
-	Counter       int64          `xorm:"NOT NULL DEFAULT 1"`
-	CreatedUnix   util.TimeStamp `xorm:"created"`
-	UpdatedUnix   util.TimeStamp `xorm:"updated"`
+	ID            int64              `xorm:"pk autoincr"`
+	UserID        int64              `xorm:"INDEX unique(user_application)"`
+	Application   *OAuth2Application `xorm:"-"`
+	ApplicationID int64              `xorm:"INDEX unique(user_application)"`
+	Counter       int64              `xorm:"NOT NULL DEFAULT 1"`
+	CreatedUnix   util.TimeStamp     `xorm:"created"`
+	UpdatedUnix   util.TimeStamp     `xorm:"updated"`
 }
 
 // TableName sets the table name to `oauth2_grant`
@@ -408,6 +409,48 @@ func getOAuth2GrantByID(e Engine, id int64) (grant *OAuth2Grant, err error) {
 		return nil, nil
 	}
 	return
+}
+
+// GetOAuth2GrantsByUserID lists all grants of a certain user
+func GetOAuth2GrantsByUserID(uid int64) ([]*OAuth2Grant, error) {
+	return getOAuth2GrantsByUserID(x, uid)
+}
+
+func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
+	type joinedOAuth2Grant struct {
+		Grant       *OAuth2Grant       `xorm:"extends"`
+		Application *OAuth2Application `xorm:"extends"`
+	}
+	var results *xorm.Rows
+	var err error
+	if results, err = e.
+		Table("oauth2_grant").
+		Where("user_id = ?", uid).
+		Join("INNER", "oauth2_application", "application_id = oauth2_application.id").
+		Rows(new(joinedOAuth2Grant)); err != nil {
+		return nil, err
+	}
+	defer results.Close()
+	grants := make([]*OAuth2Grant, 0)
+	for results.Next() {
+		joinedGrant := new(joinedOAuth2Grant)
+		if err := results.Scan(joinedGrant); err != nil {
+			return nil, err
+		}
+		joinedGrant.Grant.Application = joinedGrant.Application
+		grants = append(grants, joinedGrant.Grant)
+	}
+	return grants, nil
+}
+
+// RevokeOAuth2Grant deletes the grant with grantID and userID
+func RevokeOAuth2Grant(grantID, userID int64) error {
+	return revokeOAuth2Grant(x, grantID, userID)
+}
+
+func revokeOAuth2Grant(e Engine, grantID, userID int64) error {
+	_, err := e.Delete(&OAuth2Grant{ID: grantID, UserID: userID})
+	return err
 }
 
 //////////////////////////////////////////////////////////////
