@@ -26,15 +26,16 @@ func newCORSService() {
 		return
 	}
 
+	maxAge := sec.Key("MAX_AGE").MustDuration(10 * time.Minute)
+
 	CORSConfig = cors.Options{
 		Scheme:           sec.Key("SCHEME").String(),
 		AllowDomain:      sec.Key("ALLOW_DOMAIN").String(),
 		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
 		Methods:          sec.Key("METHODS").Strings(","),
-		MaxAge:           sec.Key("MAX_AGE").MustDuration(10 * time.Minute),
+		MaxAgeSeconds:    maxAge.Seconds(),
 		AllowCredentials: sec.Key("ALLOW_CREDENTIALS").MustBool(),
 	}
-	CORSConfig.MaxAgeSeconds = CORSConfig.MaxAge.Seconds()
 	EnableCORS = true
 
 	log.Info("CORS Service Enabled")
