@@ -625,6 +625,9 @@ func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.No
 
 // fullSha1PatternProcessor renders SHA containing URLs
 func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -686,7 +689,7 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
 	replaceContent(node, m[2], m[3],
-		createCodeLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.

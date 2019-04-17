@@ -125,10 +125,10 @@ func APIContexter() macaron.Handler {
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo() macaron.Handler {
+func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
+		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
 			return
 		}
 

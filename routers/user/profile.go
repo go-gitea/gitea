@@ -57,9 +57,16 @@ func Profile(ctx *context.Context) {
 	isShowKeys := false
 	if strings.HasSuffix(uname, ".keys") {
 		isShowKeys = true
+		uname = strings.TrimSuffix(uname, ".keys")
 	}
 
-	ctxUser := GetUserByName(ctx, strings.TrimSuffix(uname, ".keys"))
+	isShowGPG := false
+	if strings.HasSuffix(uname, ".gpg") {
+		isShowGPG = true
+		uname = strings.TrimSuffix(uname, ".gpg")
+	}
+
+	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
 		return
 	}
@@ -67,6 +74,12 @@ func Profile(ctx *context.Context) {
 	// Show SSH keys.
 	if isShowKeys {
 		ShowSSHKeys(ctx, ctxUser.ID)
+		return
+	}
+
+	// Show GPG keys.
+	if isShowGPG {
+		ShowGPGKeys(ctx, ctxUser.ID)
 		return
 	}
 

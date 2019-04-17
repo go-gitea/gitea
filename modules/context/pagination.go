@@ -15,14 +15,14 @@ import (
 // Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
 type Pagination struct {
 	Paginater            *paginater.Paginater
-	paginationLinkParams template.URL
+	linkParams template.URL
 }
 
 // NewPagination creates a new instance of the Pagination struct
 func NewPagination(total int, page int, issueNum int, numPages int) *Pagination {
 	p := &Pagination{}
 	p.Paginater = paginater.New(total, page, issueNum, numPages)
-	p.paginationLinkParams = ""
+	p.linkParams = ""
 	return p
 }
 
@@ -32,12 +32,13 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 	if !exists {
 		return
 	}
-	p.paginationLinkParams = template.URL(fmt.Sprintf("%v%s=%v&", p.paginationLinkParams, url.QueryEscape(paramKey), url.QueryEscape(ctx.Data[ctxKey])))
+	paramData := ctx.Data[ctxKey].(string)
+	p.linkParams = template.URL(fmt.Sprintf("%v%s=%v&", p.linkParams, url.QueryEscape(paramKey), url.QueryEscape(paramData)))
 }
 
 // GetParams returns the configured URL params
 func (p *Pagination) GetParams() template.URL {
-	return p.paginationLinkParams
+	return p.linkParams
 }
 
 // SetDefaultParams sets common pagination params that are often used
