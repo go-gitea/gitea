@@ -2775,7 +2775,7 @@ function initTopicbar() {
 
                     var last = viewDiv.children("a").last();
                     for (var i=0; i < topicArray.length; i++) {
-                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                        $('<div class="ui small label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                     }
                 }
                 editDiv.css('display', 'none');
@@ -2817,7 +2817,7 @@ function initTopicbar() {
             basic: true,
         },
         className: {
-            label: 'ui green basic label'
+            label: 'ui small label'
         },
         apiSettings: {
             url: suburl + '/api/v1/topics/search?q={query}',
