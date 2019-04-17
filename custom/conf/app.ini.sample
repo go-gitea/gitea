@@ -76,8 +76,8 @@ LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
 [cors]
 ; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
-; enable cors headers
-ENABLED=true
+; enable cors headers (disabled by default)
+ENABLED=false
 ; scheme of allowed requests
 SCHEME=http
 ; list of requesting domains that are allowed

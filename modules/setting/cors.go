@@ -22,11 +22,7 @@ var (
 func newCORSService() {
 	sec := Cfg.Section("cors")
 	// Check cors setting.
-	EnableCORS := sec.Key("ENABLED").MustBool(true)
-
-	if !EnableCORS {
-		return
-	}
+	EnableCORS = sec.Key("ENABLED").MustBool(false)
 
 	maxAge := sec.Key("MAX_AGE").MustDuration(10 * time.Minute)
 
