@@ -102,18 +102,19 @@ const (
 
 // AccessTokenResponse represents a successful access token response
 type AccessTokenResponse struct {
-	AccessToken string    `json:"access_token"`
-	TokenType   TokenType `json:"token_type"`
-	ExpiresIn   int64     `json:"expires_in"`
-	// TODO implement RefreshToken
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string    `json:"access_token"`
+	TokenType    TokenType `json:"token_type"`
+	ExpiresIn    int64     `json:"expires_in"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
-	if err := grant.IncreaseCounter(); err != nil {
-		return nil, &AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
-			ErrorDescription: "cannot increase the grant counter",
+	if setting.OAuth2.InvalidateRefreshTokens {
+		if err := grant.IncreaseCounter(); err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+				ErrorDescription: "cannot increase the grant counter",
+			}
 		}
 	}
 	// generate access token to access the API
@@ -366,7 +367,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	}
 
 	// check if token got already used
-	if grant.Counter != token.Counter || token.Counter == 0 {
+	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",

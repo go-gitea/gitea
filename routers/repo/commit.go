@@ -107,14 +107,15 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	if len(keyword) == 0 {
+	query := strings.Trim(ctx.Query("q"), " ")
+	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
-	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
+	all := ctx.QueryBool("all")
+	opts := git.NewSearchCommitsOptions(query, all)
+	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -124,7 +125,7 @@ func SearchCommits(ctx *context.Context) {
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = query
 	if all {
 		ctx.Data["All"] = "checked"
 	}

@@ -551,20 +551,37 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 }
 
 func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
 	link := node.Data[m[0]:m[1]]
 	id := "#" + node.Data[m[2]:m[3]]
-	// TODO if m[4]:m[5] is not nil, then link is to a comment,
-	// and we should indicate that in the text somehow
-	replaceContent(node, m[0], m[1], createLink(link, id))
+
+	// extract repo and org name from matched link like
+	// http://localhost:3000/gituser/myrepo/issues/1
+	linkParts := strings.Split(path.Clean(link), "/")
+	matchOrg := linkParts[len(linkParts)-4]
+	matchRepo := linkParts[len(linkParts)-3]
+
+	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
+		// TODO if m[4]:m[5] is not nil, then link is to a comment,
+		// and we should indicate that in the text somehow
+		replaceContent(node, m[0], m[1], createLink(link, id))
+
+	} else {
+		orgRepoID := matchOrg + "/" + matchRepo + id
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID))
+	}
 }
 
 func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	prefix := cutoutVerbosePrefix(ctx.urlPrefix)
-
+	if ctx.metas == nil {
+		return
+	}
 	// default to numeric pattern, unless alphanumeric is requested.
 	pattern := issueNumericPattern
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
@@ -575,11 +592,10 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if match == nil {
 		return
 	}
+
 	id := node.Data[match[2]:match[3]]
 	var link *html.Node
-	if ctx.metas == nil {
-		link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
-	} else {
+	if _, ok := ctx.metas["format"]; ok {
 		// Support for external issue tracker
 		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
 			ctx.metas["index"] = id
@@ -587,6 +603,8 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			ctx.metas["index"] = id[1:]
 		}
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
+	} else {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id)
 	}
 	replaceContent(node, match[2], match[3], link)
 }
@@ -607,6 +625,9 @@ func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.No
 
 // fullSha1PatternProcessor renders SHA containing URLs
 func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -668,7 +689,7 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
 	replaceContent(node, m[2], m[3],
-		createCodeLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.

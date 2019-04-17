@@ -312,6 +312,15 @@ func reqOrgMembership() macaron.Handler {
 	}
 }
 
+func reqGitHook() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if !ctx.User.CanEditGitHook() {
+			ctx.Error(403, "", "must be allowed to edit Git hooks")
+			return
+		}
+	}
+}
+
 func orgAssignment(args ...bool) macaron.Handler {
 	var (
 		assignOrg  bool
@@ -509,6 +518,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
+					m.Group("/git", func() {
+						m.Combo("").Get(repo.ListGitHooks)
+						m.Group("/:id", func() {
+							m.Combo("").Get(repo.GetGitHook).
+								Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+								Delete(repo.DeleteGitHook)
+						})
+					}, reqGitHook(), context.ReferencesGitRepo(true))
 				}, reqToken(), reqAdmin())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
@@ -584,6 +601,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
 						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteLabel)
 				})
+				m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
+				m.Post("/markdown/raw", misc.MarkdownRaw)
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
 						Post(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
@@ -600,10 +619,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Group("/:id", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.EditReleaseOption{}), repo.EditRelease).
 							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
@@ -625,7 +644,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
-				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
