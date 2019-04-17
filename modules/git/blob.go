@@ -9,23 +9,33 @@ import (
 	"encoding/base64"
 	"io"
 	"io/ioutil"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // Blob represents a Git object.
 type Blob struct {
-	repo *Repository
-	*TreeEntry
+	ID SHA1
+
+	repo      *Repository
+	gogitBlob *object.Blob
+	name      string
 }
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	gogitBlob, err := b.repo.gogitRepo.BlobObject(b.ID)
-	if err != nil {
-		return nil, err
-	}
+	return b.gogitBlob.Reader()
+}
 
-	return gogitBlob.Reader()
+// Size returns the uncompressed size of the blob
+func (b *Blob) Size() int64 {
+	return b.gogitBlob.Size
+}
+
+// Name returns name of the tree entry this blob object was created from (or empty string)
+func (b *Blob) Name() string {
+	return b.name
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string

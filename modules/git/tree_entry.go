@@ -103,11 +103,18 @@ func (te *TreeEntry) IsRegular() bool {
 	return te.gogitTreeEntry.Mode == filemode.Regular
 }
 
-// Blob retrun the blob object the entry
+// Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
+	gogitBlob, err := te.ptree.repo.gogitRepo.BlobObject(te.gogitTreeEntry.Hash)
+	if err != nil {
+		return nil
+	}
+
 	return &Blob{
+		ID:        te.gogitTreeEntry.Hash,
 		repo:      te.ptree.repo,
-		TreeEntry: te,
+		gogitBlob: gogitBlob,
+		name:      te.Name(),
 	}
 }
 
