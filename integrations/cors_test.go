@@ -18,7 +18,9 @@ func Test_CORSNotSet(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
-	body, _ := ioutil.ReadAll(resp.Body)
+	// body, _ := ioutil.ReadAll(resp.Body)
+	corsHeader := reps.Header().Get("Access-Control-Allow-Origin")
+	assert.Equal(t, corsHeader, "", "Access-Control-Allow-Origin: generated header should match") // header not set
 }
 
 func Test_CORSBasic(t *testing.T) {
@@ -30,6 +32,8 @@ func Test_CORSBasic(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, resp.StatusCode, http.StatusOK)
-	body, _ := ioutil.ReadAll(resp.Body)
+
+	corsHeader := reps.Header().Get("Access-Control-Allow-Origin")
+	assert.Equal(t, corsHeader, "*", "Access-Control-Allow-Origin: generated header should match")
 
 }

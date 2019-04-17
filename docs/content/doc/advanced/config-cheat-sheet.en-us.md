@@ -78,6 +78,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## CORS (`cors`)
 
+- `ENABLED`: **true**: enable cors headers
 - `SCHEME`: **http**: scheme of allowed requests
 - `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
 - `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
