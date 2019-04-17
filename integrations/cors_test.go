@@ -14,6 +14,8 @@ import (
 )
 
 func Test_CORSNotSet(t *testing.T) {
+	setting.EnableCORS = false
+	setting.NewContext()
 	prepareTestEnv(t)
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	resp := session.MakeRequest(t, req, http.StatusOK)
