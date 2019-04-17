@@ -15,20 +15,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
-
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -214,6 +214,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
+	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
+
 	// Get posters.
 	for i := range issues {
 		// Check read status
@@ -223,8 +225,14 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
+
+		if isPullOption == util.OptionalBoolTrue {
+			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
+		}
 	}
+
 	ctx.Data["Issues"] = issues
+	ctx.Data["CommitStatus"] = commitStatus
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = repo.GetAssignees()
@@ -408,7 +416,7 @@ func NewIssue(ctx *context.Context) {
 	milestoneID := ctx.QueryInt64("milestone")
 	milestone, err := models.GetMilestoneByID(milestoneID)
 	if err != nil {
-		log.Error(4, "GetMilestoneByID: %d: %v", milestoneID, err)
+		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 	} else {
 		ctx.Data["milestone_id"] = milestoneID
 		ctx.Data["Milestone"] = milestone
@@ -847,7 +855,7 @@ func ViewIssue(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
-				log.Error(4, "GetHeadRepo: %v", err)
+				log.Error("GetHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.User)
 				if err != nil {
@@ -857,7 +865,7 @@ func ViewIssue(ctx *context.Context) {
 				if perm.CanWrite(models.UnitTypeCode) {
 					// Check if branch is not protected
 					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
-						log.Error(4, "IsProtectedBranch: %v", err)
+						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true
 						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
@@ -1204,7 +1212,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			} else {
 				isClosed := form.Status == "close"
 				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
-					log.Error(4, "ChangeStatus: %v", err)
+					log.Error("ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {
 						if issue.IsPull {

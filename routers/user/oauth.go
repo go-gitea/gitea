@@ -5,8 +5,10 @@
 package user
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-macaron/binding"
@@ -100,18 +102,19 @@ const (
 
 // AccessTokenResponse represents a successful access token response
 type AccessTokenResponse struct {
-	AccessToken string    `json:"access_token"`
-	TokenType   TokenType `json:"token_type"`
-	ExpiresIn   int64     `json:"expires_in"`
-	// TODO implement RefreshToken
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string    `json:"access_token"`
+	TokenType    TokenType `json:"token_type"`
+	ExpiresIn    int64     `json:"expires_in"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
-	if err := grant.IncreaseCounter(); err != nil {
-		return nil, &AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
-			ErrorDescription: "cannot increase the grant counter",
+	if setting.OAuth2.InvalidateRefreshTokens {
+		if err := grant.IncreaseCounter(); err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+				ErrorDescription: "cannot increase the grant counter",
+			}
 		}
 	}
 	// generate access token to access the API
@@ -305,6 +308,30 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+	if form.ClientID == "" {
+		authHeader := ctx.Req.Header.Get("Authorization")
+		authContent := strings.SplitN(authHeader, " ", 2)
+		if len(authContent) == 2 && authContent[0] == "Basic" {
+			payload, err := base64.StdEncoding.DecodeString(authContent[1])
+			if err != nil {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			pair := strings.SplitN(string(payload), ":", 2)
+			if len(pair) != 2 {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot parse basic auth header",
+				})
+				return
+			}
+			form.ClientID = pair[0]
+			form.ClientSecret = pair[1]
+		}
+	}
 	switch form.GrantType {
 	case "refresh_token":
 		handleRefreshToken(ctx, form)
@@ -340,7 +367,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	}
 
 	// check if token got already used
-	if grant.Counter != token.Counter || token.Counter == 0 {
+	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",
@@ -361,7 +388,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
-			ErrorDescription: "cannot load client",
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: '%s'", form.ClientID),
 		})
 		return
 	}

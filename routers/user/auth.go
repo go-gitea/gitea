@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -96,7 +95,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 	if len(redirectTo) > 0 {
 		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
-		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
+		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -409,7 +408,7 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 	for _, reg := range regs {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal(4, "parsing u2f registration: %v", err)
+			log.Fatal("parsing u2f registration: %v", err)
 			continue
 		}
 		newCounter, authErr := r.Authenticate(signResp, *challenge, reg.Counter)
@@ -479,7 +478,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
 		if err := models.UpdateUserCols(u, "language"); err != nil {
-			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -496,7 +495,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -587,7 +586,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 				return
 			}
 
-			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+			if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
 				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
@@ -886,7 +885,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -1024,7 +1023,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -1051,7 +1050,7 @@ func Activate(ctx *context.Context) {
 				models.SendActivateAccountMail(ctx.Context, ctx.User)
 
 				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-					log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+					log.Error("Set cache(MailResendLimit) fail: %v", err)
 				}
 			}
 		} else {
@@ -1167,7 +1166,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	models.SendResetPasswordMail(ctx.Context, u)
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
@@ -1298,7 +1297,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		ctx.RedirectToFirst(redirectTo)
 		return

@@ -12,9 +12,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -124,8 +124,23 @@ func (r *Repository) BranchNameSubURL() string {
 	case r.IsViewCommit:
 		return "commit/" + r.BranchName
 	}
-	log.Error(4, "Unknown view type for repo: %v", r)
+	log.Error("Unknown view type for repo: %v", r)
 	return ""
+}
+
+// FileExists returns true if a file exists in the given repo branch
+func (r *Repository) FileExists(path string, branch string) (bool, error) {
+	if branch == "" {
+		branch = r.Repository.DefaultBranch
+	}
+	commit, err := r.GitRepo.GetBranchCommit(branch)
+	if err != nil {
+		return false, err
+	}
+	if _, err := commit.GetTreeEntryByPath(path); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -172,7 +187,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, url.QueryEscape(owner), url.QueryEscape(repo))
+	return path.Join(setting.Domain, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -396,6 +411,13 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
+		if repo.IsFork {
+			RetrieveBaseRepo(ctx, repo)
+			if ctx.Written() {
+				return
+			}
+		}
+
 		// repo is empty and display enable
 		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
@@ -422,13 +444,6 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
-
-		if repo.IsFork {
-			RetrieveBaseRepo(ctx, repo)
-			if ctx.Written() {
-				return
-			}
-		}
 
 		// People who have push access or have forked repository can propose a new pull request.
 		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
@@ -536,7 +551,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		}
 		return path
 	default:
-		log.Error(4, "Unrecognized path type: %v", path)
+		log.Error("Unrecognized path type: %v", path)
 	}
 	return ""
 }

@@ -61,7 +61,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 
 	in, err := IsUserInTeams(userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "IsUserInTeams:", err)
+		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
 	return in
@@ -83,7 +83,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 
 	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "IsUserInTeams:", err)
+		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
 	return in
@@ -101,7 +101,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	reviews, err := GetReviewersByPullID(pr.Issue.ID)
 	if err != nil {
-		log.Error(1, "GetReviewersByPullID:", err)
+		log.Error("GetReviewersByPullID: %v", err)
 		return 0
 	}
 
@@ -119,7 +119,7 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 	}
 	approvalTeamCount, err := UsersInTeamsCount(userIDs, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "UsersInTeamsCount:", err)
+		log.Error("UsersInTeamsCount: %v", err)
 		return 0
 	}
 	return approvalTeamCount + approvals
@@ -466,6 +466,6 @@ func RemoveOldDeletedBranches() {
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
-		log.Error(4, "DeletedBranchesCleanup: %v", err)
+		log.Error("DeletedBranchesCleanup: %v", err)
 	}
 }

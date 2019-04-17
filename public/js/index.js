@@ -1892,6 +1892,10 @@ $(document).ready(function () {
 
     // Show exact time
     $('.time-since').each(function () {
+        var time = new Date($(this).attr('title'))
+        if (!isNaN(time)){
+            $(this).attr('title', time.toLocaleString())
+        }
         $(this).addClass('poping up').attr('data-content', $(this).attr('title')).attr('data-variation', 'inverted tiny').attr('title', '');
     });
 
@@ -2771,7 +2775,7 @@ function initTopicbar() {
 
                     var last = viewDiv.children("a").last();
                     for (var i=0; i < topicArray.length; i++) {
-                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                        $('<div class="ui small label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                     }
                 }
                 editDiv.css('display', 'none');
@@ -2813,7 +2817,7 @@ function initTopicbar() {
             basic: true,
         },
         className: {
-            label: 'ui green basic label'
+            label: 'ui small label'
         },
         apiSettings: {
             url: suburl + '/api/v1/topics/search?q={query}',
@@ -2975,4 +2979,18 @@ function cancelCodeComment(btn) {
     } else {
         form.closest('.comment-code-cloud').remove()
     }
+}
+function onOAuthLoginClick() {
+    var oauthLoader = $('#oauth2-login-loader');
+    var oauthNav = $('#oauth2-login-navigator');
+
+    oauthNav.hide();
+    oauthLoader.removeClass('disabled');
+
+    setTimeout(function(){
+        // recover previous content to let user try again
+        // usually redirection will be performed before this action
+        oauthLoader.addClass('disabled');
+        oauthNav.show();
+    },5000);
 }

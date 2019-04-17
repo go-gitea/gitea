@@ -217,6 +217,12 @@ var migrations = []Migration{
 	NewMigration("add is locked to issues", addIsLockedToIssues),
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
+	// v83 -> v84
+	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
+	// v84 -> v85
+	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 }
 
 // Migrate database to current version
@@ -242,7 +248,7 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if minDBVersion > v {
-		log.Fatal(4, `Gitea no longer supports auto-migration from your previously installed version.
+		log.Fatal(`Gitea no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}
@@ -313,7 +319,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 
 		return sess.Commit()
 	default:
-		log.Fatal(4, "Unrecognized DB")
+		log.Fatal("Unrecognized DB")
 	}
 
 	return nil

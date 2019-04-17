@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	api "code.gitea.io/sdk/gitea"
 )
@@ -288,7 +289,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
@@ -319,8 +320,14 @@ func GetAllUsers(ctx *context.APIContext) {
 		PageSize: -1,
 	})
 	if err != nil {
-		ctx.Error(500, "SearchUsers", err)
+		ctx.Error(500, "GetAllUsers", err)
 		return
 	}
-	ctx.JSON(200, &users)
+
+	results := make([]*api.User, len(users))
+	for i := range users {
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+	}
+
+	ctx.JSON(200, &results)
 }

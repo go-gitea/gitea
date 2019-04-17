@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +75,30 @@ func TestAccessTokenExchange(t *testing.T) {
 
 func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 	prepareTestEnv(t)
-	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+}
+
+func TestAccessTokenExchangeJSON(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
@@ -135,4 +160,84 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
 	MakeRequest(t, req, 400)
+}
+
+func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.True(t, len(parsed.AccessToken) > 10)
+	assert.True(t, len(parsed.RefreshToken) > 10)
+
+	// use wrong client_secret
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OmJsYWJsYQ==")
+	resp = MakeRequest(t, req, 400)
+
+	// missing header
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp = MakeRequest(t, req, 400)
+}
+
+func TestRefreshTokenInvalidation(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+	})
+	resp := MakeRequest(t, req, 200)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+
+	// test without invalidation
+	setting.OAuth2.InvalidateRefreshTokens = false
+
+	refreshReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"refresh_token": parsed.RefreshToken,
+	})
+	MakeRequest(t, refreshReq, 200)
+	MakeRequest(t, refreshReq, 200)
+
+	// test with invalidation
+	setting.OAuth2.InvalidateRefreshTokens = true
+	MakeRequest(t, refreshReq, 200)
+	MakeRequest(t, refreshReq, 400)
 }

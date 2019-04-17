@@ -5,6 +5,8 @@
 package setting
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -78,6 +80,34 @@ func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2Application
 	ctx.HTML(200, tplSettingsOAuthApplications)
 }
 
+// OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
+func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	if err != nil {
+		if models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound("Application not found", err)
+			return
+		}
+		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		return
+	}
+	if app.UID != ctx.User.ID {
+		ctx.NotFound("Application not found", nil)
+		return
+	}
+	ctx.Data["App"] = app
+	ctx.Data["ClientSecret"], err = app.GenerateClientSecret()
+	if err != nil {
+		ctx.ServerError("GenerateClientSecret", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
+	ctx.HTML(200, tplSettingsOAuthApplications)
+}
+
 // OAuth2ApplicationShow displays the given application
 func OAuth2ApplicationShow(ctx *context.Context) {
 	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
@@ -106,6 +136,23 @@ func DeleteOAuth2Application(ctx *context.Context) {
 	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/applications",
+	})
+}
+
+// RevokeOAuth2Grant revokes the grant with the given id
+func RevokeOAuth2Grant(ctx *context.Context) {
+	if ctx.User.ID == 0 || ctx.QueryInt64("id") == 0 {
+		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
+		return
+	}
+	if err := models.RevokeOAuth2Grant(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+		ctx.ServerError("RevokeOAuth2Grant", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
