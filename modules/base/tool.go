@@ -16,7 +16,10 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -602,4 +605,26 @@ func EntryIcon(entry *git.TreeEntry) string {
 	}
 
 	return "file-text"
+}
+
+// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
+func SetupGiteaRoot() string {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
+		_, filename, _, _ := runtime.Caller(0)
+		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
+		wd, err := os.Getwd()
+		if err != nil {
+			rel, err := filepath.Rel(giteaRoot, wd)
+			if err != nil && strings.HasPrefix(filepath.ToSlash(rel), "../") {
+				giteaRoot = wd
+			}
+		}
+		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
+			giteaRoot = ""
+		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
+			giteaRoot = ""
+		}
+	}
+	return giteaRoot
 }

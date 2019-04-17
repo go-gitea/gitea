@@ -7,6 +7,7 @@ package git
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -26,6 +27,10 @@ var (
 	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
 	GitVersionRequired = "1.7.2"
+
+	// GitExecutable is the command name of git
+	// Could be updated to an absolute path while initialization
+	GitExecutable = "git"
 )
 
 func log(format string, args ...interface{}) {
@@ -71,6 +76,12 @@ func BinVersion() (string, error) {
 }
 
 func init() {
+	absPath, err := exec.LookPath(GitExecutable)
+	if err != nil {
+		panic(fmt.Sprintf("Git not found: %v", err))
+	}
+	GitExecutable = absPath
+
 	gitVersion, err := BinVersion()
 	if err != nil {
 		panic(fmt.Sprintf("Git version missing: %v", err))
