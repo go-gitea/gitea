@@ -39,6 +39,14 @@ Gitea parses queries and headers to find the token in
 You can create an API key token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
+### OAuth2
+
+Access tokens obtained from Gitea's [OAuth2 provider](https://docs.gitea.io/en-us/oauth2-provider) are accepted by these methods:
+
+- `Authorization bearer ...` header in HTTP headers
+- `token=...` parameter in URL query string
+- `access_token=...` parameter in URL query string
+
 ### More on the `Authorization:` header
 
 For historical reasons, Gitea needs the word `token` included before
