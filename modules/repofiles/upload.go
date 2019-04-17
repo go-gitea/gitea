@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package uploader
+package repofiles
 
 import (
 	"fmt"
@@ -127,8 +127,12 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		return err
 	}
 
+	// make author and committer the doer
+	author := doer
+	committer := doer
+
 	// Now commit the tree
-	commitHash, err := t.CommitTree(doer, treeHash, opts.Message)
+	commitHash, err := t.CommitTree(author, committer, treeHash, opts.Message)
 	if err != nil {
 		return err
 	}

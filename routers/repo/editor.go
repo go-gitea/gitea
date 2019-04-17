@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/uploader"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -139,7 +139,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
 	ctx.Data["new_branch_name"] = ""
-	ctx.Data["last_commit"] = ctx.Repo.Commit.ID
+	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
@@ -159,39 +159,27 @@ func NewFile(ctx *context.Context) {
 }
 
 func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bool) {
-	ctx.Data["PageIsEdit"] = true
-	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 	canCommit := renderCommitRights(ctx)
-
-	oldBranchName := ctx.Repo.BranchName
-	branchName := oldBranchName
-	oldTreePath := cleanUploadFileName(ctx.Repo.TreePath)
-	lastCommit := form.LastCommit
-	form.LastCommit = ctx.Repo.Commit.ID.String()
-
+	treeNames, treePaths := getParentTreeFields(form.TreePath)
+	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
 
-	form.TreePath = cleanUploadFileName(form.TreePath)
-	if len(form.TreePath) == 0 {
-		ctx.Error(500, "Upload file name is invalid")
-		return
-	}
-	treeNames, treePaths := getParentTreeFields(form.TreePath)
-
+	ctx.Data["PageIsEdit"] = true
+	ctx.Data["IsNewFile"] = isNewFile
+	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + branchName
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + ctx.Repo.BranchName
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
 	ctx.Data["commit_choice"] = form.CommitChoice
-	ctx.Data["new_branch_name"] = branchName
-	ctx.Data["last_commit"] = form.LastCommit
+	ctx.Data["new_branch_name"] = form.NewBranchName
+	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
@@ -201,101 +189,16 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		return
 	}
 
-	if len(form.TreePath) == 0 {
-		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.filename_cannot_be_empty"), tplEditFile, &form)
-		return
-	}
-
-	if oldBranchName != branchName {
-		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
-			ctx.Data["Err_NewBranchName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplEditFile, &form)
-			return
-		}
-	} else if !canCommit {
+	// Cannot commit to a an existing branch if user doesn't have rights
+	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplEditFile, &form)
 		return
 	}
 
-	var newTreePath string
-	for index, part := range treeNames {
-		newTreePath = path.Join(newTreePath, part)
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
-			}
-
-			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
-			return
-		}
-		if index != len(treeNames)-1 {
-			if !entry.IsDir() {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplEditFile, &form)
-				return
-			}
-		} else {
-			if entry.IsLink() {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", part), tplEditFile, &form)
-				return
-			}
-			if entry.IsDir() {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", part), tplEditFile, &form)
-				return
-			}
-		}
-	}
-
-	if !isNewFile {
-		_, err := ctx.Repo.Commit.GetTreeEntryByPath(oldTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), tplEditFile, &form)
-			} else {
-				ctx.ServerError("GetTreeEntryByPath", err)
-			}
-			return
-		}
-		if lastCommit != ctx.Repo.CommitID {
-			files, err := ctx.Repo.Commit.GetFilesChangedSinceCommit(lastCommit)
-			if err != nil {
-				ctx.ServerError("GetFilesChangedSinceCommit", err)
-				return
-			}
-
-			for _, file := range files {
-				if file == form.TreePath {
-					ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+lastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
-					return
-				}
-			}
-		}
-	}
-
-	if oldTreePath != form.TreePath {
-		// We have a new filename (rename or completely new file) so we need to make sure it doesn't already exist, can't clobber.
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath)
-		if err != nil {
-			if !git.IsErrNotExist(err) {
-				ctx.ServerError("GetTreeEntryByPath", err)
-				return
-			}
-		}
-		if entry != nil {
-			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
-			return
-		}
-	}
-
+	// CommitSummary is optional in the web form, if empty, give it a default message based on add or update
+	// `message` will be both the summary and message combined
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
 		if isNewFile {
@@ -304,28 +207,74 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			message = ctx.Tr("repo.editor.update", form.TreePath)
 		}
 	}
-
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
 	if len(form.CommitMessage) > 0 {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.UpdateRepoFile(ctx.Repo.Repository, ctx.User, &uploader.UpdateRepoFileOptions{
-		LastCommitID: lastCommit,
-		OldBranch:    oldBranchName,
+	if _, err := repofiles.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.UpdateRepoFileOptions{
+		LastCommitID: form.LastCommit,
+		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
-		OldTreeName:  oldTreePath,
-		NewTreeName:  form.TreePath,
+		FromTreePath: ctx.Repo.TreePath,
+		TreePath:     form.TreePath,
 		Message:      message,
 		Content:      strings.Replace(form.Content, "\r", "", -1),
 		IsNewFile:    isNewFile,
 	}); err != nil {
-		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
-		return
+		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
+		if git.IsErrNotExist(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
+		} else if models.IsErrFilenameInvalid(err) {
+			ctx.Data["Err_TreePath"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplEditFile, &form)
+		} else if models.IsErrFilePathInvalid(err) {
+			ctx.Data["Err_TreePath"] = true
+			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
+				switch fileErr.Type {
+				case git.EntryModeSymlink:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
+					break
+				case git.EntryModeTree:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
+					break
+				case git.EntryModeBlob:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
+					break
+				default:
+					ctx.Error(500, err.Error())
+					break
+				}
+			} else {
+				ctx.Error(500, err.Error())
+			}
+		} else if models.IsErrRepoFileAlreadyExists(err) {
+			ctx.Data["Err_TreePath"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
+		} else if models.IsErrBranchNotExist(err) {
+			// For when a user adds/updates a file to a branch that no longer exists
+			if branchErr, ok := err.(models.ErrBranchNotExist); ok {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
+			} else {
+				ctx.Error(500, err.Error())
+			}
+		} else if models.IsErrBranchAlreadyExists(err) {
+			// For when a user specifies a new branch that already exists
+			ctx.Data["Err_NewBranchName"] = true
+			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
+			} else {
+				ctx.Error(500, err.Error())
+			}
+		} else if models.IsErrCommitIDDoesNotMatch(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
+		} else {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
+		}
+	} else {
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(cleanUploadFileName(form.TreePath)))
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
-
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 }
 
 // EditFilePost response for editing file
@@ -355,7 +304,7 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 		return
 	}
 
-	diff, err := uploader.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := repofiles.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(500, "GetDiffPreview: "+err.Error())
 		return
@@ -386,6 +335,7 @@ func DeleteFile(ctx *context.Context) {
 
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
+	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	if canCommit {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
 	} else {
@@ -398,41 +348,27 @@ func DeleteFile(ctx *context.Context) {
 
 // DeleteFilePost response for deleting file
 func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
-	ctx.Data["PageIsDelete"] = true
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-
-	ctx.Repo.TreePath = cleanUploadFileName(ctx.Repo.TreePath)
-	if len(ctx.Repo.TreePath) == 0 {
-		ctx.Error(500, "Delete file name is invalid")
-		return
-	}
-
-	ctx.Data["TreePath"] = ctx.Repo.TreePath
 	canCommit := renderCommitRights(ctx)
-
-	oldBranchName := ctx.Repo.BranchName
-	branchName := oldBranchName
-
+	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
+
+	ctx.Data["PageIsDelete"] = true
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["TreePath"] = ctx.Repo.TreePath
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
 	ctx.Data["commit_choice"] = form.CommitChoice
-	ctx.Data["new_branch_name"] = branchName
+	ctx.Data["new_branch_name"] = form.NewBranchName
+	ctx.Data["last_commit"] = ctx.Repo.CommitID
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplDeleteFile)
 		return
 	}
 
-	if oldBranchName != branchName {
-		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
-			ctx.Data["Err_NewBranchName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplDeleteFile, &form)
-			return
-		}
-	} else if !canCommit {
+	if branchName != ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplDeleteFile, &form)
@@ -443,25 +379,67 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	if len(message) == 0 {
 		message = ctx.Tr("repo.editor.delete", ctx.Repo.TreePath)
 	}
-
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
 	if len(form.CommitMessage) > 0 {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &uploader.DeleteRepoFileOptions{
-		LastCommitID: ctx.Repo.CommitID,
-		OldBranch:    oldBranchName,
+	if _, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.DeleteRepoFileOptions{
+		LastCommitID: form.LastCommit,
+		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		TreePath:     ctx.Repo.TreePath,
 		Message:      message,
 	}); err != nil {
-		ctx.ServerError("DeleteRepoFile", err)
-		return
+		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
+		if git.IsErrNotExist(err) || models.IsErrRepoFileDoesNotExist(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_deleting_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
+		} else if models.IsErrFilenameInvalid(err) {
+			ctx.Data["Err_TreePath"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", ctx.Repo.TreePath), tplEditFile, &form)
+		} else if models.IsErrFilePathInvalid(err) {
+			ctx.Data["Err_TreePath"] = true
+			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
+				switch fileErr.Type {
+				case git.EntryModeSymlink:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
+					break
+				case git.EntryModeTree:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
+					break
+				case git.EntryModeBlob:
+					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
+					break
+				default:
+					ctx.ServerError("DeleteRepoFile", err)
+					break
+				}
+			} else {
+				ctx.ServerError("DeleteRepoFile", err)
+			}
+		} else if models.IsErrBranchNotExist(err) {
+			// For when a user deletes a file to a branch that no longer exists
+			if branchErr, ok := err.(models.ErrBranchNotExist); ok {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
+			} else {
+				ctx.Error(500, err.Error())
+			}
+		} else if models.IsErrBranchAlreadyExists(err) {
+			// For when a user specifies a new branch that already exists
+			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
+			} else {
+				ctx.Error(500, err.Error())
+			}
+		} else if models.IsErrCommitIDDoesNotMatch(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
+		} else {
+			ctx.ServerError("DeleteRepoFile", err)
+		}
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName))
 	}
-
-	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName))
 }
 
 func renderUploadSettings(ctx *context.Context) {
@@ -584,7 +562,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := uploader.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &uploader.UploadRepoFileOptions{
+	if err := repofiles.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &repofiles.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,

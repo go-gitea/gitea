@@ -1511,6 +1511,199 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the contents of a file or directory in a repository",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the file to delete",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileContentResponse"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a file in a repository",
+        "operationId": "repoUpdateFile",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the file to update",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileResponse"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a file in a repository",
+        "operationId": "repoCreateFile",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the file to create",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "'content' must be base64 encoded\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'sha' is the SHA for the file that already exists\n\n 'new_branch' (optional) will make a new branch from 'branch' before creating the file",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FileResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a file in a repository",
+        "operationId": "repoDeleteFile",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the file to delete",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "'sha' is the SHA for the file to be deleted\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before deleting the file",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/DeleteFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileDeleteResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/editorconfig/{filepath}": {
       "get": {
         "produces": [
@@ -1618,6 +1811,46 @@
         "responses": {
           "202": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/blobs/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the blob of a repository.",
+        "operationId": "GetBlob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the commit",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitBlobResponse"
           }
         }
       }
@@ -6637,6 +6870,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "CreateFileOptions": {
+      "description": "CreateFileOptions options for creating files",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "CreateForkOption": {
       "description": "CreateForkOption options for creating a fork",
       "type": "object",
@@ -7129,6 +7391,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "DeleteFileOptions": {
+      "description": "DeleteFileOptions options for deleting files (used for other File structs below)",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "DeployKey": {
       "description": "DeployKey a deploy key",
       "type": "object",
@@ -7567,6 +7858,144 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "FileCommitResponse": {
+      "type": "object",
+      "title": "FileCommitResponse contains information generated from a Git commit for a repo's file.",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "committer": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitMeta"
+          },
+          "x-go-name": "Parents"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tree": {
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "FileContentResponse": {
+      "description": "FileContentResponse contains information about a repo's file stats and content",
+      "type": "object",
+      "properties": {
+        "_links": {
+          "$ref": "#/definitions/FileLinksResponse"
+        },
+        "download_url": {
+          "type": "string",
+          "x-go-name": "DownloadURL"
+        },
+        "git_url": {
+          "type": "string",
+          "x-go-name": "GitURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "FileDeleteResponse": {
+      "description": "FileDeleteResponse contains information about a repo's file that was deleted",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/FileCommitResponse"
+        },
+        "content": {
+          "type": "object",
+          "x-go-name": "Content"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "FileLinksResponse": {
+      "description": "FileLinksResponse contains the links for a repo's file",
+      "type": "object",
+      "properties": {
+        "git_url": {
+          "type": "string",
+          "x-go-name": "GitURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "Self"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "FileResponse": {
+      "description": "FileResponse contains information about a repo's file",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/FileCommitResponse"
+        },
+        "content": {
+          "$ref": "#/definitions/FileContentResponse"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -7642,6 +8071,34 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "GitBlobResponse": {
+      "description": "GitBlobResponse represents a git blob",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "encoding": {
+          "type": "string",
+          "x-go-name": "Encoding"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -7792,6 +8249,22 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "Identity": {
+      "description": "Identity for a person's identity like an author or committer",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "x-go-name": "Email"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -8855,6 +9328,43 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "UpdateFileOptions": {
+      "description": "UpdateFileOptions options for updating files",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "from_path": {
+          "type": "string",
+          "x-go-name": "FromPath"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "User": {
       "description": "User represents a user",
       "type": "object",
@@ -9040,6 +9550,24 @@
         }
       }
     },
+    "FileContentResponse": {
+      "description": "FileContentResponse",
+      "schema": {
+        "$ref": "#/definitions/FileContentResponse"
+      }
+    },
+    "FileDeleteResponse": {
+      "description": "FileDeleteResponse",
+      "schema": {
+        "$ref": "#/definitions/FileDeleteResponse"
+      }
+    },
+    "FileResponse": {
+      "description": "FileResponse",
+      "schema": {
+        "$ref": "#/definitions/FileResponse"
+      }
+    },
     "GPGKey": {
       "description": "GPGKey",
       "schema": {
@@ -9053,6 +9581,12 @@
         "items": {
           "$ref": "#/definitions/GPGKey"
         }
+      }
+    },
+    "GitBlobResponse": {
+      "description": "GitBlobResponse",
+      "schema": {
+        "$ref": "#/definitions/GitBlobResponse"
       }
     },
     "GitHook": {
@@ -9362,7 +9896,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/EditAttachmentOptions"
+        "$ref": "#/definitions/DeleteFileOptions"
       }
     },
     "redirect": {

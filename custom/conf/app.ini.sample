@@ -672,6 +672,8 @@ MAX_RESPONSE_ITEMS = 50
 DEFAULT_PAGING_NUM = 30
 ; Default and maximum number of items per page for git trees api
 DEFAULT_GIT_TREES_PER_PAGE = 1000
+; Default size of a blob returned by the blobs API (default is 10MiB)
+DEFAULT_MAX_BLOB_SIZE = 10485760
 
 [oauth2]
 ; Enables OAuth2 provider

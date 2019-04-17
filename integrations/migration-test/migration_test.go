@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -28,7 +29,7 @@ var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) {
 	integrations.PrintCurrentTest(t, 2)
-	giteaRoot := os.Getenv("GITEA_ROOT")
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		integrations.Printf("Environment variable $GITEA_ROOT not set\n")
 		os.Exit(1)
