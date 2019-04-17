@@ -194,7 +194,7 @@ func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -203,12 +203,12 @@ func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
 	if u.IsOrganization() && u.Email == "" {
 		t, err := u.getOwnerTeam(x)
 		if err != nil {
-			log.Error(3, "Could not retrieve owners team for organization", err)
+			log.Error("Could not retrieve owners team for organization", err)
 			return
 		}
 
 		if err := t.GetMembers(); err != nil {
-			log.Error(3, "Could not retrieve members of the owners team", err)
+			log.Error("Could not retrieve members of the owners team", err)
 			return
 		}
 
