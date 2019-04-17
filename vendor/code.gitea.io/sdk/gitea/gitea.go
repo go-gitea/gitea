@@ -36,6 +36,12 @@ func NewClient(url, token string) *Client {
 	}
 }
 
+// NewClientWithHTTP creates an API client with a custom http client
+func NewClientWithHTTP(url string, httpClient *http.Client) {
+	client := NewClient(url, "")
+	client.client = httpClient
+}
+
 // SetHTTPClient replaces default http.Client with user given one.
 func (c *Client) SetHTTPClient(client *http.Client) {
 	c.client = client
@@ -51,7 +57,9 @@ func (c *Client) doRequest(method, path string, header http.Header, body io.Read
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "token "+c.accessToken)
+	if len(c.accessToken) != 0 {
+		req.Header.Set("Authorization", "token "+c.accessToken)
+	}
 	if c.sudo != "" {
 		req.Header.Set("Sudo", c.sudo)
 	}

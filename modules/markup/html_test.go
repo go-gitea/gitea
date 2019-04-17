@@ -16,12 +16,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(".md", input, setting.AppSubURL, nil)
+		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -45,7 +50,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -195,7 +200,7 @@ func TestRender_ShortLinks(t *testing.T) {
 	test := func(input, expected, expectedWiki string) {
 		buffer := markdown.RenderString(input, tree, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, nil)
+		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
