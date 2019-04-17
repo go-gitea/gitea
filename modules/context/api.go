@@ -72,7 +72,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	}
 
 	if status == 500 {
-		log.Error(4, "%s: %s", title, message)
+		log.Error("%s: %s", title, message)
 	}
 
 	ctx.JSON(status, APIError{
@@ -125,10 +125,10 @@ func APIContexter() macaron.Handler {
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo() macaron.Handler {
+func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
+		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
 			return
 		}
 

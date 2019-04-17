@@ -20,7 +20,10 @@ func TestRepo(t *testing.T) {
 	repo.Owner = &User{Name: "testOwner"}
 
 	repo.Units = nil
-	assert.Nil(t, repo.ComposeMetas())
+
+	metas := repo.ComposeMetas()
+	assert.Equal(t, "testRepo", metas["repo"])
+	assert.Equal(t, "testOwner", metas["user"])
 
 	externalTracker := RepoUnit{
 		Type: UnitTypeExternalTracker,

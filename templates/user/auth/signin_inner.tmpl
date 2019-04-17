@@ -51,11 +51,22 @@
 			{{if and .OrderedOAuth2Names .OAuth2Providers}}
 			<div class="ui attached segment">
 				<div class="oauth2 center">
+					<div id="oauth2-login-loader" class="ui disabled centered  loader"></div>
 					<div>
-						<p>{{.i18n.Tr "sign_in_with"}}</p>{{range $key := .OrderedOAuth2Names}}
-						{{$provider := index $.OAuth2Providers $key}}
-						<a href="{{AppSubUrl}}/user/oauth2/{{$key}}"><img alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}" title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}" class="{{$provider.Name}}" src="{{AppSubUrl}}{{$provider.Image}}"></a>
-						{{end}}
+						<div id="oauth2-login-navigator">
+							<p>{{.i18n.Tr "sign_in_with"}}</p>
+							{{range $key := .OrderedOAuth2Names}}
+								{{$provider := index $.OAuth2Providers $key}}
+								<a href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+									<img
+										alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
+										title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
+										class="{{$provider.Name}}"
+										src="{{AppSubUrl}}{{$provider.Image}}"
+										onclick="onOAuthLoginClick()"
+									></a>
+							{{end}}
+						</div>
 					</div>
 				</div>
 			</div>

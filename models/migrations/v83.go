@@ -10,6 +10,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+<<<<<<< HEAD
 func addRepoTransfer(x *xorm.Engine) error {
 	type RepoTransfer struct {
 		ID          int64 `xorm:"pk autoincr"`
@@ -22,4 +23,21 @@ func addRepoTransfer(x *xorm.Engine) error {
 	}
 
 	return x.Sync(new(RepoTransfer))
+=======
+func addUploaderIDForAttachment(x *xorm.Engine) error {
+	type Attachment struct {
+		ID            int64  `xorm:"pk autoincr"`
+		UUID          string `xorm:"uuid UNIQUE"`
+		IssueID       int64  `xorm:"INDEX"`
+		ReleaseID     int64  `xorm:"INDEX"`
+		UploaderID    int64  `xorm:"INDEX DEFAULT 0"`
+		CommentID     int64
+		Name          string
+		DownloadCount int64          `xorm:"DEFAULT 0"`
+		Size          int64          `xorm:"DEFAULT 0"`
+		CreatedUnix   util.TimeStamp `xorm:"created"`
+	}
+
+	return x.Sync2(new(Attachment))
+>>>>>>> origin/master
 }
