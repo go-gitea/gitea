@@ -155,10 +155,7 @@ func (issues IssueList) loadLabels(e Engine) error {
 			}
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
-		}
+		_ = rows.Close()
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -247,11 +244,7 @@ func (issues IssueList) loadAssignees(e Engine) error {
 
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
-		}
-
+		_ = rows.Close()
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -304,10 +297,7 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
-		}
+		_ = rows.Close()
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
@@ -459,10 +449,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
-		}
+		_ = rows.Close()
 		left -= limit
 		ids = ids[limit:]
 	}
@@ -476,31 +463,31 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(e Engine) (err error) {
 	if _, err = issues.loadRepositories(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
 	}
 
 	if err = issues.loadPosters(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadPosters: %v", err)
 	}
 
 	if err = issues.loadLabels(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadLabels: %v", err)
 	}
 
 	if err = issues.loadMilestones(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
 	}
 
 	if err = issues.loadAssignees(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadAssignees: %v", err)
 	}
 
 	if err = issues.loadPullRequests(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %v", err)
 	}
 
 	if err = issues.loadTotalTrackedTimes(e); err != nil {
-		return
+		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %v", err)
 	}
 
 	return nil
