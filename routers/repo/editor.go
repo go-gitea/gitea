@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/uploader"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -66,9 +67,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if treePath != ctx.Repo.TreePath {
 		if isNewFile {
-			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_new", ctx.Repo.BranchName, treePath))
+			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_new", util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(treePath)))
 		} else {
-			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_edit", ctx.Repo.BranchName, treePath))
+			ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_edit", util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(treePath)))
 		}
 		return
 	}
@@ -324,7 +325,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(form.TreePath))
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 }
 
 // EditFilePost response for editing file
@@ -376,7 +377,7 @@ func DeleteFile(ctx *context.Context) {
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 
 	if treePath != ctx.Repo.TreePath {
-		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_delete", ctx.Repo.BranchName, treePath))
+		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_delete", util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(treePath)))
 		return
 	}
 
@@ -460,7 +461,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName)
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName))
 }
 
 func renderUploadSettings(ctx *context.Context) {
@@ -477,7 +478,7 @@ func UploadFile(ctx *context.Context) {
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if treePath != ctx.Repo.TreePath {
-		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_upload", ctx.Repo.BranchName, treePath))
+		ctx.Redirect(path.Join(ctx.Repo.RepoLink, "_upload", util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(treePath)))
 		return
 	}
 	ctx.Repo.TreePath = treePath
@@ -596,7 +597,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + form.TreePath)
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 }
 
 func cleanUploadFileName(name string) string {
