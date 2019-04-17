@@ -411,8 +411,8 @@ PAGING_NUM = 10
 ENABLED = false
 ; Buffer length of channel, keep it as it is if you don't know what it is.
 SEND_BUFFER_LEN = 100
-; Name displayed in mail title
-SUBJECT = %(APP_NAME)s
+; Prefix displayed before subject in mail
+SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
