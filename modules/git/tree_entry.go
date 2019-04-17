@@ -53,6 +53,18 @@ func (te *TreeEntry) Mode() EntryMode {
 	return EntryMode(te.gogitTreeEntry.Mode)
 }
 
+// Type returns the type of the entry (commit, tree, blob)
+func (te *TreeEntry) Type() string {
+	switch te.Mode() {
+	case EntryModeCommit:
+		return "commit"
+	case EntryModeTree:
+		return "tree"
+	default:
+		return "blob"
+	}
+}
+
 // Size returns the size of the entry
 func (te *TreeEntry) Size() int64 {
 	if te.IsDir() {

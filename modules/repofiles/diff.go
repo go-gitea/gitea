@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package uploader
+package repofiles
 
 import (
 	"strings"
@@ -12,11 +12,14 @@ import (
 
 // GetDiffPreview produces and returns diff result of a file which is not yet committed.
 func GetDiffPreview(repo *models.Repository, branch, treePath, content string) (*models.Diff, error) {
+	if branch == "" {
+		branch = repo.DefaultBranch
+	}
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer t.Close()
 	if err := t.Clone(branch); err != nil {
 		return nil, err
 	}
