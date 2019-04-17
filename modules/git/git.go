@@ -76,7 +76,7 @@ func BinVersion() (string, error) {
 }
 
 func init() {
-	absPath, err := exec.LookPath("git")
+	absPath, err := exec.LookPath(GitExecutable)
 	if err != nil {
 		panic(fmt.Sprintf("Git not found: %v", err))
 	}
