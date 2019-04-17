@@ -5,7 +5,10 @@
 package setting
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-macaron/cors"
 )
 
@@ -28,9 +31,10 @@ func newCORSService() {
 		AllowDomain:      sec.Key("ALLOW_DOMAIN").String(),
 		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
 		Methods:          sec.Key("METHODS").Strings(","),
-		MaxAgeSeconds:    sec.Key("MAX_AGE_SECONDS").MustInt(0),
+		MaxAge:           sec.Key("MAX_AGE").MustDuration(10 * time.Minute),
 		AllowCredentials: sec.Key("ALLOW_CREDENTIALS").MustBool(),
 	}
+	CORSConfig.MaxAgeSeconds = CORSConfig.MaxAge.Seconds()
 	EnableCORS = true
 
 	log.Info("CORS Service Enabled")
