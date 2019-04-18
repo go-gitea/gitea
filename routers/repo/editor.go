@@ -397,16 +397,12 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
-					break
 				default:
 					ctx.ServerError("DeleteRepoFile", err)
-					break
 				}
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)

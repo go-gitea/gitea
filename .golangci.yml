@@ -82,3 +82,7 @@ issues:
     - path: modules/httplib/httplib.go
       linters:
         - staticcheck
+    # Enabling this would require refactoring the methods and how they are called.
+    - path: models/issue_comment_list.go
+      linters:
+        - dupl

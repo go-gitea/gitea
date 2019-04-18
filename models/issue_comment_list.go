@@ -236,9 +236,9 @@ func (comments CommentList) loadAssignees(e Engine) error {
 
 			assignees[user.ID] = &user
 		}
-		rows.Close()
+		_ = rows.Close()
 
-		left = left - limit
+		left -= limit
 		assigneeIDs = assigneeIDs[limit:]
 	}
 
@@ -310,9 +310,9 @@ func (comments CommentList) loadIssues(e Engine) error {
 
 			issues[issue.ID] = &issue
 		}
-		rows.Close()
+		_ = rows.Close()
 
-		left = left - limit
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
@@ -361,15 +361,15 @@ func (comments CommentList) loadDependentIssues(e Engine) error {
 			var issue Issue
 			err = rows.Scan(&issue)
 			if err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 
 			issues[issue.ID] = &issue
 		}
-		rows.Close()
+		_ = rows.Close()
 
-		left = left - limit
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
@@ -406,14 +406,14 @@ func (comments CommentList) loadAttachments(e Engine) (err error) {
 			var attachment Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 			attachments[attachment.CommentID] = append(attachments[attachment.CommentID], &attachment)
 		}
 
-		rows.Close()
-		left = left - limit
+		_ = rows.Close()
+		left -= limit
 		commentsIDs = commentsIDs[limit:]
 	}
 
@@ -457,15 +457,15 @@ func (comments CommentList) loadReviews(e Engine) error {
 			var review Review
 			err = rows.Scan(&review)
 			if err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 
 			reviews[review.ID] = &review
 		}
-		rows.Close()
+		_ = rows.Close()
 
-		left = left - limit
+		left -= limit
 		reviewIDs = reviewIDs[limit:]
 	}
 
