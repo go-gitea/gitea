@@ -35,5 +35,7 @@ func newCORSService() {
 		AllowCredentials: sec.Key("ALLOW_CREDENTIALS").MustBool(),
 	}
 
-	log.Info("CORS Service Enabled")
+	if EnableCORS {
+		log.Info("CORS Service Enabled")
+	}
 }
