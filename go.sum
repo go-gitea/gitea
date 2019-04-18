@@ -13,6 +13,8 @@ github.com/Unknwon/com v0.0.0-20170819223952-7677a1d7c113 h1:YwXm6KwmrA5R5yJRhcn
 github.com/Unknwon/com v0.0.0-20170819223952-7677a1d7c113/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/Unknwon/com v0.0.0-20181010210213-41959bdd855f h1:m1tYqjD/N0vF/S8s/ZKz/eccUr8RAAcrOK2MhXeTegA=
 github.com/Unknwon/com v0.0.0-20181010210213-41959bdd855f/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
+github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755 h1:1B7wb36fHLSwZfHg6ngZhhtIEHQjiC5H4p7qQGBEffg=
+github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755/go.mod h1:voKvFVpXBJxdIPeqjoJuLK+UVcRlo/JLjeToGxPYu68=
 github.com/Unknwon/i18n v0.0.0-20171114194641-b64d33658966 h1:Mp8GNJ/tdTZIEdLdZfykEJaL3mTyEYrSzYNcdoQKpJk=
 github.com/Unknwon/i18n v0.0.0-20171114194641-b64d33658966/go.mod h1:SFtfq0zFPsENI7DpE87QM2hcYu5QQ0fRdCgP+P1Hrqo=
 github.com/Unknwon/paginater v0.0.0-20151104151617-7748a72e0141 h1:SSvHGK7iMpeypcHjI8UzNMz7zW/K8/dcgqk/82lCYP0=
@@ -109,6 +111,8 @@ github.com/go-macaron/cache v0.0.0-20151013081102-561735312776 h1:UYIHS1r0WotqB5
 github.com/go-macaron/cache v0.0.0-20151013081102-561735312776/go.mod h1:hHAsZm/oBZVcY+S7qdQL6Vbg5VrXF6RuKGuqsszt3Ok=
 github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab h1:4VFhsA3GE5Wwq1Ymr8KWCmrOWi1wRLEgdj48LPfQjxI=
 github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab/go.mod h1:j9TJ+0nwUOWBvNnm0bheHIPFf3cC62EQo7n7O6PbjZA=
+github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9 h1:A0QGzY6UHHEil0I2e7C21JenNNG0mmrj5d9SFWTlgr8=
+github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9/go.mod h1:utmMRnVIrXPSfA9MFcpIYKEpKawjKxf62vv62k4707E=
 github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372 h1:acrx8CnDmlKl+BPoOOLEK9Ko+SrWFB5pxRuGkKj4iqo=
 github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372/go.mod h1:oZGMxI7MBnicI0jJqJvH4qQzyrWKhtiKxLSJKHC+ydc=
 github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f h1:wDKrZFc9pYJlqFOf7EzGbFMrSFFtyHt3plr2uTdo8Rg=
@@ -321,6 +325,8 @@ golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 h1:u+LnwYTOOW7Ukr/fppxEb1
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc h1:F5tKCVGp+MUAHhKp5MZtGqAlGX3+oCsiL1Q629FL90M=
 golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480 h1:O5YqonU5IWby+w98jVUG9h7zlCWCcH4RHyPVReBmhzk=
+golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480/go.mod h1:WFFai1msRO1wXaEeE5yQxYXgSfI8pQAWXbQop6sCtWE=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 h1:x6rhz8Y9CjbgQkccRGmELH6K+LJj7tOoh3XWeC1yaQM=
@@ -334,6 +340,8 @@ golang.org/x/sys v0.0.0-20180903190138-2b024373dcd9/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223 h1:DH4skfRX4EBpamg7iV4ZlCpblAHI6s6TDM39bFZumv8=
 golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e h1:nFYrTHrdrAOpShe27kaFHjsqYSEQ0KWqdWLu3xuZJts=
+golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
@@ -358,6 +366,8 @@ gopkg.in/ini.v1 v1.31.1 h1:8EY/6KDwKM9Qg4vu1+01ZpsxClC/XV71R+nZ/TL7D4M=
 gopkg.in/ini.v1 v1.31.1/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
 gopkg.in/ini.v1 v1.41.0 h1:Ka3ViY6gNYSKiVy71zXBEqKplnV35ImDLVG+8uoIklE=
 gopkg.in/ini.v1 v1.41.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
+gopkg.in/ini.v1 v1.42.0 h1:7N3gPTt50s8GuLortA00n8AqRTk75qOP98+mTPpgzRk=
+gopkg.in/ini.v1 v1.42.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
 gopkg.in/ldap.v3 v3.0.2 h1:R6RBtabK6e1GO0eQKtkyOFbAHO73QesLzI2w2DZ6b9w=
 gopkg.in/ldap.v3 v3.0.2/go.mod h1:oxD7NyBuxchC+SgJDE1Q5Od05eGt29SDQVBmV+HYbzw=
 gopkg.in/macaron.v1 v1.3.2 h1:AvWIaPmwBUA87/OWzePkoxeaw6YJWDfBt1pDFPBnLf8=

@@ -198,7 +198,7 @@ func hasSurroundedQuote(in string, quote byte) bool {
 
 func (p *parser) readValue(in []byte,
 	parserBufferSize int,
-	ignoreContinuation, ignoreInlineComment, unescapeValueDoubleQuotes, unescapeValueCommentSymbols, allowPythonMultilines, spaceBeforeInlineComment bool) (string, error) {
+	ignoreContinuation, ignoreInlineComment, unescapeValueDoubleQuotes, unescapeValueCommentSymbols, allowPythonMultilines, spaceBeforeInlineComment, preserveSurroundedQuote bool) (string, error) {
 
 	line := strings.TrimLeftFunc(string(in), unicode.IsSpace)
 	if len(line) == 0 {
@@ -259,8 +259,8 @@ func (p *parser) readValue(in []byte,
 	}
 
 	// Trim single and double quotes
-	if hasSurroundedQuote(line, '\'') ||
-		hasSurroundedQuote(line, '"') {
+	if (hasSurroundedQuote(line, '\'') ||
+		hasSurroundedQuote(line, '"')) && !preserveSurroundedQuote {
 		line = line[1 : len(line)-1]
 	} else if len(valQuote) == 0 && unescapeValueCommentSymbols {
 		if strings.Contains(line, `\;`) {
@@ -433,7 +433,8 @@ func (f *File) parse(reader io.Reader) (err error) {
 						f.options.UnescapeValueDoubleQuotes,
 						f.options.UnescapeValueCommentSymbols,
 						f.options.AllowPythonMultilineValues,
-						f.options.SpaceBeforeInlineComment)
+						f.options.SpaceBeforeInlineComment,
+						f.options.PreserveSurroundedQuote)
 					if err != nil {
 						return err
 					}
@@ -467,7 +468,8 @@ func (f *File) parse(reader io.Reader) (err error) {
 			f.options.UnescapeValueDoubleQuotes,
 			f.options.UnescapeValueCommentSymbols,
 			f.options.AllowPythonMultilineValues,
-			f.options.SpaceBeforeInlineComment)
+			f.options.SpaceBeforeInlineComment,
+			f.options.PreserveSurroundedQuote)
 		if err != nil {
 			return err
 		}

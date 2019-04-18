@@ -128,11 +128,7 @@ func (c *Client) Discover(ctx context.Context) (Directory, error) {
 		return *c.dir, nil
 	}
 
-	dirURL := c.DirectoryURL
-	if dirURL == "" {
-		dirURL = LetsEncryptURL
-	}
-	res, err := c.get(ctx, dirURL, wantStatus(http.StatusOK))
+	res, err := c.get(ctx, c.directoryURL(), wantStatus(http.StatusOK))
 	if err != nil {
 		return Directory{}, err
 	}
@@ -163,6 +159,13 @@ func (c *Client) Discover(ctx context.Context) (Directory, error) {
 		CAA:       v.Meta.CAA,
 	}
 	return *c.dir, nil
+}
+
+func (c *Client) directoryURL() string {
+	if c.DirectoryURL != "" {
+		return c.DirectoryURL
+	}
+	return LetsEncryptURL
 }
 
 // CreateCert requests a new certificate using the Certificate Signing Request csr encoded in DER format.
@@ -323,6 +326,20 @@ func (c *Client) UpdateReg(ctx context.Context, a *Account) (*Account, error) {
 // a valid authorization (Authorization.Status is StatusValid). If so, the caller
 // need not fulfill any challenge and can proceed to requesting a certificate.
 func (c *Client) Authorize(ctx context.Context, domain string) (*Authorization, error) {
+	return c.authorize(ctx, "dns", domain)
+}
+
+// AuthorizeIP is the same as Authorize but requests IP address authorization.
+// Clients which successfully obtain such authorization may request to issue
+// a certificate for IP addresses.
+//
+// See the ACME spec extension for more details about IP address identifiers:
+// https://tools.ietf.org/html/draft-ietf-acme-ip.
+func (c *Client) AuthorizeIP(ctx context.Context, ipaddr string) (*Authorization, error) {
+	return c.authorize(ctx, "ip", ipaddr)
+}
+
+func (c *Client) authorize(ctx context.Context, typ, val string) (*Authorization, error) {
 	if _, err := c.Discover(ctx); err != nil {
 		return nil, err
 	}
@@ -336,7 +353,7 @@ func (c *Client) Authorize(ctx context.Context, domain string) (*Authorization, 
 		Identifier authzID `json:"identifier"`
 	}{
 		Resource:   "new-authz",
-		Identifier: authzID{Type: "dns", Value: domain},
+		Identifier: authzID{Type: typ, Value: val},
 	}
 	res, err := c.post(ctx, c.Key, c.dir.AuthzURL, req, wantStatus(http.StatusCreated))
 	if err != nil {
@@ -697,12 +714,18 @@ func (c *Client) doReg(ctx context.Context, url string, typ string, acct *Accoun
 }
 
 // popNonce returns a nonce value previously stored with c.addNonce
-// or fetches a fresh one from the given URL.
+// or fetches a fresh one from a URL by issuing a HEAD request.
+// It first tries c.directoryURL() and then the provided url if the former fails.
 func (c *Client) popNonce(ctx context.Context, url string) (string, error) {
 	c.noncesMu.Lock()
 	defer c.noncesMu.Unlock()
 	if len(c.nonces) == 0 {
-		return c.fetchNonce(ctx, url)
+		dirURL := c.directoryURL()
+		v, err := c.fetchNonce(ctx, dirURL)
+		if err != nil && url != dirURL {
+			v, err = c.fetchNonce(ctx, url)
+		}
+		return v, err
 	}
 	var nonce string
 	for nonce = range c.nonces {

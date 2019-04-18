@@ -34,7 +34,7 @@ const (
 
 	// Maximum allowed depth when recursively substituing variable names.
 	_DEPTH_VALUES = 99
-	_VERSION      = "1.41.0"
+	_VERSION      = "1.42.0"
 )
 
 // Version returns current package version literal.
@@ -170,6 +170,8 @@ type LoadOptions struct {
 	UnparseableSections []string
 	// KeyValueDelimiters is the sequence of delimiters that are used to separate key and value. By default, it is "=:".
 	KeyValueDelimiters string
+	// PreserveSurroundedQuote indicates whether to preserve surrounded quote (single and double quotes).
+	PreserveSurroundedQuote bool
 }
 
 func LoadSources(opts LoadOptions, source interface{}, others ...interface{}) (_ *File, err error) {
