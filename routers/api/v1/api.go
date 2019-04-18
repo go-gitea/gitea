@@ -169,7 +169,7 @@ func repoAssignment() macaron.Handler {
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
 	return func(ctx *context.APIContext) {
-		if true == ctx.Data["IsApiToken"] {
+		if true == ctx.Data["IsApiToken"] || ctx.Context.IsBasicAuth {
 			ctx.CheckForOTP()
 			return
 		}
