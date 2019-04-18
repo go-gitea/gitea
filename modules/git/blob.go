@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -70,4 +71,33 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	}
 
 	return cmdReadCloser{stdout: stdout, cmd: cmd}, nil
+}
+
+// GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
+func (b *Blob) GetBlobContentBase64() (string, error) {
+	dataRc, err := b.DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer dataRc.Close()
+
+	pr, pw := io.Pipe()
+	encoder := base64.NewEncoder(base64.StdEncoding, pw)
+
+	go func() {
+		_, err := io.Copy(encoder, dataRc)
+		encoder.Close()
+
+		if err != nil {
+			pw.CloseWithError(err)
+		} else {
+			pw.Close()
+		}
+	}()
+
+	out, err := ioutil.ReadAll(pr)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }

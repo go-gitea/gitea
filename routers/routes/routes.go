@@ -273,8 +273,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", user.SignUp)
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
-		m.Get("/reset_password", user.ResetPasswd)
-		m.Post("/reset_password", user.ResetPasswdPost)
 		m.Group("/oauth2", func() {
 			m.Get("/:provider", user.SignInOAuth)
 			m.Get("/:provider/callback", user.SignInOAuthCallback)
@@ -344,6 +342,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/:id/regenerate_secret", userSetting.OAuthApplicationsRegenerateSecret)
 			m.Post("", bindIgnErr(auth.EditOAuth2ApplicationForm{}), userSetting.OAuthApplicationsPost)
 			m.Post("/delete", userSetting.DeleteOAuth2Application)
+			m.Post("/revoke", userSetting.RevokeOAuth2Grant)
 		})
 		m.Combo("/applications").Get(userSetting.Applications).
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.ApplicationsPost)
@@ -381,6 +380,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Any("/activate", user.Activate, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/email2user", user.Email2User)
+		m.Get("/recover_account", user.ResetPasswd)
+		m.Post("/recover_account", user.ResetPasswdPost)
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Get("/logout", user.SignOut)

@@ -103,6 +103,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
 
+<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/fc7f44dadf" rel="nofollow"><code>fc7f44dadf</code></a></p>
+
 <p>Ideas and codes</p>
 
 <ul>
@@ -191,6 +193,8 @@ var sameCases = []string{
 	`Wiki! Enjoy :)
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
+
+See commit fc7f44dadf
 
 Ideas and codes
 
