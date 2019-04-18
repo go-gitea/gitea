@@ -170,10 +170,12 @@ func repoAssignment() macaron.Handler {
 func reqToken() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if true == ctx.Data["IsApiToken"] {
+			ctx.CheckForOTP()
 			return
 		}
 		if ctx.IsSigned {
 			ctx.RequireCSRF()
+			ctx.CheckForOTP()
 			return
 		}
 		ctx.Context.Error(401)
@@ -181,11 +183,12 @@ func reqToken() macaron.Handler {
 }
 
 func reqBasicAuth() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.IsBasicAuth {
-			ctx.Error(401)
+	return func(ctx *context.APIContext) {
+		if !ctx.Context.IsBasicAuth {
+			ctx.Context.Error(401)
 			return
 		}
+		ctx.CheckForOTP()
 	}
 }
 
