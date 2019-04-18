@@ -5,13 +5,12 @@
 package models
 
 import (
-	"path"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -145,13 +144,6 @@ func TestRepository_InitWiki(t *testing.T) {
 	assert.True(t, repo2.HasWiki())
 }
 
-func TestRepository_LocalWikiPath(t *testing.T) {
-	PrepareTestEnv(t)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	expected := filepath.Join(setting.AppDataPath, setting.Repository.Local.LocalWikiPath, "1")
-	assert.Equal(t, expected, repo.LocalWikiPath())
-}
-
 func TestRepository_AddWikiPage(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
@@ -166,8 +158,15 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		t.Run("test wiki exist: "+wikiName, func(t *testing.T) {
 			t.Parallel()
 			assert.NoError(t, repo.AddWikiPage(doer, wikiName, wikiContent, commitMsg))
-			expectedPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(wikiName))
-			assert.True(t, com.IsExist(expectedPath))
+			// Now need to show that the page has been added:
+			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			assert.NoError(t, err)
+			masterTree, err := gitRepo.GetTree("master")
+			assert.NoError(t, err)
+			wikiPath := WikiNameToFilename(wikiName)
+			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
+			assert.NoError(t, err)
+			assert.Equal(t, wikiPath, entry.Name(), "%s not addded correctly", wikiName)
 		})
 	}
 
@@ -200,11 +199,20 @@ func TestRepository_EditWikiPage(t *testing.T) {
 	} {
 		PrepareTestEnv(t)
 		assert.NoError(t, repo.EditWikiPage(doer, "Home", newWikiName, newWikiContent, commitMsg))
-		newPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(newWikiName))
-		assert.True(t, com.IsExist(newPath))
+
+		// Now need to show that the page has been added:
+		gitRepo, err := git.OpenRepository(repo.WikiPath())
+		assert.NoError(t, err)
+		masterTree, err := gitRepo.GetTree("master")
+		assert.NoError(t, err)
+		wikiPath := WikiNameToFilename(newWikiName)
+		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
+		assert.NoError(t, err)
+		assert.Equal(t, wikiPath, entry.Name(), "%s not editted correctly", newWikiName)
+
 		if newWikiName != "Home" {
-			oldPath := path.Join(repo.LocalWikiPath(), "Home.md")
-			assert.False(t, com.IsExist(oldPath))
+			_, err := masterTree.GetTreeEntryByPath("Home.md")
+			assert.Error(t, err)
 		}
 	}
 }
@@ -214,6 +222,13 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.NoError(t, repo.DeleteWikiPage(doer, "Home"))
-	wikiPath := path.Join(repo.LocalWikiPath(), "Home.md")
-	assert.False(t, com.IsExist(wikiPath))
+
+	// Now need to show that the page has been added:
+	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	assert.NoError(t, err)
+	masterTree, err := gitRepo.GetTree("master")
+	assert.NoError(t, err)
+	wikiPath := WikiNameToFilename("Home")
+	_, err = masterTree.GetTreeEntryByPath(wikiPath)
+	assert.Error(t, err)
 }

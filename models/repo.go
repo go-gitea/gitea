@@ -499,7 +499,7 @@ func (repo *Repository) DeleteWiki() error {
 }
 
 func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath(), repo.LocalWikiPath()}
+	wikiPaths := []string{repo.WikiPath()}
 	for _, wikiPath := range wikiPaths {
 		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
 	}
