@@ -214,6 +214,8 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 					}
 					return nil, false
 				}
+			} else {
+				ctx.Data["IsApiToken"] = true
 			}
 
 			return u, true
