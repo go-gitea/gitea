@@ -33,4 +33,4 @@ before:
 after:
   - mv bin/gitea gitea
 after_install: ./packager/hooks/postinst
-buildpack: https://github.com/heroku/heroku-buildpack-go.git#v62
+buildpack: https://github.com/heroku/heroku-buildpack-go.git#v104
