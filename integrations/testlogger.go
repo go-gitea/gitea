@@ -73,9 +73,9 @@ func PrintCurrentTest(t testing.TB, skip ...int) {
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
 	if log.CanColorStdout {
-		_, _ = fmt.Fprintf(os.Stdout, "=== %v (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", fmt.Formatter(log.NewColoredValue(t.Name())), strings.TrimPrefix(filename, prefix), line)
 	} else {
-		_, _ = fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
+		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
 	writerCloser.t = t
 }

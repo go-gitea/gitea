@@ -86,7 +86,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 	// If only one of the two are provided, we set both of them to it.
 	// If neither are provided, both are the doer.
 	if committer != nil && committer.Email != "" {
-		if doer != nil && strings.ToLower(doer.Email) == strings.ToLower(committer.Email) {
+		if doer != nil && strings.EqualFold(doer.Email, committer.Email) {
 			committerUser = doer // the committer is the doer, so will use their user object
 			if committer.Name != "" {
 				committerUser.FullName = committer.Name
@@ -99,7 +99,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 		}
 	}
 	if author != nil && author.Email != "" {
-		if doer != nil && strings.ToLower(doer.Email) == strings.ToLower(author.Email) {
+		if doer != nil && strings.EqualFold(doer.Email, author.Email) {
 			authorUser = doer // the author is the doer, so will use their user object
 			if authorUser.Name != "" {
 				authorUser.FullName = author.Name
