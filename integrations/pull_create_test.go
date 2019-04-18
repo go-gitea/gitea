@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"strings"
 	"testing"
@@ -43,63 +44,65 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 }
 
 func TestPullCreate(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
-	// check the redirected URL
-	url := resp.HeaderMap.Get("Location")
-	assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+		// check the redirected URL
+		url := resp.HeaderMap.Get("Location")
+		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
-	// check .diff can be accessed and matches performed change
-	req := NewRequest(t, "GET", url+".diff")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
-	assert.Regexp(t, "^diff", resp.Body)
-	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+		// check .diff can be accessed and matches performed change
+		req := NewRequest(t, "GET", url+".diff")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+		assert.Regexp(t, "^diff", resp.Body)
+		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 
-	// check .patch can be accessed and matches performed change
-	req = NewRequest(t, "GET", url+".patch")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
-	assert.Regexp(t, "diff", resp.Body)
-	assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
-	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+		// check .patch can be accessed and matches performed change
+		req = NewRequest(t, "GET", url+".patch")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+		assert.Regexp(t, "diff", resp.Body)
+		assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+	})
 }
 
 func TestPullCreate_TitleEscape(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
 
-	// check the redirected URL
-	url := resp.HeaderMap.Get("Location")
-	assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+		// check the redirected URL
+		url := resp.HeaderMap.Get("Location")
+		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
-	// Edit title
-	req := NewRequest(t, "GET", url)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	editTestTitleURL, exists := htmlDoc.doc.Find("#save-edit-title").First().Attr("data-update-url")
-	assert.True(t, exists, "The template has changed")
+		// Edit title
+		req := NewRequest(t, "GET", url)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		editTestTitleURL, exists := htmlDoc.doc.Find("#save-edit-title").First().Attr("data-update-url")
+		assert.True(t, exists, "The template has changed")
 
-	req = NewRequestWithValues(t, "POST", editTestTitleURL, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"title": "<u>XSS PR</u>",
+		req = NewRequestWithValues(t, "POST", editTestTitleURL, map[string]string{
+			"_csrf": htmlDoc.GetCSRF(),
+			"title": "<u>XSS PR</u>",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", url)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		titleHTML, err := htmlDoc.doc.Find(".comments .event .text b").First().Html()
+		assert.NoError(t, err)
+		assert.Equal(t, "&lt;i&gt;XSS PR&lt;/i&gt;", titleHTML)
+		titleHTML, err = htmlDoc.doc.Find(".comments .event .text b").Next().Html()
+		assert.NoError(t, err)
+		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 	})
-	session.MakeRequest(t, req, http.StatusOK)
-
-	req = NewRequest(t, "GET", url)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	titleHTML, err := htmlDoc.doc.Find(".comments .event .text b").First().Html()
-	assert.NoError(t, err)
-	assert.Equal(t, "&lt;i&gt;XSS PR&lt;/i&gt;", titleHTML)
-	titleHTML, err = htmlDoc.doc.Find(".comments .event .text b").Next().Html()
-	assert.NoError(t, err)
-	assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 }
