@@ -49,7 +49,7 @@ require (
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
 	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
 	github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
-	github.com/go-macaron/cors v0.0.0-20190309005821-1733aeedd68a
+	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 	github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
 	github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
@@ -137,6 +137,5 @@ require (
 
 replace (
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
-	github.com/go-macaron/cors v0.0.0-20190309005821-1733aeedd68a => github.com/tamalsaha/cors v0.0.0-20190309005821-1733aeedd68a
 	github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 )
