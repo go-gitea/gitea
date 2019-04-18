@@ -10,7 +10,7 @@ APP_CONFIG="/etc/${APP_NAME}/conf/app.ini"
 
 mkdir -p $(dirname ${APP_CONFIG})
 chown ${APP_USER}.${APP_GROUP} $(dirname ${APP_CONFIG})
-[ -f ${APP_CONFIG} ] || ${CLI} run cp conf/app.ini ${APP_CONFIG}
+[ -f ${APP_CONFIG} ] || ${CLI} run cp custom/conf/app.ini.sample ${APP_CONFIG}
 ${CLI} config:set USER=${APP_USER}
 sed -i "s|RUN_USER = git|RUN_USER = ${APP_USER}|" ${APP_CONFIG}
 sed -i "s|RUN_MODE = dev|RUN_MODE = prod|" ${APP_CONFIG}
