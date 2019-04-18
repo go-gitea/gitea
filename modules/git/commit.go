@@ -263,6 +263,11 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.getFilesChanged(pastCommit, c.ID.String())
 }
 
+// FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
+	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
+}
+
 // GetSubModules get all the sub modules of current revision git tree
 func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {

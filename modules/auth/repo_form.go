@@ -602,6 +602,7 @@ type DeleteRepoFileForm struct {
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
 }
 
 // Validate validates the fields

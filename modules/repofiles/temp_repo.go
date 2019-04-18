@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package uploader
+package repofiles
 
 import (
 	"bytes"
@@ -12,19 +12,22 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 )
 
-// TemporaryUploadRepository is a type to wrap our upload repositories
+// TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
 type TemporaryUploadRepository struct {
 	repo     *models.Repository
+	gitRepo  *git.Repository
 	basePath string
 }
 
@@ -33,7 +36,10 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
 	basePath := path.Join(models.LocalCopyPath(), "upload-"+timeStr+".git")
 	if err := os.MkdirAll(path.Dir(basePath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("Failed to create dir %s: %v", basePath, err)
+		return nil, fmt.Errorf("failed to create dir %s: %v", basePath, err)
+	}
+	if repo.RepoPath() == "" {
+		return nil, fmt.Errorf("no path to repository on system")
 	}
 	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
 	return t, nil
@@ -51,8 +57,26 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 	if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
 		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
 		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
-		return fmt.Errorf("Clone: %v %s", err, stderr)
+		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
+			return models.ErrBranchNotExist{
+				Name: branch,
+			}
+		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
+			return models.ErrRepoNotExist{
+				ID:        t.repo.ID,
+				UID:       t.repo.OwnerID,
+				OwnerName: t.repo.OwnerName,
+				Name:      t.repo.Name,
+			}
+		} else {
+			return fmt.Errorf("Clone: %v %s", err, stderr)
+		}
 	}
+	gitRepo, err := git.OpenRepository(t.basePath)
+	if err != nil {
+		return err
+	}
+	t.gitRepo = gitRepo
 	return nil
 }
 
@@ -186,6 +210,12 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 		t.basePath,
 		fmt.Sprintf("addObjectToIndex (git update-index): %s", t.basePath),
 		"git", "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath); err != nil {
+		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
+			return models.ErrFilePathInvalid{
+				Message: objectPath,
+				Path:    objectPath,
+			}
+		}
 		return fmt.Errorf("git update-index: %s", stderr)
 	}
 	return nil
@@ -201,22 +231,42 @@ func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 		return "", fmt.Errorf("git write-tree: %s", stderr)
 	}
 	return strings.TrimSpace(treeHash), nil
+}
 
+// GetLastCommit gets the last commit ID SHA of the repo
+func (t *TemporaryUploadRepository) GetLastCommit() (string, error) {
+	return t.GetLastCommitByRef("HEAD")
+}
+
+// GetLastCommitByRef gets the last commit ID SHA of the repo by ref
+func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, error) {
+	if ref == "" {
+		ref = "HEAD"
+	}
+	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
+		t.basePath,
+		fmt.Sprintf("GetLastCommit (git rev-parse %s): %s", ref, t.basePath),
+		"git", "rev-parse", ref)
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse %s: %s", ref, stderr)
+	}
+	return strings.TrimSpace(treeHash), nil
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(doer *models.User, treeHash string, message string) (string, error) {
+func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
 	commitTimeStr := time.Now().Format(time.UnixDate)
-	sig := doer.NewGitSig()
+	authorSig := author.NewGitSig()
+	committerSig := committer.NewGitSig()
 
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
@@ -356,4 +406,20 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	}
 
 	return name2attribute2info, err
+}
+
+// GetBranchCommit Gets the commit object of the given branch
+func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
+	if t.gitRepo == nil {
+		return nil, fmt.Errorf("repository has not been cloned")
+	}
+	return t.gitRepo.GetBranchCommit(branch)
+}
+
+// GetCommit Gets the commit object of the given commit ID
+func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
+	if t.gitRepo == nil {
+		return nil, fmt.Errorf("repository has not been cloned")
+	}
+	return t.gitRepo.GetCommit(commitID)
 }
