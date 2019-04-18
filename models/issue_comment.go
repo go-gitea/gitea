@@ -154,6 +154,34 @@ func (c *Comment) LoadIssue() (err error) {
 	return
 }
 
+func (c *Comment) loadPoster(e Engine) (err error) {
+	if c.Poster != nil {
+		return nil
+	}
+
+	c.Poster, err = getUserByID(e, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error("getUserByID[%d]: %v", c.ID, err)
+		}
+	}
+	return err
+}
+
+func (c *Comment) loadAttachments(e Engine) (err error) {
+	if len(c.Attachments) > 0 {
+		return
+	}
+	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
+	if err != nil {
+		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+	return err
+}
+
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
@@ -997,32 +1025,6 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 	return findComments(x, opts)
 }
 
-// GetCommentsByIssueID returns all comments of an issue.
-func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-	})
-}
-
-// GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
-func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-		Since:   since,
-	})
-}
-
-// GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
-func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		RepoID: repoID,
-		Type:   CommentTypeUnknown,
-		Since:  since,
-	})
-}
-
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
@@ -1037,6 +1039,9 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	}
 
 	if err := c.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := c.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -1087,6 +1092,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	if err := comment.LoadPoster(); err != nil {
 		return err
@@ -1096,6 +1102,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 	}
 
 	if err := comment.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := comment.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -1154,6 +1163,11 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
+
+	if err := CommentList(comments).loadPosters(e); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	var ids = make([]int64, 0, len(comments))

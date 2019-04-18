@@ -2,34 +2,37 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package repofiles
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTreeBySHA(t *testing.T) {
 	models.PrepareTestEnv(t)
-	sha := "master"
 	ctx := test.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
-	ctx.SetParams(":sha", sha)
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	sha := ctx.Repo.Repository.DefaultBranch
+	page := 1
+	perPage := 10
+	ctx.SetParams(":id", "1")
+	ctx.SetParams(":sha", sha)
 
-	tree := GetTreeBySHA(&context.APIContext{Context: ctx, Org: nil}, ctx.Params("sha"))
-	expectedTree := &gitea.GitTreeResponse{
+	tree, err := GetTreeBySHA(ctx.Repo.Repository, ctx.Params(":sha"), page, perPage, true)
+	assert.Nil(t, err)
+	expectedTree := &api.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Entries: []gitea.GitEntry{
+		Entries: []api.GitEntry{
 			{
 				Path: "README.md",
 				Mode: "100644",
@@ -43,6 +46,5 @@ func TestGetTreeBySHA(t *testing.T) {
 		Page:       1,
 		TotalCount: 1,
 	}
-
 	assert.EqualValues(t, tree, expectedTree)
 }
