@@ -53,11 +53,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
-			}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{
+			UserName: doer.LowerName,
 		}
 	}
 
@@ -74,10 +72,10 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}

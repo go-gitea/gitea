@@ -171,17 +171,6 @@ func (c *Comment) loadPoster(e Engine) (err error) {
 	return err
 }
 
-func (c *Comment) loadAttachments(e Engine) (err error) {
-	if len(c.Attachments) > 0 {
-		return
-	}
-	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
-	if err != nil {
-		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
-	}
-	return err
-}
-
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {

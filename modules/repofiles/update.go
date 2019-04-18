@@ -5,6 +5,7 @@
 package repofiles
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"fmt"
 	"path"
 	"strings"
@@ -65,10 +66,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !models.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
-		}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -96,6 +95,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
+	if err != nil {
+		log.Error("%v", err)
+	}
 	defer t.Close()
 	if err != nil {
 		return nil, err

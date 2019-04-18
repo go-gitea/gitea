@@ -94,13 +94,13 @@ func (comments CommentList) loadLabels(e Engine) error {
 			var label Label
 			err = rows.Scan(&label)
 			if err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 			commentLabels[label.ID] = &label
 		}
-		rows.Close()
-		left = left - limit
+		_ = rows.Close()
+		left -= limit
 		labelIDs = labelIDs[limit:]
 	}
 
@@ -143,7 +143,7 @@ func (comments CommentList) loadMilestones(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		milestoneIDs = milestoneIDs[limit:]
 	}
 
@@ -186,7 +186,7 @@ func (comments CommentList) loadOldMilestones(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		milestoneIDs = milestoneIDs[limit:]
 	}
 
