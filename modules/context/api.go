@@ -114,7 +114,7 @@ func (ctx *APIContext) RequireCSRF() {
 	}
 }
 
-// RequireCSRF requires a validated a CSRF token
+// CheckForOTP validateds OTP
 func (ctx *APIContext) CheckForOTP() {
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
