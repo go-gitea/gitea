@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_CORSNotSet(t *testing.T) {
+func TestCORSNotSet(t *testing.T) {
 	prepareTestEnv(t)
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	session := loginUser(t, "user2")
