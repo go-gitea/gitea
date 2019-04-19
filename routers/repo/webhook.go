@@ -382,7 +382,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 
 // MSTeamsHooksNewPost response for creating MS Teams hook
 func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
-  ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
@@ -407,7 +407,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 		return
 	}
 
-  w := &models.Webhook{
+	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
 		ContentType:  models.ContentTypeJSON,
@@ -415,7 +415,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 		IsActive:     form.Active,
 		HookTaskType: models.MSTEAMS,
 		Meta:         "",
-    OrgID:        orCtx.OrgID,
+		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -788,7 +788,7 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 
   // MSTeamsHooksEditPost response for editing MS Teams hook
 func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
-  ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
 
@@ -804,7 +804,7 @@ func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	}
 
 	w.URL = form.PayloadURL
-  w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
