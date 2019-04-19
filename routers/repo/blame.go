@@ -199,13 +199,13 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 	var codeLines bytes.Buffer
 
 	var i = 0
-	for _, part := range blameParts {
+	for pi, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
 			lines = append(lines, line)
 
 			var attr = ""
-			if index == len(part.Lines)-1 {
+			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				attr = " bottom-line"
 			}
 			commit := commitNames[part.Sha]
@@ -228,7 +228,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 			}
 
 			//Line number
-			if index == len(part.Lines)-1 {
+			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
 			} else {
 				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
@@ -239,7 +239,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 			if i != len(lines) {
 				line += "\n"
 			}
-			if index == len(part.Lines)-1 {
+			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, i, i, line))
