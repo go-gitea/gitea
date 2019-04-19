@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mcuadros/go-version"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -20,7 +22,11 @@ func IsTagExist(repoPath, name string) bool {
 
 // IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
-	return IsTagExist(repo.Path, name)
+	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(TagPrefix+name), true)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // CreateTag create one tag in the repository
@@ -122,28 +128,25 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 
 // GetTags returns all tags of the repository.
 func (repo *Repository) GetTags() ([]string, error) {
-	cmd := NewCommand("tag", "-l")
-	if version.Compare(gitVersion, "2.0.0", ">=") {
-		cmd.AddArguments("--sort=-v:refname")
-	}
+	var tagNames []string
 
-	stdout, err := cmd.RunInDir(repo.Path)
+	tags, err := repo.gogitRepo.Tags()
 	if err != nil {
 		return nil, err
 	}
 
-	tags := strings.Split(stdout, "\n")
-	tags = tags[:len(tags)-1]
+	tags.ForEach(func(tag *plumbing.Reference) error {
+		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
+		return nil
+	})
 
-	if version.Compare(gitVersion, "2.0.0", "<") {
-		version.Sort(tags)
+	version.Sort(tagNames)
 
-		// Reverse order
-		for i := 0; i < len(tags)/2; i++ {
-			j := len(tags) - i - 1
-			tags[i], tags[j] = tags[j], tags[i]
-		}
+	// Reverse order
+	for i := 0; i < len(tagNames)/2; i++ {
+		j := len(tagNames) - i - 1
+		tagNames[i], tagNames[j] = tagNames[j], tagNames[i]
 	}
 
-	return tags, nil
+	return tagNames, nil
 }

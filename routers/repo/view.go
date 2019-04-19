@@ -49,7 +49,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
+	var latestCommit *git.Commit
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -178,14 +179,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	// Show latest commit info of repository in table header,
 	// or of directory if not in root directory.
-	latestCommit := ctx.Repo.Commit
-	if len(ctx.Repo.TreePath) > 0 {
-		latestCommit, err = ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
-		if err != nil {
-			ctx.ServerError("GetCommitByPath", err)
-			return
-		}
-	}
 	ctx.Data["LatestCommit"] = latestCommit
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)

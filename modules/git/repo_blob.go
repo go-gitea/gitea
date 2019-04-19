@@ -4,19 +4,19 @@
 
 package git
 
+import (
+	"gopkg.in/src-d/go-git.v4/plumbing"
+)
+
 func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
-	if _, err := NewCommand("cat-file", "-p", id.String()).RunInDir(repo.Path); err != nil {
+	encodedObj, err := repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, plumbing.Hash(id))
+	if err != nil {
 		return nil, ErrNotExist{id.String(), ""}
 	}
 
 	return &Blob{
-		repo: repo,
-		TreeEntry: &TreeEntry{
-			ID: id,
-			ptree: &Tree{
-				repo: repo,
-			},
-		},
+		ID:              id,
+		gogitEncodedObj: encodedObj,
 	}, nil
 }
 

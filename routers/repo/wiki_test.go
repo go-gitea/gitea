@@ -40,8 +40,9 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().Data()
+	reader, err := entry.Blob().DataAsync()
 	assert.NoError(t, err)
+	defer reader.Close()
 	bytes, err := ioutil.ReadAll(reader)
 	assert.NoError(t, err)
 	return string(bytes)
