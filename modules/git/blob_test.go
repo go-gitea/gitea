@@ -1,31 +1,17 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package git
 
 import (
-	"bytes"
 	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var repoSelf = &Repository{
-	Path: "./",
-}
-
-var testBlob = &Blob{
-	repo: repoSelf,
-	TreeEntry: &TreeEntry{
-		ID: MustIDFromString("a8d4b49dd073a4a38a7e58385eeff7cc52568697"),
-		ptree: &Tree{
-			repo: repoSelf,
-		},
-	},
-}
 
 func TestBlob_Data(t *testing.T) {
 	output := `Copyright (c) 2016 The Gitea Authors
@@ -49,10 +35,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 `
+	repo, err := OpenRepository("../../.git")
+	assert.NoError(t, err)
+	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+	assert.NoError(t, err)
 
-	r, err := testBlob.Data()
+	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
 	require.NotNil(t, r)
+	defer r.Close()
 
 	data, err := ioutil.ReadAll(r)
 	assert.NoError(t, err)
@@ -60,21 +51,21 @@ THE SOFTWARE.
 }
 
 func Benchmark_Blob_Data(b *testing.B) {
+	repo, err := OpenRepository("../../.git")
+	if err != nil {
+		b.Fatal(err)
+	}
+	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	for i := 0; i < b.N; i++ {
-		r, err := testBlob.Data()
+		r, err := testBlob.DataAsync()
 		if err != nil {
 			b.Fatal(err)
 		}
+		defer r.Close()
 		ioutil.ReadAll(r)
-	}
-}
-
-func Benchmark_Blob_DataPipeline(b *testing.B) {
-	stdout := new(bytes.Buffer)
-	for i := 0; i < b.N; i++ {
-		stdout.Reset()
-		if err := testBlob.DataPipeline(stdout, nil); err != nil {
-			b.Fatal(err)
-		}
 	}
 }

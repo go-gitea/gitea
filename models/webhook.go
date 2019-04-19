@@ -145,6 +145,15 @@ func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	return s
 }
 
+// GetTelegramHook returns telegram metadata
+func (w *Webhook) GetTelegramHook() *TelegramMeta {
+	s := &TelegramMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
 // History returns history of webhook by given conditions.
 func (w *Webhook) History(page int) ([]*HookTask, error) {
 	return HookTasks(w.ID, page)
@@ -456,6 +465,8 @@ const (
 	GITEA
 	DISCORD
 	DINGTALK
+	TELEGRAM
+	MSTEAMS
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -464,6 +475,8 @@ var hookTaskTypes = map[string]HookTaskType{
 	"slack":    SLACK,
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
+	"telegram": TELEGRAM,
+	"msteams":  MSTEAMS,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -484,6 +497,10 @@ func (t HookTaskType) Name() string {
 		return "discord"
 	case DINGTALK:
 		return "dingtalk"
+	case TELEGRAM:
+		return "telegram"
+	case MSTEAMS:
+		return "msteams"
 	}
 	return ""
 }
@@ -656,6 +673,16 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
+		}
+	case TELEGRAM:
+		payloader, err = GetTelegramPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetTelegramPayload: %v", err)
+		}
+	case MSTEAMS:
+		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)

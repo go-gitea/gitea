@@ -874,21 +874,6 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 //  |______  / |__|  (____  /___|  /\___  >___|  /
 //         \/             \/     \/     \/     \/
 
-// ErrBranchNotExist represents a "BranchNotExist" kind of error.
-type ErrBranchNotExist struct {
-	Name string
-}
-
-// IsErrBranchNotExist checks if an error is a ErrBranchNotExist.
-func IsErrBranchNotExist(err error) bool {
-	_, ok := err.(ErrBranchNotExist)
-	return ok
-}
-
-func (err ErrBranchNotExist) Error() string {
-	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
-}
-
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
