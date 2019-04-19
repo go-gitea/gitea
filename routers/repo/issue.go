@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -363,7 +362,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 }
 
 func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	var r io.Reader
 	var bytes []byte
 
 	if ctx.Repo.Commit == nil {
@@ -381,10 +379,11 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
 		return "", false
 	}
-	r, err = entry.Blob().Data()
+	r, err := entry.Blob().DataAsync()
 	if err != nil {
 		return "", false
 	}
+	defer r.Close()
 	bytes, err = ioutil.ReadAll(r)
 	if err != nil {
 		return "", false
