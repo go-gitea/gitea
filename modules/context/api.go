@@ -116,9 +116,6 @@ func (ctx *APIContext) RequireCSRF() {
 
 // CheckForOTP validateds OTP
 func (ctx *APIContext) CheckForOTP() {
-	if ctx.Data["IsApiToken"] == true {
-		return
-	}
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
