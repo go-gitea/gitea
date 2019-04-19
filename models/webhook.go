@@ -678,6 +678,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetTelegramPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetTelegramPayload: %v", err)
+		}
 	case MSTEAMS:
 		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
 		if err != nil {
