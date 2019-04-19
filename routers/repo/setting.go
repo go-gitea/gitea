@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -389,6 +390,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if setting.Service.EnableNotifyMail {
 			models.SendRepoTransferNotifyMail(ctx.Context, u, ctx.Repo.Repository)
 		}
+
+		notification.NotifyTransferRepo(ctx.Repo.Owner, u, ctx.Repo.Repository)
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner))

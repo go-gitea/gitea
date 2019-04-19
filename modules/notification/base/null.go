@@ -21,6 +21,8 @@ var (
 func (*NullNotifier) Run() {
 }
 
+func (*NullNotifier) NotifyTransferRepository(doer, recipient *models.User, repo *models.Repository) {}
+
 // NotifyCreateIssueComment places a place holder function
 func (*NullNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {

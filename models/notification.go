@@ -33,6 +33,9 @@ const (
 	NotificationSourcePullRequest
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
+	// NotificationSourceRepoTransfer is a notification for a repository
+	// transfer
+	NotificationSourceRepoTransfer
 )
 
 // Notification represents a notification
@@ -54,6 +57,29 @@ type Notification struct {
 
 	CreatedUnix util.TimeStamp `xorm:"created INDEX NOT NULL"`
 	UpdatedUnix util.TimeStamp `xorm:"updated INDEX NOT NULL"`
+}
+
+// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+func CreateRepoTransferNotification(doerID, recipientID int64, repo *Repository) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	notification := &Notification{
+		UserID:    recipientID,
+		RepoID:    repo.ID,
+		Status:    NotificationStatusUnread,
+		UpdatedBy: doerID,
+		Source:    NotificationSourceRepoTransfer,
+	}
+
+	if _, err := sess.Insert(notification); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification

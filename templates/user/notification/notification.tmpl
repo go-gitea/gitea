@@ -61,9 +61,16 @@
 									{{end}}
 								</td>
 								<td class="eleven wide">
+									{{ if eq $notification.Source 4}}
+									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
+										{{ $.i18n.Tr "mail.repo_transfer_notify"}}
+									</a>
+
+									{{ else }}
 									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
 										#{{$issue.Index}} - {{$issue.Title}}
 									</a>
+									{{ end }}
 								</td>
 								<td>
 									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">

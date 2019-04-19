@@ -15,22 +15,29 @@ type (
 	notificationService struct {
 		base.NullNotifier
 		issueQueue chan issueNotificationOpts
+		repoQueue  chan repoNotificationOpts
 	}
 
 	issueNotificationOpts struct {
 		issue                *models.Issue
 		notificationAuthorID int64
 	}
+
+	repoNotificationOpts struct {
+		repo                *models.Repository
+		recipientID, doerID int64
+	}
 )
 
 var (
-	_ base.Notifier = &notificationService{}
+	_ base.Notifier = (*notificationService)(nil)
 )
 
 // NewNotifier create a new notificationService notifier
 func NewNotifier() base.Notifier {
 	return &notificationService{
 		issueQueue: make(chan issueNotificationOpts, 100),
+		repoQueue:  make(chan repoNotificationOpts, 100),
 	}
 }
 
@@ -40,6 +47,11 @@ func (ns *notificationService) Run() {
 		case opts := <-ns.issueQueue:
 			if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
 				log.Error("Was unable to create issue notification: %v", err)
+			}
+
+		case opts := <-ns.repoQueue:
+			if err := models.CreateRepoTransferNotification(opts.doerID, opts.recipientID, opts.repo); err != nil {
+				log.Error("Was unable to create notification for a repo transfer: %v", err)
 			}
 		}
 	}
@@ -85,5 +97,13 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 	ns.issueQueue <- issueNotificationOpts{
 		pr.Issue,
 		r.Reviewer.ID,
+	}
+}
+
+func (ns *notificationService) NotifyTransferRepository(doer, user *models.User, repo *models.Repository) {
+	ns.repoQueue <- repoNotificationOpts{
+		repo:        repo,
+		recipientID: user.ID,
+		doerID:      doer.ID,
 	}
 }
