@@ -778,7 +778,7 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-  // MSTeamsHooksEditPost response for editing MS Teams hook
+// MSTeamsHooksEditPost response for editing MS Teams hook
 func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -809,7 +809,7 @@ func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
-  
+
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
