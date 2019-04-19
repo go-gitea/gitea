@@ -20,9 +20,11 @@ func BasicAuthEncode(user, pass string) string {
 // AccessToken represents a API access token.
 // swagger:response AccessToken
 type AccessToken struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Sha1 string `json:"sha1"`
+	ID             int64  `json:"id"`
+	Name           string `json:"name"`
+	Sha1	       string `json:"sha1"`
+	HashedToken    string `json:"hashed_token"`
+	TokenLastEight string `json:"token_last_eight"`
 }
 
 // AccessTokenList represents a list of API access token.
