@@ -466,7 +466,7 @@ const (
 	DISCORD
 	DINGTALK
 	TELEGRAM
-  MSTEAMS
+	MSTEAMS
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -476,7 +476,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
 	"telegram": TELEGRAM,
-  "msteams":  MSTEAMS,
+	"msteams":  MSTEAMS,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -499,7 +499,7 @@ func (t HookTaskType) Name() string {
 		return "dingtalk"
 	case TELEGRAM:
 		return "telegram"
-  case MSTEAMS:
+	case MSTEAMS:
 		return "msteams"
 	}
 	return ""
@@ -674,7 +674,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
-  case TELEGRAM:
+	case TELEGRAM:
 		payloader, err = GetTelegramPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetTelegramPayload: %v", err)
