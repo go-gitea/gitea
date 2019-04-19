@@ -165,7 +165,7 @@ func newAuthService() *authService {
 }
 
 // parseLoginSource assigns values on loginSource according to command line flags.
-func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) error {
+func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) {
 	if c.IsSet("name") {
 		loginSource.Name = c.String("name")
 	}
@@ -175,7 +175,6 @@ func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) error {
 	if c.IsSet("synchronize-users") {
 		loginSource.IsSyncEnabled = c.Bool("synchronize-users")
 	}
-	return nil
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
@@ -299,10 +298,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		},
 	}
 
-	if err := parseLoginSource(c, loginSource); err != nil {
-		return err
-	}
-
+	parseLoginSource(c, loginSource)
 	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
 		return err
 	}
@@ -321,10 +317,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	if err := parseLoginSource(c, loginSource); err != nil {
-		return err
-	}
-
+	parseLoginSource(c, loginSource)
 	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
 		return err
 	}
@@ -352,10 +345,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		},
 	}
 
-	if err := parseLoginSource(c, loginSource); err != nil {
-		return err
-	}
-
+	parseLoginSource(c, loginSource)
 	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
 		return err
 	}
@@ -374,10 +364,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err := parseLoginSource(c, loginSource); err != nil {
-		return err
-	}
-
+	parseLoginSource(c, loginSource)
 	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
 		return err
 	}
