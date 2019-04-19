@@ -7,11 +7,14 @@ targets:
       - git
   debian-9:
     <<: *debian
-  ubuntu-12.04:
-    <<: *debian
   ubuntu-14.04:
     <<: *debian
   ubuntu-16.04:
+    <<: *debian
+    build_dependencies:
+      - bzr
+      - mercurial
+  ubuntu-18.04:
     <<: *debian
     build_dependencies:
       - bzr
