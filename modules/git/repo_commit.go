@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,22 +8,23 @@ package git
 import (
 	"bytes"
 	"container/list"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/mcuadros/go-version"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--verify", name).RunInDir(repo.Path)
+	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
 	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
 		return "", err
 	}
-	return strings.Split(stdout, " ")[0], nil
+
+	return ref.Hash().String(), nil
 }
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -42,114 +44,69 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 	return strings.TrimSpace(stdout), nil
 }
 
-// parseCommitData parses commit information from the (uncompressed) raw
-// data from the commit object.
-// \n\n separate headers from message
-func parseCommitData(data []byte) (*Commit, error) {
-	commit := new(Commit)
-	commit.parents = make([]SHA1, 0, 1)
-	// we now have the contents of the commit object. Let's investigate...
-	nextline := 0
-l:
-	for {
-		eol := bytes.IndexByte(data[nextline:], '\n')
-		switch {
-		case eol > 0:
-			line := data[nextline : nextline+eol]
-			spacepos := bytes.IndexByte(line, ' ')
-			reftype := line[:spacepos]
-			switch string(reftype) {
-			case "tree", "object":
-				id, err := NewIDFromString(string(line[spacepos+1:]))
-				if err != nil {
-					return nil, err
-				}
-				commit.Tree.ID = id
-			case "parent":
-				// A commit can have one or more parents
-				oid, err := NewIDFromString(string(line[spacepos+1:]))
-				if err != nil {
-					return nil, err
-				}
-				commit.parents = append(commit.parents, oid)
-			case "author", "tagger":
-				sig, err := newSignatureFromCommitline(line[spacepos+1:])
-				if err != nil {
-					return nil, err
-				}
-				commit.Author = sig
-			case "committer":
-				sig, err := newSignatureFromCommitline(line[spacepos+1:])
-				if err != nil {
-					return nil, err
-				}
-				commit.Committer = sig
-			case "gpgsig":
-				sig, err := newGPGSignatureFromCommitline(data, nextline+spacepos+1, false)
-				if err != nil {
-					return nil, err
-				}
-				commit.Signature = sig
-			}
-			nextline += eol + 1
-		case eol == 0:
-			cm := string(data[nextline+1:])
-
-			// Tag GPG signatures are stored below the commit message
-			sigindex := strings.Index(cm, "-----BEGIN PGP SIGNATURE-----")
-			if sigindex != -1 {
-				sig, err := newGPGSignatureFromCommitline(data, (nextline+1)+sigindex, true)
-				if err == nil && sig != nil {
-					// remove signature from commit message
-					if sigindex == 0 {
-						cm = ""
-					} else {
-						cm = cm[:sigindex-1]
-					}
-					commit.Signature = sig
-				}
-			}
-
-			commit.CommitMessage = cm
-			break l
-		default:
-			break l
-		}
+func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
+	if t.PGPSignature == "" {
+		return nil
 	}
-	return commit, nil
+
+	var w strings.Builder
+	var err error
+
+	if _, err = fmt.Fprintf(&w,
+		"object %s\ntype %s\ntag %s\ntagger ",
+		t.Target.String(), t.TargetType.Bytes(), t.Name); err != nil {
+		return nil
+	}
+
+	if err = t.Tagger.Encode(&w); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprintf(&w, "\n\n"); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprintf(&w, t.Message); err != nil {
+		return nil
+	}
+
+	return &CommitGPGSignature{
+		Signature: t.PGPSignature,
+		Payload:   strings.TrimSpace(w.String()) + "\n",
+	}
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	c, ok := repo.commitCache.Get(id.String())
-	if ok {
-		log("Hit cache: %s", id)
-		return c.(*Commit), nil
-	}
+	var tagObject *object.Tag
 
-	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
-			return nil, ErrNotExist{id.String(), ""}
+	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	if err == plumbing.ErrObjectNotFound {
+		tagObject, err = repo.gogitRepo.TagObject(plumbing.Hash(id))
+		if err == nil {
+			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
-		return nil, err
 	}
-
-	commit, err := parseCommitData(data)
 	if err != nil {
 		return nil, err
 	}
+
+	commit := convertCommit(gogitCommit)
 	commit.repo = repo
-	commit.ID = id
 
-	data, err = NewCommand("name-rev", id.String()).RunInDirBytes(repo.Path)
+	if tagObject != nil {
+		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
+		commit.Author = &tagObject.Tagger
+		commit.Signature = convertPGPSignatureForTag(tagObject)
+	}
+
+	tree, err := gogitCommit.Tree()
 	if err != nil {
 		return nil, err
 	}
 
-	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
-	commit.Branch = strings.Split(strings.Split(string(data), " ")[1], "~")[0]
+	commit.Tree.ID = tree.Hash
+	commit.Tree.gogitTree = tree
 
-	repo.commitCache.Set(id.String(), commit)
 	return commit, nil
 }
 

@@ -1,12 +1,13 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package repo
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
 	api "code.gitea.io/sdk/gitea"
@@ -47,7 +48,7 @@ func GetBranch(ctx *context.APIContext) {
 	}
 	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
 	if err != nil {
-		if models.IsErrBranchNotExist(err) {
+		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetBranch", err)
