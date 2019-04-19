@@ -427,6 +427,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
+}
 
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
