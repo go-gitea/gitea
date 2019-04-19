@@ -178,7 +178,7 @@ func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Rep
 	}
 }
 
-// NotifyTransferRepository notifies a repository transfer to recipients
+// NotifyTransferRepo notifies a repository transfer to recipients
 func NotifyTransferRepo(doer, u *models.User, repo *models.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyTransferRepository(doer, u, repo)
