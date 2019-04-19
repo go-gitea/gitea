@@ -32,7 +32,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 	if !exists {
 		return
 	}
-	paramData := ctx.Data[ctxKey].(string)
+	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey])
 	p.linkParams = template.URL(fmt.Sprintf("%v%s=%v&", p.linkParams, url.QueryEscape(paramKey), url.QueryEscape(paramData)))
 }
 
