@@ -64,7 +64,7 @@ summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
 	// license that can be found in the LICENSE file.
-	
+
 e2aa991e10ffd924a828ec149951f2f20eecead2 6 6 2
 author Lunny Xiao
 author-mail <xiaolunwen@gmail.com>
@@ -82,28 +82,22 @@ e2aa991e10ffd924a828ec149951f2f20eecead2 7 7
 	package main // import "code.gitea.io/gitea"
 `
 
-func TestREadingBlameOutput(t *testing.T) {
-
+func TestReadingBlameOutput(t *testing.T) {
 	tempFile, err := ioutil.TempFile("", ".txt")
-
 	if err != nil {
 		panic(err)
 	}
 
 	defer tempFile.Close()
 
-	_, err = tempFile.WriteString(exampleBlame)
-
-	if err != nil {
+	if _, err = tempFile.WriteString(exampleBlame); err != nil {
 		panic(err)
 	}
 
 	blameReader, err := createBlameReader("", "cat", tempFile.Name())
-
 	if err != nil {
 		panic(err)
 	}
-
 	defer blameReader.Close()
 
 	parts := []*BlamePart{
@@ -138,15 +132,10 @@ func TestREadingBlameOutput(t *testing.T) {
 	}
 
 	for _, part := range parts {
-
-		actualPart, error := blameReader.NextPart()
-
-		if error != nil {
-			panic(error)
+		actualPart, err := blameReader.NextPart()
+		if err != nil {
+			panic(err)
 		}
-
 		assert.Equal(t, part, actualPart)
-
 	}
-
 }

@@ -35,7 +35,6 @@ var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 
 // NextPart returns next part of blame (sequencial code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
-
 	var blamePart *BlamePart
 
 	scanner := r.scanner
@@ -47,11 +46,13 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		lines := shaLineRegex.FindStringSubmatch(line)
-
+		// Skip empty lines
 		if len(line) == 0 {
-		} else if lines != nil {
+			continue
+		}
 
+		lines := shaLineRegex.FindStringSubmatch(line)
+		if lines != nil {
 			sha1 := lines[1]
 
 			if blamePart == nil {
@@ -62,15 +63,11 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				r.lastSha = &sha1
 				return blamePart, nil
 			}
-
 		} else if line[0] == '\t' {
-
 			code := line[1:]
 
 			blamePart.Lines = append(blamePart.Lines, code)
-
 		}
-
 	}
 
 	r.lastSha = nil
@@ -87,23 +84,19 @@ func (r *BlameReader) Close() error {
 	}
 
 	return nil
-
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
-
 	_, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
 	return createBlameReader(repoPath, "git", "blame", commitID, "--porcelain", "--", file)
-
 }
 
 func createBlameReader(dir string, command ...string) (*BlameReader, error) {
-
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
@@ -128,5 +121,4 @@ func createBlameReader(dir string, command ...string) (*BlameReader, error) {
 		scanner,
 		nil,
 	}, nil
-
 }

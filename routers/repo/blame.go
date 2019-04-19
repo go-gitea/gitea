@@ -31,7 +31,6 @@ const (
 
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
-
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		ctx.NotFound("Blame FileName", nil)
@@ -133,12 +132,10 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileName"] = blob.Name()
 
 	blameReader, err := models.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
-
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
-
 	defer blameReader.Close()
 
 	blameParts := make([]models.BlamePart, 0)
@@ -193,7 +190,6 @@ func RefBlame(ctx *context.Context) {
 }
 
 func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]models.UserCommit) {
-
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0, 0)
@@ -254,5 +250,4 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 	ctx.Data["BlameContent"] = gotemplate.HTML(codeLines.String())
 	ctx.Data["BlameCommitInfo"] = gotemplate.HTML(commitInfo.String())
 	ctx.Data["BlameLineNums"] = gotemplate.HTML(lineNumbers.String())
-
 }
