@@ -13,26 +13,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/go-macaron/session"
 	"github.com/stretchr/testify/assert"
 )
-
-func makeRequest(t testing.TB, localMac *macaron.Macaron, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
-	recorder := httptest.NewRecorder()
-	localMac.ServeHTTP(recorder, req)
-	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
-			logUnexpectedResponse(t, recorder)
-		}
-	}
-	return recorder
-}
 
 func getSessionID(t *testing.T, resp *httptest.ResponseRecorder) string {
 	cookies := resp.Result().Cookies()
@@ -71,6 +57,8 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
+		mac = routes.NewMacaron()
+		routes.RegisterRoutes(mac)
 	}()
 
 	var config session.Options
@@ -94,14 +82,14 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	localMac := routes.NewMacaron()
-	routes.RegisterRoutes(localMac)
+	mac = routes.NewMacaron()
+	routes.RegisterRoutes(mac)
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		PrintCurrentTest(t)
 
 		req := NewRequest(t, "GET", "/user2/repo1/issues/1")
-		resp := makeRequest(t, localMac, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		sessionID := getSessionID(t, resp)
 
 		// We're not logged in so there should be no session
@@ -111,7 +99,7 @@ func TestSessionFileCreation(t *testing.T) {
 		PrintCurrentTest(t)
 
 		req := NewRequest(t, "GET", "/user/login")
-		resp := makeRequest(t, localMac, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		sessionID := getSessionID(t, resp)
 
 		// We're not logged in so there should be no session
@@ -123,7 +111,7 @@ func TestSessionFileCreation(t *testing.T) {
 			"user_name": "user2",
 			"password":  userPassword,
 		})
-		resp = makeRequest(t, localMac, req, http.StatusFound)
+		resp = MakeRequest(t, req, http.StatusFound)
 		sessionID = getSessionID(t, resp)
 
 		assert.FileExists(t, sessionFile(tmpDir, sessionID))
