@@ -13,6 +13,7 @@ import (
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
 func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCommitCache) ([][]interface{}, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
+	// Get the commit for the treePath itself
 	entryPaths[0] = ""
 	for i, entry := range tes {
 		entryPaths[i+1] = entry.Name()
@@ -51,6 +52,9 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		}
 	}
 
+	// Retrieve the commit for the treePath itself (see above). We basically
+	// get it for free during the tree traversal and it's used for listing
+	// pages to display information about newest commit for a given path.
 	var treeCommit *Commit
 	if rev, ok := revs[""]; ok {
 		treeCommit = convertCommit(rev)
