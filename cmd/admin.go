@@ -151,6 +151,10 @@ var (
 		Subcommands: []cli.Command{
 			microcmdAuthAddOauth,
 			microcmdAuthUpdateOauth,
+			cmdAuthAddLdapBindDn,
+			cmdAuthUpdateLdapBindDn,
+			cmdAuthAddLdapSimpleAuth,
+			cmdAuthUpdateLdapSimpleAuth,
 			microcmdAuthList,
 			microcmdAuthDelete,
 		},
@@ -171,7 +175,7 @@ var (
 
 	idFlag = cli.Int64Flag{
 		Name:  "id",
-		Usage: "ID of OAuth authentication source",
+		Usage: "ID of authentication source",
 	}
 
 	microcmdAuthDelete = cli.Command{
