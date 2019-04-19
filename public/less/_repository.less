@@ -384,17 +384,26 @@
                     -webkit-user-select: none;
                     user-select: none;
 
-                    span {
-                        //FIXME
-                        width: 200px;
-
-                        line-height: 20px;
-                        padding: 0 10px;
-                        white-space: nowrap;
-                        text-overflow: ellipsis;
-                        overflow: hidden;
-                        cursor: pointer;
+                    .blame-info {
+                        width: 350px;
+                        max-width: 350px;
                         display: block;
+
+                        .blame-data {
+                            display: flex;
+
+                            .blame-message {
+                                flex-grow: 2;
+                                padding: 0 10px;
+                                overflow: hidden;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                                line-height: 20px;
+                            }
+                            .blame-time, .blame-avatar {
+                                flex-shrink: 0;
+                            }
+                        }
                     }
 
                     .ui.avatar.image {

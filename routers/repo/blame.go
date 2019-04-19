@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -209,12 +210,13 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 
 			var attr = ""
 			if index == len(part.Lines)-1 {
-				attr = " class=\"bottom-line\""
+				attr = " bottom-line"
 			}
 			commit := commitNames[part.Sha]
 			if index == 0 {
 				// User avatar image
 				avatar := ""
+				commitSince := base.TimeSinceUnix(util.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
 				if commit.User != nil {
 					authorName := commit.Author.Name
 					if len(commit.User.FullName) > 0 {
@@ -224,9 +226,9 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 				} else {
 					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(base.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
 				}
-				commitInfo.WriteString(fmt.Sprintf(`<span%s>%s<a href="%s/commit/%s" title="%[5]s">%[5]s</a></span>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage)))
+				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
 			} else {
-				commitInfo.WriteString(fmt.Sprintf(`<span%s>&#8203;</span>`, attr))
+				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
 			}
 
 			//Line number
