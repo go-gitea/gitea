@@ -269,6 +269,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
+- `AVOID_CREATING_EMPTY_SESSIONS`: **true**: Avoids creating empty sessions.
 
 ## Picture (`picture`)
 

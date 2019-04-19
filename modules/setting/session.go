@@ -5,11 +5,15 @@
 package setting
 
 import (
+	"encoding/json"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	// This ensures that OnlyCookieIfNotLoggedInProvider is available
+	_ "code.gitea.io/gitea/modules/session"
+
 	"github.com/go-macaron/session"
 )
 
@@ -30,6 +34,16 @@ func newSessionService() {
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
+	emptySessionsAreVirtual := Cfg.Section("session").Key("AVOID_CREATING_EMPTY_SESSIONS").MustBool(true)
+
+	if emptySessionsAreVirtual {
+		shadowConfig, err := json.Marshal(SessionConfig)
+		if err != nil {
+			log.Fatal("Can't shadow session config: %v", err)
+		}
+		SessionConfig.ProviderConfig = string(shadowConfig)
+		SessionConfig.Provider = "VirtualSession"
+	}
 
 	log.Info("Session Service Enabled")
 }
