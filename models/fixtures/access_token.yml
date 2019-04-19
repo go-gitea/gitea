@@ -2,7 +2,9 @@
   id: 1
   uid: 1
   name: Token A
-  sha1: hash1
+  token: hashhash11111111
+  hashed_token: 63d5eede00e1e8e7f8a60af96ffbce5fd039084ad2dcdee4696d436e4c5382c0
+  token_last_eight: 11111111
   created_unix: 946687980
   updated_unix: 946687980
 
@@ -10,7 +12,9 @@
   id: 2
   uid: 1
   name: Token B
-  sha1: hash2
+  token: hashhash22222222
+  hashed_token: 31eb2a689c5a8ee708c7880da1123fb462915a0e0344c54f46904a6fe597d758
+  token_last_eight: 22222222
   created_unix: 946687980
   updated_unix: 946687980
 
@@ -18,6 +22,8 @@
   id: 3
   uid: 2
   name: Token A
-  sha1: hash3
+  token: hashhash33333333
+  hashed_token: c9786f567ce95c8ab8ad2a24187338b35edb61fba01a02eacb8f70e157d1e385
+  token_last_eight: 33333333
   created_unix: 946687980
   updated_unix: 946687980

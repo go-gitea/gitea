@@ -39,7 +39,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 		apiTokens[i] = &api.AccessToken{
 			ID:   tokens[i].ID,
 			Name: tokens[i].Name,
-			Sha1: tokens[i].Sha1,
+			HashedToken: tokens[i].HashedToken,
+			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
 	ctx.JSON(200, &apiTokens)
@@ -82,7 +83,7 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	}
 	ctx.JSON(201, &api.AccessToken{
 		Name: t.Name,
-		Sha1: t.Sha1,
+		Token: t.Token,
 		ID:   t.ID,
 	})
 }

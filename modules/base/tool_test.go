@@ -53,6 +53,13 @@ func TestEncodeSha1(t *testing.T) {
 	)
 }
 
+func TestEncodeSha256(t *testing.T) {
+	assert.Equal(t,
+		"c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2",
+		EncodeSha256("foobar"),
+	)
+}
+
 func TestShortSha(t *testing.T) {
 	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
 }

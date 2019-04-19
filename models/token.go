@@ -15,10 +15,13 @@ import (
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
-	ID   int64 `xorm:"pk autoincr"`
-	UID  int64 `xorm:"INDEX"`
-	Name string
-	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
+	ID             int64 `xorm:"pk autoincr"`
+	UID            int64 `xorm:"INDEX"`
+	Name           string
+	Sha1           string `xorm:"-"`
+	Token          string `xorm:"-"`
+	HashedToken    string `xorm:"UNIQUE"` // sha256 of token
+	TokenLastEight string `xorm:"token_last_eight"`
 
 	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
@@ -34,22 +37,25 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	t.Sha1 = base.EncodeSha1(gouuid.NewV4().String())
+	t.Token = base.EncodeSha256(gouuid.NewV4().String())
+	t.HashedToken = base.EncodeSha256(t.Token)
+	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err := x.Insert(t)
 	return err
 }
 
 // GetAccessTokenBySHA returns access token by given sha1.
-func GetAccessTokenBySHA(sha string) (*AccessToken, error) {
-	if sha == "" {
+func GetAccessTokenBySHA(token string) (*AccessToken, error) {
+	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
-	t := &AccessToken{Sha1: sha}
+	hashedToken := base.EncodeSha256(token)
+	t := &AccessToken{HashedToken: hashedToken}
 	has, err := x.Get(t)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrAccessTokenNotExist{sha}
+		return nil, ErrAccessTokenNotExist{token}
 	}
 	return t, nil
 }
