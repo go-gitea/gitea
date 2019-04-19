@@ -331,8 +331,8 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 	ctx.Redirect(orCtx.Link)
 }
 
-// MSTeamsHooksNewPost response for creating MS Teams hook
-func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+// TelegramHooksNewPost response for creating telegram hook
+func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -349,14 +349,23 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 		return
 	}
 
+	meta, err := json.Marshal(&models.TelegramMeta{
+		BotToken: form.BotToken,
+		ChatID:   form.ChatID,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
+		URL:          fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
 		ContentType:  models.ContentTypeJSON,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.MSTEAMS,
-		Meta:         "",
+		HookTaskType: models.TELEGRAM,
+		Meta:         string(meta),
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -370,6 +379,54 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
 }
+
+// MSTeamsHooksNewPost response for creating MS Teams hook
+func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+  ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&models.TelegramMeta{
+		BotToken: form.BotToken,
+		ChatID:   form.ChatID,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+  w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  models.ContentTypeJSON,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.MSTEAMS,
+		Meta:         "",
+    OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
 
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
@@ -461,6 +518,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		ctx.Data["SlackHook"] = w.GetSlackHook()
 	case models.DISCORD:
 		ctx.Data["DiscordHook"] = w.GetDiscordHook()
+	case models.TELEGRAM:
+		ctx.Data["TelegramHook"] = w.GetTelegramHook()
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -687,9 +746,49 @@ func DingtalkHooksEditPost(ctx *context.Context, form auth.NewDingtalkHookForm) 
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-// MSTeamsHooksEditPost response for editing MS Teams hook
-func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+// TelegramHooksEditPost response for editing discord hook
+func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+	meta, err := json.Marshal(&models.TelegramMeta{
+		BotToken: form.BotToken,
+		ChatID:   form.ChatID,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+	w.Meta = string(meta)
+	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID)
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+  // MSTeamsHooksEditPost response for editing MS Teams hook
+func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+  ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
 
@@ -705,7 +804,7 @@ func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	}
 
 	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
+  w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -718,7 +817,7 @@ func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
-
+  
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
