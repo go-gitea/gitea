@@ -64,7 +64,7 @@ summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
 	// license that can be found in the LICENSE file.
-
+	
 e2aa991e10ffd924a828ec149951f2f20eecead2 6 6 2
 author Lunny Xiao
 author-mail <xiaolunwen@gmail.com>
