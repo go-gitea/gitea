@@ -398,15 +398,6 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.TelegramMeta{
-		BotToken: form.BotToken,
-		ChatID:   form.ChatID,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
