@@ -278,7 +278,7 @@ func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 // NewMSTeamsHookForm form for creating MS Teams hook
 type NewMSTeamsHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
-  WebhookForm
+	WebhookForm
 }
 
 // Validate validates the fields
