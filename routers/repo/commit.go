@@ -243,6 +243,7 @@ func Diff(ctx *context.Context) {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
 	}
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
+	ctx.Data["BranchName"], err = commit.GetBranchName()
 	ctx.HTML(200, tplDiff)
 }
 

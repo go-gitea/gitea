@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -86,53 +87,24 @@ func (repo *Repository) DeleteLocalBranch(branchName string) error {
 	return deleteLocalBranch(repo.LocalCopyPath(), repo.DefaultBranch, branchName)
 }
 
-// Branch holds the branch information
-type Branch struct {
-	Path string
-	Name string
-}
-
-// GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
-	gitRepo, err := git.OpenRepository(path)
-	if err != nil {
-		return nil, err
-	}
-
-	brs, err := gitRepo.GetBranches()
-	if err != nil {
-		return nil, err
-	}
-
-	branches := make([]*Branch, len(brs))
-	for i := range brs {
-		branches[i] = &Branch{
-			Path: path,
-			Name: brs[i],
-		}
-	}
-	return branches, nil
-}
-
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.
 func (repo *Repository) CanCreateBranch() bool {
 	return !repo.IsMirror
 }
 
-// GetBranch returns a branch by it's name
-func (repo *Repository) GetBranch(branch string) (*Branch, error) {
-	if !git.IsBranchExist(repo.RepoPath(), branch) {
-		return nil, ErrBranchNotExist{branch}
+// GetBranch returns a branch by its name
+func (repo *Repository) GetBranch(branch string) (*git.Branch, error) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
-	return &Branch{
-		Path: repo.RepoPath(),
-		Name: branch,
-	}, nil
+
+	return gitRepo.GetBranch(branch)
 }
 
 // GetBranches returns all the branches of a repository
-func (repo *Repository) GetBranches() ([]*Branch, error) {
-	return GetBranchesByPath(repo.RepoPath())
+func (repo *Repository) GetBranches() ([]*git.Branch, error) {
+	return git.GetBranchesByPath(repo.RepoPath())
 }
 
 // CheckBranchName validates branch name with existing repository branches
@@ -256,13 +228,4 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 	}
 
 	return nil
-}
-
-// GetCommit returns all the commits of a branch
-func (branch *Branch) GetCommit() (*git.Commit, error) {
-	gitRepo, err := git.OpenRepository(branch.Path)
-	if err != nil {
-		return nil, err
-	}
-	return gitRepo.GetBranchCommit(branch.Name)
 }

@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // Commit represents a git commit.
@@ -36,20 +38,59 @@ type CommitGPGSignature struct {
 	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
 
-// similar to https://github.com/git/git/blob/3bc53220cb2dcf709f7a027a3f526befd021d858/commit.c#L1128
-func newGPGSignatureFromCommitline(data []byte, signatureStart int, tag bool) (*CommitGPGSignature, error) {
-	sig := new(CommitGPGSignature)
-	signatureEnd := bytes.LastIndex(data, []byte("-----END PGP SIGNATURE-----"))
-	if signatureEnd == -1 {
-		return nil, fmt.Errorf("end of commit signature not found")
+func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
+	if c.PGPSignature == "" {
+		return nil
 	}
-	sig.Signature = strings.Replace(string(data[signatureStart:signatureEnd+27]), "\n ", "\n", -1)
-	if tag {
-		sig.Payload = string(data[:signatureStart-1])
-	} else {
-		sig.Payload = string(data[:signatureStart-8]) + string(data[signatureEnd+27:])
+
+	var w strings.Builder
+	var err error
+
+	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
+		return nil
 	}
-	return sig, nil
+
+	for _, parent := range c.ParentHashes {
+		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
+			return nil
+		}
+	}
+
+	if _, err = fmt.Fprint(&w, "author "); err != nil {
+		return nil
+	}
+
+	if err = c.Author.Encode(&w); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
+		return nil
+	}
+
+	if err = c.Committer.Encode(&w); err != nil {
+		return nil
+	}
+
+	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
+		return nil
+	}
+
+	return &CommitGPGSignature{
+		Signature: c.PGPSignature,
+		Payload:   w.String(),
+	}
+}
+
+func convertCommit(c *object.Commit) *Commit {
+	return &Commit{
+		ID:            c.Hash,
+		CommitMessage: c.Message,
+		Committer:     &c.Committer,
+		Author:        &c.Author,
+		Signature:     convertPGPSignature(c),
+		parents:       c.ParentHashes,
+	}
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -281,11 +322,13 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 		}
 		return nil, err
 	}
-	rd, err := entry.Blob().Data()
+
+	rd, err := entry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
 
+	defer rd.Close()
 	scanner := bufio.NewScanner(rd)
 	c.submoduleCache = newObjectCache()
 	var ismodule bool
@@ -324,6 +367,17 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		}
 	}
 	return nil, nil
+}
+
+// GetBranchName gets the closes branch name (as returned by 'git name-rev')
+func (c *Commit) GetBranchName() (string, error) {
+	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
+	if err != nil {
+		return "", err
+	}
+
+	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
+	return strings.Split(strings.Split(string(data), " ")[1], "~")[0], nil
 }
 
 // CommitFileStatus represents status of files in a commit.
