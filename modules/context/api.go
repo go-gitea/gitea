@@ -114,6 +114,28 @@ func (ctx *APIContext) RequireCSRF() {
 	}
 }
 
+// CheckForOTP validateds OTP
+func (ctx *APIContext) CheckForOTP() {
+	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
+	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			return // No 2FA enrollment for this user
+		}
+		ctx.Context.Error(500)
+		return
+	}
+	ok, err := twofa.ValidateTOTP(otpHeader)
+	if err != nil {
+		ctx.Context.Error(500)
+		return
+	}
+	if !ok {
+		ctx.Context.Error(401)
+		return
+	}
+}
+
 // APIContexter returns apicontext as macaron middleware
 func APIContexter() macaron.Handler {
 	return func(c *Context) {
