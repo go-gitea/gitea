@@ -215,7 +215,8 @@ menu:
 - `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
-- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认和最大项数.
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760**: BLOBS API默认最大大小.
 
 ## Markup (`markup`)
 
