@@ -174,6 +174,7 @@ func reqToken() macaron.Handler {
 		}
 		if ctx.Context.IsBasicAuth {
 			ctx.CheckForOTP()
+			return
 		}
 		if ctx.IsSigned {
 			ctx.RequireCSRF()
