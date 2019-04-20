@@ -42,6 +42,10 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "name",
+				Usage: "Username. DEPRECATED: use username instead",
+			},
+			cli.StringFlag{
+				Name:  "username",
 				Usage: "Username",
 			},
 			cli.StringFlag{
@@ -288,12 +292,27 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "name", "email"); err != nil {
+	if err := argsSet(c, "email"); err != nil {
 		return err
+	}
+
+	if c.IsSet("name") && c.IsSet("username") {
+		return errors.New("Cannot set both --name and --username flags")
+	}
+	if !c.IsSet("name") && !c.IsSet("username") {
+		return errors.New("One of --name or --username flags must be set")
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
 		return errors.New("cannot set both -random-password and -password flags")
+	}
+
+	var username string
+	if c.IsSet("username") {
+		username = c.String("username")
+	} else {
+		username = c.String("name")
+		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	var password string
@@ -334,7 +353,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if err := models.CreateUser(&models.User{
-		Name:               c.String("name"),
+		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsActive:           true,
@@ -345,7 +364,7 @@ func runCreateUser(c *cli.Context) error {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
-	fmt.Printf("New user '%s' has been successfully created!\n", c.String("name"))
+	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
 }
 

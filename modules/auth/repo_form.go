@@ -263,6 +263,29 @@ func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewTelegramHookForm form for creating telegram hook
+type NewTelegramHookForm struct {
+	BotToken string `binding:"Required"`
+	ChatID   string `binding:"Required"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewMSTeamsHookForm form for creating MS Teams hook
+type NewMSTeamsHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewMSTeamsHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -590,6 +613,7 @@ type DeleteRepoFileForm struct {
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
 }
 
 // Validate validates the fields

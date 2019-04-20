@@ -5,18 +5,14 @@
 package migrations
 
 import (
-	"fmt"
 	"github.com/go-xorm/xorm"
 )
 
-func featureChangeTargetBranch(x *xorm.Engine) error {
-	type Comment struct {
-		OldBranch string
-		NewBranch string
+func addGPGKeyImport(x *xorm.Engine) error {
+	type GPGKeyImport struct {
+		KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
+		Content string `xorm:"TEXT NOT NULL"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(GPGKeyImport))
 }

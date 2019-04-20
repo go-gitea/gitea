@@ -14,7 +14,7 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.Repository.DefaultBranch}}...{{.PullRequestCtx.HeadInfo}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{end}}
@@ -258,27 +258,7 @@
 				</li>
 			{{end}}
 
-			{{with .Page}}
-				{{if gt .TotalPages 1}}
-					<div class="center page buttons">
-						<div class="ui borderless pagination menu">
-							<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
-								<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-							</a>
-							{{range .Pages}}
-								{{if eq .Num -1}}
-									<a class="disabled item">...</a>
-								{{else}}
-									<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
-								{{end}}
-							{{end}}
-							<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
-								{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
-							</a>
-						</div>
-					</div>
-				{{end}}
-			{{end}}
+			{{template "base/paginate" .}}
 		</div>
 	</div>
 </div>

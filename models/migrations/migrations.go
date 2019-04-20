@@ -222,6 +222,8 @@ var migrations = []Migration{
 	// v83 -> v84
 	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
 	// v84 -> v85
+	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
+	// v85 -> v86
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 }
 

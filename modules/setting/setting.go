@@ -293,23 +293,27 @@ var (
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
+		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
+		DefaultMaxBlobSize:     10485760,
 	}
 
 	OAuth2 = struct {
 		Enable                     bool
 		AccessTokenExpirationTime  int64
 		RefreshTokenExpirationTime int64
+		InvalidateRefreshTokens    bool
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
+		InvalidateRefreshTokens:    false,
 	}
 
 	U2F = struct {
@@ -982,11 +986,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 // NewServices initializes the services
 func NewServices() {
 	newService()
-	newLogService()
-	newMacaronLogService()
-	newAccessLogService()
-	newRouterLogService()
-	NewXORMLogService(false)
+	NewLogServices(false)
 	newCacheService()
 	newSessionService()
 	newMailService()
