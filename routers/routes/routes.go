@@ -849,6 +849,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
+		m.Group("/blame", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefBlame)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
