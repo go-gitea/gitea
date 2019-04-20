@@ -210,13 +210,24 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 				// Combine remainingPath with paths available on the parent branch
 				// and make union of them
 				var remainingPathsForParent []string
+				var newRemainingPaths []string
 				for _, path := range remainingPaths {
-					if parentHashes[j][path] != plumbing.ZeroHash {
+					if parentHashes[j][path] == current.hashes[path] {
 						remainingPathsForParent = append(remainingPathsForParent, path)
+					} else {
+						newRemainingPaths = append(newRemainingPaths, path)
 					}
 				}
 
-				heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+				if remainingPathsForParent != nil {
+					heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+				}
+
+				if len(newRemainingPaths) == 0 {
+					break
+				} else {
+					remainingPaths = newRemainingPaths
+				}
 			}
 		}
 	}
