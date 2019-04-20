@@ -674,6 +674,7 @@ func ViewIssue(ctx *context.Context) {
 			PrepareMergedViewPullInfo(ctx, issue)
 		} else {
 			PrepareViewPullInfo(ctx, issue)
+			ctx.Data["DisableStatusChange"] = ctx.Data["IsPullRequestBroken"] == true && issue.IsClosed
 		}
 		if ctx.Written() {
 			return
