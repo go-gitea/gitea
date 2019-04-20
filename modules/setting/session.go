@@ -37,7 +37,7 @@ func newSessionService() {
 
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
-		log.Fatal("Can't shadow session config: %v", err)
+		log.Fatal(4, "Can't shadow session config: %v", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
 	SessionConfig.Provider = "VirtualSession"
