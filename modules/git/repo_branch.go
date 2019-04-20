@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
@@ -29,13 +28,19 @@ func IsBranchExist(repoPath, name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
-	return IsBranchExist(repo.Path, name)
+	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // Branch represents a Git branch.
 type Branch struct {
 	Name string
 	Path string
+
+	gitRepo *Repository
 }
 
 // GetHEADBranch returns corresponding branch of HEAD.
@@ -51,8 +56,9 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	}
 
 	return &Branch{
-		Name: stdout[len(BranchPrefix):],
-		Path: stdout,
+		Name:    stdout[len(BranchPrefix):],
+		Path:    stdout,
+		gitRepo: repo,
 	}, nil
 }
 
@@ -64,21 +70,54 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	r, err := git.PlainOpen(repo.Path)
+	var branchNames []string
+
+	branches, err := repo.gogitRepo.Branches()
 	if err != nil {
 		return nil, err
 	}
 
-	branchIter, err := r.Branches()
+	branches.ForEach(func(branch *plumbing.Reference) error {
+		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
+		return nil
+	})
+
+	// TODO: Sort?
+
+	return branchNames, nil
+}
+
+// GetBranch returns a branch by it's name
+func (repo *Repository) GetBranch(branch string) (*Branch, error) {
+	if !repo.IsBranchExist(branch) {
+		return nil, ErrBranchNotExist{branch}
+	}
+	return &Branch{
+		Path:    repo.Path,
+		Name:    branch,
+		gitRepo: repo,
+	}, nil
+}
+
+// GetBranchesByPath returns a branch by it's path
+func GetBranchesByPath(path string) ([]*Branch, error) {
+	gitRepo, err := OpenRepository(path)
 	if err != nil {
 		return nil, err
 	}
-	branches := make([]string, 0)
-	if err = branchIter.ForEach(func(branch *plumbing.Reference) error {
-		branches = append(branches, branch.Name().Short())
-		return nil
-	}); err != nil {
+
+	brs, err := gitRepo.GetBranches()
+	if err != nil {
 		return nil, err
+	}
+
+	branches := make([]*Branch, len(brs))
+	for i := range brs {
+		branches[i] = &Branch{
+			Path:    path,
+			Name:    brs[i],
+			gitRepo: gitRepo,
+		}
 	}
 
 	return branches, nil
@@ -131,4 +170,9 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 func (repo *Repository) RemoveRemote(name string) error {
 	_, err := NewCommand("remote", "remove", name).RunInDir(repo.Path)
 	return err
+}
+
+// GetCommit returns the head commit of a branch
+func (branch *Branch) GetCommit() (*Commit, error) {
+	return branch.gitRepo.GetBranchCommit(branch.Name)
 }
