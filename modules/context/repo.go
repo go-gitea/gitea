@@ -128,6 +128,21 @@ func (r *Repository) BranchNameSubURL() string {
 	return ""
 }
 
+// FileExists returns true if a file exists in the given repo branch
+func (r *Repository) FileExists(path string, branch string) (bool, error) {
+	if branch == "" {
+		branch = r.Repository.DefaultBranch
+	}
+	commit, err := r.GitRepo.GetBranchCommit(branch)
+	if err != nil {
+		return false, err
+	}
+	if _, err := commit.GetTreeEntryByPath(path); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
 func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
@@ -142,10 +157,11 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
 		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob().Data()
+	reader, err := treeEntry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err

@@ -32,7 +32,7 @@ require (
 	github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20151224045452-57eb5e1fc594 // indirect
-	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/emirpasic/gods v1.12.0
 	github.com/etcd-io/bbolt v1.3.2 // indirect
 	github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
@@ -127,7 +127,7 @@ require (
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/macaron.v1 v1.3.2
 	gopkg.in/redis.v2 v2.3.2 // indirect
-	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
+	gopkg.in/src-d/go-billy.v4 v4.3.0
 	gopkg.in/src-d/go-git.v4 v4.10.0
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0

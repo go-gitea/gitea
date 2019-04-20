@@ -5,13 +5,8 @@
 package repo
 
 import (
-	"fmt"
-	"strings"
-
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/repofiles"
 )
 
 // GetTree get the tree of a repository.
@@ -55,92 +50,15 @@ func GetTree(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitTreeResponse"
-	sha := ctx.Params("sha")
+
+	sha := ctx.Params(":sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "", "sha not provided")
 		return
 	}
-	tree := GetTreeBySHA(ctx, sha)
-	if tree != nil {
+	if tree, err := repofiles.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.QueryInt("page"), ctx.QueryInt("per_page"), ctx.QueryBool("recursive")); err != nil {
+		ctx.Error(400, "", err.Error())
+	} else {
 		ctx.JSON(200, tree)
-	} else {
-		ctx.Error(400, "", "sha invalid")
 	}
-}
-
-// GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
-func GetTreeBySHA(ctx *context.APIContext, sha string) *gitea.GitTreeResponse {
-	gitTree, err := ctx.Repo.GitRepo.GetTree(sha)
-	if err != nil || gitTree == nil {
-		return nil
-	}
-	tree := new(gitea.GitTreeResponse)
-	repoID := strings.TrimRight(setting.AppURL, "/") + "/api/v1/repos/" + ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
-	tree.SHA = gitTree.ID.String()
-	tree.URL = repoID + "/git/trees/" + tree.SHA
-	var entries git.Entries
-	if ctx.QueryBool("recursive") {
-		entries, err = gitTree.ListEntriesRecursive()
-	} else {
-		entries, err = gitTree.ListEntries()
-	}
-	if err != nil {
-		return tree
-	}
-	repoIDLen := len(repoID)
-
-	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
-	blobURL := make([]byte, repoIDLen+51)
-	copy(blobURL[:], repoID)
-	copy(blobURL[repoIDLen:], "/git/blobs/")
-
-	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
-	treeURL := make([]byte, repoIDLen+51)
-	copy(treeURL[:], repoID)
-	copy(treeURL[repoIDLen:], "/git/trees/")
-
-	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - 40
-
-	page := ctx.QueryInt("page")
-	perPage := ctx.QueryInt("per_page")
-	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
-		perPage = setting.API.DefaultGitTreesPerPage
-	}
-	if page <= 0 {
-		page = 1
-	}
-	tree.Page = page
-	tree.TotalCount = len(entries)
-	rangeStart := perPage * (page - 1)
-	if rangeStart >= len(entries) {
-		return tree
-	}
-	var rangeEnd int
-	if len(entries) > perPage {
-		tree.Truncated = true
-	}
-	if rangeStart+perPage < len(entries) {
-		rangeEnd = rangeStart + perPage
-	} else {
-		rangeEnd = len(entries)
-	}
-	tree.Entries = make([]gitea.GitEntry, rangeEnd-rangeStart)
-	for e := rangeStart; e < rangeEnd; e++ {
-		i := e - rangeStart
-		tree.Entries[i].Path = entries[e].Name()
-		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
-		tree.Entries[i].Type = string(entries[e].Type)
-		tree.Entries[i].Size = entries[e].Size()
-		tree.Entries[i].SHA = entries[e].ID.String()
-
-		if entries[e].IsDir() {
-			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(treeURL[:])
-		} else {
-			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(blobURL[:])
-		}
-	}
-	return tree
 }

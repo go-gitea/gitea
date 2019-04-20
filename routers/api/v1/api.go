@@ -172,6 +172,10 @@ func reqToken() macaron.Handler {
 		if true == ctx.Data["IsApiToken"] {
 			return
 		}
+		if ctx.Context.IsBasicAuth {
+			ctx.CheckForOTP()
+			return
+		}
 		if ctx.IsSigned {
 			ctx.RequireCSRF()
 			return
@@ -181,11 +185,12 @@ func reqToken() macaron.Handler {
 }
 
 func reqBasicAuth() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.IsBasicAuth {
-			ctx.Error(401)
+	return func(ctx *context.APIContext) {
+		if !ctx.Context.IsBasicAuth {
+			ctx.Context.Error(401)
 			return
 		}
+		ctx.CheckForOTP()
 	}
 }
 
@@ -659,7 +664,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
-					m.Combo("/trees/:sha", context.RepoRef()).Get(repo.GetTree)
+					m.Get("/trees/:sha", context.RepoRef(), repo.GetTree)
+					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
+				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/contents", func() {
+					m.Get("/*", repo.GetFileContents)
+					m.Group("/*", func() {
+						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
+					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
 			}, repoAssignment())
 		})

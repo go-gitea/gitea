@@ -154,7 +154,7 @@ misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -error -i unknwon $(GOFILES)
+	misspell -error -i unknwon,destory $(GOFILES)
 
 .PHONY: misspell
 misspell:
