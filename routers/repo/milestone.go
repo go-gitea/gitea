@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -51,7 +50,6 @@ func Milestones(ctx *context.Context) {
 	} else {
 		total = int(closedCount)
 	}
-	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 
 	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
@@ -77,6 +75,11 @@ func Milestones(ctx *context.Context) {
 
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "state", "State")
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplMilestone)
 }
 

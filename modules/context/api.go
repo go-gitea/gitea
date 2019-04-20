@@ -19,8 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/paginater"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // APIContext is a specific macaron context for API service
@@ -83,19 +82,20 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 // SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
-	page := paginater.New(total, pageSize, ctx.QueryInt("page"), 0)
+	page := NewPagination(total, pageSize, ctx.QueryInt("page"), 0)
+	paginater := page.Paginater
 	links := make([]string, 0, 4)
-	if page.HasNext() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Next()))
+	if paginater.HasNext() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Next()))
 	}
-	if !page.IsLast() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], page.TotalPages()))
+	if !paginater.IsLast() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.TotalPages()))
 	}
-	if !page.IsFirst() {
+	if !paginater.IsFirst() {
 		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppURL, ctx.Req.URL.Path[1:]))
 	}
-	if page.HasPrevious() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Previous()))
+	if paginater.HasPrevious() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Previous()))
 	}
 
 	if len(links) > 0 {
