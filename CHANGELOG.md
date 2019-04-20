@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
   * Resolve 2FA bypass on API (#6676) (#6674)
+  * Prevent the creation of empty sessions for non-logged in users (#6690) (#6677)
 * BREAKING
   * Add "ghost" and "notifications" to list of reserved user names. (#6208)
   * Change sqlite DB path default to data directory (#6198)
