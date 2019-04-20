@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-19
+## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
   * Resolve 2FA bypass on API (#6676) (#6674)
