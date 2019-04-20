@@ -999,7 +999,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Allow cleanup only for merged or closed PR
+	// Don't cleanup unmerged and unclosed PRs
 	if !pr.HasMerged && !issue.IsClosed {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
