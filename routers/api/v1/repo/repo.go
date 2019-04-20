@@ -234,7 +234,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		} else {
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
-					log.Error(4, "DeleteRepository: %v", err)
+					log.Error("DeleteRepository: %v", err)
 				}
 			}
 			ctx.Error(500, "CreateRepository", err)
@@ -417,7 +417,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-				log.Error(4, "DeleteRepository: %v", errDelete)
+				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}
 		ctx.Error(500, "MigrateRepository", err)
@@ -597,7 +597,7 @@ func TopicSearch(ctx *context.Context) {
 		Limit:   10,
 	})
 	if err != nil {
-		log.Error(2, "SearchTopics failed: %v", err)
+		log.Error("SearchTopics failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
 			"message": "Search topics failed.",
 		})

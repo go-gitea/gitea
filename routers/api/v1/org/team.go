@@ -38,6 +38,11 @@ func ListTeams(ctx *context.APIContext) {
 
 	apiTeams := make([]*api.Team, len(org.Teams))
 	for i := range org.Teams {
+		if err := org.Teams[i].GetUnits(); err != nil {
+			ctx.Error(500, "GetUnits", err)
+			return
+		}
+
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
 	}
 	ctx.JSON(200, apiTeams)

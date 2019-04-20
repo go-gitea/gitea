@@ -1,0 +1,26 @@
+language: go
+
+go:
+  - '1.9'
+  - '1.10'
+
+services:
+  - postgresql
+  - mysql
+
+addons:
+  postgresql: "9.4"
+
+before_script:
+  - mysql -e 'CREATE DATABASE testfixtures_test;'
+  - psql -c 'CREATE DATABASE testfixtures_test;' -U postgres
+
+install:
+  - go get -t -tags 'sqlite postgresql mysql' ./...
+  - curl -s https://raw.githubusercontent.com/go-task/task/master/install-task.sh | sh
+  - bin/task dl-deps
+  - cp .sample.env .env
+
+script:
+  - bin/task lint
+  - bin/task test-free

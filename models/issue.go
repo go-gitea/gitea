@@ -112,7 +112,7 @@ func (issue *Issue) IsTimetrackerEnabled() bool {
 
 func (issue *Issue) isTimetrackerEnabled(e Engine) bool {
 	if err := issue.loadRepo(e); err != nil {
-		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
+		log.Error(fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
 	return issue.Repo.IsTimetrackerEnabled()
@@ -272,6 +272,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
+
+	if err = CommentList(issue.Comments).loadAttributes(e); err != nil {
+		return err
+	}
 	if issue.isTimetrackerEnabled(e) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
@@ -423,23 +427,23 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	var err error
 
 	if err = issue.loadRepo(x); err != nil {
-		log.Error(4, "loadRepo: %v", err)
+		log.Error("loadRepo: %v", err)
 		return
 	}
 
 	if err = issue.loadPoster(x); err != nil {
-		log.Error(4, "loadPoster: %v", err)
+		log.Error("loadPoster: %v", err)
 		return
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.loadPullRequest(x); err != nil {
-			log.Error(4, "loadPullRequest: %v", err)
+			log.Error("loadPullRequest: %v", err)
 			return
 		}
 		if err = issue.PullRequest.LoadIssue(); err != nil {
-			log.Error(4, "LoadIssue: %v", err)
+			log.Error("LoadIssue: %v", err)
 			return
 		}
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -459,7 +463,7 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -584,7 +588,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {
-			log.Error(4, "LoadIssue: %v", err)
+			log.Error("LoadIssue: %v", err)
 			return
 		}
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -604,7 +608,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -819,7 +823,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
+		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
 		go HookQueue.Add(issue.Repo.ID)
 	}
@@ -888,7 +892,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	}
 
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -953,7 +957,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -988,6 +992,17 @@ func (issue *Issue) GetLastEventLabel() string {
 		return "repo.issues.closed_by"
 	}
 	return "repo.issues.opened_by"
+}
+
+// GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
+func (issue *Issue) GetLastEventLabelFake() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by_fake"
+		}
+		return "repo.issues.closed_by_fake"
+	}
+	return "repo.issues.opened_by_fake"
 }
 
 // NewIssueOptions represents the options of a new issue.
@@ -1158,7 +1173,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %v", err)
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
@@ -1169,7 +1184,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Repository: repo.APIFormat(mode),
 		Sender:     issue.Poster.APIFormat(),
 	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}

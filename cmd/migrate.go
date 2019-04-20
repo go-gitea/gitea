@@ -44,7 +44,7 @@ func runMigrate(ctx *cli.Context) error {
 	models.LoadConfigs()
 
 	if err := models.NewEngine(migrations.Migrate); err != nil {
-		log.Fatal(4, "Failed to initialize ORM engine: %v", err)
+		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
 

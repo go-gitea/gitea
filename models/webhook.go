@@ -6,7 +6,10 @@
 package models
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -101,6 +104,7 @@ type Webhook struct {
 	RepoID       int64  `xorm:"INDEX"`
 	OrgID        int64  `xorm:"INDEX"`
 	URL          string `xorm:"url TEXT"`
+	Signature    string `xorm:"TEXT"`
 	ContentType  HookContentType
 	Secret       string `xorm:"TEXT"`
 	Events       string `xorm:"TEXT"`
@@ -119,7 +123,7 @@ type Webhook struct {
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
-		log.Error(3, "Unmarshal[%d]: %v", w.ID, err)
+		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
 }
 
@@ -127,7 +131,7 @@ func (w *Webhook) AfterLoad() {
 func (w *Webhook) GetSlackHook() *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error(4, "webhook.GetSlackHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetSlackHook(%d): %v", w.ID, err)
 	}
 	return s
 }
@@ -136,7 +140,16 @@ func (w *Webhook) GetSlackHook() *SlackMeta {
 func (w *Webhook) GetDiscordHook() *DiscordMeta {
 	s := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error(4, "webhook.GetDiscordHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
+// GetTelegramHook returns telegram metadata
+func (w *Webhook) GetTelegramHook() *TelegramMeta {
+	s := &TelegramMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
 	}
 	return s
 }
@@ -452,6 +465,8 @@ const (
 	GITEA
 	DISCORD
 	DINGTALK
+	TELEGRAM
+	MSTEAMS
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -460,6 +475,8 @@ var hookTaskTypes = map[string]HookTaskType{
 	"slack":    SLACK,
 	"discord":  DISCORD,
 	"dingtalk": DINGTALK,
+	"telegram": TELEGRAM,
+	"msteams":  MSTEAMS,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -480,6 +497,10 @@ func (t HookTaskType) Name() string {
 		return "discord"
 	case DINGTALK:
 		return "dingtalk"
+	case TELEGRAM:
+		return "telegram"
+	case MSTEAMS:
+		return "msteams"
 	}
 	return ""
 }
@@ -529,6 +550,7 @@ type HookTask struct {
 	UUID            string
 	Type            HookTaskType
 	URL             string `xorm:"TEXT"`
+	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	ContentType     HookContentType
@@ -567,13 +589,13 @@ func (t *HookTask) AfterLoad() {
 
 	t.RequestInfo = &HookRequest{}
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
-		log.Error(3, "Unmarshal RequestContent[%d]: %v", t.ID, err)
+		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
 	}
 
 	if len(t.ResponseContent) > 0 {
 		t.ResponseInfo = &HookResponse{}
 		if err := json.Unmarshal([]byte(t.ResponseContent), t.ResponseInfo); err != nil {
-			log.Error(3, "Unmarshal ResponseContent[%d]: %v", t.ID, err)
+			log.Error("Unmarshal ResponseContent[%d]: %v", t.ID, err)
 		}
 	}
 }
@@ -581,7 +603,7 @@ func (t *HookTask) AfterLoad() {
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 	p, err := json.Marshal(v)
 	if err != nil {
-		log.Error(3, "Marshal [%d]: %v", t.ID, err)
+		log.Error("Marshal [%d]: %v", t.ID, err)
 	}
 	return string(p)
 }
@@ -652,9 +674,30 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
+	case TELEGRAM:
+		payloader, err = GetTelegramPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetTelegramPayload: %v", err)
+		}
+	case MSTEAMS:
+		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetMSTeamsPayload: %v", err)
+		}
 	default:
 		p.SetSecret(w.Secret)
 		payloader = p
+	}
+
+	var signature string
+	if len(w.Secret) > 0 {
+		data, err := payloader.JSONPayload()
+		if err != nil {
+			log.Error("prepareWebhooks.JSONPayload: %v", err)
+		}
+		sig := hmac.New(sha256.New, []byte(w.Secret))
+		sig.Write(data)
+		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
 	if err = createHookTask(e, &HookTask{
@@ -662,6 +705,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		HookID:      w.ID,
 		Type:        w.HookTaskType,
 		URL:         w.URL,
+		Signature:   signature,
 		Payloader:   payloader,
 		ContentType: w.ContentType,
 		EventType:   event,
@@ -712,8 +756,10 @@ func (t *HookTask) deliver() {
 	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
 		Header("X-Gitea-Delivery", t.UUID).
 		Header("X-Gitea-Event", string(t.EventType)).
+		Header("X-Gitea-Signature", t.Signature).
 		Header("X-Gogs-Delivery", t.UUID).
 		Header("X-Gogs-Event", string(t.EventType)).
+		Header("X-Gogs-Signature", t.Signature).
 		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
 		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
@@ -746,13 +792,13 @@ func (t *HookTask) deliver() {
 		}
 
 		if err := UpdateHookTask(t); err != nil {
-			log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
+			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
 		w, err := GetWebhookByID(t.HookID)
 		if err != nil {
-			log.Error(5, "GetWebhookByID: %v", err)
+			log.Error("GetWebhookByID: %v", err)
 			return
 		}
 		if t.IsSucceed {
@@ -761,7 +807,7 @@ func (t *HookTask) deliver() {
 			w.LastStatus = HookStatusFail
 		}
 		if err = UpdateWebhookLastStatus(w); err != nil {
-			log.Error(5, "UpdateWebhookLastStatus: %v", err)
+			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
 	}()
@@ -794,7 +840,7 @@ func DeliverHooks() {
 	tasks := make([]*HookTask, 0, 10)
 	err := x.Where("is_delivered=?", false).Find(&tasks)
 	if err != nil {
-		log.Error(4, "DeliverHooks: %v", err)
+		log.Error("DeliverHooks: %v", err)
 		return
 	}
 
@@ -810,13 +856,13 @@ func DeliverHooks() {
 
 		repoID, err := com.StrTo(repoIDStr).Int64()
 		if err != nil {
-			log.Error(4, "Invalid repo ID: %s", repoIDStr)
+			log.Error("Invalid repo ID: %s", repoIDStr)
 			continue
 		}
 
 		tasks = make([]*HookTask, 0, 5)
 		if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
-			log.Error(4, "Get repository [%s] hook tasks: %v", repoID, err)
+			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
 			continue
 		}
 		for _, t := range tasks {

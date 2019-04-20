@@ -238,7 +238,7 @@ func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) 
 	if err != nil {
 		return AccessModeNone, err
 	}
-	return perm.UnitAccessMode(UnitTypeCode), nil
+	return perm.UnitAccessMode(unitType), nil
 }
 
 func hasAccessUnit(e Engine, user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {

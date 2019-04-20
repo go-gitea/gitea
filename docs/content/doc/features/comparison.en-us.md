@@ -122,4 +122,5 @@ _Symbols used in table:_
 | Two factor authentication (2FA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Mattermost/Slack integration | ✓ | ✓ | ⁄ | ✓ | ✓ | ⁄ | ✓ |
 | Discord integration | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Microsoft Teams integration | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | External CI/CD status display | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |

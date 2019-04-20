@@ -11,12 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/util"
@@ -58,7 +57,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 		return nil, err
 	}
 	for _, entry := range entries {
-		if entry.Type == git.ObjectBlob && entry.Name() == target {
+		if entry.IsRegular() && entry.Name() == target {
 			return entry, nil
 		}
 	}
@@ -82,11 +81,12 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
 // given tree entry. Writes to ctx if an error occurs.
 func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
-	reader, err := entry.Blob().Data()
+	reader, err := entry.Blob().DataAsync()
 	if err != nil {
 		ctx.ServerError("Blob.Data", err)
 		return nil
 	}
+	defer reader.Close()
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
@@ -126,7 +126,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		}
 		pages := make([]PageMeta, 0, len(entries))
 		for _, entry := range entries {
-			if entry.Type != git.ObjectBlob {
+			if !entry.IsRegular() {
 				continue
 			}
 			wikiName, err := models.WikiFilenameToName(entry.Name())
@@ -260,7 +260,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Type != git.ObjectBlob {
+		if !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())

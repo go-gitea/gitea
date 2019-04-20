@@ -35,7 +35,7 @@ func (Parser) Extensions() []string {
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) (result []byte) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error(4, "Panic in orgmode.Render: %v Just returning the rawBytes", err)
+			log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
 			result = rawBytes
 		}
 	}()

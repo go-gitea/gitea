@@ -2,5 +2,5 @@
 [[ -f ./setup ]] && source ./setup
 
 pushd /root > /dev/null
-    exec su-exec root /usr/sbin/sshd -D
+    exec su-exec root /usr/sbin/sshd -D -e 2>&1
 popd

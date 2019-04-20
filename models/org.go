@@ -303,7 +303,7 @@ func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
 	if has, err := e.Get(ownerTeam); err != nil {
 		return false, err
 	} else if !has {
-		log.Error(4, "Organization does not have owner team: %d", orgID)
+		log.Error("Organization does not have owner team: %d", orgID)
 		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)

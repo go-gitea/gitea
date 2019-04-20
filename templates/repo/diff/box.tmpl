@@ -202,7 +202,7 @@
             <div class="ui comment form">
                 <div class="ui top attached tabular menu">
                     <a class="active write item">{{$.i18n.Tr "write"}}</a>
-                    <a class="preview item" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+                    <a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
                 </div>
                 <div class="ui bottom attached active write tab segment">
                     <textarea tabindex="1" name="content"></textarea>

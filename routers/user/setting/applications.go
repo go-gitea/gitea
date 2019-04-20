@@ -81,5 +81,10 @@ func loadApplicationsData(ctx *context.Context) {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
 		}
+		ctx.Data["Grants"], err = models.GetOAuth2GrantsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2GrantsByUserID", err)
+			return
+		}
 	}
 }
