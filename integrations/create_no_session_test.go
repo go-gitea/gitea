@@ -86,8 +86,6 @@ func TestSessionFileCreation(t *testing.T) {
 	routes.RegisterRoutes(mac)
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
-		PrintCurrentTest(t)
-
 		req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 		resp := MakeRequest(t, req, http.StatusOK)
 		sessionID := getSessionID(t, resp)
@@ -96,8 +94,6 @@ func TestSessionFileCreation(t *testing.T) {
 		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
 	})
 	t.Run("CreateSessionOnLogin", func(t *testing.T) {
-		PrintCurrentTest(t)
-
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
 		sessionID := getSessionID(t, resp)
