@@ -294,6 +294,76 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	CheckConsistencyFor(t, &Action{})
 }
 
+func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	// Test that a push to default branch closes issue in another repo
+	// If the user also has push permissions to that repo
+	pushCommits := []*PushCommit{
+		{
+			Sha1:           "abcdef1",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "close user2/repo1#1",
+		},
+	}
+
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	commentBean := &Comment{
+		Type:      CommentTypeCommitRef,
+		CommitSHA: "abcdef1",
+		PosterID:  user.ID,
+		IssueID:   1,
+	}
+
+	issueBean := &Issue{RepoID: 1, Index: 1, ID: 1}
+
+	AssertNotExistsBean(t, commentBean)
+	AssertNotExistsBean(t, issueBean, "is_closed=1")
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
+	AssertExistsAndLoadBean(t, commentBean)
+	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	CheckConsistencyFor(t, &Action{})
+}
+
+func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 10}).(*User)
+
+	// Test that a push with close reference *can not* close issue
+	// If the commiter doesn't have push rights in that repo
+	pushCommits := []*PushCommit{
+		{
+			Sha1:           "abcdef3",
+			CommitterEmail: "user10@example.com",
+			CommitterName:  "User Ten",
+			AuthorEmail:    "user10@example.com",
+			AuthorName:     "User Ten",
+			Message:        "close user3/repo3#1",
+		},
+	}
+
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 6}).(*Repository)
+	commentBean := &Comment{
+		Type:      CommentTypeCommitRef,
+		CommitSHA: "abcdef3",
+		PosterID:  user.ID,
+		IssueID:   6,
+	}
+
+	issueBean := &Issue{RepoID: 3, Index: 1, ID: 6}
+
+	AssertNotExistsBean(t, commentBean)
+	AssertNotExistsBean(t, issueBean, "is_closed=1")
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
+	AssertExistsAndLoadBean(t, commentBean)
+	AssertNotExistsBean(t, issueBean, "is_closed=1")
+	CheckConsistencyFor(t, &Action{})
+}
+
 func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, CommitRepoAction(opts))
