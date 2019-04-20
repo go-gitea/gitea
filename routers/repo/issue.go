@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -187,8 +185,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	} else {
 		total = int(issueStats.ClosedCount)
 	}
-	pager := paginater.New(total, setting.UI.IssuePagingNum, page, 5)
-	ctx.Data["Page"] = pager
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
 	var issues []*models.Issue
 	if forceEmpty {
@@ -200,7 +197,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
-			Page:        pager.Current(),
+			Page:        pager.Paginater.Current(),
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
@@ -269,6 +266,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	} else {
 		ctx.Data["State"] = "open"
 	}
+
+	pager.AddParam(ctx, "q", "Keyword")
+	pager.AddParam(ctx, "type", "ViewType")
+	pager.AddParam(ctx, "sort", "SortType")
+	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "labels", "SelectLabels")
+	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "assignee", "AssigneeID")
+	ctx.Data["Page"] = pager
 }
 
 // Issues render issues page
@@ -363,7 +369,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 }
 
 func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	var r io.Reader
 	var bytes []byte
 
 	if ctx.Repo.Commit == nil {
@@ -381,10 +386,11 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
 		return "", false
 	}
-	r, err = entry.Blob().Data()
+	r, err := entry.Blob().DataAsync()
 	if err != nil {
 		return "", false
 	}
+	defer r.Close()
 	bytes, err = ioutil.ReadAll(r)
 	if err != nil {
 		return "", false

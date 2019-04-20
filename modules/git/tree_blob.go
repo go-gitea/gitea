@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,15 +8,23 @@ package git
 import (
 	"path"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir
 func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
-			ID:   t.ID,
-			Type: ObjectTree,
-			mode: EntryModeTree,
+			ID: t.ID,
+			//Type: ObjectTree,
+			gogitTreeEntry: &object.TreeEntry{
+				Name: "",
+				Mode: filemode.Dir,
+				Hash: plumbing.Hash(t.ID),
+			},
 		}, nil
 	}
 
@@ -30,7 +39,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 				return nil, err
 			}
 			for _, v := range entries {
-				if v.name == name {
+				if v.Name() == name {
 					return v, nil
 				}
 			}
