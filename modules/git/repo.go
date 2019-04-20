@@ -322,7 +322,7 @@ func checkDivergence(repoPath string, baseBranch string, targetBranch string) (i
 	if err != nil {
 		return -1, err
 	}
-	outInteger, errInteger := strconv.Atoi(stdout)
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
 	if errInteger != nil {
 		return -1, errInteger
 	}

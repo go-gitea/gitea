@@ -28,6 +28,8 @@ type Branch struct {
 	IsProtected   bool
 	IsDeleted     bool
 	DeletedBranch *models.DeletedBranch
+	CommitsAhead  int
+	CommitsBehind int
 }
 
 // Branches render repository branch page
@@ -168,16 +170,25 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
-		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(rawBranches[i].Name, ctx.User)
+		branchName := rawBranches[i].Name
+		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsProtectedBranch", err)
 			return nil
 		}
 
+		divergence, divergenceError := ctx.Repo.Repository.CountDivergingCommits(branchName)
+		if divergenceError != nil {
+			ctx.ServerError("CountDivergingCommits", divergenceError)
+			return nil
+		}
+
 		branches[i] = &Branch{
-			Name:        rawBranches[i].Name,
-			Commit:      commit,
-			IsProtected: isProtected,
+			Name:          branchName,
+			Commit:        commit,
+			IsProtected:   isProtected,
+			CommitsAhead:  divergence.Ahead,
+			CommitsBehind: divergence.Behind,
 		}
 	}
 

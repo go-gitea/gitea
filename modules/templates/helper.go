@@ -219,6 +219,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
+		"addInteger": func(i1 int, i2 int) int {
+			return i1 + i2
+		},
+		"percentage": func(i1 int, i2 int) float32 {
+			return float32(i1) * 100 / float32(i2)
+		},
 	}}
 }
 
