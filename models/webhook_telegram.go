@@ -19,7 +19,7 @@ type (
 	TelegramPayload struct {
 		Message           string `json:"text"`
 		ParseMode         string `json:"parse_mode"`
-		DisableWebPreview bool `json:"disable_web_page_preview"`
+		DisableWebPreview bool   `json:"disable_web_page_preview"`
 	}
 
 	// TelegramMeta contains the telegram metadata
