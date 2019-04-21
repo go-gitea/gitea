@@ -66,29 +66,7 @@
 			</table>
 		</div>
 
-		{{with .Page}}
-			{{if gt .TotalPages 1}}
-				<div class="center page buttons">
-					<div class="ui borderless pagination menu">
-						<a class="{{if .IsFirst}}disabled{{end}} item" href="{{$.Link}}"><i class="angle double left icon"></i> {{$.i18n.Tr "admin.first_page"}}</a>
-						<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?page={{.Previous}}"{{end}}>
-							<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-						</a>
-						{{range .Pages}}
-							{{if eq .Num -1}}
-								<a class="disabled item">...</a>
-							{{else}}
-								<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?page={{.Num}}"{{end}}>{{.Num}}</a>
-							{{end}}
-						{{end}}
-						<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?page={{.Next}}"{{end}}>
-							{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
-						</a>
-						<a class="{{if .IsLast}}disabled{{end}} item" href="{{$.Link}}?page={{.TotalPages}}">{{$.i18n.Tr "admin.last_page"}}&nbsp;<i class="angle double right icon"></i></a>
-					</div>
-				</div>
-			{{end}}
-		{{end}}
+		{{ template "base/paginate" . }}
 	</div>
 </div>
 
