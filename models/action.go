@@ -63,7 +63,7 @@ var (
 	issueReferenceKeywordsPat                     *regexp.Regexp
 )
 
-const issueRefRegexpStr = `([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)?(#[0-9]+)+`
+const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
 
 func assembleKeywordsPattern(words []string) string {
 	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
@@ -193,11 +193,8 @@ func (a *Action) GetRepoLink() string {
 	return "/" + a.GetRepoPath()
 }
 
-// GetRepositoryFromMatch returns a *Repository from a username/repo string
-func GetRepositoryFromMatch(match string) (*Repository, error) {
-	parts := strings.Split(match, "/")
-	ownerName := parts[0]
-	repoName := parts[1]
+// GetRepositoryFromMatch returns a *Repository from a username and repo strings
+func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
 	var err error
 	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
@@ -543,14 +540,14 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		var refRepo *Repository
 		var err error
 		for _, m := range issueReferenceKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[2]) == 0 {
+			if len(m[3]) == 0 {
 				continue
 			}
-			ref := m[2]
+			ref := m[3]
 
 			// issue is from another repo
-			if len(m[1]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]))
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
 				if err != nil {
 					continue
 				}
@@ -580,14 +577,14 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		}
 		refMarked = make(map[int64]bool)
 		for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[2]) == 0 {
+			if len(m[3]) == 0 {
 				continue
 			}
-			ref := m[2]
+			ref := m[3]
 
 			// issue is from another repo
-			if len(m[1]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]))
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
 				if err != nil {
 					continue
 				}
@@ -609,14 +606,14 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
 		for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[2]) == 0 {
+			if len(m[3]) == 0 {
 				continue
 			}
-			ref := m[2]
+			ref := m[3]
 
 			// issue is from another repo
-			if len(m[1]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]))
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
 				if err != nil {
 					continue
 				}
