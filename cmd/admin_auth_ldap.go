@@ -259,7 +259,7 @@ func (a *authService) initLdapCommand(c *cli.Context) error {
 	return a.initDB()
 }
 
-// getLoginSource gets the login source by its id define in command line flags.
+// getLoginSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
 func (a *authService) getLoginSource(c *cli.Context, loginType models.LoginType) (*models.LoginSource, error) {
 	if err := argsSet(c, "id"); err != nil {
