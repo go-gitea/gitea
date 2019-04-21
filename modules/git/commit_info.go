@@ -147,12 +147,6 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 			break
 		}
 		current := cIn.(*commitAndPaths)
-		currentID := current.commit.ID()
-
-		if seen[currentID] {
-			continue
-		}
-		seen[currentID] = true
 
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
@@ -166,8 +160,7 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 		}
 
 		// Examine the current commit and set of interesting paths
-		numOfParentsWithPath := make([]int, len(current.paths))
-		pathChanged := make([]bool, len(current.paths))
+		pathUnchanged := make([]bool, len(current.paths))
 		parentHashes := make([]map[string]plumbing.Hash, len(parents))
 		for j, parent := range parents {
 			parentHashes[j], err = getFileHashes(parent, treePath, current.paths)
@@ -176,42 +169,32 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 			}
 
 			for i, path := range current.paths {
-				if parentHashes[j][path] != plumbing.ZeroHash {
-					numOfParentsWithPath[i]++
-					if parentHashes[j][path] != current.hashes[path] {
-						pathChanged[i] = true
-					}
+				if parentHashes[j][path] == current.hashes[path] {
+					pathUnchanged[i] = true
 				}
 			}
 		}
 
 		var remainingPaths []string
 		for i, path := range current.paths {
-			switch numOfParentsWithPath[i] {
-			case 0:
-				// The path didn't exist in any parent, so it must have been created by
-				// this commit. The results could already contain some newer change from
-				// different path, so don't override that.
-				if result[path] == nil {
+			// The results could already contain some newer change for the same path,
+			// so don't override that and bail out on the file early.
+			if result[path] == nil {
+				if pathUnchanged[i] {
+					// The path existed with the same hash in at least one parent so it could
+					// not have been changed in this commit directly.
+					remainingPaths = append(remainingPaths, path)
+				} else {
+					// There are few possible cases how can we get here:
+					// - The path didn't exist in any parent, so it must have been created by
+					//   this commit.
+					// - The path did exist in the parent commit, but the hash of the file has
+					//   changed.
+					// - We are looking at a merge commit and the hash of the file doesn't
+					//   match any of the hashes being merged. This is more common for directories,
+					//   but it can also happen if a file is changed through conflict resolution.
 					result[path] = current.commit
 				}
-			case 1:
-				// The file is present on exactly one parent, so check if it was changed
-				// and save the revision if it did.
-				if pathChanged[i] {
-					if result[path] == nil {
-						result[path] = current.commit
-					}
-				} else {
-					remainingPaths = append(remainingPaths, path)
-				}
-			default:
-				// The file is present on more than one of the parent paths, so this is
-				// a merge. We have to examine all the parent trees to find out where
-				// the change occurred. pathChanged[i] would tell us that the file was
-				// changed during the merge, but it wouldn't tell us the relevant commit
-				// that introduced it.
-				remainingPaths = append(remainingPaths, path)
 			}
 		}
 
@@ -222,17 +205,29 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 				if seen[parent.ID()] {
 					continue
 				}
+				seen[parent.ID()] = true
 
 				// Combine remainingPath with paths available on the parent branch
 				// and make union of them
 				var remainingPathsForParent []string
+				var newRemainingPaths []string
 				for _, path := range remainingPaths {
-					if parentHashes[j][path] != plumbing.ZeroHash {
+					if parentHashes[j][path] == current.hashes[path] {
 						remainingPathsForParent = append(remainingPathsForParent, path)
+					} else {
+						newRemainingPaths = append(newRemainingPaths, path)
 					}
 				}
 
-				heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+				if remainingPathsForParent != nil {
+					heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+				}
+
+				if len(newRemainingPaths) == 0 {
+					break
+				} else {
+					remainingPaths = newRemainingPaths
+				}
 			}
 		}
 	}
