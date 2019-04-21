@@ -73,7 +73,7 @@ func (e *Encoder) Encode(idx Index) error {
 	var commitDataOffset = oidLookupOffset + uint64(len(hashes))*20
 	var bloomOffset = commitDataOffset + uint64(len(hashes))*36
 	var sparseBloomOffset = bloomOffset + uint64(bloomFiltersCount)*640
-	var largeEdgeListOffset uint64
+	var largeEdgeListOffset = bloomOffset
 	var largeEdges []uint32
 
 	// Write header
