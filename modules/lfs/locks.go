@@ -5,10 +5,10 @@
 package lfs
 
 import (
-			"encoding/json"
-			"strconv"
+	"encoding/json"
+	"strconv"
 
-			"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
