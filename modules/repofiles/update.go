@@ -5,7 +5,6 @@
 package repofiles
 
 import (
-	"code.gitea.io/gitea/modules/log"
 	"fmt"
 	"path"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
 )
