@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -308,6 +309,14 @@ func Issues(ctx *context.Context) {
 			return
 		}
 		if !perm.CanRead(models.UnitTypeIssues) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
+					ctxUser,
+					models.UnitTypeIssues,
+					repo,
+					perm)
+			}
 			ctx.Status(404)
 			return
 		}

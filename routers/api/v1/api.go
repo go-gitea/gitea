@@ -369,6 +369,22 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 func mustEnableIssues(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeIssues,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypeIssues,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
@@ -376,6 +392,22 @@ func mustEnableIssues(ctx *context.APIContext) {
 
 func mustAllowPulls(ctx *context.APIContext) {
 	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
@@ -384,6 +416,24 @@ func mustAllowPulls(ctx *context.APIContext) {
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
 		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeIssues,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v and %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypeIssues,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
