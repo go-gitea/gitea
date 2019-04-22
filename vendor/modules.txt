@@ -410,8 +410,8 @@ gopkg.in/macaron.v1
 # gopkg.in/redis.v2 v2.3.2
 gopkg.in/redis.v2
 # gopkg.in/src-d/go-billy.v4 v4.3.0
-gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/osfs
+gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/util
 gopkg.in/src-d/go-billy.v4/helper/chroot
 gopkg.in/src-d/go-billy.v4/helper/polyfill
@@ -419,13 +419,14 @@ gopkg.in/src-d/go-billy.v4/helper/polyfill
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing
-gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/cache
 gopkg.in/src-d/go-git.v4/plumbing/filemode
+gopkg.in/src-d/go-git.v4/plumbing/object
+gopkg.in/src-d/go-git.v4/storage/filesystem
+gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/format/gitignore
 gopkg.in/src-d/go-git.v4/plumbing/format/index
 gopkg.in/src-d/go-git.v4/plumbing/format/packfile
-gopkg.in/src-d/go-git.v4/plumbing/object
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband
@@ -434,7 +435,6 @@ gopkg.in/src-d/go-git.v4/plumbing/storer
 gopkg.in/src-d/go-git.v4/plumbing/transport
 gopkg.in/src-d/go-git.v4/plumbing/transport/client
 gopkg.in/src-d/go-git.v4/storage
-gopkg.in/src-d/go-git.v4/storage/filesystem
 gopkg.in/src-d/go-git.v4/storage/memory
 gopkg.in/src-d/go-git.v4/utils/diff
 gopkg.in/src-d/go-git.v4/utils/ioutil
@@ -444,16 +444,16 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/index
 gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 gopkg.in/src-d/go-git.v4/internal/url
 gopkg.in/src-d/go-git.v4/plumbing/format/config
+gopkg.in/src-d/go-git.v4/plumbing/format/diff
 gopkg.in/src-d/go-git.v4/utils/binary
 gopkg.in/src-d/go-git.v4/plumbing/format/idxfile
-gopkg.in/src-d/go-git.v4/plumbing/format/diff
+gopkg.in/src-d/go-git.v4/plumbing/format/objfile
+gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit
 gopkg.in/src-d/go-git.v4/plumbing/format/pktline
 gopkg.in/src-d/go-git.v4/plumbing/transport/file
 gopkg.in/src-d/go-git.v4/plumbing/transport/git
 gopkg.in/src-d/go-git.v4/plumbing/transport/http
 gopkg.in/src-d/go-git.v4/plumbing/transport/ssh
-gopkg.in/src-d/go-git.v4/plumbing/format/objfile
-gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit
 gopkg.in/src-d/go-git.v4/utils/merkletrie/internal/frame
 gopkg.in/src-d/go-git.v4/plumbing/transport/internal/common
 gopkg.in/src-d/go-git.v4/plumbing/transport/server

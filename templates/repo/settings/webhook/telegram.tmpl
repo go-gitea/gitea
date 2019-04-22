@@ -1,0 +1,15 @@
+{{if eq .HookType "telegram"}}
+	<p>{{.i18n.Tr "repo.settings.add_telegram_hook_desc" "https://core.telegram.org/bots" | Str2html}}</p>
+	<form class="ui form" action="{{.BaseLink}}/telegram/{{or .Webhook.ID "new"}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_BotToken}}error{{end}}">
+			<label for="bot_token">{{.i18n.Tr "repo.settings.bot_token"}}</label>
+			<input id="bot_token" name="bot_token" type="text" value="{{.TelegramHook.BotToken}}" autofocus required>
+		</div>
+    <div class="required field {{if .Err_ChatID}}error{{end}}">
+      <label for="chat_id">{{.i18n.Tr "repo.settings.chat_id"}}</label>
+      <input id="chat_id" name="chat_id" type="text" value="{{.TelegramHook.ChatID}}" required>
+    </div>
+		{{template "repo/settings/webhook/settings" .}}
+	</form>
+{{end}}

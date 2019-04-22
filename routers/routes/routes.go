@@ -415,12 +415,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 			m.Post("/gogs/:id", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+			m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 		})
 
 		m.Group("/auths", func() {
@@ -552,12 +554,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 					m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+					m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 					m.Get("/:id", repo.WebHooksEdit)
 					m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 					m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 					m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+					m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
@@ -605,6 +609,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 				m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 				m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+				m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
+				m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 				m.Get("/:id", repo.WebHooksEdit)
 				m.Post("/:id/test", repo.TestWebhook)
 				m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
@@ -612,6 +618,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 				m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 				m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+				m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
+				m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 
 				m.Group("/git", func() {
 					m.Get("", repo.GitHooks)
@@ -832,6 +840,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+
+		m.Group("/blame", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefBlame)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("", func() {
