@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
-	"encoding/json"
 	"strconv"
 )
 
