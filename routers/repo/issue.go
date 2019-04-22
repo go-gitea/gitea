@@ -1171,6 +1171,24 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				issueType := "issues"
+				if issue.IsPull {
+					issueType = "pulls"
+				}
+				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					log.NewColoredIDValue(issue.PosterID),
+					issueType,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Not logged in")
+			}
+		}
+
 		ctx.Error(403)
 	}
 
@@ -1362,6 +1380,24 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				issueType := "issues"
+				if issue.IsPull {
+					issueType = "pulls"
+				}
+				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					log.NewColoredIDValue(issue.PosterID),
+					issueType,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Not logged in")
+			}
+		}
+
 		ctx.Error(403)
 		return
 	}
@@ -1441,6 +1477,24 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				issueType := "issues"
+				if comment.Issue.IsPull {
+					issueType = "pulls"
+				}
+				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					log.NewColoredIDValue(comment.Issue.PosterID),
+					issueType,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Not logged in")
+			}
+		}
+
 		ctx.Error(403)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {

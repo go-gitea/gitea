@@ -17,6 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -207,6 +208,24 @@ type Repository struct {
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+}
+
+// ColorFormat returns a colored string to represent this repo
+func (repo *Repository) ColorFormat(s fmt.State) {
+	var ownerName interface{}
+
+	if repo.OwnerName != "" {
+		ownerName = repo.OwnerName
+	} else if repo.Owner != nil {
+		ownerName = repo.Owner.Name
+	} else {
+		ownerName = log.NewColoredIDValue(strconv.FormatInt(repo.OwnerID, 10))
+	}
+
+	log.ColorFprintf(s, "%d:%s/%s",
+		log.NewColoredIDValue(repo.ID),
+		ownerName,
+		repo.Name)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
