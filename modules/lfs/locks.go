@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
-	"strconv"
 )
 
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
