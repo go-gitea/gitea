@@ -61,6 +61,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
+		"DefaultShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
+		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},

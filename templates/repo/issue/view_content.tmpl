@@ -17,7 +17,7 @@
 				</a>
 				<div class="content">
 					<div class="ui top attached header">
-						<span class="text grey"><a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.Name}}</a> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}</span>
+						<span class="text grey"><a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}</span>
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) }}
