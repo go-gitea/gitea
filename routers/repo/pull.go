@@ -64,6 +64,18 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			if forkRepo.IsEmpty {
+				log.Trace("Empty fork repository %-v", forkRepo)
+			} else {
+				log.Trace("Permission Denied: User %-v cannot read %-v of forkRepo %-v\n"+
+					"User in forkRepo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeCode,
+					ctx.Repo,
+					perm)
+			}
+		}
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -704,7 +716,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		return nil, nil, nil, nil, "", ""
 	}
 	if !perm.CanReadIssuesOrPulls(true) {
-		log.Trace("ParseCompareInfo[%d]: cannot create/read pull requests", baseRepo.ID)
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot create/read pull requests in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+				ctx.User,
+				headRepo,
+				perm)
+		}
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}

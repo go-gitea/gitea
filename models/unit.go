@@ -5,7 +5,10 @@
 package models
 
 import (
+	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // UnitType is Unit's Type
@@ -21,6 +24,33 @@ const (
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
+
+func (u UnitType) String() string {
+	switch u {
+	case UnitTypeCode:
+		return "UnitTypeCode"
+	case UnitTypeIssues:
+		return "UnitTypeIssues"
+	case UnitTypePullRequests:
+		return "UnitTypePullRequests"
+	case UnitTypeReleases:
+		return "UnitTypeReleases"
+	case UnitTypeWiki:
+		return "UnitTypeWiki"
+	case UnitTypeExternalWiki:
+		return "UnitTypeExternalWiki"
+	case UnitTypeExternalTracker:
+		return "UnitTypeExternalTracker"
+	}
+	return fmt.Sprintf("Unknown UnitType %d", u)
+}
+
+// ColorFormat provides a ColorFormatted version of this UnitType
+func (u UnitType) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(u),
+		u)
+}
 
 var (
 	// allRepUnitTypes contains all the unit types
