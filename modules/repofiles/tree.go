@@ -23,7 +23,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 		}
 	}
 	tree := new(api.GitTreeResponse)
-	tree.SHA = gitTree.ID.String()
+	tree.SHA = gitTree.CommitID.String()
 	tree.URL = repo.APIURL() + "/git/trees/" + tree.SHA
 	var entries git.Entries
 	if recursive {
@@ -74,11 +74,12 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	tree.Entries = make([]api.GitEntry, rangeEnd-rangeStart)
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
-		tree.Entries[i].Path = entries[e].Name()
-		tree.Entries[i].Mode = fmt.Sprintf("%06x", entries[e].Mode())
-		tree.Entries[i].Type = string(entries[e].Type)
-		tree.Entries[i].Size = entries[e].Size()
-		tree.Entries[i].SHA = entries[e].ID.String()
+
+		tree.Entries[e].Path = entries[e].Name()
+		tree.Entries[e].Mode = fmt.Sprintf("%06o", entries[e].Mode())
+		tree.Entries[e].Type = entries[e].Type()
+		tree.Entries[e].Size = entries[e].Size()
+		tree.Entries[e].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())

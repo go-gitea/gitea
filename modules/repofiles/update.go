@@ -62,7 +62,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				BranchName: opts.NewBranch,
 			}
 		}
-		if err != nil && !models.IsErrBranchNotExist(err) {
+		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
 	} else {

@@ -58,7 +58,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
 		"git", "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
-			return models.ErrBranchNotExist{
+			return git.ErrBranchNotExist{
 				Name: branch,
 			}
 		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {

@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -120,9 +118,12 @@ func Releases(ctx *context.Context) {
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
 	}
 
-	pager := paginater.New(int(count), limit, page, 5)
-	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releases
+
+	pager := context.NewPagination(int(count), limit, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplReleases)
 }
 
