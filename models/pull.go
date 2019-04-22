@@ -189,36 +189,6 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 			return nil
 		}
 	}
-	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
-		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
-		return nil
-	}
-	if baseCommit, err = baseBranch.GetCommit(); err != nil {
-		log.Error("baseBranch.GetCommit[%d]: %v", pr.ID, err)
-		return nil
-	}
-	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
-		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
-		return nil
-	}
-	if headCommit, err = headBranch.GetCommit(); err != nil {
-		log.Error("headBranch.GetCommit[%d]: %v", pr.ID, err)
-		return nil
-	}
-	apiBaseBranchInfo := &api.PRBranchInfo{
-		Name:       pr.BaseBranch,
-		Ref:        pr.BaseBranch,
-		Sha:        baseCommit.ID.String(),
-		RepoID:     pr.BaseRepoID,
-		Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
-	}
-	apiHeadBranchInfo := &api.PRBranchInfo{
-		Name:       pr.HeadBranch,
-		Ref:        pr.HeadBranch,
-		Sha:        headCommit.ID.String(),
-		RepoID:     pr.HeadRepoID,
-		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
-	}
 
 	if err = pr.Issue.loadRepo(e); err != nil {
 		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
@@ -241,12 +211,47 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		DiffURL:   pr.Issue.DiffURL(),
 		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
-		Base:      apiBaseBranchInfo,
-		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+	}
+	baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch)
+	if err != nil {
+		apiPullRequest.Base = nil
+	} else {
+		apiBaseBranchInfo := &api.PRBranchInfo{
+			Name:       pr.BaseBranch,
+			Ref:        pr.BaseBranch,
+			RepoID:     pr.BaseRepoID,
+			Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
+		}
+		baseCommit, err = baseBranch.GetCommit()
+		if err != nil {
+			apiBaseBranchInfo.Sha = ""
+		} else {
+			apiBaseBranchInfo.Sha = baseCommit.ID.String()
+		}
+		apiPullRequest.Base = apiBaseBranchInfo
+	}
+
+	headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch)
+	if err != nil {
+		apiPullRequest.Head = nil
+	} else {
+		apiHeadBranchInfo := &api.PRBranchInfo{
+			Name:       pr.HeadBranch,
+			Ref:        pr.HeadBranch,
+			RepoID:     pr.HeadRepoID,
+			Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
+		}
+		headCommit, err = headBranch.GetCommit()
+		if err != nil {
+			apiHeadBranchInfo.Sha = ""
+		} else {
+			apiHeadBranchInfo.Sha = headCommit.ID.String()
+		}
+		apiPullRequest.Head = apiHeadBranchInfo
 	}
 
 	if pr.Status != PullRequestStatusChecking {
