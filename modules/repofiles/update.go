@@ -286,9 +286,11 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if encoding != "UTF-8" {
 		charsetEncoding, _ := charset.Lookup(encoding)
 		if charsetEncoding != nil {
-			result, n, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			result, _, err := transform.String(charsetEncoding.NewEncoder(), string(content))
 			if err != nil {
-				result = result + string(content[n:])
+				// Look if we can't encode back in to the original we should just stick with utf-8
+				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.TreePath, opts.FromTreePath, encoding, err)
+				result = content
 			}
 			content = result
 		} else {
