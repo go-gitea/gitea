@@ -9460,6 +9460,9 @@
     "AccessToken": {
       "description": "AccessToken represents a API access token.",
       "headers": {
+        "hashed_token": {
+          "type": "string"
+        },
         "id": {
           "type": "integer",
           "format": "int64"
@@ -9467,7 +9470,10 @@
         "name": {
           "type": "string"
         },
-        "sha1": {
+        "token": {
+          "type": "string"
+        },
+        "token_last_eight": {
           "type": "string"
         }
       }
@@ -9967,3 +9973,4 @@
     }
   ]
 }
+
