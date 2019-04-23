@@ -57,6 +57,10 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
+	if len(token) < 8 {
+		// Unable to fetch token by last 8 characters
+		return nil, ErrAccessTokenNotExist{token}
+	}
 	var tokens []AccessToken
 	lastEight := token[len(token)-8:]
 	err := x.Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
