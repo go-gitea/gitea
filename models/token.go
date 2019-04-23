@@ -37,7 +37,7 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	t.Token = base.EncodeSha256(gouuid.NewV4().String())
+	t.Token = gouuid.NewV4().String()
 	t.HashedToken = base.EncodeSha256(t.Token)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err := x.Insert(t)
