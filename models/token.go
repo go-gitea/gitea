@@ -6,8 +6,8 @@
 package models
 
 import (
-	"time"
 	"crypto/subtle"
+	"time"
 
 	gouuid "github.com/satori/go.uuid"
 
