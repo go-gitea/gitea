@@ -6,6 +6,8 @@ package context
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+
 	macaron "gopkg.in/macaron.v1"
 )
 
@@ -45,6 +47,22 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 func RequireRepoReader(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
+			if log.IsTrace() {
+				if ctx.IsSigned {
+					log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+						"User in Repo has Permissions: %-+v",
+						ctx.User,
+						unitType,
+						ctx.Repo.Repository,
+						ctx.Repo.Permission)
+				} else {
+					log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+						"Anonymous user in Repo has Permissions: %-+v",
+						unitType,
+						ctx.Repo.Repository,
+						ctx.Repo.Permission)
+				}
+			}
 			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
@@ -58,6 +76,25 @@ func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
 			if ctx.Repo.CanRead(unitType) {
 				return
 			}
+		}
+		if log.IsTrace() {
+			var format string
+			var args []interface{}
+			if ctx.IsSigned {
+				format = "Permission Denied: User %-v cannot read ["
+				args = append(args, ctx.User)
+			} else {
+				format = "Permission Denied: Anonymous user cannot read ["
+			}
+			for _, unit := range unitTypes {
+				format += "%-v, "
+				args = append(args, unit)
+			}
+
+			format = format[:len(format)-2] + "] in Repo %-v\n" +
+				"User in Repo has Permissions: %-+v"
+			args = append(args, ctx.Repo.Repository, ctx.Repo.Permission)
+			log.Trace(format, args...)
 		}
 		ctx.NotFound(ctx.Req.RequestURI, nil)
 	}

@@ -4,6 +4,12 @@
 
 package models
 
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
+)
+
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
 	AccessMode AccessMode
@@ -90,12 +96,67 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(UnitTypeIssues)
 }
 
+// ColorFormat writes a colored string for these Permissions
+func (p *Permission) ColorFormat(s fmt.State) {
+	noColor := log.ColorBytes(log.Reset)
+
+	format := "AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
+	args := []interface{}{
+		p.AccessMode,
+		log.NewColoredValueBytes(len(p.Units), &noColor),
+		log.NewColoredValueBytes(len(p.UnitsMode), &noColor),
+	}
+	if s.Flag('+') {
+		for i, unit := range p.Units {
+			config := ""
+			if unit.Config != nil {
+				configBytes, err := unit.Config.ToDB()
+				config = string(configBytes)
+				if err != nil {
+					config = string(err.Error())
+				}
+			}
+			format += "\nUnits[%d]: ID: %d RepoID: %d Type: %-v Config: %s"
+			args = append(args,
+				log.NewColoredValueBytes(i, &noColor),
+				log.NewColoredIDValue(unit.ID),
+				log.NewColoredIDValue(unit.RepoID),
+				unit.Type,
+				config)
+		}
+		for key, value := range p.UnitsMode {
+			format += "\nUnitMode[%-v]: %-v"
+			args = append(args,
+				key,
+				value)
+		}
+	} else {
+		format += "..."
+	}
+	format += " ]"
+	log.ColorFprintf(s, format, args...)
+}
+
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 	return getUserRepoPermission(x, repo, user)
 }
 
 func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
+	if log.IsTrace() {
+		defer func() {
+			if user == nil {
+				log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
+					repo,
+					perm)
+				return
+			}
+			log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
+				user,
+				repo,
+				perm)
+		}()
+	}
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {

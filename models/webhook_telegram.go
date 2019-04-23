@@ -17,8 +17,9 @@ import (
 type (
 	// TelegramPayload represents
 	TelegramPayload struct {
-		Message   string `json:"text"`
-		ParseMode string `json:"parse_mode"`
+		Message           string `json:"text"`
+		ParseMode         string `json:"parse_mode"`
+		DisableWebPreview bool   `json:"disable_web_page_preview"`
 	}
 
 	// TelegramMeta contains the telegram metadata
@@ -34,6 +35,7 @@ func (p *TelegramPayload) SetSecret(_ string) {}
 // JSONPayload Marshals the TelegramPayload to json
 func (p *TelegramPayload) JSONPayload() ([]byte, error) {
 	p.ParseMode = "HTML"
+	p.DisableWebPreview = true
 	p.Message = markup.Sanitize(p.Message)
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {

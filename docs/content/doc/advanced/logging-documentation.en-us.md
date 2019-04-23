@@ -362,6 +362,17 @@ also set the `resetBytes` to the cached `resetBytes`.
 The `colorBytes` and `resetBytes` are not exported to prevent
 accidental overwriting of internal values.
 
+## ColorFormat & ColorFormatted
+
+Structs may implement the `log.ColorFormatted` interface by implementing the `ColorFormat(fmt.State)` function.
+
+If a `log.ColorFormatted` struct is logged with `%-v` format, its `ColorFormat` will be used instead of the usual `%v`. The full `fmt.State` will be passed to allow implementers to look at additional flags.
+
+In order to help implementers provide `ColorFormat` methods. There is a
+`log.ColorFprintf(...)` function in the log module that will wrap values in `log.ColoredValue` and recognise `%-v`.
+
+In general it is recommended not to make the results of this function too verbose to help increase its versatility. Usually this should simply be an `ID`:`Name`. If you wish to make a more verbose result, it is recommended to use `%-+v` as your marker.
+
 ## Log Spoofing protection
 
 In order to protect the logs from being spoofed with cleverly
@@ -392,5 +403,5 @@ func newNewoneLogService() {
 }
 ```
 
-You should then add `newOneLogService` to `NewServices()` in 
+You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`
