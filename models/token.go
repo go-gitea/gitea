@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -37,7 +38,7 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	t.Token = gouuid.NewV4().String()
+	t.Token = base.EncodeSha1(gouuid.NewV4().String())
 	t.HashedToken = base.EncodeSha256(t.Token)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err := x.Insert(t)
