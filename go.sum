@@ -1,6 +1,4 @@
 cloud.google.com/go v0.30.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498 h1:rcjwXMYIjYts88akPiyy/GB+imecpf159jojChciEEw=
-code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498/go.mod h1:5bZt0dRznpn2JysytQnV0yCru3FwDv9O5G91jo+lDAk=
 code.gitea.io/sdk v0.0.0-20190419065346-2858b80da5f7 h1:YggbbCVgggcOjKYmcB2wVOsEtJHgHUNFFJZDB6QcYTg=
 code.gitea.io/sdk v0.0.0-20190419065346-2858b80da5f7/go.mod h1:5bZt0dRznpn2JysytQnV0yCru3FwDv9O5G91jo+lDAk=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
@@ -359,8 +357,6 @@ gopkg.in/src-d/go-billy.v4 v4.3.0 h1:KtlZ4c1OWbIs4jCv5ZXrTqG8EQocr0g/d4DjNg70aek
 gopkg.in/src-d/go-billy.v4 v4.3.0/go.mod h1:tm33zBoOwxjYHZIE+OV8bxTWFMJLrconzFMd38aARFk=
 gopkg.in/src-d/go-git-fixtures.v3 v3.1.1 h1:XWW/s5W18RaJpmo1l0IYGqXKuJITWRFuA45iOf1dKJs=
 gopkg.in/src-d/go-git-fixtures.v3 v3.1.1/go.mod h1:dLBcvytrw/TYZsNTWCnkNF2DSIlzWYqTe3rJR56Ac7g=
-gopkg.in/src-d/go-git.v4 v4.8.0 h1:dDEbgvfNG9vUDM54uhCYPExiGa8uYgXpQ/MR8YvxcAM=
-gopkg.in/src-d/go-git.v4 v4.8.0/go.mod h1:Vtut8izDyrM8BUVQnzJ+YvmNcem2J89EmfZYCkLokZk=
 gopkg.in/src-d/go-git.v4 v4.10.0 h1:NWjTJTQnk8UpIGlssuefyDZ6JruEjo5s88vm88uASbw=
 gopkg.in/src-d/go-git.v4 v4.10.0/go.mod h1:Vtut8izDyrM8BUVQnzJ+YvmNcem2J89EmfZYCkLokZk=
 gopkg.in/stretchr/testify.v1 v1.2.2 h1:yhQC6Uy5CqibAIlk1wlusa/MJ3iAN49/BsR/dCCKz3M=
