@@ -31,6 +31,8 @@ import (
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
 
+var utf8bom = []byte{'\xef', '\xbb', '\xbf'}
+
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
@@ -267,6 +269,10 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	if err != nil {
 		return "", err
 	} else if charsetLabel == "UTF-8" {
+		if len(content) > 2 && bytes.Equal(content[0:3], utf8bom) {
+			log.Debug("Removing BOM from UTF-8 string")
+			return string(content[3:]), nil
+		}
 		return string(content), nil
 	}
 
@@ -282,6 +288,11 @@ func ToUTF8WithErr(content []byte) (string, error) {
 		result = result + string(content[n:])
 	}
 
+	if len(result) > 2 && bytes.Equal([]byte(result[0:3]), utf8bom) {
+		log.Debug("Removing BOM from decoded string")
+		result = result[3:]
+	}
+
 	return result, err
 }
 
@@ -289,6 +300,10 @@ func ToUTF8WithErr(content []byte) (string, error) {
 func ToUTF8WithFallback(content []byte) []byte {
 	charsetLabel, err := base.DetectEncoding(content)
 	if err != nil || charsetLabel == "UTF-8" {
+		if len(content) > 2 && bytes.Equal(content[0:3], utf8bom) {
+			log.Debug("Removing BOM from UTF-8 string")
+			return content[3:]
+		}
 		return content
 	}
 
@@ -302,6 +317,11 @@ func ToUTF8WithFallback(content []byte) []byte {
 	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
 	if err != nil {
 		return append(result, content[n:]...)
+	}
+
+	if len(result) > 2 && bytes.Equal(result[0:3], utf8bom) {
+		log.Debug("Removing BOM from decoded string")
+		result = result[3:]
 	}
 
 	return result
