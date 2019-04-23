@@ -507,7 +507,7 @@ func (err ErrDeployKeyNameAlreadyUsed) Error() string {
 
 // ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
 type ErrAccessTokenNotExist struct {
-	SHA string
+	Token string
 }
 
 // IsErrAccessTokenNotExist checks if an error is a ErrAccessTokenNotExist.
@@ -517,7 +517,7 @@ func IsErrAccessTokenNotExist(err error) bool {
 }
 
 func (err ErrAccessTokenNotExist) Error() string {
-	return fmt.Sprintf("access token does not exist [sha: %s]", err.SHA)
+	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.

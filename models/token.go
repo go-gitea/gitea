@@ -12,6 +12,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -39,10 +40,15 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
+	salt, err := generate.GetRandomString(10)
+	if err != nil {
+		return err
+	}
+	t.TokenSalt = salt
 	t.Token = base.EncodeSha1(gouuid.NewV4().String())
-	t.TokenHash = base.EncodeSha256(t.Token)
+	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err := x.Insert(t)
+	_, err = x.Insert(t)
 	return err
 }
 
