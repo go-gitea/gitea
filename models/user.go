@@ -146,6 +146,13 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// ColorFormat writes a colored string to identify this struct
+func (u *User) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(u.ID),
+		log.NewColoredValue(u.Name))
+}
+
 // BeforeUpdate is invoked from XORM before updating this object.
 func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
