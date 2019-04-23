@@ -36,6 +36,9 @@ import (
 	"github.com/gogits/chardet"
 )
 
+// UTF8BOM is the utf-8 byte-order marker
+var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
+
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
 	m := md5.New()

@@ -5,13 +5,19 @@
 package repofiles
 
 import (
+	"bytes"
 	"fmt"
 	"path"
 	"strings"
 
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
 )
@@ -35,6 +41,41 @@ type UpdateRepoFileOptions struct {
 	IsNewFile    bool
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
+}
+
+func detectEncodingAndBOM(entry *git.TreeEntry) (string, bool) {
+	reader, err := entry.Blob().DataAsync()
+	if err != nil {
+		// just default to utf-8 and no bom
+		return "UTF-8", false
+	}
+	buf := make([]byte, 1024)
+	n, err := reader.Read(buf)
+	if err != nil {
+		// just default to utf-8 and no bom
+		return "UTF-8", false
+	}
+	buf = buf[:n]
+	encoding, err := base.DetectEncoding(buf)
+	if err != nil {
+		// just default to utf-8 and no bom
+		return "UTF-8", false
+	}
+	if encoding == "UTF-8" {
+		return encoding, bytes.Equal(buf[0:3], base.UTF8BOM)
+	}
+	charsetEncoding, _ := charset.Lookup(encoding)
+	if charsetEncoding == nil {
+		return "UTF-8", false
+	}
+
+	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+
+	if n > 2 {
+		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
+	}
+
+	return encoding, false
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
@@ -118,6 +159,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		opts.LastCommitID = commit.ID.String()
 	}
 
+	encoding := "UTF-8"
+	bom := false
+
 	if !opts.IsNewFile {
 		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
 		if err != nil {
@@ -151,6 +195,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			// haven't been made. We throw an error if one wasn't provided.
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
+		encoding, bom = detectEncodingAndBOM(fromEntry)
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -235,6 +280,21 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	content := opts.Content
+	if bom {
+		content = string(base.UTF8BOM) + content
+	}
+	if encoding != "UTF-8" {
+		charsetEncoding, _ := charset.Lookup(encoding)
+		if charsetEncoding != nil {
+			result, n, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			if err != nil {
+				result = result + string(content[n:])
+			}
+			content = result
+		} else {
+			log.Error("Unknown encoding: %s", encoding)
+		}
+	}
 	var lfsMetaObject *models.LFSMetaObject
 
 	if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
