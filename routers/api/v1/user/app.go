@@ -39,7 +39,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 		apiTokens[i] = &api.AccessToken{
 			ID:             tokens[i].ID,
 			Name:           tokens[i].Name,
-			HashedToken:    tokens[i].HashedToken,
+			HashedToken:    tokens[i].TokenHash,
 			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}

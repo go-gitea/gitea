@@ -7,6 +7,7 @@ package models
 
 import (
 	"time"
+	"crypto/subtle"
 
 	gouuid "github.com/satori/go.uuid"
 
@@ -19,9 +20,9 @@ type AccessToken struct {
 	ID             int64 `xorm:"pk autoincr"`
 	UID            int64 `xorm:"INDEX"`
 	Name           string
-	Sha1           string `xorm:"-"`
 	Token          string `xorm:"-"`
-	HashedToken    string `xorm:"UNIQUE"` // sha256 of token
+	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+	TokenSalt      string
 	TokenLastEight string `xorm:"token_last_eight"`
 
 	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
@@ -39,26 +40,32 @@ func (t *AccessToken) AfterLoad() {
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
 	t.Token = base.EncodeSha1(gouuid.NewV4().String())
-	t.HashedToken = base.EncodeSha256(t.Token)
+	t.TokenHash = base.EncodeSha256(t.Token)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err := x.Insert(t)
 	return err
 }
 
-// GetAccessTokenBySHA returns access token by given sha1.
+// GetAccessTokenBySHA returns access token by given token value
 func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
-	hashedToken := base.EncodeSha256(token)
-	t := &AccessToken{HashedToken: hashedToken}
-	has, err := x.Get(t)
+	var tokens []AccessToken
+	lastEight := token[len(token)-8:]
+	err := x.Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if len(tokens) == 0 {
 		return nil, ErrAccessTokenNotExist{token}
 	}
-	return t, nil
+	for _, t := range tokens {
+		tempHash := hashToken(token, t.TokenSalt)
+		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
+			return &t, nil
+		}
+	}
+	return nil, ErrAccessTokenNotExist{token}
 }
 
 // ListAccessTokens returns a list of access tokens belongs to given user.

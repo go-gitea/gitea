@@ -33,7 +33,7 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
 	assert.Equal(t, "Token A", token.Name)
-	assert.Equal(t, "63d5eede00e1e8e7f8a60af96ffbce5fd039084ad2dcdee4696d436e4c5382c0", token.HashedToken)
+	assert.Equal(t, "63d5eede00e1e8e7f8a60af96ffbce5fd039084ad2dcdee4696d436e4c5382c0", token.TokenHash)
 	assert.Equal(t, "11111111", token.TokenLastEight)
 
 	token, err = GetAccessTokenBySHA("notahash")
