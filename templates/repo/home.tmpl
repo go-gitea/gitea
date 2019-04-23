@@ -86,7 +86,7 @@
 							</a>
 						{{end}}
 					{{end}}
-					{{if and (ne $n 0) (not .IsViewFile)}}
+					{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame) }}
 						<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui button">
 							{{.i18n.Tr "repo.file_history"}}
 						</a>
@@ -132,6 +132,8 @@
 		</div>
 		{{if .IsViewFile}}
 			{{template "repo/view_file" .}}
+		{{else if .IsBlame}}
+			{{template "repo/blame" .}}
 		{{else}}
 			{{template "repo/view_list" .}}
 		{{end}}

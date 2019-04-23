@@ -64,3 +64,18 @@ func IsErrUnsupportedVersion(err error) bool {
 func (err ErrUnsupportedVersion) Error() string {
 	return fmt.Sprintf("Operation requires higher version [required: %s]", err.Required)
 }
+
+// ErrBranchNotExist represents a "BranchNotExist" kind of error.
+type ErrBranchNotExist struct {
+	Name string
+}
+
+// IsErrBranchNotExist checks if an error is a ErrBranchNotExist.
+func IsErrBranchNotExist(err error) bool {
+	_, ok := err.(ErrBranchNotExist)
+	return ok
+}
+
+func (err ErrBranchNotExist) Error() string {
+	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
+}
