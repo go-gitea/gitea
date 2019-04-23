@@ -93,7 +93,7 @@ func hashAppToken(x *xorm.Engine) error {
 			token.TokenSalt = salt
 			token.TokenHash = hashToken(token.Sha1, salt)
 			if len(token.Sha1) < 8 {
-				log.Warn("Unable to transform token %s with name %s belonging to user ID %d, skipping transformation", t.Sha1, t.Name, t.UID)
+				log.Warn("Unable to transform token %s with name %s belonging to user ID %d, skipping transformation", token.Sha1, token.Name, token.UID)
 				continue
 			}
 			token.TokenLastEight = token.Sha1[len(token.Sha1)-8:]
