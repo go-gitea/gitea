@@ -294,6 +294,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	err = issue.LoadAttributes()
 	if err != nil {
 		ctx.Error(500, "LoadAttributes", err)
+		return
 	}
 
 	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
