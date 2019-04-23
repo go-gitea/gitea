@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,8 +8,11 @@ package git
 import (
 	"io"
 	"sort"
-	"strconv"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // EntryMode the type of the object in the git tree
@@ -18,28 +22,23 @@ type EntryMode int
 // one of these.
 const (
 	// EntryModeBlob
-	EntryModeBlob EntryMode = 0x0100644
+	EntryModeBlob EntryMode = 0100644
 	// EntryModeExec
-	EntryModeExec EntryMode = 0x0100755
+	EntryModeExec EntryMode = 0100755
 	// EntryModeSymlink
-	EntryModeSymlink EntryMode = 0x0120000
+	EntryModeSymlink EntryMode = 0120000
 	// EntryModeCommit
-	EntryModeCommit EntryMode = 0x0160000
+	EntryModeCommit EntryMode = 0160000
 	// EntryModeTree
-	EntryModeTree EntryMode = 0x0040000
+	EntryModeTree EntryMode = 0040000
 )
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID   SHA1
-	Type ObjectType
+	ID SHA1
 
-	mode EntryMode
-	name string
-
-	ptree *Tree
-
-	committed bool
+	gogitTreeEntry *object.TreeEntry
+	ptree          *Tree
 
 	size  int64
 	sized bool
@@ -47,12 +46,24 @@ type TreeEntry struct {
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
-	return te.name
+	return te.gogitTreeEntry.Name
 }
 
 // Mode returns the mode of the entry
 func (te *TreeEntry) Mode() EntryMode {
-	return te.mode
+	return EntryMode(te.gogitTreeEntry.Mode)
+}
+
+// Type returns the type of the entry (commit, tree, blob)
+func (te *TreeEntry) Type() string {
+	switch te.Mode() {
+	case EntryModeCommit:
+		return "commit"
+	case EntryModeTree:
+		return "tree"
+	default:
+		return "blob"
+	}
 }
 
 // Size returns the size of the entry
@@ -63,36 +74,47 @@ func (te *TreeEntry) Size() int64 {
 		return te.size
 	}
 
-	stdout, err := NewCommand("cat-file", "-s", te.ID.String()).RunInDir(te.ptree.repo.Path)
+	file, err := te.ptree.gogitTree.TreeEntryFile(te.gogitTreeEntry)
 	if err != nil {
 		return 0
 	}
 
 	te.sized = true
-	te.size, _ = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	te.size = file.Size
 	return te.size
 }
 
 // IsSubModule if the entry is a sub module
 func (te *TreeEntry) IsSubModule() bool {
-	return te.mode == EntryModeCommit
+	return te.gogitTreeEntry.Mode == filemode.Submodule
 }
 
 // IsDir if the entry is a sub dir
 func (te *TreeEntry) IsDir() bool {
-	return te.mode == EntryModeTree
+	return te.gogitTreeEntry.Mode == filemode.Dir
 }
 
 // IsLink if the entry is a symlink
 func (te *TreeEntry) IsLink() bool {
-	return te.mode == EntryModeSymlink
+	return te.gogitTreeEntry.Mode == filemode.Symlink
 }
 
-// Blob retrun the blob object the entry
+// IsRegular if the entry is a regular file
+func (te *TreeEntry) IsRegular() bool {
+	return te.gogitTreeEntry.Mode == filemode.Regular
+}
+
+// Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
+	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)
+	if err != nil {
+		return nil
+	}
+
 	return &Blob{
-		repo:      te.ptree.repo,
-		TreeEntry: te,
+		ID:              te.gogitTreeEntry.Hash,
+		gogitEncodedObj: encodedObj,
+		name:            te.Name(),
 	}
 }
 
@@ -103,10 +125,11 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	}
 
 	// read the link
-	r, err := te.Blob().Data()
+	r, err := te.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
+	defer r.Close()
 	buf := make([]byte, te.Size())
 	_, err = io.ReadFull(r, buf)
 	if err != nil {
@@ -140,18 +163,18 @@ func (te *TreeEntry) GetSubJumpablePathName() string {
 	if te.IsSubModule() || !te.IsDir() {
 		return ""
 	}
-	tree, err := te.ptree.SubTree(te.name)
+	tree, err := te.ptree.SubTree(te.Name())
 	if err != nil {
-		return te.name
+		return te.Name()
 	}
 	entries, _ := tree.ListEntries()
 	if len(entries) == 1 && entries[0].IsDir() {
 		name := entries[0].GetSubJumpablePathName()
 		if name != "" {
-			return te.name + "/" + name
+			return te.Name() + "/" + name
 		}
 	}
-	return te.name
+	return te.Name()
 }
 
 // Entries a list of entry
@@ -167,7 +190,7 @@ var sorter = []func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool{
 		return (t1.IsDir() || t1.IsSubModule()) && !t2.IsDir() && !t2.IsSubModule()
 	},
 	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
-		return cmp(t1.name, t2.name)
+		return cmp(t1.Name(), t2.Name())
 	},
 }
 

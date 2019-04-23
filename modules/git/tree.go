@@ -1,29 +1,31 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package git
 
 import (
+	"io"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID   SHA1
-	repo *Repository
+	ID       SHA1
+	CommitID SHA1
+	repo     *Repository
+
+	gogitTree *object.Tree
 
 	// parent tree
 	ptree *Tree
-
-	entries       Entries
-	entriesParsed bool
-
-	entriesRecursive       Entries
-	entriesRecursiveParsed bool
 }
 
-// NewTree create a new tree according the repository and commit id
+// NewTree create a new tree according the repository and tree id
 func NewTree(repo *Repository, id SHA1) *Tree {
 	return &Tree{
 		ID:   id,
@@ -60,39 +62,68 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	return g, nil
 }
 
+func (t *Tree) loadTreeObject() error {
+	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID))
+	if err != nil {
+		return err
+	}
+
+	t.gogitTree = gogitTree
+	return nil
+}
+
 // ListEntries returns all entries of current tree.
 func (t *Tree) ListEntries() (Entries, error) {
-	if t.entriesParsed {
-		return t.entries, nil
+	if t.gogitTree == nil {
+		err := t.loadTreeObject()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	stdout, err := NewCommand("ls-tree", t.ID.String()).RunInDirBytes(t.repo.Path)
-	if err != nil {
-		return nil, err
+	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
+	for i, entry := range t.gogitTree.Entries {
+		entries[i] = &TreeEntry{
+			ID:             entry.Hash,
+			gogitTreeEntry: &t.gogitTree.Entries[i],
+			ptree:          t,
+		}
 	}
 
-	t.entries, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesParsed = true
-	}
-
-	return t.entries, err
+	return entries, nil
 }
 
 // ListEntriesRecursive returns all entries of current tree recursively including all subtrees
 func (t *Tree) ListEntriesRecursive() (Entries, error) {
-	if t.entriesRecursiveParsed {
-		return t.entriesRecursive, nil
-	}
-	stdout, err := NewCommand("ls-tree", "-t", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesRecursiveParsed = true
+	if t.gogitTree == nil {
+		err := t.loadTreeObject()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return t.entriesRecursive, err
+	var entries []*TreeEntry
+	seen := map[plumbing.Hash]bool{}
+	walker := object.NewTreeWalker(t.gogitTree, true, seen)
+	for {
+		_, entry, err := walker.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if seen[entry.Hash] {
+			continue
+		}
+
+		convertedEntry := &TreeEntry{
+			ID:             entry.Hash,
+			gogitTreeEntry: &entry,
+			ptree:          t,
+		}
+		entries = append(entries, convertedEntry)
+	}
+
+	return entries, nil
 }

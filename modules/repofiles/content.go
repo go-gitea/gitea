@@ -61,7 +61,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 		HTMLURL:     htmlURL.String(),
 		GitURL:      gitURL.String(),
 		DownloadURL: downloadURL.String(),
-		Type:        string(entry.Type),
+		Type:        entry.Type(),
 		Links: &api.FileLinksResponse{
 			Self:    selfURL.String(),
 			GitURL:  gitURL.String(),
