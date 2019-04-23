@@ -29,12 +29,12 @@ func TestNewAccessToken(t *testing.T) {
 
 func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	token, err := GetAccessTokenBySHA("hashhash11111111")
+	token, err := GetAccessTokenBySHA("d2c6c1ba3890b309189a8e618c72a162e4efbf36")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
 	assert.Equal(t, "Token A", token.Name)
-	assert.Equal(t, "63d5eede00e1e8e7f8a60af96ffbce5fd039084ad2dcdee4696d436e4c5382c0", token.TokenHash)
-	assert.Equal(t, "11111111", token.TokenLastEight)
+	assert.Equal(t, "2b3668e11cb82d3af8c6e4524fc7841297668f5008d1626f0ad3417e9fa39af84c268248b78c481daa7e5dc437784003494f", token.TokenHash)
+	assert.Equal(t, "e4efbf36", token.TokenLastEight)
 
 	token, err = GetAccessTokenBySHA("notahash")
 	assert.Error(t, err)
@@ -70,7 +70,7 @@ func TestListAccessTokens(t *testing.T) {
 
 func TestUpdateAccessToken(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	token, err := GetAccessTokenBySHA("hashhash22222222")
+	token, err := GetAccessTokenBySHA("4c6f36e6cf498e2a448662f915d932c09c5a146c")
 	assert.NoError(t, err)
 	token.Name = "Token Z"
 
@@ -81,7 +81,7 @@ func TestUpdateAccessToken(t *testing.T) {
 func TestDeleteAccessTokenByID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	token, err := GetAccessTokenBySHA("hashhash22222222")
+	token, err := GetAccessTokenBySHA("4c6f36e6cf498e2a448662f915d932c09c5a146c")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
 

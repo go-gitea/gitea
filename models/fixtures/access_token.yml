@@ -2,9 +2,10 @@
   id: 1
   uid: 1
   name: Token A
-  token: hashhash11111111
-  hashed_token: 63d5eede00e1e8e7f8a60af96ffbce5fd039084ad2dcdee4696d436e4c5382c0
-  token_last_eight: 11111111
+  token: d2c6c1ba3890b309189a8e618c72a162e4efbf36
+  token_hash: 2b3668e11cb82d3af8c6e4524fc7841297668f5008d1626f0ad3417e9fa39af84c268248b78c481daa7e5dc437784003494f
+  token_salt: QuSiZr1byZ
+  token_last_eight: e4efbf36
   created_unix: 946687980
   updated_unix: 946687980
 
@@ -12,9 +13,10 @@
   id: 2
   uid: 1
   name: Token B
-  token: hashhash22222222
-  hashed_token: 31eb2a689c5a8ee708c7880da1123fb462915a0e0344c54f46904a6fe597d758
-  token_last_eight: 22222222
+  token: 4c6f36e6cf498e2a448662f915d932c09c5a146c
+  token_hash: 1a0e32a231ebbd582dc626c1543a42d3c63d4fa76c07c72862721467c55e8f81c923d60700f0528b5f5f443f055559d3a279
+  token_salt: Lfwopukrq5
+  token_last_eight: 9c5a146c
   created_unix: 946687980
   updated_unix: 946687980
 
@@ -22,8 +24,9 @@
   id: 3
   uid: 2
   name: Token A
-  token: hashhash33333333
-  hashed_token: c9786f567ce95c8ab8ad2a24187338b35edb61fba01a02eacb8f70e157d1e385
-  token_last_eight: 33333333
+  token: 90a18faa671dc43924b795806ffe4fd169d28c91
+  token_hash: d6d404048048812d9e911d93aefbe94fc768d4876fdf75e3bef0bdc67828e0af422846d3056f2f25ec35c51dc92075685ec5
+  token_salt: 99ArgXKlQQ
+  token_last_eight: 69d28c91
   created_unix: 946687980
   updated_unix: 946687980
