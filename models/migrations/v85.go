@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -91,6 +92,10 @@ func hashAppToken(x *xorm.Engine) error {
 			}
 			token.TokenSalt = salt
 			token.TokenHash = hashToken(token.Sha1, salt)
+			if len(token.Sha1) < 8 {
+				log.Warn("Unable to transform token %s with name %s belonging to user ID %d, skipping transformation", t.Sha1, t.Name, t.UID)
+				continue
+			}
 			token.TokenLastEight = token.Sha1[len(token.Sha1)-8:]
 			token.Sha1 = "" // ensure to blank out column in case drop column doesn't work
 
