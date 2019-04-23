@@ -291,6 +291,12 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	issue.Repo = ctx.Repo.Repository
 
+	err = issue.LoadAttributes()
+	if err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
+
 	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)
 		return
