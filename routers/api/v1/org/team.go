@@ -38,6 +38,11 @@ func ListTeams(ctx *context.APIContext) {
 
 	apiTeams := make([]*api.Team, len(org.Teams))
 	for i := range org.Teams {
+		if err := org.Teams[i].GetUnits(); err != nil {
+			ctx.Error(500, "GetUnits", err)
+			return
+		}
+
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
 	}
 	ctx.JSON(200, apiTeams)
@@ -242,7 +247,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		ctx.Error(500, "IsOrganizationMember", err)
 		return
 	} else if !isMember {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	team := ctx.Org.Team
@@ -391,7 +396,7 @@ func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
 	repo, err := models.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetRepositoryByName", err)
 		}

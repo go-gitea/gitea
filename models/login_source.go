@@ -616,9 +616,9 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return nil, err
 	}
 
-	if !user.IsActive {
-		return nil, ErrUserInactive{user.ID, user.Name}
-	} else if user.ProhibitLogin {
+	// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+	// user could be hint to resend confirm email.
+	if user.ProhibitLogin {
 		return nil, ErrUserProhibitLogin{user.ID, user.Name}
 	}
 
@@ -658,9 +658,9 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
-				if !user.IsActive {
-					return nil, ErrUserInactive{user.ID, user.Name}
-				} else if user.ProhibitLogin {
+				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+				// user could be hint to resend confirm email.
+				if user.ProhibitLogin {
 					return nil, ErrUserProhibitLogin{user.ID, user.Name}
 				}
 

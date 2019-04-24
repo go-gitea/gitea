@@ -87,7 +87,7 @@ func GetLabel(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetLabelByRepoID", err)
 		}
@@ -172,7 +172,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetLabelByRepoID", err)
 		}

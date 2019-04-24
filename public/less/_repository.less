@@ -330,7 +330,7 @@
             .code-view {
                 * {
                     font-size: 12px;
-                    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                    font-family: @monospaced-fonts, monospace;
                     line-height: 20px;
                 }
 
@@ -371,6 +371,53 @@
                                 content: ' ';
                             }
                         }
+                    }
+                }
+                .lines-commit {
+                    vertical-align: top;
+                    color: #999;
+                    padding: 0;
+                    background: #f5f5f5;
+                    width: 1%;
+                    -moz-user-select: none;
+                    -ms-user-select: none;
+                    -webkit-user-select: none;
+                    user-select: none;
+
+                    .blame-info {
+                        width: 350px;
+                        max-width: 350px;
+                        display: block;
+                        user-select: none;
+                        padding: 0 0 0 10px;
+
+                        .blame-data {
+                            display: flex;
+                            font-family: @default-fonts;
+
+                            .blame-message {
+                                flex-grow: 2;
+                                overflow: hidden;
+                                white-space: nowrap;
+                                text-overflow: ellipsis;
+                                line-height: 20px;
+                            }
+                            .blame-time, .blame-avatar {
+                                flex-shrink: 0;
+                            }
+                        }
+                    }
+
+                    .ui.avatar.image {
+                        height: 18px;
+                        width: 18px;
+                    }
+                }
+                .lines-num,
+                .lines-code,
+                .lines-commit {
+                    .bottom-line {
+                        border-bottom: 1px solid #eaecef;
                     }
                 }
                 .active {
@@ -430,7 +477,7 @@
                     .branch-name {
                         display: inline-block;
                         padding: 3px 6px;
-                        font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+                        font: 12px @monospaced-fonts, monospace;
                         color: rgba(0,0,0,0.65);
                         background-color: rgba(209,227,237,0.45);
                         border-radius: 3px;
@@ -699,7 +746,7 @@
                     }
                     textarea {
                         height: 200px;
-                        font-family: "Consolas", monospace;
+                        font-family: @monospaced-fonts, monospace;
                     }
                 }
 
@@ -802,7 +849,7 @@
             }
             textarea {
                 height: 200px;
-                                font-family: "Consolas", monospace;
+                                font-family: @monospaced-fonts, monospace;
             }
         }
     }
@@ -1346,7 +1393,7 @@
         &.new {
             .CodeMirror {
                 .CodeMirror-code {
-                    font-family: "Consolas", monospace;
+                    font-family: @monospaced-fonts, monospace;
                     .cm-comment {
                         background: inherit;
                     }

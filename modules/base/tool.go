@@ -16,17 +16,21 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
@@ -109,7 +113,7 @@ func GetRandomBytesAsBase64(n int) string {
 	_, err := io.ReadFull(rand.Reader, bytes)
 
 	if err != nil {
-		log.Fatal(4, "Error reading random bytes: %v", err)
+		log.Fatal("Error reading random bytes: %v", err)
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
@@ -196,12 +200,12 @@ const DefaultAvatarSize = -1
 func libravatarURL(email string) (*url.URL, error) {
 	urlStr, err := setting.LibravatarService.FromEmail(email)
 	if err != nil {
-		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
 		return nil, err
 	}
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
 		return nil, err
 	}
 	return u, nil
@@ -601,4 +605,26 @@ func EntryIcon(entry *git.TreeEntry) string {
 	}
 
 	return "file-text"
+}
+
+// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
+func SetupGiteaRoot() string {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
+		_, filename, _, _ := runtime.Caller(0)
+		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
+		wd, err := os.Getwd()
+		if err != nil {
+			rel, err := filepath.Rel(giteaRoot, wd)
+			if err != nil && strings.HasPrefix(filepath.ToSlash(rel), "../") {
+				giteaRoot = wd
+			}
+		}
+		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
+			giteaRoot = ""
+		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
+			giteaRoot = ""
+		}
+	}
+	return giteaRoot
 }

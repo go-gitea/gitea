@@ -7,7 +7,6 @@ package routers
 
 import (
 	"bytes"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,8 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -48,7 +45,7 @@ func Home(ctx *context.Context) {
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.RequestURI, 0, setting.AppSubURL)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
@@ -152,9 +149,12 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
 	ctx.Data["Repos"] = repos
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, opts.TplName)
 }
@@ -223,10 +223,13 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	}
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Users"] = users
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplName)
 }
@@ -365,11 +368,14 @@ func ExploreCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = keyword
-	pager := paginater.New(total, setting.UI.RepoSearchPagingNum, page, 5)
-	ctx.Data["Page"] = pager
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
+
+	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplExploreCode)
 }
 

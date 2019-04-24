@@ -150,7 +150,7 @@ func SettingsDelete(ctx *context.Context) {
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["BaseLink"] = ctx.Org.OrgLink
+	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID)

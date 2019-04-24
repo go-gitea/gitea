@@ -8,17 +8,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr, canPush bool) {
-	reqURL := fmt.Sprintf("/api/internal/branch/%d/%s", repoID, url.QueryEscape(branchName))
+	reqURL := fmt.Sprintf("/api/internal/branch/%d/%s", repoID, util.PathEscapeSegments(branchName))
 	req := NewRequest(t, "GET", reqURL)
 	t.Log(reqURL)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))

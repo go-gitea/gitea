@@ -29,6 +29,9 @@ type swaggerParameterBodies struct {
 	EditHookOption api.EditHookOption
 
 	// in:body
+	EditGitHookOption api.EditGitHookOption
+
+	// in:body
 	CreateIssueOption api.CreateIssueOption
 	// in:body
 	EditIssueOption api.EditIssueOption
@@ -94,6 +97,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateUserOption api.CreateUserOption
+
 	// in:body
 	EditUserOption api.EditUserOption
 
@@ -102,4 +106,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	CreateFileOptions api.CreateFileOptions
+
+	// in:body
+	UpdateFileOptions api.UpdateFileOptions
+
+	// in:body
+	DeleteFileOptions api.DeleteFileOptions
 }
