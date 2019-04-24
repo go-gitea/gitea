@@ -39,4 +39,7 @@ func TestAPITeam(t *testing.T) {
 	token = getTokenForLoggedInUser(t, session)
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	resp = session.MakeRequest(t, req, http.StatusForbidden)
+
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
+	resp = session.MakeRequest(t, req, http.StatusUnauthorized)
 }
