@@ -32,7 +32,7 @@ func TestAPITeam(t *testing.T) {
 	assert.Equal(t, team.Name, apiTeam.Name)
 
 	// non team member user will not access the teams details
-	teamUser2 := models.AssertExistsAndLoadBean(t, &models.TeamUser{ID: 2}).(*models.TeamUser)
+	teamUser2 := models.AssertExistsAndLoadBean(t, &models.TeamUser{ID: 3}).(*models.TeamUser)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser2.UID}).(*models.User)
 
 	session = loginUser(t, user2.Name)

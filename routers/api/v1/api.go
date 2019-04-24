@@ -306,12 +306,15 @@ func reqTeamMembership() macaron.Handler {
 			return
 		}
 
-		if isMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
 			ctx.Error(500, "IsOrganizationMember", err)
 			return
-		} else if !isMember {
-			if ctx.Org.Organization != nil {
-				ctx.Error(403, "", "Must be an organization member")
+		} else if !isTeamMember {
+			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOrganizationOwner", err)
+			} else if isOrgMember {
+				ctx.Error(403, "", "Must be the team member")
 			} else {
 				ctx.NotFound()
 			}
