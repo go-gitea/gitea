@@ -17,7 +17,7 @@ func TestOrgRepos(t *testing.T) {
 
 	var (
 		users = []string{"user1", "user2"}
-		kases = map[string][]string{
+		cases = map[string][]string{
 			"alphabetically":        {"repo21", "repo3", "repo5"},
 			"reversealphabetically": {"repo5", "repo3", "repo21"},
 		}
@@ -26,7 +26,7 @@ func TestOrgRepos(t *testing.T) {
 	for _, user := range users {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
-			for sortBy, repos := range kases {
+			for sortBy, repos := range cases {
 				req := NewRequest(t, "GET", "/user3?sort="+sortBy)
 				resp := session.MakeRequest(t, req, http.StatusOK)
 
