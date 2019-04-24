@@ -497,8 +497,6 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
-			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-			metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 		}
 
 		repo.MustOwner()
