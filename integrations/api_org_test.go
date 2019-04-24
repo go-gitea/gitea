@@ -45,4 +45,19 @@ func TestAPIOrg(t *testing.T) {
 		LowerName: strings.ToLower(org.UserName),
 		FullName:  org.FullName,
 	})
+
+	req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiOrg)
+	assert.EqualValues(t, org.UserName, apiOrg.UserName)
+	//assert.EqualValues(t, structs.VisibleTypePublic, apiOrg.Visibility)
+
+	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	var repos []*api.Repository
+	DecodeJSON(t, resp, &repos)
+	for _, repo := range repos {
+		assert.False(t, repo.Private)
+	}
 }
