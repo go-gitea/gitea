@@ -492,10 +492,8 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 func (repo *Repository) ComposeMetas() map[string]string {
 	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"format": unit.ExternalTrackerConfig().ExternalTrackerFormat,
-			"user":   repo.MustOwner().Name,
-			"repo":   repo.Name,
-			"regexp": unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern,
+			"user": repo.MustOwner().Name,
+			"repo": repo.Name,
 		}
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
 		if err != nil {
@@ -511,6 +509,8 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		default:
 			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
 		}
+		repo.ExternalMetas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
+		repo.ExternalMetas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 
 	}
 	return repo.ExternalMetas
