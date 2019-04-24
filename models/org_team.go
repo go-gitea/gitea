@@ -34,6 +34,16 @@ type Team struct {
 	Units       []*TeamUnit `xorm:"-"`
 }
 
+// ColorFormat provides a basic color format for a Team
+func (t *Team) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
+		log.NewColoredIDValue(t.ID),
+		t.Name,
+		log.NewColoredIDValue(t.OrgID),
+		t.Authorize)
+
+}
+
 // GetUnits return a list of available units for a team
 func (t *Team) GetUnits() error {
 	return t.getUnits(x)
