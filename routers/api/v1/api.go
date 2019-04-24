@@ -307,12 +307,12 @@ func reqTeamMembership() macaron.Handler {
 		}
 
 		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
-			ctx.Error(500, "IsOrganizationMember", err)
+			ctx.Error(500, "IsTeamMember", err)
 			return
 		} else if !isTeamMember {
 			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
 			if err != nil {
-				ctx.Error(500, "IsOrganizationOwner", err)
+				ctx.Error(500, "IsOrganizationMember", err)
 			} else if isOrgMember {
 				ctx.Error(403, "", "Must be the team member")
 			} else {
