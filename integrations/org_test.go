@@ -18,8 +18,8 @@ func TestOrgRepos(t *testing.T) {
 	var (
 		users = []string{"user1", "user2"}
 		kases = map[string][]string{
-			"alphabetically":        []string{"repo21", "repo3", "repo5"},
-			"reversealphabetically": []string{"repo5", "repo3", "repo21"},
+			"alphabetically":        {"repo21", "repo3", "repo5"},
+			"reversealphabetically": {"repo5", "repo3", "repo21"},
 		}
 	)
 
