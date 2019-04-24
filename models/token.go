@@ -58,7 +58,6 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 		return nil, ErrAccessTokenEmpty{}
 	}
 	if len(token) < 8 {
-		// Unable to fetch token by last 8 characters
 		return nil, ErrAccessTokenNotExist{token}
 	}
 	var tokens []AccessToken
