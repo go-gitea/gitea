@@ -33,8 +33,7 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare")
 	} else if models.DbCfg.Type == core.MSSQL {
 		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare ON repository")
-	} else {
-
+	} else if models.DbCfg.Type == core.MYSQL {
 		indexes, err := sess.QueryString(`SHOW INDEX FROM repository WHERE KEY_NAME = 'IDX_repository_is_bare'`)
 		if err != nil {
 			return err
@@ -43,6 +42,8 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		if len(indexes) >= 1 {
 			_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
 		}
+	} else {
+		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
 	}
 
 	if err != nil {
