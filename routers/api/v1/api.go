@@ -314,7 +314,7 @@ func reqTeamMembership() macaron.Handler {
 			if err != nil {
 				ctx.Error(500, "IsOrganizationMember", err)
 			} else if isOrgMember {
-				ctx.Error(403, "", "Must be the team member")
+				ctx.Error(403, "", "Must be a team member")
 			} else {
 				ctx.NotFound()
 			}
