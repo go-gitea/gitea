@@ -660,6 +660,7 @@ type AccessibleReposEnvironment interface {
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
 	AddKeyword(keyword string)
+	SetSort(SearchOrderBy)
 }
 
 type accessibleReposEnv struct {
@@ -668,6 +669,7 @@ type accessibleReposEnv struct {
 	teamIDs []int64
 	e       Engine
 	keyword string
+	orderBy SearchOrderBy
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
@@ -686,6 +688,7 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 		userID:  userID,
 		teamIDs: teamIDs,
 		e:       e,
+		orderBy: SearchOrderByRecentUpdated,
 	}, nil
 }
 
@@ -725,8 +728,8 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
-		GroupBy("`repository`.id,`repository`.updated_unix").
-		OrderBy("updated_unix DESC").
+		GroupBy("`repository`.id,`repository`."+strings.Fields(string(env.orderBy))[0]).
+		OrderBy(string(env.orderBy)).
 		Limit(pageSize, (page-1)*pageSize).
 		Cols("`repository`.id").
 		Find(&repoIDs)
@@ -745,6 +748,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 
 	return repos, env.e.
 		In("`repository`.id", repoIDs).
+		OrderBy(string(env.orderBy)).
 		Find(&repos)
 }
 
@@ -755,7 +759,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
 		GroupBy("`repository`.id, `repository`.updated_unix").
-		OrderBy("updated_unix DESC").
+		OrderBy(string(env.orderBy)).
 		Cols("`repository`.id").
 		Find(&repoIDs)
 }
@@ -778,4 +782,8 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 
 func (env *accessibleReposEnv) AddKeyword(keyword string) {
 	env.keyword = keyword
+}
+
+func (env *accessibleReposEnv) SetSort(orderBy SearchOrderBy) {
+	env.orderBy = orderBy
 }
