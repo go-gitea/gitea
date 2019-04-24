@@ -628,7 +628,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		ctx.metas["index"] = index
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), index)
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", index), index)
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", index), content)
 	}
 	replaceContent(node, start, end, link)
 }
