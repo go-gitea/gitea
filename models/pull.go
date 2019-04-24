@@ -197,6 +197,7 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
+		URL:       pr.Issue.HTMLURL(),
 		Index:     pr.Index,
 		Poster:    apiIssue.Poster,
 		Title:     apiIssue.Title,
