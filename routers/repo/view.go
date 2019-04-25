@@ -24,8 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -462,10 +460,10 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	if page <= 0 {
 		page = 1
 	}
-	pager := paginater.New(total, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(pager.Current())
+	items, err := getter(pager.Paginater.Current())
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -480,6 +478,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
+
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
 }
 
