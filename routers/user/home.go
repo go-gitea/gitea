@@ -441,6 +441,7 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
+		env.SetSort(orderBy)
 		if len(keyword) != 0 {
 			env.AddKeyword(keyword)
 		}
