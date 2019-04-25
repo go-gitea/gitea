@@ -164,6 +164,15 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
+	if repo.Owner == nil {
+		repo.mustOwner(e)
+	}
+
+	if repo.Owner.IsOrganization() && !HasOrgVisible(repo.Owner, user) {
+		perm.AccessMode = AccessModeNone
+		return
+	}
+
 	if err = repo.getUnits(e); err != nil {
 		return
 	}
