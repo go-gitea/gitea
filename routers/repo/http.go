@@ -89,9 +89,24 @@ func HTTP(ctx *context.Context) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	owner, err := models.GetUserByName(username)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
+		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		return
+	}
+
+	repo, err := models.GetRepositoryByName(owner.ID, reponame)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame)
+			if err == nil {
+				context.RedirectToRepo(ctx, redirectRepoID)
+			} else {
+				ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
+			}
+		} else {
+			ctx.ServerError("GetRepositoryByName", err)
+		}
 		return
 	}
 
