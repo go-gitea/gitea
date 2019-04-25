@@ -45,59 +45,59 @@ func TestOrgRepos(t *testing.T) {
 func TestLimitedOrg(t *testing.T) {
 	prepareTestEnv(t)
 
-	// unlogin user
-	req := NewRequest(t, "GET", "/user22")
+	// not logged in user
+	req := NewRequest(t, "GET", "/limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user22/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user22/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
 	session := loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/user22")
+	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user22/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user22/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// site admin
 	session = loginUser(t, "user1")
-	req = NewRequest(t, "GET", "/user22")
+	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user22/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user22/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestPrivateOrg(t *testing.T) {
 	prepareTestEnv(t)
 
-	// unlogin user
-	req := NewRequest(t, "GET", "/user23")
+	// not logged in user
+	req := NewRequest(t, "GET", "/privated_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user23/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user23/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
 	session := loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/user23")
+	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user23/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/user23/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// site admin
 	session = loginUser(t, "user1")
-	req = NewRequest(t, "GET", "/user23")
+	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user23/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/user23/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
 }
