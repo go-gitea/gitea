@@ -302,6 +302,7 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 	redirect, err := code.GenerateRedirectURI(form.State)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
+		return
 	}
 	ctx.Redirect(redirect.String(), 302)
 }
