@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -150,6 +151,18 @@ func HTTP(ctx *context.Context) {
 			if !isUsernameToken {
 				// Assume password is token
 				authToken = authPasswd
+			}
+			if strings.Contains(authToken, ".") {
+				var err error
+				uid := checkOAuthAccessToken(authToken)
+				if uid != 0 {
+					ctx.Data["IsApiToken"] = true
+				}
+				authUser, err = models.GetUserByID(uid)
+				if err != nil {
+					log.Error("GetUserByID:  %v", err)
+					return
+				}
 			}
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
@@ -527,4 +540,27 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 		ctx.NotFound("HTTPBackend", nil)
 		return
 	}
+}
+
+func checkOAuthAccessToken(accessToken string) int64 {
+	// JWT tokens require a "."
+	if !strings.Contains(accessToken, ".") {
+		return 0
+	}
+	token, err := models.ParseOAuth2Token(accessToken)
+	if err != nil {
+		log.Trace("ParseOAuth2Token: %v", err)
+		return 0
+	}
+	var grant *models.OAuth2Grant
+	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+		return 0
+	}
+	if token.Type != models.TypeAccessToken {
+		return 0
+	}
+	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+		return 0
+	}
+	return grant.UserID
 }

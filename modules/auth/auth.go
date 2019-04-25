@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -177,6 +178,18 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			if !isUsernameToken {
 				// Assume password is token
 				authToken = passwd
+			}
+			if strings.Contains(authToken, ".") {
+				var err error
+				uid := checkOAuthAccessToken(authToken)
+				if uid != 0 {
+					ctx.Data["IsApiToken"] = true
+				}
+				u, err = models.GetUserByID(uid)
+				if err != nil {
+					log.Error("GetUserByID:  %v", err)
+					return nil, false
+				}
 			}
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
