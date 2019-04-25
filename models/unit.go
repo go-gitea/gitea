@@ -25,6 +25,10 @@ const (
 	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
+func (u UnitType) Value() int {
+	return int(u)
+}
+
 func (u UnitType) String() string {
 	switch u {
 	case UnitTypeCode:
