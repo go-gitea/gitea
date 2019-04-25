@@ -185,7 +185,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			if uid != 0 {
 				var err error
 				ctx.Data["IsApiToken"] = true
-				
+
 				u, err = models.GetUserByID(uid)
 				if err != nil {
 					log.Error("GetUserByID:  %v", err)

@@ -171,7 +171,7 @@ func HTTP(ctx *context.Context) {
 			uid := auth.CheckOAuthAccessToken(authToken)
 			if uid != 0 {
 				ctx.Data["IsApiToken"] = true
-				
+
 				authUser, err = models.GetUserByID(uid)
 				if err != nil {
 					ctx.ServerError("GetUserByID", err)
