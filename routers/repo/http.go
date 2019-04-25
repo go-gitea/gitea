@@ -168,12 +168,10 @@ func HTTP(ctx *context.Context) {
 				// Assume password is token
 				authToken = authPasswd
 			}
-			if strings.Contains(authToken, ".") {
-				var err error
-				uid := auth.CheckOAuthAccessToken(authToken)
-				if uid != 0 {
-					ctx.Data["IsApiToken"] = true
-				}
+			uid := auth.CheckOAuthAccessToken(authToken)
+			if uid != 0 {
+				ctx.Data["IsApiToken"] = true
+				
 				authUser, err = models.GetUserByID(uid)
 				if err != nil {
 					ctx.ServerError("GetUserByID", err)

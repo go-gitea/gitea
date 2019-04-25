@@ -180,12 +180,12 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				// Assume password is token
 				authToken = passwd
 			}
-			if strings.Contains(authToken, ".") {
+
+			uid := CheckOAuthAccessToken(authToken)
+			if uid != 0 {
 				var err error
-				uid := CheckOAuthAccessToken(authToken)
-				if uid != 0 {
-					ctx.Data["IsApiToken"] = true
-				}
+				ctx.Data["IsApiToken"] = true
+				
 				u, err = models.GetUserByID(uid)
 				if err != nil {
 					log.Error("GetUserByID:  %v", err)
