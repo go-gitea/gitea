@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -154,7 +155,7 @@ func HTTP(ctx *context.Context) {
 			}
 			if strings.Contains(authToken, ".") {
 				var err error
-				uid := checkOAuthAccessToken(authToken)
+				uid := auth.CheckOAuthAccessToken(authToken)
 				if uid != 0 {
 					ctx.Data["IsApiToken"] = true
 				}
@@ -540,27 +541,4 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 		ctx.NotFound("HTTPBackend", nil)
 		return
 	}
-}
-
-func checkOAuthAccessToken(accessToken string) int64 {
-	// JWT tokens require a "."
-	if !strings.Contains(accessToken, ".") {
-		return 0
-	}
-	token, err := models.ParseOAuth2Token(accessToken)
-	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
-		return 0
-	}
-	var grant *models.OAuth2Grant
-	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
-		return 0
-	}
-	if token.Type != models.TypeAccessToken {
-		return 0
-	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
-		return 0
-	}
-	return grant.UserID
 }

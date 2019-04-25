@@ -55,7 +55,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 		// Let's see if token is valid.
 		if len(tokenSHA) > 0 {
 			if strings.Contains(tokenSHA, ".") {
-				uid := checkOAuthAccessToken(tokenSHA)
+				uid := CheckOAuthAccessToken(tokenSHA)
 				if uid != 0 {
 					ctx.Data["IsApiToken"] = true
 				}
@@ -86,7 +86,8 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	return 0
 }
 
-func checkOAuthAccessToken(accessToken string) int64 {
+// CheckOAuthAccessToken returns uid of user from oauth token token
+func CheckOAuthAccessToken(accessToken string) int64 {
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
 		return 0
@@ -181,7 +182,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			}
 			if strings.Contains(authToken, ".") {
 				var err error
-				uid := checkOAuthAccessToken(authToken)
+				uid := CheckOAuthAccessToken(authToken)
 				if uid != 0 {
 					ctx.Data["IsApiToken"] = true
 				}
