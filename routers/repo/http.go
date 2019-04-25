@@ -161,7 +161,7 @@ func HTTP(ctx *context.Context) {
 				}
 				authUser, err = models.GetUserByID(uid)
 				if err != nil {
-					log.Error("GetUserByID:  %v", err)
+					ctx.ServerError("GetUserByID", err)
 					return
 				}
 			}
