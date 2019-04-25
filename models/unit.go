@@ -25,6 +25,7 @@ const (
 	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
+// Value returns integer value for unit type
 func (u UnitType) Value() int {
 	return int(u)
 }
