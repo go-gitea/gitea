@@ -1097,7 +1097,7 @@ type ErrPullRequestHeadRepoMissing struct {
 	HeadRepoID int64
 }
 
-// ErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
+// IsErrErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
 func IsErrErrPullRequestHeadRepoMissing(err error) bool {
 	_, ok := err.(ErrPullRequestHeadRepoMissing)
 	return ok
