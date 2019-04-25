@@ -343,7 +343,7 @@ pipeline:
     image: plugins/s3:1
     pull: true
     secrets: [ aws_access_key_id, aws_secret_access_key ]
-    bucket: releases
+    bucket: gitea-downloads
     acl: public-read
     endpoint: https://ams3.digitaloceanspaces.com
     path_style: true
