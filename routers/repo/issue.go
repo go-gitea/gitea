@@ -223,7 +223,12 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 
-		if isPullOption == util.OptionalBoolTrue {
+		if issues[i].IsPull {
+			if err := issues[i].LoadPullRequest(); err != nil {
+				ctx.ServerError("LoadPullRequest", err)
+				return
+			}
+
 			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
 		}
 	}
