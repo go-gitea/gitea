@@ -217,12 +217,6 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if repo.Owner.IsOrganization() {
-		if !models.HasOrgVisible(repo.Owner, ctx.User) {
-			ctx.NotFound("HasOrgVisible", nil)
-			return
-		}
-	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)

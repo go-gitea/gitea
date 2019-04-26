@@ -150,6 +150,7 @@ func repoAssignment() macaron.Handler {
 			}
 			return
 		}
+
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
