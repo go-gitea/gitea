@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -165,6 +167,16 @@ func HTTP(ctx *context.Context) {
 			if !isUsernameToken {
 				// Assume password is token
 				authToken = authPasswd
+			}
+			uid := auth.CheckOAuthAccessToken(authToken)
+			if uid != 0 {
+				ctx.Data["IsApiToken"] = true
+
+				authUser, err = models.GetUserByID(uid)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return
+				}
 			}
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)

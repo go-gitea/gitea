@@ -150,7 +150,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 21},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
-			count: 25},
+			count: 26},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
 			count: 15},
