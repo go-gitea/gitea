@@ -330,3 +330,39 @@
   avatar_email: user21@example.com
   num_repos: 2
   is_active: true
+
+-
+  id: 22
+  lower_name: limited_org
+  name: limited_org
+  full_name: Limited Org
+  email: limited_org@example.com
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar22
+  avatar_email: limited_org@example.com
+  num_repos: 2
+  is_active: true
+  num_members: 0
+  num_teams: 0
+  visibility: 1
+
+-
+  id: 23
+  lower_name: privated_org
+  name: privated_org
+  full_name: Privated Org
+  email: privated_org@example.com
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar23
+  avatar_email: privated_org@example.com
+  num_repos: 2
+  is_active: true
+  num_members: 0
+  num_teams: 0
+  visibility: 2
