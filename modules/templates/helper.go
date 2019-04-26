@@ -267,11 +267,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	if err != nil {
 		return "", err
 	} else if charsetLabel == "UTF-8" {
-		if len(content) > 2 && bytes.Equal(content[0:3], base.UTF8BOM) {
-			log.Debug("Removing BOM from UTF-8 string")
-			return string(content[3:]), nil
-		}
-		return string(content), nil
+		return string(base.RemoveBOMIfPresent(content)), nil
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -281,28 +277,21 @@ func ToUTF8WithErr(content []byte) (string, error) {
 
 	// If there is an error, we concatenate the nicely decoded part and the
 	// original left over. This way we won't lose data.
-	result, n, err := transform.String(encoding.NewDecoder(), string(content))
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
 	if err != nil {
-		result = result + string(content[n:])
+		result = append(result, content[n:]...)
 	}
 
-	if len(result) > 2 && bytes.Equal([]byte(result[0:3]), base.UTF8BOM) {
-		log.Debug("Removing BOM from decoded string")
-		result = result[3:]
-	}
+	result = base.RemoveBOMIfPresent(result)
 
-	return result, err
+	return string(result), err
 }
 
 // ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
 func ToUTF8WithFallback(content []byte) []byte {
 	charsetLabel, err := base.DetectEncoding(content)
 	if err != nil || charsetLabel == "UTF-8" {
-		if len(content) > 2 && bytes.Equal(content[0:3], base.UTF8BOM) {
-			log.Debug("Removing BOM from UTF-8 string")
-			return content[3:]
-		}
-		return content
+		return base.RemoveBOMIfPresent(content)
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -317,12 +306,7 @@ func ToUTF8WithFallback(content []byte) []byte {
 		return append(result, content[n:]...)
 	}
 
-	if len(result) > 2 && bytes.Equal(result[0:3], base.UTF8BOM) {
-		log.Debug("Removing BOM from decoded string")
-		result = result[3:]
-	}
-
-	return result
+	return base.RemoveBOMIfPresent(result)
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error

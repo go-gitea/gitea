@@ -5,6 +5,7 @@
 package base
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
@@ -92,6 +93,14 @@ func DetectEncoding(content []byte) (string, error) {
 
 	log.Debug("Detected encoding: %s", result.Charset)
 	return result.Charset, err
+}
+
+// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
+func RemoveBOMIfPresent(content []byte) []byte {
+	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
+		return content[3:]
+	}
+	return content
 }
 
 // BasicAuthDecode decode basic auth string
