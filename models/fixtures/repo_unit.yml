@@ -291,3 +291,87 @@
   type: 3
   config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810
+
+-
+  id: 43
+  repo_id: 38
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 44
+  repo_id: 38
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 45
+  repo_id: 38
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 46
+  repo_id: 39
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 47
+  repo_id: 39
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 48
+  repo_id: 39
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 49
+  repo_id: 40
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 50
+  repo_id: 40
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 51
+  repo_id: 40
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 52
+  repo_id: 41
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 53
+  repo_id: 41
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 54
+  repo_id: 41
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810

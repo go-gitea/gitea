@@ -57,7 +57,7 @@
 							{{range $t, $unit := $.Units}}
 							<div class="field">
 								<div class="ui toggle checkbox">
-									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
+									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type.Value}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
 									<label>{{$.i18n.Tr $unit.NameKey}}</label>
 									<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
 								</div>
