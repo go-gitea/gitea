@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -425,16 +426,11 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	return file, nil
 }
 
-// PushUpdate must be called for any push actions in order to
-// generates necessary push action history feeds and other operations
-func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
-	err := models.PushUpdate(branch, opts)
-	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
+// PushUpdate push updates
+func PushUpdate(repo *models.Repository, branch string, opt models.PushUpdateOptions) error {
+	if err := models.PushUpdate(branch, opt); err != nil {
+		return err
 	}
-
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		models.UpdateRepoIndexer(repo)
-	}
+	notification.NotifyPushCommits(repo, branch, opt)
 	return nil
 }

@@ -26,6 +26,14 @@ func PushUpdate(ctx *macaron.Context) {
 		return
 	}
 
+	repo, err := models.GetRepositoryByOwnerAndName(opt.RepoUserName, opt.RepoName)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
 	branch := strings.TrimPrefix(opt.RefFullName, git.BranchPrefix)
 	if len(branch) == 0 || opt.PusherID <= 0 {
 		ctx.Error(404)

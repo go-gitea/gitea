@@ -177,3 +177,10 @@ func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Rep
 		notifier.NotifyMigrateRepository(doer, u, repo)
 	}
 }
+
+// NotifyPushCommits notefies when pushed commits to repository
+func NotifyPushCommits(repo *models.Repository, branch string, opts models.PushUpdateOptions) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPushCommits(repo, branch, opts)
+	}
+}

@@ -21,14 +21,20 @@ var (
 	Indexer = struct {
 		IssueType             string
 		IssuePath             string
-		RepoIndexerEnabled    bool
-		RepoPath              string
-		UpdateQueueLength     int
-		MaxIndexerFileSize    int64
 		IssueQueueType        string
 		IssueQueueDir         string
 		IssueQueueConnStr     string
 		IssueQueueBatchNumber int
+
+		RepoIndexerEnabled    bool
+		RepoType              string
+		RepoPath              string
+		CodesQueueType        string
+		CodesQueueDir         string
+		CodesQueueConnStr     string
+		CodesQueueBatchNumber int
+		UpdateQueueLength     int
+		MaxIndexerFileSize    int64
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -36,6 +42,14 @@ var (
 		IssueQueueDir:         "indexers/issues.queue",
 		IssueQueueConnStr:     "",
 		IssueQueueBatchNumber: 20,
+
+		RepoIndexerEnabled:    false,
+		RepoType:              "bleve",
+		RepoPath:              "indexers/codes.bleve",
+		CodesQueueType:        LevelQueueType,
+		CodesQueueDir:         "indexers/codes.queue",
+		CodesQueueConnStr:     "",
+		CodesQueueBatchNumber: 20,
 	}
 )
 
@@ -46,6 +60,11 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.IssuePath) {
 		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
 	}
+	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
+	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
+	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
+	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
+
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
 	Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/repos.bleve"))
 	if !filepath.IsAbs(Indexer.RepoPath) {
@@ -53,8 +72,4 @@ func newIndexerService() {
 	}
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
-	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
-	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
-	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
-	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 }

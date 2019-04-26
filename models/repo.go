@@ -981,10 +981,6 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		repo, err = CleanUpMigrateInfo(repo)
 	}
 
-	if err != nil && !repo.IsEmpty {
-		UpdateRepoIndexer(repo)
-	}
-
 	return repo, err
 }
 
@@ -1933,6 +1929,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	DeleteRepoFromIndexer(repo)
+
 	return nil
 }
 
