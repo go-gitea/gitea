@@ -31,13 +31,14 @@ func newCacheService() {
 	}
 	switch CacheService.Adapter {
 	case "memory":
-		CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
+		break
 	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
 	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
+	CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
 
 	log.Info("Cache Service Enabled")
 }
