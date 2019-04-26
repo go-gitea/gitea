@@ -326,6 +326,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			log.Error("Unknown encoding: %s", encoding)
 		}
 	}
+	// Reset the opts.Content to our adjusted content to ensure that LFS gets the correct content
+	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
 	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
