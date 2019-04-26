@@ -370,6 +370,10 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 
 // HasOrgVisible tells if the given user can see the given org
 func HasOrgVisible(org *User, user *User) bool {
+	return hasOrgVisible(x, org, user)
+}
+
+func hasOrgVisible(e Engine, org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
 		if org.Visibility == structs.VisibleTypePublic {
@@ -382,7 +386,7 @@ func HasOrgVisible(org *User, user *User) bool {
 		return true
 	}
 
-	if org.Visibility == structs.VisibleTypePrivate && !org.IsUserPartOfOrg(user.ID) {
+	if org.Visibility == structs.VisibleTypePrivate && !org.isUserPartOfOrg(e, user.ID) {
 		return false
 	}
 	return true
