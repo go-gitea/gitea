@@ -1527,9 +1527,9 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
 				if IsErrKeyAlreadyExist(err) {
-     			log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
+					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
 				} else {
-     			log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
 				}
 			} else {
 				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
