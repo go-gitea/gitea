@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -394,7 +395,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err = repo.GetOwner(); err != nil {
 		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	err = PushUpdate(
+		repo,
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -409,7 +411,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err != nil {
 		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
-	models.UpdateRepoIndexer(repo)
 
 	commit, err = t.GetCommit(commitHash)
 	if err != nil {
@@ -421,4 +422,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 	return file, nil
+}
+
+// PushUpdate push updates
+func PushUpdate(repo *models.Repository, branch string, opt models.PushUpdateOptions) error {
+	if err := models.PushUpdate(branch, opt); err != nil {
+		return err
+	}
+	notification.NotifyPushCommits(repo, branch, opt)
+	return nil
 }

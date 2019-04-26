@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/indexer/codes"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
@@ -94,7 +95,9 @@ func GlobalInit() {
 		if err := issue_indexer.InitIssueIndexer(false); err != nil {
 			log.Fatal("Failed to initialize issue indexer: %v", err)
 		}
-		models.InitRepoIndexer()
+		if err := codes.InitIndexer(false); err != nil {
+			log.Fatal("Failed to initialize codes indexer: %v", err)
+		}
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()

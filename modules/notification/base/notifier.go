@@ -40,4 +40,6 @@ type Notifier interface {
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+
+	NotifyPushCommits(repo *models.Repository, branch string, opt models.PushUpdateOptions)
 }

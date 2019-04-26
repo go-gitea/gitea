@@ -106,3 +106,7 @@ func (*NullNotifier) NotifyCreateRepository(doer *models.User, u *models.User, r
 // NotifyMigrateRepository places a place holder function
 func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
+
+// NotifyPushCommits places a place holder function
+func (*NullNotifier) NotifyPushCommits(repo *models.Repository, branch string, opt models.PushUpdateOptions) {
+}
