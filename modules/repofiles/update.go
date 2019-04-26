@@ -332,7 +332,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
 		// OK so we are supposed to LFS this data!
-		oid, err := models.GenerateLFSOid(strings.NewReader(content))
+		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
 			return nil, err
 		}
