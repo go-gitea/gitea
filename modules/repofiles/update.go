@@ -43,19 +43,48 @@ type UpdateRepoFileOptions struct {
 	Committer    *IdentityOptions
 }
 
-func detectEncodingAndBOM(entry *git.TreeEntry) (string, bool) {
+func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
 	reader, err := entry.Blob().DataAsync()
 	if err != nil {
-		// just default to utf-8 and no bom
+		// return default
 		return "UTF-8", false
 	}
+	defer reader.Close()
 	buf := make([]byte, 1024)
 	n, err := reader.Read(buf)
 	if err != nil {
-		// just default to utf-8 and no bom
+		// return default
 		return "UTF-8", false
 	}
 	buf = buf[:n]
+
+	if setting.LFS.StartServer {
+		meta := lfs.IsPointerFile(&buf)
+		if meta != nil {
+			meta, err = repo.GetLFSMetaObjectByOid(meta.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				// return default
+				return "UTF-8", false
+			}
+		}
+		if meta != nil {
+			dataRc, err := lfs.ReadMetaObject(meta)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			defer dataRc.Close()
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			buf = buf[:n]
+		}
+
+	}
+
 	encoding, err := base.DetectEncoding(buf)
 	if err != nil {
 		// just default to utf-8 and no bom
@@ -195,7 +224,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			// haven't been made. We throw an error if one wasn't provided.
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
-		encoding, bom = detectEncodingAndBOM(fromEntry)
+		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -299,7 +328,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 	var lfsMetaObject *models.LFSMetaObject
 
-	if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
 		// OK so we are supposed to LFS this data!
 		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
