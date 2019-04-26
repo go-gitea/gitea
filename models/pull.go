@@ -299,6 +299,10 @@ func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 		return nil, err
 	}
 
+	if pr.HeadRepo == nil {
+		return nil, ErrPullRequestHeadRepoMissing{pr.ID, pr.HeadRepoID}
+	}
+
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
 		return nil, err
