@@ -10,7 +10,7 @@ import (
 
 func addHTTPMethodToWebhook(x *xorm.Engine) error {
 	type Webhook struct {
-		HTTPMethod   string `xorm:"http_method DEFAULT 'post'"`
+		HTTPMethod string `xorm:"http_method DEFAULT 'post'"`
 	}
 
 	return x.Sync2(new(Webhook))
