@@ -1431,7 +1431,7 @@ function initWebhook() {
     });
 
     var updateContentType = function () {
-        var visible = $('#http_method').val() === 'post';
+        var visible = $('#http_method').val() === 'POST';
         $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
     };
     updateContentType();
