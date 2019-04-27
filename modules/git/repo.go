@@ -329,6 +329,7 @@ func checkDivergence(repoPath string, baseBranch string, targetBranch string) (i
 	return outInteger, nil
 }
 
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
 func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
 	// $(git rev-list --count master..feature) commits ahead of master
 	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)

@@ -46,9 +46,9 @@
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									</td>
 									{{end}}
-									<td class="ui commit-divergence" data-tooltip="{{.CommitsBehind}} commits behind {{$.DefaultBranch}}, {{.CommitsAhead}} commits ahead">
+									<td class="ui">
 										{{$totalCommits := addInteger .CommitsBehind .CommitsAhead}}
-										<div class="bar-container">
+										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
 												<div class="bar bar-behind" style="width: {{percentage .CommitsBehind $totalCommits}}%"></div>
