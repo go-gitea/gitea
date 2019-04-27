@@ -766,8 +766,11 @@ func (t *HookTask) deliver() {
 		case ContentTypeForm:
 			req.Param("payload", t.PayloadContent)
 		}
-	} else {
+	} else if t.HTTPMethod == "get" {
 		req = httplib.Get(t.URL).Param("payload", t.PayloadContent)
+	} else {
+		t.ResponseInfo.Body = fmt.Sprintf("Invalid http method: %v", t.HTTPMethod)
+		return
 	}
 
 	req = req.SetTimeout(timeout, timeout).
