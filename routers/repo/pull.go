@@ -683,8 +683,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
 
 	// Check if base branch is valid.
-	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound("IsBranchExist", nil)
+	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(baseBranch)
+	baseIsTag := ctx.Repo.GitRepo.IsTagExist(baseBranch)
+	ctx.Data["BaseIsBranch"] = baseIsBranch
+	ctx.Data["BaseIsTag"] = baseIsTag
+	if !baseIsBranch && !baseIsTag {
+		ctx.NotFound("IsReferenceExist", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -727,10 +731,17 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	}
 
 	// Check if head branch is valid.
-	if !headGitRepo.IsBranchExist(headBranch) {
+	headIsBranch := headGitRepo.IsBranchExist(headBranch)
+	headIsTag := headGitRepo.IsTagExist(headBranch)
+	ctx.Data["HeadIsBranch"] = headIsBranch
+	ctx.Data["HeadIsTag"] = headIsTag
+	if !headIsBranch && !headIsTag {
 		ctx.NotFound("IsBranchExist", nil)
 		return nil, nil, nil, nil, "", ""
 	}
+
+	// Dont allow creating a pull request if head or base is not a branch
+	ctx.Data["IsCompareOnly"] = !headIsBranch || !baseIsBranch
 
 	headBranches, err := headGitRepo.GetBranches()
 	if err != nil {
@@ -767,12 +778,22 @@ func PrepareCompareDiff(
 	// Get diff information.
 	ctx.Data["CommitRepoLink"] = headRepo.Link()
 
-	headCommitID, err := headGitRepo.GetBranchCommitID(headBranch)
-	if err != nil {
-		ctx.ServerError("GetBranchCommitID", err)
-		return false
+	if ctx.Data["HeadIsTag"] == true {
+		headCommitID, err := headGitRepo.GetTagCommitID(headBranch)
+		if err != nil {
+			ctx.ServerError("GetTagCommitID", err)
+			return false
+		}
+		ctx.Data["AfterCommitID"] = headCommitID
+	} else {
+		headCommitID, err := headGitRepo.GetBranchCommitID(headBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommitID", err)
+			return false
+		}
+		ctx.Data["AfterCommitID"] = headCommitID
 	}
-	ctx.Data["AfterCommitID"] = headCommitID
+	headCommitID := ctx.Data["AfterCommitID"].(string)
 
 	if headCommitID == prInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
@@ -841,29 +862,31 @@ func CompareAndPullRequest(ctx *context.Context) {
 		return
 	}
 
-	pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
-	if err != nil {
-		if !models.IsErrPullRequestNotExist(err) {
-			ctx.ServerError("GetUnmergedPullRequest", err)
-			return
-		}
-	} else {
-		ctx.Data["HasPullRequest"] = true
-		ctx.Data["PullRequest"] = pr
-		ctx.HTML(200, tplComparePull)
-		return
-	}
-
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
 	if ctx.Written() {
 		return
 	}
 
-	if !nothingToCompare {
-		// Setup information for new form.
-		RetrieveRepoMetas(ctx, ctx.Repo.Repository)
-		if ctx.Written() {
+	if ctx.Data["IsCompareOnly"] == false {
+		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+		if err != nil {
+			if !models.IsErrPullRequestNotExist(err) {
+				ctx.ServerError("GetUnmergedPullRequest", err)
+				return
+			}
+		} else {
+			ctx.Data["HasPullRequest"] = true
+			ctx.Data["PullRequest"] = pr
+			ctx.HTML(200, tplComparePull)
 			return
+		}
+
+		if !nothingToCompare {
+			// Setup information for new form.
+			RetrieveRepoMetas(ctx, ctx.Repo.Repository)
+			if ctx.Written() {
+				return
+			}
 		}
 	}
 

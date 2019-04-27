@@ -54,7 +54,7 @@
 				<div class="ui segment">
 					{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
 				</div>
-			{{else if eq .CommitCount 0 }}
+			{{else if or (eq .CommitCount 0) .IsCompareOnly }}
 				{{template "repo/commits_table" .}}
 				{{template "repo/diff/box" .}}
 			{{else}}
