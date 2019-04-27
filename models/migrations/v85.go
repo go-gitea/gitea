@@ -46,6 +46,15 @@ func hashAppToken(x *xorm.Engine) error {
 		_, err = sess.Exec("DROP INDEX IF EXISTS UQE_access_token_sha1")
 	} else if models.DbCfg.Type == core.MSSQL {
 		_, err = sess.Exec("DROP INDEX IF EXISTS UQE_access_token_sha1 ON access_token")
+	} else if models.DbCfg.Type == core.MYSQL {
+		indexes, err := sess.QueryString(`SHOW INDEX FROM access_token WHERE KEY_NAME = 'UQE_access_token_sha1'`)
+		if err != nil {
+			return err
+		}
+
+		if len(indexes) >= 1 {
+			_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")
+		}
 	} else {
 		_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")
 	}
