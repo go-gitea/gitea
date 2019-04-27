@@ -3,6 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="sixteen wide column page grid">
+			{{if not .IsCompareOnly}}
 			<h2 class="ui header">
 				{{.i18n.Tr "repo.pulls.compare_changes"}}
 				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
@@ -45,6 +46,7 @@
 					</div>
 				</div>
 			</div>
+			{{end}}
 
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
@@ -54,7 +56,7 @@
 				<div class="ui segment">
 					{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
 				</div>
-			{{else if or (eq .CommitCount 0) .IsCompareOnly }}
+			{{else if .IsCompareOnly }}
 				{{template "repo/commits_table" .}}
 				{{template "repo/diff/box" .}}
 			{{else}}

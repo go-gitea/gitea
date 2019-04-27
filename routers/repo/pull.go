@@ -743,12 +743,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// Dont allow creating a pull request if head or base is not a branch
 	ctx.Data["IsCompareOnly"] = !headIsBranch || !baseIsBranch
 
-	headBranches, err := headGitRepo.GetBranches()
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return nil, nil, nil, nil, "", ""
+	if ctx.Data["IsCompareOnly"] != true {
+		headBranches, err := headGitRepo.GetBranches()
+		if err != nil {
+			ctx.ServerError("GetBranches", err)
+			return nil, nil, nil, nil, "", ""
+		}
+		ctx.Data["HeadBranches"] = headBranches
 	}
-	ctx.Data["HeadBranches"] = headBranches
 
 	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
@@ -821,6 +823,9 @@ func PrepareCompareDiff(
 	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+	if ctx.Data["CommitCount"] == 0 {
+		ctx.Data["IsCompareOnly"] = true
+	}
 
 	if prInfo.Commits.Len() == 1 {
 		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
