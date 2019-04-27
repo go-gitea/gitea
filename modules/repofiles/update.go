@@ -99,6 +99,10 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 
 	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
 
 	if n > 2 {
 		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
