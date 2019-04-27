@@ -32,10 +32,11 @@ func TestGetDivergingCommits(t *testing.T) {
 	assert.Equal(t, 0, divergence.Behind)
 	assert.Equal(t, 0, divergence.Ahead)
 
-	// divergence of v1.8.0 (base) and v1.7.6 tags - should be 72 ahead and 352 behind
-	// see https://github.com/go-gitea/gitea/compare/v1.8.0...v1.7.6
-	divergence2, err := GetDivergingCommits(".", "v1.8.0", "v1.7.6")
+	// divergence of two commits
+	// baseBranch commit represents the v1.8.0 tag, targetBranch commit represents the v1.7.6 tag
+	// unable to directly use tags due to CI pipeline(?)
+	divergence2, err := GetDivergingCommits(".", "8b3aad940e915b9db11deb0f06d9e5338cfe3fdd", "bafa9ff4323cef048412157e5f5a7bc516adf985")
 	assert.NoError(t, err)
-	assert.Equal(t, 352, divergence2.Behind)
+	assert.Equal(t, 360, divergence2.Behind)
 	assert.Equal(t, 72, divergence2.Ahead)
 }
