@@ -1,0 +1,38 @@
+{{ $imagePathOld := printf "%s%s/%s" (AppUrlTrimmed) .root.BeforeRawPath (EscapePound .file.OldName)  }}
+{{ $imagePathNew := printf "%s%s/%s" (AppUrlTrimmed) .root.RawPath (EscapePound .file.Name)  }}
+{{ $imageInfoOld := imageInfo $imagePathOld }}
+{{ $imageInfoNew := imageInfo $imagePathNew }}
+<tr>
+ 	<th class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_before"}}
+ 	</th>
+ 	<th class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_after"}}
+ 	</th>
+</tr>
+<tr>
+ 	<td class="halfwidth center">
+ 		<a href="{{$imagePathOld}}" target="_blank">
+ 			<img src="{{$imagePathOld}}" class="border red" />
+ 		</a>
+ 	</td>
+ 	<td class="halfwidth center">
+ 		<a href="{{$imagePathNew}}" target="_blank">
+ 			<img src="{{$imagePathNew}}" class="border green" />
+ 		</a>
+ 	</td>
+</tr>
+{{if and $imageInfoOld $imageInfoNew }}
+<tr>
+ 	<td class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_image_width_short"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}red{{end}}">{{$imageInfoOld.Width}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height_short"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}red{{end}}">{{$imageInfoOld.Height}}</span>
+ 	</td>
+ 	<td class="halfwidth center">
+ 		{{.root.i18n.Tr "repo.diff.file_image_width_short"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}green{{end}}">{{$imageInfoNew.Width}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height_short"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}green{{end}}">{{$imageInfoNew.Height}}</span>
+ 	</td>
+ </tr>
+{{end}}
