@@ -77,7 +77,7 @@ func BinVersion() (string, error) {
 	return gitVersion, nil
 }
 
-// SetExeutablecPath changes the path of git executable and checks the file permission and version.
+// SetExecutablePath changes the path of git executable and checks the file permission and version.
 func SetExecutablePath(path string) error {
 	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
 	if path != "" {
