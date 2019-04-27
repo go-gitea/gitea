@@ -24,3 +24,18 @@ func TestGetLatestCommitTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, lct.Unix() > refTime.Unix(), "%d not greater than %d", lct, refTime)
 }
+
+func TestGetDivergingCommits(t *testing.T) {
+	// divergence of master branch to itself - should be 0 ahead and 0 behind
+	divergence, err := GetDivergingCommits(".", "master", "master")
+	assert.NoError(t, err)
+	assert.Equal(t, 0, divergence.Behind)
+	assert.Equal(t, 0, divergence.Ahead)
+
+	// divergence of v1.8.0 (base) and v1.7.6 tags - should be 72 ahead and 352 behind
+	// see https://github.com/go-gitea/gitea/compare/v1.8.0...v1.7.6
+	divergence2, err := GetDivergingCommits(".", "v1.8.0", "v1.7.6")
+	assert.NoError(t, err)
+	assert.Equal(t, 352, divergence2.Behind)
+	assert.Equal(t, 72, divergence2.Ahead)
+}
