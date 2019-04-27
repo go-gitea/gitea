@@ -24,19 +24,3 @@ func TestGetLatestCommitTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, lct.Unix() > refTime.Unix(), "%d not greater than %d", lct, refTime)
 }
-
-func TestGetDivergingCommits(t *testing.T) {
-	// divergence of master branch to itself - should be 0 ahead and 0 behind
-	divergence, err := GetDivergingCommits(".", "master", "master")
-	assert.NoError(t, err)
-	assert.Equal(t, 0, divergence.Behind)
-	assert.Equal(t, 0, divergence.Ahead)
-
-	// divergence of two commits
-	// baseBranch commit represents the v1.8.0 tag, targetBranch commit represents the v1.7.6 tag
-	// unable to directly use tags due to CI pipeline(?)
-	divergence2, err := GetDivergingCommits(".", "8b3aad940e915b9db11deb0f06d9e5338cfe3fdd", "bafa9ff4323cef048412157e5f5a7bc516adf985")
-	assert.NoError(t, err)
-	assert.Equal(t, 360, divergence2.Behind)
-	assert.Equal(t, 72, divergence2.Ahead)
-}
