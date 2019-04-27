@@ -14,9 +14,9 @@ import (
 	"html"
 	"html/template"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 	"mime"
 	"net/http"
 	"net/url"
