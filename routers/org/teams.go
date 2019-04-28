@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -181,10 +182,11 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Units"] = models.Units
 
 	t := &models.Team{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.TeamName,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
+		OrgID:             ctx.Org.Organization.ID,
+		Name:              form.TeamName,
+		Description:       form.Description,
+		Authorize:         models.ParseAccessMode(form.Permission),
+		IsAllRepositories: form.IsAllRepositories,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -276,6 +278,8 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			isAuthChanged = true
 			t.Authorize = auth
 		}
+
+		t.IsAllRepositories = form.IsAllRepositories
 	}
 	t.Description = form.Description
 	if t.Authorize < models.AccessModeOwner {
