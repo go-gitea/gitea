@@ -238,6 +238,16 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
+	ctx.Data["ImageInfo"] = commit.ImageInfo
+	ctx.Data["ImageInfoBase"] = ctx.Data["ImageInfo"]
+	if commit.ParentCount() > 0 {
+		parentCommit, err := ctx.Repo.GitRepo.GetCommit(parents[0])
+		if err != nil {
+			ctx.NotFound("GetParentCommit", err)
+			return
+		}
+		ctx.Data["ImageInfo"] = parentCommit.ImageInfo
+	}
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
@@ -246,10 +256,11 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	if commit.ParentCount() > 0 {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
+		ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", parents[0])
 	}
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.Data["BranchName"], err = commit.GetBranchName()
 	ctx.HTML(200, tplDiff)
 }
@@ -275,6 +286,12 @@ func CompareDiff(ctx *context.Context) {
 	repoName := ctx.Repo.Repository.Name
 	beforeCommitID := ctx.Params(":before")
 	afterCommitID := ctx.Params(":after")
+
+	beforeCommit, err := ctx.Repo.GitRepo.GetCommit(beforeCommitID)
+	if err != nil {
+		ctx.NotFound("GetCommit", err)
+		return
+	}
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(afterCommitID)
 	if err != nil {
@@ -307,6 +324,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
+	ctx.Data["ImageInfo"] = commit.ImageInfo
+	ctx.Data["ImageInfoBase"] = beforeCommit.ImageInfo
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID) + " · " + userName + "/" + repoName
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
