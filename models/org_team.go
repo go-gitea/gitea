@@ -88,6 +88,7 @@ func (t *Team) IsMember(userID int64) bool {
 }
 
 func (t *Team) getRepositories(e Engine) error {
+	t.Repos = nil
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
 		Where("team_repo.team_id=?", t.ID).
 		OrderBy("repository.name").
@@ -159,6 +160,24 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 	return nil
 }
 
+// addAllRepositories adds all repositories to the team.
+// If the team already has some repositories they will be left unchanged.
+func (t *Team) addAllRepositories(e Engine) error {
+	err := e.Iterate(&Repository{OwnerID: t.OrgID}, func(i int, bean interface{}) error {
+		repo := bean.(*Repository)
+		if !t.hasRepository(e, repo.ID) {
+			if err := t.addRepository(e, repo); err != nil {
+				return fmt.Errorf("addRepository: %v", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Iterate organization repositories: %v", err)
+	}
+	return nil
+}
+
 // AddRepository adds new repository to team of organization.
 func (t *Team) AddRepository(repo *Repository) (err error) {
 	if repo.OwnerID != t.OrgID {
@@ -225,6 +244,10 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 // RemoveRepository removes repository from team of organization.
 func (t *Team) RemoveRepository(repoID int64) error {
 	if !t.HasRepository(repoID) {
+		return nil
+	}
+
+	if t.IsAllRepositories {
 		return nil
 	}
 
@@ -322,6 +345,14 @@ func NewTeam(t *Team) (err error) {
 		if _, err = sess.Insert(&t.Units); err != nil {
 			sess.Rollback()
 			return err
+		}
+	}
+
+	// Add all repositories to the team if it has access to all of them.
+	if t.IsAllRepositories {
+		err = t.addAllRepositories(sess)
+		if err != nil {
+			return fmt.Errorf("addAllRepositories: %v", err)
 		}
 	}
 
@@ -428,6 +459,14 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 			if err = repo.recalculateTeamAccesses(sess, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
+		}
+	}
+
+	// Add all repositories to the team if it has access to all of them.
+	if t.IsAllRepositories {
+		err = t.addAllRepositories(sess)
+		if err != nil {
+			return fmt.Errorf("addAllRepositories: %v", err)
 		}
 	}
 

@@ -1355,14 +1355,19 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	// Give access to all members in owner team.
+	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		t, err := u.getOwnerTeam(e)
-		if err != nil {
-			return fmt.Errorf("getOwnerTeam: %v", err)
-		} else if err = t.addRepository(e, repo); err != nil {
-			return fmt.Errorf("addRepository: %v", err)
-		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
+		if err := u.GetTeams(); err != nil {
+			return fmt.Errorf("GetTeams: %v", err)
+		}
+		for _, t := range u.Teams {
+			if t.IsAllRepositories {
+				if err := t.addRepository(e, repo); err != nil {
+					return fmt.Errorf("addRepository: %v", err)
+				}
+			}
+		}
+		if err := prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),

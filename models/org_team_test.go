@@ -5,8 +5,11 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -373,4 +376,116 @@ func TestUsersInTeamsCount(t *testing.T) {
 	test([]int64{2}, []int64{1, 2, 3, 4}, 2)
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
+}
+
+func TestAllRepositoriesTeams(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Get an admin user.
+	user, err := GetUserByID(1)
+	assert.NoError(t, err, "GetUserByID")
+
+	// Create org.
+	org := &User{
+		Name:       "All repo",
+		IsActive:   true,
+		Type:       UserTypeOrganization,
+		Visibility: structs.VisibleTypePublic,
+	}
+	assert.NoError(t, CreateOrganization(org, user), "CreateOrganization")
+
+	// Check Owner team.
+	ownerTeam, err := org.GetOwnerTeam()
+	assert.NoError(t, err, "GetOwnerTeam")
+	assert.True(t, ownerTeam.IsAllRepositories, "Owner team is all repositories")
+
+	// Create repos.
+	repoIds := make([]int64, 0)
+	for i := 1; i <= 3; i++ {
+		r, err := CreateRepository(user, org, CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		assert.NoError(t, err, "CreateRepository %d", i)
+		if r != nil {
+			repoIds = append(repoIds, r.ID)
+		}
+	}
+
+	// Create teams and check repo count.
+	teams := []*Team{
+		ownerTeam,
+		{
+			OrgID:             org.ID,
+			Name:              "team one",
+			Authorize:         AccessModeRead,
+			IsAllRepositories: true,
+		},
+		{
+			OrgID:             org.ID,
+			Name:              "team 2",
+			Authorize:         AccessModeRead,
+			IsAllRepositories: false,
+		},
+		{
+			OrgID:             org.ID,
+			Name:              "team three",
+			Authorize:         AccessModeWrite,
+			IsAllRepositories: true,
+		},
+		{
+			OrgID:             org.ID,
+			Name:              "team 4",
+			Authorize:         AccessModeWrite,
+			IsAllRepositories: false,
+		},
+	}
+	repoCounts := []int{3, 3, 0, 3, 0}
+	for i, team := range teams {
+		if i > 0 { // first team is Owner.
+			assert.NoError(t, NewTeam(team), "team %d: NewTeam", i)
+		}
+		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
+		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+	}
+
+	// Update teams and check repo count.
+	teams[3].IsAllRepositories = false
+	teams[4].IsAllRepositories = true
+	repoCounts[4] = 3
+	for i, team := range teams {
+		assert.NoError(t, UpdateTeam(team, false), "team %d: UpdateTeam", i)
+		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
+		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+	}
+
+	// Create repo and check teams repo count.
+	r, err := CreateRepository(user, org, CreateRepoOptions{Name: "repo-last"})
+	assert.NoError(t, err, "CreateRepository last")
+	if r != nil {
+		repoIds = append(repoIds, r.ID)
+	}
+	repoCounts[0] = 4
+	repoCounts[1] = 4
+	repoCounts[4] = 4
+	for i, team := range teams {
+		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
+		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+	}
+
+	// Remove repo and check teams repo count.
+	assert.NoError(t, DeleteRepository(user, org.ID, repoIds[0]), "DeleteRepository")
+	repoCounts[0] = 3
+	repoCounts[1] = 3
+	repoCounts[3] = 2
+	repoCounts[4] = 3
+	for i, team := range teams {
+		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
+		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+	}
+
+	// Wipe created items.
+	for i, rid := range repoIds {
+		if i > 0 { // first repo already deleted.
+			assert.NoError(t, DeleteRepository(user, org.ID, rid), "DeleteRepository %d", i)
+		}
+	}
+	assert.NoError(t, DeleteOrganization(org), "DeleteOrganization")
 }
