@@ -189,7 +189,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range unitTypes {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
+				OrgID: ctx.Org.Team.OrgID,
 				Type:  tp,
 			})
 		}
