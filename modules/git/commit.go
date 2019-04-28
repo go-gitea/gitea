@@ -162,6 +162,7 @@ func (c *Commit) IsImageFile(name string) bool {
 	return isImage
 }
 
+// ImageInfo returns information about the dimensions of an image
 func (c *Commit) ImageInfo(name string) (*image.Config, error) {
 	if !c.IsImageFile(name) {
 		return nil, nil
