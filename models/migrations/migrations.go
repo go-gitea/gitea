@@ -223,6 +223,8 @@ var migrations = []Migration{
 	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
 	// v84 -> v85
 	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
+	// v85 -> v86
+	NewMigration("add is_all_repositories to teams", addTeamIsAllRepositories),
 }
 
 // Migrate database to current version
