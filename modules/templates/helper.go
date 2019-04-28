@@ -13,12 +13,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"image"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"mime"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"runtime"
@@ -226,19 +221,6 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return dict, nil
-		},
-		"imageInfo": func(imagePath string) (*image.Config, error) {
-			resp, err := http.Get(imagePath)
-			if err != nil {
-				log.Error("imageInfo: Unable to open URL %s", imagePath)
-				return nil, nil
-			}
-			config, _, err := image.DecodeConfig(resp.Body)
-			if err != nil {
-				log.Error("imageInfo: Unable to DecodeConfig on %s", imagePath)
-				return nil, nil
-			}
-			return &config, nil
 		},
 	}}
 }

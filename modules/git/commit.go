@@ -10,6 +10,10 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"image"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
 	"strconv"
@@ -156,6 +160,26 @@ func (c *Commit) IsImageFile(name string) bool {
 	buf = buf[:n]
 	_, isImage := isImageFile(buf)
 	return isImage
+}
+
+func (c *Commit) ImageInfo(name string) (*image.Config, error) {
+	if !c.IsImageFile(name) {
+		return nil, nil
+	}
+
+	blob, err := c.GetBlobByPath(name)
+	if err != nil {
+		return nil, nil
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return nil, nil
+	}
+	config, _, err := image.DecodeConfig(reader)
+	if err != nil {
+		return nil, nil
+	}
+	return &config, nil
 }
 
 // GetCommitByPath return the commit of relative path object.
