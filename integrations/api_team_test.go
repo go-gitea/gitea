@@ -46,8 +46,8 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
 	resp = session.MakeRequest(t, req, http.StatusUnauthorized)
 
-	// Get an admin user able to create, update and delete teams.
-	user = models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	// Get a member of the owner team able to create, update and delete teams.
+	user = models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session)
 
