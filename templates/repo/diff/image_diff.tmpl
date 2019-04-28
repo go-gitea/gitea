@@ -25,14 +25,14 @@
 {{if and $imageInfoOld $imageInfoNew }}
 <tr>
  	<td class="halfwidth center">
- 		{{.root.i18n.Tr "repo.diff.file_image_width_short"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}red{{end}}">{{$imageInfoOld.Width}}</span>
+ 		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}red{{end}}">{{$imageInfoOld.Width}}</span>
  		&nbsp;|&nbsp;
- 	    {{.root.i18n.Tr "repo.diff.file_image_height_short"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}red{{end}}">{{$imageInfoOld.Height}}</span>
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}red{{end}}">{{$imageInfoOld.Height}}</span>
  	</td>
  	<td class="halfwidth center">
- 		{{.root.i18n.Tr "repo.diff.file_image_width_short"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}green{{end}}">{{$imageInfoNew.Width}}</span>
+ 		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{if not (eq $imageInfoOld.Width $imageInfoNew.Width)}}green{{end}}">{{$imageInfoNew.Width}}</span>
  		&nbsp;|&nbsp;
- 	    {{.root.i18n.Tr "repo.diff.file_image_height_short"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}green{{end}}">{{$imageInfoNew.Height}}</span>
+ 	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{if not (eq $imageInfoOld.Height $imageInfoNew.Height)}}green{{end}}">{{$imageInfoNew.Height}}</span>
  	</td>
  </tr>
 {{end}}
