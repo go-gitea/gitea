@@ -110,3 +110,101 @@ func TestPrivateOrg(t *testing.T) {
 	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
 }
+
+func TestOrgSettings(t *testing.T) {
+	prepareTestEnv(t)
+
+	type test struct {
+		User   string
+		Repo   string
+		Result int
+	}
+	var (
+		tests = []test{
+			test{"user1", "user3", http.StatusOK},
+			test{"user2", "user3", http.StatusOK},
+			test{"user4", "user3", http.StatusNotFound},
+			test{"user1", "limited_org", http.StatusOK},
+			test{"user1", "privated_org", http.StatusOK},
+			test{"user2", "limited_org", http.StatusNotFound},
+			test{"user2", "privated_org", http.StatusNotFound},
+		}
+	)
+
+	for _, te := range tests {
+		t.Run(te.User+"/"+te.Repo, func(t *testing.T) {
+			session := loginUser(t, te.User)
+			req := NewRequest(t, "GET", "/org/"+te.Repo+"/settings")
+			session.MakeRequest(t, req, te.Result)
+			//resp := session.MakeRequest(t, req, http.StatusOK)
+		})
+	}
+}
+
+//TODO post a change
+
+//TODO update the image
+
+func TestOrgSettingsHooks(t *testing.T) {
+	prepareTestEnv(t)
+
+	type test struct {
+		User   string
+		Repo   string
+		Result int
+	}
+	var (
+		tests = []test{
+			test{"user1", "user3", http.StatusOK},
+			test{"user2", "user3", http.StatusOK},
+			test{"user4", "user3", http.StatusNotFound},
+			test{"user1", "limited_org", http.StatusOK},
+			test{"user1", "privated_org", http.StatusOK},
+			test{"user2", "limited_org", http.StatusNotFound},
+			test{"user2", "privated_org", http.StatusNotFound},
+		}
+	)
+
+	for _, te := range tests {
+		t.Run(te.User+"/"+te.Repo, func(t *testing.T) {
+			session := loginUser(t, te.User)
+			req := NewRequest(t, "GET", "/org/"+te.Repo+"/settings/hooks")
+			session.MakeRequest(t, req, te.Result)
+			//resp := session.MakeRequest(t, req, http.StatusOK)
+		})
+	}
+}
+
+//TODO add webhook
+
+func TestOrgSettingsDelete(t *testing.T) {
+	prepareTestEnv(t)
+
+	type test struct {
+		User   string
+		Repo   string
+		Result int
+	}
+	var (
+		tests = []test{
+			test{"user1", "user3", http.StatusOK},
+			test{"user2", "user3", http.StatusOK},
+			test{"user4", "user3", http.StatusNotFound},
+			test{"user1", "limited_org", http.StatusOK},
+			test{"user1", "privated_org", http.StatusOK},
+			test{"user2", "limited_org", http.StatusNotFound},
+			test{"user2", "privated_org", http.StatusNotFound},
+		}
+	)
+
+	for _, te := range tests {
+		t.Run(te.User+"/"+te.Repo, func(t *testing.T) {
+			session := loginUser(t, te.User)
+			req := NewRequest(t, "GET", "/org/"+te.Repo+"/settings/delete")
+			session.MakeRequest(t, req, te.Result)
+			//resp := session.MakeRequest(t, req, http.StatusOK)
+		})
+	}
+}
+
+//TODO try delete
