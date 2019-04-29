@@ -220,14 +220,13 @@ func TestOrgSettingsHooksAdd(t *testing.T) {
 			session.MakeRequest(t, req, te.GetResult)
 			//t.Logf("debug: %s", resp.Body)
 			htmlDoc = NewHTMLParser(t, resp.Body)
-			sel = htmlDoc.doc.Find("a.dont-break-out")
+			sel = htmlDoc.doc.Find("a.delete-button")
 			assert.EqualValues(t, te.HookCountBefore+1, len(sel.Nodes))
 			hookEl := sel.Nodes[len(sel.Nodes)-1]
 			hookID := "0"
 			for _, a := range hookEl.Attr {
-				if a.Key == "href" {
-					tmp := strings.Split(a.Val, "/")
-					hookID = tmp[len(tmp)-1]
+				if a.Key == "data-id" {
+					hookID = a.Val
 				}
 			}
 
