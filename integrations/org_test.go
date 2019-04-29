@@ -314,6 +314,36 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
+	//Update desc
+	req = NewRequest(t, "GET", "/org/test_org_to_delete/settings")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/test_org_to_delete/settings", map[string]string{
+		"_csrf":             htmlDoc.GetCSRF(),
+		"name":              "test_org_to_delete",
+		"full_name":         "test_org_to_delete",
+		"description":       "Some little desc",
+		"website":           "",
+		"location":          "",
+		"visibility":        "0",
+		"max_repo_creation": "-1",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequest(t, "GET", "/org/test_org_to_delete/settings")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/test_org_to_delete/settings/delete", map[string]string{
+		"_csrf":    htmlDoc.GetCSRF(),
+		"password": "wrong_password",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK) //Maybe should not be OK ?
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	htmlDoc.AssertElement(t, "div.ui.negative.message", true)
+	//The password you entered is incorrect.
+
 	req = NewRequest(t, "GET", "/org/test_org_to_delete/settings")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -322,7 +352,9 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 		"_csrf":    htmlDoc.GetCSRF(),
 		"password": "password",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	htmlDoc.AssertElement(t, "div.ui.negative.message", false)
 }
 
 func TestOrgTeam(t *testing.T) {
