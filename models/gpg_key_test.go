@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"github.com/keybase/go-crypto/openpgp"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -407,8 +408,14 @@ FkzJRllII58iAA==
 	ekey, err := checkArmoredGPGKeyString(testIssue6778)
 	assert.NoError(t, err)
 
+	assert.Equal(t, 1, len(ekey.Identities)) //Should not output the revoked uid
+
+	//Inspired from https://github.com/keybase/go-crypto/blob/master/openpgp/keys_test.go#L519
+	var identities []*openpgp.Identity
 	for _, ident := range ekey.Identities {
+		identities = append(identities, ident)
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		t.Logf("DEBUG: %s", email)
 	}
+	assert.Contains(t, identities[0].Name, "Alden Peeters <alden.peeters@") //Should not output the revoked uid
 }
