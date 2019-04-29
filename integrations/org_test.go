@@ -197,6 +197,34 @@ func TestOrgSettingsHooksAdd(t *testing.T) {
 				"events":       "send_everything",
 				"active":       "on",
 			}, http.StatusFound, 0, http.StatusOK},
+			{"user1", "privated_org", "gogs", http.StatusOK, map[string]string{
+				"payload_url":  "http://localhost:8080",
+				"content_type": "1",
+				"secret":       "some_secret",
+				"events":       "send_everything",
+				"active":       "on",
+			}, http.StatusFound, 0, http.StatusOK},
+			{"user1", "privated_org", "slack", http.StatusOK, map[string]string{
+				"payload_url": "http://localhost:8080",
+				"channel":     "#test",
+				"username":    "gitea",
+				"icon_url":    "",
+				"color":       "",
+				"events":      "send_everything",
+				"active":      "on",
+			}, http.StatusFound, 0, http.StatusOK},
+			{"user1", "privated_org", "discord", http.StatusOK, map[string]string{
+				"payload_url": "http://localhost:8080",
+				"username":    "gitea",
+				"icon_url":    "",
+				"events":      "send_everything",
+				"active":      "on",
+			}, http.StatusFound, 0, http.StatusOK},
+			{"user1", "privated_org", "dingtalk", http.StatusOK, map[string]string{
+				"payload_url": "http://localhost:8080",
+				"events":      "send_everything",
+				"active":      "on",
+			}, http.StatusFound, 0, http.StatusOK},
 		}
 	)
 
