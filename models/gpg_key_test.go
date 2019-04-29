@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -375,4 +376,39 @@ epiDVQ==
 	assert.NoError(t, err)
 	expire := getExpiryTime(ekey)
 	assert.Equal(t, time.Unix(1586105389, 0), expire)
+}
+
+func TestIssue6778(t *testing.T) {
+	testIssue6778 := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEXHmwNRYJKwYBBAHaRw8BAQdADJQJlOscbuBH+CyJC9GVm3kKBD0Az8Ew7yqy
+MzQgwDm0KUFsZGVuIFBlZXRlcnMgPGFsZGVuLnBlZXRlcnNAbGVhZ3VlaC54eXo+
+iJkEExYIAEECGwMFCwkIBwIGFQoJCAsCBBYCAwECHgECF4ACGQEWIQQOcvdJ5dTp
+Lx8dXyvNrWOunak0vgUCXMMqvAUJAkujhwAKCRDNrWOunak0vn92AQDmkeyYEmlx
+cHrnnCJAHub3aq0/M960vqYKX+mpgXuapwD+LEEdQ1LDg+hmzaNsgF+JRI/GeRE+
+NpH02rJydqnPmgOIjwQTFggAOBYhBA5y90nl1OkvHx1fK82tY66dqTS+BQJcwhFN
+AhsDBQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJEM2tY66dqTS+508A+MZsy+wH
+LD5gzke8keuZtsQwE4181PUN2YKr0pPQcJIBALHD2DIa0Zq91NiFRUq7wc8Bogsu
+8ya4cjUZPf9RcdUBtCZBbGRlbiBQZWV0ZXJzIDxhbGRlbkBvcGVuZm9ydHJlc3Mu
+eHl6PoiYBDAWCABAFiEEDnL3SeXU6S8fHV8rza1jrp2pNL4FAlzCEWUiHSBObyBs
+b25nZXIgb3duIHRoaXMgZW1haWwgYWRkcmVzcwAKCRDNrWOunak0vsBhAP9ZxNlQ
+q4ibb04LxQIwijK9brNge8Jqu2LInmcs0VXa9QD+JdkhYtRcFLXDyQi03uuAUa4y
+hTYQvgeqP9EBllNbCwSIkAQTFggAOBYhBA5y90nl1OkvHx1fK82tY66dqTS+BQJc
+ebA1AhsDBQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJEM2tY66dqTS+Rq4A/Az/
+HkAVEFaIVR/E/IyfWpp30jhmior9iorrwR5zJcIXAQCqPRG7bKSv4t0M25z7MzGe
+z4A8ru/O/2BWGbz3DwFoDrg4BFx5sDUSCisGAQQBl1UBBQEBB0C6aNJqaSPLAVVg
+puuvK645awUD42NBnO863AVf23aXOgMBCAeIfgQYFggAJgIbDBYhBA5y90nl1Okv
+Hx1fK82tY66dqTS+BQJcwyr7BQkCS6PGAAoJEM2tY66dqTS+J24BAJQE59jBQFwH
+OYRCigOJJVsWWNs35TilZ1xaxs8mnDjHAQDo18Q/Uw1zBPH2Mr5LRAbQwnwoVwgU
+FkzJRllII58iAA==
+=SS9a
+-----END PGP PUBLIC KEY BLOCK-----
+`
+	ekey, err := checkArmoredGPGKeyString(testIssue6778)
+	assert.NoError(t, err)
+
+	for _, ident := range ekey.Identities {
+		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
+		t.Logf("DEBUG: %s", email)
+	}
 }
