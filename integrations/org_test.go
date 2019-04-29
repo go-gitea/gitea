@@ -244,8 +244,6 @@ func TestOrgSettingsHooksAdd(t *testing.T) {
 	}
 }
 
-//TODO delete webhook
-
 func TestOrgSettingsDelete(t *testing.T) {
 	prepareTestEnv(t)
 
@@ -253,16 +251,18 @@ func TestOrgSettingsDelete(t *testing.T) {
 		User   string
 		Repo   string
 		Result int
+		Delete bool
 	}
 	var (
 		tests = []test{
-			{"user1", "user3", http.StatusOK},
-			{"user2", "user3", http.StatusOK},
-			{"user4", "user3", http.StatusNotFound},
-			{"user1", "limited_org", http.StatusOK},
-			{"user1", "privated_org", http.StatusOK},
-			{"user2", "limited_org", http.StatusNotFound},
-			{"user2", "privated_org", http.StatusNotFound},
+			{"user1", "user3", http.StatusOK, false},
+			{"user2", "user3", http.StatusOK, false},
+			{"user4", "user3", http.StatusNotFound, false},
+			{"user1", "limited_org", http.StatusOK, false},
+			{"user1", "privated_org", http.StatusOK, false},
+			{"user2", "limited_org", http.StatusNotFound, false},
+			{"user2", "privated_org", http.StatusNotFound, false},
+			{"user1", "privated_org", http.StatusOK, true},
 		}
 	)
 
@@ -270,10 +270,16 @@ func TestOrgSettingsDelete(t *testing.T) {
 		t.Run(te.User+"/"+te.Repo, func(t *testing.T) {
 			session := loginUser(t, te.User)
 			req := NewRequest(t, "GET", "/org/"+te.Repo+"/settings/delete")
-			session.MakeRequest(t, req, te.Result)
-			//resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := session.MakeRequest(t, req, te.Result)
+
+			if te.Delete {
+				htmlDoc := NewHTMLParser(t, resp.Body)
+				req := NewRequestWithValues(t, "POST", "/org/"+te.Repo+"/settings/delete", map[string]string{
+					"_csrf":    htmlDoc.GetCSRF(),
+					"password": "password",
+				})
+				session.MakeRequest(t, req, http.StatusFound)
+			}
 		})
 	}
 }
-
-//TODO try delete
