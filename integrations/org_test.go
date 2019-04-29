@@ -325,9 +325,12 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 }
 
-func TestOrgTeamCreateAndDelete(t *testing.T) {
+func TestOrgTeam(t *testing.T) {
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/org/privated_org/teams/new")
+	req := NewRequest(t, "GET", "/org/privated_org/teams")
+	session.MakeRequest(t, req, http.StatusOK) //TODO count teams
+
+	req = NewRequest(t, "GET", "/org/privated_org/teams/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -341,11 +344,22 @@ func TestOrgTeamCreateAndDelete(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test")
 	session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/repositories")
+	session.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/edit")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/privated_org/teams/team_test/edit", map[string]string{
+		"_csrf":       htmlDoc.GetCSRF(),
+		"team_name":   "team_test",
+		"description": "team_test_desc_2",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
 
+	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/edit")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/org/privated_org/teams/team_test/delete", map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
