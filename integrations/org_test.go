@@ -122,13 +122,13 @@ func TestOrgSettings(t *testing.T) {
 	}
 	var (
 		tests = []test{
-			test{"user1", "user3", http.StatusOK},
-			test{"user2", "user3", http.StatusOK},
-			test{"user4", "user3", http.StatusNotFound},
-			test{"user1", "limited_org", http.StatusOK},
-			test{"user1", "privated_org", http.StatusOK},
-			test{"user2", "limited_org", http.StatusNotFound},
-			test{"user2", "privated_org", http.StatusNotFound},
+			{"user1", "user3", http.StatusOK},
+			{"user2", "user3", http.StatusOK},
+			{"user4", "user3", http.StatusNotFound},
+			{"user1", "limited_org", http.StatusOK},
+			{"user1", "privated_org", http.StatusOK},
+			{"user2", "limited_org", http.StatusNotFound},
+			{"user2", "privated_org", http.StatusNotFound},
 		}
 	)
 
@@ -156,13 +156,13 @@ func TestOrgSettingsHooks(t *testing.T) {
 	}
 	var (
 		tests = []test{
-			test{"user1", "user3", http.StatusOK},
-			test{"user2", "user3", http.StatusOK},
-			test{"user4", "user3", http.StatusNotFound},
-			test{"user1", "limited_org", http.StatusOK},
-			test{"user1", "privated_org", http.StatusOK},
-			test{"user2", "limited_org", http.StatusNotFound},
-			test{"user2", "privated_org", http.StatusNotFound},
+			{"user1", "user3", http.StatusOK},
+			{"user2", "user3", http.StatusOK},
+			{"user4", "user3", http.StatusNotFound},
+			{"user1", "limited_org", http.StatusOK},
+			{"user1", "privated_org", http.StatusOK},
+			{"user2", "limited_org", http.StatusNotFound},
+			{"user2", "privated_org", http.StatusNotFound},
 		}
 	)
 
@@ -190,7 +190,7 @@ func TestOrgSettingsHooksAdd(t *testing.T) {
 	}
 	var (
 		tests = []test{
-			test{"user1", "privated_org", "gitea", http.StatusOK, map[string]string{
+			{"user1", "privated_org", "gitea", http.StatusOK, map[string]string{
 				"payload_url":  "http://localhost:8080",
 				"content_type": "1",
 				"secret":       "some_secret",
@@ -257,13 +257,13 @@ func TestOrgSettingsDelete(t *testing.T) {
 	}
 	var (
 		tests = []test{
-			test{"user1", "user3", http.StatusOK},
-			test{"user2", "user3", http.StatusOK},
-			test{"user4", "user3", http.StatusNotFound},
-			test{"user1", "limited_org", http.StatusOK},
-			test{"user1", "privated_org", http.StatusOK},
-			test{"user2", "limited_org", http.StatusNotFound},
-			test{"user2", "privated_org", http.StatusNotFound},
+			{"user1", "user3", http.StatusOK},
+			{"user2", "user3", http.StatusOK},
+			{"user4", "user3", http.StatusNotFound},
+			{"user1", "limited_org", http.StatusOK},
+			{"user1", "privated_org", http.StatusOK},
+			{"user2", "limited_org", http.StatusNotFound},
+			{"user2", "privated_org", http.StatusNotFound},
 		}
 	)
 
