@@ -410,3 +410,29 @@ func TestOrgTeam(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusOK) //TODO should be StatusFound
 }
+
+func TestOrgMembers(t *testing.T) {
+	org := "user3"
+	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", "/org/"+org+"/members")
+	session.MakeRequest(t, req, http.StatusOK) //TODO count members
+
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/private?uid=1")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/public?uid=1")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/private?uid=2")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/remove?uid=2")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/public?uid=2")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+
+	session = loginUser(t, "user2")
+	req = NewRequest(t, "GET", "/org/"+org+"/members/action/leave")
+	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
+	//t.Log(resp.Body)
+
+}
