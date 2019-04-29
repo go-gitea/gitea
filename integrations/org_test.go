@@ -326,15 +326,16 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 }
 
 func TestOrgTeam(t *testing.T) {
+	org := "user3"
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/org/privated_org/teams")
+	req := NewRequest(t, "GET", "/org/"+org+"/teams")
 	session.MakeRequest(t, req, http.StatusOK) //TODO count teams
 
-	req = NewRequest(t, "GET", "/org/privated_org/teams/new")
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/org/privated_org/teams/new", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/org/"+org+"/teams/new", map[string]string{
 		"_csrf":       htmlDoc.GetCSRF(),
 		"team_name":   "team_test",
 		"description": "team_test_desc",
@@ -342,25 +343,37 @@ func TestOrgTeam(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
-	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test")
-	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/repositories")
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/team_test")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/"+org+"/teams/team_test/action/add", map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"uid":   "2",
+		"uname": "user2",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/team_test/action/remove?uid=2") //TODO should be POST
+	session.MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/team_test/repositories")
 	session.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/edit")
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/team_test/edit")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/org/privated_org/teams/team_test/edit", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/org/"+org+"/teams/team_test/edit", map[string]string{
 		"_csrf":       htmlDoc.GetCSRF(),
 		"team_name":   "team_test",
 		"description": "team_test_desc_2",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", "/org/privated_org/teams/team_test/edit")
+	req = NewRequest(t, "GET", "/org/"+org+"/teams/team_test/edit")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/org/privated_org/teams/team_test/delete", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/org/"+org+"/teams/team_test/delete", map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
 	session.MakeRequest(t, req, http.StatusOK) //TODO should be StatusFound
