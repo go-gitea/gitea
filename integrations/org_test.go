@@ -311,10 +311,10 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
 		"_csrf":      htmlDoc.GetCSRF(),
-		"org_name":   "user2",
+		"org_name":   "user1",
 		"visibility": "0",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//Exist org
 	req = NewRequest(t, "GET", "/org/create")
@@ -326,7 +326,7 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 		"org_name":   "limited_org",
 		"visibility": "0",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//Restricted
 	req = NewRequest(t, "GET", "/org/create")
@@ -338,7 +338,7 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 		"org_name":   "assets",
 		"visibility": "0",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//Restricted pattern
 	req = NewRequest(t, "GET", "/org/create")
@@ -350,7 +350,7 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 		"org_name":   "user.gpg",
 		"visibility": "0",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//Forbidden
 	session = loginUser(t, "user2")
@@ -363,7 +363,7 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 		"org_name":   "test_org_to_delete",
 		"visibility": "0",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//OK
 	session = loginUser(t, "user1")
