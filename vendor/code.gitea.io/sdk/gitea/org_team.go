@@ -7,11 +7,11 @@ package gitea
 
 // Team represents a team in an organization
 type Team struct {
-	ID                int64         `json:"id"`
-	Name              string        `json:"name"`
-	Description       string        `json:"description"`
-	Organization      *Organization `json:"organization"`
-	IsAllRepositories bool          `json:"is_all_repositories"`
+	ID                      int64         `json:"id"`
+	Name                    string        `json:"name"`
+	Description             string        `json:"description"`
+	Organization            *Organization `json:"organization"`
+	IncludesAllRepositories bool          `json:"includes_all_repositories"`
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
 	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
@@ -21,9 +21,9 @@ type Team struct {
 // CreateTeamOption options for creating a team
 type CreateTeamOption struct {
 	// required: true
-	Name              string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description       string `json:"description" binding:"MaxSize(255)"`
-	IsAllRepositories bool   `json:"is_all_repositories"`
+	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description             string `json:"description" binding:"MaxSize(255)"`
+	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
@@ -33,9 +33,9 @@ type CreateTeamOption struct {
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
 	// required: true
-	Name              string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description       string `json:"description" binding:"MaxSize(255)"`
-	IsAllRepositories bool   `json:"is_all_repositories"`
+	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description             string `json:"description" binding:"MaxSize(255)"`
+	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki

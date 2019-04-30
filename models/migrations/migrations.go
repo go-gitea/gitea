@@ -224,7 +224,7 @@ var migrations = []Migration{
 	// v84 -> v85
 	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 	// v85 -> v86
-	NewMigration("add is_all_repositories to teams", addTeamIsAllRepositories),
+	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
 }
 
 // Migrate database to current version

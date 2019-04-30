@@ -152,12 +152,12 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Create default owner team.
 	t := &Team{
-		OrgID:             org.ID,
-		LowerName:         strings.ToLower(ownerTeamName),
-		Name:              ownerTeamName,
-		Authorize:         AccessModeOwner,
-		NumMembers:        1,
-		IsAllRepositories: true,
+		OrgID:                   org.ID,
+		LowerName:               strings.ToLower(ownerTeamName),
+		Name:                    ownerTeamName,
+		Authorize:               AccessModeOwner,
+		NumMembers:              1,
+		IncludesAllRepositories: true,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)

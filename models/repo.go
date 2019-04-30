@@ -1361,7 +1361,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range u.Teams {
-			if t.IsAllRepositories {
+			if t.IncludesAllRepositories {
 				if err := t.addRepository(e, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
 				}

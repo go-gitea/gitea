@@ -21,18 +21,18 @@ const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID                int64 `xorm:"pk autoincr"`
-	OrgID             int64 `xorm:"INDEX"`
-	LowerName         string
-	Name              string
-	Description       string
-	Authorize         AccessMode
-	Repos             []*Repository `xorm:"-"`
-	Members           []*User       `xorm:"-"`
-	NumRepos          int
-	NumMembers        int
-	Units             []*TeamUnit `xorm:"-"`
-	IsAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
+	ID                      int64 `xorm:"pk autoincr"`
+	OrgID                   int64 `xorm:"INDEX"`
+	LowerName               string
+	Name                    string
+	Description             string
+	Authorize               AccessMode
+	Repos                   []*Repository `xorm:"-"`
+	Members                 []*User       `xorm:"-"`
+	NumRepos                int
+	NumMembers              int
+	Units                   []*TeamUnit `xorm:"-"`
+	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
 // ColorFormat provides a basic color format for a Team
@@ -247,7 +247,7 @@ func (t *Team) RemoveRepository(repoID int64) error {
 		return nil
 	}
 
-	if t.IsAllRepositories {
+	if t.IncludesAllRepositories {
 		return nil
 	}
 
@@ -349,7 +349,7 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	// Add all repositories to the team if it has access to all of them.
-	if t.IsAllRepositories {
+	if t.IncludesAllRepositories {
 		err = t.addAllRepositories(sess)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %v", err)
@@ -463,7 +463,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	}
 
 	// Add all repositories to the team if it has access to all of them.
-	if t.IsAllRepositories {
+	if t.IncludesAllRepositories {
 		err = t.addAllRepositories(sess)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %v", err)

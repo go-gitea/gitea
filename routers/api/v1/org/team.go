@@ -126,11 +126,11 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	//   "201":
 	//     "$ref": "#/responses/Team"
 	team := &models.Team{
-		OrgID:             ctx.Org.Organization.ID,
-		Name:              form.Name,
-		Description:       form.Description,
-		IsAllRepositories: form.IsAllRepositories,
-		Authorize:         models.ParseAccessMode(form.Permission),
+		OrgID:                   ctx.Org.Organization.ID,
+		Name:                    form.Name,
+		Description:             form.Description,
+		IncludesAllRepositories: form.IncludesAllRepositories,
+		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
 	unitTypes := models.FindUnitTypes(form.Units...)
@@ -183,7 +183,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	team := ctx.Org.Team
 	team.Name = form.Name
 	team.Description = form.Description
-	team.IsAllRepositories = form.IsAllRepositories
+	team.IncludesAllRepositories = form.IncludesAllRepositories
 	team.Authorize = models.ParseAccessMode(form.Permission)
 	unitTypes := models.FindUnitTypes(form.Units...)
 

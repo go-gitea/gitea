@@ -26,8 +26,8 @@
 					{{if not (eq .Team.LowerName "owners")}}
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label for="is_all_repositories">{{.i18n.Tr "org.teams.all_repositories"}}</label>
-								<input id="is_all_repositories" name="is_all_repositories" type="checkbox" {{if .Team.IsAllRepositories}}checked{{end}}>
+								<label for="includes_all_repositories">{{.i18n.Tr "org.teams.all_repositories"}}</label>
+								<input id="includes_all_repositories" name="includes_all_repositories" type="checkbox" {{if .Team.IncludesAllRepositories}}checked{{end}}>
 								<span class="help">{{.i18n.Tr "org.teams.all_repositories_helper"}}</span>
 							</div>
 						</div>

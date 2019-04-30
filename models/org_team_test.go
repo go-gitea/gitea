@@ -397,7 +397,7 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam()
 	assert.NoError(t, err, "GetOwnerTeam")
-	assert.True(t, ownerTeam.IsAllRepositories, "Owner team is all repositories")
+	assert.True(t, ownerTeam.IncludesAllRepositories, "Owner team includes all repositories")
 
 	// Create repos.
 	repoIds := make([]int64, 0)
@@ -413,28 +413,28 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	teams := []*Team{
 		ownerTeam,
 		{
-			OrgID:             org.ID,
-			Name:              "team one",
-			Authorize:         AccessModeRead,
-			IsAllRepositories: true,
+			OrgID:                   org.ID,
+			Name:                    "team one",
+			Authorize:               AccessModeRead,
+			IncludesAllRepositories: true,
 		},
 		{
-			OrgID:             org.ID,
-			Name:              "team 2",
-			Authorize:         AccessModeRead,
-			IsAllRepositories: false,
+			OrgID:                   org.ID,
+			Name:                    "team 2",
+			Authorize:               AccessModeRead,
+			IncludesAllRepositories: false,
 		},
 		{
-			OrgID:             org.ID,
-			Name:              "team three",
-			Authorize:         AccessModeWrite,
-			IsAllRepositories: true,
+			OrgID:                   org.ID,
+			Name:                    "team three",
+			Authorize:               AccessModeWrite,
+			IncludesAllRepositories: true,
 		},
 		{
-			OrgID:             org.ID,
-			Name:              "team 4",
-			Authorize:         AccessModeWrite,
-			IsAllRepositories: false,
+			OrgID:                   org.ID,
+			Name:                    "team 4",
+			Authorize:               AccessModeWrite,
+			IncludesAllRepositories: false,
 		},
 	}
 	repoCounts := []int{3, 3, 0, 3, 0}
@@ -447,8 +447,8 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Update teams and check repo count.
-	teams[3].IsAllRepositories = false
-	teams[4].IsAllRepositories = true
+	teams[3].IncludesAllRepositories = false
+	teams[4].IncludesAllRepositories = true
 	repoCounts[4] = 3
 	for i, team := range teams {
 		assert.NoError(t, UpdateTeam(team, false), "team %d: UpdateTeam", i)
