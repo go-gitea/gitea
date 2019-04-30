@@ -19,7 +19,7 @@ func addTeamIsAllRepositories(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE team SET is_all_repositories = ? WHERE name=?",
+	_, err := x.Exec("UPDATE `team` SET `is_all_repositories` = ? WHERE `name`=?",
 		true, "Owners")
 	return err
 }
