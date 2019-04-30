@@ -303,10 +303,74 @@ func TestOrgSettingsDelete(t *testing.T) {
 
 func TestOrgSettingsCreateAndDelete(t *testing.T) {
 	session := loginUser(t, "user1")
+
+	//Exist user
 	req := NewRequest(t, "GET", "/org/create")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
+		"_csrf":      htmlDoc.GetCSRF(),
+		"org_name":   "user2",
+		"visibility": "0",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	//Exist org
+	req = NewRequest(t, "GET", "/org/create")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
+		"_csrf":      htmlDoc.GetCSRF(),
+		"org_name":   "limited_org",
+		"visibility": "0",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	//Restricted
+	req = NewRequest(t, "GET", "/org/create")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
+		"_csrf":      htmlDoc.GetCSRF(),
+		"org_name":   "assets",
+		"visibility": "0",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	//Restricted pattern
+	req = NewRequest(t, "GET", "/org/create")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
+		"_csrf":      htmlDoc.GetCSRF(),
+		"org_name":   "user.gpg",
+		"visibility": "0",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	//Forbidden
+	session = loginUser(t, "user2")
+	req = NewRequest(t, "GET", "/org/create")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
+		"_csrf":      htmlDoc.GetCSRF(),
+		"org_name":   "test_org_to_delete",
+		"visibility": "0",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+
+	//OK
+	session = loginUser(t, "user1")
+	req = NewRequest(t, "GET", "/org/create")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/org/create", map[string]string{
 		"_csrf":      htmlDoc.GetCSRF(),
 		"org_name":   "test_org_to_delete",
@@ -433,6 +497,5 @@ func TestOrgMembers(t *testing.T) {
 	session = loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/org/"+org+"/members/action/leave")
 	session.MakeRequest(t, req, http.StatusFound) //TODO should use POST //TODO count members
-	//t.Log(resp.Body)
 
 }

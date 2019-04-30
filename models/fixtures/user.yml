@@ -33,6 +33,7 @@
   num_followers: 2
   num_following: 1
   is_active: true
+  allow_create_organization: false
 
 -
   id: 3
