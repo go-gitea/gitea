@@ -452,11 +452,13 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	repoCounts[4] = 3
 	for i, team := range teams {
 		assert.NoError(t, UpdateTeam(team, false), "team %d: UpdateTeam", i)
+		team.Repos = nil // Reset repos to allow their reloading.
 		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
 		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
 	}
 
 	// Create repo and check teams repo count.
+	org.Teams = nil // Reset teams to allow their reloading.
 	r, err := CreateRepository(user, org, CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
@@ -466,6 +468,7 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	repoCounts[1] = 4
 	repoCounts[4] = 4
 	for i, team := range teams {
+		team.Repos = nil // Reset repos to allow their reloading.
 		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
 		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
 	}
@@ -477,6 +480,7 @@ func TestAllRepositoriesTeams(t *testing.T) {
 	repoCounts[3] = 2
 	repoCounts[4] = 3
 	for i, team := range teams {
+		team.Repos = nil // Reset repos to allow their reloading.
 		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
 		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
 	}

@@ -53,7 +53,9 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
-	org.Teams = nil
+	if org.Teams != nil {
+		return nil
+	}
 	return e.
 		Where("org_id=?", org.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
