@@ -5,14 +5,11 @@
 package models
 
 import (
-	"bufio"
 	"fmt"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/git"
 
 	"github.com/go-xorm/xorm"
 )
@@ -23,17 +20,6 @@ type ActivityAuthorData struct {
 	Login      string `json:"login"`
 	AvatarLink string `json:"avatar_link"`
 	Commits    int64  `json:"commits"`
-}
-
-// CodeActivityStats represents git statistics data
-type CodeActivityStats struct {
-	AuthorCount              int64
-	CommitCount              int64
-	ChangedFiles             int64
-	Additions                int64
-	Deletions                int64
-	CommitCountInAllBranches int64
-	Authors                  map[string]int64
 }
 
 // ActivityStats represets issue and pull request information.
@@ -49,12 +35,12 @@ type ActivityStats struct {
 	UnresolvedIssues            IssueList
 	PublishedReleases           []*Release
 	PublishedReleaseAuthorCount int64
-	Code                        *CodeActivityStats
+	Code                        *git.CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
 func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
-	stats := &ActivityStats{Code: &CodeActivityStats{}}
+	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %v", err)
@@ -74,20 +60,70 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
 	if code {
-		if err := stats.Code.FillFromGit(repo, timeFrom, false); err != nil {
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return nil, fmt.Errorf("OpenRepository: %v", err)
+		}
+		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %v", err)
 		}
+		stats.Code = code
 	}
 	return stats, nil
 }
 
-// GetActivityStatsAuthors returns stats for git commits for all branches
-func GetActivityStatsAuthors(repo *Repository, timeFrom time.Time) (*CodeActivityStats, error) {
-	code := &CodeActivityStats{}
-	if err := code.FillFromGit(repo, timeFrom, true); err != nil {
+// GetActivityStatsTopAuthors returns top author stats for git commits for all branches
+func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %v", err)
 	}
-	return code, nil
+	if code.Authors == nil {
+		return nil, nil
+	}
+	users := make(map[int64]*ActivityAuthorData)
+	for k, v := range code.Authors {
+		if len(k) == 0 {
+			continue
+		}
+		u, err := GetUserByEmail(k)
+		if u == nil || IsErrUserNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if user, ok := users[u.ID]; !ok {
+			users[u.ID] = &ActivityAuthorData{
+				Name:       u.DisplayName(),
+				Login:      u.LowerName,
+				AvatarLink: u.AvatarLink(),
+				Commits:    v,
+			}
+		} else {
+			user.Commits += v
+		}
+	}
+	v := make([]*ActivityAuthorData, 0)
+	for _, u := range users {
+		v = append(v, u)
+	}
+
+	sort.Slice(v[:], func(i, j int) bool {
+		return v[i].Commits < v[j].Commits
+	})
+
+	cnt := count
+	if cnt > len(v) {
+		cnt = len(v)
+	}
+
+	return v[:cnt], nil
 }
 
 // ActivePRCount returns total active pull request count
@@ -308,136 +344,4 @@ func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Sessio
 	return x.Where("release.repo_id = ?", repoID).
 		And("release.is_draft = ?", false).
 		And("release.created_unix >= ?", fromTime.Unix())
-}
-
-// FillFromGit returns code statistics for acitivity page
-func (stats *CodeActivityStats) FillFromGit(repo *Repository, fromTime time.Time, allBranches bool) error {
-	gitPath := repo.RepoPath()
-	since := fromTime.Format(time.RFC3339)
-
-	stdout, stderr, err := process.GetManager().ExecDir(-1, gitPath,
-		fmt.Sprintf("FillFromGit.RevList (git rev-list): %s", gitPath),
-		"git", "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since))
-	if err != nil {
-		return fmt.Errorf("git rev-list --count --branch [%s]: %s", gitPath, stderr)
-	}
-
-	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-	if err != nil {
-		return err
-	}
-	stats.CommitCountInAllBranches = c
-
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%an%n%ae%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
-	if allBranches {
-		args = append(args, "--branches=*")
-	} else {
-		args = append(args, "--first-parent", repo.DefaultBranch)
-	}
-
-	stdout, stderr, err = process.GetManager().ExecDir(-1, gitPath,
-		fmt.Sprintf("FillFromGit.RevList (git rev-list): %s", gitPath),
-		"git", args...)
-	if err != nil {
-		return fmt.Errorf("git log --numstat [%s]: %s", gitPath, stderr)
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(stdout))
-	scanner.Split(bufio.ScanLines)
-	stats.CommitCount = 0
-	stats.Additions = 0
-	stats.Deletions = 0
-	authors := make(map[string]int64)
-	files := make(map[string]bool)
-	p := 0
-	for scanner.Scan() {
-		l := strings.TrimSpace(scanner.Text())
-		if l == "---" {
-			p = 1
-		} else if p == 0 {
-			continue
-		} else {
-			p++
-		}
-		if p > 4 && len(l) == 0 {
-			continue
-		}
-		switch p {
-		case 1: // Separator
-		case 2: // Commit sha-1
-			stats.CommitCount++
-		case 3: // Author
-			//fmt.Println("Author: " + l)
-		case 4: // E-mail
-			email := strings.ToLower(l)
-			i := authors[email]
-			authors[email] = i + 1
-		default: // Changed file
-			if parts := strings.Fields(l); len(parts) >= 3 {
-				if parts[0] != "-" {
-					if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
-						stats.Additions += c
-					}
-				}
-				if parts[1] != "-" {
-					if c, err := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64); err == nil {
-						stats.Deletions += c
-					}
-				}
-				if _, ok := files[parts[2]]; !ok {
-					files[parts[2]] = true
-				}
-			}
-		}
-	}
-	stats.AuthorCount = int64(len(authors))
-	stats.ChangedFiles = int64(len(files))
-	stats.Authors = authors
-
-	return nil
-}
-
-// GetTopAuthors get top users with most commit count based on already loaded data from git
-func (stats *CodeActivityStats) GetTopAuthors(count int) ([]*ActivityAuthorData, error) {
-	if stats.Authors == nil {
-		return nil, nil
-	}
-	users := make(map[int64]*ActivityAuthorData)
-	for k, v := range stats.Authors {
-		if len(k) == 0 {
-			continue
-		}
-		u, err := GetUserByEmail(k)
-		if u == nil || IsErrUserNotExist(err) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		if user, ok := users[u.ID]; !ok {
-			users[u.ID] = &ActivityAuthorData{
-				Name:       u.DisplayName(),
-				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(),
-				Commits:    v,
-			}
-		} else {
-			user.Commits += v
-		}
-	}
-	v := make([]*ActivityAuthorData, 0)
-	for _, u := range users {
-		v = append(v, u)
-	}
-
-	sort.Slice(v[:], func(i, j int) bool {
-		return v[i].Commits < v[j].Commits
-	})
-
-	cnt := count
-	if cnt > len(v) {
-		cnt = len(v)
-	}
-
-	return v[:cnt], nil
 }

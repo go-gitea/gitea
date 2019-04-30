@@ -75,15 +75,9 @@ func ActivityAuthors(ctx *context.Context) {
 	}
 
 	var err error
-	code, err := models.GetActivityStatsAuthors(ctx.Repo.Repository, timeFrom)
+	authors, err := models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
-		ctx.ServerError("GetActivityStatsAuthors", err)
-		return
-	}
-
-	authors, err := code.GetTopAuthors(10)
-	if err != nil {
-		ctx.ServerError("GetTopAuthors", err)
+		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return
 	}
 
