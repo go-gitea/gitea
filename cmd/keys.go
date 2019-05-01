@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
@@ -41,19 +40,10 @@ var CmdKeys = cli.Command{
 			Value: "",
 			Usage: "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
 		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 	},
 }
 
 func runKeys(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if !c.IsSet("username") {
 		return errors.New("No username provided")
 	}

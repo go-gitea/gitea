@@ -74,7 +74,7 @@ func render(parser Parser, rawBytes []byte, urlPrefix string, metas map[string]s
 	// TODO: one day the error should be returned.
 	result, err := PostProcess(result, urlPrefix, metas, isWiki)
 	if err != nil {
-		log.Error(3, "PostProcess: %v", err)
+		log.Error("PostProcess: %v", err)
 	}
 	return SanitizeBytes(result)
 }

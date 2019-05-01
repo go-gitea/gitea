@@ -51,7 +51,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		assert.NoError(t, err)
 		entries, err := tree.ListEntries()
 		assert.NoError(t, err)
-		commitsInfo, err := entries.GetCommitsInfo(commit, testCase.Path, nil)
+		commitsInfo, _, err := entries.GetCommitsInfo(commit, testCase.Path, nil)
 		assert.NoError(t, err)
 		assert.Len(t, commitsInfo, len(testCase.ExpectedIDs))
 		for _, commitInfo := range commitsInfo {
@@ -107,7 +107,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, err := entries.GetCommitsInfo(commit, "", nil)
+				_, _, err := entries.GetCommitsInfo(commit, "", nil)
 				if err != nil {
 					b.Fatal(err)
 				}

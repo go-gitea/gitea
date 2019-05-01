@@ -21,6 +21,7 @@ type Mailer struct {
 	FromEmail       string
 	SendAsPlainText bool
 	MailerType      string
+	SubjectPrefix   string
 
 	// SMTP sender
 	Host              string
@@ -65,6 +66,7 @@ func newMailService() {
 		CertFile:       sec.Key("CERT_FILE").String(),
 		KeyFile:        sec.Key("KEY_FILE").String(),
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
+		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
@@ -84,7 +86,7 @@ func newMailService() {
 
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
-		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
+		log.Fatal("Invalid mailer.FROM (%s): %v", MailService.From, err)
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
@@ -96,7 +98,7 @@ func newMailService() {
 	if MailService.MailerType == "sendmail" {
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
-			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)
 		}
 	}
 

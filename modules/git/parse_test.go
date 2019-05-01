@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 func TestParseTreeEntries(t *testing.T) {
@@ -23,10 +25,12 @@ func TestParseTreeEntries(t *testing.T) {
 			Input: "100644 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c\texample/file2.txt\n",
 			Expected: []*TreeEntry{
 				{
-					mode: EntryModeBlob,
-					Type: ObjectBlob,
-					ID:   MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
-					name: "example/file2.txt",
+					ID: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+					gogitTreeEntry: &object.TreeEntry{
+						Hash: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+						Name: "example/file2.txt",
+						Mode: filemode.Regular,
+					},
 				},
 			},
 		},
@@ -35,16 +39,20 @@ func TestParseTreeEntries(t *testing.T) {
 				"040000 tree 1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8\texample\n",
 			Expected: []*TreeEntry{
 				{
-					ID:   MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
-					Type: ObjectBlob,
-					mode: EntryModeSymlink,
-					name: "example/\n.txt",
+					ID: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+					gogitTreeEntry: &object.TreeEntry{
+						Hash: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
+						Name: "example/\n.txt",
+						Mode: filemode.Symlink,
+					},
 				},
 				{
-					ID:   MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
-					Type: ObjectTree,
-					mode: EntryModeTree,
-					name: "example",
+					ID: MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
+					gogitTreeEntry: &object.TreeEntry{
+						Hash: MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
+						Name: "example",
+						Mode: filemode.Dir,
+					},
 				},
 			},
 		},

@@ -311,11 +311,87 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				{{range .Loggers}}
+				{{range .Loggers.default.SubLogDescriptions}}
 					<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
-					<dd>{{.Mode}}</dd>
+					<dd>{{.Name}} ({{.Provider}})</dd>
 					<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
 					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+				{{end}}
+				<div class="ui divider"></div>
+				<dt>{{$.i18n.Tr "admin.config.macaron_log_mode"}}</dt>
+				{{if .RedirectMacaronLog}}
+					{{if .Loggers.macaron.SubLogDescriptions}}
+						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						{{range .Loggers.macaron.SubLogDescriptions}}
+							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dd>{{.Name}} ({{.Provider}})</dd>
+							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+						{{end}}
+					{{else}}
+						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+					{{end}}
+				{{else}}
+					<dd>{{$.i18n.Tr "admin.config.go_log"}}</dd>
+				{{end}}
+				<div class="ui divider"></div>
+				<dt>{{$.i18n.Tr "admin.config.router_log_mode"}}</dt>
+				{{if .DisableRouterLog}}
+					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+				{{else}}
+					{{if .RedirectMacaronLog}}
+						{{if .Loggers.router.SubLogDescriptions}}
+							<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+							{{range .Loggers.router.SubLogDescriptions}}
+								<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+								<dd>{{.Name}} ({{.Provider}})</dd>
+								<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+								<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+							{{end}}
+						{{else}}
+							<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+						{{end}}
+					{{else}}
+						<dd>{{$.i18n.Tr "admin.config.go_log"}}</dd>
+					{{end}}
+				{{end}}
+				<div class="ui divider"></div>
+				<dt>{{$.i18n.Tr "admin.config.access_log_mode"}}</dt>
+				{{if .EnableAccessLog}}
+					{{if .Loggers.access.SubLogDescriptions}}
+						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						{{range .Loggers.access.SubLogDescriptions}}
+							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dd>{{.Name}} ({{.Provider}})</dd>
+							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+						{{end}}
+					{{else}}
+						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+					{{end}}
+					<dt>{{$.i18n.Tr "admin.config.access_log_template"}}</dt>
+					<dd><code>{{$.AccessLogTemplate}}</code></dd>
+				{{else}}
+					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+				{{end}}
+				<div class="ui divider"></div>
+				<dt>{{$.i18n.Tr "admin.config.xorm_log_mode"}}</dt>
+				{{if .EnableXORMLog}}
+					{{if .Loggers.xorm.SubLogDescriptions}}
+						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						{{range .Loggers.xorm.SubLogDescriptions}}
+							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dd>{{.Name}} ({{.Provider}})</dd>
+							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+						{{end}}
+					{{else}}
+						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+					{{end}}
+					<dt>{{$.i18n.Tr "admin.config.xorm_log_sql"}}</dt>
+					<dd><i class="fa fa{{if $.LogSQL}}-check{{end}}-square-o"></i></dd>
+				{{else}}
+					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
 				{{end}}
 			</dl>
 		</div>

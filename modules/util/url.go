@@ -30,13 +30,13 @@ func URLJoin(base string, elems ...string) string {
 	}
 	baseURL, err := url.Parse(base)
 	if err != nil {
-		log.Error(4, "URLJoin: Invalid base URL %s", base)
+		log.Error("URLJoin: Invalid base URL %s", base)
 		return ""
 	}
 	joinedPath := path.Join(elems...)
 	argURL, err := url.Parse(joinedPath)
 	if err != nil {
-		log.Error(4, "URLJoin: Invalid arg %s", joinedPath)
+		log.Error("URLJoin: Invalid arg %s", joinedPath)
 		return ""
 	}
 	joinedURL := baseURL.ResolveReference(argURL).String()

@@ -60,7 +60,10 @@ func UploadAttachment(ctx *context.Context) {
 		return
 	}
 
-	attach, err := models.NewAttachment(header.Filename, buf, file)
+	attach, err := models.NewAttachment(&models.Attachment{
+		UploaderID: ctx.User.ID,
+		Name:       header.Filename,
+	}, buf, file)
 	if err != nil {
 		ctx.Error(500, fmt.Sprintf("NewAttachment: %v", err))
 		return

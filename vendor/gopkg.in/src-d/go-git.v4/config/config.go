@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 
+	"gopkg.in/src-d/go-git.v4/internal/url"
 	format "gopkg.in/src-d/go-git.v4/plumbing/format/config"
 )
 
@@ -398,4 +399,8 @@ func (c *RemoteConfig) marshal() *format.Subsection {
 	}
 
 	return c.raw
+}
+
+func (c *RemoteConfig) IsFirstURLLocal() bool {
+	return url.IsLocalEndpoint(c.URLs[0])
 }

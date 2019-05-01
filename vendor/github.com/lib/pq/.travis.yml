@@ -1,9 +1,9 @@
 language: go
 
 go:
-  - 1.8.x
   - 1.9.x
   - 1.10.x
+  - 1.11.x
   - master
 
 sudo: true
@@ -44,7 +44,7 @@ script:
   - >
     goimports -d -e $(find -name '*.go') | awk '{ print } END { exit NR == 0 ? 0 : 1 }'
   - go vet ./...
-  - megacheck -go 1.8 ./...
+  - megacheck -go 1.9 ./...
   - golint ./...
   - PQTEST_BINARY_PARAMETERS=no  go test -race -v ./...
   - PQTEST_BINARY_PARAMETERS=yes go test -race -v ./...

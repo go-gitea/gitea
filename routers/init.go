@@ -79,11 +79,11 @@ func GlobalInit() {
 		if err := initDBEngine(); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
-			log.Fatal(4, "ORM engine initialization failed: %v", err)
+			log.Fatal("ORM engine initialization failed: %v", err)
 		}
 
 		if err := models.InitOAuth2(); err != nil {
-			log.Fatal(4, "Failed to initialize OAuth2 support: %v", err)
+			log.Fatal("Failed to initialize OAuth2 support: %v", err)
 		}
 
 		models.LoadRepoConfig()
@@ -92,7 +92,7 @@ func GlobalInit() {
 		// Booting long running goroutines.
 		cron.NewContext()
 		if err := issue_indexer.InitIssueIndexer(false); err != nil {
-			log.Fatal(4, "Failed to initialize issue indexer: %v", err)
+			log.Fatal("Failed to initialize issue indexer: %v", err)
 		}
 		models.InitRepoIndexer()
 		models.InitSyncMirrors()
