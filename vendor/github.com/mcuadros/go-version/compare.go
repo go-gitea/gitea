@@ -11,16 +11,18 @@ var regexpDotBeforeDigit = regexp.MustCompile(`([^.\d]+)`)
 var regexpMultipleDots = regexp.MustCompile(`\.{2,}`)
 
 var specialForms = map[string]int{
-	"dev":   -6,
-	"alpha": -5,
-	"a":     -5,
-	"beta":  -4,
-	"b":     -4,
-	"RC":    -3,
-	"rc":    -3,
-	"#":     -2,
-	"p":     1,
-	"pl":    1,
+	"SNAPSHOT": -7,
+	"snapshot": -7,
+	"dev":      -6,
+	"alpha":    -5,
+	"a":        -5,
+	"beta":     -4,
+	"b":        -4,
+	"RC":       -3,
+	"rc":       -3,
+	"#":        -2,
+	"p":        1,
+	"pl":       1,
 }
 
 var unknownForm int = -7

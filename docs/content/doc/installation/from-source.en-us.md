@@ -117,3 +117,26 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ```bash
 ./gitea web
 ```
+
+## Changing the default CustomPath, CustomConf and AppWorkDir
+
+Gitea will search for a number of things from the `CustomPath`. By default this is
+the `custom/` directory in the current working directory when running Gitea. It will also
+look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
+current working directory as the relative base path `AppWorkDir` for a number configurable
+values.
+
+These values, although useful when developing, may conflict with downstream users preferences.
+
+One option is to use a script file to shadow the `gitea` binary and create an appropriate
+environment before running Gitea. However, when building you can change these defaults
+using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
+
+* To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+* For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+* For `AppWorkDir` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkDir=working-directory\"`
+
+Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
+with the appropriate `TAGS` as above.
+
+Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.

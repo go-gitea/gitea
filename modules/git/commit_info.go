@@ -124,7 +124,6 @@ func getFileHashes(c *object.Commit, treePath string, paths []string) (map[strin
 
 func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
-	seen := make(map[plumbing.Hash]bool)
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.Committer.When.Before(b.(*commitAndPaths).commit.Committer.When) {
 			return 1
@@ -202,15 +201,10 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 			// Add the parent nodes along with remaining paths to the heap for further
 			// processing.
 			for j, parent := range parents {
-				if seen[parent.ID()] {
-					continue
-				}
-				seen[parent.ID()] = true
-
 				// Combine remainingPath with paths available on the parent branch
 				// and make union of them
-				var remainingPathsForParent []string
-				var newRemainingPaths []string
+				remainingPathsForParent := make([]string, 0, len(remainingPaths))
+				newRemainingPaths := make([]string, 0, len(remainingPaths))
 				for _, path := range remainingPaths {
 					if parentHashes[j][path] == current.hashes[path] {
 						remainingPathsForParent = append(remainingPathsForParent, path)
