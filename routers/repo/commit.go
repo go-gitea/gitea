@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"image"
 	"path"
 	"strings"
 
@@ -238,7 +239,14 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfo"] = commit.ImageInfo
+	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+		result, err := commit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
 	ctx.Data["ImageInfoBase"] = ctx.Data["ImageInfo"]
 	if commit.ParentCount() > 0 {
 		parentCommit, err := ctx.Repo.GitRepo.GetCommit(parents[0])
@@ -324,8 +332,22 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfo"] = commit.ImageInfo
-	ctx.Data["ImageInfoBase"] = beforeCommit.ImageInfo
+	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+		result, err := commit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+		result, err := beforeCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID) + " · " + userName + "/" + repoName
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff

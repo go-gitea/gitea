@@ -9,6 +9,7 @@ package repo
 import (
 	"container/list"
 	"fmt"
+	"image"
 	"io"
 	"path"
 	"strings"
@@ -522,8 +523,22 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfoBase"] = baseCommit.ImageInfo
-	ctx.Data["ImageInfo"] = commit.ImageInfo
+	ctx.Data["ImageInfoBase"] = func(name string) *image.Config {
+		result, err := baseCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+		result, err := commit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
 
 	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
@@ -833,8 +848,22 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
-	ctx.Data["ImageInfoBase"] = baseCommit.ImageInfo
-	ctx.Data["ImageInfo"] = headCommit.ImageInfo
+	ctx.Data["ImageInfoBase"] = func(name string) *image.Config {
+		result, err := baseCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+		result, err := headCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
 
 	headTarget := path.Join(headUser.Name, headRepo.Name)
 	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
