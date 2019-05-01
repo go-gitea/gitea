@@ -21,9 +21,9 @@
  		</a>
  	</td>
 </tr>
-{{ $imageInfoBase := (call .root.ImageInfoBase .file.OldName) }}
-{{ $imageInfoHead := (call .root.ImageInfo .file.Name) }}
-{{if and $imageInfoBase $imageInfoHead }}
+{{ $imageInfoBase, $baseErr := (call .root.ImageInfoBase .file.OldName) }}
+{{ $imageInfoHead, $headErr := (call .root.ImageInfo .file.Name) }}
+{{if and (not $baseErr) (not $headErr) }}
 <tr>
  	<td class="halfwidth center">
  		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{if not (eq $imageInfoBase.Width $imageInfoHead.Width)}}red{{end}}">{{$imageInfoBase.Width}}</span>

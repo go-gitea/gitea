@@ -170,15 +170,15 @@ func (c *Commit) ImageInfo(name string) (*image.Config, error) {
 
 	blob, err := c.GetBlobByPath(name)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	reader, err := blob.DataAsync()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	config, _, err := image.DecodeConfig(reader)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return &config, nil
 }
