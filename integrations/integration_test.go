@@ -118,6 +118,7 @@ func initIntegrationTest() {
 		setting.CustomConf = giteaConf
 	}
 
+	setting.SetCustomPathAndConf("", "")
 	setting.NewContext()
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
