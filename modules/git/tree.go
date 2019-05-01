@@ -106,7 +106,7 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	seen := map[plumbing.Hash]bool{}
 	walker := object.NewTreeWalker(t.gogitTree, true, seen)
 	for {
-		_, entry, err := walker.Next()
+		fullName, entry, err := walker.Next()
 		if err == io.EOF {
 			break
 		}
@@ -121,6 +121,7 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 			ID:             entry.Hash,
 			gogitTreeEntry: &entry,
 			ptree:          t,
+			fullName:       fullName,
 		}
 		entries = append(entries, convertedEntry)
 	}
