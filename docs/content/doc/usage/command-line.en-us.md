@@ -17,13 +17,16 @@ menu:
 
 ### Usage
 
-`gitea [global options] command [command options] [arguments...]`
+`gitea [global options] command [command or global options] [arguments...]`
 
 ### Global options
- - `--help`, `-h`: Show help text and exit. Optional. This can be used with any of the
-   subcommands to see help text for it.
- - `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version
-   1.1.0+218-g7b907ed built with: bindata, sqlite`).
+
+All global options can be placed at the command level.
+
+- `--help`, `-h`: Show help text and exit. Optional.
+- `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version 1.1.0+218-g7b907ed built with: bindata, sqlite`).
+- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: $PWD/custom).
+- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
 
 ### Commands
 
@@ -33,7 +36,6 @@ Starts the server:
 
 - Options:
     - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
-    - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
     - `--pid path`, `-P path`: Pidfile path. Optional.
 - Examples:
     - `gitea web`
@@ -56,7 +58,6 @@ Admin operations:
             - `--password value`: Password. Required.
             - `--email value`: Email. Required.
             - `--admin`: If provided, this makes the user an admin. Optional.
-            - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
             - `--must-change-password`: If provided, the created user will be required to choose a newer password after
 	    the initial login. Optional. (default: true).
             - ``--random-password``: If provided, a randomly generated password will be used as the password of
@@ -69,7 +70,6 @@ Admin operations:
         - Options:
             - `--username value`, `-u value`: Username. Required.
             - `--password value`, `-p value`: New password. Required.
-            - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
         - Examples:
             - `gitea admin change-password --username myname --password asecurepassword`
     - `regenerate`
@@ -82,19 +82,15 @@ Admin operations:
     - `auth`:
         - `list`:
             - Description: lists all external authentication sources that exist
-            - Options:
-                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
             - Examples:
                 - `gitea admin auth list`
         - `delete`:
             - Options:
                 - `--id`: ID of source to be deleted. Required.
-                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
             - Examples:
                 - `gitea admin auth delete --id 1`
         - `add-oauth`:
             - Options:
-                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
                 - `--name`: Application Name.
                 - `--provider`: OAuth2 Provider.
                 - `--key`: Client ID (Key).
@@ -110,7 +106,6 @@ Admin operations:
         - `update-oauth`:
             - Options:
                 - `--id`: ID of source to be updated. Required.
-                - `--config path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
                 - `--name`: Application Name.
                 - `--provider`: OAuth2 Provider.
                 - `--key`: Client ID (Key).
@@ -148,7 +143,6 @@ Dumps all files and databases into a zip file. Outputs into a file like `gitea-d
 in the current directory.
 
 - Options:
-    - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
     - `--file name`, `-f name`: Name of the dump file with will be created. Optional. (default: gitea-dump-[timestamp].zip).
     - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
     - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
