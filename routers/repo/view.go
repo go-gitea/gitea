@@ -24,8 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -358,11 +356,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if !models.HasOrgVisible(ctx.Repo.Repository.Owner, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
-		return
-	}
-
 	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
@@ -462,10 +455,10 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	if page <= 0 {
 		page = 1
 	}
-	pager := paginater.New(total, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(pager.Current())
+	items, err := getter(pager.Paginater.Current())
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -480,6 +473,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
+
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
 }
 
