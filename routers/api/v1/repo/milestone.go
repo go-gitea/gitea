@@ -78,7 +78,7 @@ func GetMilestone(ctx *context.APIContext) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetMilestoneByRepoID", err)
 		}
@@ -169,7 +169,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetMilestoneByRepoID", err)
 		}

@@ -333,7 +333,7 @@ func PutHandler(ctx *context.Context) {
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
 		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
-			log.Error(4, "RemoveLFSMetaObjectByOid: %v", err)
+			log.Error("RemoveLFSMetaObjectByOid: %v", err)
 		}
 		return
 	}

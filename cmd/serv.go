@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -39,11 +39,6 @@ var CmdServ = cli.Command{
 	Description: `Serv provide access auth for repositories`,
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 		cli.BoolFlag{
 			Name: "enable-pprof",
 		},
@@ -100,7 +95,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.ProdMode {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
-		log.GitLogger.Fatal(3, logMessage, args...)
+		log.GitLogger.Fatal(logMessage, args...)
 		return
 	}
 
@@ -109,9 +104,6 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 }
 
 func runServ(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
 	setup("serv.log")
 
 	if setting.SSH.Disabled {

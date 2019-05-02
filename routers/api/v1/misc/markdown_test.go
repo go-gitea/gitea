@@ -87,11 +87,11 @@ Here are some links to the most important topics. You can find the full list of 
 [[images/icon-bug.png]]
 `,
 		// rendered
-		`<h2>What is Wine Staging?</h2>
+		`<h2 id="what-is-wine-staging">What is Wine Staging?</h2>
 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 
-<h2>Quick Links</h2>
+<h2 id="quick-links">Quick Links</h2>
 
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 

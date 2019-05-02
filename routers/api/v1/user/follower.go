@@ -113,7 +113,7 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 	if u.IsFollowing(followID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

@@ -168,16 +168,15 @@ func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
 type AccessTokenForm struct {
-	GrantType    string
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-	// TODO Specify authentication code length to prevent against birthday attacks
-	Code         string
-	RefreshToken string
+	GrantType    string `json:"grant_type"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	RedirectURI  string `json:"redirect_uri"`
+	Code         string `json:"code"`
+	RefreshToken string `json:"refresh_token"`
 
 	// PKCE support
-	CodeVerifier string
+	CodeVerifier string `json:"code_verifier"`
 }
 
 // Validate valideates the fields
@@ -201,6 +200,7 @@ type UpdateProfileForm struct {
 	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
 	Language         string `binding:"Size(5)"`
+	Description      string `binding:"MaxSize(255)"`
 }
 
 // Validate validates the fields

@@ -197,18 +197,21 @@ func TestToHookTaskType(t *testing.T) {
 	assert.Equal(t, GOGS, ToHookTaskType("gogs"))
 	assert.Equal(t, SLACK, ToHookTaskType("slack"))
 	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
+	assert.Equal(t, TELEGRAM, ToHookTaskType("telegram"))
 }
 
 func TestHookTaskType_Name(t *testing.T) {
 	assert.Equal(t, "gogs", GOGS.Name())
 	assert.Equal(t, "slack", SLACK.Name())
 	assert.Equal(t, "gitea", GITEA.Name())
+	assert.Equal(t, "telegram", TELEGRAM.Name())
 }
 
 func TestIsValidHookTaskType(t *testing.T) {
 	assert.True(t, IsValidHookTaskType("gogs"))
 	assert.True(t, IsValidHookTaskType("slack"))
 	assert.True(t, IsValidHookTaskType("gitea"))
+	assert.True(t, IsValidHookTaskType("telegram"))
 	assert.False(t, IsValidHookTaskType("invalid"))
 }
 

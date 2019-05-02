@@ -8,48 +8,68 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
-
-	"golang.org/x/sync/syncmap"
 )
 
 var (
-	loggers []*Logger
+	// DEFAULT is the name of the default logger
+	DEFAULT = "default"
+	// NamedLoggers map of named loggers
+	NamedLoggers = make(map[string]*Logger)
 	// GitLogger logger for git
 	GitLogger *Logger
+	prefix    string
 )
 
-// NewLogger create a logger
-func NewLogger(bufLen int64, mode, config string) {
-	logger := newLogger(bufLen)
+// NewLogger create a logger for the default logger
+func NewLogger(bufLen int64, name, provider, config string) *Logger {
+	err := NewNamedLogger(DEFAULT, bufLen, name, provider, config)
+	if err != nil {
+		CriticalWithSkip(1, "Unable to create default logger: %v", err)
+		panic(err)
+	}
+	return NamedLoggers[DEFAULT]
+}
 
-	isExist := false
-	for i, l := range loggers {
-		if l.adapter == mode {
-			isExist = true
-			loggers[i] = logger
-		}
+// NewNamedLogger creates a new named logger for a given configuration
+func NewNamedLogger(name string, bufLen int64, subname, provider, config string) error {
+	logger, ok := NamedLoggers[name]
+	if !ok {
+		logger = newLogger(name, bufLen)
+
+		NamedLoggers[name] = logger
 	}
-	if !isExist {
-		loggers = append(loggers, logger)
-	}
-	if err := logger.SetLogger(mode, config); err != nil {
-		Fatal(2, "Failed to set logger (%s): %v", mode, err)
+
+	return logger.SetLogger(subname, provider, config)
+}
+
+// DelNamedLogger closes and deletes the named logger
+func DelNamedLogger(name string) {
+	l, ok := NamedLoggers[name]
+	if ok {
+		delete(NamedLoggers, name)
+		l.Close()
 	}
 }
 
-// DelLogger removes loggers that are for the given mode
-func DelLogger(mode string) error {
-	for _, l := range loggers {
-		if _, ok := l.outputs.Load(mode); ok {
-			return l.DelLogger(mode)
-		}
+// DelLogger removes the named sublogger from the default logger
+func DelLogger(name string) error {
+	logger := NamedLoggers[DEFAULT]
+	found, err := logger.DelLogger(name)
+	if !found {
+		Trace("Log %s not found, no need to delete", name)
 	}
+	return err
+}
 
-	Trace("Log adapter %s not found, no need to delete", mode)
-	return nil
+// GetLogger returns either a named logger or the default logger
+func GetLogger(name string) *Logger {
+	logger, ok := NamedLoggers[name]
+	if ok {
+		return logger
+	}
+	return NamedLoggers[DEFAULT]
 }
 
 // NewGitLogger create a logger for git
@@ -58,333 +78,168 @@ func NewGitLogger(logPath string) {
 	path := path.Dir(logPath)
 
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		Fatal(4, "Failed to create dir %s: %v", path, err)
+		Fatal("Failed to create dir %s: %v", path, err)
 	}
 
-	GitLogger = newLogger(0)
-	GitLogger.SetLogger("file", fmt.Sprintf(`{"level":0,"filename":"%s","rotate":false}`, logPath))
+	GitLogger = newLogger("git", 0)
+	GitLogger.SetLogger("file", "file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":false}`, logPath))
+}
+
+// GetLevel returns the minimum logger level
+func GetLevel() Level {
+	return NamedLoggers[DEFAULT].GetLevel()
+}
+
+// GetStacktraceLevel returns the minimum logger level
+func GetStacktraceLevel() Level {
+	return NamedLoggers[DEFAULT].GetStacktraceLevel()
 }
 
 // Trace records trace log
 func Trace(format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Trace(format, v...)
-	}
+	Log(1, TRACE, format, v...)
+}
+
+// IsTrace returns true if at least one logger is TRACE
+func IsTrace() bool {
+	return GetLevel() <= TRACE
 }
 
 // Debug records debug log
 func Debug(format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Debug(format, v...)
-	}
+	Log(1, DEBUG, format, v...)
+}
+
+// IsDebug returns true if at least one logger is DEBUG
+func IsDebug() bool {
+	return GetLevel() <= DEBUG
 }
 
 // Info records info log
 func Info(format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Info(format, v...)
-	}
+	Log(1, INFO, format, v...)
+}
+
+// IsInfo returns true if at least one logger is INFO
+func IsInfo() bool {
+	return GetLevel() <= INFO
 }
 
 // Warn records warning log
 func Warn(format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Warn(format, v...)
-	}
+	Log(1, WARN, format, v...)
+}
+
+// IsWarn returns true if at least one logger is WARN
+func IsWarn() bool {
+	return GetLevel() <= WARN
 }
 
 // Error records error log
-func Error(skip int, format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Error(skip, format, v...)
-	}
+func Error(format string, v ...interface{}) {
+	Log(1, ERROR, format, v...)
+}
+
+// ErrorWithSkip records error log from "skip" calls back from this function
+func ErrorWithSkip(skip int, format string, v ...interface{}) {
+	Log(skip+1, ERROR, format, v...)
+}
+
+// IsError returns true if at least one logger is ERROR
+func IsError() bool {
+	return GetLevel() <= ERROR
 }
 
 // Critical records critical log
-func Critical(skip int, format string, v ...interface{}) {
-	for _, logger := range loggers {
-		logger.Critical(skip, format, v...)
-	}
+func Critical(format string, v ...interface{}) {
+	Log(1, CRITICAL, format, v...)
 }
 
-// Fatal records error log and exit process
-func Fatal(skip int, format string, v ...interface{}) {
-	Error(skip, format, v...)
-	for _, l := range loggers {
-		l.Close()
-	}
+// CriticalWithSkip records critical log from "skip" calls back from this function
+func CriticalWithSkip(skip int, format string, v ...interface{}) {
+	Log(skip+1, CRITICAL, format, v...)
+}
+
+// IsCritical returns true if at least one logger is CRITICAL
+func IsCritical() bool {
+	return GetLevel() <= CRITICAL
+}
+
+// Fatal records fatal log and exit process
+func Fatal(format string, v ...interface{}) {
+	Log(1, FATAL, format, v...)
+	Close()
 	os.Exit(1)
+}
+
+// FatalWithSkip records fatal log from "skip" calls back from this function
+func FatalWithSkip(skip int, format string, v ...interface{}) {
+	Log(skip+1, FATAL, format, v...)
+	Close()
+	os.Exit(1)
+}
+
+// IsFatal returns true if at least one logger is FATAL
+func IsFatal() bool {
+	return GetLevel() <= FATAL
 }
 
 // Close closes all the loggers
 func Close() {
-	for _, l := range loggers {
-		l.Close()
+	l, ok := NamedLoggers[DEFAULT]
+	if !ok {
+		return
+	}
+	delete(NamedLoggers, DEFAULT)
+	l.Close()
+}
+
+// Log a message with defined skip and at logging level
+// A skip of 0 refers to the caller of this command
+func Log(skip int, level Level, format string, v ...interface{}) {
+	l, ok := NamedLoggers[DEFAULT]
+	if ok {
+		l.Log(skip+1, level, format, v...)
 	}
 }
 
-// .___        __                 _____
-// |   | _____/  |_  ____________/ ____\____    ____  ____
-// |   |/    \   __\/ __ \_  __ \   __\\__  \ _/ ___\/ __ \
-// |   |   |  \  | \  ___/|  | \/|  |   / __ \\  \__\  ___/
-// |___|___|  /__|  \___  >__|   |__|  (____  /\___  >___  >
-//          \/          \/                  \/     \/    \/
-
-// LogLevel level type for log
-//type LogLevel int
-
-// log levels
-const (
-	TRACE = iota
-	DEBUG
-	INFO
-	WARN
-	ERROR
-	CRITICAL
-	FATAL
-)
-
-// LoggerInterface represents behaviors of a logger provider.
-type LoggerInterface interface {
-	Init(config string) error
-	WriteMsg(msg string, skip, level int) error
-	Destroy()
-	Flush()
-}
-
-type loggerType func() LoggerInterface
-
 // LoggerAsWriter is a io.Writer shim around the gitea log
 type LoggerAsWriter struct {
-	level int
+	ourLoggers []*Logger
+	level      Level
 }
 
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
-func NewLoggerAsWriter(level string) *LoggerAsWriter {
-	l := &LoggerAsWriter{}
-	switch strings.ToUpper(level) {
-	case "TRACE":
-		l.level = TRACE
-	case "DEBUG":
-		l.level = DEBUG
-	case "INFO":
-		l.level = INFO
-	case "WARN":
-		l.level = WARN
-	case "ERROR":
-		l.level = ERROR
-	case "CRITICAL":
-		l.level = CRITICAL
-	case "FATAL":
-		l.level = FATAL
-	default:
-		l.level = INFO
+func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
+	if len(ourLoggers) == 0 {
+		ourLoggers = []*Logger{NamedLoggers[DEFAULT]}
+	}
+	l := &LoggerAsWriter{
+		ourLoggers: ourLoggers,
+		level:      FromString(level),
 	}
 	return l
 }
 
 // Write implements the io.Writer interface to allow spoofing of macaron
 func (l *LoggerAsWriter) Write(p []byte) (int, error) {
-	l.Log(string(p))
+	for _, logger := range l.ourLoggers {
+		// Skip = 3 because this presumes that we have been called by log.Println()
+		// If the caller has used log.Output or the like this will be wrong
+		logger.Log(3, l.level, string(p))
+	}
 	return len(p), nil
 }
 
 // Log takes a given string and logs it at the set log-level
 func (l *LoggerAsWriter) Log(msg string) {
-	for _, logger := range loggers {
-		logger.writerMsg(0, l.level, msg)
+	for _, logger := range l.ourLoggers {
+		// Set the skip to reference the call just above this
+		logger.Log(1, l.level, msg)
 	}
 }
 
-var adapters = make(map[string]loggerType)
-
-// Register registers given logger provider to adapters.
-func Register(name string, log loggerType) {
-	if log == nil {
-		panic("log: register provider is nil")
-	}
-	if _, dup := adapters[name]; dup {
-		panic("log: register called twice for provider \"" + name + "\"")
-	}
-	adapters[name] = log
-}
-
-type logMsg struct {
-	skip, level int
-	msg         string
-}
-
-// Logger is default logger in beego application.
-// it can contain several providers and log message into all providers.
-type Logger struct {
-	adapter string
-	level   int
-	msg     chan *logMsg
-	outputs syncmap.Map
-	quit    chan bool
-}
-
-// newLogger initializes and returns a new logger.
-func newLogger(buffer int64) *Logger {
-	l := &Logger{
-		msg:  make(chan *logMsg, buffer),
-		quit: make(chan bool),
-	}
-	go l.StartLogger()
-	return l
-}
-
-// SetLogger sets new logger instance with given logger adapter and config.
-func (l *Logger) SetLogger(adapter string, config string) error {
-	if log, ok := adapters[adapter]; ok {
-		lg := log()
-		if err := lg.Init(config); err != nil {
-			return err
-		}
-		l.outputs.Store(adapter, lg)
-		l.adapter = adapter
-	} else {
-		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
-	}
-	return nil
-}
-
-// DelLogger removes a logger adapter instance.
-func (l *Logger) DelLogger(adapter string) error {
-	if lg, ok := l.outputs.Load(adapter); ok {
-		lg.(LoggerInterface).Destroy()
-		l.outputs.Delete(adapter)
-	} else {
-		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
-	}
-	return nil
-}
-
-func (l *Logger) writerMsg(skip, level int, msg string) error {
-	if l.level > level {
-		return nil
-	}
-	lm := &logMsg{
-		skip:  skip,
-		level: level,
-	}
-
-	// Only error information needs locate position for debugging.
-	if lm.level >= ERROR {
-		pc, file, line, ok := runtime.Caller(skip)
-		if ok {
-			// Get caller function name.
-			fn := runtime.FuncForPC(pc)
-			var fnName string
-			if fn == nil {
-				fnName = "?()"
-			} else {
-				fnName = strings.TrimLeft(filepath.Ext(fn.Name()), ".") + "()"
-			}
-
-			fileName := file
-			if len(fileName) > 20 {
-				fileName = "..." + fileName[len(fileName)-20:]
-			}
-			lm.msg = fmt.Sprintf("[%s:%d %s] %s", fileName, line, fnName, msg)
-		} else {
-			lm.msg = msg
-		}
-	} else {
-		lm.msg = msg
-	}
-	l.msg <- lm
-	return nil
-}
-
-// StartLogger starts logger chan reading.
-func (l *Logger) StartLogger() {
-	for {
-		select {
-		case bm := <-l.msg:
-			l.outputs.Range(func(k, v interface{}) bool {
-				if err := v.(LoggerInterface).WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
-					fmt.Println("ERROR, unable to WriteMsg:", err)
-				}
-				return true
-			})
-		case <-l.quit:
-			return
-		}
-	}
-}
-
-// Flush flushes all chan data.
-func (l *Logger) Flush() {
-	l.outputs.Range(func(k, v interface{}) bool {
-		v.(LoggerInterface).Flush()
-		return true
-	})
-}
-
-// Close closes logger, flush all chan data and destroy all adapter instances.
-func (l *Logger) Close() {
-	l.quit <- true
-	for {
-		if len(l.msg) > 0 {
-			bm := <-l.msg
-			l.outputs.Range(func(k, v interface{}) bool {
-				if err := v.(LoggerInterface).WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
-					fmt.Println("ERROR, unable to WriteMsg:", err)
-				}
-				return true
-			})
-		} else {
-			break
-		}
-	}
-	l.outputs.Range(func(k, v interface{}) bool {
-		v.(LoggerInterface).Flush()
-		v.(LoggerInterface).Destroy()
-		return true
-	})
-}
-
-// Trace records trace log
-func (l *Logger) Trace(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[T] "+format, v...)
-	l.writerMsg(0, TRACE, msg)
-}
-
-// Debug records debug log
-func (l *Logger) Debug(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[D] "+format, v...)
-	l.writerMsg(0, DEBUG, msg)
-}
-
-// Info records information log
-func (l *Logger) Info(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[I] "+format, v...)
-	l.writerMsg(0, INFO, msg)
-}
-
-// Warn records warning log
-func (l *Logger) Warn(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[W] "+format, v...)
-	l.writerMsg(0, WARN, msg)
-}
-
-// Error records error log
-func (l *Logger) Error(skip int, format string, v ...interface{}) {
-	msg := fmt.Sprintf("[E] "+format, v...)
-	l.writerMsg(skip, ERROR, msg)
-}
-
-// Critical records critical log
-func (l *Logger) Critical(skip int, format string, v ...interface{}) {
-	msg := fmt.Sprintf("[C] "+format, v...)
-	l.writerMsg(skip, CRITICAL, msg)
-}
-
-// Fatal records error log and exit the process
-func (l *Logger) Fatal(skip int, format string, v ...interface{}) {
-	msg := fmt.Sprintf("[F] "+format, v...)
-	l.writerMsg(skip, FATAL, msg)
-	l.Close()
-	os.Exit(1)
+func init() {
+	_, filename, _, _ := runtime.Caller(0)
+	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
 }
