@@ -47,15 +47,14 @@
 									</td>
 									{{end}}
 									<td class="ui">
-										{{$totalCommits := addInteger .CommitsBehind .CommitsAhead}}
 										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
-												<div class="bar bar-behind" style="width: {{percentage .CommitsBehind $totalCommits}}%"></div>
+												<div class="bar bar-behind" style="width: {{percentage .CommitsBehind .CommitsBehind .CommitsAhead}}%"></div>
 											</div>
 											<div class="bar-group">
 												<div class="count count-ahead">{{.CommitsAhead}}</div>
-                                            	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead $totalCommits}}%"></div>
+                                            	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
 											</div>
 										</div>
 									</td>
