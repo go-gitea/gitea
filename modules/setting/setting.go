@@ -244,6 +244,7 @@ var (
 
 	// Picture settings
 	AvatarUploadPath              string
+	AvatarUploadBucketPath        = "data/avatars"
 	AvatarMaxWidth                int
 	AvatarMaxHeight               int
 	GravatarSource                string
@@ -1034,4 +1035,5 @@ func NewServices() {
 	newNotifyMailService()
 	newWebhookService()
 	newIndexerService()
+	newFileStorage()
 }
