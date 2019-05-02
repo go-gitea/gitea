@@ -40,9 +40,10 @@ var (
 	}
 
 	microcmdGenerateLfsJwtSecret = cli.Command{
-		Name:   "LFS_JWT_SECRET",
-		Usage:  "Generate a new LFS_JWT_SECRET",
-		Action: runGenerateLfsJwtSecret,
+		Name:    "JWT_SECRET",
+		Aliases: []string{"LFS_JWT_SECRET"},
+		Usage:   "Generate a new JWT_SECRET",
+		Action:  runGenerateLfsJwtSecret,
 	}
 
 	microcmdGenerateSecretKey = cli.Command{
