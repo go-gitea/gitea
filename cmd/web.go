@@ -41,11 +41,6 @@ and it takes care of all the other things for you`,
 			Usage: "Temporary port number to prevent conflict",
 		},
 		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
-		cli.StringFlag{
 			Name:  "pid, P",
 			Value: "/var/run/gitea.pid",
 			Usage: "Custom pid file path",
@@ -69,7 +64,7 @@ func runHTTPRedirector() {
 	var err = runHTTP(source, context2.ClearHandler(handler))
 
 	if err != nil {
-		log.Fatal(4, "Failed to start port redirection: %v", err)
+		log.Fatal("Failed to start port redirection: %v", err)
 	}
 }
 
@@ -84,7 +79,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 		var err = http.ListenAndServe(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler))) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
 		if err != nil {
-			log.Fatal(4, "Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
+			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 		}
 	}()
 	server := &http.Server{
@@ -110,10 +105,6 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}
@@ -192,13 +183,13 @@ func runWeb(ctx *cli.Context) error {
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {
-			log.Fatal(4, "Failed to bind %s", listenAddr, err)
+			log.Fatal("Failed to bind %s: %v", listenAddr, err)
 		}
 		defer listener.Close()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
-			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
+			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
 		}
 		var listener *net.UnixListener
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
@@ -209,15 +200,15 @@ func runWeb(ctx *cli.Context) error {
 		// FIXME: add proper implementation of signal capture on all protocols
 		// execute this on SIGTERM or SIGINT: listener.Close()
 		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
-			log.Fatal(4, "Failed to set permission of unix socket: %v", err)
+			log.Fatal("Failed to set permission of unix socket: %v", err)
 		}
 		err = http.Serve(listener, context2.ClearHandler(m))
 	default:
-		log.Fatal(4, "Invalid protocol: %s", setting.Protocol)
+		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 
 	if err != nil {
-		log.Fatal(4, "Failed to start server: %v", err)
+		log.Fatal("Failed to start server: %v", err)
 	}
 
 	return nil

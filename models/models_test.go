@@ -6,6 +6,9 @@
 package models
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,5 +94,16 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 	for _, test := range tests {
 		connStr := getPostgreSQLConnectionString(test.Host, test.User, test.Passwd, test.Name, test.Param, test.SSLMode)
 		assert.Equal(t, test.Output, connStr)
+	}
+}
+
+func TestDumpDatabase(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	dir, err := ioutil.TempDir(os.TempDir(), "dump")
+	assert.NoError(t, err)
+
+	for _, dbType := range supportedDatabases {
+		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }

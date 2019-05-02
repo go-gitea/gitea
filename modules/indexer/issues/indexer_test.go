@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
-	os.RemoveAll(setting.Indexer.IssueIndexerQueueDir)
+	os.RemoveAll(setting.Indexer.IssueQueueDir)
 	os.RemoveAll(setting.Indexer.IssuePath)
 	setting.Indexer.IssueType = "bleve"
 	if err := InitIssueIndexer(true); err != nil {

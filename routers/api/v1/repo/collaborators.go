@@ -92,7 +92,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	if isColab {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

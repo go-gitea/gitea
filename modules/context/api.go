@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,17 +7,19 @@ package context
 
 import (
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/go-macaron/csrf"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/paginater"
-	macaron "gopkg.in/macaron.v1"
+
+	"gopkg.in/macaron.v1"
 )
 
 // APIContext is a specific macaron context for API service
@@ -68,7 +71,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	}
 
 	if status == 500 {
-		log.Error(4, "%s: %s", title, message)
+		log.Error("%s: %s", title, message)
 	}
 
 	ctx.JSON(status, APIError{
@@ -79,19 +82,20 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 // SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
-	page := paginater.New(total, pageSize, ctx.QueryInt("page"), 0)
+	page := NewPagination(total, pageSize, ctx.QueryInt("page"), 0)
+	paginater := page.Paginater
 	links := make([]string, 0, 4)
-	if page.HasNext() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Next()))
+	if paginater.HasNext() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Next()))
 	}
-	if !page.IsLast() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], page.TotalPages()))
+	if !paginater.IsLast() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.TotalPages()))
 	}
-	if !page.IsFirst() {
+	if !paginater.IsFirst() {
 		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppURL, ctx.Req.URL.Path[1:]))
 	}
-	if page.HasPrevious() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Previous()))
+	if paginater.HasPrevious() {
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Previous()))
 	}
 
 	if len(links) > 0 {
@@ -110,6 +114,28 @@ func (ctx *APIContext) RequireCSRF() {
 	}
 }
 
+// CheckForOTP validateds OTP
+func (ctx *APIContext) CheckForOTP() {
+	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
+	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			return // No 2FA enrollment for this user
+		}
+		ctx.Context.Error(500)
+		return
+	}
+	ok, err := twofa.ValidateTOTP(otpHeader)
+	if err != nil {
+		ctx.Context.Error(500)
+		return
+	}
+	if !ok {
+		ctx.Context.Error(401)
+		return
+	}
+}
+
 // APIContexter returns apicontext as macaron middleware
 func APIContexter() macaron.Handler {
 	return func(c *Context) {
@@ -121,10 +147,10 @@ func APIContexter() macaron.Handler {
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo() macaron.Handler {
+func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
+		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
 			return
 		}
 
@@ -139,4 +165,30 @@ func ReferencesGitRepo() macaron.Handler {
 			ctx.Repo.GitRepo = gitRepo
 		}
 	}
+}
+
+// NotFound handles 404s for APIContext
+// String will replace message, errors will be added to a slice
+func (ctx *APIContext) NotFound(objs ...interface{}) {
+	var message = "Not Found"
+	var errors []string
+	for _, obj := range objs {
+		if err, ok := obj.(error); ok {
+			errors = append(errors, err.Error())
+		} else {
+			message = obj.(string)
+		}
+	}
+
+	u, err := url.Parse(setting.AppURL)
+	if err != nil {
+		ctx.Error(500, "Invalid AppURL", err)
+		return
+	}
+	u.Path = path.Join(u.Path, "api", "swagger")
+	ctx.JSON(404, map[string]interface{}{
+		"message":           message,
+		"documentation_url": u.String(),
+		"errors":            errors,
+	})
 }

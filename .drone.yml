@@ -211,41 +211,41 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  bench-sqlite:
-    image: golang:1.12
-    pull: true
-    group: bench
-    commands:
-      - make bench-sqlite
-    when:
-      event: [ tag ]
+#  bench-sqlite:
+#    image: golang:1.12
+#    pull: true
+#    group: bench
+#    commands:
+#      - make bench-sqlite
+#    when:
+#      event: [ tag ]
 
-  bench-mysql:
-    image: golang:1.12
-    pull: true
-    group: bench
-    commands:
-      - make bench-mysql
-    when:
-      event: [ tag ]
+#  bench-mysql:
+#    image: golang:1.12
+#    pull: true
+#    group: bench
+#    commands:
+#      - make bench-mysql
+#    when:
+#      event: [ tag ]
 
-  bench-mssql:
-    image: golang:1.12
-    pull: true
-    group: bench
-    commands:
-      - make bench-mssql
-    when:
-      event: [ tag ]
+#  bench-mssql:
+#    image: golang:1.12
+#    pull: true
+#    group: bench
+#    commands:
+#      - make bench-mssql
+#    when:
+#      event: [ tag ]
 
-  bench-pgsql:
-    image: golang:1.12
-    pull: true
-    group: bench
-    commands:
-      - make bench-pgsql
-    when:
-      event: [ tag ]
+#  bench-pgsql:
+#    image: golang:1.12
+#    pull: true
+#    group: bench
+#    commands:
+#      - make bench-pgsql
+#    when:
+#      event: [ tag ]
 
   generate-coverage:
     image: golang:1.12

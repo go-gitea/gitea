@@ -6,6 +6,7 @@ package admin
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -211,6 +212,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
 	ctx.Data["GitVersion"] = setting.Git.Version
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
+	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
 	ctx.Data["LogRootPath"] = setting.LogRootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
@@ -240,14 +242,30 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["Git"] = setting.Git
 
+	type envVar struct {
+		Name, Value string
+	}
+
+	envVars := map[string]*envVar{}
+	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
+		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
+	}
+	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
+		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
+	}
+
+	ctx.Data["EnvVars"] = envVars
+
 	type logger struct {
 		Mode, Config string
 	}
-	loggers := make([]*logger, len(setting.LogModes))
-	for i := range setting.LogModes {
-		loggers[i] = &logger{setting.LogModes[i], setting.LogConfigs[i]}
-	}
-	ctx.Data["Loggers"] = loggers
+	ctx.Data["Loggers"] = setting.LogDescriptions
+	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
+	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
+	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
+	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
+	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["LogSQL"] = setting.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }

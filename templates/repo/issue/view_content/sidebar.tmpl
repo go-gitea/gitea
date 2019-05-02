@@ -112,7 +112,7 @@
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 			<div>
 				{{range .Participants}}
-					<a href="{{.HomeLink}}">
+					<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}}>
 						<img class="ui avatar image poping up" src="{{.RelAvatarLink}}" data-content="{{.DisplayName}}" data-position="top center" data-variation="small inverted">
 					</a>
 				{{end}}

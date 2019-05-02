@@ -1,0 +1,8 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+[remote "origin"]
+	url = /home/mura/go/src/code.gitea.io/gitea/integrations/gitea-repositories-meta/user2/commits_search_test/
+	fetch = +refs/*:refs/*
+	mirror = true

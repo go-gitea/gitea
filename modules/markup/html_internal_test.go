@@ -53,6 +53,12 @@ var alphanumericMetas = map[string]string{
 	"style":  IssueNameStyleAlphanumeric,
 }
 
+// these values should match the Repo const above
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
@@ -71,6 +77,7 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("test#1234")
 	test("#1234test")
 	test(" test #1234test")
+	test("/home/gitea/#1234")
 
 	// should not render issue mention without leading space
 	test("test#54321 issue")
@@ -90,7 +97,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), index)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, nil)
+		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
 		for i, index := range indices {
 			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", index)
@@ -103,9 +110,11 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	test("#1234 test", "%s test", 1234)
 	test("test #8 issue", "test %s issue", 8)
 	test("test issue #1234", "test issue %s", 1234)
+	test("fixes issue #1234.", "fixes issue %s.", 1234)
 
-	// should render mentions in parentheses
+	// should render mentions in parentheses / brackets
 	test("(#54321 issue)", "(%s issue)", 54321)
+	test("[#54321 issue]", "[%s issue]", 54321)
 	test("test (#9801 extra) issue", "test (%s extra) issue", 9801)
 	test("test (#1)", "test (%s)", 1)
 
@@ -168,6 +177,7 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *post
 	if ctx.urlPrefix == "" {
 		ctx.urlPrefix = AppSubURL
 	}
+
 	res, err := ctx.postProcess([]byte(input))
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(res))
@@ -178,10 +188,10 @@ func TestRender_AutoLink(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer, err := PostProcess([]byte(input), setting.AppSubURL, nil, false)
+		buffer, err := PostProcess([]byte(input), setting.AppSubURL, localMetas, false)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer, err = PostProcess([]byte(input), setting.AppSubURL, nil, true)
+		buffer, err = PostProcess([]byte(input), setting.AppSubURL, localMetas, true)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
@@ -192,13 +202,13 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
 
 	// render other commit URLs
 	tmp = "https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
@@ -211,6 +221,7 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		if ctx.urlPrefix == "" {
 			ctx.urlPrefix = AppSubURL
 		}
+		ctx.metas = localMetas
 		result, err := ctx.postProcess([]byte(input))
 		assert.NoError(t, err)
 		assert.Equal(t, expected, string(result))
@@ -218,9 +229,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
 	test("Look here http://localhost:3000/person/repo/issues/4",
-		`Look here <a href="http://localhost:3000/person/repo/issues/4">#4</a>`)
+		`Look here <a href="http://localhost:3000/person/repo/issues/4">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">person/repo#4</a>`)
+	test("http://localhost:3000/gogits/gogs/issues/4",
+		`<a href="http://localhost:3000/gogits/gogs/issues/4">#4</a>`)
 }
 
 func TestRegExp_issueNumericPattern(t *testing.T) {
@@ -253,10 +266,14 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	trueTestCases := []string{
 		"d8a994ef243349f321568f9e36d5c3f444b99cae",
 		"abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+		"(abcdefabcdefabcdefabcdefabcdefabcdefabcd)",
+		"[abcdefabcdefabcdefabcdefabcdefabcdefabcd]",
+		"abcdefabcdefabcdefabcdefabcdefabcdefabcd.",
 	}
 	falseTestCases := []string{
 		"test",
 		"abcdefg",
+		"e59ff077-2d03-4e6b-964d-63fbaea81f",
 		"abcdefghijklmnopqrstuvwxyzabcdefghijklmn",
 		"abcdefghijklmnopqrstuvwxyzabcdefghijklmO",
 	}
@@ -273,12 +290,12 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 	testCases := map[string][]string{
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
 			"a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			"test/unit/event.js",
-			"L2703",
+			"/test/unit/event.js",
+			"#L2703",
 		},
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": {
 			"a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			"test/unit/event.js",
+			"/test/unit/event.js",
 			"",
 		},
 		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
@@ -288,13 +305,13 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 		},
 		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": {
 			"0705be475092aede1eddae01319ec931fb9c65fc",
-			"src",
+			"/src",
 			"",
 		},
 		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
 			"d8a994ef243349f321568f9e36d5c3f444b99cae",
 			"",
-			"diff-2",
+			"#diff-2",
 		},
 	}
 
@@ -309,7 +326,9 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@ANT_123",
 		"@xxx-DiN0-z-A..uru..s-xxx",
 		"   @lol   ",
-		" @Te/st",
+		" @Te-st",
+		"(@gitea)",
+		"[@gitea]",
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -317,6 +336,8 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@",
 		"",
 		"ABC",
+		"/home/gitea/@gitea",
+		"\"@gitea\"",
 	}
 
 	for _, testCase := range trueTestCases {
@@ -335,6 +356,9 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"A-1",
 		"RC-80",
 		"ABCDEFGHIJ-1234567890987654321234567890",
+		"ABC-123.",
+		"(ABC-123)",
+		"[ABC-123]",
 	}
 	falseTestCases := []string{
 		"RC-08",
@@ -347,6 +371,8 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"ABC",
 		"GG-",
 		"rm-1",
+		"/home/gitea/ABC-1234",
+		"MY-STRING-ABC-123",
 	}
 
 	for _, testCase := range trueTestCases {

@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"github.com/Unknwon/com"
@@ -50,7 +50,7 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 }
 
 func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL)) {
-	prepareTestEnv(t)
+	prepareTestEnv(t, 1)
 	s := http.Server{
 		Handler: mac,
 	}

@@ -7,15 +7,18 @@ package repo
 
 import (
 	"errors"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
+	"mvdan.cc/xurls/v2"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -32,6 +35,8 @@ const (
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
+
+var validFormAddress *regexp.Regexp
 
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
@@ -96,8 +101,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but could not change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private {
+		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
 			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
 			return
 		}
@@ -111,7 +116,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if isNameChanged {
 			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error(4, "RenameRepoAction: %v", err)
+				log.Error("RenameRepoAction: %v", err)
 			}
 		}
 
@@ -124,8 +129,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
 		interval, err := time.ParseDuration(form.Interval)
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
@@ -136,11 +146,43 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
 		}
-		if err := ctx.Repo.Mirror.SaveAddress(form.MirrorAddress); err != nil {
+
+		// Validate the form.MirrorAddress
+		u, err := url.Parse(form.MirrorAddress)
+		if err != nil {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.Opaque != "" || !(u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "git") {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		// Now use xurls
+		address := validFormAddress.FindString(form.MirrorAddress)
+		if address != form.MirrorAddress && form.MirrorAddress != "" {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.EscapedPath() == "" || u.Host == "" || !u.IsAbs() {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		address = u.String()
+
+		if err := ctx.Repo.Mirror.SaveAddress(address); err != nil {
 			ctx.ServerError("SaveAddress", err)
 			return
 		}
@@ -160,6 +202,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "advanced":
 		var units []models.RepoUnit
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
 
 		for _, tp := range models.MustRepoUnits {
 			units = append(units, models.RepoUnit{
@@ -389,7 +435,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(true); err != nil {
-			log.Error(4, "Tried to archive a repo: %s", err)
+			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -406,7 +452,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := repo.SetArchiveRepoState(false); err != nil {
-			log.Error(4, "Tried to unarchive a repo: %s", err)
+			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 			return
@@ -493,7 +539,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.QueryInt64("uid"),
 		models.AccessMode(ctx.QueryInt("mode"))); err != nil {
-		log.Error(4, "ChangeCollaborationAccessMode: %v", err)
+		log.Error("ChangeCollaborationAccessMode: %v", err)
 	}
 }
 
@@ -672,4 +718,12 @@ func DeleteDeployKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
+}
+
+func init() {
+	var err error
+	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
+	if err != nil {
+		panic(err)
+	}
 }

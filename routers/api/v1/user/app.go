@@ -112,7 +112,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID := ctx.ParamsInt64(":id")
 	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
 		if models.IsErrAccessTokenNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteAccessTokenByID", err)
 		}

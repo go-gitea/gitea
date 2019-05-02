@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/stretchr/testify/assert"
 )
