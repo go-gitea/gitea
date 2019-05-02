@@ -243,7 +243,7 @@ github.com/mattn/go-isatty
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mcuadros/go-version v0.0.0-20171003094716-88e56e02bea1
+# github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 github.com/mcuadros/go-version
 # github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 github.com/microcosm-cc/bluemonday

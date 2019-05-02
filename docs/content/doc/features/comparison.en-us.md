@@ -40,11 +40,11 @@ _Symbols used in table:_
 | Orgmode support | ✓ | ✘ | ✓ | ✘ | ✘ | ✘ | ? |
 | CSV support | ✓ | ✘ | ✓ | ✘ | ✘ | ✓ | ? |
 | Third-party render tool support | ✓ | ✘ | ✘ | ✘ | ✘ | ✓ | ? |
-| Static Git-powered pages | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
+| Static Git-powered pages | [✘](https://github.com/go-gitea/gitea/issues/302) | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Integrated Git-powered wiki | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Deploy Tokens | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Repository Tokens with write rights | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
-| Built-in Container Registry | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Built-in Container Registry | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | External git mirroring | ✓ | ✓ | ✘ | ✘ | ✓ | ✓ | ✓ |
 | FIDO U2F (2FA) | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Built-in CI/CD | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
@@ -83,10 +83,10 @@ _Symbols used in table:_
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Batch issue handling | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Issue Boards | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Issue Boards | [✘](https://github.com/go-gitea/gitea/issues/3476) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Create new branches from issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Issue search | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
-| Global issue search | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Global issue search | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Issue dependency | ✓ | ✘ | ✘ | ✘ | ✘ | ✘ | ✘ |
 | Create issue via email | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
 | Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
@@ -100,11 +100,11 @@ _Symbols used in table:_
 | Rebase merging | ✓ | ✓ | ✓ | ✘ | ⁄ | ✘ | ✓ |
 | Pull/Merge request inline comments | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Pull/Merge request approval | ✓ | ✘ | ⁄ | ✓ | ✓ | ✓ | ✓ |
-| Merge conflict resolution | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Merge conflict resolution | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Restrict push and merge access to certain users | ✓ | ✘ | ✓ | ⁄ | ✓ | ✓ | ✓ |
-| Revert specific commits or a merge request | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
+| Revert specific commits or a merge request | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Pull/Merge requests templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
-| Cherry-picking changes | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Cherry-picking changes | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 
 
 #### 3rd-party integrations
