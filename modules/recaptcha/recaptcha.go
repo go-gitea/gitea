@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Response is the structure of JSON returned from API
@@ -23,11 +24,11 @@ type Response struct {
 	ErrorCodes  []string  `json:"error-codes"`
 }
 
-const apiURL = "https://www.google.com/recaptcha/api/siteverify"
+const apiURL = "/api/siteverify"
 
 // Verify calls Google Recaptcha API to verify token
 func Verify(response string) (bool, error) {
-	resp, err := http.PostForm(apiURL,
+	resp, err := http.PostForm(util.URLJoin(setting.Service.RecaptchaURL, apiURL),
 		url.Values{"secret": {setting.Service.RecaptchaSecret}, "response": {response}})
 	if err != nil {
 		return false, fmt.Errorf("Failed to send CAPTCHA response: %s", err)

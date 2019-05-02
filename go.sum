@@ -223,6 +223,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mcuadros/go-version v0.0.0-20171003094716-88e56e02bea1 h1:4yXas1DDHpauOfuyfmAMm+EB+SiqPKEoTdc88XEJHsc=
 github.com/mcuadros/go-version v0.0.0-20171003094716-88e56e02bea1/go.mod h1:76rfSfYPWj01Z85hUf/ituArm797mNKcvINh1OlsZKo=
+github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75 h1:Pijfgr7ZuvX7QIQiEwLdRVr3RoMG+i0SbBO1Qu+7yVk=
+github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75/go.mod h1:76rfSfYPWj01Z85hUf/ituArm797mNKcvINh1OlsZKo=
 github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a h1:d18LCO3ctH2kugUqt0pEyKKP8L+IYrocaPqGFilhTKk=
 github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a/go.mod h1:hsXNsILzKxV+sX77C5b8FSuKF00vh2OMYv+xgHpAMF4=
 github.com/mitchellh/go-homedir v1.0.0 h1:vKb8ShqSby24Yrqr/yDYkuFz8d0WUjys40rvnGC8aR0=

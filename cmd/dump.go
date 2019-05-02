@@ -36,7 +36,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Usage: "Name of the dump file which will be created.",
 		},
 		cli.BoolFlag{
-			Name:  "verbose, v",
+			Name:  "verbose, V",
 			Usage: "Show process details",
 		},
 		cli.StringFlag{
