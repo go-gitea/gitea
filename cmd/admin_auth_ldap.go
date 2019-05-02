@@ -27,11 +27,6 @@ type (
 var (
 	commonLdapCLIFlags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path.",
-		},
-		cli.StringFlag{
 			Name:  "name",
 			Usage: "Authentication name.",
 		},
@@ -132,7 +127,7 @@ var (
 		Action: func(c *cli.Context) error {
 			return newAuthService().updateLdapBindDn(c)
 		},
-		Flags: append(append(make([]cli.Flag, 0, len(ldapBindDnCLIFlags)+1), ldapBindDnCLIFlags[0], idFlag), ldapBindDnCLIFlags[1:]...),
+		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
 
 	cmdAuthAddLdapSimpleAuth = cli.Command{
@@ -150,7 +145,7 @@ var (
 		Action: func(c *cli.Context) error {
 			return newAuthService().updateLdapSimpleAuth(c)
 		},
-		Flags: append(append(make([]cli.Flag, 0, len(ldapSimpleAuthCLIFlags)+1), ldapSimpleAuthCLIFlags[0], idFlag), ldapSimpleAuthCLIFlags[1:]...),
+		Flags: append([]cli.Flag{idFlag}, ldapSimpleAuthCLIFlags...),
 	}
 )
 
