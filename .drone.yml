@@ -74,7 +74,6 @@ pipeline:
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
     commands:
-      - git tag # To see if the tags were successfully pulled
       - make clean
       - make generate
       - make vet
