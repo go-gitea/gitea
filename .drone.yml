@@ -9,6 +9,11 @@ clone:
     tags: true
 
 pipeline:
+  fetch-tags:
+    image: docker:git
+    commands:
+      - git fetch --tags
+
   download_translations:
     image: jonasfranz/crowdin
     pull: true
@@ -69,6 +74,7 @@ pipeline:
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
     commands:
+      - git tag # To see if the tags were successfully pulled
       - make clean
       - make generate
       - make vet
