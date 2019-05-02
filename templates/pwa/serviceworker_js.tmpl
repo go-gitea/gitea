@@ -34,10 +34,10 @@ var urlsToCache = [
   '{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css',
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		'{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css'
+		'{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css',
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	'{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css'
+	'{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css',
 {{end}}
 
   // img
