@@ -769,7 +769,26 @@ func NewContext() {
 		}
 	}
 	InternalToken = loadInternalToken(sec)
-	PasswordComplexity = Cfg.Section("security.PASSWORD_COMPLEXITY").KeysHash()
+	var dictPC = map[string]string{
+		"lower": "[a-z]+",
+		"upper": "[A-Z]+",
+		"digit": "[0-9]+",
+		"spec":  "[-_*.&%$]+",
+	}
+	PasswordComplexity = make(map[string]string)
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	//fmt.Println(dict,cfg)
+	for _, y := range cfgdata {
+		for a := range dictPC {
+			if strings.ToLower(y) == a {
+				PasswordComplexity[y] = dictPC[y]
+				break
+			}
+		}
+	}
+	if len(PasswordComplexity) == 0 {
+		PasswordComplexity = dictPC
+	}
 
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
