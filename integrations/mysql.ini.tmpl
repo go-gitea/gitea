@@ -60,14 +60,19 @@ PROVIDER = file
 PROVIDER_CONFIG = data/sessions-mysql
 
 [log]
-MODE      = console,file
-ROOT_PATH = mysql-log
+MODE                 = test,file
+ROOT_PATH            = sqlite-log
+REDIRECT_MACARON_LOG = true
+ROUTER               = ,
+MACARON              = ,
+XORM                 = file
 
-[log.console]
-LEVEL = Warn
+[log.test]
+LEVEL                = Info
+COLORIZE             = true
 
 [log.file]
-LEVEL = Debug
+LEVEL                = Debug
 
 [security]
 INSTALL_LOCK   = true

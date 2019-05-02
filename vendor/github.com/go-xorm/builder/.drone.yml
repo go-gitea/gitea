@@ -1,0 +1,37 @@
+workspace:
+  base: /go
+  path: src/github.com/go-xorm/builder
+
+clone:
+  git:
+    image: plugins/git:next
+    depth: 50
+    tags: true
+
+matrix:
+  GO_VERSION:
+    - 1.8
+    - 1.9
+    - 1.10
+    - 1.11
+
+pipeline:
+  test:
+    image: golang:${GO_VERSION}
+    commands:
+      - go get -u github.com/golang/lint/golint
+      - go get -u github.com/stretchr/testify/assert
+      - go get -u github.com/go-xorm/sqlfiddle
+      - golint ./...
+      - go test -v -race -coverprofile=coverage.txt -covermode=atomic
+    when:
+      event: [ push, tag, pull_request ]
+
+codecov:
+    image: robertstettner/drone-codecov
+    group: build
+    secrets: [ codecov_token ]
+    files:
+      - coverage.txt
+    when:
+      event: [ push, pull_request ]

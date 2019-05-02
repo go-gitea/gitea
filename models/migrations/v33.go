@@ -26,7 +26,7 @@ func removeActionColumns(x *xorm.Engine) error {
 			return fmt.Errorf("DROP COLUMN repo_name: %v", err)
 		}
 	default:
-		log.Fatal(4, "Unrecognized DB")
+		log.Fatal("Unrecognized DB")
 	}
 	return nil
 }

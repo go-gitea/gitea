@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -103,7 +103,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	protectBranch, err := models.GetProtectedBranchBy(c.Repo.Repository.ID, branch)
 	if err != nil {
-		if !models.IsErrBranchNotExist(err) {
+		if !git.IsErrBranchNotExist(err) {
 			c.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}
@@ -152,7 +152,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 
 	protectBranch, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch)
 	if err != nil {
-		if !models.IsErrBranchNotExist(err) {
+		if !git.IsErrBranchNotExist(err) {
 			ctx.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}

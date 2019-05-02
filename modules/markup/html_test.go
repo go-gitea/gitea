@@ -16,12 +16,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(".md", input, setting.AppSubURL, nil)
+		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -30,12 +35,14 @@ func TestRender_Commits(t *testing.T) {
 	var subtree = util.URLJoin(commit, "src")
 	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow">b6dd621</a></p>`)
-	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow">b6dd6210ea/src</a></p>`)
-	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>b6dd621</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>b6dd6210ea/src</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
+
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -43,7 +50,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -53,6 +60,9 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"go-gitea/gitea#12345",
 		`<p><a href="`+util.URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+	test(
+		"/home/gitea/go-gitea/gitea#12345",
+		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
@@ -113,6 +123,12 @@ func TestRender_links(t *testing.T) {
 	test(
 		"https://foo_bar.example.com/",
 		`<p><a href="https://foo_bar.example.com/" rel="nofollow">https://foo_bar.example.com/</a></p>`)
+	test(
+		"https://stackoverflow.com/questions/2896191/what-is-go-used-fore",
+		`<p><a href="https://stackoverflow.com/questions/2896191/what-is-go-used-fore" rel="nofollow">https://stackoverflow.com/questions/2896191/what-is-go-used-fore</a></p>`)
+	test(
+		"https://username:password@gitea.com",
+		`<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -138,6 +154,59 @@ func TestRender_links(t *testing.T) {
 		`<p>www</p>`)
 }
 
+func TestRender_email(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	// Text that should be turned into email link
+
+	test(
+		"info@gitea.com",
+		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a></p>`)
+	test(
+		"(info@gitea.com)",
+		`<p>(<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>)</p>`)
+	test(
+		"[info@gitea.com]",
+		`<p>[<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>]</p>`)
+	test(
+		"info@gitea.com.",
+		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`)
+	test(
+		"firstname+lastname@gitea.com",
+		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
+	test(
+		"send email to info@gitea.co.uk.",
+		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
+
+	// Test that should *not* be turned into email links
+	test(
+		"\"info@gitea.com\"",
+		`<p>“info@gitea.com”</p>`)
+	test(
+		"/home/gitea/mailstore/info@gitea/com",
+		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
+	test(
+		"git@try.gitea.io:go-gitea/gitea.git",
+		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
+	test(
+		"gitea@3",
+		`<p>gitea@3</p>`)
+	test(
+		"gitea@gmail.c",
+		`<p>gitea@gmail.c</p>`)
+	test(
+		"email@domain@domain.com",
+		`<p>email@domain@domain.com</p>`)
+	test(
+		"email@domain..com",
+		`<p>email@domain..com</p>`)
+}
+
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
@@ -146,7 +215,7 @@ func TestRender_ShortLinks(t *testing.T) {
 	test := func(input, expected, expectedWiki string) {
 		buffer := markdown.RenderString(input, tree, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, nil)
+		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 

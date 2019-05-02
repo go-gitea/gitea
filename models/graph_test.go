@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {

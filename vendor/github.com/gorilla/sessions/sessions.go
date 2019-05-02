@@ -24,8 +24,9 @@ const flashesKey = "_flash"
 type Options struct {
 	Path   string
 	Domain string
-	// MaxAge=0 means no 'Max-Age' attribute specified.
-	// MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'.
+	// MaxAge=0 means no Max-Age attribute specified and the cookie will be
+	// deleted after the browser session ends.
+	// MaxAge<0 means delete cookie immediately.
 	// MaxAge>0 means Max-Age attribute present and given in seconds.
 	MaxAge   int
 	Secure   bool
@@ -37,9 +38,10 @@ type Options struct {
 // NewSession is called by session stores to create a new session instance.
 func NewSession(store Store, name string) *Session {
 	return &Session{
-		Values: make(map[interface{}]interface{}),
-		store:  store,
-		name:   name,
+		Values:  make(map[interface{}]interface{}),
+		store:   store,
+		name:    name,
+		Options: new(Options),
 	}
 }
 

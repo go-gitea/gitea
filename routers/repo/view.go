@@ -14,18 +14,16 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -49,7 +47,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
+	var latestCommit *git.Commit
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -178,21 +177,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	// Show latest commit info of repository in table header,
 	// or of directory if not in root directory.
-	latestCommit := ctx.Repo.Commit
-	if len(ctx.Repo.TreePath) > 0 {
-		latestCommit, err = ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
-		if err != nil {
-			ctx.ServerError("GetCommitByPath", err)
-			return
-		}
-	}
 	ctx.Data["LatestCommit"] = latestCommit
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
 	if err != nil {
-		log.Error(3, "GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
@@ -304,7 +295,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			var fileContent string
 			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
-					log.Error(4, "ToUTF8WithErr: %v", err)
+					log.Error("ToUTF8WithErr: %v", err)
 				}
 				fileContent = string(buf)
 			} else {
@@ -365,11 +356,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if !models.HasOrgVisible(ctx.Repo.Repository.Owner, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
-		return
-	}
-
 	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
@@ -469,10 +455,10 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	if page <= 0 {
 		page = 1
 	}
-	pager := paginater.New(total, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(pager.Current())
+	items, err := getter(pager.Paginater.Current())
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -487,6 +473,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
+
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
 }
 

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	api "code.gitea.io/sdk/gitea"
 	"errors"
@@ -330,8 +331,14 @@ func GetAllUsers(ctx *context.APIContext) {
 		PageSize: -1,
 	})
 	if err != nil {
-		ctx.Error(500, "SearchUsers", err)
+		ctx.Error(500, "GetAllUsers", err)
 		return
 	}
-	ctx.JSON(200, &users)
+
+	results := make([]*api.User, len(users))
+	for i := range users {
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+	}
+
+	ctx.JSON(200, &results)
 }

@@ -115,7 +115,7 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
-		log.Error(1, "Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
+		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
 		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
 		return
 	}
@@ -125,7 +125,7 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.ns.sreg=http%3A%2F%2Fopenid.net%2Fextensions%2Fsreg%2F1.1"
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
-	log.Trace("Form-passed openid-remember: %s", form.Remember)
+	log.Trace("Form-passed openid-remember: %t", form.Remember)
 	ctx.Session.Set("openid_signin_remember", form.Remember)
 
 	ctx.Redirect(url)
@@ -164,7 +164,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	if u != nil {
 		log.Trace("User exists, logging in")
 		remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-		log.Trace("Session stored openid-remember: %s", remember)
+		log.Trace("Session stored openid-remember: %t", remember)
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -294,7 +294,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-	log.Trace("Session stored openid-remember: %s", remember)
+	log.Trace("Session stored openid-remember: %t", remember)
 	handleSignIn(ctx, u, remember)
 }
 
@@ -426,12 +426,12 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
 
 	remember, _ := ctx.Session.Get("openid_signin_remember").(bool)
-	log.Trace("Session stored openid-remember: %s", remember)
+	log.Trace("Session stored openid-remember: %t", remember)
 	handleSignIn(ctx, u, remember)
 }

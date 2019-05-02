@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -31,6 +32,16 @@ type Team struct {
 	NumRepos    int
 	NumMembers  int
 	Units       []*TeamUnit `xorm:"-"`
+}
+
+// ColorFormat provides a basic color format for a Team
+func (t *Team) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
+		log.NewColoredIDValue(t.ID),
+		t.Name,
+		log.NewColoredIDValue(t.OrgID),
+		t.Authorize)
+
 }
 
 // GetUnits return a list of available units for a team
@@ -69,7 +80,7 @@ func (t *Team) IsOwnerTeam() bool {
 func (t *Team) IsMember(userID int64) bool {
 	isMember, err := IsTeamMember(t.OrgID, t.ID, userID)
 	if err != nil {
-		log.Error(4, "IsMember: %v", err)
+		log.Error("IsMember: %v", err)
 		return false
 	}
 	return isMember
@@ -77,7 +88,9 @@ func (t *Team) IsMember(userID int64) bool {
 
 func (t *Team) getRepositories(e Engine) error {
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
+		Where("team_repo.team_id=?", t.ID).
+		OrderBy("repository.name").
+		Find(&t.Repos)
 }
 
 // GetRepositories returns all repositories in team of organization.
@@ -546,6 +559,9 @@ func getTeamMembers(e Engine, teamID int64) (_ []*User, err error) {
 		}
 		members[i] = member
 	}
+	sort.Slice(members, func(i, j int) bool {
+		return members[i].DisplayName() < members[j].DisplayName()
+	})
 	return members, nil
 }
 

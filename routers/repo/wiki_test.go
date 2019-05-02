@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -40,8 +40,9 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().Data()
+	reader, err := entry.Blob().DataAsync()
 	assert.NoError(t, err)
+	defer reader.Close()
 	bytes, err := ioutil.ReadAll(reader)
 	assert.NoError(t, err)
 	return string(bytes)
