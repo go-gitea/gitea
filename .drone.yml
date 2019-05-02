@@ -12,7 +12,7 @@ pipeline:
   fetch-tags:
     image: docker:git
     commands:
-      - git fetch --tags
+      - git fetch --tags --force
 
   download_translations:
     image: jonasfranz/crowdin
