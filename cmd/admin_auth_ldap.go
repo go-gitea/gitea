@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/ldap"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
@@ -246,14 +245,6 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 	return 0, false
 }
 
-func (a *authService) initLdapCommand(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
-	return a.initDB()
-}
-
 // getLoginSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
 func (a *authService) getLoginSource(c *cli.Context, loginType models.LoginType) (*models.LoginSource, error) {
@@ -279,7 +270,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initLdapCommand(c); err != nil {
+	if err := a.initDB(); err != nil {
 		return err
 	}
 
@@ -303,7 +294,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
 func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	if err := a.initLdapCommand(c); err != nil {
+	if err := a.initDB(); err != nil {
 		return err
 	}
 
@@ -326,7 +317,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initLdapCommand(c); err != nil {
+	if err := a.initDB(); err != nil {
 		return err
 	}
 
@@ -350,7 +341,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP (simple auth) authentication source.
 func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
-	if err := a.initLdapCommand(c); err != nil {
+	if err := a.initDB(); err != nil {
 		return err
 	}
 
