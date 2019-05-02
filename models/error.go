@@ -318,7 +318,7 @@ func IsErrKeyAlreadyExist(err error) bool {
 }
 
 func (err ErrKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [owner_id: %d, finter_print: %s, content: %s]",
+	return fmt.Sprintf("public key already exists [owner_id: %d, finger_print: %s, content: %s]",
 		err.OwnerID, err.Fingerprint, err.Content)
 }
 

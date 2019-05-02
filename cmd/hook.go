@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
@@ -28,13 +27,6 @@ var (
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
@@ -65,12 +57,6 @@ var (
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
 	}
 
 	setup("hooks/pre-receive.log")
@@ -143,12 +129,6 @@ func runHookUpdate(c *cli.Context) error {
 		return nil
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
-	}
-
 	setup("hooks/update.log")
 
 	return nil
@@ -157,12 +137,6 @@ func runHookUpdate(c *cli.Context) error {
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
 	}
 
 	setup("hooks/post-receive.log")
