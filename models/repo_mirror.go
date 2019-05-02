@@ -128,7 +128,7 @@ func (m *Mirror) SaveAddress(addr string) error {
 		return err
 	}
 
-	_, err = git.NewCommand("remote", "add", "origin", addr).RunInDir(repoPath)
+	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
 	return err
 }
 
