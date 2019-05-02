@@ -120,7 +120,6 @@ Admin operations:
                 - `gitea admin auth update-oauth --id 1 --name external-github-updated`
         - `add-ldap`: Add new LDAP (via Bind DN) authentication source
             - Options:
-                - `--config value`, `-c value`: Custom configuration file path (default: "custom/conf/app.ini")
                 - `--name value`: Authentication name. Required.
                 - `--not-active`: Deactivate the authentication source.
                 - `--security-protocol value`: Security protocol name. Required.
@@ -144,7 +143,6 @@ Admin operations:
                 - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(uid=%s))" --email-attribute mail`
         - `update-ldap`: Update existing LDAP (via Bind DN) authentication source
             - Options:
-                - `--config value`, `-c value`: Custom configuration file path (default: "custom/conf/app.ini")
                 - `--id value`: ID of authentication source. Required.
                 - `--name value`: Authentication name.
                 - `--not-active`: Deactivate the authentication source.
@@ -170,7 +168,6 @@ Admin operations:
                 - `gitea admin auth update-ldap --id 1 --username-attribute uid --firstname-attribute givenName --surname-attribute sn`
         - `add-ldap-simple`: Add new LDAP (simple auth) authentication source
             - Options:
-                - `--config value`, `-c value`: Custom configuration file path (default: "custom/conf/app.ini")
                 - `--name value`: Authentication name. Required.
                 - `--not-active`: Deactivate the authentication source.
                 - `--security-protocol value`: Security protocol name. Required.
@@ -190,7 +187,6 @@ Admin operations:
                 - `gitea admin auth add-ldap-simple --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-dn "cn=%s,ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(cn=%s))" --email-attribute mail`
         - `update-ldap-simple`: Update existing LDAP (simple auth) authentication source
             - Options:
-                - `--config value`, `-c value`: Custom configuration file path (default: "custom/conf/app.ini")
                 - `--id value`: ID of authentication source. Required.
                 - `--name value`: Authentication name.
                 - `--not-active`: Deactivate the authentication source.
