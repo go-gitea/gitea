@@ -129,11 +129,7 @@ func aesDecrypt(key, text []byte) ([]byte, error) {
 
 // NewTwoFactor creates a new two-factor authentication token.
 func NewTwoFactor(t *TwoFactor) error {
-	_, err := t.GenerateScratchToken()
-	if err != nil {
-		return err
-	}
-	_, err = x.Insert(t)
+	_, err := x.Insert(t)
 	return err
 }
 
