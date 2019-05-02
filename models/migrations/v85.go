@@ -45,7 +45,11 @@ func hashAppToken(x *xorm.Engine) error {
 	if models.DbCfg.Type == core.POSTGRES || models.DbCfg.Type == core.SQLITE {
 		_, err = sess.Exec("DROP INDEX IF EXISTS UQE_access_token_sha1")
 	} else if models.DbCfg.Type == core.MSSQL {
-		_, err = sess.Exec("DROP INDEX IF EXISTS UQE_access_token_sha1 ON access_token")
+		_, err = sess.Exec(`DECLARE @ConstraintName VARCHAR(256)
+		DECLARE @SQL NVARCHAR(256)
+		SELECT @ConstraintName = obj.name FROM sys.columns col LEFT OUTER JOIN sys.objects obj ON obj.object_id = col.default_object_id AND obj.type = 'D' WHERE col.object_id = OBJECT_ID('access_token') AND obj.name IS NOT NULL AND col.name = 'sha1'
+		SET @SQL = N'ALTER TABLE [access_token] DROP CONSTRAINT [' + @ConstraintName + N']'
+		EXEC sp_executesql @SQL`)
 	} else if models.DbCfg.Type == core.MYSQL {
 		indexes, err := sess.QueryString(`SHOW INDEX FROM access_token WHERE KEY_NAME = 'UQE_access_token_sha1'`)
 		if err != nil {
