@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -115,6 +117,8 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
+		"PathEscapeSegments":       util.PathEscapeSegments,
+		"URLJoin":                  util.URLJoin,
 		"RenderCommitMessage":      RenderCommitMessage,
 		"RenderCommitMessageLink":  RenderCommitMessageLink,
 		"RenderCommitBody":         RenderCommitBody,
