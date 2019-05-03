@@ -1230,7 +1230,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if u := models.VerifyUserActiveCode(code); u != nil {
 		// Validate password length.
 		passwd := ctx.Query("password")
 		if len(passwd) < setting.MinPasswordLength {
@@ -1245,35 +1244,34 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-	var err error
-	if u.Rands, err = models.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-	if u.Salt, err = models.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
+		var err error
+		if u.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
 
-	u.HashPassword(passwd)
-	u.MustChangePassword = false
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
+		u.HashPassword(passwd)
+		u.MustChangePassword = false
+		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
 
-	log.Trace("User password reset: %s", u.Name)
+		log.Trace("User password reset: %s", u.Name)
 
-	ctx.Data["IsResetFailed"] = true
-	remember := len(ctx.Query("remember")) != 0
-	handleSignInFull(ctx, u, remember, true)
+		ctx.Data["IsResetFailed"] = true
+		remember := len(ctx.Query("remember")) != 0
+		handleSignInFull(ctx, u, remember, true)
 }
 
 // MustChangePassword renders the page to change a user's password
 func MustChangePassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
-
 	ctx.HTML(200, tplMustChangePassword)
 }
 
@@ -1281,16 +1279,12 @@ func MustChangePassword(ctx *context.Context) {
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form auth.MustChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
-
 	if ctx.HasError() {
 		ctx.HTML(200, tplMustChangePassword)
 		return
 	}
-
 	u := ctx.User
-
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
 	if !u.MustChangePassword {
