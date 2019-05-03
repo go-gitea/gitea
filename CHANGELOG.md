@@ -4,33 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.8.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc3) - 2019-04-12
+## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
-* BUGFIXES
-  * Allow resend of confirmation email when logged in (#6482) (#6486)
-  * Fix mail notification when close/reopen issue (#6581) (#6588)
-  * Change API commit summary to full message (#6591) (#6592)
-  * Add option to disable refresh token invalidation (#6584) (#6587)
-  * Fix bug user search API pagesize didn't obey ExplorePagingNum (#6579) (#6586)
-  * Fix new repo alignment (#6583) (#6585)
-  * Prevent server 500 on compare branches with no common history (#6555) (#6558)
-  * Properly escape release attachment URL (#6512) (#6523)
-  * Hacky fix for alignment of the create-organization dialog (#6455) (#6462)
-
-## [1.8.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc2) - 2019-03-27
-* BUGFIXES
-  * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
-  * Make sure units of a team are returned (#6379) (#6381)
-  * Don't Unescape redirect_to cookie value (#6399) (#6401)
-  * Fix dump table name error and add some test for dump database (#6394) (#6402)
-  * Fix migration v82 to ignore unsynced tags between database and git data; Add missing is_archived column on repository table (#6387) (#6403)
-  * Display correct error for invalid mirror interval (#6414) (#6429)
-  * Clean up ref name rules (#6437) (#6439)
-  * Fix Hook & HookList in Swagger (#6432) (#6440)
-  * Change order that PostProcess Processors are run (#6445) (#6447)
-
-## [1.8.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc1) - 2019-03-18
+  * Resolve 2FA bypass on API (#6676) (#6674)
+  * Prevent the creation of empty sessions for non-logged in users (#6690) (#6677)
 * BREAKING
   * Add "ghost" and "notifications" to list of reserved user names. (#6208)
   * Change sqlite DB path default to data directory (#6198)
@@ -110,7 +88,31 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Allow markdown table to scroll (#4401)
   * Automatically clear stopwatch on merging a PR (#4327)
   * Add the Owner Name to differentiate when merging (#3807)
+  * Add title attributes to all items in the repo list viewer (#6258) (#6650)
 * BUGFIXES
+  * Fix dropdown icon padding (#6651) (#6654)
+  * Fix wrong GPG expire date (#6643) (#6644)
+  * Fix forking an empty repository (#6637) (#6653)
+  * Remove call to EscapePound .Link as it is already escaped (#6656) (#6666)
+  * Properly escape on the redirect from the web editor (#6657) (#6667)
+  * Allow resend of confirmation email when logged in (#6482) (#6486)
+  * Fix mail notification when close/reopen issue (#6581) (#6588)
+  * Change API commit summary to full message (#6591) (#6592)
+  * Add option to disable refresh token invalidation (#6584) (#6587)
+  * Fix bug user search API pagesize didn't obey ExplorePagingNum (#6579) (#6586)
+  * Fix new repo alignment (#6583) (#6585)
+  * Prevent server 500 on compare branches with no common history (#6555) (#6558)
+  * Properly escape release attachment URL (#6512) (#6523)
+  * Hacky fix for alignment of the create-organization dialog (#6455) (#6462)
+  * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
+  * Make sure units of a team are returned (#6379) (#6381)
+  * Don't Unescape redirect_to cookie value (#6399) (#6401)
+  * Fix dump table name error and add some test for dump database (#6394) (#6402)
+  * Fix migration v82 to ignore unsynced tags between database and git data; Add missing is_archived column on repository table (#6387) (#6403)
+  * Display correct error for invalid mirror interval (#6414) (#6429)
+  * Clean up ref name rules (#6437) (#6439)
+  * Fix Hook & HookList in Swagger (#6432) (#6440)
+  * Change order that PostProcess Processors are run (#6445) (#6447)
   * Clean up various use of escape/unescape functions for URL generation (#6334)
   * Return 409 when creating repo if it already exists. (#6330)
   * Add same changes from issues page to milestone->issues page (#6328)

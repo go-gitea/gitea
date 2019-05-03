@@ -217,12 +217,6 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if repo.Owner.IsOrganization() {
-		if !models.HasOrgVisible(repo.Owner, ctx.User) {
-			ctx.NotFound("HasOrgVisible", nil)
-			return
-		}
-	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
@@ -396,6 +390,13 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
 		}
 
+		if repo.IsFork {
+			RetrieveBaseRepo(ctx, repo)
+			if ctx.Written() {
+				return
+			}
+		}
+
 		// repo is empty and display enable
 		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
@@ -422,13 +423,6 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
-
-		if repo.IsFork {
-			RetrieveBaseRepo(ctx, repo)
-			if ctx.Written() {
-				return
-			}
-		}
 
 		// People who have push access or have forked repository can propose a new pull request.
 		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
