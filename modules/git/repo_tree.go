@@ -35,14 +35,15 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
+	resolvedID := id
 	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	if err == nil {
+		id = SHA1(commitObject.TreeHash)
+	}
+	treeObject, err := repo.getTree(id)
 	if err != nil {
 		return nil, err
 	}
-	treeObject, err := repo.getTree(SHA1(commitObject.TreeHash))
-	if err != nil {
-		return nil, err
-	}
-	treeObject.CommitID = id
+	treeObject.ResolvedID = resolvedID
 	return treeObject, nil
 }
