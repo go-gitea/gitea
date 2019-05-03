@@ -1233,42 +1233,42 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-		// Validate password length.
-		passwd := ctx.Query("password")
-		if len(passwd) < setting.MinPasswordLength {
-			ctx.Data["IsResetForm"] = true
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
-			return
-		} else if !util.CheckPasswordComplexity(passwd) {
-			ctx.Data["IsResetForm"] = true
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplResetPassword, nil)
-			return
-		}
+	// Validate password length.
+	passwd := ctx.Query("password")
+	if len(passwd) < setting.MinPasswordLength {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
+		return
+	} else if !util.CheckPasswordComplexity(passwd) {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplResetPassword, nil)
+		return
+	}
 
-		var err error
-		if u.Rands, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
+	var err error
+	if u.Rands, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+	if u.Salt, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
 
-		u.HashPassword(passwd)
-		u.MustChangePassword = false
-		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
+	u.HashPassword(passwd)
+	u.MustChangePassword = false
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
 
-		log.Trace("User password reset: %s", u.Name)
+	log.Trace("User password reset: %s", u.Name)
 
-		ctx.Data["IsResetFailed"] = true
-		remember := len(ctx.Query("remember")) != 0
-		handleSignInFull(ctx, u, remember, true)
+	ctx.Data["IsResetFailed"] = true
+	remember := len(ctx.Query("remember")) != 0
+	handleSignInFull(ctx, u, remember, true)
 }
 
 // MustChangePassword renders the page to change a user's password
