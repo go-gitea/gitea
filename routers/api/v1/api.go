@@ -150,6 +150,7 @@ func repoAssignment() macaron.Handler {
 			}
 			return
 		}
+
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
@@ -272,6 +273,43 @@ func reqOrgMembership() macaron.Handler {
 		} else if !isMember {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization member")
+			} else {
+				ctx.Status(404)
+			}
+			return
+		}
+	}
+}
+
+// reqTeamMembership user should be an team member, or a site admin
+func reqTeamMembership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if ctx.User.IsAdmin {
+			return
+		}
+		if ctx.Org.Team == nil {
+			ctx.Error(500, "", "reqTeamMembership: unprepared context")
+			return
+		}
+
+		var orgID = ctx.Org.Team.OrgID
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			return
+		}
+
+		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsTeamMember", err)
+			return
+		} else if !isTeamMember {
+			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOrganizationMember", err)
+			} else if isOrgMember {
+				ctx.Error(403, "", "Must be a team member")
 			} else {
 				ctx.Status(404)
 			}
@@ -686,7 +724,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
-		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
+		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.Error(404)
