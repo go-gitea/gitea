@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -177,7 +178,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
-		divergence, divergenceError := ctx.Repo.Repository.CountDivergingCommits(branchName)
+		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)
 		if divergenceError != nil {
 			ctx.ServerError("CountDivergingCommits", divergenceError)
 			return nil
