@@ -339,7 +339,7 @@ func CompareDiff(ctx *context.Context) {
 		}
 		return result
 	}
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
 		result, err := beforeCommit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
