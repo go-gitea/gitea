@@ -328,7 +328,7 @@ func runCreateUser(c *cli.Context) error {
 			return err
 		}
 
-		fmt.Printf("Access token was successfully created... %s\n", t.Sha1)
+		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)
