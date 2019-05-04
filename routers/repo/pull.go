@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors.
+// Copyright 2018 The Gitea Authors.
 // Copyright 2014 The Gogs Authors.
 // All rights reserved.
 // Use of this source code is governed by a MIT-style
