@@ -1,5 +1,5 @@
 {{if $.LatestCommitStatus}}
-    <div class="item text purple">
+    <div class="item text">
         {{if eq .LatestCommitStatus.State "pending"}}
             {{$.i18n.Tr "repo.pulls.status_checking"}}
         {{else if eq .LatestCommitStatus.State "success"}}
