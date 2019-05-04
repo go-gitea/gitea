@@ -321,7 +321,7 @@ github.com/syndtr/goleveldb/leveldb/util
 github.com/tinylib/msgp/msgp
 # github.com/tstranex/u2f v1.0.0
 github.com/tstranex/u2f
-# github.com/urfave/cli v0.0.0-20161102131801-d86a009f5e13
+# github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
 github.com/willf/bitset

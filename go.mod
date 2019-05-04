@@ -109,7 +109,7 @@ require (
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tinylib/msgp v0.0.0-20180516164116-c8cf64dff200 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/urfave/cli v0.0.0-20161102131801-d86a009f5e13
+	github.com/urfave/cli v1.20.0
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.2 // indirect
