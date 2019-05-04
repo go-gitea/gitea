@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/repofiles"
 
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -57,7 +58,8 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := models.NewCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
+	isOAuthToken := ctx.Data["IsApiToken"] == true
+	if err := repofiles.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status, isOAuthToken); err != nil {
 		ctx.Error(500, "NewCommitStatus", err)
 		return
 	}

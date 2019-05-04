@@ -329,6 +329,22 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 	}
 
+	sha, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommitID", err)
+		return nil
+	}
+
+	commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return nil
+	}
+	if len(commitStatuses) > 0 {
+		ctx.Data["LatestCommitStatuses"] = commitStatuses
+		ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+	}
+
 	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["HeadTarget"] = "deleted"
