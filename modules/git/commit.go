@@ -189,6 +189,7 @@ func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 
 	metadata := ImageMetaData{
 		ColorModel: config.ColorModel,
