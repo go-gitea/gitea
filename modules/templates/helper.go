@@ -49,9 +49,6 @@ func NewFuncMap() []template.FuncMap {
 		"AppUrl": func() string {
 			return setting.AppURL
 		},
-		"AppUrlTrimmed": func() string {
-			return strings.TrimRight(setting.AppURL, "/")
-		},
 		"AppVer": func() string {
 			return setting.AppVer
 		},
