@@ -81,6 +81,33 @@
 		</div>
 		{{end}}
 
+		{{if .Permission.CanRead $.UnitTypeCode}}
+			{{if eq .Activity.Code.CommitCountInAllBranches 0}}
+				<div class="ui center aligned segment">
+				<h4 class="ui header">{{.i18n.Tr "repo.activity.no_git_activity" }}</h4>
+				</div>
+			{{end}}
+			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
+				<div class="ui attached segment horizontal segments">
+					<div class="ui attached segment text">
+					    {{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
+						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n") .Activity.Code.AuthorCount }}</strong>
+						{{.i18n.Tr "repo.activity.git_stats_pushed" }}
+						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCount }}</strong>
+						{{.i18n.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch }}
+						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCountInAllBranches }}</strong>
+						{{.i18n.Tr "repo.activity.git_stats_push_to_all_branches" }}
+						{{.i18n.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch }}
+						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n") .Activity.Code.ChangedFiles }}</strong>
+						{{.i18n.Tr "repo.activity.git_stats_files_changed" }}
+						<strong class="text green">{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n") .Activity.Code.Additions }}</strong>
+						{{.i18n.Tr "repo.activity.git_stats_and_deletions" }}
+						<strong class="text red">{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n") .Activity.Code.Deletions }}</strong>.
+					</div>
+				</div>
+			{{end}}
+		{{end}}
+
 		{{if gt .Activity.PublishedReleaseCount 0}}
 			<h4 class="ui horizontal divider header" id="published-releases">
 				<i class="text octicon octicon-tag"></i>
