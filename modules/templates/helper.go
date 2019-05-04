@@ -486,6 +486,12 @@ var trNLangRules = map[string]func(int64) int{
 	"zh-TW": func(cnt int64) int {
 		return 0
 	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
+	},
 }
 
 // TrN returns key to be used for plural text translation
