@@ -40,12 +40,16 @@ type TreeEntry struct {
 	gogitTreeEntry *object.TreeEntry
 	ptree          *Tree
 
-	size  int64
-	sized bool
+	size     int64
+	sized    bool
+	fullName string
 }
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
+	if te.fullName != "" {
+		return te.fullName
+	}
 	return te.gogitTreeEntry.Name
 }
 
