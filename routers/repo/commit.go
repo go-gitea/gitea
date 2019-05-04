@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"image"
 	"path"
 	"strings"
 
@@ -239,7 +238,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := commit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
@@ -332,7 +331,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := commit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
@@ -340,7 +339,7 @@ func CompareDiff(ctx *context.Context) {
 		}
 		return result
 	}
-	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := beforeCommit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)

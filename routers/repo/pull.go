@@ -1,4 +1,4 @@
-// Copyright 2018 The Gitea Authors.
+// Copyright 2019 The Gitea Authors.
 // Copyright 2014 The Gogs Authors.
 // All rights reserved.
 // Use of this source code is governed by a MIT-style
@@ -9,7 +9,6 @@ package repo
 import (
 	"container/list"
 	"fmt"
-	"image"
 	"io"
 	"path"
 	"strings"
@@ -523,7 +522,7 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *image.Config {
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
 		result, err := baseCommit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
@@ -531,7 +530,7 @@ func ViewPullFiles(ctx *context.Context) {
 		}
 		return result
 	}
-	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := commit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
@@ -848,7 +847,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *image.Config {
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
 		result, err := baseCommit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
@@ -856,7 +855,7 @@ func PrepareCompareDiff(
 		}
 		return result
 	}
-	ctx.Data["ImageInfo"] = func(name string) *image.Config {
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := headCommit.ImageInfo(name)
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)

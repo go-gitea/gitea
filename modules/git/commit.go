@@ -1,5 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@ import (
 	"container/list"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images
 	_ "image/png"  // for processing png images
@@ -162,8 +163,16 @@ func (c *Commit) IsImageFile(name string) bool {
 	return isImage
 }
 
+// ImageMetaData represents metadata of an image file
+type ImageMetaData struct {
+	ColorModel color.Model
+	Width      int
+	Height     int
+	ByteSize   int64
+}
+
 // ImageInfo returns information about the dimensions of an image
-func (c *Commit) ImageInfo(name string) (*image.Config, error) {
+func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
 	if !c.IsImageFile(name) {
 		return nil, nil
 	}
@@ -180,7 +189,14 @@ func (c *Commit) ImageInfo(name string) (*image.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &config, nil
+
+	metadata := ImageMetaData{
+		ColorModel: config.ColorModel,
+		Width:      config.Width,
+		Height:     config.Height,
+		ByteSize:   blob.Size(),
+	}
+	return &metadata, nil
 }
 
 // GetCommitByPath return the commit of relative path object.

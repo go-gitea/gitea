@@ -29,11 +29,15 @@
  		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{if not (eq $imageInfoBase.Width $imageInfoHead.Width)}}red{{end}}">{{$imageInfoBase.Width}}</span>
  		&nbsp;|&nbsp;
  	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{if not (eq $imageInfoBase.Height $imageInfoHead.Height)}}red{{end}}">{{$imageInfoBase.Height}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_byte_size"}}: <span class="text {{if not (eq $imageInfoBase.ByteSize $imageInfoHead.ByteSize)}}red{{end}}">{{FileSize $imageInfoBase.ByteSize}}</span>
  	</td>
  	<td class="halfwidth center">
  		{{.root.i18n.Tr "repo.diff.file_image_width"}}: <span class="text {{if not (eq $imageInfoBase.Width $imageInfoHead.Width)}}green{{end}}">{{$imageInfoHead.Width}}</span>
  		&nbsp;|&nbsp;
  	    {{.root.i18n.Tr "repo.diff.file_image_height"}}: <span class="text {{if not (eq $imageInfoBase.Height $imageInfoHead.Height)}}green{{end}}">{{$imageInfoHead.Height}}</span>
+ 		&nbsp;|&nbsp;
+ 	    {{.root.i18n.Tr "repo.diff.file_byte_size"}}: <span class="text {{if not (eq $imageInfoBase.ByteSize $imageInfoHead.ByteSize)}}green{{end}}">{{FileSize $imageInfoHead.ByteSize}}</span>
  	</td>
  </tr>
 {{end}}
