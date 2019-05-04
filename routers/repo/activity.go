@@ -44,13 +44,42 @@ func Activity(ctx *context.Context) {
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
-	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository.ID, timeFrom,
+	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(models.UnitTypeReleases),
 		ctx.Repo.CanRead(models.UnitTypeIssues),
-		ctx.Repo.CanRead(models.UnitTypePullRequests)); err != nil {
+		ctx.Repo.CanRead(models.UnitTypePullRequests),
+		ctx.Repo.CanRead(models.UnitTypeCode)); err != nil {
 		ctx.ServerError("GetActivityStats", err)
 		return
 	}
 
 	ctx.HTML(200, tplActivity)
+}
+
+// ActivityAuthors renders JSON with top commit authors for given time period over all branches
+func ActivityAuthors(ctx *context.Context) {
+	timeUntil := time.Now()
+	var timeFrom time.Time
+
+	switch ctx.Params("period") {
+	case "daily":
+		timeFrom = timeUntil.Add(-time.Hour * 24)
+	case "halfweekly":
+		timeFrom = timeUntil.Add(-time.Hour * 72)
+	case "weekly":
+		timeFrom = timeUntil.Add(-time.Hour * 168)
+	case "monthly":
+		timeFrom = timeUntil.AddDate(0, -1, 0)
+	default:
+		timeFrom = timeUntil.Add(-time.Hour * 168)
+	}
+
+	var err error
+	authors, err := models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10)
+	if err != nil {
+		ctx.ServerError("GetActivityStatsTopAuthors", err)
+		return
+	}
+
+	ctx.JSON(200, authors)
 }
