@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type ConstraintGroup struct {
@@ -241,8 +242,38 @@ func (self *ConstraintGroup) parseConstraint(constraint string) []*Constraint {
 	return []*Constraint{{constraint, stabilityModifier}}
 }
 
+// PCRegMap : PreCompiled Regex Map
+type PCRegMap struct {
+	sync.RWMutex
+	m map[string]*regexp.Regexp
+}
+
+// MustCompile : to replace regexp.MustCompile in RegFind.
+func (p *PCRegMap) MustCompile(pattern string) *regexp.Regexp {
+	p.RLock()
+	ret, exist := p.m[pattern]
+	p.RUnlock()
+	if exist {
+		return ret
+	}
+	ret = regexp.MustCompile(pattern)
+	p.Lock()
+	p.m[pattern] = ret
+	p.Unlock()
+	return ret
+}
+
+var (
+	regexpCache *PCRegMap
+)
+
+func init() {
+	regexpCache = new(PCRegMap)
+	regexpCache.m = make(map[string]*regexp.Regexp)
+}
+
 func RegFind(pattern, subject string) []string {
-	reg := regexp.MustCompile(pattern)
+	reg := regexpCache.MustCompile(pattern)
 	matched := reg.FindAllStringSubmatch(subject, -1)
 
 	if matched != nil {
