@@ -1,14 +1,16 @@
 version: "{build}"
 
-os: Windows Server 2012 R2
+os: Windows Server 2016
+
+image: Visual Studio 2017
 
 clone_folder: c:\gopath\src\github.com\urfave\cli
 
 environment:
   GOPATH: C:\gopath
-  GOVERSION: 1.6
-  PYTHON: C:\Python27-x64
-  PYTHON_VERSION: 2.7.x
+  GOVERSION: 1.8.x
+  PYTHON: C:\Python36-x64
+  PYTHON_VERSION: 3.6.x
   PYTHON_ARCH: 64
 
 install:
