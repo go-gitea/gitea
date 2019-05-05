@@ -147,7 +147,7 @@ in the current directory.
     - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
     - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
     - `--database`, `-d`: Specify the database SQL syntax. Optional.
-    - `--verbose`, `-v`: If provided, shows additional details. Optional.
+    - `--verbose`, `-V`: If provided, shows additional details. Optional.
 - Examples:
     - `gitea dump`
     - `gitea dump --verbose`
@@ -161,11 +161,11 @@ for automatic deployments.
     - `secret`:
         - Options:
             - `INTERNAL_TOKEN`: Token used for an internal API call authentication.
-            - `LFS_JWT_SECRET`: LFS authentication secret.
+            - `JWT_SECRET`: LFS & OAUTH2 JWT authentication secret (LFS_JWT_SECRET is aliased to this option for backwards compatibility).
             - `SECRET_KEY`: Global secret key.
         - Examples:
             - `gitea generate secret INTERNAL_TOKEN`
-            - `gitea generate secret LFS_JWT_SECRET`
+            - `gitea generate secret JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
 
 #### keys

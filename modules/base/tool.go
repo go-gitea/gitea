@@ -9,6 +9,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -50,6 +51,13 @@ func EncodeMD5(str string) string {
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
 	h := sha1.New()
+	h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// EncodeSha256 string to sha1 hex value.
+func EncodeSha256(str string) string {
+	h := sha256.New()
 	h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
