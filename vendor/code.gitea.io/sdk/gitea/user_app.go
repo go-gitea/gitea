@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -17,12 +18,14 @@ func BasicAuthEncode(user, pass string) string {
 	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
 }
 
-// AccessToken represents a API access token.
+// AccessToken represents an API access token.
 // swagger:response AccessToken
 type AccessToken struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Sha1 string `json:"sha1"`
+	ID             int64  `json:"id"`
+	Name           string `json:"name"`
+	Token          string `json:"token"`
+	HashedToken    string `json:"hashed_token"`
+	TokenLastEight string `json:"token_last_eight"`
 }
 
 // AccessTokenList represents a list of API access token.
