@@ -73,6 +73,10 @@ var (
 				Usage: "Length of the random password to be generated",
 				Value: 12,
 			},
+			cli.BoolFlag{
+				Name:  "access-token",
+				Usage: "Generate access token for the user",
+			},
 		},
 	}
 
@@ -300,7 +304,7 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	if err := models.CreateUser(&models.User{
+	u := &models.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
@@ -308,8 +312,23 @@ func runCreateUser(c *cli.Context) error {
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
 		Theme:              setting.UI.DefaultTheme,
-	}); err != nil {
+	}
+
+	if err := models.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
+	}
+
+	if c.Bool("access-token") {
+		t := &models.AccessToken{
+			Name: "gitea-admin",
+			UID:  u.ID,
+		}
+
+		if err := models.NewAccessToken(t); err != nil {
+			return err
+		}
+
+		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)

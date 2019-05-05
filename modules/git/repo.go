@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"container/list"
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -305,4 +307,41 @@ func GetLatestCommitTime(repoPath string) (time.Time, error) {
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse(GitTimeLayout, commitTime)
+}
+
+// DivergeObject represents commit count diverging commits
+type DivergeObject struct {
+	Ahead  int
+	Behind int
+}
+
+func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
+	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
+	cmd := NewCommand("rev-list", "--count", branches)
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return -1, err
+	}
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
+	if errInteger != nil {
+		return -1, errInteger
+	}
+	return outInteger, nil
+}
+
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
+	// $(git rev-list --count master..feature) commits ahead of master
+	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)
+	if errorAhead != nil {
+		return DivergeObject{}, errorAhead
+	}
+
+	// $(git rev-list --count feature..master) commits behind master
+	behind, errorBehind := checkDivergence(repoPath, targetBranch, baseBranch)
+	if errorBehind != nil {
+		return DivergeObject{}, errorBehind
+	}
+
+	return DivergeObject{ahead, behind}, nil
 }

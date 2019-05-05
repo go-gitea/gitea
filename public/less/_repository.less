@@ -963,6 +963,42 @@
         margin-top: 1px!important;
     }
 
+    &.branches {
+        .commit-divergence {
+            .bar-group {
+                position: relative;
+                float: left;
+                padding-bottom: 6px;
+                width: 90px;
+
+                &:last-child {
+                    border-left: 1px solid #b4b4b4;
+                }
+            }
+            .count {
+                margin: 0 3px;
+                &.count-ahead {
+                    text-align: left;
+                }
+                &.count-behind {
+                    text-align: right;
+                }
+            }
+            .bar {
+                height: 4px;
+                position: absolute;
+                background-color: #d4d4d5;
+
+                &.bar-behind {
+                    right: 0;
+                }
+                &.bar-ahead {
+                    left: 0;
+                }
+            }
+        }
+    }
+
     &.commits {
         .header {
             .search {

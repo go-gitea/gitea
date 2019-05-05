@@ -1430,6 +1430,15 @@ function initWebhook() {
         }
     });
 
+    var updateContentType = function () {
+        var visible = $('#http_method').val() === 'POST';
+        $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
+    };
+    updateContentType();
+    $('#http_method').change(function () {
+        updateContentType();
+    });
+
     // Test delivery
     $('#test-delivery').click(function () {
         var $this = $(this);
