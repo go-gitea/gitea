@@ -58,7 +58,7 @@ func EncodeSha1(str string) string {
 // EncodeSha256 string to sha1 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
