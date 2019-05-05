@@ -463,11 +463,19 @@ func renderCode(ctx *context.Context) {
 		}
 
 		if divergence.Ahead > 0 {
-			msg = ctx.Tr(templates.TrN(ctx.Language(), divergence.Ahead, "repo.commits.count.ahead_1", "repo.commits.count.ahead_n"), ctx.Repo.Repository.DefaultBranch)
+			if divergence.Ahead == 1 {
+				msg = ctx.Tr("repo.commits.count.ahead_1", ctx.Repo.Repository.DefaultBranch)
+			} else {
+				msg = ctx.Tr("repo.commits.count.ahead_n", divergence.Ahead, ctx.Repo.Repository.DefaultBranch)
+			}
 		}
 
 		if divergence.Behind > 0 {
-			msg = ctx.Tr(templates.TrN(ctx.Language(), divergence.Ahead, "repo.commits.count.behind_1", "repo.commits.count.behind_n"), ctx.Repo.Repository.DefaultBranch)
+			if divergence.Behind == 1 {
+				msg = ctx.Tr("repo.commits.count.behind_1", ctx.Repo.Repository.DefaultBranch)
+			} else {
+				msg = ctx.Tr("repo.commits.count.behind_n", divergence.Behind, ctx.Repo.Repository.DefaultBranch)
+			}
 		}
 
 		ctx.Flash.Info(msg)
