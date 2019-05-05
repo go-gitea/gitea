@@ -225,6 +225,8 @@ var migrations = []Migration{
 	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 	// v85 -> v86
 	NewMigration("hash application token", hashAppToken),
+	// v86 -> v87
+	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
 }
 
 // Migrate database to current version
