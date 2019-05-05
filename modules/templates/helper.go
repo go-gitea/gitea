@@ -223,6 +223,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
+		},
 	}}
 }
 
