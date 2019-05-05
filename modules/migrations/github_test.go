@@ -222,8 +222,8 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				},
 			},
 			Reactions: &base.Reactions{
-				TotalCount: 5,
-				PlusOne:    4,
+				TotalCount: 6,
+				PlusOne:    5,
 				MinusOne:   0,
 				Laugh:      0,
 				Confused:   1,
