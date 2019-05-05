@@ -114,7 +114,6 @@ func Middleware(options ...Options) macaron.Handler {
 
 		// If the client is asking for a specific range of bytes - don't compress
 		if rangeHdr := ctx.Req.Header.Get(rangeHeader); rangeHdr != "" {
-
 			match := regex.FindStringSubmatch(rangeHdr)
 			if match != nil && len(match) > 1 {
 				return
@@ -320,6 +319,9 @@ func compressedContentType(contentType string) bool {
 	case "application/x-gzip":
 		return true
 	case "application/gzip":
+		return true
+	// assume all octet-stream data is already compressed to avoid double compression from LFS
+	case "application/octet-stream":
 		return true
 	default:
 		return false
