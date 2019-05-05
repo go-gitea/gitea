@@ -80,7 +80,7 @@ func TestMiddlewareSmall(t *testing.T) {
 func TestMiddlewareLarge(t *testing.T) {
 	b := make([]byte, MinSize+1)
 	for i := range b {
-		b[i] = letters[i % len(letters)]
+		b[i] = letters[i%len(letters)]
 	}
 	m, sampleResponse := setup(b)
 
@@ -93,7 +93,7 @@ func TestMiddlewareLarge(t *testing.T) {
 func TestMiddlewareGzip(t *testing.T) {
 	b := make([]byte, MinSize*10)
 	for i := range b {
-		b[i] = letters[i % len(letters)]
+		b[i] = letters[i%len(letters)]
 	}
 	outputBuffer := bytes.NewBuffer([]byte{})
 	gzippWriter := gzipp.NewWriter(outputBuffer)
@@ -113,7 +113,7 @@ func TestMiddlewareGzip(t *testing.T) {
 func TestMiddlewareZip(t *testing.T) {
 	b := make([]byte, MinSize*10)
 	for i := range b {
-		b[i] = letters[i % len(letters)]
+		b[i] = letters[i%len(letters)]
 	}
 	outputBuffer := bytes.NewBuffer([]byte{})
 	zipWriter := zip.NewWriter(outputBuffer)
