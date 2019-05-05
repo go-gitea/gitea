@@ -196,6 +196,7 @@ func (f WebhookForm) ChooseEvents() bool {
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
+	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
 	Secret      string
 	WebhookForm

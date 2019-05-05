@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -62,7 +63,7 @@ var (
 	issueReferenceKeywordsPat                     *regexp.Regexp
 )
 
-const issueRefRegexpStr = `(?:\S+/\S=)?#\d+`
+const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
 
 func assembleKeywordsPattern(words []string) string {
 	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
@@ -190,6 +191,21 @@ func (a *Action) GetRepoLink() string {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
+}
+
+// GetRepositoryFromMatch returns a *Repository from a username and repo strings
+func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
+	var err error
+	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		if IsErrRepoNotExist(err) {
+			log.Warn("Repository referenced in commit but does not exist: %v", err)
+			return nil, err
+		}
+		log.Error("GetRepositoryByOwnerAndName: %v", err)
+		return nil, err
+	}
+	return refRepo, nil
 }
 
 // GetCommentLink returns link to action comment.
@@ -521,8 +537,24 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		c := commits[i]
 
 		refMarked := make(map[int64]bool)
-		for _, ref := range issueReferenceKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
+		var refRepo *Repository
+		var err error
+		for _, m := range issueReferenceKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
+			if len(m[3]) == 0 {
+				continue
+			}
+			ref := m[3]
+
+			// issue is from another repo
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				if err != nil {
+					continue
+				}
+			} else {
+				refRepo = repo
+			}
+			issue, err := getIssueFromRef(refRepo, ref)
 			if err != nil {
 				return err
 			}
@@ -533,7 +565,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			refMarked[issue.ID] = true
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
-			if err = CreateRefComment(doer, repo, issue, message, c.Sha1); err != nil {
+			if err = CreateRefComment(doer, refRepo, issue, message, c.Sha1); err != nil {
 				return err
 			}
 		}
@@ -543,18 +575,62 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
 			continue
 		}
-
 		refMarked = make(map[int64]bool)
-		for _, ref := range issueCloseKeywordsPat.FindAllString(c.Message, -1) {
-			if err := changeIssueStatus(repo, doer, ref, refMarked, true); err != nil {
+		for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
+			if len(m[3]) == 0 {
+				continue
+			}
+			ref := m[3]
+
+			// issue is from another repo
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				if err != nil {
+					continue
+				}
+			} else {
+				refRepo = repo
+			}
+
+			perm, err := GetUserRepoPermission(refRepo, doer)
+			if err != nil {
 				return err
+			}
+			// only close issues in another repo if user has push access
+			if perm.CanWrite(UnitTypeCode) {
+				if err := changeIssueStatus(refRepo, doer, ref, refMarked, true); err != nil {
+					return err
+				}
 			}
 		}
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
-		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
-			if err := changeIssueStatus(repo, doer, ref, refMarked, false); err != nil {
+		for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
+			if len(m[3]) == 0 {
+				continue
+			}
+			ref := m[3]
+
+			// issue is from another repo
+			if len(m[1]) > 0 && len(m[2]) > 0 {
+				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				if err != nil {
+					continue
+				}
+			} else {
+				refRepo = repo
+			}
+
+			perm, err := GetUserRepoPermission(refRepo, doer)
+			if err != nil {
 				return err
+			}
+
+			// only reopen issues in another repo if user has push access
+			if perm.CanWrite(UnitTypeCode) {
+				if err := changeIssueStatus(refRepo, doer, ref, refMarked, false); err != nil {
+					return err
+				}
 			}
 		}
 	}

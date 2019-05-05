@@ -2,13 +2,12 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-clone:
-  git:
-    image: plugins/git:next
-    depth: 50
-    tags: true
-
 pipeline:
+  fetch-tags:
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
   download_translations:
     image: jonasfranz/crowdin
     pull: true
