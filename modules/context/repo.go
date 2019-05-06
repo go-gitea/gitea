@@ -157,10 +157,11 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
 		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
-	reader, err := treeEntry.Blob().Data()
+	reader, err := treeEntry.Blob().DataAsync()
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -222,6 +223,9 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
+	if ctx.Req.URL.RawQuery != "" {
+		redirectPath += "?" + ctx.Req.URL.RawQuery
+	}
 	ctx.Redirect(redirectPath)
 }
 
@@ -232,12 +236,6 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if repo.Owner.IsOrganization() {
-		if !models.HasOrgVisible(repo.Owner, ctx.User) {
-			ctx.NotFound("HasOrgVisible", nil)
-			return
-		}
-	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)

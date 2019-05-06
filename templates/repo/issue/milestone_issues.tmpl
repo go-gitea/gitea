@@ -228,27 +228,7 @@
 				</li>
 			{{end}}
 
-			{{with .Page}}
-				{{if gt .TotalPages 1}}
-					<div class="center page buttons">
-						<div class="ui borderless pagination menu">
-							<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
-								<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-							</a>
-							{{range .Pages}}
-								{{if eq .Num -1}}
-									<a class="disabled item">...</a>
-								{{else}}
-									<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
-								{{end}}
-							{{end}}
-							<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
-								{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
-							</a>
-						</div>
-					</div>
-				{{end}}
-			{{end}}
+			{{template "base/paginate" .}}
 		</div>
 	</div>
 </div>

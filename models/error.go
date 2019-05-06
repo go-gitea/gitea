@@ -318,7 +318,7 @@ func IsErrKeyAlreadyExist(err error) bool {
 }
 
 func (err ErrKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [owner_id: %d, finter_print: %s, content: %s]",
+	return fmt.Sprintf("public key already exists [owner_id: %d, finger_print: %s, content: %s]",
 		err.OwnerID, err.Fingerprint, err.Content)
 }
 
@@ -507,7 +507,7 @@ func (err ErrDeployKeyNameAlreadyUsed) Error() string {
 
 // ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
 type ErrAccessTokenNotExist struct {
-	SHA string
+	Token string
 }
 
 // IsErrAccessTokenNotExist checks if an error is a ErrAccessTokenNotExist.
@@ -517,7 +517,7 @@ func IsErrAccessTokenNotExist(err error) bool {
 }
 
 func (err ErrAccessTokenNotExist) Error() string {
-	return fmt.Sprintf("access token does not exist [sha: %s]", err.SHA)
+	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
@@ -874,21 +874,6 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 //  |______  / |__|  (____  /___|  /\___  >___|  /
 //         \/             \/     \/     \/     \/
 
-// ErrBranchNotExist represents a "BranchNotExist" kind of error.
-type ErrBranchNotExist struct {
-	Name string
-}
-
-// IsErrBranchNotExist checks if an error is a ErrBranchNotExist.
-func IsErrBranchNotExist(err error) bool {
-	_, ok := err.(ErrBranchNotExist)
-	return ok
-}
-
-func (err ErrBranchNotExist) Error() string {
-	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
-}
-
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
@@ -1104,6 +1089,24 @@ func IsErrPullRequestAlreadyExists(err error) bool {
 func (err ErrPullRequestAlreadyExists) Error() string {
 	return fmt.Sprintf("pull request already exists for these targets [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
+// ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error
+type ErrPullRequestHeadRepoMissing struct {
+	ID         int64
+	HeadRepoID int64
+}
+
+// IsErrErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
+func IsErrErrPullRequestHeadRepoMissing(err error) bool {
+	_, ok := err.(ErrPullRequestHeadRepoMissing)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestHeadRepoMissing) Error() string {
+	return fmt.Sprintf("pull request head repo missing [id: %d, head_repo_id: %d]",
+		err.ID, err.HeadRepoID)
 }
 
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy

@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -165,8 +166,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 
 func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 	var (
-		baseBranch *Branch
-		headBranch *Branch
+		baseBranch *git.Branch
+		headBranch *git.Branch
 		baseCommit *git.Commit
 		headCommit *git.Commit
 		err        error
@@ -296,6 +297,10 @@ func (pr *PullRequest) CanAutoMerge() bool {
 func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 	if err = pr.GetHeadRepo(); err != nil {
 		return nil, err
+	}
+
+	if pr.HeadRepo == nil {
+		return nil, ErrPullRequestHeadRepoMissing{pr.ID, pr.HeadRepoID}
 	}
 
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())

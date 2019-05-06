@@ -95,11 +95,12 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		dataRc, err := blob.Data()
+		dataRc, err := blob.DataAsync()
 		if err != nil {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
+		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
 		ctx.Data["FileName"] = blob.Name()
@@ -251,9 +252,9 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		} else if models.IsErrRepoFileAlreadyExists(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
-		} else if models.IsErrBranchNotExist(err) {
+		} else if git.IsErrBranchNotExist(err) {
 			// For when a user adds/updates a file to a branch that no longer exists
-			if branchErr, ok := err.(models.ErrBranchNotExist); ok {
+			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
 			} else {
 				ctx.Error(500, err.Error())
@@ -272,7 +273,6 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
 		}
 	} else {
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(cleanUploadFileName(form.TreePath)))
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
 }
@@ -417,9 +417,9 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)
 			}
-		} else if models.IsErrBranchNotExist(err) {
+		} else if git.IsErrBranchNotExist(err) {
 			// For when a user deletes a file to a branch that no longer exists
-			if branchErr, ok := err.(models.ErrBranchNotExist); ok {
+			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
 			} else {
 				ctx.Error(500, err.Error())

@@ -57,6 +57,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(500, "GetRawIssueByIndex", err)
 		return
 	}
+	issue.Repo = ctx.Repo.Repository
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
 		IssueID: issue.ID,
@@ -64,16 +65,18 @@ func ListIssueComments(ctx *context.APIContext) {
 		Type:    models.CommentTypeComment,
 	})
 	if err != nil {
-		ctx.Error(500, "GetCommentsByIssueIDSince", err)
+		ctx.Error(500, "FindComments", err)
+		return
+	}
+
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err = models.CommentList(comments).LoadPosters(); err != nil {
-		ctx.Error(500, "LoadPosters", err)
-		return
-	}
-	for i := range comments {
+	for i, comment := range comments {
+		comment.Issue = issue
 		apiComments[i] = comments[i].APIFormat()
 	}
 	ctx.JSON(200, &apiComments)
@@ -115,7 +118,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		Type:   models.CommentTypeComment,
 	})
 	if err != nil {
-		ctx.Error(500, "GetCommentsByRepoIDSince", err)
+		ctx.Error(500, "FindComments", err)
 		return
 	}
 
@@ -125,6 +128,18 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
+	if err := models.CommentList(comments).LoadIssues(); err != nil {
+		ctx.Error(500, "LoadIssues", err)
+		return
+	}
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
+	if _, err := models.CommentList(comments).Issues().LoadRepositories(); err != nil {
+		ctx.Error(500, "LoadRepositories", err)
+		return
+	}
 	for i := range comments {
 		apiComments[i] = comments[i].APIFormat()
 	}

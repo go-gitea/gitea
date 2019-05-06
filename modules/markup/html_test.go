@@ -177,6 +177,9 @@ func TestRender_email(t *testing.T) {
 		"info@gitea.com.",
 		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`)
 	test(
+		"firstname+lastname@gitea.com",
+		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
+	test(
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
 
@@ -190,6 +193,18 @@ func TestRender_email(t *testing.T) {
 	test(
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
+	test(
+		"gitea@3",
+		`<p>gitea@3</p>`)
+	test(
+		"gitea@gmail.c",
+		`<p>gitea@gmail.c</p>`)
+	test(
+		"email@domain@domain.com",
+		`<p>email@domain@domain.com</p>`)
+	test(
+		"email@domain..com",
+		`<p>email@domain..com</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
