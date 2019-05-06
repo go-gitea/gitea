@@ -419,6 +419,7 @@ func (c *Comment) loadReview(e Engine) (err error) {
 			return err
 		}
 	}
+	c.Review.Issue = c.Issue
 	return nil
 }
 
