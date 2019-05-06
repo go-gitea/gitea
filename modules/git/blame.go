@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git
 
 import (
 	"bufio"
@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -88,12 +87,12 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
-	_, err := git.OpenRepository(repoPath)
+	_, err := OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return createBlameReader(repoPath, "git", "blame", commitID, "--porcelain", "--", file)
+	return createBlameReader(repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
 }
 
 func createBlameReader(dir string, command ...string) (*BlameReader, error) {

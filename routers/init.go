@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea3/modules/highlight"
 
 	macaron "gopkg.in/macaron.v1"
 )
