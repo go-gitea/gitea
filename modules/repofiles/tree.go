@@ -23,7 +23,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 		}
 	}
 	tree := new(api.GitTreeResponse)
-	tree.SHA = gitTree.CommitID.String()
+	tree.SHA = gitTree.ResolvedID.String()
 	tree.URL = repo.APIURL() + "/git/trees/" + tree.SHA
 	var entries git.Entries
 	if recursive {
