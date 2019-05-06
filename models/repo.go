@@ -933,12 +933,12 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	// Check if repository is empty.
-	_, stderr, err := com.ExecCmdDir(repoPath, git.GitExecutable, "log", "-1")
+	output, err := git.NewCommand("log", "-1").RunInDir(repoPath)
 	if err != nil {
-		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
+		if strings.Contains(output, "fatal: bad default revision 'HEAD'") {
 			repo.IsEmpty = true
 		} else {
-			return repo, fmt.Errorf("check empty: %v - %s", err, stderr)
+			return repo, fmt.Errorf("check empty: %v - %s", err, output)
 		}
 	}
 
