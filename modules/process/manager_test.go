@@ -38,7 +38,7 @@ func TestExecTimeoutNever(t *testing.T) {
 	// TODO Investigate how to improve the time elapsed per round.
 	maxLoops := 10
 	for i := 1; i < maxLoops; i++ {
-		_, stderr, err := GetManager().ExecTimeout(5*time.Second, "ExecTimeout", git.GitExecutable, "--version")
+		_, stderr, err := GetManager().ExecTimeout(5*time.Second, "ExecTimeout", "git", "--version")
 		if err != nil {
 			t.Fatalf("git --version: %v(%s)", err, stderr)
 		}

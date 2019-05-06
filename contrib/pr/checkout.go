@@ -24,6 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
@@ -31,9 +34,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/testfixtures.v2"
-
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 var codeFilePath = "contrib/pr/checkout.go"
@@ -208,7 +208,7 @@ func main() {
 	log.Printf("Fetching PR #%s in %s\n", pr, branch)
 	if runtime.GOOS == "windows" {
 		//Use git cli command for windows
-		runCmd(git.GitExecutable, "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
+		runCmd("git", "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
 	} else {
 		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
 		err = repo.Fetch(&git.FetchOptions{
