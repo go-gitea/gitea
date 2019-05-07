@@ -18,9 +18,9 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
+	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("button.ui.green.tiny.compact.button").Parent().Attr("href")
+	link, exists := htmlDoc.doc.Find("#new-pull-request").Parent().Attr("href")
 	assert.True(t, exists, "The template has changed")
 	if branch != "master" {
 		link = strings.Replace(link, ":master", ":"+branch, 1)

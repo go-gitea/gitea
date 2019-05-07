@@ -273,6 +273,7 @@ func inNumOrStrState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
 	// see where to go
 	if !l.seenDot && next == '.' {
 		// stay in this state
+		l.seenDot = true
 		l.buf += string(next)
 		return inNumOrStrState, true
 	} else if unicode.IsDigit(next) {

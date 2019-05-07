@@ -23,6 +23,23 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames([]string{"user8", "user5"}))
 }
 
+func TestUser_APIFormat(t *testing.T) {
+
+	user, err := GetUserByID(1)
+	assert.NoError(t, err)
+	assert.True(t, user.IsAdmin)
+
+	apiUser := user.APIFormat()
+	assert.True(t, apiUser.IsAdmin)
+
+	user, err = GetUserByID(2)
+	assert.NoError(t, err)
+	assert.False(t, user.IsAdmin)
+
+	apiUser = user.APIFormat()
+	assert.False(t, apiUser.IsAdmin)
+}
+
 func TestCanCreateOrganization(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -211,5 +228,49 @@ func TestDisplayName(t *testing.T) {
 			assert.Equal(t, user.Name, displayName)
 		}
 		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	assert.NoError(t, CreateUser(user))
+
+	assert.NoError(t, DeleteUser(user))
+}
+
+func TestCreateUser_Issue5882(t *testing.T) {
+
+	// Init settings
+	_ = setting.Admin
+
+	passwd := ".//.;1;;//.,-=_"
+
+	tt := []struct {
+		user               *User
+		disableOrgCreation bool
+	}{
+		{&User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
+		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
+	}
+
+	for _, v := range tt {
+		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
+
+		assert.NoError(t, CreateUser(v.user))
+
+		u, err := GetUserByEmail(v.user.Email)
+		assert.NoError(t, err)
+
+		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
+
+		assert.NoError(t, DeleteUser(v.user))
 	}
 }

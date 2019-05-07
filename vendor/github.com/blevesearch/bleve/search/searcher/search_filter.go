@@ -15,9 +15,19 @@
 package searcher
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeFilteringSearcher int
+
+func init() {
+	var fs FilteringSearcher
+	reflectStaticSizeFilteringSearcher = int(reflect.TypeOf(fs).Size())
+}
 
 // FilterFunc defines a function which can filter documents
 // returning true means keep the document
@@ -36,6 +46,11 @@ func NewFilteringSearcher(s search.Searcher, filter FilterFunc) *FilteringSearch
 		child:  s,
 		accept: filter,
 	}
+}
+
+func (f *FilteringSearcher) Size() int {
+	return reflectStaticSizeFilteringSearcher + size.SizeOfPtr +
+		f.child.Size()
 }
 
 func (f *FilteringSearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch, error) {

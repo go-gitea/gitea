@@ -19,6 +19,7 @@ import (
 	"github.com/Unknwon/com"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"mvdan.cc/xurls/v2"
 )
 
 // Issue name styles
@@ -34,26 +35,26 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\W)(@[0-9a-zA-Z-_\.]+)`)
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\W)(#[0-9]+)\b`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\W)([A-Z]{1,10}-[1-9][0-9]*)\b`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\W)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)\b`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\W)([0-9a-f]{7,40})\b`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anySHA1Pattern allows to split url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})/?([^#\s]+)?(?:#(\S+))?`)
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})(/[^#\s]+)?(#\S+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -62,11 +63,9 @@ var (
 	// well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
+	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
-	// matches http/https links. used for autlinking those. partly modified from
-	// the original present in autolink.js
-	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
+	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
 
 // regexp for full links to issues/pulls
@@ -153,15 +152,15 @@ func (p *postProcessError) Error() string {
 type processor func(ctx *postProcessCtx, node *html.Node)
 
 var defaultProcessors = []processor{
-	mentionProcessor,
-	shortLinkProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	shortLinkProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 type postProcessCtx struct {
@@ -171,11 +170,6 @@ type postProcessCtx struct {
 
 	// processors used by this context.
 	procs []processor
-
-	// if set to true, when an <a> is found, instead of just returning during
-	// visitNode, it will recursively visit the node exclusively running
-	// shortLinkProcessorFull with true.
-	visitLinksForShortLinks bool
 }
 
 // PostProcess does the final required transformations to the passed raw HTML
@@ -191,24 +185,23 @@ func PostProcess(
 ) ([]byte, error) {
 	// create the context from the parameters
 	ctx := &postProcessCtx{
-		metas:                   metas,
-		urlPrefix:               urlPrefix,
-		isWikiMarkdown:          isWikiMarkdown,
-		procs:                   defaultProcessors,
-		visitLinksForShortLinks: true,
+		metas:          metas,
+		urlPrefix:      urlPrefix,
+		isWikiMarkdown: isWikiMarkdown,
+		procs:          defaultProcessors,
 	}
 	return ctx.postProcess(rawHTML)
 }
 
 var commitMessageProcessors = []processor{
-	mentionProcessor,
 	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	linkProcessor,
+	mentionProcessor,
 	issueIndexPatternProcessor,
 	crossReferenceIssueIndexPatternProcessor,
-	fullSha1PatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
-	linkProcessor,
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
@@ -230,6 +223,23 @@ func RenderCommitMessage(
 		// something to it the slice is realloc+copied, so append always
 		// generates the slice ex-novo.
 		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+	}
+	return ctx.postProcess(rawHTML)
+}
+
+// RenderDescriptionHTML will use similar logic as PostProcess, but will
+// use a single special linkProcessor.
+func RenderDescriptionHTML(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			descriptionLinkProcessor,
+		},
 	}
 	return ctx.postProcess(rawHTML)
 }
@@ -285,9 +295,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 		ctx.textNode(node)
 	case html.ElementNode:
 		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
-			if node.Data == "a" && ctx.visitLinksForShortLinks {
-				ctx.visitNodeForShortLinks(node)
-			}
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
@@ -302,7 +309,7 @@ func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
 	case html.TextNode:
 		shortLinkProcessorFull(ctx, node, true)
 	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" {
+		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
@@ -320,22 +327,39 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 }
 
 func createLink(href, content string) *html.Node {
-	textNode := &html.Node{
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
+	}
+	text := &html.Node{
 		Type: html.TextNode,
 		Data: content,
 	}
-	linkNode := &html.Node{
-		FirstChild: textNode,
-		LastChild:  textNode,
-		Type:       html.ElementNode,
-		Data:       "a",
-		DataAtom:   atom.A,
-		Attr: []html.Attribute{
-			{Key: "href", Val: href},
-		},
+
+	a.AppendChild(text)
+	return a
+}
+
+func createCodeLink(href, content string) *html.Node {
+	a := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.A.String(),
+		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
-	textNode.Parent = linkNode
-	return linkNode
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+
+	code := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Code.String(),
+	}
+
+	code.AppendChild(text)
+	a.AppendChild(code)
+	return a
 }
 
 // replaceContent takes a text node, and in its content it replaces a section of
@@ -527,20 +551,37 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 }
 
 func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
 	link := node.Data[m[0]:m[1]]
 	id := "#" + node.Data[m[2]:m[3]]
-	// TODO if m[4]:m[5] is not nil, then link is to a comment,
-	// and we should indicate that in the text somehow
-	replaceContent(node, m[0], m[1], createLink(link, id))
+
+	// extract repo and org name from matched link like
+	// http://localhost:3000/gituser/myrepo/issues/1
+	linkParts := strings.Split(path.Clean(link), "/")
+	matchOrg := linkParts[len(linkParts)-4]
+	matchRepo := linkParts[len(linkParts)-3]
+
+	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
+		// TODO if m[4]:m[5] is not nil, then link is to a comment,
+		// and we should indicate that in the text somehow
+		replaceContent(node, m[0], m[1], createLink(link, id))
+
+	} else {
+		orgRepoID := matchOrg + "/" + matchRepo + id
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID))
+	}
 }
 
 func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	prefix := cutoutVerbosePrefix(ctx.urlPrefix)
-
+	if ctx.metas == nil {
+		return
+	}
 	// default to numeric pattern, unless alphanumeric is requested.
 	pattern := issueNumericPattern
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
@@ -551,11 +592,10 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if match == nil {
 		return
 	}
+
 	id := node.Data[match[2]:match[3]]
 	var link *html.Node
-	if ctx.metas == nil {
-		link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
-	} else {
+	if _, ok := ctx.metas["format"]; ok {
 		// Support for external issue tracker
 		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
 			ctx.metas["index"] = id
@@ -563,6 +603,8 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			ctx.metas["index"] = id[1:]
 		}
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
+	} else {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id)
 	}
 	replaceContent(node, match[2], match[3], link)
 }
@@ -583,35 +625,53 @@ func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.No
 
 // fullSha1PatternProcessor renders SHA containing URLs
 func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil {
+		return
+	}
 	m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
-	// take out what's relevant
+
 	urlFull := node.Data[m[0]:m[1]]
-	hash := node.Data[m[2]:m[3]]
+	text := base.ShortSha(node.Data[m[2]:m[3]])
 
-	var subtree, line string
-
-	// optional, we do them depending on the length.
-	if m[7] > 0 {
-		line = node.Data[m[6]:m[7]]
-	}
+	// 3rd capture group matches a optional path
+	subpath := ""
 	if m[5] > 0 {
-		subtree = node.Data[m[4]:m[5]]
+		subpath = node.Data[m[4]:m[5]]
 	}
 
-	text := base.ShortSha(hash)
-	if subtree != "" {
-		text += "/" + subtree
-	}
-	if line != "" {
-		text += " ("
-		text += line
-		text += ")"
+	// 4th capture group matches a optional url hash
+	hash := ""
+	if m[7] > 0 {
+		hash = node.Data[m[6]:m[7]][1:]
 	}
 
-	replaceContent(node, m[0], m[1], createLink(urlFull, text))
+	start := m[0]
+	end := m[1]
+
+	// If url ends in '.', it's very likely that it is not part of the
+	// actual url but used to finish a sentence.
+	if strings.HasSuffix(urlFull, ".") {
+		end--
+		urlFull = urlFull[:len(urlFull)-1]
+		if hash != "" {
+			hash = hash[:len(hash)-1]
+		} else if subpath != "" {
+			subpath = subpath[:len(subpath)-1]
+		}
+	}
+
+	if subpath != "" {
+		text += subpath
+	}
+
+	if hash != "" {
+		text += " (" + hash + ")"
+	}
+
+	replaceContent(node, start, end, createCodeLink(urlFull, text))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
@@ -629,17 +689,17 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
 	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
 func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emailRegex.FindStringIndex(node.Data)
+	m := emailRegex.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
-	mail := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createLink("mailto:"+mail, mail))
+	mail := node.Data[m[2]:m[3]]
+	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
@@ -667,4 +727,35 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}}
 		node.FirstChild, node.LastChild = ch, ch
 	}
+}
+
+// descriptionLinkProcessor creates links for DescriptionHTML
+func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
+	m := linkRegex.FindStringIndex(node.Data)
+	if m == nil {
+		return
+	}
+	uri := node.Data[m[0]:m[1]]
+	replaceContent(node, m[0], m[1], createDescriptionLink(uri, uri))
+}
+
+func createDescriptionLink(href, content string) *html.Node {
+	textNode := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+	linkNode := &html.Node{
+		FirstChild: textNode,
+		LastChild:  textNode,
+		Type:       html.ElementNode,
+		Data:       "a",
+		DataAtom:   atom.A,
+		Attr: []html.Attribute{
+			{Key: "href", Val: href},
+			{Key: "target", Val: "_blank"},
+			{Key: "rel", Val: "noopener noreferrer"},
+		},
+	}
+	textNode.Parent = linkNode
+	return linkNode
 }

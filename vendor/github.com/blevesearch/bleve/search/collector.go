@@ -30,3 +30,23 @@ type Collector interface {
 	SetFacetsBuilder(facetsBuilder *FacetsBuilder)
 	FacetResults() FacetResults
 }
+
+// DocumentMatchHandler is the type of document match callback
+// bleve will invoke during the search.
+// Eventually, bleve will indicate the completion of an ongoing search,
+// by passing a nil value for the document match callback.
+// The application should take a copy of the hit/documentMatch
+// if it wish to own it or need prolonged access to it.
+type DocumentMatchHandler func(hit *DocumentMatch) error
+
+type MakeDocumentMatchHandlerKeyType string
+
+var MakeDocumentMatchHandlerKey = MakeDocumentMatchHandlerKeyType(
+	"MakeDocumentMatchHandlerKey")
+
+// MakeDocumentMatchHandler is an optional DocumentMatchHandler
+// builder function which the applications can pass to bleve.
+// These builder methods gives a DocumentMatchHandler function
+// to bleve, which it will invoke on every document matches.
+type MakeDocumentMatchHandler func(ctx *SearchContext) (
+	callback DocumentMatchHandler, loadID bool, err error)

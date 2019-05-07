@@ -135,11 +135,11 @@ func IsMember(ctx *context.APIContext) {
 			} else if userToCheckIsMember {
 				ctx.Status(204)
 			} else {
-				ctx.Status(404)
+				ctx.NotFound()
 			}
 			return
 		} else if ctx.User.ID == userToCheck.ID {
-			ctx.Status(404)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -177,7 +177,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

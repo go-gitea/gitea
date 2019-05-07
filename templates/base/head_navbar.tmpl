@@ -56,14 +56,14 @@
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						<i class="fitted octicon octicon-plus"></i> {{.i18n.Tr "new_repo"}}
+						<i class="octicon octicon-plus"></i> {{.i18n.Tr "new_repo"}}
 					</a>
 					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<i class="fitted octicon octicon-repo-clone"></i> {{.i18n.Tr "new_migrate"}}
+						<i class="octicon octicon-repo-clone"></i> {{.i18n.Tr "new_migrate"}}
 					</a>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<i class="fitted octicon octicon-organization"></i> {{.i18n.Tr "new_org"}}
+						<i class="octicon octicon-organization"></i> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->

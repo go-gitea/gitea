@@ -236,7 +236,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if com.IsFile(setting.CustomConf) {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error(4, "Failed to load custom conf '%s': %v", setting.CustomConf, err)
+			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
 	cfg.Section("database").Key("DB_TYPE").SetValue(models.DbCfg.Type)
@@ -266,7 +266,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
 		var secretKey string
-		if secretKey, err = generate.NewLfsJwtSecret(); err != nil {
+		if secretKey, err = generate.NewJwtSecret(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}

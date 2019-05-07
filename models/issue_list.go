@@ -4,7 +4,11 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-xorm/builder"
+)
 
 // IssueList defines a list of issues
 type IssueList []*Issue
@@ -338,7 +342,7 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 	return nil
 }
 
-func (issues IssueList) loadComments(e Engine) (err error) {
+func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -354,6 +358,7 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 		rows, err := e.Table("comment").
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
+			Where(cond).
 			Rows(new(Comment))
 		if err != nil {
 			return err
@@ -479,5 +484,10 @@ func (issues IssueList) LoadAttachments() error {
 
 // LoadComments loads comments
 func (issues IssueList) LoadComments() error {
-	return issues.loadComments(x)
+	return issues.loadComments(x, builder.NewCond())
+}
+
+// LoadDiscussComments loads discuss comments
+func (issues IssueList) LoadDiscussComments() error {
+	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
 }

@@ -73,3 +73,16 @@
   num_comments: 0
   created_unix: 946684850
   updated_unix: 978307200
+
+-
+  id: 7
+  repo_id: 2
+  index: 2
+  poster_id: 2
+  name: issue7
+  content: content for the seventh issue
+  is_closed: false
+  is_pull: false
+  created_unix: 946684830
+  updated_unix: 978307200
+

@@ -6,14 +6,13 @@ package test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
-	"net/http/httptest"
+	"code.gitea.io/gitea/modules/git"
 
 	"github.com/go-macaron/session"
 	"github.com/stretchr/testify/assert"

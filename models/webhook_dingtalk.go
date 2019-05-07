@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/sdk/gitea"
+
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -230,12 +231,13 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &DingtalkPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = user.UserName
 		}
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			list, p.Index, p.PullRequest.Title)
+			strings.Join(list, ", "),
+			p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)

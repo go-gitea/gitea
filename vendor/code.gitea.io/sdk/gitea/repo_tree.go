@@ -20,10 +20,12 @@ type GitEntry struct {
 
 // GitTreeResponse returns a git tree
 type GitTreeResponse struct {
-	SHA       string     `json:"sha"`
-	URL       string     `json:"url"`
-	Entries   []GitEntry `json:"tree"`
-	Truncated bool       `json:"truncated"`
+	SHA        string     `json:"sha"`
+	URL        string     `json:"url"`
+	Entries    []GitEntry `json:"tree"`
+	Truncated  bool       `json:"truncated"`
+	Page       int        `json:"page"`
+	TotalCount int        `json:"total_count"`
 }
 
 // GetTrees downloads a file of repository, ref can be branch/tag/commit.

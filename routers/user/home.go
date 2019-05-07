@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,11 +14,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
+	"github.com/keybase/go-crypto/openpgp"
+	"github.com/keybase/go-crypto/openpgp/armor"
 )
 
 const (
@@ -287,7 +290,10 @@ func Issues(ctx *context.Context) {
 	if repoID > 0 {
 		if _, ok := showReposMap[repoID]; !ok {
 			repo, err := models.GetRepositoryByID(repoID)
-			if err != nil {
+			if models.IsErrRepoNotExist(err) {
+				ctx.NotFound("GetRepositoryByID", err)
+				return
+			} else if err != nil {
 				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
@@ -303,6 +309,14 @@ func Issues(ctx *context.Context) {
 			return
 		}
 		if !perm.CanRead(models.UnitTypeIssues) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
+					ctxUser,
+					models.UnitTypeIssues,
+					repo,
+					perm)
+			}
 			ctx.Status(404)
 			return
 		}
@@ -315,8 +329,13 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 	for _, issue := range issues {
 		issue.Repo = showReposMap[issue.RepoID]
+
+		if isPullList {
+			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+		}
 	}
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
@@ -340,9 +359,9 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["Issues"] = issues
+	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
-	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
@@ -354,6 +373,16 @@ func Issues(ctx *context.Context) {
 	} else {
 		ctx.Data["State"] = "open"
 	}
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "type", "ViewType")
+	pager.AddParam(ctx, "repo", "RepoID")
+	pager.AddParam(ctx, "sort", "SortType")
+	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "labels", "SelectLabels")
+	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "assignee", "AssigneeID")
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplIssues)
 }
@@ -374,6 +403,45 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 	ctx.PlainText(200, buf.Bytes())
 }
 
+// ShowGPGKeys output all the public GPG keys of user by uid
+func ShowGPGKeys(ctx *context.Context, uid int64) {
+	keys, err := models.ListGPGKeys(uid)
+	if err != nil {
+		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+	entities := make([]*openpgp.Entity, 0)
+	failedEntitiesID := make([]string, 0)
+	for _, k := range keys {
+		e, err := models.GPGKeyToEntity(k)
+		if err != nil {
+			if models.IsErrGPGKeyImportNotExist(err) {
+				failedEntitiesID = append(failedEntitiesID, k.KeyID)
+				continue //Skip previous import without backup of imported armored key
+			}
+			ctx.ServerError("ShowGPGKeys", err)
+			return
+		}
+		entities = append(entities, e)
+	}
+	var buf bytes.Buffer
+
+	headers := make(map[string]string)
+	if len(failedEntitiesID) > 0 { //If some key need re-import to be exported
+		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+	}
+	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
+	for _, e := range entities {
+		err = e.Serialize(writer) //TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
+		if err != nil {
+			ctx.ServerError("ShowGPGKeys", err)
+			return
+		}
+	}
+	writer.Close()
+	ctx.PlainText(200, buf.Bytes())
+}
+
 func showOrgProfile(ctx *context.Context) {
 	ctx.SetParams(":org", ctx.Params(":username"))
 	context.HandleOrgAssignment(ctx)
@@ -382,7 +450,44 @@ func showOrgProfile(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
+
+	if !models.HasOrgVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
 	ctx.Data["Title"] = org.DisplayName()
+
+	var orderBy models.SearchOrderBy
+	ctx.Data["SortType"] = ctx.Query("sort")
+	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
+	case "oldest":
+		orderBy = models.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = models.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = models.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = models.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
+	default:
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
+	}
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	ctx.Data["Keyword"] = keyword
 
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -400,6 +505,10 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
+		env.SetSort(orderBy)
+		if len(keyword) != 0 {
+			env.AddKeyword(keyword)
+		}
 		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
 		if err != nil {
 			ctx.ServerError("env.Repos", err)
@@ -410,26 +519,45 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("env.CountRepos", err)
 			return
 		}
-		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
-		if err != nil {
-			ctx.ServerError("GetRepositories", err)
-			return
+		if len(keyword) == 0 {
+			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			if err != nil {
+				ctx.ServerError("GetRepositories", err)
+				return
+			}
+			count = models.CountUserRepositories(org.ID, showPrivate)
+		} else {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:   keyword,
+				OwnerID:   org.ID,
+				OrderBy:   orderBy,
+				Private:   showPrivate,
+				Page:      page,
+				IsProfile: true,
+				PageSize:  setting.UI.User.RepoPagingNum,
+			})
+			if err != nil {
+				ctx.ServerError("SearchRepositoryByName", err)
+				return
+			}
 		}
-		ctx.Data["Repos"] = repos
-		count = models.CountUserRepositories(org.ID, showPrivate)
 	}
-	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
 	if err := org.GetMembers(); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.Data["Members"] = org.Members
 
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = count
+	ctx.Data["Members"] = org.Members
 	ctx.Data["Teams"] = org.Teams
+
+	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplOrgHome)
 }

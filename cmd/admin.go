@@ -11,10 +11,10 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -42,6 +42,10 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "name",
+				Usage: "Username. DEPRECATED: use username instead",
+			},
+			cli.StringFlag{
+				Name:  "username",
 				Usage: "Username",
 			},
 			cli.StringFlag{
@@ -56,11 +60,6 @@ var (
 				Name:  "admin",
 				Usage: "User is an admin",
 			},
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
 			cli.BoolFlag{
 				Name:  "random-password",
 				Usage: "Generate a random password for the user",
@@ -73,6 +72,10 @@ var (
 				Name:  "random-password-length",
 				Usage: "Length of the random password to be generated",
 				Value: 12,
+			},
+			cli.BoolFlag{
+				Name:  "access-token",
+				Usage: "Generate access token for the user",
 			},
 		},
 	}
@@ -91,11 +94,6 @@ var (
 				Name:  "password,p",
 				Value: "",
 				Usage: "New password to set for user",
-			},
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
 			},
 		},
 	}
@@ -119,26 +117,12 @@ var (
 		Name:   "hooks",
 		Usage:  "Regenerate git-hooks",
 		Action: runRegenerateHooks,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 	}
 
 	microcmdRegenKeys = cli.Command{
 		Name:   "keys",
 		Usage:  "Regenerate authorized_keys file",
 		Action: runRegenerateKeys,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 	}
 
 	subcmdAuth = cli.Command{
@@ -156,13 +140,6 @@ var (
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 	}
 
 	idFlag = cli.Int64Flag{
@@ -174,22 +151,9 @@ var (
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
 		Action: runDeleteAuth,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-			idFlag,
-		},
 	}
 
 	oauthCLIFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -262,10 +226,6 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -288,12 +248,27 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "name", "email"); err != nil {
+	if err := argsSet(c, "email"); err != nil {
 		return err
+	}
+
+	if c.IsSet("name") && c.IsSet("username") {
+		return errors.New("Cannot set both --name and --username flags")
+	}
+	if !c.IsSet("name") && !c.IsSet("username") {
+		return errors.New("One of --name or --username flags must be set")
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
 		return errors.New("cannot set both -random-password and -password flags")
+	}
+
+	var username string
+	if c.IsSet("username") {
+		username = c.String("username")
+	} else {
+		username = c.String("name")
+		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	var password string
@@ -310,10 +285,6 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else {
 		return errors.New("must set either password or random-password flag")
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
 	}
 
 	if err := initDB(); err != nil {
@@ -333,19 +304,34 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	if err := models.CreateUser(&models.User{
-		Name:               c.String("name"),
+	u := &models.User{
+		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
 		Theme:              setting.UI.DefaultTheme,
-	}); err != nil {
+	}
+
+	if err := models.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
-	fmt.Printf("New user '%s' has been successfully created!\n", c.String("name"))
+	if c.Bool("access-token") {
+		t := &models.AccessToken{
+			Name: "gitea-admin",
+			UID:  u.ID,
+		}
+
+		if err := models.NewAccessToken(t); err != nil {
+			return err
+		}
+
+		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+	}
+
+	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
 }
 
@@ -411,10 +397,6 @@ func getReleaseCount(id int64) (int64, error) {
 }
 
 func runRegenerateHooks(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -422,10 +404,6 @@ func runRegenerateHooks(c *cli.Context) error {
 }
 
 func runRegenerateKeys(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -454,10 +432,6 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 }
 
 func runAddOauth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -471,10 +445,6 @@ func runAddOauth(c *cli.Context) error {
 }
 
 func runUpdateOauth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if !c.IsSet("id") {
 		return fmt.Errorf("--id flag is missing")
 	}
@@ -542,10 +512,6 @@ func runUpdateOauth(c *cli.Context) error {
 }
 
 func runListAuth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -568,10 +534,6 @@ func runListAuth(c *cli.Context) error {
 }
 
 func runDeleteAuth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if !c.IsSet("id") {
 		return fmt.Errorf("--id flag is missing")
 	}

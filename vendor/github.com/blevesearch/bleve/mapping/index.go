@@ -320,8 +320,8 @@ func (im *IndexMappingImpl) determineType(data interface{}) string {
 func (im *IndexMappingImpl) MapDocument(doc *document.Document, data interface{}) error {
 	docType := im.determineType(data)
 	docMapping := im.mappingForType(docType)
-	walkContext := im.newWalkContext(doc, docMapping)
 	if docMapping.Enabled {
+		walkContext := im.newWalkContext(doc, docMapping)
 		docMapping.walkDocument(data, []string{}, []uint64{}, walkContext)
 
 		// see if the _all field was disabled

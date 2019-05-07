@@ -24,6 +24,8 @@ type User struct {
 	AvatarURL string `json:"avatar_url"`
 	// User locale
 	Language string `json:"language"`
+	// Is the user an administrator
+	IsAdmin bool `json:"is_admin"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

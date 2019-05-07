@@ -10,15 +10,14 @@ import (
 	"container/list"
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -65,6 +64,18 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			if forkRepo.IsEmpty {
+				log.Trace("Empty fork repository %-v", forkRepo)
+			} else {
+				log.Trace("Permission Denied: User %-v cannot read %-v of forkRepo %-v\n"+
+					"User in forkRepo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeCode,
+					ctx.Repo,
+					perm)
+			}
+		}
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -345,6 +356,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
 	}
 
+	if pull.IsFilesConflicted() {
+		ctx.Data["IsPullFilesConflicted"] = true
+		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
+	}
+
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
 	ctx.Data["NumFiles"] = prInfo.NumFiles
 	return prInfo
@@ -590,10 +606,26 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
+	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		return
+	}
+
 	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+}
+
+func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+
+	if models.StopwatchExists(user.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing pull request
@@ -612,10 +644,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		infoPath   string
 		err        error
 	)
-	infoPath, err = url.QueryUnescape(ctx.Params("*"))
-	if err != nil {
-		ctx.NotFound("QueryUnescape", err)
-	}
+	infoPath = ctx.Params("*")
 	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
@@ -671,21 +700,46 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if isSameRepo {
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
+		ctx.Data["BaseName"] = headUser.Name
 	} else {
 		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		ctx.Data["BaseName"] = baseRepo.OwnerName
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
 		}
 	}
 
-	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
+	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
-		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
+	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot create/read pull requests or cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
+				ctx.User,
+				baseRepo,
+				permBase)
+		}
+		ctx.NotFound("ParseCompareInfo", nil)
+		return nil, nil, nil, nil, "", ""
+	}
+
+	// user should have permission to read headrepo's codes
+	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !permHead.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot read code requests in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+				ctx.User,
+				headRepo,
+				permHead)
+		}
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -980,8 +1034,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	// Allow cleanup only for merged PR
-	if !pr.HasMerged {
+	// Don't cleanup unmerged and unclosed PRs
+	if !pr.HasMerged && !issue.IsClosed {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1039,7 +1093,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch is not protected
 	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
 		if err != nil {
-			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
+			log.Error("HeadRepo.IsProtectedBranch: %v", err)
 		}
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
@@ -1048,13 +1102,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		log.Error(4, "GetRefCommitID: %v", err)
+		log.Error("GetRefCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
-		log.Error(4, "GetBranchCommitID: %v", err)
+		log.Error("GetBranchCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
@@ -1066,14 +1120,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 
 	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))

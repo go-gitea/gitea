@@ -1,0 +1,9 @@
+-
+  id: 1
+  uid: 1
+  name: "Test"
+  client_id: "da7da3ba-9a13-4167-856f-3899de0b0138"
+  client_secret: "$2a$10$UYRgUSgekzBp6hYe8pAdc.cgB4Gn06QRKsORUnIYTYQADs.YR/uvi" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
+  redirect_uris: '["a"]'
+  created_unix: 1546869730
+  updated_unix: 1546869730

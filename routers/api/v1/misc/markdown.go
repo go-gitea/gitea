@@ -5,12 +5,16 @@
 package misc
 
 import (
+	"strings"
+
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"mvdan.cc/xurls/v2"
 )
 
 // Markdown render markdown document to HTML
@@ -45,11 +49,23 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	switch form.Mode {
 	case "gfm":
 		md := []byte(form.Text)
-		context := util.URLJoin(setting.AppURL, form.Context)
+		urlPrefix := form.Context
+		var meta map[string]string
+		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
+			// check if urlPrefix is already set to a URL
+			linkRegex, _ := xurls.StrictMatchingScheme("https?://")
+			m := linkRegex.FindStringIndex(urlPrefix)
+			if m == nil {
+				urlPrefix = util.URLJoin(setting.AppURL, form.Context)
+			}
+		}
+		if ctx.Repo != nil && ctx.Repo.Repository != nil {
+			meta = ctx.Repo.Repository.ComposeMetas()
+		}
 		if form.Wiki {
-			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
+			ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
 		} else {
-			ctx.Write(markdown.Render(md, context, nil))
+			ctx.Write(markdown.Render(md, urlPrefix, meta))
 		}
 	default:
 		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))

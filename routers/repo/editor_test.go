@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,16 +16,24 @@ func TestCleanUploadName(t *testing.T) {
 	models.PrepareTestEnv(t)
 
 	var kases = map[string]string{
-		".git/refs/master": "git/refs/master",
-		"/root/abc":        "root/abc",
-		"./../../abc":      "abc",
-		"a/../.git":        "a/.git",
-		"a/../../../abc":   "a/abc",
-		"../../../acd":     "acd",
-		"../../.git/abc":   "git/abc",
-		"..\\..\\.git/abc": "git/abc",
+		".git/refs/master":               "",
+		"/root/abc":                      "root/abc",
+		"./../../abc":                    "abc",
+		"a/../.git":                      "",
+		"a/../../../abc":                 "abc",
+		"../../../acd":                   "acd",
+		"../../.git/abc":                 "",
+		"..\\..\\.git/abc":               "..\\..\\.git/abc",
+		"..\\../.git/abc":                "",
+		"..\\../.git":                    "",
+		"abc/../def":                     "def",
+		".drone.yml":                     ".drone.yml",
+		".abc/def/.drone.yml":            ".abc/def/.drone.yml",
+		"..drone.yml.":                   "..drone.yml.",
+		"..a.dotty...name...":            "..a.dotty...name...",
+		"..a.dotty../.folder../.name...": "..a.dotty../.folder../.name...",
 	}
 	for k, v := range kases {
-		assert.EqualValues(t, v, cleanUploadFileName(k))
+		assert.EqualValues(t, cleanUploadFileName(k), v)
 	}
 }

@@ -46,7 +46,7 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := release.LoadAttributes(); err != nil {
@@ -152,6 +152,10 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			ctx.ServerError("GetRelease", err)
 			return
 		}
+		// If target is not provided use default branch
+		if len(form.Target) == 0 {
+			form.Target = ctx.Repo.Repository.DefaultBranch
+		}
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
@@ -237,7 +241,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	}
 	if err != nil && models.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 
@@ -309,7 +313,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	}
 	if err != nil && models.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := models.DeleteReleaseByID(id, ctx.User, false); err != nil {

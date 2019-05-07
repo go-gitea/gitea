@@ -64,20 +64,31 @@ high-level discussions.
 
 ## Testing redux
 
-Before sending code out for review, run all the tests for the
-whole tree to make sure the changes don't break other usage
-and keep the compatibility on upgrade. To make sure you are
-running the test suite exactly like we do, you should install
-the CLI for [Drone CI](https://github.com/drone/drone), as
-we are using the server for continuous testing, following [these
-instructions](http://docs.drone.io/cli-installation/). After that,
-you can simply call `drone exec --local --build-event "pull_request"` within
-your working directory and it will try to run the test suite locally.
+Before submitting a pull request, run all the tests for the whole tree
+to make sure your changes don't cause regression elsewhere.  
+
+Here's how to run the test suite: 
+
+- Install the correct version of the drone-cli package.  As of this
+  writing, the correct drone-cli version is
+  [0.8.6](https://0-8-0.docs.drone.io/cli-installation/).
+- Ensure you have enough free disk space.  You will need at least
+  15-20 Gb of free disk space to hold all of the containers drone
+  creates (a default AWS or GCE disk size won't work -- see
+  [#6243](https://github.com/go-gitea/gitea/issues/6243)).  
+- Change into the base directory of your copy of the gitea repository,
+  and run `drone exec --local --build-event pull_request`.
+
+The drone version, command line, and disk requirements do change over
+time (see [#4053](https://github.com/go-gitea/gitea/issues/4053) and
+[#6243](https://github.com/go-gitea/gitea/issues/6243)); if you
+discover any issues, please feel free to send us a pull request to
+update these instructions.
 
 ## Vendoring
 
 We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [dep](https://github.com/golang/dep).
+managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
 
 Pull requests should only include `vendor/` updates if they are part of
 the same change, be it a bugfix or a feature addition.
@@ -86,7 +97,7 @@ The `vendor/` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
 
-You can find more information on how to get started with it on the [dep project website](https://golang.github.io/dep/docs/introduction.html).
+You can find more information on how to get started with it on the [Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
 ## Translation
 
@@ -102,7 +113,7 @@ included in the next released version.
 Generally, the go build tools are installed as-needed in the `Makefile`.
 An exception are the tools to build the CSS and images.
 
-- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager)
+- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 8.0 or above
   with `npm` and then run `npm install` and `make generate-stylesheets`.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.

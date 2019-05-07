@@ -41,6 +41,8 @@ var (
 	ErrTagExists = errors.New("tag already exists")
 	// ErrTagNotFound an error stating the specified tag does not exist
 	ErrTagNotFound = errors.New("tag not found")
+	// ErrFetching is returned when the packfile could not be downloaded
+	ErrFetching = errors.New("unable to fetch packfile")
 
 	ErrInvalidReference          = errors.New("invalid reference, should be a tag or a branch")
 	ErrRepositoryNotExists       = errors.New("repository does not exist")
@@ -342,8 +344,9 @@ func PlainClone(path string, isBare bool, o *CloneOptions) (*Repository, error) 
 // transport operations.
 //
 // TODO(mcuadros): move isBare to CloneOptions in v5
+// TODO(smola): refuse upfront to clone on a non-empty directory in v5, see #1027
 func PlainCloneContext(ctx context.Context, path string, isBare bool, o *CloneOptions) (*Repository, error) {
-	dirExists, err := checkExistsAndIsEmptyDir(path)
+	cleanup, cleanupParent, err := checkIfCleanupIsNeeded(path)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +358,9 @@ func PlainCloneContext(ctx context.Context, path string, isBare bool, o *CloneOp
 
 	err = r.clone(ctx, o)
 	if err != nil && err != ErrRepositoryAlreadyExists {
-		cleanUpDir(path, !dirExists)
+		if cleanup {
+			cleanUpDir(path, cleanupParent)
+		}
 	}
 
 	return r, err
@@ -369,37 +374,37 @@ func newRepository(s storage.Storer, worktree billy.Filesystem) *Repository {
 	}
 }
 
-func checkExistsAndIsEmptyDir(path string) (exists bool, err error) {
+func checkIfCleanupIsNeeded(path string) (cleanup bool, cleanParent bool, err error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			return true, true, nil
 		}
 
-		return false, err
+		return false, false, err
 	}
 
 	if !fi.IsDir() {
-		return false, fmt.Errorf("path is not a directory: %s", path)
+		return false, false, fmt.Errorf("path is not a directory: %s", path)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	defer ioutil.CheckClose(f, &err)
 
 	_, err = f.Readdirnames(1)
 	if err == io.EOF {
-		return true, nil
+		return true, false, nil
 	}
 
 	if err != nil {
-		return true, err
+		return false, false, err
 	}
 
-	return true, fmt.Errorf("directory is not empty: %s", path)
+	return false, false, nil
 }
 
 func cleanUpDir(path string, all bool) error {
@@ -425,7 +430,7 @@ func cleanUpDir(path string, all bool) error {
 		}
 	}
 
-	return nil
+	return err
 }
 
 // Config return the repository config
@@ -855,6 +860,8 @@ func (r *Repository) fetchAndUpdateReferences(
 	remoteRefs, err := remote.fetch(ctx, o)
 	if err == NoErrAlreadyUpToDate {
 		objsUpdated = false
+	} else if err == packfile.ErrEmptyPackfile {
+		return nil, ErrFetching
 	} else if err != nil {
 		return nil, err
 	}
@@ -1020,8 +1027,36 @@ func (r *Repository) PushContext(ctx context.Context, o *PushOptions) error {
 
 // Log returns the commit history from the given LogOptions.
 func (r *Repository) Log(o *LogOptions) (object.CommitIter, error) {
-	h := o.From
-	if o.From == plumbing.ZeroHash {
+	fn := commitIterFunc(o.Order)
+	if fn == nil {
+		return nil, fmt.Errorf("invalid Order=%v", o.Order)
+	}
+
+	var (
+		it  object.CommitIter
+		err error
+	)
+	if o.All {
+		it, err = r.logAll(fn)
+	} else {
+		it, err = r.log(o.From, fn)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if o.FileName != nil {
+		// for `git log --all` also check parent (if the next commit comes from the real parent)
+		it = r.logWithFile(*o.FileName, it, o.All)
+	}
+
+	return it, nil
+}
+
+func (r *Repository) log(from plumbing.Hash, commitIterFunc func(*object.Commit) object.CommitIter) (object.CommitIter, error) {
+	h := from
+	if from == plumbing.ZeroHash {
 		head, err := r.Head()
 		if err != nil {
 			return nil, err
@@ -1034,27 +1069,41 @@ func (r *Repository) Log(o *LogOptions) (object.CommitIter, error) {
 	if err != nil {
 		return nil, err
 	}
+	return commitIterFunc(commit), nil
+}
 
-	var commitIter object.CommitIter
-	switch o.Order {
+func (r *Repository) logAll(commitIterFunc func(*object.Commit) object.CommitIter) (object.CommitIter, error) {
+	return object.NewCommitAllIter(r.Storer, commitIterFunc)
+}
+
+func (*Repository) logWithFile(fileName string, commitIter object.CommitIter, checkParent bool) object.CommitIter {
+	return object.NewCommitFileIterFromIter(fileName, commitIter, checkParent)
+}
+
+func commitIterFunc(order LogOrder) func(c *object.Commit) object.CommitIter {
+	switch order {
 	case LogOrderDefault:
-		commitIter = object.NewCommitPreorderIter(commit, nil, nil)
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitPreorderIter(c, nil, nil)
+		}
 	case LogOrderDFS:
-		commitIter = object.NewCommitPreorderIter(commit, nil, nil)
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitPreorderIter(c, nil, nil)
+		}
 	case LogOrderDFSPost:
-		commitIter = object.NewCommitPostorderIter(commit, nil)
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitPostorderIter(c, nil)
+		}
 	case LogOrderBSF:
-		commitIter = object.NewCommitIterBSF(commit, nil, nil)
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitIterBSF(c, nil, nil)
+		}
 	case LogOrderCommitterTime:
-		commitIter = object.NewCommitIterCTime(commit, nil, nil)
-	default:
-		return nil, fmt.Errorf("invalid Order=%v", o.Order)
+		return func(c *object.Commit) object.CommitIter {
+			return object.NewCommitIterCTime(c, nil, nil)
+		}
 	}
-
-	if o.FileName == nil {
-		return commitIter, nil
-	}
-	return object.NewCommitFileIterFromIter(*o.FileName, commitIter), nil
+	return nil
 }
 
 // Tags returns all the tag References in a repository.

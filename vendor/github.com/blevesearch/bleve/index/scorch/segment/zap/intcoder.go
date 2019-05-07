@@ -18,16 +18,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-
-	"github.com/Smerity/govarint"
 )
 
 type chunkedIntCoder struct {
 	final     []byte
-	maxDocNum uint64
 	chunkSize uint64
 	chunkBuf  bytes.Buffer
-	encoder   *govarint.Base128Encoder
 	chunkLens []uint64
 	currChunk uint64
 
@@ -41,11 +37,9 @@ func newChunkedIntCoder(chunkSize uint64, maxDocNum uint64) *chunkedIntCoder {
 	total := maxDocNum/chunkSize + 1
 	rv := &chunkedIntCoder{
 		chunkSize: chunkSize,
-		maxDocNum: maxDocNum,
 		chunkLens: make([]uint64, total),
 		final:     make([]byte, 0, 64),
 	}
-	rv.encoder = govarint.NewU64Base128Encoder(&rv.chunkBuf)
 
 	return rv
 }
@@ -67,16 +61,18 @@ func (c *chunkedIntCoder) Add(docNum uint64, vals ...uint64) error {
 	chunk := docNum / c.chunkSize
 	if chunk != c.currChunk {
 		// starting a new chunk
-		if c.encoder != nil {
-			// close out last
-			c.Close()
-			c.chunkBuf.Reset()
-		}
+		c.Close()
+		c.chunkBuf.Reset()
 		c.currChunk = chunk
 	}
 
+	if len(c.buf) < binary.MaxVarintLen64 {
+		c.buf = make([]byte, binary.MaxVarintLen64)
+	}
+
 	for _, val := range vals {
-		_, err := c.encoder.PutU64(val)
+		wb := binary.PutUvarint(c.buf, val)
+		_, err := c.chunkBuf.Write(c.buf[:wb])
 		if err != nil {
 			return err
 		}
@@ -85,13 +81,26 @@ func (c *chunkedIntCoder) Add(docNum uint64, vals ...uint64) error {
 	return nil
 }
 
+func (c *chunkedIntCoder) AddBytes(docNum uint64, buf []byte) error {
+	chunk := docNum / c.chunkSize
+	if chunk != c.currChunk {
+		// starting a new chunk
+		c.Close()
+		c.chunkBuf.Reset()
+		c.currChunk = chunk
+	}
+
+	_, err := c.chunkBuf.Write(buf)
+	return err
+}
+
 // Close indicates you are done calling Add() this allows the final chunk
 // to be encoded.
 func (c *chunkedIntCoder) Close() {
-	c.encoder.Close()
 	encodingBytes := c.chunkBuf.Bytes()
 	c.chunkLens[c.currChunk] = uint64(len(encodingBytes))
 	c.final = append(c.final, encodingBytes...)
+	c.currChunk = uint64(cap(c.chunkLens)) // sentinel to detect double close
 }
 
 // Write commits all the encoded chunked integers to the provided writer.
@@ -102,10 +111,13 @@ func (c *chunkedIntCoder) Write(w io.Writer) (int, error) {
 	}
 	buf := c.buf
 
-	// write out the number of chunks & each chunkLen
-	n := binary.PutUvarint(buf, uint64(len(c.chunkLens)))
-	for _, chunkLen := range c.chunkLens {
-		n += binary.PutUvarint(buf[n:], uint64(chunkLen))
+	// convert the chunk lengths into chunk offsets
+	chunkOffsets := modifyLengthsToEndOffsets(c.chunkLens)
+
+	// write out the number of chunks & each chunk offsets
+	n := binary.PutUvarint(buf, uint64(len(chunkOffsets)))
+	for _, chunkOffset := range chunkOffsets {
+		n += binary.PutUvarint(buf[n:], chunkOffset)
 	}
 
 	tw, err := w.Write(buf[:n])
@@ -120,4 +132,41 @@ func (c *chunkedIntCoder) Write(w io.Writer) (int, error) {
 		return tw, err
 	}
 	return tw, nil
+}
+
+func (c *chunkedIntCoder) FinalSize() int {
+	return len(c.final)
+}
+
+// modifyLengthsToEndOffsets converts the chunk length array
+// to a chunk offset array. The readChunkBoundary
+// will figure out the start and end of every chunk from
+// these offsets. Starting offset of i'th index is stored
+// in i-1'th position except for 0'th index and ending offset
+// is stored at i'th index position.
+// For 0'th element, starting position is always zero.
+// eg:
+// Lens ->  5 5 5 5 => 5 10 15 20
+// Lens ->  0 5 0 5 => 0 5 5 10
+// Lens ->  0 0 0 5 => 0 0 0 5
+// Lens ->  5 0 0 0 => 5 5 5 5
+// Lens ->  0 5 0 0 => 0 5 5 5
+// Lens ->  0 0 5 0 => 0 0 5 5
+func modifyLengthsToEndOffsets(lengths []uint64) []uint64 {
+	var runningOffset uint64
+	var index, i int
+	for i = 1; i <= len(lengths); i++ {
+		runningOffset += lengths[i-1]
+		lengths[index] = runningOffset
+		index++
+	}
+	return lengths
+}
+
+func readChunkBoundary(chunk int, offsets []uint64) (uint64, uint64) {
+	var start uint64
+	if chunk > 0 {
+		start = offsets[chunk-1]
+	}
+	return start, offsets[chunk]
 }

@@ -29,7 +29,7 @@ Uncomment any service that needs to be enabled on this host, such as MySQL.
 Change the user, home directory, and other required startup values. Change the
 PORT or remove the -p flag if default port is used.
 
-Enable and start gitea at boot:
+Enable and start Gitea at boot:
 ```
 sudo systemctl enable gitea
 sudo systemctl start gitea
@@ -45,7 +45,7 @@ sudo apt install supervisor
 
 Create a log dir for the supervisor logs:
 ```
-# assuming gitea is installed in /home/git/gitea/
+# assuming Gitea is installed in /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
 ```
 
@@ -57,7 +57,7 @@ sudo vim /etc/supervisor/supervisord.conf
 Append the configuration from the sample
 [supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea).
 
-Change the user(git) and home(/home/git) settings to match the deployment
+Change the user (git) and home (/home/git) settings to match the deployment
 environment. Change the PORT or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:

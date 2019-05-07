@@ -7,7 +7,7 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -107,6 +107,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		IsPrivate:   false,
 		IsMirror:    true,
 		RemoteAddr:  repoPath,
+		Wiki:        true,
 	}
 	mirror, err := MigrateRepository(user, user, migrationOptions)
 	assert.NoError(t, err)

@@ -38,6 +38,7 @@
 	{{if .Issue.PullRequest.HasMerged}}purple
 	{{else if .Issue.IsClosed}}grey
 	{{else if .IsPullWorkInProgress}}grey
+	{{else if .IsFilesConflicted}}grey
 	{{else if .IsPullRequestBroken}}red
 	{{else if .IsBlockedByApprovals}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
@@ -57,7 +58,25 @@
 				{{end}}
 			{{else if .Issue.IsClosed}}
 				<div class="item text grey">
-					{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
+					{{if .IsPullRequestBroken}}
+						{{$.i18n.Tr "repo.pulls.cant_reopen_deleted_branch"}}
+					{{else}}
+						{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
+					{{end}}
+				</div>
+				{{if .IsPullBranchDeletable}}
+					<div class="ui divider"></div>
+					<div>
+						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
+					</div>
+				{{end}}
+			{{else if .IsPullFilesConflicted}}
+				<div class="item text grey">
+					<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.files_conflicted"}}
+					{{range .ConflictedFiles}}
+						<div>{{.}}</div>
+					{{end}}
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item text red">

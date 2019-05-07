@@ -187,7 +187,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return nil
 		}
 	} else {
@@ -205,7 +205,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 			apiIssue.Action = api.HookIssueAssigned
 		}
 		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return nil
 		}
 	}
@@ -214,7 +214,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 }
 
 // UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
-// Deleting is done the Github way (quote from their api documentation):
+// Deleting is done the GitHub way (quote from their api documentation):
 // https://developer.github.com/v3/issues/#edit-an-issue
 // "assignees" (array): Logins for Users to assign to this issue.
 // Pass one or more user logins to replace the set of assignees on this Issue.

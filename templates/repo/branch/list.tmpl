@@ -26,7 +26,8 @@
 				<table class="ui very basic striped fixed table single line">
 					<thead>
 						<tr>
-							<th class="nine wide">{{.i18n.Tr "repo.branch.name"}}</th>
+							<th class="seven wide">{{.i18n.Tr "repo.branch.name"}}</th>
+							<th class="two wide"></th>
 							{{if and $.IsWriter (not $.IsMirror)}}
 								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
 							{{end}}
@@ -45,6 +46,18 @@
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									</td>
 									{{end}}
+									<td class="ui">
+										<div class="commit-divergence">
+											<div class="bar-group">
+												<div class="count count-behind">{{.CommitsBehind}}</div>
+												<div class="bar bar-behind" style="width: {{percentage .CommitsBehind .CommitsBehind .CommitsAhead}}%"></div>
+											</div>
+											<div class="bar-group">
+												<div class="count count-ahead">{{.CommitsAhead}}</div>
+                                            	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
+											</div>
+										</div>
+									</td>
 									{{if and $.IsWriter (not $.IsMirror)}}
 										<td class="right aligned">
 										{{if .IsProtected}}

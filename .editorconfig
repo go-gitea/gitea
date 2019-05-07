@@ -1,5 +1,4 @@
 # http://editorconfig.org
-
 root = true
 
 [*]
@@ -15,11 +14,11 @@ indent_size = 8
 indent_style = tab
 indent_size = 4
 
-[*.{less}]
+[*.less]
 indent_style = space
 indent_size = 4
 
-[*.{yml}]
+[*.{yml,json}]
 indent_style = space
 indent_size = 2
 

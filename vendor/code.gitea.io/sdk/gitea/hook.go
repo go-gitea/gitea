@@ -160,6 +160,9 @@ type PayloadCommit struct {
 	Verification *PayloadCommitVerification `json:"verification"`
 	// swagger:strfmt date-time
 	Timestamp time.Time `json:"timestamp"`
+	Added     []string  `json:"added"`
+	Removed   []string  `json:"removed"`
+	Modified  []string  `json:"modified"`
 }
 
 // PayloadCommitVerification represents the GPG verification of a commit

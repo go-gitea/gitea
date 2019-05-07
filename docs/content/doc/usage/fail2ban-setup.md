@@ -19,7 +19,7 @@ menu:
 sure to test this before relying on it so you don't lock yourself out.**
 
 Gitea returns an HTTP 200 for bad logins in the web logs, but if you have logging options on in 
-`app.ini`, then you should be able to go off of log/gitea.log, which gives you something like this 
+`app.ini`, then you should be able to go off of `log/gitea.log`, which gives you something like this 
 on a bad authentication:
 
 ```log
@@ -52,8 +52,8 @@ action = iptables-allports
 Make sure and read up on fail2ban and configure it to your needs, this bans someone 
 for **15 minutes** (from all ports) when they fail authentication 10 times in an hour.
 
-If you run Gitea behind a reverse proxy with nginx (for example with docker), you need to add
-this to your nginx configuration so that IPs don't show up as 127.0.0.1: 
+If you run Gitea behind a reverse proxy with Nginx (for example with Docker), you need to add
+this to your Nginx configuration so that IPs don't show up as 127.0.0.1: 
 
 ```
 proxy_set_header X-Real-IP $remote_addr;

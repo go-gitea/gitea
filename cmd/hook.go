@@ -8,16 +8,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -28,13 +27,6 @@ var (
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
@@ -65,12 +57,6 @@ var (
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
 	}
 
 	setup("hooks/pre-receive.log")
@@ -143,12 +129,6 @@ func runHookUpdate(c *cli.Context) error {
 		return nil
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
-	}
-
 	setup("hooks/update.log")
 
 	return nil
@@ -157,12 +137,6 @@ func runHookUpdate(c *cli.Context) error {
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
 	}
 
 	setup("hooks/post-receive.log")
@@ -204,14 +178,14 @@ func runHookPostReceive(c *cli.Context) error {
 			RepoUserName: repoUser,
 			RepoName:     repoName,
 		}); err != nil {
-			log.GitLogger.Error(2, "Update: %v", err)
+			log.GitLogger.Error("Update: %v", err)
 		}
 
 		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			branch := strings.TrimPrefix(refFullName, git.BranchPrefix)
 			repo, pullRequestAllowed, err := private.GetRepository(repoID)
 			if err != nil {
-				log.GitLogger.Error(2, "get repo: %v", err)
+				log.GitLogger.Error("get repo: %v", err)
 				break
 			}
 			if !pullRequestAllowed {
@@ -229,7 +203,7 @@ func runHookPostReceive(c *cli.Context) error {
 
 			pr, err := private.ActivePullRequest(baseRepo.ID, repo.ID, baseRepo.DefaultBranch, branch)
 			if err != nil {
-				log.GitLogger.Error(2, "get active pr: %v", err)
+				log.GitLogger.Error("get active pr: %v", err)
 				break
 			}
 
@@ -239,7 +213,7 @@ func runHookPostReceive(c *cli.Context) error {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
 				fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", branch)
-				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), url.QueryEscape(baseRepo.DefaultBranch), url.QueryEscape(branch))
+				fmt.Fprintf(os.Stderr, "  %s/compare/%s...%s\n", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch))
 			} else {
 				fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
 				fmt.Fprintf(os.Stderr, "  %s/pulls/%d\n", baseRepo.HTMLURL(), pr.Index)

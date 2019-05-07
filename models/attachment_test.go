@@ -5,10 +5,39 @@
 package models
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUploadAttachment(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+
+	var fPath = "./attachment_test.go"
+	f, err := os.Open(fPath)
+	assert.NoError(t, err)
+	defer f.Close()
+
+	var buf = make([]byte, 1024)
+	n, err := f.Read(buf)
+	assert.NoError(t, err)
+	buf = buf[:n]
+
+	attach, err := NewAttachment(&Attachment{
+		UploaderID: user.ID,
+		Name:       filepath.Base(fPath),
+	}, buf, f)
+	assert.NoError(t, err)
+
+	attachment, err := GetAttachmentByUUID(attach.UUID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, user.ID, attachment.UploaderID)
+	assert.Equal(t, int64(0), attachment.DownloadCount)
+}
 
 func TestIncreaseDownloadCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

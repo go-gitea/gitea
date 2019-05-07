@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -39,11 +39,6 @@ var CmdServ = cli.Command{
 	Description: `Serv provide access auth for repositories`,
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 		cli.BoolFlag{
 			Name: "enable-pprof",
 		},
@@ -70,6 +65,7 @@ func checkLFSVersion() {
 }
 
 func setup(logPath string) {
+	log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
@@ -99,7 +95,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.ProdMode {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
-		log.GitLogger.Fatal(3, logMessage, args...)
+		log.GitLogger.Fatal(logMessage, args...)
 		return
 	}
 
@@ -108,9 +104,6 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 }
 
 func runServ(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
 	setup("serv.log")
 
 	if setting.SSH.Disabled {
@@ -233,23 +226,30 @@ func runServ(c *cli.Context) error {
 
 		// Check deploy key or user key.
 		if key.Type == models.KeyTypeDeploy {
-			if key.Mode < requestedMode {
-				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
-			}
-
-			// Check if this deploy key belongs to current repository.
-			has, err := private.HasDeployKey(key.ID, repo.ID)
+			// Now we have to get the deploy key for this repo
+			deployKey, err := private.GetDeployKey(key.ID, repo.ID)
 			if err != nil {
 				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 			}
-			if !has {
+
+			if deployKey == nil {
 				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
+			}
+
+			if deployKey.Mode < requestedMode {
+				fail("Key permission denied", "Cannot push with read-only deployment key: %d to repo_id: %d", key.ID, repo.ID)
 			}
 
 			// Update deploy key activity.
 			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
+
+			// FIXME: Deploy keys aren't really the owner of the repo pushing changes
+			// however we don't have good way of representing deploy keys in hook.go
+			// so for now use the owner
+			os.Setenv(models.EnvPusherName, username)
+			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
 		} else {
 			user, err = private.GetUserByKeyID(key.ID)
 			if err != nil {

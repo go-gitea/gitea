@@ -72,6 +72,24 @@ func GetUserByKeyID(ctx *macaron.Context) {
 	ctx.JSON(200, user)
 }
 
+//GetDeployKey chainload to models.GetDeployKey
+func GetDeployKey(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.ParamsInt64(":keyid")
+	dKey, err := models.GetDeployKeyByRepo(keyID, repoID)
+	if err != nil {
+		if models.IsErrDeployKeyNotExist(err) {
+			ctx.JSON(404, []byte("not found"))
+			return
+		}
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, dKey)
+}
+
 //HasDeployKey chainload to models.HasDeployKey
 func HasDeployKey(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")

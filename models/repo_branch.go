@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,38 +9,82 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 )
 
-// Branch holds the branch information
-type Branch struct {
-	Path string
-	Name string
+// discardLocalRepoBranchChanges discards local commits/changes of
+// given branch to make sure it is even to remote branch.
+func discardLocalRepoBranchChanges(localPath, branch string) error {
+	if !com.IsExist(localPath) {
+		return nil
+	}
+	// No need to check if nothing in the repository.
+	if !git.IsBranchExist(localPath, branch) {
+		return nil
+	}
+
+	refName := "origin/" + branch
+	if err := git.ResetHEAD(localPath, true, refName); err != nil {
+		return fmt.Errorf("git reset --hard %s: %v", refName, err)
+	}
+	return nil
 }
 
-// GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
-	gitRepo, err := git.OpenRepository(path)
-	if err != nil {
-		return nil, err
+// DiscardLocalRepoBranchChanges discards the local repository branch changes
+func (repo *Repository) DiscardLocalRepoBranchChanges(branch string) error {
+	return discardLocalRepoBranchChanges(repo.LocalCopyPath(), branch)
+}
+
+// checkoutNewBranch checks out to a new branch from the a branch name.
+func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
+	if err := git.Checkout(localPath, git.CheckoutOptions{
+		Timeout:   time.Duration(setting.Git.Timeout.Pull) * time.Second,
+		Branch:    newBranch,
+		OldBranch: oldBranch,
+	}); err != nil {
+		return fmt.Errorf("git checkout -b %s %s: %v", newBranch, oldBranch, err)
+	}
+	return nil
+}
+
+// CheckoutNewBranch checks out a new branch
+func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
+	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
+}
+
+// deleteLocalBranch deletes a branch from a local repo cache
+// First checks out default branch to avoid trying to delete the currently checked out branch
+func deleteLocalBranch(localPath, defaultBranch, deleteBranch string) error {
+	if !com.IsExist(localPath) {
+		return nil
 	}
 
-	brs, err := gitRepo.GetBranches()
-	if err != nil {
-		return nil, err
+	if !git.IsBranchExist(localPath, deleteBranch) {
+		return nil
 	}
 
-	branches := make([]*Branch, len(brs))
-	for i := range brs {
-		branches[i] = &Branch{
-			Path: path,
-			Name: brs[i],
-		}
+	// Must NOT have branch currently checked out
+	// Checkout default branch first
+	if err := git.Checkout(localPath, git.CheckoutOptions{
+		Timeout: time.Duration(setting.Git.Timeout.Pull) * time.Second,
+		Branch:  defaultBranch,
+	}); err != nil {
+		return fmt.Errorf("git checkout %s: %v", defaultBranch, err)
 	}
-	return branches, nil
+
+	cmd := git.NewCommand("branch")
+	cmd.AddArguments("-D")
+	cmd.AddArguments(deleteBranch)
+	_, err := cmd.RunInDir(localPath)
+	return err
+}
+
+// DeleteLocalBranch deletes a branch from the local repo
+func (repo *Repository) DeleteLocalBranch(branchName string) error {
+	return deleteLocalBranch(repo.LocalCopyPath(), repo.DefaultBranch, branchName)
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.
@@ -47,20 +92,19 @@ func (repo *Repository) CanCreateBranch() bool {
 	return !repo.IsMirror
 }
 
-// GetBranch returns a branch by it's name
-func (repo *Repository) GetBranch(branch string) (*Branch, error) {
-	if !git.IsBranchExist(repo.RepoPath(), branch) {
-		return nil, ErrBranchNotExist{branch}
+// GetBranch returns a branch by its name
+func (repo *Repository) GetBranch(branch string) (*git.Branch, error) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
-	return &Branch{
-		Path: repo.RepoPath(),
-		Name: branch,
-	}, nil
+
+	return gitRepo.GetBranch(branch)
 }
 
 // GetBranches returns all the branches of a repository
-func (repo *Repository) GetBranches() ([]*Branch, error) {
-	return GetBranchesByPath(repo.RepoPath())
+func (repo *Repository) GetBranches() ([]*git.Branch, error) {
+	return git.GetBranchesByPath(repo.RepoPath())
 }
 
 // CheckBranchName validates branch name with existing repository branches
@@ -68,10 +112,6 @@ func (repo *Repository) CheckBranchName(name string) error {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return err
-	}
-
-	if _, err := gitRepo.GetTag(name); err == nil {
-		return ErrTagAlreadyExists{name}
 	}
 
 	branches, err := repo.GetBranches()
@@ -87,6 +127,11 @@ func (repo *Repository) CheckBranchName(name string) error {
 			return ErrBranchNameConflict{branch.Name}
 		}
 	}
+
+	if _, err := gitRepo.GetTag(name); err == nil {
+		return ErrTagAlreadyExists{name}
+	}
+
 	return nil
 }
 
@@ -183,13 +228,4 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 	}
 
 	return nil
-}
-
-// GetCommit returns all the commits of a branch
-func (branch *Branch) GetCommit() (*git.Commit, error) {
-	gitRepo, err := git.OpenRepository(branch.Path)
-	if err != nil {
-		return nil, err
-	}
-	return gitRepo.GetBranchCommit(branch.Name)
 }

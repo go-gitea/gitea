@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/blevesearch/bleve/index/upsidedown"
 )
@@ -92,5 +93,5 @@ func (i *indexMeta) Save(path string) (err error) {
 }
 
 func indexMetaPath(path string) string {
-	return path + string(os.PathSeparator) + metaFilename
+	return filepath.Join(path, metaFilename)
 }

@@ -139,6 +139,22 @@ func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption)
 		jsonHeader, bytes.NewReader(body), issue)
 }
 
+// StartIssueStopWatch starts a stopwatch for an existing issue for a given
+// repository
+func (c *Client) StartIssueStopWatch(owner, repo string, index int64) error {
+	_, err := c.getResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/stopwatch/start", owner, repo, index),
+		jsonHeader, nil)
+	return err
+}
+
+// StopIssueStopWatch stops an existing stopwatch for an issue in a given
+// repository
+func (c *Client) StopIssueStopWatch(owner, repo string, index int64) error {
+	_, err := c.getResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/stopwatch/stop", owner, repo, index),
+		jsonHeader, nil)
+	return err
+}
+
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// required:true

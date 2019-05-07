@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -34,6 +35,23 @@ import (
 )
 
 var mac *macaron.Macaron
+
+type NilResponseRecorder struct {
+	httptest.ResponseRecorder
+	Length int
+}
+
+func (n *NilResponseRecorder) Write(b []byte) (int, error) {
+	n.Length = n.Length + len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseRecorder() *NilResponseRecorder {
+	return &NilResponseRecorder{
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
 
 func TestMain(m *testing.M) {
 	initIntegrationTest()
@@ -64,6 +82,8 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
+	writerCloser.t = nil
+
 	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("os.RemoveAll: %v\n", err)
 		os.Exit(1)
@@ -77,7 +97,7 @@ func TestMain(m *testing.M) {
 }
 
 func initIntegrationTest() {
-	giteaRoot := os.Getenv("GITEA_ROOT")
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
@@ -98,6 +118,7 @@ func initIntegrationTest() {
 		setting.CustomConf = giteaConf
 	}
 
+	setting.SetCustomPathAndConf("", "")
 	setting.NewContext()
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
@@ -148,7 +169,12 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t testing.TB) {
+func prepareTestEnv(t testing.TB, skip ...int) {
+	ourSkip := 2
+	if len(skip) > 0 {
+		ourSkip += skip[0]
+	}
+	PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
@@ -183,6 +209,22 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 		req.AddCookie(c)
 	}
 	resp := MakeRequest(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
+func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
@@ -300,6 +342,18 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	recorder := NewNilResponseRecorder()
+	mac.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
 	}
 	return recorder

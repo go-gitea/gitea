@@ -13,16 +13,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
-
-	"code.gitea.io/git"
-
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+
+	"github.com/Unknwon/com"
 )
 
 var (
-	reservedWikiNames = []string{"_pages", "_new", "_edit"}
+	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
 	wikiWorkingPool   = sync.NewExclusivePool()
 )
 
