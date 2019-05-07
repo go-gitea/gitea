@@ -21,11 +21,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/markup/external"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
