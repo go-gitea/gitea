@@ -1037,5 +1037,4 @@ func NewServices() {
 	newNotifyMailService()
 	newWebhookService()
 	newIndexerService()
-	newHighlightService()
 }

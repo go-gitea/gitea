@@ -7,6 +7,8 @@ package highlight
 import (
 	"path"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -69,6 +71,14 @@ var (
 	}
 )
 
+// NewContext loads highlight map
+func NewContext() {
+	keys := setting.Cfg.Section("highlight.mapping").Keys()
+	for i := range keys {
+		highlightMapping[keys[i].Name()] = keys[i].Value()
+	}
+}
+
 // FileNameToHighlightClass returns the best match for highlight class name
 // based on the rule of highlight.js.
 func FileNameToHighlightClass(fname string) string {
@@ -86,7 +96,7 @@ func FileNameToHighlightClass(fname string) string {
 		return ext[1:]
 	}
 
-	name, ok := HighlightMapping[ext]
+	name, ok := highlightMapping[ext]
 	if ok {
 		return name
 	}
