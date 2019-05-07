@@ -26,7 +26,7 @@ func TestGetLatestCommitTime(t *testing.T) {
 }
 
 func TestRepoIsEmpty(t *testing.T) {
-	repo, err := OpenRepository("tests/repos/repo2_empty")
+	repo, err := OpenRepository("./tests/repos/repo2_empty")
 	assert.NoError(t, err)
 	isEmpty, err := repo.IsEmpty()
 	assert.NoError(t, err)
