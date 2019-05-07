@@ -624,7 +624,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headUser, err = models.GetUserByName(headInfos[0])
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
+				ctx.NotFound("GetUserByName")
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
@@ -642,7 +642,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
 	// Check if base branch is valid.
 	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound()
+		ctx.NotFound("IsBranchExist")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -650,7 +650,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
 	if !has && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound()
+		ctx.NotFound("HasForkedRepo")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -666,19 +666,37 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
+	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanReadIssuesOrPulls(true) {
+	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			log.Trace("Permission Denied: User %-v cannot create/read pull requests in Repo %-v\nUser in headRepo has Permissions: %-+v",
+			log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v",
+				ctx.User,
+				baseRepo,
+				permBase)
+		}
+		ctx.NotFound("Can't read pulls or can't read UnitTypeCode")
+		return nil, nil, nil, nil, "", ""
+	}
+
+	// user should have permission to read headrepo's codes
+	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !permHead.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 				ctx.User,
 				headRepo,
-				perm)
+				permHead)
 		}
-		ctx.NotFound()
+		ctx.NotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil, nil, nil, "", ""
 	}
 
