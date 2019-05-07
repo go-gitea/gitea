@@ -82,6 +82,12 @@ $ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api
 [{"name":"test","sha1":"..."},{"name":"dev","sha1":"..."}]
 ```
 
+As of v1.8.0 of Gitea, if using basic authentication with the API and your user has two factor authentication enabled, you'll need to send an additional header that contains the one time password (6 digit rotating token). An example of the header is `X-Gitea-OTP: 123456` where `123456` is where you'd place the code from your authenticator. Here is how the request would look like in curl:
+
+```
+$ curl -H "X-Gitea-OTP: 123456" --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
+```
+
 ## Sudo
 
 The API allows admin users to sudo API requests as another user. Simply add either a `sudo=` parameter or `Sudo:` request header with the username of the user to sudo.
