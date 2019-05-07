@@ -62,6 +62,7 @@ require (
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
 	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
@@ -115,7 +116,7 @@ require (
 	go.etcd.io/bbolt v1.3.2 // indirect
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
-	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759 // indirect
+	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 	golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
 	golang.org/x/text v0.3.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect

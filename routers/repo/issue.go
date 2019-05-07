@@ -773,6 +773,8 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		comment.Issue = issue
+
 		if err := comment.LoadPoster(); err != nil {
 			ctx.ServerError("LoadPoster", err)
 			return
@@ -850,8 +852,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 			if err = comment.Review.LoadAttributes(); err != nil {
-				ctx.ServerError("Review.LoadAttributes", err)
-				return
+				if !models.IsErrUserNotExist(err) {
+					ctx.ServerError("Review.LoadAttributes", err)
+					return
+				}
+				comment.Review.Reviewer = models.NewGhostUser()
 			}
 			if err = comment.Review.LoadCodeComments(); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)

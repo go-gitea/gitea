@@ -264,7 +264,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration: %s", m.Description())
+		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
