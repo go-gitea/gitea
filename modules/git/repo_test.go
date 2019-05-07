@@ -24,3 +24,11 @@ func TestGetLatestCommitTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, lct.Unix() > refTime.Unix(), "%d not greater than %d", lct, refTime)
 }
+
+func TestRepoIsEmpty(t *testing.T) {
+	repo, err := OpenRepository("tests/repos/repo2_empty")
+	assert.NoError(t, err)
+	isEmpty, err := repo.IsEmpty()
+	assert.NoError(t, err)
+	assert.True(t, isEmpty)
+}

@@ -932,22 +932,18 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		}
 	}
 
-	// Check if repository is empty.
-	output, err := git.NewCommand("log", "-1").RunInDir(repoPath)
+	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		if strings.Contains(output, "fatal: bad default revision 'HEAD'") {
-			repo.IsEmpty = true
-		} else {
-			return repo, fmt.Errorf("check empty: %v - %s", err, output)
-		}
+		return repo, fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	repo.IsEmpty, err = gitRepo.IsEmpty()
+	if err != nil {
+		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
 	if !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
-		gitRepo, err := git.OpenRepository(repoPath)
-		if err != nil {
-			return repo, fmt.Errorf("OpenRepository: %v", err)
-		}
 		headBranch, err := gitRepo.GetHEADBranch()
 		if err != nil {
 			return repo, fmt.Errorf("GetHEADBranch: %v", err)
