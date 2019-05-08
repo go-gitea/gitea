@@ -979,6 +979,25 @@ function initRepository() {
     }
 }
 
+var toggleMigrations = function(){
+    var authUserName = $('#auth_username').val();
+    var cloneAddr = $('#clone_addr').val();
+    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0) 
+    && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
+        $('#migrate_items').show();
+    } else {
+        $('#migrate_items').hide();
+    }
+}
+
+function initMigration() {
+    toggleMigrations();
+
+    $('#clone_addr').on('input', toggleMigrations)
+    $('#auth_username').on('input', toggleMigrations)
+    $('#mirror').on('change', toggleMigrations)
+}
+
 function initPullRequestReview() {
     $('.show-outdated').on('click', function (e) {
         e.preventDefault();
@@ -2101,6 +2120,7 @@ $(document).ready(function () {
     initCommentForm();
     initInstall();
     initRepository();
+    initMigration();
     initWikiForm();
     initEditForm();
     initEditor();
