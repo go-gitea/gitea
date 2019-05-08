@@ -219,8 +219,7 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 	}
 	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
 	if err != nil {
-		err = sess.Rollback()
-		if err != nil {
+		if err := sess.Rollback(); err != nil {
 			return err
 		}
 		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
@@ -234,8 +233,7 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 
 	// Insert new CommitStatus
 	if _, err = sess.Insert(opts.CommitStatus); err != nil {
-		err = sess.Rollback()
-		if err != nil {
+		if err := sess.Rollback(); err != nil {
 			return err
 		}
 		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)

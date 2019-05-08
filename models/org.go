@@ -172,7 +172,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	if _, err = sess.Insert(&units); err != nil {
-		if err = sess.Rollback(); err != nil {
+		if err := sess.Rollback(); err != nil {
 			return err
 		}
 		return err
@@ -484,12 +484,12 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
-		if err = sess.Rollback(); err != nil {
+		if err := sess.Rollback(); err != nil {
 			return err
 		}
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		if err = sess.Rollback(); err != nil {
+		if err := sess.Rollback(); err != nil {
 			return err
 		}
 		return err

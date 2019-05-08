@@ -5,10 +5,10 @@
 package misc
 
 import (
+	"net/http"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
-	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
