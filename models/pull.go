@@ -192,15 +192,19 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 	}
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
 		return nil
 	}
 	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		log.Error("baseBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
 		return nil
 	}
 	if headCommit, err = headBranch.GetCommit(); err != nil {
+		log.Error("headBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	apiBaseBranchInfo := &api.PRBranchInfo{
@@ -216,6 +220,11 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		Sha:        headCommit.ID.String(),
 		RepoID:     pr.HeadRepoID,
 		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
+	}
+
+	if err = pr.Issue.loadRepo(e); err != nil {
+		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
+		return nil
 	}
 
 	apiPullRequest := &api.PullRequest{
