@@ -1549,11 +1549,15 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		t, err := newOwner.getOwnerTeam(sess)
-		if err != nil {
-			return fmt.Errorf("getOwnerTeam: %v", err)
-		} else if err = t.addRepository(sess, repo); err != nil {
-			return fmt.Errorf("add to owner team: %v", err)
+		if err := newOwner.GetTeams(); err != nil {
+			return fmt.Errorf("GetTeams: %v", err)
+		}
+		for _, t := range newOwner.Teams {
+			if t.IncludesAllRepositories {
+				if err := t.addRepository(sess, repo); err != nil {
+					return fmt.Errorf("addRepository: %v", err)
+				}
+			}
 		}
 	} else {
 		// Organization called this in addRepository method.
