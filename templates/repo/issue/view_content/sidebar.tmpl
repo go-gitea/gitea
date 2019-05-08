@@ -89,7 +89,7 @@
 						{{end}}
 					{{end}}"></span>
 						<span class="text">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 						</span>
 					</a>
 				{{end}}
@@ -100,7 +100,7 @@
 			<div class="selected">
 				{{range .Issue.Assignees}}
 					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{$.RepoLink}}/issues?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.Name}}</a>
+						<a href="{{$.RepoLink}}/issues?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.GetDisplayName}}</a>
 					</div>
 				{{end}}
 			</div>
@@ -113,7 +113,7 @@
 			<div>
 				{{range .Participants}}
 					<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}}>
-						<img class="ui avatar image poping up" src="{{.RelAvatarLink}}" data-content="{{.DisplayName}}" data-position="top center" data-variation="small inverted">
+						<img class="ui avatar image poping up" src="{{.RelAvatarLink}}" data-content="{{.GetDisplayName}}" data-position="top center" data-variation="small inverted">
 					</a>
 				{{end}}
 			</div>

@@ -176,6 +176,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
+		HTTPMethod:   form.HTTPMethod,
 		ContentType:  contentType,
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),

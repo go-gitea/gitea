@@ -233,11 +233,15 @@
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
+				{{if eq .CacheAdapter "memory"}}
 				<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
 				<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				{{end}}
 				{{if .CacheConn}}
 				<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
 				<dd><code>{{.CacheConn}}</code></dd>
+				<dt>{{.i18n.Tr "admin.config.cache_item_ttl"}}</dt>
+				<dd><code>{{.CacheItemTTL}}</code></dd>
 				{{end}}
 			</dl>
 		</div>
