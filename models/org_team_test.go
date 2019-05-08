@@ -378,8 +378,20 @@ func TestUsersInTeamsCount(t *testing.T) {
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
 }
 
-func TestAllRepositoriesTeams(t *testing.T) {
+func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
+
+	testTeamRepositories := func(teamID int64, repoIds []int64) {
+		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
+		assert.NoError(t, team.GetRepositories(), "%s: GetRepositories", team.Name)
+		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
+		assert.Equal(t, len(repoIds), len(team.Repos), "%s: repo count", team.Name)
+		for i, rid := range repoIds {
+			if rid > 0 {
+				assert.True(t, team.HasRepository(rid), "%s: HasRepository(%d) %d", rid, i)
+			}
+		}
+	}
 
 	// Get an admin user.
 	user, err := GetUserByID(1)
@@ -401,15 +413,18 @@ func TestAllRepositoriesTeams(t *testing.T) {
 
 	// Create repos.
 	repoIds := make([]int64, 0)
-	for i := 1; i <= 3; i++ {
+	for i := 0; i < 3; i++ {
 		r, err := CreateRepository(user, org, CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
 		}
 	}
+	// Get fresh copy of Owner team after creating repos.
+	ownerTeam, err = org.GetOwnerTeam()
+	assert.NoError(t, err, "GetOwnerTeam")
 
-	// Create teams and check repo count.
+	// Create teams and check repositories.
 	teams := []*Team{
 		ownerTeam,
 		{
@@ -437,52 +452,51 @@ func TestAllRepositoriesTeams(t *testing.T) {
 			IncludesAllRepositories: false,
 		},
 	}
-	repoCounts := []int{3, 3, 0, 3, 0}
+	teamRepos := [][]int64{
+		repoIds,
+		repoIds,
+		{},
+		repoIds,
+		{},
+	}
 	for i, team := range teams {
 		if i > 0 { // first team is Owner.
-			assert.NoError(t, NewTeam(team), "team %d: NewTeam", i)
+			assert.NoError(t, NewTeam(team), "%s: NewTeam", team.Name)
 		}
-		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
-		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
-	// Update teams and check repo count.
+	// Update teams and check repositories.
 	teams[3].IncludesAllRepositories = false
 	teams[4].IncludesAllRepositories = true
-	repoCounts[4] = 3
+	teamRepos[4] = repoIds
 	for i, team := range teams {
-		assert.NoError(t, UpdateTeam(team, false), "team %d: UpdateTeam", i)
-		team.Repos = nil // Reset repos to allow their reloading.
-		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
-		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+		assert.NoError(t, UpdateTeam(team, false), "%s: UpdateTeam", team.Name)
+		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
-	// Create repo and check teams repo count.
+	// Create repo and check teams repositories.
 	org.Teams = nil // Reset teams to allow their reloading.
 	r, err := CreateRepository(user, org, CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)
 	}
-	repoCounts[0] = 4
-	repoCounts[1] = 4
-	repoCounts[4] = 4
+	teamRepos[0] = repoIds
+	teamRepos[1] = repoIds
+	teamRepos[4] = repoIds
 	for i, team := range teams {
-		team.Repos = nil // Reset repos to allow their reloading.
-		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
-		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
-	// Remove repo and check teams repo count.
+	// Remove repo and check teams repositories.
 	assert.NoError(t, DeleteRepository(user, org.ID, repoIds[0]), "DeleteRepository")
-	repoCounts[0] = 3
-	repoCounts[1] = 3
-	repoCounts[3] = 2
-	repoCounts[4] = 3
+	teamRepos[0] = repoIds[1:]
+	teamRepos[1] = repoIds[1:]
+	teamRepos[3] = repoIds[1:3]
+	teamRepos[4] = repoIds[1:]
 	for i, team := range teams {
-		team.Repos = nil // Reset repos to allow their reloading.
-		assert.NoError(t, team.GetRepositories(), "team %d: GetRepositories", i)
-		assert.Equal(t, repoCounts[i], len(team.Repos), "team %d: repo count", i)
+		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
 	// Wipe created items.
