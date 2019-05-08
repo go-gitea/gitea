@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	code.gitea.io/sdk v0.0.0-20190416172854-7d954d775498
+	code.gitea.io/sdk v0.0.0-20190419065346-2858b80da5f7
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
@@ -62,6 +62,7 @@ require (
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
 	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
@@ -84,7 +85,7 @@ require (
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/mcuadros/go-version v0.0.0-20171003094716-88e56e02bea1
+	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 	github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae // indirect
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
@@ -109,13 +110,13 @@ require (
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tinylib/msgp v0.0.0-20180516164116-c8cf64dff200 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/urfave/cli v0.0.0-20161102131801-d86a009f5e13
+	github.com/urfave/cli v1.20.0
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.2 // indirect
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
-	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759 // indirect
+	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 	golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
 	golang.org/x/text v0.3.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect

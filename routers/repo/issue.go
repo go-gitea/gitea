@@ -223,7 +223,12 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 
-		if isPullOption == util.OptionalBoolTrue {
+		if issues[i].IsPull {
+			if err := issues[i].LoadPullRequest(); err != nil {
+				ctx.ServerError("LoadPullRequest", err)
+				return
+			}
+
 			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
 		}
 	}
@@ -768,6 +773,8 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		comment.Issue = issue
+
 		if err := comment.LoadPoster(); err != nil {
 			ctx.ServerError("LoadPoster", err)
 			return
@@ -845,8 +852,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 			if err = comment.Review.LoadAttributes(); err != nil {
-				ctx.ServerError("Review.LoadAttributes", err)
-				return
+				if !models.IsErrUserNotExist(err) {
+					ctx.ServerError("Review.LoadAttributes", err)
+					return
+				}
+				comment.Review.Reviewer = models.NewGhostUser()
 			}
 			if err = comment.Review.LoadCodeComments(); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
