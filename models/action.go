@@ -144,6 +144,22 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+func (a *Action) GetDisplayName() string {
+	if setting.UI.DefaultShowFullName {
+		return a.GetActFullName()
+	}
+	return a.ShortActUserName()
+}
+
+// GetDisplayNameTitle gets the action's display name used for the title (tooltip) based on DEFAULT_SHOW_FULL_NAME
+func (a *Action) GetDisplayNameTitle() string {
+	if setting.UI.DefaultShowFullName {
+		return a.ShortActUserName()
+	}
+	return a.GetActFullName()
+}
+
 // GetActAvatar the action's user's avatar link
 func (a *Action) GetActAvatar() string {
 	a.loadActUser()

@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -105,6 +106,7 @@ type Webhook struct {
 	OrgID        int64  `xorm:"INDEX"`
 	URL          string `xorm:"url TEXT"`
 	Signature    string `xorm:"TEXT"`
+	HTTPMethod   string `xorm:"http_method"`
 	ContentType  HookContentType
 	Secret       string `xorm:"TEXT"`
 	Events       string `xorm:"TEXT"`
@@ -553,6 +555,7 @@ type HookTask struct {
 	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
+	HTTPMethod      string `xorm:"http_method"`
 	ContentType     HookContentType
 	EventType       HookEventType
 	IsSSL           bool
@@ -707,6 +710,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		URL:         w.URL,
 		Signature:   signature,
 		Payloader:   payloader,
+		HTTPMethod:  w.HTTPMethod,
 		ContentType: w.ContentType,
 		EventType:   event,
 		IsSSL:       w.IsSSL,
@@ -751,9 +755,32 @@ func prepareWebhooks(e Engine, repo *Repository, event HookEventType, p api.Payl
 
 func (t *HookTask) deliver() {
 	t.IsDelivered = true
+	t.RequestInfo = &HookRequest{
+		Headers: map[string]string{},
+	}
+	t.ResponseInfo = &HookResponse{
+		Headers: map[string]string{},
+	}
 
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
+
+	var req *httplib.Request
+	if t.HTTPMethod == http.MethodPost {
+		req = httplib.Post(t.URL)
+		switch t.ContentType {
+		case ContentTypeJSON:
+			req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
+		case ContentTypeForm:
+			req.Param("payload", t.PayloadContent)
+		}
+	} else if t.HTTPMethod == http.MethodGet {
+		req = httplib.Get(t.URL).Param("payload", t.PayloadContent)
+	} else {
+		t.ResponseInfo.Body = fmt.Sprintf("Invalid http method: %v", t.HTTPMethod)
+		return
+	}
+
+	req = req.SetTimeout(timeout, timeout).
 		Header("X-Gitea-Delivery", t.UUID).
 		Header("X-Gitea-Event", string(t.EventType)).
 		Header("X-Gitea-Signature", t.Signature).
@@ -764,23 +791,9 @@ func (t *HookTask) deliver() {
 		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
-	switch t.ContentType {
-	case ContentTypeJSON:
-		req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
-	case ContentTypeForm:
-		req.Param("payload", t.PayloadContent)
-	}
-
 	// Record delivery information.
-	t.RequestInfo = &HookRequest{
-		Headers: map[string]string{},
-	}
 	for k, vals := range req.Headers() {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
-	}
-
-	t.ResponseInfo = &HookResponse{
-		Headers: map[string]string{},
 	}
 
 	defer func() {

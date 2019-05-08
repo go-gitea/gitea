@@ -3,13 +3,104 @@
 **ATTN**: This project uses [semantic versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## 1.20.0 - 2017-08-10
+
+### Fixed
+
+* `HandleExitCoder` is now correctly iterates over all errors in
+  a `MultiError`. The exit code is the exit code of the last error or `1` if
+  there are no `ExitCoder`s in the `MultiError`.
+* Fixed YAML file loading on Windows (previously would fail validate the file path)
+* Subcommand `Usage`, `Description`, `ArgsUsage`, `OnUsageError` correctly
+  propogated
+* `ErrWriter` is now passed downwards through command structure to avoid the
+  need to redefine it
+* Pass `Command` context into `OnUsageError` rather than parent context so that
+  all fields are avaiable
+* Errors occuring in `Before` funcs are no longer double printed
+* Use `UsageText` in the help templates for commands and subcommands if
+  defined; otherwise build the usage as before (was previously ignoring this
+  field)
+* `IsSet` and `GlobalIsSet` now correctly return whether a flag is set if
+  a program calls `Set` or `GlobalSet` directly after flag parsing (would
+  previously only return `true` if the flag was set during parsing)
+
+### Changed
+
+* No longer exit the program on command/subcommand error if the error raised is
+  not an `OsExiter`. This exiting behavior was introduced in 1.19.0, but was
+  determined to be a regression in functionality. See [the
+  PR](https://github.com/urfave/cli/pull/595) for discussion.
+
 ### Added
+
+* `CommandsByName` type was added to make it easy to sort `Command`s by name,
+  alphabetically
+* `altsrc` now handles loading of string and int arrays from TOML
+* Support for definition of custom help templates for `App` via
+  `CustomAppHelpTemplate`
+* Support for arbitrary key/value fields on `App` to be used with
+  `CustomAppHelpTemplate` via `ExtraInfo`
+* `HelpFlag`, `VersionFlag`, and `BashCompletionFlag` changed to explictly be
+  `cli.Flag`s allowing for the use of custom flags satisfying the `cli.Flag`
+  interface to be used.
+
+
+## [1.19.1] - 2016-11-21
+
+### Fixed
+
+- Fixes regression introduced in 1.19.0 where using an `ActionFunc` as
+  the `Action` for a command would cause it to error rather than calling the
+  function. Should not have a affected declarative cases using `func(c
+  *cli.Context) err)`.
+- Shell completion now handles the case where the user specifies
+  `--generate-bash-completion` immediately after a flag that takes an argument.
+  Previously it call the application with `--generate-bash-completion` as the
+  flag value.
+
+## [1.19.0] - 2016-11-19
+### Added
+- `FlagsByName` was added to make it easy to sort flags (e.g. `sort.Sort(cli.FlagsByName(app.Flags))`)
+- A `Description` field was added to `App` for a more detailed description of
+  the application (similar to the existing `Description` field on `Command`)
 - Flag type code generation via `go generate`
 - Write to stderr and exit 1 if action returns non-nil error
 - Added support for TOML to the `altsrc` loader
+- `SkipArgReorder` was added to allow users to skip the argument reordering.
+  This is useful if you want to consider all "flags" after an argument as
+  arguments rather than flags (the default behavior of the stdlib `flag`
+  library). This is backported functionality from the [removal of the flag
+  reordering](https://github.com/urfave/cli/pull/398) in the unreleased version
+  2
+- For formatted errors (those implementing `ErrorFormatter`), the errors will
+  be formatted during output. Compatible with `pkg/errors`.
 
 ### Changed
 - Raise minimum tested/supported Go version to 1.2+
+
+### Fixed
+- Consider empty environment variables as set (previously environment variables
+  with the equivalent of `""` would be skipped rather than their value used).
+- Return an error if the value in a given environment variable cannot be parsed
+  as the flag type. Previously these errors were silently swallowed.
+- Print full error when an invalid flag is specified (which includes the invalid flag)
+- `App.Writer` defaults to `stdout` when `nil`
+- If no action is specified on a command or app, the help is now printed instead of `panic`ing
+- `App.Metadata` is initialized automatically now (previously was `nil` unless initialized)
+- Correctly show help message if `-h` is provided to a subcommand
+- `context.(Global)IsSet` now respects environment variables. Previously it
+  would return `false` if a flag was specified in the environment rather than
+  as an argument
+- Removed deprecation warnings to STDERR to avoid them leaking to the end-user
+- `altsrc`s import paths were updated to use `gopkg.in/urfave/cli.v1`. This
+  fixes issues that occurred when `gopkg.in/urfave/cli.v1` was imported as well
+  as `altsrc` where Go would complain that the types didn't match
+
+## [1.18.1] - 2016-08-28
+### Fixed
+- Removed deprecation warnings to STDERR to avoid them leaking to the end-user (backported)
 
 ## [1.18.0] - 2016-06-27
 ### Added
@@ -28,6 +119,10 @@
 - Display the `help` subcommand when using `CommandCategories`
 - No longer swallows `panic`s that occur within the `Action`s themselves when
   detecting the signature of the `Action` field
+
+## [1.17.1] - 2016-08-28
+### Fixed
+- Removed deprecation warnings to STDERR to avoid them leaking to the end-user
 
 ## [1.17.0] - 2016-05-09
 ### Added
@@ -49,6 +144,10 @@
   that a 0 exit code indicated a successful execution.
 - cleanups based on [Go Report Card
   feedback](https://goreportcard.com/report/github.com/urfave/cli)
+
+## [1.16.1] - 2016-08-28
+### Fixed
+- Removed deprecation warnings to STDERR to avoid them leaking to the end-user
 
 ## [1.16.0] - 2016-05-02
 ### Added
