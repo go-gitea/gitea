@@ -661,6 +661,16 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
+// returns username otherwise.
+func (u *User) GetDisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
+		return trimmed
+	}
+	return u.Name
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
