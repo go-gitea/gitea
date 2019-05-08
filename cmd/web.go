@@ -181,15 +181,18 @@ func runWeb(ctx *cli.Context) error {
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
-		listener, err := net.Listen("tcp", listenAddr)
+		var listener net.Listener
+		listener, err = net.Listen("tcp", listenAddr)
 		if err != nil {
 			log.Fatal("Failed to bind %s: %v", listenAddr, err)
 		}
-		defer listener.Close()
+		defer func() {
+			err = listener.Close()
+			if err != nil {
+				log.Fatal("Failed to stop server: %v", err)
+			}
+		}()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
-		if err != nil {
-			log.Fatal("Failed to serve %v", err)
-		}
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
