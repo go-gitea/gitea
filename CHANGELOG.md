@@ -28,7 +28,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Drop is_bare IDX only when it exists for MySQL and MariaDB (#6736) (#6744)
   * Fix team members API (#6714) (#6729)
   * Load issue attributes when editing an issue with API (#6723) (#6725)
-* ENHANCEMENT
   * Fix config ui error about cache ttl (#6861) (#6865)
 
 ## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
