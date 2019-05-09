@@ -288,17 +288,26 @@ func Issues(ctx *context.Context) {
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
-		if _, ok := showReposMap[repoID]; !ok {
-			repo, err := models.GetRepositoryByID(repoID)
-			if models.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", err)
-				return
-			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
-				return
-			}
-			showReposMap[repoID] = repo
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
 		}
+		showReposMap[repoID] = repo
+	}
+
+	for repoID := range counts {
+		// if _, ok := showReposMap[repoID]; !ok {
+		// 	repo, err := models.GetRepositoryByID(repoID)
+		// 	if models.IsErrRepoNotExist(err) {
+		// 		ctx.NotFound("GetRepositoryByID", err)
+		// 		return
+		// 	} else if err != nil {
+		// 		ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+		// 		return
+		// 	}
+		// 	showReposMap[repoID] = repo
+		// }
 
 		repo := showReposMap[repoID]
 
