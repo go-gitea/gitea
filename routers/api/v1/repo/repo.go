@@ -56,6 +56,15 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: starredBy
+	//   in: query
+	//   description: search only for repos that the user with the given id has starred
+	//   type: integer
+	//   format: int64
+	// - name: private
+	//   in: query
+	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -96,6 +105,10 @@ func Search(ctx *context.APIContext) {
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:   ctx.QueryBool("topic"),
 		Collaborate: util.OptionalBoolNone,
+		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin: ctx.IsUserSiteAdmin(),
+		UserID:      ctx.Data["SignedUserID"].(int64),
+		StarredByID: ctx.QueryInt64("starredBy"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -140,42 +153,6 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	if opts.OwnerID > 0 {
-		var repoOwner *models.User
-		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-			repoOwner = ctx.User
-		} else {
-			repoOwner, err = models.GetUserByID(opts.OwnerID)
-			if err != nil {
-				ctx.JSON(500, api.SearchError{
-					OK:    false,
-					Error: err.Error(),
-				})
-				return
-			}
-		}
-
-		if repoOwner.IsOrganization() {
-			opts.Collaborate = util.OptionalBoolFalse
-		}
-
-		// Check visibility.
-		if ctx.IsSigned {
-			if ctx.User.ID == repoOwner.ID {
-				opts.Private = true
-			} else if repoOwner.IsOrganization() {
-				opts.Private, err = repoOwner.IsOwnedBy(ctx.User.ID)
-				if err != nil {
-					ctx.JSON(500, api.SearchError{
-						OK:    false,
-						Error: err.Error(),
-					})
-					return
-				}
-			}
-		}
-	}
-
 	repos, count, err := models.SearchRepositoryByName(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
