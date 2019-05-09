@@ -375,3 +375,31 @@
   type: 3
   config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810
+
+-
+  id: 55
+  repo_id: 10
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 56
+  repo_id: 10
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 57
+  repo_id: 10
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 58
+  repo_id: 11
+  type: 1
+  config: "{}"
+  created_unix: 946684810

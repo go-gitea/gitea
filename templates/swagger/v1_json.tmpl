@@ -8479,6 +8479,18 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
@@ -8486,6 +8498,14 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
         },
         "repo_name": {
           "type": "string",
@@ -8495,6 +8515,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "UID"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/auth"
@@ -9458,8 +9482,11 @@
   },
   "responses": {
     "AccessToken": {
-      "description": "AccessToken represents a API access token.",
+      "description": "AccessToken represents an API access token.",
       "headers": {
+        "hashed_token": {
+          "type": "string"
+        },
         "id": {
           "type": "integer",
           "format": "int64"
@@ -9467,7 +9494,10 @@
         "name": {
           "type": "string"
         },
-        "sha1": {
+        "token": {
+          "type": "string"
+        },
+        "token_last_eight": {
           "type": "string"
         }
       }

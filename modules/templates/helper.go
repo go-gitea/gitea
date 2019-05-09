@@ -63,6 +63,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
+		"DefaultShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
+		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
@@ -222,6 +225,13 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return dict, nil
+		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
 		},
 	}}
 }
@@ -485,6 +495,12 @@ var trNLangRules = map[string]func(int64) int{
 	},
 	"zh-TW": func(cnt int64) int {
 		return 0
+	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
 	},
 }
 
