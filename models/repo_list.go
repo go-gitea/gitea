@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -237,35 +236,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 			accessCond = accessCond.Or(collaborateCond)
 		}
-
-		var exprCond builder.Cond
-		if DbCfg.Type == core.POSTGRES {
-			exprCond = builder.Expr("org_user.org_id = \"user\".id")
-		} else if DbCfg.Type == core.MSSQL {
-			exprCond = builder.Expr("org_user.org_id = [user].id")
-		} else {
-			exprCond = builder.Eq{"org_user.org_id": "user.id"}
-		}
-
-		visibilityCond := builder.Or(
-			builder.In("owner_id",
-				builder.Select("org_id").From("org_user").
-					LeftJoin("`user`", exprCond).
-					Where(
-						builder.And(
-							builder.Eq{"uid": opts.OwnerID},
-							builder.Eq{"visibility": structs.VisibleTypePrivate})),
-			),
-			builder.In("owner_id",
-				builder.Select("id").From("`user`").
-					Where(
-						builder.Or(
-							builder.Eq{"visibility": structs.VisibleTypePublic},
-							builder.Eq{"visibility": structs.VisibleTypeLimited})),
-			),
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-		)
-		cond = cond.And(visibilityCond)
 
 		if opts.AllPublic {
 			accessCond = accessCond.Or(builder.Eq{"is_private": false})
