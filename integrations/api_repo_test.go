@@ -70,9 +70,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 20},
-			user:  {count: 20},
-			user2: {count: 20}},
+			nil:   {count: 21},
+			user:  {count: 21},
+			user2: {count: 21}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
 			nil:   {count: 10},

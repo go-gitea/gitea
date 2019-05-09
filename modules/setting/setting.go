@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -175,6 +176,7 @@ var (
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
+		DefaultShowFullName bool
 		DefaultTheme        string
 		Themes              []string
 
@@ -293,11 +295,13 @@ var (
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
+		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
+		DefaultMaxBlobSize:     10485760,
 	}
 
 	OAuth2 = struct {
@@ -388,12 +392,12 @@ func getAppPath() (string, error) {
 }
 
 func getWorkPath(appPath string) string {
-	workPath := ""
-	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+	workPath := AppWorkPath
 
-	if len(giteaWorkPath) > 0 {
+	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
 		workPath = giteaWorkPath
-	} else {
+	}
+	if len(workPath) == 0 {
 		i := strings.LastIndex(appPath, "/")
 		if i == -1 {
 			workPath = appPath
@@ -405,6 +409,7 @@ func getWorkPath(appPath string) string {
 }
 
 func init() {
+	IsWindows = runtime.GOOS == "windows"
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
@@ -471,26 +476,39 @@ func CheckLFSVersion() {
 	}
 }
 
-// NewContext initializes configuration context.
-// NOTE: do not print any log except error.
-func NewContext() {
-	Cfg = ini.Empty()
-
-	CustomPath = os.Getenv("GITEA_CUSTOM")
+// SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
+// GITEA_CUSTOM environment variable and with provided overrides before stepping
+// back to the default
+func SetCustomPathAndConf(providedCustom, providedConf string) {
+	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
+		CustomPath = giteaCustom
+	}
+	if len(providedCustom) != 0 {
+		CustomPath = providedCustom
+	}
 	if len(CustomPath) == 0 {
 		CustomPath = path.Join(AppWorkPath, "custom")
 	} else if !filepath.IsAbs(CustomPath) {
 		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if len(providedConf) != 0 {
+		CustomConf = providedConf
 	}
-
 	if len(CustomConf) == 0 {
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+	}
+}
+
+// NewContext initializes configuration context.
+// NOTE: do not print any log except error.
+func NewContext() {
+	Cfg = ini.Empty()
+
+	if len(CustomPID) > 0 {
+		createPIDFile(CustomPID)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -901,6 +919,7 @@ func NewContext() {
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
+	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 

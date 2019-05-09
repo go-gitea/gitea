@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -208,6 +209,24 @@ type Repository struct {
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+}
+
+// ColorFormat returns a colored string to represent this repo
+func (repo *Repository) ColorFormat(s fmt.State) {
+	var ownerName interface{}
+
+	if repo.OwnerName != "" {
+		ownerName = repo.OwnerName
+	} else if repo.Owner != nil {
+		ownerName = repo.Owner.Name
+	} else {
+		ownerName = log.NewColoredIDValue(strconv.FormatInt(repo.OwnerID, 10))
+	}
+
+	log.ColorFprintf(s, "%d:%s/%s",
+		log.NewColoredIDValue(repo.ID),
+		ownerName,
+		repo.Name)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -877,6 +896,7 @@ type MigrateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	RemoteAddr  string
+	Wiki        bool // include wiki repository
 }
 
 /*
@@ -898,7 +918,7 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates a existing repository from other project hosting.
+// MigrateRepository migrates an existing repository from other project hosting.
 func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
@@ -911,7 +931,6 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	repoPath := RepoPath(u.Name, opts.Name)
-	wikiPath := WikiPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
 		t, err := u.GetOwnerTeam()
@@ -937,21 +956,24 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
-	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
-	if len(wikiRemotePath) > 0 {
-		if err := os.RemoveAll(wikiPath); err != nil {
-			return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-		}
-
-		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
-			Mirror:  true,
-			Quiet:   true,
-			Timeout: migrateTimeout,
-			Branch:  "master",
-		}); err != nil {
-			log.Warn("Clone wiki: %v", err)
+	if opts.Wiki {
+		wikiPath := WikiPath(u.Name, opts.Name)
+		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+			}
+
+			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:  true,
+				Quiet:   true,
+				Timeout: migrateTimeout,
+				Branch:  "master",
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := os.RemoveAll(wikiPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				}
 			}
 		}
 	}
@@ -1077,9 +1099,11 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 		}
 	}
 
-	if err := cleanUpMigrateGitConfig(repo.GitConfigPath()); err != nil {
-		return repo, fmt.Errorf("cleanUpMigrateGitConfig: %v", err)
+	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}
+
 	if repo.HasWiki() {
 		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %v", err)
@@ -2434,6 +2458,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		Description:   desc,
 		DefaultBranch: oldRepo.DefaultBranch,
 		IsPrivate:     oldRepo.IsPrivate,
+		IsEmpty:       oldRepo.IsEmpty,
 		IsFork:        true,
 		ForkID:        oldRepo.ID,
 	}

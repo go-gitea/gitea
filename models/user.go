@@ -146,6 +146,13 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// ColorFormat writes a colored string to identify this struct
+func (u *User) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(u.ID),
+		log.NewColoredValue(u.Name))
+}
+
 // BeforeUpdate is invoked from XORM before updating this object.
 func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
@@ -531,7 +538,11 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 
 // IsUserPartOfOrg returns true if user with userID is part of the u organisation.
 func (u *User) IsUserPartOfOrg(userID int64) bool {
-	isMember, err := IsOrganizationMember(u.ID, userID)
+	return u.isUserPartOfOrg(x, userID)
+}
+
+func (u *User) isUserPartOfOrg(e Engine, userID int64) bool {
+	isMember, err := isOrganizationMember(e, u.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
 		return false
@@ -650,6 +661,16 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
+// returns username otherwise.
+func (u *User) GetDisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
+		return trimmed
+	}
+	return u.Name
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
@@ -747,7 +768,7 @@ var (
 		".",
 		"..",
 	}
-	reservedUserPatterns = []string{"*.keys"}
+	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
@@ -1515,7 +1536,11 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
-				log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+				if IsErrKeyAlreadyExist(err) {
+					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
+				} else {
+					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+				}
 			} else {
 				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
 				sshKeysNeedUpdate = true

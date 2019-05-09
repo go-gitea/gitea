@@ -24,9 +24,9 @@
 			</div>
 			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
 			{{if .Topics }}
-				<div>
+				<div class="ui tags">
 				{{range .Topics}}
-					{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui green basic label topic">{{.}}</div></a>{{end}}
+					{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
 				{{end}}
 				</div>
 			{{end}}

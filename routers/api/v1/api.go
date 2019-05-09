@@ -150,6 +150,7 @@ func repoAssignment() macaron.Handler {
 			}
 			return
 		}
+
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
@@ -172,6 +173,10 @@ func reqToken() macaron.Handler {
 		if true == ctx.Data["IsApiToken"] {
 			return
 		}
+		if ctx.Context.IsBasicAuth {
+			ctx.CheckForOTP()
+			return
+		}
 		if ctx.IsSigned {
 			ctx.RequireCSRF()
 			return
@@ -181,11 +186,12 @@ func reqToken() macaron.Handler {
 }
 
 func reqBasicAuth() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.IsBasicAuth {
-			ctx.Error(401)
+	return func(ctx *context.APIContext) {
+		if !ctx.Context.IsBasicAuth {
+			ctx.Context.Error(401)
 			return
 		}
+		ctx.CheckForOTP()
 	}
 }
 
@@ -281,6 +287,43 @@ func reqOrgOwnership() macaron.Handler {
 	}
 }
 
+// reqTeamMembership user should be an team member, or a site admin
+func reqTeamMembership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if ctx.Context.IsUserSiteAdmin() {
+			return
+		}
+		if ctx.Org.Team == nil {
+			ctx.Error(500, "", "reqTeamMembership: unprepared context")
+			return
+		}
+
+		var orgID = ctx.Org.Team.OrgID
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			return
+		}
+
+		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsTeamMember", err)
+			return
+		} else if !isTeamMember {
+			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOrganizationMember", err)
+			} else if isOrgMember {
+				ctx.Error(403, "", "Must be a team member")
+			} else {
+				ctx.NotFound()
+			}
+			return
+		}
+	}
+}
+
 // reqOrgMembership user should be an organization member, or a site admin
 func reqOrgMembership() macaron.Handler {
 	return func(ctx *context.APIContext) {
@@ -307,6 +350,15 @@ func reqOrgMembership() macaron.Handler {
 			} else {
 				ctx.NotFound()
 			}
+			return
+		}
+	}
+}
+
+func reqGitHook() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if !ctx.User.CanEditGitHook() {
+			ctx.Error(403, "", "must be allowed to edit Git hooks")
 			return
 		}
 	}
@@ -355,6 +407,22 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 func mustEnableIssues(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+		if log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeIssues,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypeIssues,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
@@ -362,6 +430,22 @@ func mustEnableIssues(ctx *context.APIContext) {
 
 func mustAllowPulls(ctx *context.APIContext) {
 	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
@@ -370,6 +454,24 @@ func mustAllowPulls(ctx *context.APIContext) {
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
 		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypeIssues,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v and %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypeIssues,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}
 		ctx.NotFound()
 		return
 	}
@@ -509,6 +611,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
 					})
+					m.Group("/git", func() {
+						m.Combo("").Get(repo.ListGitHooks)
+						m.Group("/:id", func() {
+							m.Combo("").Get(repo.GetGitHook).
+								Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+								Delete(repo.DeleteGitHook)
+						})
+					}, reqGitHook(), context.ReferencesGitRepo(true))
 				}, reqToken(), reqAdmin())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
@@ -602,10 +712,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Group("/:id", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.EditReleaseOption{}), repo.EditRelease).
 							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
@@ -627,7 +737,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
-				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
@@ -642,7 +752,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
-					m.Combo("/trees/:sha", context.RepoRef()).Get(repo.GetTree)
+					m.Get("/trees/:sha", context.RepoRef(), repo.GetTree)
+					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
+				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/contents", func() {
+					m.Get("/*", repo.GetFileContents)
+					m.Group("/*", func() {
+						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
+					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
 			}, repoAssignment())
 		})
@@ -694,7 +813,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
-		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
+		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Any("/*", func(ctx *context.APIContext) {
 			ctx.NotFound()

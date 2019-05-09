@@ -1,4 +1,4 @@
-# code.gitea.io/sdk v0.0.0-20190321154058-a669487e86e0
+# code.gitea.io/sdk v0.0.0-20190419065346-2858b80da5f7
 code.gitea.io/sdk/gitea
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
@@ -167,6 +167,10 @@ github.com/gogits/cron
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
+# github.com/google/go-github/v24 v24.0.1
+github.com/google/go-github/v24/github
+# github.com/google/go-querystring v1.0.0
+github.com/google/go-querystring/query
 # github.com/gorilla/context v1.1.1
 github.com/gorilla/context
 # github.com/gorilla/mux v1.6.2
@@ -209,9 +213,10 @@ github.com/klauspost/crc32
 # github.com/lafriks/xormstore v1.0.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.0.0
+# github.com/lib/pq v1.1.0
 github.com/lib/pq
 github.com/lib/pq/oid
+github.com/lib/pq/scram
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 github.com/lunny/dingtalk_webhook
 # github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
@@ -242,7 +247,7 @@ github.com/mattn/go-isatty
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mcuadros/go-version v0.0.0-20171003094716-88e56e02bea1
+# github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 github.com/mcuadros/go-version
 # github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 github.com/microcosm-cc/bluemonday
@@ -300,7 +305,7 @@ github.com/src-d/gcfg/token
 github.com/src-d/gcfg/types
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
 github.com/steveyen/gtreap
-# github.com/stretchr/testify v1.2.2
+# github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/syndtr/goleveldb v0.0.0-20190203031304-2f17a3356c66
@@ -320,7 +325,7 @@ github.com/syndtr/goleveldb/leveldb/util
 github.com/tinylib/msgp/msgp
 # github.com/tstranex/u2f v1.0.0
 github.com/tstranex/u2f
-# github.com/urfave/cli v0.0.0-20161102131801-d86a009f5e13
+# github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
 github.com/willf/bitset
@@ -355,8 +360,8 @@ golang.org/x/crypto/ssh/agent
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
-golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/context
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -409,22 +414,23 @@ gopkg.in/macaron.v1
 # gopkg.in/redis.v2 v2.3.2
 gopkg.in/redis.v2
 # gopkg.in/src-d/go-billy.v4 v4.3.0
-gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/osfs
+gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/util
 gopkg.in/src-d/go-billy.v4/helper/chroot
 gopkg.in/src-d/go-billy.v4/helper/polyfill
-# gopkg.in/src-d/go-git.v4 v4.8.0
+# gopkg.in/src-d/go-git.v4 v4.10.0
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing
-gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/cache
 gopkg.in/src-d/go-git.v4/plumbing/filemode
+gopkg.in/src-d/go-git.v4/plumbing/object
+gopkg.in/src-d/go-git.v4/storage/filesystem
+gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/format/gitignore
 gopkg.in/src-d/go-git.v4/plumbing/format/index
 gopkg.in/src-d/go-git.v4/plumbing/format/packfile
-gopkg.in/src-d/go-git.v4/plumbing/object
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability
 gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband
@@ -433,7 +439,6 @@ gopkg.in/src-d/go-git.v4/plumbing/storer
 gopkg.in/src-d/go-git.v4/plumbing/transport
 gopkg.in/src-d/go-git.v4/plumbing/transport/client
 gopkg.in/src-d/go-git.v4/storage
-gopkg.in/src-d/go-git.v4/storage/filesystem
 gopkg.in/src-d/go-git.v4/storage/memory
 gopkg.in/src-d/go-git.v4/utils/diff
 gopkg.in/src-d/go-git.v4/utils/ioutil
@@ -441,17 +446,18 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie
 gopkg.in/src-d/go-git.v4/utils/merkletrie/filesystem
 gopkg.in/src-d/go-git.v4/utils/merkletrie/index
 gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
+gopkg.in/src-d/go-git.v4/internal/url
 gopkg.in/src-d/go-git.v4/plumbing/format/config
+gopkg.in/src-d/go-git.v4/plumbing/format/diff
 gopkg.in/src-d/go-git.v4/utils/binary
 gopkg.in/src-d/go-git.v4/plumbing/format/idxfile
-gopkg.in/src-d/go-git.v4/plumbing/format/diff
+gopkg.in/src-d/go-git.v4/plumbing/format/objfile
+gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit
 gopkg.in/src-d/go-git.v4/plumbing/format/pktline
 gopkg.in/src-d/go-git.v4/plumbing/transport/file
 gopkg.in/src-d/go-git.v4/plumbing/transport/git
 gopkg.in/src-d/go-git.v4/plumbing/transport/http
 gopkg.in/src-d/go-git.v4/plumbing/transport/ssh
-gopkg.in/src-d/go-git.v4/plumbing/format/objfile
-gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit
 gopkg.in/src-d/go-git.v4/utils/merkletrie/internal/frame
 gopkg.in/src-d/go-git.v4/plumbing/transport/internal/common
 gopkg.in/src-d/go-git.v4/plumbing/transport/server

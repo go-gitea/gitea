@@ -106,3 +106,41 @@ func TestAPISudoUserForbidden(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
+
+func TestAPIListUsers(t *testing.T) {
+	prepareTestEnv(t)
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+
+	urlStr := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var users []api.User
+	DecodeJSON(t, resp, &users)
+
+	found := false
+	for _, user := range users {
+		if user.UserName == adminUsername {
+			found = true
+		}
+	}
+	assert.True(t, found)
+	numberOfUsers := models.GetCount(t, &models.User{}, "type = 0")
+	assert.Equal(t, numberOfUsers, len(users))
+}
+
+func TestAPIListUsersNotLoggedIn(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequest(t, "GET", "/api/v1/admin/users")
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestAPIListUsersNonAdmin(t *testing.T) {
+	prepareTestEnv(t)
+	nonAdminUsername := "user2"
+	session := loginUser(t, nonAdminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
+	session.MakeRequest(t, req, http.StatusForbidden)
+}
