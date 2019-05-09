@@ -846,6 +846,7 @@ type MigrateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	RemoteAddr  string
+	Wiki        bool // include wiki repository
 }
 
 /*
@@ -867,7 +868,7 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates a existing repository from other project hosting.
+// MigrateRepository migrates an existing repository from other project hosting.
 func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
@@ -880,7 +881,6 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	repoPath := RepoPath(u.Name, opts.Name)
-	wikiPath := WikiPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
 		t, err := u.GetOwnerTeam()
@@ -906,21 +906,24 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
-	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
-	if len(wikiRemotePath) > 0 {
-		if err := os.RemoveAll(wikiPath); err != nil {
-			return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-		}
-
-		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
-			Mirror:  true,
-			Quiet:   true,
-			Timeout: migrateTimeout,
-			Branch:  "master",
-		}); err != nil {
-			log.Warn("Clone wiki: %v", err)
+	if opts.Wiki {
+		wikiPath := WikiPath(u.Name, opts.Name)
+		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+			}
+
+			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:  true,
+				Quiet:   true,
+				Timeout: migrateTimeout,
+				Branch:  "master",
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := os.RemoveAll(wikiPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				}
 			}
 		}
 	}
