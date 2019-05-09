@@ -90,9 +90,9 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 7, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			nil:   {count: 4},
-			user:  {count: 8, includesPrivate: true},
-			user2: {count: 4}},
+			nil:   {count: 5},
+			user:  {count: 9, includesPrivate: true},
+			user2: {count: 5, includesPrivate: true}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
@@ -113,12 +113,12 @@ func TestAPISearchRepo(t *testing.T) {
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
 			nil:   {count: 3},
-			user:  {count: 3},
-			user4: {count: 6, includesPrivate: true}}},
+			user:  {count: 4, includesPrivate: true},
+			user4: {count: 7, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
 			nil:   {count: 0},
-			user:  {count: 0},
-			user4: {count: 0, includesPrivate: true}}},
+			user:  {count: 1, includesPrivate: true},
+			user4: {count: 1, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
@@ -137,8 +137,8 @@ func TestAPISearchRepo(t *testing.T) {
 			user4: {count: 2, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
 			nil:   {count: 0},
-			user:  {count: 0},
-			user4: {count: 0, includesPrivate: true}}},
+			user:  {count: 1, includesPrivate: true},
+			user4: {count: 1, includesPrivate: true}}},
 	}
 
 	for _, testCase := range testCases {

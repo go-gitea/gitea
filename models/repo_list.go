@@ -224,7 +224,12 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 		if opts.Collaborate != util.OptionalBoolFalse {
 			collaborateCond := builder.And(
-				builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+				builder.Or(
+					builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.In("id", builder.Select("`team_repo`.repo_id").
+						From("team_repo").
+						Where(builder.Eq{"`team_user`.uid": opts.OwnerID}).
+						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id"))),
 				builder.Neq{"owner_id": opts.OwnerID})
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
