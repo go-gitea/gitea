@@ -9,14 +9,34 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"github.com/dgrijalva/jwt-go"
 	"io"
 	"math/big"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // GetRandomString generate random string by specify chars.
 func GetRandomString(n int) (string, error) {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+	buffer := make([]byte, n)
+	max := big.NewInt(int64(len(alphanum)))
+
+	for i := 0; i < n; i++ {
+		index, err := randomInt(max)
+		if err != nil {
+			return "", err
+		}
+
+		buffer[i] = alphanum[index]
+	}
+
+	return string(buffer), nil
+}
+
+//GetRandomPassword generate random password
+func GetRandomPassword(n int) (string, error) {
 	const lower = "abcdefghijklmnopqrstuvwxyz"
 	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	const digit = "0123456789"

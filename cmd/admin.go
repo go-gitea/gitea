@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"code.gitea.io/gitea/modules/util"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -278,7 +278,7 @@ func runCreateUser(c *cli.Context) error {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
 		var err error
-		password, err = generate.GetRandomString(c.Int("random-password-length"))
+		password, err = generate.GetRandomPassword(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
