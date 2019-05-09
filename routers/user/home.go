@@ -288,47 +288,39 @@ func Issues(ctx *context.Context) {
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
-		repo, err := models.GetRepositoryByID(repoID)
-		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
-			return
-		}
-		showReposMap[repoID] = repo
-	}
+		if repoID > 0 {
+			if _, ok := showReposMap[repoID]; !ok {
+				repo, err := models.GetRepositoryByID(repoID)
+				if models.IsErrRepoNotExist(err) {
+					ctx.NotFound("GetRepositoryByID", err)
+					return
+				} else if err != nil {
+					ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+					return
+				}
+				showReposMap[repoID] = repo
+			}
 
-	for repoIDint := range repoIDs {
-		var repoID = int64(repoIDint)
-		if _, ok := showReposMap[repoID]; !ok {
-			repo, err := models.GetRepositoryByID(repoID)
-			if models.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", err)
-				return
-			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+			repo := showReposMap[repoID]
+
+			// Check if user has access to given repository.
+			perm, err := models.GetUserRepoPermission(repo, ctxUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
-			showReposMap[repoID] = repo
-		}
-
-		repo := showReposMap[repoID]
-
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(repo, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			if log.IsTrace() {
-				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
-					"User in repo has Permissions: %-+v",
-					ctxUser,
-					models.UnitTypeIssues,
-					repo,
-					perm)
+			if !perm.CanRead(models.UnitTypeIssues) {
+				if log.IsTrace() {
+					log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+						"User in repo has Permissions: %-+v",
+						ctxUser,
+						models.UnitTypeIssues,
+						repo,
+						perm)
+				}
+				ctx.Status(404)
+				return
 			}
-			ctx.Status(404)
-			return
 		}
 	}
 
