@@ -154,6 +154,7 @@ var (
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
 	PasswordComplexity    map[string]string
+
 	// Database settings
 	UseSQLite3       bool
 	UseMySQL         bool
@@ -768,33 +769,6 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
-
-	InternalToken = sec.Key("INTERNAL_TOKEN").String()
-	if len(InternalToken) == 0 {
-
-		InternalToken, err = generate.NewInternalToken()
-		if err != nil {
-			log.Fatal("Error generate internal token: %v", err)
-		}
-
-		// Save secret
-		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
-			// Keeps custom settings if there is already something.
-			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-			}
-		}
-
-		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
-
-		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal("Failed to create PID folder: %v", err)
-		}
-		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal("Error saving generated INTERNAL_TOKEN to custom config: %v", err)
-		}
-	}
 	InternalToken = loadInternalToken(sec)
 	var dictPC = map[string]string{
 		"lower": "[a-z]+",
