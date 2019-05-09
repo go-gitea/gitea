@@ -129,3 +129,18 @@ func TestAPIListUsers(t *testing.T) {
 	numberOfUsers := models.GetCount(t, &models.User{}, "type = 0")
 	assert.Equal(t, numberOfUsers, len(users))
 }
+
+func TestAPIListUsersNotLoggedIn(t *testing.T) {
+	prepareTestEnv(t)
+	req := NewRequest(t, "GET", "/api/v1/admin/users")
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestAPIListUsersNonAdmin(t *testing.T) {
+	prepareTestEnv(t)
+	nonAdminUsername := "user2"
+	session := loginUser(t, nonAdminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
+	session.MakeRequest(t, req, http.StatusForbidden)
+}
