@@ -190,7 +190,6 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	default:
-		log.Info("Profile.go!")
 		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Keyword:     keyword,
 			OwnerID:     ctxUser.ID,
