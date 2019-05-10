@@ -23,8 +23,7 @@ func BasicAuthEncode(user, pass string) string {
 type AccessToken struct {
 	ID             int64  `json:"id"`
 	Name           string `json:"name"`
-	Token          string `json:"token"`
-	HashedToken    string `json:"hashed_token"`
+	Token          string `json:"sha1"`
 	TokenLastEight string `json:"token_last_eight"`
 }
 
