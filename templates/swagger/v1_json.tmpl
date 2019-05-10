@@ -1197,6 +1197,45 @@
             "$ref": "#/responses/forbidden"
           }
         }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a repository's properties. Only fields that are set will be changed.",
+        "operationId": "repoEdit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to edit",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to edit",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Properties of a repo that you can edit",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/archive/{archive}": {
@@ -7126,6 +7165,9 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -7718,6 +7760,87 @@
         "target_commitish": {
           "type": "string",
           "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "EditRepoOption": {
+      "description": "EditRepoOption options when editing a repository's properties",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "allow_merge_commits": {
+          "description": "Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowMerge"
+        },
+        "allow_rebase": {
+          "description": "Either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebase"
+        },
+        "allow_rebase_explicit": {
+          "description": "Either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebaseMerge"
+        },
+        "allow_squash_merge": {
+          "description": "Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowSquashMerge"
+        },
+        "archived": {
+          "description": "`true` to archive this repository. Note: You cannot unarchive repositories through the API.",
+          "type": "boolean",
+          "x-go-name": "Archived"
+        },
+        "default_branch": {
+          "description": "Updates the default branch for this repository.",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
+        },
+        "description": {
+          "description": "A short description of the repository.",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "enable_issues": {
+          "description": "Either `true` to enable issues for this repository or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "EnableIssues"
+        },
+        "enable_pull_requests": {
+          "description": "Either `true` to allow pull requests, or `false` to prevent pull request.",
+          "type": "boolean",
+          "x-go-name": "EnablePullRequests"
+        },
+        "enable_wiki": {
+          "description": "Either `true` to enable the wiki for this repository or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "EnableWiki"
+        },
+        "ignore_whitespace": {
+          "description": "Either `true` to ignore whitepace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "name": {
+          "description": "Name of the repository",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        },
+        "private": {
+          "description": "Either `true` to make the repository private or `false` to make it public.\nNote: You will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "website": {
+          "description": "A URL with more information about the repository.",
+          "type": "string",
+          "x-go-name": "Website"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -8595,6 +8718,9 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -9447,6 +9573,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/models"
     },
+    "VisibleType": {
+      "description": "VisibleType defines the visibility (Organization only)",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
       "type": "object",
@@ -9484,9 +9616,6 @@
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
       "headers": {
-        "hashed_token": {
-          "type": "string"
-        },
         "id": {
           "type": "integer",
           "format": "int64"
@@ -9494,7 +9623,7 @@
         "name": {
           "type": "string"
         },
-        "token": {
+        "sha1": {
           "type": "string"
         },
         "token_last_eight": {

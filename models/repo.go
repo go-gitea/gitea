@@ -377,10 +377,20 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	return false
 }
 
-var (
-	// ErrUnitNotExist organization does not exist
-	ErrUnitNotExist = errors.New("Unit does not exist")
-)
+// ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
+type ErrUnitTypeNotExist struct {
+	UT UnitType
+}
+
+// IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
+func IsErrUnitTypeNotExist(err error) bool {
+	_, ok := err.(ErrUnitTypeNotExist)
+	return ok
+}
+
+func (err ErrUnitTypeNotExist) Error() string {
+	return"Unit does not exist"
+}
 
 // MustGetUnit always returns a RepoUnit object
 func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
@@ -404,6 +414,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
+	} else if tp == UnitTypeIssues {
+		return &RepoUnit{
+			Type: tp,
+			Config: new(IssuesConfig),
+		}
 	}
 	return &RepoUnit{
 		Type:   tp,
@@ -425,7 +440,7 @@ func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 			return unit, nil
 		}
 	}
-	return nil, ErrUnitNotExist
+	return nil, ErrUnitTypeNotExist{tp}
 }
 
 func (repo *Repository) getOwner(e Engine) (err error) {
@@ -1320,8 +1335,8 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	}
 
 	// insert units for repo
-	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
-	for _, tp := range defaultRepoUnits {
+	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
+	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
