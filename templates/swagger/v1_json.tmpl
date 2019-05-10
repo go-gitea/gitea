@@ -7126,6 +7126,9 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -8595,6 +8598,9 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -9447,6 +9453,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/models"
     },
+    "VisibleType": {
+      "description": "VisibleType defines the visibility (Organization only)",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
       "type": "object",
@@ -9484,9 +9496,6 @@
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
       "headers": {
-        "hashed_token": {
-          "type": "string"
-        },
         "id": {
           "type": "integer",
           "format": "int64"
@@ -9494,7 +9503,7 @@
         "name": {
           "type": "string"
         },
-        "token": {
+        "sha1": {
           "type": "string"
         },
         "token_last_eight": {
