@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{

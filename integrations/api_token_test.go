@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
