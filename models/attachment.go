@@ -11,8 +11,8 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
