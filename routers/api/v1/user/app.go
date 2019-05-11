@@ -76,6 +76,9 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+	if t.Name == "drone" {
+		t.Name = "drone-legacy-use-oauth2-instead"
+	}
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(500, "NewAccessToken", err)
 		return
