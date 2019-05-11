@@ -21,7 +21,7 @@ func TestVersion(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/version")
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var version gitea.ServerVersion
+	var version structs.ServerVersion
 	DecodeJSON(t, resp, &version)
 	assert.Equal(t, setting.AppVer, string(version.Version))
 }
