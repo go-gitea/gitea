@@ -178,7 +178,6 @@ func prepareTestEnv(t testing.TB, skip ...int) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
-	assert.NoError(t, os.RemoveAll(models.LocalWikiPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
