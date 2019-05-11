@@ -6,7 +6,7 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

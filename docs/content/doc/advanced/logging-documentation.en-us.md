@@ -66,7 +66,7 @@ multiple subloggers that will log to files.
 
 By default Macaron will log to its own go `log` instance. This writes
 to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `ENABLE_MACARON_REDIRECT` setting in the `[log]`
+through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
 section which you can configure the outputs of by setting the `MACARON`
 value in the `[log]` section of the configuration. `MACARON` defaults
 to `file` if unset.
@@ -89,7 +89,7 @@ log using the value: `MACARON = ,`
 
 There are two types of Router log. By default Macaron send its own
 router log which will be directed to Macaron's go `log`, however if you
-`ENABLE_MACARON_REDIRECT` you will enable Gitea's router log. You can
+`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
 disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
 
 If you enable the redirect, you can configure the outputs of this
