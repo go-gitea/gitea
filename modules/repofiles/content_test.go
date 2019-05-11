@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +30,7 @@ func TestGetFileContents(t *testing.T) {
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
-	expectedFileContentResponse := &gitea.FileContentResponse{
+	expectedFileContentResponse := &structs.FileContentResponse{
 		Name:        treePath,
 		Path:        treePath,
 		SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
@@ -40,7 +40,7 @@ func TestGetFileContents(t *testing.T) {
 		GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 		DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
 		Type:        "blob",
-		Links: &gitea.FileLinksResponse{
+		Links: &structs.FileLinksResponse{
 			Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
 			GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 			HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/README.md",

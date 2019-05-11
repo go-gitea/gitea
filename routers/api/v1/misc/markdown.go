@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
