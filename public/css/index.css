@@ -890,6 +890,8 @@ tbody.commit-list{vertical-align:baseline}
 .user.notification .octicon.blue{color:#2185d0}
 .user.link-account:not(.icon){padding-top:15px;padding-bottom:5px}
 .user.settings .iconFloat{float:left}
+.user-orgs{display:flex;flex-flow:row wrap;padding:0;margin:-3px!important}
+.user-orgs li{display:flex;border-bottom:0!important;padding:3px!important;width:20%;max-width:60px}
 .dashboard{padding-top:15px}
 .dashboard.feeds .context.user.menu,.dashboard.issues .context.user.menu{z-index:101;min-width:200px}
 .dashboard.feeds .context.user.menu .ui.header,.dashboard.issues .context.user.menu .ui.header{font-size:1rem;text-transform:none}
