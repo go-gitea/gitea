@@ -50,5 +50,5 @@ type Commit struct {
 // GetSingleCommit returns a single commit
 func (c *Client) GetSingleCommit(user, repo, commitID string) (*Commit, error) {
 	commit := new(Commit)
-	return commit, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/commits/%s", user, repo, commitID), nil, nil, &commit)
+	return commit, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/commits/%s", user, repo, commitID), nil, nil, &commit)
 }

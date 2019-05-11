@@ -7126,6 +7126,9 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
+        },
         "website": {
           "type": "string",
           "x-go-name": "Website"
@@ -8479,6 +8482,18 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
@@ -8486,6 +8501,14 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
         },
         "repo_name": {
           "type": "string",
@@ -8495,6 +8518,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "UID"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/auth"
@@ -8570,6 +8597,9 @@
         "username": {
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "visibility": {
+          "$ref": "#/definitions/VisibleType"
         },
         "website": {
           "type": "string",
@@ -9423,6 +9453,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/models"
     },
+    "VisibleType": {
+      "description": "VisibleType defines the visibility (Organization only)",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
       "type": "object",
@@ -9460,9 +9496,6 @@
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
       "headers": {
-        "hashed_token": {
-          "type": "string"
-        },
         "id": {
           "type": "integer",
           "format": "int64"
@@ -9470,7 +9503,7 @@
         "name": {
           "type": "string"
         },
-        "token": {
+        "sha1": {
           "type": "string"
         },
         "token_last_eight": {
