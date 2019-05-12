@@ -147,12 +147,10 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	return index, nil
 }
 
-const maxBatchSize = 16
-
 const (
-	repoIndexerAnalyzer = "repoIndexerAnalyzer"
-	repoIndexerDocType  = "repoIndexerDocType"
-
+	maxBatchSize             = 16
+	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
+	repoIndexerDocType       = "repoIndexerDocType"
 	repoIndexerLatestVersion = 1
 )
 
@@ -184,9 +182,6 @@ func (b *BleveIndexer) Init() (bool, error) {
 
 	b.indexer, err = createIndexer(b.indexDir, repoIndexerLatestVersion)
 	return false, err
-	/*if err = populateIndexer(); err != nil {
-		log.Fatal(4, "PopulateRepoIndex: %v", err)
-	}*/
 }
 
 func (b *BleveIndexer) Index(datas []*IndexerData) error {

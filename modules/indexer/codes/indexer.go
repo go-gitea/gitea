@@ -111,12 +111,12 @@ func InitIndexer(syncReindex bool) error {
 
 	if populate {
 		if syncReindex {
-			return populateRepoIndexer()
+			return populateIndexer()
 		}
 
 		go func() {
-			if err := populateRepoIndexer(); err != nil {
-				log.Error("populateRepoIndexer: %v", err)
+			if err := populateIndexer(); err != nil {
+				log.Error("populateIndexer: %v", err)
 			}
 		}()
 	}
@@ -124,9 +124,9 @@ func InitIndexer(syncReindex bool) error {
 	return nil
 }
 
-// populateRepoIndexer populate the repo indexer with pre-existing data. This
+// populatendexer populate the repo indexer with pre-existing data. This
 // should only be run when the indexer is created for the first time.
-func populateRepoIndexer() error {
+func populateIndexer() error {
 	notEmpty, err := models.IsTableNotEmpty("repository")
 	if err != nil {
 		return err
