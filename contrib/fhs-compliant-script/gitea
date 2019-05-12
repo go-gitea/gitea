@@ -1,0 +1,18 @@
+#!/usr/bin
+
+########################################################################
+# This script some defaults for gitea to run in a FHS compliant manner #
+########################################################################
+
+# It assumes that you place this script as gitea in /usr/bin
+#
+# And place the original in /usr/lib/gitea with working files in /var/lib/gitea
+# and main configuration in /etc/gitea/app.ini
+GITEA="/usr/lib/gitea/gitea"
+WORK_DIR="/var/lib/gitea"
+APP_INI="/etc/gitea/app.ini"
+
+# Provide FHS compliant defaults to 
+GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" GITEA_CUSTOM_PATH="${GITEA_CUSTOM_PATH:-$APP_INI}" "$GITEA" "$@"
+
+
