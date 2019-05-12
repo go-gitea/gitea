@@ -89,7 +89,7 @@
             }
 
             .item {
-                padding: 0px;
+                padding: 0;
             }
 
             .label.color {
@@ -181,7 +181,7 @@
     .ui.tabs {
         &.container {
             margin-top: 14px;
-            margin-bottom: 0px;
+            margin-bottom: 0;
 
             .ui.menu {
                 border-bottom: none;
@@ -524,7 +524,7 @@
 
             input {
                 vertical-align: middle;
-                box-shadow: rgba(0, 0, 0, 0.0745098) 0px 1px 2px inset;
+                box-shadow: rgba(0, 0, 0, 0.0745098) 0 1px 2px inset;
                 width: inherit;
                 padding: 7px 8px;
                 margin-right: 5px;
@@ -696,8 +696,7 @@
 
             &.tab.segment {
                 border: none;
-                padding: 0;
-                padding-top: 10px;
+                padding: 10px 0 0;
                 box-shadow: none;
                 background-color: inherit;
             }
@@ -791,7 +790,7 @@
                 .content {
                     margin-left: 4em;
 
-                    >.header {
+                    > .header {
                         #avatar-arrow;
                         font-weight: normal;
                         padding: auto 15px;
@@ -818,7 +817,7 @@
                         font-style: italic;
                     }
 
-                    >.bottom.segment {
+                    > .bottom.segment {
                         background: #f3f4f5;
 
                         .ui.images::after {
@@ -871,8 +870,7 @@
 
                     .tab.segment {
                         border: none;
-                        padding: 0;
-                        padding-top: 10px;
+                        padding: 10px 0 0;
                     }
 
                     textarea {
@@ -926,7 +924,7 @@
                     &.octicon-eye {
                         margin-top: 3px;
                         margin-left: -35px;
-                        margin-right: 0px;
+                        margin-right: 0;
                         font-size: 22px;
                     }
 
@@ -991,8 +989,7 @@
 
             .tab.segment {
                 border: none;
-                padding: 0;
-                padding-top: 10px;
+                padding: 10px 0 0;
             }
 
             textarea {
@@ -1036,12 +1033,12 @@
         list-style: none;
         padding-top: 15px;
 
-        >.item {
+        > .item {
             padding-top: 10px;
             padding-bottom: 10px;
             border-bottom: 1px dashed #AAA;
 
-            >a {
+            > a {
                 padding-top: 5px;
                 padding-right: 10px;
                 color: #000;
@@ -1078,7 +1075,7 @@
             .operate {
                 margin-top: -15px;
 
-                >a {
+                > a {
                     font-size: 15px;
                     padding-top: 5px;
                     padding-right: 10px;
@@ -1234,7 +1231,7 @@
         background: #fff;
         line-height: 30px;
 
-        >div:after {
+        > div:after {
             clear: both;
             content: "";
             display: block;
@@ -1281,7 +1278,7 @@
 
         .detail-files {
             background: #fff;
-            margin: 0px;
+            margin: 0;
         }
     }
 
@@ -1351,8 +1348,7 @@
             font-size: 12px;
 
             td {
-                padding: 0;
-                padding-left: 10px;
+                padding: 0 0 0 10px;
                 border-top: none;
             }
 
@@ -1509,7 +1505,7 @@
             margin-top: 20px;
             padding-top: 15px;
 
-            >li {
+            > li {
                 list-style: none;
 
                 .meta,
@@ -1545,7 +1541,7 @@
                     .download {
                         margin-top: 20px;
 
-                        >a {
+                        > a {
                             .octicon {
                                 margin-left: 5px;
                                 margin-right: 5px;
@@ -1686,7 +1682,7 @@
                 text-transform: none;
             }
 
-            >.markdown {
+            > .markdown {
                 padding: 15px 30px;
 
                 h1,
@@ -1715,7 +1711,7 @@
             .collaborator.list {
                 padding: 0;
 
-                >.item {
+                > .item {
                     margin: 0;
                     line-height: 2em;
 
@@ -1839,11 +1835,11 @@
             right: 0 !important;
             left: auto !important;
 
-            >.header {
+            > .header {
                 margin: 0.75rem 0 .5rem;
             }
 
-            >.item {
+            > .item {
                 float: left;
                 padding: .5rem .5rem !important;
 
@@ -1864,7 +1860,7 @@
                 cursor: default;
             }
 
-            >img {
+            > img {
                 height: 1.5em !important;
             }
         }
@@ -1954,7 +1950,7 @@
 .issue.list {
     list-style: none;
 
-    >.item {
+    > .item {
         padding-top: 15px;
         padding-bottom: 10px;
         border-bottom: 1px dashed #AAA;
@@ -2042,14 +2038,14 @@
     .content {
         margin-top: 2px;
 
-        >.header,
+        > .header,
         .segment {
             box-shadow: 0 1px 2px 0 rgba(34, 36, 38, .15);
         }
     }
 
     .list {
-        >.item {
+        > .item {
             .green {
                 color: #21BA45;
             }
@@ -2060,11 +2056,11 @@
                 margin: 15px -1rem -1rem -1rem;
             }
 
-            >.mega-octicon {
+            > .mega-octicon {
                 display: table-cell;
             }
 
-            >.mega-octicon+.content {
+            > .mega-octicon + .content {
                 display: table-cell;
                 padding: 0 0 0 .5em;
                 vertical-align: top;
@@ -2088,13 +2084,13 @@
         }
 
         &.email {
-            >.item:not(:first-child) {
+            > .item:not(:first-child) {
                 min-height: 60px;
             }
         }
 
         &.collaborator {
-            >.item {
+            > .item {
                 padding: 0;
             }
         }
@@ -2191,7 +2187,7 @@
 
 .generate-tab-size(@n, @i: 1) when (@i =< @n) {
     .tab-size-@{i} {
-        tab-size: @i  !important;
+        tab-size: @i !important;
     }
 
     .generate-tab-size(@n, (@i + 1));
@@ -2220,7 +2216,7 @@ tbody.commit-list {
 
 @media only screen and (max-width: 767px) {
     .ui.stackable.menu {
-        &.mobile--margin-between-items>.item {
+        &.mobile--margin-between-items > .item {
             margin-top: 5px;
             margin-bottom: 5px;
         }
@@ -2247,7 +2243,7 @@ tbody.commit-list {
 #new-dependency-drop-list {
     &.ui.selection.dropdown {
         min-width: 0;
-        width:  100%;
+        width: 100%;
         border-radius: 4px 0 0 4px;
         border-right: 0;
         white-space: nowrap;
@@ -2263,7 +2259,7 @@ tbody.commit-list {
     font-size: 12px;
 }
 
-.label+#manage_topic {
+.label + #manage_topic {
     margin-left: 5px;
 }
 
@@ -2294,7 +2290,7 @@ tbody.commit-list {
     box-shadow: 0 0 0 1px rgba(34, 36, 38, .15) inset !important;
 }
 
-.repo-buttons .ui.labeled.button>.label {
+.repo-buttons .ui.labeled.button > .label {
     border-left: none !important;
     margin: 0 !important;
 }
