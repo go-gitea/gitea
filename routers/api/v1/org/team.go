@@ -6,7 +6,7 @@
 package org
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -189,7 +189,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range unitTypes {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
+				OrgID: ctx.Org.Team.OrgID,
 				Type:  tp,
 			})
 		}

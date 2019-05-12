@@ -70,3 +70,12 @@
   content: "New review 3 rejected"
   updated_unix: 946684810
   created_unix: 946684810
+
+-
+  id: 10
+  type: 3
+  reviewer_id: 100
+  issue_id: 3
+  content: "a deleted user's review"
+  updated_unix: 946684810
+  created_unix: 946684810

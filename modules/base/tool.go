@@ -5,9 +5,11 @@
 package base
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -36,6 +38,9 @@ import (
 	"github.com/gogits/chardet"
 )
 
+// UTF8BOM is the utf-8 byte-order marker
+var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
+
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
 	m := md5.New()
@@ -46,6 +51,13 @@ func EncodeMD5(str string) string {
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
 	h := sha1.New()
+	h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// EncodeSha256 string to sha1 hex value.
+func EncodeSha256(str string) string {
+	h := sha256.New()
 	h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -89,6 +101,14 @@ func DetectEncoding(content []byte) (string, error) {
 
 	log.Debug("Detected encoding: %s", result.Charset)
 	return result.Charset, err
+}
+
+// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
+func RemoveBOMIfPresent(content []byte) []byte {
+	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
+		return content[3:]
+	}
+	return content
 }
 
 // BasicAuthDecode decode basic auth string

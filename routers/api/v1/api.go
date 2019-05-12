@@ -65,13 +65,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
@@ -150,6 +150,7 @@ func repoAssignment() macaron.Handler {
 			}
 			return
 		}
+
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
@@ -278,6 +279,43 @@ func reqOrgOwnership() macaron.Handler {
 		} else if !isOwner {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization owner")
+			} else {
+				ctx.NotFound()
+			}
+			return
+		}
+	}
+}
+
+// reqTeamMembership user should be an team member, or a site admin
+func reqTeamMembership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		if ctx.Context.IsUserSiteAdmin() {
+			return
+		}
+		if ctx.Org.Team == nil {
+			ctx.Error(500, "", "reqTeamMembership: unprepared context")
+			return
+		}
+
+		var orgID = ctx.Org.Team.OrgID
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			return
+		}
+
+		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsTeamMember", err)
+			return
+		} else if !isTeamMember {
+			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOrganizationMember", err)
+			} else if isOrgMember {
+				ctx.Error(403, "", "Must be a team member")
 			} else {
 				ctx.NotFound()
 			}
@@ -775,7 +813,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
-		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
+		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Any("/*", func(ctx *context.APIContext) {
 			ctx.NotFound()

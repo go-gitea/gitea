@@ -232,6 +232,13 @@ def _write_altsrc_flag_types(outfile, types):
             f.set = set
             f.{name}Flag.Apply(set)
         }}
+
+        // ApplyWithError saves the flagSet for later usage calls, then calls the
+        // wrapped {name}Flag.ApplyWithError
+        func (f *{name}Flag) ApplyWithError(set *flag.FlagSet) error {{
+            f.set = set
+            return f.{name}Flag.ApplyWithError(set)
+        }}
         """.format(**typedef))
 
 
