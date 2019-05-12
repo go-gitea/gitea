@@ -64,12 +64,12 @@ func TestIndexAndSearch(t *testing.T) {
 	)
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(kw.Keyword, 2, 10, 0)
+		res, err := indexer.Search(kw.IDs, kw.Keyword, 1, 10)
 		assert.NoError(t, err)
 
 		var ids = make([]int64, 0, len(res.Hits))
 		for _, hit := range res.Hits {
-			ids = append(ids, hit.ID)
+			ids = append(ids, hit.RepoID)
 		}
 		assert.EqualValues(t, kw.IDs, ids)
 	}
