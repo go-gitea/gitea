@@ -36,6 +36,9 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 	apiTokens := make([]*api.AccessToken, len(tokens))
 	for i := range tokens {
+		if tokens[i].Name == "drone" {
+			tokens[i].Name = "drone-legacy-use-oauth2-instead"
+		}
 		apiTokens[i] = &api.AccessToken{
 			ID:             tokens[i].ID,
 			Name:           tokens[i].Name,
@@ -76,14 +79,18 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+	if t.Name == "drone" {
+		t.Name = "drone-legacy-use-oauth2-instead"
+	}
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(500, "NewAccessToken", err)
 		return
 	}
 	ctx.JSON(201, &api.AccessToken{
-		Name:  t.Name,
-		Token: t.Token,
-		ID:    t.ID,
+		Name:           t.Name,
+		Token:          t.Token,
+		ID:             t.ID,
+		TokenLastEight: t.TokenLastEight,
 	})
 }
 
