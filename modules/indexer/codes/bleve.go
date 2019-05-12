@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/blevesearch/bleve"
@@ -188,21 +189,43 @@ func (b *BleveIndexer) Init() (bool, error) {
 }
 
 func (b *BleveIndexer) Index(datas []*IndexerData) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, data := range datas {
-		id := filenameIndexerID(data.RepoID, data.Filepath)
+		repo, err := models.GetRepositoryByID(data.RepoID)
+		if err != nil {
+			return err
+		}
 
-		if err := batch.Index(id, struct {
-			RepoID  int64
-			Content string
-		}{
-			RepoID:  data.RepoID,
-			Content: data.Content,
-		}); err != nil {
+		sha, err := getDefaultBranchSha(repo)
+		if err != nil {
+			return err
+		}
+		changes, err := getRepoChanges(repo, sha)
+		if err != nil {
+			return err
+		} else if changes == nil {
+			return nil
+		}
+
+		batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+		for _, update := range changes.Updates {
+			if err := addUpdate(update, repo, batch); err != nil {
+				return err
+			}
+		}
+		for _, filename := range changes.RemovedFilenames {
+			if err := batch.Delete(filenameIndexerID(repo.ID, filename)); err != nil {
+				return err
+			}
+		}
+		if err = batch.Flush(); err != nil {
+			return err
+		}
+
+		if err := repo.UpdateIndexerStatus(sha); err != nil {
 			return err
 		}
 	}
-	return batch.Flush()
+	return nil
 }
 
 // Delete deletes indexes by ids
