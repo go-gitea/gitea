@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"testing"
 
@@ -14,80 +15,79 @@ import (
 )
 
 func TestCreateFile(t *testing.T) {
-	prepareTestEnv(t)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
 
-	session := loginUser(t, "user2")
+		// Request editor page
+		req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Request editor page
-	req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		lastCommit := doc.GetInputValueByName("last_commit")
+		assert.NotEmpty(t, lastCommit)
 
-	doc := NewHTMLParser(t, resp.Body)
-	lastCommit := doc.GetInputValueByName("last_commit")
-	assert.NotEmpty(t, lastCommit)
-
-	// Save new file to master branch
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-		"_csrf":         doc.GetCSRF(),
-		"last_commit":   lastCommit,
-		"tree_path":     "test.txt",
-		"content":       "Content",
-		"commit_choice": "direct",
+		// Save new file to master branch
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
+			"_csrf":         doc.GetCSRF(),
+			"last_commit":   lastCommit,
+			"tree_path":     "test.txt",
+			"content":       "Content",
+			"commit_choice": "direct",
+		})
+		resp = session.MakeRequest(t, req, http.StatusFound)
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
 }
 
 func TestCreateFileOnProtectedBranch(t *testing.T) {
-	prepareTestEnv(t)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
 
-	session := loginUser(t, "user2")
+		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
+		// Change master branch to protected
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
+			"_csrf":     csrf,
+			"protected": "on",
+		})
+		resp := session.MakeRequest(t, req, http.StatusFound)
+		// Check if master branch has been locked successfully
+		flashCookie := session.GetCookie("macaron_flash")
+		assert.NotNil(t, flashCookie)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
-	csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
-	// Change master branch to protected
-	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
-		"_csrf":     csrf,
-		"protected": "on",
+		// Request editor page
+		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		doc := NewHTMLParser(t, resp.Body)
+		lastCommit := doc.GetInputValueByName("last_commit")
+		assert.NotEmpty(t, lastCommit)
+
+		// Save new file to master branch
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
+			"_csrf":         doc.GetCSRF(),
+			"last_commit":   lastCommit,
+			"tree_path":     "test.txt",
+			"content":       "Content",
+			"commit_choice": "direct",
+		})
+
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		// Check body for error message
+		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#39;master&#39;.")
+
+		// remove the protected branch
+		csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
+		// Change master branch to protected
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
+			"_csrf":     csrf,
+			"protected": "off",
+		})
+		resp = session.MakeRequest(t, req, http.StatusFound)
+		// Check if master branch has been locked successfully
+		flashCookie = session.GetCookie("macaron_flash")
+		assert.NotNil(t, flashCookie)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bdisabled.", flashCookie.Value)
 	})
-	resp := session.MakeRequest(t, req, http.StatusFound)
-	// Check if master branch has been locked successfully
-	flashCookie := session.GetCookie("macaron_flash")
-	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
-
-	// Request editor page
-	req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	doc := NewHTMLParser(t, resp.Body)
-	lastCommit := doc.GetInputValueByName("last_commit")
-	assert.NotEmpty(t, lastCommit)
-
-	// Save new file to master branch
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-		"_csrf":         doc.GetCSRF(),
-		"last_commit":   lastCommit,
-		"tree_path":     "test.txt",
-		"content":       "Content",
-		"commit_choice": "direct",
-	})
-
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	// Check body for error message
-	assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#39;master&#39;.")
-
-	// remove the protected branch
-	csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
-	// Change master branch to protected
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
-		"_csrf":     csrf,
-		"protected": "off",
-	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
-	// Check if master branch has been locked successfully
-	flashCookie = session.GetCookie("macaron_flash")
-	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bdisabled.", flashCookie.Value)
-
 }
 
 func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) *httptest.ResponseRecorder {
@@ -151,13 +151,15 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 }
 
 func TestEditFile(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user2")
-	testEditFile(t, session, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		testEditFile(t, session, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	})
 }
 
 func TestEditFileToNewBranch(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user2")
-	testEditFileToNewBranch(t, session, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
+	})
 }
