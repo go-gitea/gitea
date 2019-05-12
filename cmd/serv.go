@@ -67,6 +67,7 @@ func checkLFSVersion() {
 func setup(logPath string) {
 	log.DelLogger("console")
 	setting.NewContext()
+	setting.NewServices() // cannot access session settings otherwise
 	checkLFSVersion()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 }
