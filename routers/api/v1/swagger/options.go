@@ -6,7 +6,7 @@ package swagger
 
 import (
 	"code.gitea.io/gitea/modules/auth"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // not actually a response, just a hack to get go-swagger to include definitions

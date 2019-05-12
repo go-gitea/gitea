@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )

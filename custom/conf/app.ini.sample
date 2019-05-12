@@ -97,6 +97,8 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
+; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+DEFAULT_SHOW_FULL_NAME = false
 
 [ui.admin]
 ; Number of users that are displayed on one page
