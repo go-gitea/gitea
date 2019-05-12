@@ -11,6 +11,7 @@ import (
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type indexerNotifier struct {
@@ -100,7 +101,9 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
-	codes_indexer.DeleteRepoFromIndexer(repo)
+	if setting.Indexer.RepoIndexerEnabled {
+		codes_indexer.DeleteRepoFromIndexer(repo)
+	}
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
@@ -112,13 +115,13 @@ func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 }
 
 func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
-	if !repo.IsEmpty {
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		codes_indexer.UpdateRepoIndexer(repo)
 	}
 }
 
 func (r *indexerNotifier) NotifyPushCommits(repo *models.Repository, branch string, opts models.PushUpdateOptions) {
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		codes_indexer.UpdateRepoIndexer(repo)
 	}
 }
