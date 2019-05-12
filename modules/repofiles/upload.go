@@ -204,7 +204,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
-	// FIXME: Should we models.UpdateRepoIndexer(repo) here?
 
 	return models.DeleteUploads(uploads...)
 }
