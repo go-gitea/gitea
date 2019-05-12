@@ -211,6 +211,8 @@ func newAccessLogService() {
 
 func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
+	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
+	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
 	if !DisableRouterLog && RedirectMacaronLog {
 		options := newDefaultLogOptions()
@@ -271,6 +273,15 @@ func newLogService() {
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+}
+
+// NewLogServices creates all the log services
+func NewLogServices(disableConsole bool) {
+	newLogService()
+	newMacaronLogService()
+	newRouterLogService()
+	newAccessLogService()
+	NewXORMLogService(disableConsole)
 }
 
 // NewXORMLogService initializes xorm logger service

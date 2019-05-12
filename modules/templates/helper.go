@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -60,6 +62,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
+		},
+		"DefaultShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
@@ -115,6 +120,8 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
+		"PathEscapeSegments":       util.PathEscapeSegments,
+		"URLJoin":                  util.URLJoin,
 		"RenderCommitMessage":      RenderCommitMessage,
 		"RenderCommitMessageLink":  RenderCommitMessageLink,
 		"RenderCommitBody":         RenderCommitBody,
@@ -219,6 +226,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
+		},
 	}}
 }
 
@@ -267,7 +281,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	if err != nil {
 		return "", err
 	} else if charsetLabel == "UTF-8" {
-		return string(content), nil
+		return string(base.RemoveBOMIfPresent(content)), nil
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -277,19 +291,21 @@ func ToUTF8WithErr(content []byte) (string, error) {
 
 	// If there is an error, we concatenate the nicely decoded part and the
 	// original left over. This way we won't lose data.
-	result, n, err := transform.String(encoding.NewDecoder(), string(content))
+	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
 	if err != nil {
-		result = result + string(content[n:])
+		result = append(result, content[n:]...)
 	}
 
-	return result, err
+	result = base.RemoveBOMIfPresent(result)
+
+	return string(result), err
 }
 
 // ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
 func ToUTF8WithFallback(content []byte) []byte {
 	charsetLabel, err := base.DetectEncoding(content)
 	if err != nil || charsetLabel == "UTF-8" {
-		return content
+		return base.RemoveBOMIfPresent(content)
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -304,7 +320,7 @@ func ToUTF8WithFallback(content []byte) []byte {
 		return append(result, content[n:]...)
 	}
 
-	return result
+	return base.RemoveBOMIfPresent(result)
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error
@@ -479,6 +495,12 @@ var trNLangRules = map[string]func(int64) int{
 	},
 	"zh-TW": func(cnt int64) int {
 		return 0
+	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
 	},
 }
 

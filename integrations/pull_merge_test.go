@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"strings"
 	"testing"
@@ -52,108 +53,118 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 }
 
 func TestPullMerge(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
-	elem := strings.Split(test.RedirectURL(resp), "/")
-	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+	})
 }
 
 func TestPullRebase(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
-	elem := strings.Split(test.RedirectURL(resp), "/")
-	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
+	})
 }
 
 func TestPullRebaseMerge(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		prepareTestEnv(t)
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
-	elem := strings.Split(test.RedirectURL(resp), "/")
-	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+	})
 }
 
 func TestPullSquash(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		prepareTestEnv(t)
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
-	elem := strings.Split(test.RedirectURL(resp), "/")
-	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
+	})
 }
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		prepareTestEnv(t)
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
 
-	elem := strings.Split(test.RedirectURL(resp), "/")
-	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.EqualValues(t, "pulls", elem[3])
+		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
-	// Check PR branch deletion
-	resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
-	respJSON := struct {
-		Redirect string
-	}{}
-	DecodeJSON(t, resp, &respJSON)
+		// Check PR branch deletion
+		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
+		respJSON := struct {
+			Redirect string
+		}{}
+		DecodeJSON(t, resp, &respJSON)
 
-	assert.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
+		assert.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
 
-	elem = strings.Split(respJSON.Redirect, "/")
-	assert.EqualValues(t, "pulls", elem[3])
+		elem = strings.Split(respJSON.Redirect, "/")
+		assert.EqualValues(t, "pulls", elem[3])
 
-	// Check branch deletion result
-	req := NewRequest(t, "GET", respJSON.Redirect)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+		// Check branch deletion result
+		req := NewRequest(t, "GET", respJSON.Redirect)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
-	assert.EqualValues(t, "Branch 'user1/feature/test' has been deleted.", resultMsg)
+		assert.EqualValues(t, "Branch 'user1/feature/test' has been deleted.", resultMsg)
+	})
 }
 
 func TestCantMergeWorkInProgress(t *testing.T) {
-	prepareTestEnv(t)
-	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		prepareTestEnv(t)
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
 
-	req := NewRequest(t, "GET", resp.Header().Get("Location"))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	text := strings.TrimSpace(htmlDoc.doc.Find(".merge.segment > .text.grey").Text())
-	assert.NotEmpty(t, text, "Can't find WIP text")
+		req := NewRequest(t, "GET", resp.Header().Get("Location"))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		text := strings.TrimSpace(htmlDoc.doc.Find(".merge.segment > .text.grey").Text())
+		assert.NotEmpty(t, text, "Can't find WIP text")
 
-	// remove <strong /> from lang
-	expected := i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress", "[wip]")
-	replacer := strings.NewReplacer("<strong>", "", "</strong>", "")
-	assert.Equal(t, replacer.Replace(expected), text, "Unable to find WIP text")
+		// remove <strong /> from lang
+		expected := i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress", "[wip]")
+		replacer := strings.NewReplacer("<strong>", "", "</strong>", "")
+		assert.Equal(t, replacer.Replace(expected), text, "Unable to find WIP text")
+	})
 }

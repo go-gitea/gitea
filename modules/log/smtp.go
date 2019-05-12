@@ -31,7 +31,7 @@ func (s *smtpWriter) Close() error {
 
 // SMTPLogger implements LoggerProvider and is used to send emails via given SMTP-server.
 type SMTPLogger struct {
-	BaseLogger
+	WriterLogger
 	Username           string   `json:"Username"`
 	Password           string   `json:"password"`
 	Host               string   `json:"host"`
@@ -63,7 +63,7 @@ func (log *SMTPLogger) Init(jsonconfig string) error {
 	if err != nil {
 		return err
 	}
-	log.createLogger(&smtpWriter{
+	log.NewWriterLogger(&smtpWriter{
 		owner: log,
 	})
 	log.sendMailFn = smtp.SendMail

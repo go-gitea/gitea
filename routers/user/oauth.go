@@ -102,18 +102,19 @@ const (
 
 // AccessTokenResponse represents a successful access token response
 type AccessTokenResponse struct {
-	AccessToken string    `json:"access_token"`
-	TokenType   TokenType `json:"token_type"`
-	ExpiresIn   int64     `json:"expires_in"`
-	// TODO implement RefreshToken
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string    `json:"access_token"`
+	TokenType    TokenType `json:"token_type"`
+	ExpiresIn    int64     `json:"expires_in"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
-	if err := grant.IncreaseCounter(); err != nil {
-		return nil, &AccessTokenError{
-			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
-			ErrorDescription: "cannot increase the grant counter",
+	if setting.OAuth2.InvalidateRefreshTokens {
+		if err := grant.IncreaseCounter(); err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidGrant,
+				ErrorDescription: "cannot increase the grant counter",
+			}
 		}
 	}
 	// generate access token to access the API
@@ -258,7 +259,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.LocalURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.AppURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
 	// TODO document SESSION <=> FORM
 	ctx.Session.Set("client_id", app.ClientID)
@@ -301,6 +302,7 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 	redirect, err := code.GenerateRedirectURI(form.State)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
+		return
 	}
 	ctx.Redirect(redirect.String(), 302)
 }
@@ -366,7 +368,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	}
 
 	// check if token got already used
-	if grant.Counter != token.Counter || token.Counter == 0 {
+	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "token was already used",

@@ -979,6 +979,25 @@ function initRepository() {
     }
 }
 
+var toggleMigrations = function(){
+    var authUserName = $('#auth_username').val();
+    var cloneAddr = $('#clone_addr').val();
+    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0) 
+    && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
+        $('#migrate_items').show();
+    } else {
+        $('#migrate_items').hide();
+    }
+}
+
+function initMigration() {
+    toggleMigrations();
+
+    $('#clone_addr').on('input', toggleMigrations)
+    $('#auth_username').on('input', toggleMigrations)
+    $('#mirror').on('change', toggleMigrations)
+}
+
 function initPullRequestReview() {
     $('.show-outdated').on('click', function (e) {
         e.preventDefault();
@@ -1428,6 +1447,15 @@ function initWebhook() {
         if ($(this).is(':checked')) {
             $('.events.fields').hide();
         }
+    });
+
+    var updateContentType = function () {
+        var visible = $('#http_method').val() === 'POST';
+        $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
+    };
+    updateContentType();
+    $('#http_method').change(function () {
+        updateContentType();
     });
 
     // Test delivery
@@ -2092,6 +2120,7 @@ $(document).ready(function () {
     initCommentForm();
     initInstall();
     initRepository();
+    initMigration();
     initWikiForm();
     initEditForm();
     initEditor();
@@ -2775,7 +2804,7 @@ function initTopicbar() {
 
                     var last = viewDiv.children("a").last();
                     for (var i=0; i < topicArray.length; i++) {
-                        $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                        $('<div class="ui small label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                     }
                 }
                 editDiv.css('display', 'none');
@@ -2817,7 +2846,7 @@ function initTopicbar() {
             basic: true,
         },
         className: {
-            label: 'ui green basic label'
+            label: 'ui small label'
         },
         apiSettings: {
             url: suburl + '/api/v1/topics/search?q={query}',

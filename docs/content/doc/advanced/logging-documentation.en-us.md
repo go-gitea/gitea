@@ -66,7 +66,7 @@ multiple subloggers that will log to files.
 
 By default Macaron will log to its own go `log` instance. This writes
 to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `ENABLE_MACARON_REDIRECT` setting in the `[log]`
+through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
 section which you can configure the outputs of by setting the `MACARON`
 value in the `[log]` section of the configuration. `MACARON` defaults
 to `file` if unset.
@@ -89,7 +89,7 @@ log using the value: `MACARON = ,`
 
 There are two types of Router log. By default Macaron send its own
 router log which will be directed to Macaron's go `log`, however if you
-`ENABLE_MACARON_REDIRECT` you will enable Gitea's router log. You can
+`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
 disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
 
 If you enable the redirect, you can configure the outputs of this
@@ -357,10 +357,21 @@ attributes should be cached if this is a commonly used log message.
 of bytes representing the color.
 
 These functions will not double wrap a `log.ColoredValue`. They will
-also set the ResetBytes to the cached resetBytes.
+also set the `resetBytes` to the cached `resetBytes`.
 
-Be careful not to change the contents of resetBytes or boldBytes as this
-will break rendering of logging elsewhere. You have been warned.
+The `colorBytes` and `resetBytes` are not exported to prevent
+accidental overwriting of internal values.
+
+## ColorFormat & ColorFormatted
+
+Structs may implement the `log.ColorFormatted` interface by implementing the `ColorFormat(fmt.State)` function.
+
+If a `log.ColorFormatted` struct is logged with `%-v` format, its `ColorFormat` will be used instead of the usual `%v`. The full `fmt.State` will be passed to allow implementers to look at additional flags.
+
+In order to help implementers provide `ColorFormat` methods. There is a
+`log.ColorFprintf(...)` function in the log module that will wrap values in `log.ColoredValue` and recognise `%-v`.
+
+In general it is recommended not to make the results of this function too verbose to help increase its versatility. Usually this should simply be an `ID`:`Name`. If you wish to make a more verbose result, it is recommended to use `%-+v` as your marker.
 
 ## Log Spoofing protection
 
@@ -392,5 +403,5 @@ func newNewoneLogService() {
 }
 ```
 
-You should then add `newOneLogService` to `NewServices()` in 
+You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`

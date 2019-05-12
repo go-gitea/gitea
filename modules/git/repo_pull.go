@@ -48,17 +48,22 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 
 	prInfo := new(PullRequestInfo)
 	prInfo.MergeBase, err = repo.GetMergeBase(remoteBranch, headBranch)
-	if err != nil {
-		return nil, fmt.Errorf("GetMergeBase: %v", err)
-	}
-
-	logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
-	}
-	prInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
-	if err != nil {
-		return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+	if err == nil {
+		// We have a common base
+		logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+		prInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
+		if err != nil {
+			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+		}
+	} else {
+		prInfo.Commits = list.New()
+		prInfo.MergeBase, err = GetFullCommitID(repo.Path, remoteBranch)
+		if err != nil {
+			prInfo.MergeBase = remoteBranch
+		}
 	}
 
 	// Count number of changed files.

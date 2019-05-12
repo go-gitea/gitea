@@ -20,7 +20,7 @@ import (
 // FileLogger implements LoggerProvider.
 // It writes messages by lines limit, file size limit, or time frequency.
 type FileLogger struct {
-	BaseLogger
+	WriterLogger
 	mw *MuxWriter
 	// The opened file
 	Filename string `json:"filename"`
@@ -106,7 +106,7 @@ func (log *FileLogger) Init(config string) error {
 		return errors.New("config must have filename")
 	}
 	// set MuxWriter as Logger's io.Writer
-	log.createLogger(log.mw)
+	log.NewWriterLogger(log.mw)
 	return log.StartLogger()
 }
 

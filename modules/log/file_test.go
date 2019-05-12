@@ -89,7 +89,6 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	event.level = DEBUG
-	expected = expected + ""
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -97,7 +96,6 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	event.level = TRACE
-	expected = expected + ""
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)

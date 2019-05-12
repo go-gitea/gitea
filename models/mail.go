@@ -73,7 +73,7 @@ func SendActivateAccountMail(c *macaron.Context, u *User) {
 
 // SendResetPasswordMail sends a password reset mail to the user
 func SendResetPasswordMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, mailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "reset password")
+	SendUserMail(c, u, mailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address

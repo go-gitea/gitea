@@ -9,15 +9,17 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -26,21 +28,22 @@ import (
 
 var currentEngine *xorm.Engine
 
-func initMigrationTest() {
-	giteaRoot := os.Getenv("GITEA_ROOT")
+func initMigrationTest(t *testing.T) {
+	integrations.PrintCurrentTest(t, 2)
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		fmt.Println("Environment variable $GITEA_ROOT not set")
+		integrations.Printf("Environment variable $GITEA_ROOT not set\n")
 		os.Exit(1)
 	}
 	setting.AppPath = path.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
-		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
+		integrations.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
+		integrations.Printf("Environment variable $GITEA_CONF not set\n")
 		os.Exit(1)
 	} else if !path.IsAbs(giteaConf) {
 		setting.CustomConf = path.Join(giteaRoot, giteaConf)
@@ -51,6 +54,7 @@ func initMigrationTest() {
 	setting.NewContext()
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
+	setting.NewLogServices(true)
 }
 
 func getDialect() string {
@@ -117,15 +121,14 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return string(bytes), nil
+	return string(base.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {
 	data, err := readSQLFromFile(version)
 	assert.NoError(t, err)
 	if len(data) == 0 {
-		log.Printf("No db found to restore for %s version: %s\n", models.DbCfg.Type, version)
+		integrations.Printf("No db found to restore for %s version: %s\n", models.DbCfg.Type, version)
 		return false
 	}
 
@@ -196,11 +199,11 @@ func restoreOldDB(t *testing.T, version string) bool {
 		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
 		assert.NoError(t, err)
 
-		_, err = db.Exec("CREATE DATABASE gitea")
-		assert.NoError(t, err)
-
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
+		statements := strings.Split(data, "\nGO\n")
+		for _, statement := range statements {
+			_, err = db.Exec(statement)
+			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
+		}
 		db.Close()
 	}
 	return true
@@ -212,7 +215,8 @@ func wrappedMigrate(x *xorm.Engine) error {
 }
 
 func doMigrationTest(t *testing.T, version string) {
-	log.Printf("Performing migration test for %s version: %s", models.DbCfg.Type, version)
+	integrations.PrintCurrentTest(t)
+	integrations.Printf("Performing migration test for %s version: %s\n", models.DbCfg.Type, version)
 	if !restoreOldDB(t, version) {
 		return
 	}
@@ -227,19 +231,22 @@ func doMigrationTest(t *testing.T, version string) {
 }
 
 func TestMigrations(t *testing.T) {
-	initMigrationTest()
+	initMigrationTest(t)
 
 	dialect := models.DbCfg.Type
 	versions, err := availableVersions()
 	assert.NoError(t, err)
 
 	if len(versions) == 0 {
-		log.Printf("No old database versions available to migration test for %s\n", dialect)
+		integrations.Printf("No old database versions available to migration test for %s\n", dialect)
 		return
 	}
 
-	log.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
+	integrations.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
 	for _, version := range versions {
-		doMigrationTest(t, version)
+		t.Run(fmt.Sprintf("Migrate-%s-%s", dialect, version), func(t *testing.T) {
+			doMigrationTest(t, version)
+		})
+
 	}
 }

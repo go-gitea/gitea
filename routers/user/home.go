@@ -14,11 +14,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/paginater"
+	"github.com/keybase/go-crypto/openpgp"
+	"github.com/keybase/go-crypto/openpgp/armor"
 )
 
 const (
@@ -307,6 +309,14 @@ func Issues(ctx *context.Context) {
 			return
 		}
 		if !perm.CanRead(models.UnitTypeIssues) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
+					ctxUser,
+					models.UnitTypeIssues,
+					repo,
+					perm)
+			}
 			ctx.Status(404)
 			return
 		}
@@ -352,7 +362,6 @@ func Issues(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
-	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
@@ -364,6 +373,16 @@ func Issues(ctx *context.Context) {
 	} else {
 		ctx.Data["State"] = "open"
 	}
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "type", "ViewType")
+	pager.AddParam(ctx, "repo", "RepoID")
+	pager.AddParam(ctx, "sort", "SortType")
+	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "labels", "SelectLabels")
+	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "assignee", "AssigneeID")
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplIssues)
 }
@@ -381,6 +400,45 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}
+	ctx.PlainText(200, buf.Bytes())
+}
+
+// ShowGPGKeys output all the public GPG keys of user by uid
+func ShowGPGKeys(ctx *context.Context, uid int64) {
+	keys, err := models.ListGPGKeys(uid)
+	if err != nil {
+		ctx.ServerError("ListGPGKeys", err)
+		return
+	}
+	entities := make([]*openpgp.Entity, 0)
+	failedEntitiesID := make([]string, 0)
+	for _, k := range keys {
+		e, err := models.GPGKeyToEntity(k)
+		if err != nil {
+			if models.IsErrGPGKeyImportNotExist(err) {
+				failedEntitiesID = append(failedEntitiesID, k.KeyID)
+				continue //Skip previous import without backup of imported armored key
+			}
+			ctx.ServerError("ShowGPGKeys", err)
+			return
+		}
+		entities = append(entities, e)
+	}
+	var buf bytes.Buffer
+
+	headers := make(map[string]string)
+	if len(failedEntitiesID) > 0 { //If some key need re-import to be exported
+		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+	}
+	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
+	for _, e := range entities {
+		err = e.Serialize(writer) //TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
+		if err != nil {
+			ctx.ServerError("ShowGPGKeys", err)
+			return
+		}
+	}
+	writer.Close()
 	ctx.PlainText(200, buf.Bytes())
 }
 
@@ -447,6 +505,7 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
+		env.SetSort(orderBy)
 		if len(keyword) != 0 {
 			env.AddKeyword(keyword)
 		}
@@ -493,9 +552,12 @@ func showOrgProfile(ctx *context.Context) {
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	ctx.Data["Members"] = org.Members
 	ctx.Data["Teams"] = org.Teams
+
+	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplOrgHome)
 }
