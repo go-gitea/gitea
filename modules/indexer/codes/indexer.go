@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/ethantkoenig/rupture"
@@ -171,35 +170,6 @@ func populateRepoIndexer() error {
 	return nil
 }
 
-func updateRepoIndexer(repo *models.Repository) error {
-	sha, err := getDefaultBranchSha(repo)
-	if err != nil {
-		return err
-	}
-	changes, err := getRepoChanges(repo, sha)
-	if err != nil {
-		return err
-	} else if changes == nil {
-		return nil
-	}
-
-	batch := indexer.RepoIndexerBatch()
-	for _, update := range changes.Updates {
-		if err := addUpdate(update, repo, batch); err != nil {
-			return err
-		}
-	}
-	for _, filename := range changes.RemovedFilenames {
-		if err := addDelete(filename, repo, batch); err != nil {
-			return err
-		}
-	}
-	if err = batch.Flush(); err != nil {
-		return err
-	}
-	return repo.UpdateIndexerStatus(sha)
-}
-
 // repoChanges changes (file additions/updates/removals) to a repo
 type repoChanges struct {
 	Updates          []fileUpdate
@@ -250,26 +220,14 @@ func addUpdate(update fileUpdate, repo *models.Repository, batch rupture.Flushin
 	} else if !base.IsTextFile(fileContents) {
 		return nil
 	}
-	indexerUpdate := indexer.RepoIndexerUpdate{
-		Filepath: update.Filename,
-		Op:       indexer.RepoIndexerOpUpdate,
-		Data: &indexer.RepoIndexerData{
-			RepoID:  repo.ID,
-			Content: string(fileContents),
+	return batch.Index(
+		filenameIndexerID(repo.ID, update.Filename),
+		&IndexerData{
+			RepoID:   repo.ID,
+			Filepath: update.Filename,
+			Content:  string(fileContents),
 		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
-}
-
-func addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
-	indexerUpdate := indexer.RepoIndexerUpdate{
-		Filepath: filename,
-		Op:       indexer.RepoIndexerOpDelete,
-		Data: &indexer.RepoIndexerData{
-			RepoID: repo.ID,
-		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
+	)
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
@@ -309,9 +267,7 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
 		log.Warn("git diff: %v", err)
-		if err = indexer.DeleteRepoFromIndexer(repo.ID); err != nil {
-			return nil, err
-		}
+		DeleteRepoFromIndexer(repo)
 		return genesisChanges(repo, revision)
 	}
 	var changes repoChanges
