@@ -6,21 +6,26 @@
         .context.user.menu {
             z-index: 101;
             min-width: 200px;
+
             .ui.header {
                 font-size: 1rem;
                 text-transform: none;
             }
         }
+
         .filter.menu {
             .item {
                 text-align: left;
+
                 .text {
                     height: 16px;
                     vertical-align: middle;
+
                     &.truncate {
                         width: 85%;
                     }
                 }
+
                 .floating.label {
                     top: 7px;
                     left: 90%;
@@ -35,28 +40,31 @@
                 }
             }
 
-			// Sort
-			.jump.item {
-				margin: 1px;
-				padding-right: 0;
-			}
-			.menu {
-				max-height: 300px;
-				overflow-x: auto;
-				right: 0!important;
-				left: auto!important;
-			}
+            // Sort
+            .jump.item {
+                margin: 1px;
+                padding-right: 0;
+            }
 
-			@media only screen and (max-width: 768px) {
-				width: 100%;
-			}
-		}
-		.right.stackable.menu > .item.active {
-			color: #d9453d;
-		}
+            .menu {
+                max-height: 300px;
+                overflow-x: auto;
+                right: 0 !important;
+                left: auto !important;
+            }
+
+            @media only screen and (max-width: 768px) {
+                width: 100%;
+            }
+        }
+
+        .right.stackable.menu > .item.active {
+            color: #d9453d;
+        }
     }
 
     /* Accomodate for Semantic's 1px hacks on .attached elements */
+
     .dashboard-repos {
         margin: 0 1px;
     }
@@ -73,15 +81,19 @@
             margin-left: auto;
             margin-right: auto;
         }
+
         .ui.avatar {
             margin-top: 13px;
         }
+
         .time-since {
             font-size: 13px;
         }
+
         .issue.title {
             width: 80%;
         }
+
         .push.news .content ul {
             font-size: 13px;
             list-style: none;
@@ -90,14 +102,17 @@
             img {
                 margin-bottom: -2px;
             }
+
             .text.truncate {
                 width: 80%;
                 margin-bottom: -5px;
             }
         }
+
         .commit-id {
             font-family: @monospaced-fonts, monospace;
         }
+
         code {
             padding: 1px;
             font-size: 85%;
@@ -119,6 +134,7 @@
                 margin-top: 5px;
             }
         }
+
         ul {
             list-style: none;
             margin: 0;
@@ -141,9 +157,10 @@
                         color: #888;
 
                         &.rear {
-                        font-size: 15px;
+                            font-size: 15px;
                         }
                     }
+
                     .star-num {
                         font-size: 12px;
                     }
@@ -154,18 +171,19 @@
         .repo-owner-name-list {
             .item-name {
                 max-width: 70%;
-            margin-bottom: -4px;
+                margin-bottom: -4px;
             }
         }
 
         #collaborative-repo-list {
             .owner-and-repo {
                 max-width: 80%;
-            margin-bottom: -5px;
+                margin-bottom: -5px;
             }
+
             .owner-name {
                 max-width: 120px;
-            margin-bottom: -5px;
+                margin-bottom: -5px;
             }
         }
     }

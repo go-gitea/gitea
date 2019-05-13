@@ -12,7 +12,7 @@
     transform: scale(1, 1);
 
     &:hover {
-      transform: scale(1.2, 1.2);
+        transform: scale(1.2, 1.2);
     }
 }
 
@@ -23,12 +23,9 @@
 
 .comment-code-cloud {
     padding: 4px;
-    margin: 0 auto;
     position: relative;
     border: 1px solid #f1f1f1;
-    margin-top: 13px;
-    margin-right: 10px;
-    margin-bottom: 5px;
+    margin: 13px 10px 5px auto;
 
     &:before {
         content: " ";
@@ -42,8 +39,7 @@
         top: -13px;
     }
 
-    .attached
-    {
+    .attached {
         &.tab {
             border: none;
             padding: 0;
@@ -66,7 +62,7 @@
     }
 
     .ui.form textarea {
-        border: 0px;
+        border: 0;
     }
 
     .ui.attached.tabular.menu {
@@ -74,7 +70,7 @@
         border: 1px solid #d4d4d5;
         padding-top: 5px;
         padding-left: 5px;
-        margin-top: 0px;
+        margin-top: 0;
     }
 
     .footer {
@@ -85,14 +81,14 @@
             display: inline-block;
             margin: 5px 0;
             font-size: 12px;
-            color: rgba(0,0,0,.6)
+            color: rgba(0, 0, 0, .6)
         }
 
         .ui.right.floated {
             padding-top: 6px;
         }
 
-        &:after{
+        &:after {
             clear: both;
             content: "";
             display: block;
@@ -110,5 +106,5 @@
 
 .file-comment {
     font: 12px @monospaced-fonts, monospace;
-    color: rgba(0,0,0,.87);
+    color: rgba(0, 0, 0, .87);
 }
