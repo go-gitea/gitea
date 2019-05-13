@@ -321,7 +321,7 @@
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
 							{{$.CsrfTokenHtml}}
 							<div class="ui fluid action input">
-								<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+								<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
 									<input name="newDependency" type="hidden">
 									<i class="dropdown icon"></i>
 									<input type="text" class="search">

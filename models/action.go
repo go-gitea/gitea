@@ -8,6 +8,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"path"
 	"regexp"
 	"strconv"
@@ -19,8 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -580,7 +581,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			}
 			refMarked[issue.ID] = true
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
 			if err = CreateRefComment(doer, refRepo, issue, message, c.Sha1); err != nil {
 				return err
 			}

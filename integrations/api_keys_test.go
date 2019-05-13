@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func TestViewDeployKeysNoLogin(t *testing.T) {

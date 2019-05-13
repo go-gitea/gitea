@@ -7,7 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/modules/context"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListSubscribers list a repo's subscribers (i.e. watchers)
