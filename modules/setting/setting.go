@@ -728,10 +728,12 @@ func NewContext() {
 	}
 
 	if OAuth2.Enable {
+		OAuth2.JWTSecretBase64 = Cfg.Section("oauth2").Key("JWT_SECRET").String()
+
 		OAuth2.JWTSecretBytes = make([]byte, 32)
 		n, err := base64.RawURLEncoding.Decode(OAuth2.JWTSecretBytes, []byte(OAuth2.JWTSecretBase64))
 
-		if err != nil || n != 32 {
+		if len(OAuth2.JWTSecretBase64) == 0 && (err != nil || n != 32) {
 			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
 			if err != nil {
 				log.Fatal("error generating JWT secret: %v", err)
