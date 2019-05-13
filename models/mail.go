@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"gopkg.in/gomail.v2"
-	"gopkg.in/macaron.v1"
 )
 
 const (
@@ -45,11 +44,11 @@ func SendTestMail(email string) error {
 }
 
 // SendUserMail sends a mail to the user
-func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
+func SendUserMail(language string, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
-		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
+		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
+		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
 	}
 
@@ -66,21 +65,27 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 	mailer.SendAsync(msg)
 }
 
+// Locale represents an interface to translation
+type Locale interface {
+	Language() string
+	Tr(string, ...interface{}) string
+}
+
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, mailAuthActivate, u.GenerateActivateCode(), c.Tr("mail.activate_account"), "activate account")
+func SendActivateAccountMail(locale Locale, u *User) {
+	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, mailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "recover account")
+func SendResetPasswordMail(locale Locale, u *User) {
+	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
+func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
+		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
@@ -92,14 +97,14 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{email.Email}, c.Tr("mail.activate_email"), content.String())
+	msg := mailer.NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	mailer.SendAsync(msg)
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(c *macaron.Context, u *User) {
+func SendRegisterNotifyMail(locale Locale, u *User) {
 	data := map[string]interface{}{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
@@ -112,7 +117,7 @@ func SendRegisterNotifyMail(c *macaron.Context, u *User) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.register_notify"), content.String())
+	msg := mailer.NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	mailer.SendAsync(msg)
