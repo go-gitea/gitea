@@ -5,14 +5,84 @@
 package uploader
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
+	reader, err := entry.Blob().DataAsync()
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
+	defer reader.Close()
+	buf := make([]byte, 1024)
+	n, err := reader.Read(buf)
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
+	buf = buf[:n]
+
+	if setting.LFS.StartServer {
+		meta := lfs.IsPointerFile(&buf)
+		if meta != nil {
+			meta, err = repo.GetLFSMetaObjectByOid(meta.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				// return default
+				return "UTF-8", false
+			}
+		}
+		if meta != nil {
+			dataRc, err := lfs.ReadMetaObject(meta)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			defer dataRc.Close()
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			buf = buf[:n]
+		}
+
+	}
+
+	encoding, err := base.DetectEncoding(buf)
+	if err != nil {
+		// just default to utf-8 and no bom
+		return "UTF-8", false
+	}
+	if encoding == "UTF-8" {
+		return encoding, bytes.Equal(buf[0:3], base.UTF8BOM)
+	}
+	charsetEncoding, _ := charset.Lookup(encoding)
+	if charsetEncoding == nil {
+		return "UTF-8", false
+	}
+
+	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+
+	if n > 2 {
+		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
+	}
+
+	return encoding, false
+}
 
 // UpdateRepoFileOptions holds the repository file update options
 type UpdateRepoFileOptions struct {
@@ -45,12 +115,29 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 		return fmt.Errorf("UpdateRepoFile: %v", err)
 	}
 
+	encoding := "UTF-8"
+	bom := false
+
 	if opts.IsNewFile {
 		for _, file := range filesInIndex {
 			if file == opts.NewTreeName {
 				return models.ErrRepoFileAlreadyExist{FileName: opts.NewTreeName}
 			}
 		}
+	} else {
+		gitRepo, err := git.OpenRepository(t.basePath)
+		if err != nil {
+			return err
+		}
+		tree, err := gitRepo.GetTree("HEAD")
+		if err != nil {
+			return err
+		}
+		entry, err := tree.GetTreeEntryByPath(opts.OldTreeName)
+		if err != nil {
+			return err
+		}
+		encoding, bom = detectEncodingAndBOM(entry, repo)
 	}
 
 	//var stdout string
@@ -72,9 +159,28 @@ func UpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepo
 	}
 
 	content := opts.Content
+	if bom {
+		content = string(base.UTF8BOM) + content
+	}
+	if encoding != "UTF-8" {
+		charsetEncoding, _ := charset.Lookup(encoding)
+		if charsetEncoding != nil {
+			result, _, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			if err != nil {
+				// Look if we can't encode back in to the original we should just stick with utf-8
+				log.Error(4, "Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.NewTreeName, opts.OldTreeName, encoding, err)
+				result = content
+			}
+			content = result
+		} else {
+			log.Error(4, "Unknown encoding: %s", encoding)
+		}
+	}
+	// Reset the opts.Content with the re-encoded and BOM'd content
+	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if filename2attribute2info[opts.NewTreeName] != nil && filename2attribute2info[opts.NewTreeName]["filter"] == "lfs" {
+	if setting.LFS.StartServer && filename2attribute2info[opts.NewTreeName] != nil && filename2attribute2info[opts.NewTreeName]["filter"] == "lfs" {
 		// OK so we are supposed to LFS this data!
 		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
