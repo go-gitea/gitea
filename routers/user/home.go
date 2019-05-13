@@ -202,7 +202,7 @@ func Issues(ctx *context.Context) {
 	var repoIDs []int64
 	for _, IDString := range repoIDStrings {
 		// Ensure nonempty string entries
-		if IDString != "" {
+		if IDString != "" && IDString != "0" {
 			IDint64, err := strconv.ParseInt(IDString, 10, 64)
 			if err == nil {
 				repoIDs = append(repoIDs, IDint64)
