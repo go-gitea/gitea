@@ -7,7 +7,7 @@ require (
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
 	github.com/Unknwon/cae v0.0.0-20160715032808-c6aac99ea2ca
-	github.com/Unknwon/com v0.0.0-20170819223952-7677a1d7c113
+	github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755
 	github.com/Unknwon/i18n v0.0.0-20171114194641-b64d33658966
 	github.com/Unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470 // indirect
@@ -48,6 +48,7 @@ require (
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
 	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
 	github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
+	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 	github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
 	github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
@@ -113,17 +114,17 @@ require (
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.2 // indirect
-	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
+	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
 	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
-	golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
+	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
 	golang.org/x/text v0.3.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e // indirect
 	gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.31.1
+	gopkg.in/ini.v1 v1.42.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/macaron.v1 v1.3.2
 	gopkg.in/redis.v2 v2.3.2 // indirect
@@ -135,6 +136,6 @@ require (
 )
 
 replace (
-	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
-	github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
+	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
+	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 )
