@@ -1006,6 +1006,7 @@ func NewServices() {
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()
+	newCORSService()
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
