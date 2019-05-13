@@ -7,7 +7,9 @@ package user
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -193,12 +195,18 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	repoIDStrings := ctx.QueryStrings("repos[]")
+	// Regexp: Match all square brackets, and plus signs in order to handle pagination
+	re := regexp.MustCompile(`[\[\]\+]+`)
+	// Replace regexp return value with commas, and split
+	repoIDStrings := strings.Split(re.ReplaceAllString(ctx.Query("repos"), ","), ",")
 	var repoIDs []int64
 	for _, IDString := range repoIDStrings {
-		IDint64, err := strconv.ParseInt(IDString, 10, 64)
-		if err == nil {
-			repoIDs = append(repoIDs, IDint64)
+		// Ensure nonempty string entries
+		if IDString != "" {
+			IDint64, err := strconv.ParseInt(IDString, 10, 64)
+			if err == nil {
+				repoIDs = append(repoIDs, IDint64)
+			}
 		}
 	}
 
@@ -353,11 +361,26 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	var total int
+	allIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+		UserID:      ctxUser.ID,
+		UserRepoIDs: userRepoIDs,
+		FilterMode:  filterMode,
+		IsPull:      isPullList,
+		IsClosed:    isShowClosed,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserIssueStats All", err)
+		return
+	}
+
+	var shownIssues int
+	var totalIssues int
 	if !isShowClosed {
-		total = int(issueStats.OpenCount)
+		shownIssues = int(issueStats.OpenCount)
+		totalIssues = int(allIssueStats.OpenCount)
 	} else {
-		total = int(issueStats.ClosedCount)
+		shownIssues = int(issueStats.ClosedCount)
+		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
 	ctx.Data["Issues"] = issues
@@ -369,6 +392,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
+	ctx.Data["TotalIssueCount"] = totalIssues
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -376,9 +400,14 @@ func Issues(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	// Convert []int64 to string
+	reposParam, _ := json.Marshal(repoIDs)
+
+	ctx.Data["ReposParam"] = string(reposParam)
+
+	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "repo", "RepoID")
+	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
