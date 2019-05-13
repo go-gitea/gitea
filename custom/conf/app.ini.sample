@@ -114,6 +114,8 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
+; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+DEFAULT_SHOW_FULL_NAME = false
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -379,6 +381,8 @@ CAPTCHA_TYPE = image
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
 RECAPTCHA_SECRET  =
 RECAPTCHA_SITEKEY =
+; Change this to use recaptcha.net or other recaptcha service
+RECAPTCHA_URL = https://www.google.com/recaptcha/
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
