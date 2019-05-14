@@ -14,6 +14,7 @@ import (
 	"github.com/Unknwon/com"
 	"gopkg.in/macaron.v1"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -210,7 +211,8 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	ctx.Data["GitVersion"] = setting.Git.Version
+	ver, _ := git.BinVersion()
+	ctx.Data["GitVersion"] = ver
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath

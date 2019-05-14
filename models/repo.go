@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -32,11 +31,9 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -67,8 +64,8 @@ var (
 	ItemsPerPage = 40
 )
 
-// LoadRepoConfig loads the repository config
-func LoadRepoConfig() {
+// loadRepoConfig loads the repository config
+func loadRepoConfig() {
 	// Load .gitignore and license files and readme templates.
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
@@ -119,45 +116,7 @@ func LoadRepoConfig() {
 
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
-	zip.Verbose = false
-
-	// Check Git installation.
-	if _, err := exec.LookPath("git"); err != nil {
-		log.Fatal("Failed to test 'git' command: %v (forgotten install?)", err)
-	}
-
-	// Check Git version.
-	var err error
-	setting.Git.Version, err = git.BinVersion()
-	if err != nil {
-		log.Fatal("Failed to get Git version: %v", err)
-	}
-
-	log.Info("Git Version: %s", setting.Git.Version)
-	if version.Compare("1.7.1", setting.Git.Version, ">") {
-		log.Fatal("Gitea requires Git version greater or equal to 1.7.1")
-	}
-
-	// Git requires setting user.name and user.email in order to commit changes.
-	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if stdout, stderr, err := process.GetManager().Exec("NewRepoContext(get setting)", "git", "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
-			// ExitError indicates this config is not set
-			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
-				if _, stderr, gerr := process.GetManager().Exec("NewRepoContext(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
-					log.Fatal("Failed to set git %s(%s): %s", configKey, gerr, stderr)
-				}
-				log.Info("Git config %s set to %s", configKey, defaultValue)
-			} else {
-				log.Fatal("Failed to get git %s(%s): %s", configKey, err, stderr)
-			}
-		}
-	}
-
-	// Set git some configurations.
-	if _, stderr, err := process.GetManager().Exec("NewRepoContext(git config --global core.quotepath false)",
-		"git", "config", "--global", "core.quotepath", "false"); err != nil {
-		log.Fatal("Failed to execute 'git config --global core.quotepath false': %s", stderr)
-	}
+	loadRepoConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
