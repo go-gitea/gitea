@@ -158,6 +158,7 @@ var (
 	_ Indexer = &BleveIndexer{}
 )
 
+// BleveIndexer represents a bleve indexer implementation
 type BleveIndexer struct {
 	indexDir string
 	indexer  bleve.Index // indexer (thread-safe) index for repository contents
@@ -170,6 +171,7 @@ func NewBleveIndexer(indexDir string) *BleveIndexer {
 	}
 }
 
+// Init init the indexer
 func (b *BleveIndexer) Init() (bool, error) {
 	var err error
 	b.indexer, err = openIndexer(b.indexDir, repoIndexerLatestVersion)
@@ -184,6 +186,7 @@ func (b *BleveIndexer) Init() (bool, error) {
 	return false, err
 }
 
+// Index indexes the data
 func (b *BleveIndexer) Index(datas []*IndexerData) error {
 	for _, data := range datas {
 		repo, err := models.GetRepositoryByID(data.RepoID)
