@@ -76,6 +76,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
+## CORS (`cors`)
+
+- `ENABLED`: **false**: enable cors headers (disabled by default)
+- `SCHEME`: **http**: scheme of allowed requests
+- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
+- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
+- `MAX_AGE`: **10m**: max time to cache response
+- `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
