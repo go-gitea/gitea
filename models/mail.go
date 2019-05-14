@@ -33,7 +33,7 @@ const (
 
 var templates *template.Template
 
-// InitMailRender initializes the macaron mail renderer
+// InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
 	templates = tmpls
 }
