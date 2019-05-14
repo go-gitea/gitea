@@ -385,7 +385,7 @@ func composeFullName(firstname, surname, username string) string {
 }
 
 var (
-	alphaDashDotPattern = regexp.MustCompile("[^\\d\\w-_\\.]")
+	alphaDashDotPattern = regexp.MustCompile("[^\\w-\\.]")
 )
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
