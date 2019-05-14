@@ -459,6 +459,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .view-raw *{max-width:100%}
 .repository.file.list .non-diff-file-content .view-raw img{padding:5px 5px 0 5px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
+.repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
 .repository.file.list .non-diff-file-content .code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
 .repository.file.list .non-diff-file-content .code-view table{width:100%}
