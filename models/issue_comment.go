@@ -18,7 +18,7 @@ import (
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -447,6 +447,7 @@ func (c *Comment) loadReview(e Engine) (err error) {
 			return err
 		}
 	}
+	c.Review.Issue = c.Issue
 	return nil
 }
 
