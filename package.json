@@ -1,9 +1,10 @@
 {
   "license": "MIT",
   "devDependencies": {
-    "autoprefixer": "9.4.7",
+    "autoprefixer": "9.5.1",
     "less": "3.9.0",
     "less-plugin-clean-css": "1.5.1",
+    "lesshint": "^6.3.6",
     "postcss-cli-simple": "3.0.0"
   }
 }

@@ -55,11 +55,16 @@
     }
 
     /* We're going to just override the semantic fonts here */
-    h1, h2, h3, h4, h5 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
         font-family: Lato, @fonts, sans-serif;
     }
 
-    .home .hero h1, .home .hero h2 {
+    .home .hero h1,
+    .home .hero h2 {
         font-family: 'PT Sans Narrow', Lato, @fonts, sans-serif;
     }
 
@@ -67,7 +72,18 @@
     .ui.button,
     .ui.card > .content > .header.ui.card > .content > .header,
     .ui.category.search > .results .category > .name,
-    .ui.form input:not([type]), .ui.form input[type=date], .ui.form input[type=datetime-local], .ui.form input[type=email], .ui.form input[type=file], .ui.form input[type=number], .ui.form input[type=password], .ui.form input[type=search], .ui.form input[type=tel], .ui.form input[type=text], .ui.form input[type=time], .ui.form input[type=url],
+    .ui.form input:not([type]),
+    .ui.form input[type="date"],
+    .ui.form input[type="datetime-local"],
+    .ui.form input[type="email"],
+    .ui.form input[type="file"],
+    .ui.form input[type="number"],
+    .ui.form input[type="password"],
+    .ui.form input[type="search"],
+    .ui.form input[type="tel"],
+    .ui.form input[type="text"],
+    .ui.form input[type="time"],
+    .ui.form input[type="url"],
     .ui.header,
     .ui.items > .item > .content > .header,
     .ui.list .list > .item .header,
@@ -79,7 +95,8 @@
     .ui.search > .results .result .title,
     .ui.search > .results > .message .header,
     body,
-    .ui.input > input, .ui.input input,
+    .ui.input > input,
+    .ui.input input,
     .ui.statistics .statistic > .value,
     .ui.statistic > .value,
     .ui.statistics .statistic > .label,
@@ -94,7 +111,7 @@
 .override-fonts(@default-fonts);
 
 body {
-    background-color: #fff;
+    background-color: #ffffff;
     overflow-y: auto;
     -webkit-font-smoothing: antialiased;
     display: flex;
@@ -139,17 +156,18 @@ a {
 }
 
 .rounded {
-    border-radius: .28571429rem !important;
+    border-radius: 0.28571429rem !important;
 }
 
-pre, code {
+pre,
+code {
     font: 12px @monospaced-fonts, monospace;
 
     &.raw {
         padding: 7px 12px;
         margin: 10px 0;
         background-color: #f8f8f8;
-        border: 1px solid #ddd;
+        border: 1px solid #dddddd;
         border-radius: 3px;
         font-size: 13px;
         line-height: 1.5;
@@ -183,7 +201,7 @@ pre, code {
 
     &.light {
         background-color: white;
-        border-bottom: 1px solid #DDDDDD;
+        border-bottom: 1px solid #dddddd;
         box-shadow: 0 2px 3px rgba(0, 0, 0, 0.04);
     }
 
@@ -206,7 +224,7 @@ pre, code {
     }
 
     .top.menu a.item:hover {
-        color: rgba(0, 0, 0, .45);
+        color: rgba(0, 0, 0, 0.45);
     }
 
     .top.menu .menu {
@@ -218,14 +236,14 @@ pre, code {
             margin-right: 0;
         }
 
-        margin-right: .75em;
+        margin-right: 0.75em;
     }
 
     .searchbox {
-        background-color: rgb(244, 244, 244) !important;
+        background-color: #f4f4f4 !important;
 
         &:focus {
-            background-color: rgb(233, 233, 233) !important;
+            background-color: #e9e9e9 !important;
         }
     }
 
@@ -237,7 +255,7 @@ pre, code {
     #navbar {
         width: 100vw;
         min-height: 52px;
-        padding: 0 .5rem;
+        padding: 0 0.5rem;
     }
 
     #navbar .brand {
@@ -270,7 +288,8 @@ pre, code {
         float: right;
     }
 
-    &.button, &.menu .item {
+    &.button,
+    &.menu .item {
         user-select: auto;
     }
 
@@ -306,11 +325,11 @@ pre, code {
     /* This fixes the commit graph button on the commits page */
 
     .menu:not(.vertical) .item > .button.compact {
-        padding: .58928571em 1.125em;
+        padding: 0.58928571em 1.125em;
     }
 
     .menu:not(.vertical) .item > .button.small {
-        font-size: .92857143rem;
+        font-size: 0.92857143rem;
     }
 
     &.menu .ui.dropdown.item .menu .item {
@@ -333,7 +352,7 @@ pre, code {
                 color: #d95c5c !important;
 
                 &:hover {
-                    color: #E67777 !important;
+                    color: #e67777 !important;
                 }
             }
         }
@@ -342,7 +361,7 @@ pre, code {
             color: #428bca !important;
 
             a {
-                color: #15c !important;
+                color: #1155cc !important;
 
                 &:hover {
                     color: #428bca !important;
@@ -351,10 +370,10 @@ pre, code {
         }
 
         &.black {
-            color: #444;
+            color: #444444;
 
             &:hover {
-                color: #000;
+                color: #000000;
             }
         }
 
@@ -362,16 +381,16 @@ pre, code {
             color: #767676 !important;
 
             a {
-                color: #444 !important;
+                color: #444444 !important;
 
                 &:hover {
-                    color: #000 !important;
+                    color: #000000 !important;
                 }
             }
         }
 
         &.light.grey {
-            color: #888 !important;
+            color: #888888 !important;
         }
 
         &.green {
@@ -383,7 +402,7 @@ pre, code {
         }
 
         &.yellow {
-            color: #FBBD08 !important;
+            color: #fbbd08 !important;
         }
 
         &.gold {
@@ -443,7 +462,8 @@ pre, code {
             color: black;
         }
 
-        & > span, .pull-right > span {
+        & > span,
+        .pull-right > span {
             color: #21ba45;
         }
     }
@@ -455,12 +475,12 @@ pre, code {
 
     .warning {
         &.header {
-            background-color: #F9EDBE !important;
-            border-color: #F0C36D;
+            background-color: #f9edbe !important;
+            border-color: #efc16b;
         }
 
         &.segment {
-            border-color: #F0C36D;
+            border-color: #efc16b;
         }
     }
 
@@ -471,7 +491,8 @@ pre, code {
             &.top {
                 background-color: #e6f1f6 !important;
 
-                h3, h4 {
+                h3,
+                h4 {
                     margin-top: 0;
                 }
 
@@ -533,7 +554,7 @@ pre, code {
         }
 
         &.black {
-            background-color: #444;
+            background-color: #444444;
         }
 
         &.grey {
@@ -541,7 +562,7 @@ pre, code {
         }
 
         &.light.grey {
-            background-color: #888 !important;
+            background-color: #888888 !important;
         }
 
         &.green {
@@ -553,7 +574,7 @@ pre, code {
         }
 
         &.yellow {
-            background-color: #FBBD08 !important;
+            background-color: #fbbf09 !important;
         }
 
         &.gold {
@@ -577,7 +598,7 @@ pre, code {
 
 .file-comment {
     font: 12px @monospaced-fonts, monospace;
-    color: rgba(0, 0, 0, .87);
+    color: rgba(0, 0, 0, 0.87);
 
 }
 
@@ -611,7 +632,7 @@ footer {
 
     .container {
         width: 100vw !important;
-        padding: 0 .5rem;
+        padding: 0 0.5rem;
 
         .fa {
             width: 16px;
@@ -625,7 +646,7 @@ footer {
             margin-left: 5px;
 
             &:first-child {
-                border-left: none;
+                border-left: 0;
             }
         }
     }
@@ -637,7 +658,8 @@ footer {
     }
 
     .ui {
-        &.left, &.right {
+        &.left,
+        &.right {
             line-height: 40px;
         }
     }
@@ -665,12 +687,14 @@ footer {
         width: (2px * @i) !important;
         height: (2px * @i) !important;
     }
+
     .generate-img(@n, (@i + 1));
 }
 
 // Conditional display
 @media only screen and (min-width: 768px) {
-    .mobile-only, .ui.button.mobile-only {
+    .mobile-only,
+    .ui.button.mobile-only {
         display: none;
     }
 
@@ -726,7 +750,7 @@ footer {
     padding-top: 15px !important;
     margin-top: -15px !important;
     margin-bottom: 15px !important;
-    background-color: #FAFAFA !important;
+    background-color: #fafafa !important;
     border-width: 1px !important;
 }
 
@@ -828,7 +852,7 @@ footer {
 }
 
 .archived-icon {
-    color: lighten(#000, 70%) !important;
+    color: lighten(#000000, 70%) !important;
 }
 
 .oauth2-authorize-application-box {
@@ -837,13 +861,13 @@ footer {
 
 /* Tab color tweaks */
 .ui.tabular.menu .item {
-    color: rgba(0, 0, 0, .5);
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .ui.tabular.menu .item:hover {
-    color: rgba(0, 0, 0, .8);
+    color: rgba(0, 0, 0, 0.8);
 }
 
 .ui.tabular.menu .item.active {
-    color: rgba(0, 0, 0, .9);
+    color: rgba(0, 0, 0, 0.9);
 }

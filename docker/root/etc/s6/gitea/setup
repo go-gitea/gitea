@@ -6,12 +6,16 @@ if [ ! -d /data/git/.ssh ]; then
 fi
 
 if [ ! -f /data/git/.ssh/environment ]; then
-    echo "GITEA_CUSTOM=/data/gitea" >| /data/git/.ssh/environment
+    echo "GITEA_CUSTOM=$GITEA_CUSTOM" >| /data/git/.ssh/environment
     chmod 600 /data/git/.ssh/environment
+
+elif ! grep -q "^GITEA_CUSTOM=$GITEA_CUSTOM$" /data/git/.ssh/environment; then
+    sed -i /^GITEA_CUSTOM=/d /data/git/.ssh/environment
+    echo "GITEA_CUSTOM=$GITEA_CUSTOM" >> /data/git/.ssh/environment
 fi
 
-if [ ! -f /data/gitea/conf/app.ini ]; then
-    mkdir -p /data/gitea/conf
+if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
+    mkdir -p ${GITEA_CUSTOM}/conf
 
     # Set INSTALL_LOCK to true only if SECRET_KEY is not empty and
     # INSTALL_LOCK is empty
@@ -36,7 +40,9 @@ if [ ! -f /data/gitea/conf/app.ini ]; then
     DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"} \
     REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"} \
     SECRET_KEY=${SECRET_KEY:-""} \
-    envsubst < /etc/templates/app.ini > /data/gitea/conf/app.ini
+    envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
+
+    chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
 
 # only chown if current owner is not already the gitea ${USER}. No recursive check to save time
