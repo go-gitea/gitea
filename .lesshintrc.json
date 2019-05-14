@@ -1,0 +1,12 @@
+{
+  "idSelector": false,
+  "importPath": false,
+  "importantRule": false,
+  "maxCharPerLine": false,
+  "propertyOrdering": false,
+  "qualifyingElement": false,
+  "spaceAroundComma": false,
+  "stringQuotes": "double",
+  "universalSelector": false,
+  "zeroUnit": "no_unit"
+}
