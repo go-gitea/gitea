@@ -117,7 +117,7 @@ func NewMacaron() *macaron.Macaron {
 		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-			if log.GetLevel() <= setting.RouterLogLevel {
+			if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 				m.Use(RouterHandler(setting.RouterLogLevel))
 			}
 		}
