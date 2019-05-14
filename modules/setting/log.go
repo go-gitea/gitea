@@ -295,8 +295,5 @@ func NewXORMLogService(disableConsole bool) {
 
 		Cfg.Section("log").Key("XORM").MustString(",")
 		generateNamedLogger("xorm", options)
-		log.InitXORMLogger(LogSQL)
-	} else {
-		log.InitXORMLogger(false)
 	}
 }
