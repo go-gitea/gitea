@@ -760,6 +760,9 @@ func (t *HookTask) deliver() {
 
 	var req *httplib.Request
 	switch t.HTTPMethod {
+	case "":
+		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
+		fallthrough
 	case http.MethodPost:
 		req = httplib.Post(t.URL)
 		switch t.ContentType {
