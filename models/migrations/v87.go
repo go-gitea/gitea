@@ -1,4 +1,4 @@
-package models
+package migrations
 
 import (
 	"os"
