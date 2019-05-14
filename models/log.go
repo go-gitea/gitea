@@ -7,7 +7,8 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/log"
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-xorm/core"
 )
 
@@ -17,8 +18,8 @@ type XORMLogBridge struct {
 	level   core.LogLevel
 }
 
-// NeXORMLogger inits a log bridge for xorm
-func NeXORMLogger(showSQL bool) core.ILogger {
+// NewXORMLogger inits a log bridge for xorm
+func NewXORMLogger(showSQL bool) core.ILogger {
 	return &XORMLogBridge{
 		showSQL: showSQL,
 	}
