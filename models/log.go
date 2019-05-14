@@ -16,23 +16,20 @@ import (
 type XORMLogBridge struct {
 	showSQL bool
 	level   core.LogLevel
+	logger  *log.Logger
 }
 
 // NewXORMLogger inits a log bridge for xorm
 func NewXORMLogger(showSQL bool) core.ILogger {
 	return &XORMLogBridge{
 		showSQL: showSQL,
+		logger:  log.GetLogger("xorm"),
 	}
-}
-
-// GetGiteaLevel returns the minimum Gitea logger level
-func (l *XORMLogBridge) GetGiteaLevel() log.Level {
-	return log.GetLogger("xorm").GetLevel()
 }
 
 // Log a message with defined skip and at logging level
 func (l *XORMLogBridge) Log(skip int, level log.Level, format string, v ...interface{}) error {
-	return log.GetLogger("xorm").Log(skip+1, level, format, v...)
+	return l.logger.Log(skip+1, level, format, v...)
 }
 
 // Debug show debug log
@@ -77,7 +74,7 @@ func (l *XORMLogBridge) Warnf(format string, v ...interface{}) {
 
 // Level get logger level
 func (l *XORMLogBridge) Level() core.LogLevel {
-	switch l.GetGiteaLevel() {
+	switch l.logger.GetLevel() {
 	case log.TRACE, log.DEBUG:
 		return core.LOG_DEBUG
 	case log.INFO:
