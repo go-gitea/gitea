@@ -1,8 +1,8 @@
 .form {
     .help {
         color: #999999;
-        padding-top: .6em;
-        padding-bottom: .6em;
+        padding-top: 0.6em;
+        padding-bottom: 0.6em;
         display: inline-block;
     }
 }
@@ -31,6 +31,7 @@
 
         @media only screen and (min-width: 768px) {
             width: 800px !important;
+
             .header {
                 padding-left: @create-page-form-input-padding+30px;
             }
@@ -54,6 +55,7 @@
                 width: 50% !important;
             }
         }
+
         @media only screen and (max-width: 767px) {
             .optional .title {
                 margin-left: 15px;
@@ -105,7 +107,8 @@
 }
 
 @media screen and (max-height: 575px) {
-    #rc-imageselect, .g-recaptcha {
+    #rc-imageselect,
+    .g-recaptcha {
         transform: scale(0.77);
         transform-origin: 0 0;
     }
@@ -131,7 +134,8 @@
             width: @input-padding;
         }
 
-        .inline.field > label, input {
+        .inline.field > label,
+        input {
             @media only screen and (max-width: 768px) {
                 width: 100% !important;
             }
@@ -167,11 +171,14 @@
             }
 
             @media only screen and (max-width: 768px) {
-                label, input, .selection.dropdown {
+                label,
+                input,
+                .selection.dropdown {
                     width: 100% !important;
                 }
 
-                .field button, .field a {
+                .field button,
+                .field a {
                     margin-bottom: 1em;
                     width: 100%;
                 }
@@ -222,7 +229,8 @@
 
 .new.org .ui.form {
     @media only screen and (max-width: 768px) {
-        .field button, .field a {
+        .field button,
+        .field a {
             margin-bottom: 1em;
             width: 100%;
         }
