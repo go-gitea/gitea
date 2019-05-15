@@ -336,6 +336,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
+	os.Setenv(models.ProtectedBranchPRID, fmt.Sprintf("%d", 0))
 
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout

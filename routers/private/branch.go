@@ -50,3 +50,32 @@ func CanUserPush(ctx *macaron.Context) {
 		})
 	}
 }
+
+// HasEnoughApprovals return if PR has enough approvals
+func HasEnoughApprovals(ctx *macaron.Context) {
+	pbID := ctx.ParamsInt64(":pbid")
+	prID := ctx.ParamsInt64(":prid")
+
+	protectBranch, err := models.GetProtectedBranchByID(pbID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	} else if prID > 0 && protectBranch != nil {
+		pr, err := models.GetPullRequestByID(prID)
+		if err != nil {
+			ctx.JSON(500, map[string]interface{}{
+				"err": err.Error(),
+			})
+			return
+		}
+		ctx.JSON(200, map[string]interface{}{
+			"can_push": protectBranch.HasEnoughApprovals(pr),
+		})
+	} else {
+		ctx.JSON(200, map[string]interface{}{
+			"can_push": false,
+		})
+	}
+}

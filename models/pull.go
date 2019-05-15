@@ -555,7 +555,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return ErrInvalidMergeStyle{pr.BaseRepo.ID, mergeStyle}
 	}
 
-	env := PushingEnvironment(doer, pr.BaseRepo)
+	env := FullPushingEnvironment(doer, doer, pr.BaseRepo, pr.ID)
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", baseGitRepo.Path, pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
@@ -1123,7 +1123,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 	if err = pr.GetHeadRepo(); err != nil {
 		return fmt.Errorf("GetHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
-		log.Trace("PullRequest[%d].UpdatePatch: ignored cruppted data", pr.ID)
+		log.Trace("PullRequest[%d].UpdatePatch: ignored corrupted data", pr.ID)
 		return nil
 	}
 

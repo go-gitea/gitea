@@ -65,3 +65,33 @@ func CanUserPush(protectedBranchID, userID int64) (bool, error) {
 
 	return canPush["can_push"].(bool), nil
 }
+
+// HasEnoughApprovals returns if true if pr has enough granted approvals.
+func HasEnoughApprovals(protectedBranchID, prID int64) (bool, error) {
+	if prID <= 0 {
+		return false, nil
+	}
+
+	// Ask for running deliver hook and test pull request tasks.
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/protectedbranchpr/%d/%d", protectedBranchID, prID)
+	log.GitLogger.Trace("CanUserPush: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "GET").Response()
+	if err != nil {
+		return false, err
+	}
+
+	var canPush = make(map[string]interface{})
+	if err := json.NewDecoder(resp.Body).Decode(&canPush); err != nil {
+		return false, err
+	}
+
+	defer resp.Body.Close()
+
+	// All 2XX status codes are accepted and others will return an error
+	if resp.StatusCode/100 != 2 {
+		return false, fmt.Errorf("Failed to retrieve push user: %s", decodeJSONError(resp).Err)
+	}
+
+	return canPush["can_push"].(bool), nil
+}

@@ -68,6 +68,7 @@ func runHookPreReceive(c *cli.Context) error {
 	reponame := os.Getenv(models.EnvRepoName)
 	userIDStr := os.Getenv(models.EnvPusherID)
 	repoPath := models.RepoPath(username, reponame)
+	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -115,6 +116,9 @@ func runHookPreReceive(c *cli.Context) error {
 
 				userID, _ := strconv.ParseInt(userIDStr, 10, 64)
 				canPush, err := private.CanUserPush(protectBranch.ID, userID)
+				if err == nil && !canPush {
+					canPush, err = private.HasEnoughApprovals(protectBranch.ID, prID)
+				}
 				if err != nil {
 					fail("Internal error", "Fail to detect user can push: %v", err)
 				} else if !canPush {

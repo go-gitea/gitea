@@ -86,6 +86,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/repositories/:repoid/wiki/init", InitWiki)
 		m.Post("/push/update", PushUpdate)
 		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
+		m.Get("/protectedbranchpr/:pbid/:prid", HasEnoughApprovals)
 		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)
 		m.Get("/branch/:id/*", GetProtectedBranchBy)
 		m.Get("/repository/:rid", GetRepository)
