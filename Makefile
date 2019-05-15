@@ -21,6 +21,7 @@ endif
 BINDATA := modules/{options,public,templates}/bindata.go
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
+NODE_BIN := $(PWD)/node_modules/.bin
 
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
@@ -367,22 +368,24 @@ release-compress:
 
 .PHONY: js
 js:
-	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
+	@if ([ ! -d "$(NODE_BIN)" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
 		exit 1; \
 	fi;
-	npx eslint public/js
+
+	$(NODE_BIN)/eslint public/js
 
 .PHONY: css
 css:
-	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
+	@if ([ ! -d "$(NODE_BIN)" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
 		exit 1; \
 	fi;
-	npx lesshint public/less/
-	npx -p less lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx -p less lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --no-map --replace public/css/*
+
+	$(NODE_BIN)/lesshint public/less/
+	$(NODE_BIN)/lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),$(NODE_BIN)/lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	$(NODE_BIN)/postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
 	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
