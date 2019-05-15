@@ -397,7 +397,7 @@ javascripts:
 	$(MAKE) js
 
 .PHONY: stylesheets-check
-	stylesheets-check:
+stylesheets-check:
 	echo "'make stylesheets-check' is deprecated, please use 'make css'"
 	$(MAKE) css
 
