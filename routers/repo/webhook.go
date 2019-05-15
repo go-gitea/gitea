@@ -564,6 +564,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w.Secret = form.Secret
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
+	w.HTTPMethod = form.HTTPMethod
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
