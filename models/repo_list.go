@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -112,15 +111,17 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	Keyword   string
-	OwnerID   int64
-	OrderBy   SearchOrderBy
-	Private   bool // Include private repositories in results
-	Starred   bool
-	Page      int
-	IsProfile bool
-	AllPublic bool // Include also all public repositories
-	PageSize  int  // Can be smaller than or equal to setting.ExplorePagingNum
+	UserID      int64
+	UserIsAdmin bool
+	Keyword     string
+	OwnerID     int64
+	OrderBy     SearchOrderBy
+	Private     bool // Include private repositories in results
+	StarredByID int64
+	Page        int
+	IsProfile   bool
+	AllPublic   bool // Include also all public repositories
+	PageSize    int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -168,72 +169,79 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
-
 	var cond = builder.NewCond()
 
-	if !opts.Private {
+	if opts.Private {
+		if !opts.UserIsAdmin && opts.UserID != 0 && opts.UserID != opts.OwnerID {
+			// OK we're in the context of a User
+			// We should be Either
+			cond = cond.And(builder.Or(
+				// 1. Be able to see all non-private repositories that either:
+				cond.And(
+					builder.Eq{"is_private": false},
+					builder.Or(
+						//   A. Aren't in organisations  __OR__
+						builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
+						//   B. Isn't a private organisation. (Limited is OK because we're logged in)
+						builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+				),
+				// 2. Be able to see all repositories that we have access to
+				builder.In("id", builder.Select("repo_id").
+					From("`access`").
+					Where(builder.And(
+						builder.Eq{"user_id": opts.UserID},
+						builder.Gt{"mode": int(AccessModeNone)}))),
+				// 3. Be able to see all repositories that we are in a team
+				builder.In("id", builder.Select("`team_repo`.repo_id").
+					From("team_repo").
+					Where(builder.Eq{"`team_user`.uid": opts.UserID}).
+					Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id"))))
+		}
+	} else {
+		// Not looking at private organisations
+		// We should be able to see all non-private repositories that either:
 		cond = cond.And(builder.Eq{"is_private": false})
 		accessCond := builder.Or(
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})))
+			//   A. Aren't in organisations  __OR__
+			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
+			//   B. Isn't a private or limited organisation.
+			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))))
 		cond = cond.And(accessCond)
 	}
 
+	// Restrict to starred repositories
+	if opts.StarredByID > 0 {
+		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
+	}
+
+	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
 	if opts.OwnerID > 0 {
-		if opts.Starred {
-			cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.OwnerID})))
-		} else {
-			var accessCond = builder.NewCond()
-			if opts.Collaborate != util.OptionalBoolTrue {
-				accessCond = builder.Eq{"owner_id": opts.OwnerID}
-			}
-
-			if opts.Collaborate != util.OptionalBoolFalse {
-				collaborateCond := builder.And(
-					builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
-					builder.Neq{"owner_id": opts.OwnerID})
-				if !opts.Private {
-					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
-				}
-
-				accessCond = accessCond.Or(collaborateCond)
-			}
-
-			var exprCond builder.Cond
-			if DbCfg.Type == core.POSTGRES {
-				exprCond = builder.Expr("org_user.org_id = \"user\".id")
-			} else if DbCfg.Type == core.MSSQL {
-				exprCond = builder.Expr("org_user.org_id = [user].id")
-			} else {
-				exprCond = builder.Eq{"org_user.org_id": "user.id"}
-			}
-
-			visibilityCond := builder.Or(
-				builder.In("owner_id",
-					builder.Select("org_id").From("org_user").
-						LeftJoin("`user`", exprCond).
-						Where(
-							builder.And(
-								builder.Eq{"uid": opts.OwnerID},
-								builder.Eq{"visibility": structs.VisibleTypePrivate})),
-				),
-				builder.In("owner_id",
-					builder.Select("id").From("`user`").
-						Where(
-							builder.Or(
-								builder.Eq{"visibility": structs.VisibleTypePublic},
-								builder.Eq{"visibility": structs.VisibleTypeLimited})),
-				),
-				builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-			)
-			cond = cond.And(visibilityCond)
-
-			if opts.AllPublic {
-				accessCond = accessCond.Or(builder.Eq{"is_private": false})
-			}
-
-			cond = cond.And(accessCond)
+		var accessCond = builder.NewCond()
+		if opts.Collaborate != util.OptionalBoolTrue {
+			accessCond = builder.Eq{"owner_id": opts.OwnerID}
 		}
+
+		if opts.Collaborate != util.OptionalBoolFalse {
+			collaborateCond := builder.And(
+				builder.Or(
+					builder.Expr("repository.id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.In("id", builder.Select("`team_repo`.repo_id").
+						From("team_repo").
+						Where(builder.Eq{"`team_user`.uid": opts.OwnerID}).
+						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id"))),
+				builder.Neq{"owner_id": opts.OwnerID})
+			if !opts.Private {
+				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
+			}
+
+			accessCond = accessCond.Or(collaborateCond)
+		}
+
+		if opts.AllPublic {
+			accessCond = accessCond.Or(builder.Eq{"is_private": false})
+		}
+
+		cond = cond.And(accessCond)
 	}
 
 	if opts.Keyword != "" {
