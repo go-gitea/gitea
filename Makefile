@@ -380,9 +380,9 @@ css:
 		exit 1; \
 	fi;
 	npx lesshint public/less/
-	npx -p less lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx -p less lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --no-map --replace public/css/*
+	npx -p less -p less-plugin-clean-css lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx -p less -p less-plugin-clean-css lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	npx -p postcss-cli -p autoprefixer postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
 	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
