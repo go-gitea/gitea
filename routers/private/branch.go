@@ -64,6 +64,12 @@ func HasEnoughApprovals(ctx *macaron.Context) {
 		return
 	} else if prID > 0 && protectBranch != nil {
 		pr, err := models.GetPullRequestByID(prID)
+		if err == nil {
+			err = pr.LoadAttributes()
+		}
+		if err == nil {
+			err = pr.LoadIssue()
+		}
 		if err != nil {
 			ctx.JSON(500, map[string]interface{}{
 				"err": err.Error(),
