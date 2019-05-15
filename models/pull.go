@@ -556,6 +556,8 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}
 
 	env := PushingEnvironment(doer, pr.BaseRepo)
+	// FIXME: #6946 requires protected branches to be ignored
+	env = env[:len(env)-1]
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", baseGitRepo.Path, pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
