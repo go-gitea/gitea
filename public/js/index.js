@@ -1,4 +1,6 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
 function htmlEncode(text) {
@@ -2436,7 +2438,7 @@ function initVueApp() {
     });
 }
 
-function timeAddManual() { /* eslint-disable-line no-unused-vars */
+function timeAddManual() {
     $('.mini.modal')
         .modal({
             duration: 200,
@@ -2447,14 +2449,14 @@ function timeAddManual() { /* eslint-disable-line no-unused-vars */
     ;
 }
 
-function toggleStopwatch() { /* eslint-disable-line no-unused-vars */
+function toggleStopwatch() {
     $("#toggle_stopwatch_form").submit();
 }
-function cancelStopwatch() { /* eslint-disable-line no-unused-vars */
+function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
-function initHeatmap(appElementId, heatmapUser, locale) { /* eslint-disable-line no-unused-vars */
+function initHeatmap(appElementId, heatmapUser, locale) {
     var el = document.getElementById(appElementId);
     if (!el) {
         return;
@@ -2901,11 +2903,11 @@ function initTopicbar() {
             }
         });
 }
-function toggleDeadlineForm() { /* eslint-disable-line no-unused-vars */
+function toggleDeadlineForm() {
     $('#deadlineForm').fadeToggle(150);
 }
 
-function setDeadline() { /* eslint-disable-line no-unused-vars */
+function setDeadline() {
     var deadline = $('#deadlineDate').val();
     updateDeadline(deadline);
 }
@@ -2947,7 +2949,7 @@ function updateDeadline(deadlineString) {
     });
 }
 
-function deleteDependencyModal(id, type) { /* eslint-disable-line no-unused-vars */
+function deleteDependencyModal(id, type) {
     $('.remove-dependency')
         .modal({
             closable: false,
@@ -2990,7 +2992,7 @@ function initIssueList() {
         })
     ;
 }
-function cancelCodeComment(btn) { /* eslint-disable-line no-unused-vars */
+function cancelCodeComment(btn) {
     var form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
@@ -2999,7 +3001,7 @@ function cancelCodeComment(btn) { /* eslint-disable-line no-unused-vars */
         form.closest('.comment-code-cloud').remove()
     }
 }
-function onOAuthLoginClick() { /* eslint-disable-line no-unused-vars */
+function onOAuthLoginClick() {
     var oauthLoader = $('#oauth2-login-loader');
     var oauthNav = $('#oauth2-login-navigator');
 
