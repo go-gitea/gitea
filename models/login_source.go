@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
+	"regexp"
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 
@@ -384,6 +384,10 @@ func composeFullName(firstname, surname, username string) string {
 	}
 }
 
+var (
+	alphaDashDotPattern = regexp.MustCompile("[^\\w-\\.]")
+)
+
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
@@ -408,7 +412,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		sr.Username = login
 	}
 	// Validate username make sure it satisfies requirement.
-	if binding.AlphaDashDotPattern.MatchString(sr.Username) {
+	if alphaDashDotPattern.MatchString(sr.Username) {
 		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
 	}
 

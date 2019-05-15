@@ -74,6 +74,23 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 ; List of reasons why a Pull Request or Issue can be locked
 LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
+[cors]
+; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
+; enable cors headers (disabled by default)
+ENABLED=false
+; scheme of allowed requests
+SCHEME=http
+; list of requesting domains that are allowed
+ALLOW_DOMAIN=*
+; allow subdomains of headers listed above to request
+ALLOW_SUBDOMAIN=false
+; list of methods allowed to request
+METHODS=GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS
+; max time to cache response
+MAX_AGE=10m
+; allow request with credentials
+ALLOW_CREDENTIALS=false
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
