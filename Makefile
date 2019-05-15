@@ -367,6 +367,10 @@ release-compress:
 
 .PHONY: js
 js:
+	@if ([ ! -d "$(PWD)/node_modules" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
+		exit 1; \
+	fi;
 	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		echo "Please install npm version 5.2+"; \
 		exit 1; \
@@ -375,14 +379,19 @@ js:
 
 .PHONY: css
 css:
+	@if ([ ! -d "$(PWD)/node_modules" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
+		exit 1; \
+	fi;
 	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		echo "Please install npm version 5.2+"; \
 		exit 1; \
 	fi;
+
 	npx lesshint public/less/
-	npx -p less -p less-plugin-clean-css lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx -p less -p less-plugin-clean-css lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx -p postcss-cli -p autoprefixer postcss --use autoprefixer --no-map --replace public/css/*
+	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	npx postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
 	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
