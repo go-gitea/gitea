@@ -27,6 +27,7 @@ import (
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
+	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
@@ -479,7 +480,10 @@ func CheckLFSVersion() {
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
-func SetCustomPathAndConf(providedCustom, providedConf string) {
+func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
+	if len(providedWorkPath) != 0 {
+		AppWorkPath = filepath.ToSlash(providedWorkPath)
+	}
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom
 	}
@@ -928,6 +932,8 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+
+	zip.Verbose = false
 }
 
 func loadInternalToken(sec *ini.Section) string {

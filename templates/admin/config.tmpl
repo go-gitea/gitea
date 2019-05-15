@@ -254,7 +254,7 @@
 				<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
-				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
+				<dd><pre>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig  | JsonPrettyPrint}}{{else}}-{{end}}</pre></dd>
 				<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>
