@@ -755,17 +755,15 @@ func prepareWebhooks(e Engine, repo *Repository, event HookEventType, p api.Payl
 
 func (t *HookTask) deliver() {
 	t.IsDelivered = true
-	t.RequestInfo = &HookRequest{
-		Headers: map[string]string{},
-	}
-	t.ResponseInfo = &HookResponse{
-		Headers: map[string]string{},
-	}
 
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	var req *httplib.Request
-	if t.HTTPMethod == http.MethodPost {
+	switch t.HTTPMethod {
+	case "":
+		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
+		fallthrough
+	case http.MethodPost:
 		req = httplib.Post(t.URL)
 		switch t.ContentType {
 		case ContentTypeJSON:
@@ -773,10 +771,10 @@ func (t *HookTask) deliver() {
 		case ContentTypeForm:
 			req.Param("payload", t.PayloadContent)
 		}
-	} else if t.HTTPMethod == http.MethodGet {
+	case http.MethodGet:
 		req = httplib.Get(t.URL).Param("payload", t.PayloadContent)
-	} else {
-		t.ResponseInfo.Body = fmt.Sprintf("Invalid http method: %v", t.HTTPMethod)
+	default:
+		log.Error("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
 		return
 	}
 
@@ -792,8 +790,15 @@ func (t *HookTask) deliver() {
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	// Record delivery information.
+	t.RequestInfo = &HookRequest{
+		Headers: map[string]string{},
+	}
 	for k, vals := range req.Headers() {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
+	}
+
+	t.ResponseInfo = &HookResponse{
+		Headers: map[string]string{},
 	}
 
 	defer func() {
