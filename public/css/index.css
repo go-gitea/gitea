@@ -942,6 +942,7 @@ tbody.commit-list{vertical-align:baseline}
 .admin dl.admin-dl-horizontal dd{margin-left:275px}
 .admin dl.admin-dl-horizontal dt{font-weight:bolder;float:left;width:285px;clear:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin.config #test-mail-btn{margin-left:5px}
+.admin code,.admin pre{white-space:pre-wrap;word-wrap:break-word}
 .explore{padding-top:15px}
 .explore .navbar{justify-content:center;padding-top:15px!important;margin-top:-15px!important;margin-bottom:15px!important;background-color:#fafafa!important;border-width:1px!important}
 .explore .navbar .octicon{width:16px;text-align:center;margin-right:5px}
