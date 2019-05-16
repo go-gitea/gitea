@@ -213,7 +213,7 @@ from `[log.sublogger]`.
 a stacktrace. This value is inherited.
 * `MODE` is the mode of the log output. It will default to the sublogger
 name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will default to `true` for `file` and `console` as
+* `COLORIZE` will default to `true` for `console` as
 described, otherwise it will default to `false`.
 
 ### Non-inherited default values
@@ -274,7 +274,6 @@ Other values:
 * `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 * `DAILY_ROTATE`: **true**: Rotate logs daily.
 * `MAX_DAYS`: **7**: Delete the log file after n days
-* NB: `COLORIZE`: will default to `true` if not on windows.
 * `COMPRESS`: **true**: Compress old log files by default with gzip
 * `COMPRESSION_LEVEL`: **-1**: Compression level
 

@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -113,7 +112,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			panic(err.Error())
 		}
 
-		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
 		logConfig["filename"] = logPath
 		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
