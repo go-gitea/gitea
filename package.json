@@ -5,7 +5,7 @@
     "eslint": "5.16.0",
     "less": "3.9.0",
     "less-plugin-clean-css": "1.5.1",
-    "lesshint": "^6.3.6",
+    "lesshint": "6.3.6",
     "postcss-cli": "6.1.2"
   },
   "browserslist": [
