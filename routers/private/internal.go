@@ -90,5 +90,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/branch/:id/*", GetProtectedBranchBy)
 		m.Get("/repository/:rid", GetRepository)
 		m.Get("/active-pull-request", GetActivePullRequest)
+		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
+		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
 	}, CheckInternalToken)
 }
