@@ -365,33 +365,55 @@ release-compress:
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
-.PHONY: javascripts
-javascripts: public/js/index.js
-
-.IGNORE: public/js/index.js
-public/js/index.js: $(JAVASCRIPTS)
-	cat $< >| $@
-
-.PHONY: stylesheets-check
-stylesheets-check: generate-stylesheets
-	@diff=$$(git diff public/css/*); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make generate-stylesheets' and commit the result:"; \
-		echo "$${diff}"; \
+.PHONY: js
+js:
+	@if ([ ! -d "$(PWD)/node_modules" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
 		exit 1; \
 	fi;
-
-.PHONY: generate-stylesheets
-generate-stylesheets:
 	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		echo "Please install npm version 5.2+"; \
 		exit 1; \
 	fi;
-	$(eval BROWSERS := "> 1%, last 2 firefox versions, last 2 safari versions, ie 11")
-	npx lesshint  public/less/
+	npx eslint public/js
+
+.PHONY: css
+css:
+	@if ([ ! -d "$(PWD)/node_modules" ]); then \
+		echo "node_modules directory is absent, please run 'npm install' first"; \
+		exit 1; \
+	fi;
+	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install npm version 5.2+"; \
+		exit 1; \
+	fi;
+
+	npx lesshint public/less/
 	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	$(foreach file, $(wildcard public/css/*),npx postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
+	npx postcss --use autoprefixer --no-map --replace public/css/*
+
+	@diff=$$(git diff public/css/*); \
+	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
+		echo "Generated files in public/css have changed, please commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
+.PHONY: javascripts
+javascripts:
+	echo "'make javascripts' is deprecated, please use 'make js'"
+	$(MAKE) js
+
+.PHONY: stylesheets-check
+stylesheets-check:
+	echo "'make stylesheets-check' is deprecated, please use 'make css'"
+	$(MAKE) css
+
+.PHONY: generate-stylesheets
+generate-stylesheets:
+	echo "'make generate-stylesheets' is deprecated, please use 'make css'"
+	$(MAKE) css
 
 .PHONY: swagger-ui
 swagger-ui:
