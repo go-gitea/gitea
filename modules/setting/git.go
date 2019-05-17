@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 
 	version "github.com/mcuadros/go-version"
 )

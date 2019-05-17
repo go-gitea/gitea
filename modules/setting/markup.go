@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 )
 
 // ExternalMarkupParsers represents the external markup parsers

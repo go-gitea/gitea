@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 )
 
 // Cache represents cache settings

@@ -18,10 +18,12 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
+	bridge "gitea.com/xorm/gitea_log_bridge"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+
+	// Needed for the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -263,8 +265,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 	}
 
 	x.SetMapper(core.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.ProdMode))
-	x.ShowSQL(!setting.ProdMode)
+	x.SetLogger(bridge.NewGiteaLogger("xorm", !setting.ProdMode))
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
@@ -276,15 +277,11 @@ func SetEngine() (err error) {
 	}
 
 	x.SetMapper(core.GonicMapper{})
-	// WARNING: for serv command, MUST remove the output to os.stdout,
-	// so use log file to instead print to stdout.
-	x.SetLogger(NewXORMLogger(setting.LogSQL))
-	x.ShowSQL(setting.LogSQL)
+	x.SetLogger(bridge.NewGiteaLogger("xorm", setting.LogSQL))
 	if DbCfg.Type == "mysql" {
 		x.SetMaxIdleConns(0)
 		x.SetConnMaxLifetime(3 * time.Second)
 	}
-
 	return nil
 }
 

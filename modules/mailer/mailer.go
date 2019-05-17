@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"

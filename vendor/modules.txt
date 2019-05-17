@@ -1,3 +1,9 @@
+# code.gitea.io/log v0.0.0-20190608101221-52ddba89623c
+code.gitea.io/log
+# gitea.com/gitea/log v0.0.0-20190515030314-0a66fbccccb4
+gitea.com/gitea/log
+# gitea.com/xorm/gitea_log_bridge v0.0.0-20190515055409-ff68dd741ee6
+gitea.com/xorm/gitea_log_bridge
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
@@ -147,11 +153,11 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
-# github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
+# github.com/go-sql-driver/mysql v1.4.1 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 github.com/go-sql-driver/mysql
 # github.com/go-xorm/builder v0.3.3
 github.com/go-xorm/builder
-# github.com/go-xorm/core v0.6.0
+# github.com/go-xorm/core v0.6.2
 github.com/go-xorm/core
 # github.com/go-xorm/xorm v0.0.0-20190116032649-a6300f2a45e0
 github.com/go-xorm/xorm
@@ -237,7 +243,7 @@ github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/gplus
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
-# github.com/mattn/go-isatty v0.0.7
+# github.com/mattn/go-isatty v0.0.8
 github.com/mattn/go-isatty
 # github.com/mattn/go-sqlite3 v1.10.0
 github.com/mattn/go-sqlite3
@@ -371,8 +377,8 @@ golang.org/x/net/internal/socks
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
-golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
+golang.org/x/sys/windows
 golang.org/x/sys/unix
 golang.org/x/sys/cpu
 # golang.org/x/text v0.3.2
@@ -396,7 +402,7 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
 golang.org/x/text/internal/tag
-# google.golang.org/appengine v1.2.0
+# google.golang.org/appengine v1.4.0
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal

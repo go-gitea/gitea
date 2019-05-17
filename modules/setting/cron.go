@@ -7,7 +7,7 @@ package setting
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 )
 
 var (

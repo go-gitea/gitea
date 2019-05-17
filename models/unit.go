@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 )
 
 // UnitType is Unit's Type

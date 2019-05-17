@@ -3,6 +3,8 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
+	code.gitea.io/log v0.0.0-20190608101221-52ddba89623c
+	gitea.com/xorm/gitea_log_bridge v0.0.0-20190515055409-ff68dd741ee6
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
@@ -54,9 +56,9 @@ require (
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/go-sql-driver/mysql v1.4.0
+	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-xorm/builder v0.3.3
-	github.com/go-xorm/core v0.6.0
+	github.com/go-xorm/core v0.6.2
 	github.com/go-xorm/xorm v0.0.0-20190116032649-a6300f2a45e0
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
@@ -81,7 +83,7 @@ require (
 	github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de // indirect
 	github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af // indirect
 	github.com/markbates/goth v1.49.0
-	github.com/mattn/go-isatty v0.0.7
+	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

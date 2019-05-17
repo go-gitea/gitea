@@ -19,11 +19,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
+
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 )

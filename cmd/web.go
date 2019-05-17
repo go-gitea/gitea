@@ -13,7 +13,7 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"

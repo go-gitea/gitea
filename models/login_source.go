@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/util"
 )
 

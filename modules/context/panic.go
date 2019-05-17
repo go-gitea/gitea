@@ -19,7 +19,7 @@ package context
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	macaron "gopkg.in/macaron.v1"
 )
 

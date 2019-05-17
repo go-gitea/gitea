@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 
 	ldap "gopkg.in/ldap.v3"
 )

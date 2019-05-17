@@ -7,7 +7,7 @@ package setting
 import (
 	"net/mail"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	shellquote "github.com/kballard/go-shellquote"
 )
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"

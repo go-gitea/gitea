@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/Unknwon/com"
