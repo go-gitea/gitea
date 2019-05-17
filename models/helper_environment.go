@@ -25,6 +25,8 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, prID int6
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
+	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
+	// once we have hook and pushing infrastructure working correctly
 	return append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
