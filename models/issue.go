@@ -1027,11 +1027,8 @@ func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 		has      bool
 		err      error
 	)
-	if setting.UsePostgreSQL {
-		has, err = e.SQL("SELECT COALESCE((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
-	} else {
-		has, err = e.SQL("SELECT IFNULL((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
-	}
+
+	has, err = e.SQL("SELECT COALESCE((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
 	if err != nil {
 		return 0, err
 	} else if !has {
