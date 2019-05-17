@@ -17,7 +17,7 @@ const BranchPrefix = "refs/heads/"
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(repoPath, name string) bool {
-	_, err := NewCommand("show-ref", "--verify", name).RunInDir(repoPath)
+	_, err := NewCommand("show-ref", "--verify", "--", name).RunInDir(repoPath)
 	return err == nil
 }
 
@@ -145,9 +145,9 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 }
 
 // CreateBranch create a new branch
-func (repo *Repository) CreateBranch(branch, newBranch string) error {
+func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 	cmd := NewCommand("branch")
-	cmd.AddArguments(branch, newBranch)
+	cmd.AddArguments("--", branch, oldbranchOrCommit)
 
 	_, err := cmd.RunInDir(repo.Path)
 

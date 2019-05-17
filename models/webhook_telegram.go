@@ -7,11 +7,12 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
@@ -169,7 +170,7 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
-	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, p.Issue.Title)
+	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, html.EscapeString(p.Issue.Title))
 	var text string
 	switch p.Action {
 	case api.HookIssueCommentCreated:

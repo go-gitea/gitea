@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	setting.SetCustomPathAndConf("", "")
+	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 }
 

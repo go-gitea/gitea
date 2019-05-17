@@ -8,6 +8,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"path"
 	"regexp"
 	"strconv"
@@ -19,8 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -142,6 +143,22 @@ func (a *Action) GetActUserName() string {
 // chars.
 func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
+}
+
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+func (a *Action) GetDisplayName() string {
+	if setting.UI.DefaultShowFullName {
+		return a.GetActFullName()
+	}
+	return a.ShortActUserName()
+}
+
+// GetDisplayNameTitle gets the action's display name used for the title (tooltip) based on DEFAULT_SHOW_FULL_NAME
+func (a *Action) GetDisplayNameTitle() string {
+	if setting.UI.DefaultShowFullName {
+		return a.ShortActUserName()
+	}
+	return a.GetActFullName()
 }
 
 // GetActAvatar the action's user's avatar link
@@ -564,7 +581,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			}
 			refMarked[issue.ID] = true
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
 			if err = CreateRefComment(doer, refRepo, issue, message, c.Sha1); err != nil {
 				return err
 			}

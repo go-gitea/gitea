@@ -25,8 +25,12 @@ All global options can be placed at the command level.
 
 - `--help`, `-h`: Show help text and exit. Optional.
 - `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version 1.1.0+218-g7b907ed built with: bindata, sqlite`).
-- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: $PWD/custom).
-- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: custom/conf/app.ini).
+- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: `AppWorkPath`/custom or `$GITEA_CUSTOM`).
+- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `custom`/conf/app.ini).
+- `--work-path path`, `-w path`: Gitea `AppWorkPath`. Optional. (default: LOCATION_OF_GITEA_BINARY or `$GITEA_WORK_DIR`)
+
+NB: The defaults custom-path, config and work-path can also be
+changed at build time (if preferred).
 
 ### Commands
 
@@ -147,7 +151,7 @@ in the current directory.
     - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
     - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
     - `--database`, `-d`: Specify the database SQL syntax. Optional.
-    - `--verbose`, `-v`: If provided, shows additional details. Optional.
+    - `--verbose`, `-V`: If provided, shows additional details. Optional.
 - Examples:
     - `gitea dump`
     - `gitea dump --verbose`
@@ -161,11 +165,11 @@ for automatic deployments.
     - `secret`:
         - Options:
             - `INTERNAL_TOKEN`: Token used for an internal API call authentication.
-            - `LFS_JWT_SECRET`: LFS authentication secret.
+            - `JWT_SECRET`: LFS & OAUTH2 JWT authentication secret (LFS_JWT_SECRET is aliased to this option for backwards compatibility).
             - `SECRET_KEY`: Global secret key.
         - Examples:
             - `gitea generate secret INTERNAL_TOKEN`
-            - `gitea generate secret LFS_JWT_SECRET`
+            - `gitea generate secret JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
 
 #### keys
