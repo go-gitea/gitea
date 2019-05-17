@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"net/http"
 	"strings"
 
@@ -586,45 +585,44 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	spew.Dump(opts)
-
+	oldRepoName := repo.Name
+	newRepoName := repo.Name
 	if opts.Name != nil {
-		oldRepoName := repo.Name
-		newRepoName := *opts.Name
-		// Check if repository name has been changed and not just a case change
-		if repo.LowerName != strings.ToLower(newRepoName) {
-			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
-				switch {
-				case models.IsErrRepoAlreadyExist(err):
-					ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
-				case models.IsErrNameReserved(err):
-					ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
-				case models.IsErrNamePatternNotAllowed(err):
-					ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
-				default:
-					ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
-				}
-				return err
-			}
-
-			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-			if err != nil {
-				ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-				return err
-			}
-
-			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error("RenameRepoAction: %v", err)
-				ctx.Error(http.StatusInternalServerError, "RenameRepoActions", err)
-				return err
-			}
-
-			log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
-		}
-		// Update the name in the repo object for ther response
-		repo.Name = newRepoName
-		repo.LowerName = strings.ToLower(newRepoName)
+		newRepoName = *opts.Name
 	}
+	// Check if repository name has been changed and not just a case change
+	if repo.LowerName != strings.ToLower(newRepoName) {
+		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+			switch {
+			case models.IsErrRepoAlreadyExist(err):
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
+			case models.IsErrNameReserved(err):
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
+			case models.IsErrNamePatternNotAllowed(err):
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
+			default:
+				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
+			}
+			return err
+		}
+
+		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
+		if err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
+			return err
+		}
+
+		if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
+			log.Error("RenameRepoAction: %v", err)
+			ctx.Error(http.StatusInternalServerError, "RenameRepoActions", err)
+			return err
+		}
+
+		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
+	}
+	// Update the name in the repo object for ther response
+	repo.Name = newRepoName
+	repo.LowerName = strings.ToLower(newRepoName)
 
 	if opts.Description != nil {
 		repo.Description = *opts.Description
@@ -689,16 +687,16 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.IssuesConfig{
-					EnableTimetracker: true,
+					EnableTimetracker:                true,
 					AllowOnlyContributorsToTrackTime: true,
-					EnableDependencies: true,
+					EnableDependencies:               true,
 				}
 			} else {
 				config = unit.IssuesConfig()
 			}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.Type,
+				Type:   models.UnitTypeIssues,
 				Config: config,
 			})
 		}
@@ -732,10 +730,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.PullRequestsConfig{
 					IgnoreWhitespaceConflicts: false,
-					AllowMerge: true,
-					AllowRebase: true,
-					AllowRebaseMerge: true,
-					AllowSquash: true,
+					AllowMerge:                true,
+					AllowRebase:               true,
+					AllowRebaseMerge:          true,
+					AllowSquash:               true,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -753,6 +751,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.AllowRebaseMerge != nil {
 				config.AllowRebaseMerge = *opts.AllowRebaseMerge
 			}
+			if opts.AllowSquash != nil {
+				config.AllowSquash = *opts.AllowSquash
+			}
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
@@ -767,7 +768,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	// exist).
 	// This will also get the types that "must" always exist, and makes sure they exist
 	for _, tp := range models.AllRepoUnitTypes {
-		if ! unitTypeInTypes(tp, unitTypesProcessed) {
+		if !unitTypeInTypes(tp, unitTypesProcessed) {
 			if unit, _ := repo.GetUnit(tp); unit != nil {
 				units = append(units, *unit)
 			} else {

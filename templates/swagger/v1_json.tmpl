@@ -7767,9 +7767,6 @@
     "EditRepoOption": {
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
-      "required": [
-        "name"
-      ],
       "properties": {
         "allow_merge_commits": {
           "description": "Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.",
@@ -7789,7 +7786,7 @@
         "allow_squash_merge": {
           "description": "Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
-          "x-go-name": "AllowSquashMerge"
+          "x-go-name": "AllowSquash"
         },
         "archived": {
           "description": "`true` to archive this repository. Note: You cannot unarchive repositories through the API.",
