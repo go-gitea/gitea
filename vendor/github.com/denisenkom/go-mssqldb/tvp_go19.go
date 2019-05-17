@@ -20,52 +20,52 @@ const (
 )
 
 var (
-	ErrorEmptyTVPTypeName = errors.New("TypeName must not be empty")
-	ErrorTypeSlice        = errors.New("TVP must be slice type")
-	ErrorTypeSliceIsEmpty = errors.New("TVP mustn't be null value")
+	ErrorEmptyTVPTypeName = errors.New("TVPTypeName must not be empty")
+	ErrorTypeSlice        = errors.New("TVPType must be slice type")
+	ErrorTypeSliceIsEmpty = errors.New("TVPType mustn't be null value")
 	ErrorSkip             = errors.New("all fields mustn't skip")
 	ErrorObjectName       = errors.New("wrong tvp name")
-	ErrorWrongTyping      = errors.New("the number of elements in columnStr and tvpFieldIndexes do not align")
 )
 
-//TVP is driver type, which allows supporting Table Valued Parameters (TVP) in SQL Server
-type TVP struct {
-	//TypeName mustn't be default value
-	TypeName string
-	//Value must be the slice, mustn't be nil
-	Value interface{}
+//TVPType is driver type, which allows supporting Table Valued Parameters (TVP) in SQL Server
+type TVPType struct {
+	//TVP param name, mustn't be default value
+	TVPTypeName string
+	//TVP Value Param must be the slice, mustn't be nil
+	TVPValue interface{}
 }
 
-func (tvp TVP) check() error {
-	if len(tvp.TypeName) == 0 {
+func (tvp TVPType) check() error {
+	if len(tvp.TVPTypeName) == 0 {
 		return ErrorEmptyTVPTypeName
 	}
-	if !isProc(tvp.TypeName) {
+	if !isProc(tvp.TVPTypeName) {
 		return ErrorEmptyTVPTypeName
 	}
-	if sepCount := getCountSQLSeparators(tvp.TypeName); sepCount > 1 {
+	if sepCount := getCountSQLSeparators(tvp.TVPTypeName); sepCount > 1 {
 		return ErrorObjectName
 	}
-	valueOf := reflect.ValueOf(tvp.Value)
+	valueOf := reflect.ValueOf(tvp.TVPValue)
 	if valueOf.Kind() != reflect.Slice {
 		return ErrorTypeSlice
 	}
 	if valueOf.IsNil() {
 		return ErrorTypeSliceIsEmpty
 	}
-	if reflect.TypeOf(tvp.Value).Elem().Kind() != reflect.Struct {
+	if reflect.TypeOf(tvp.TVPValue).Elem().Kind() != reflect.Struct {
 		return ErrorTypeSlice
 	}
 	return nil
 }
 
-func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldIndexes []int) ([]byte, error) {
-	if len(columnStr) != len(tvpFieldIndexes) {
-		return nil, ErrorWrongTyping
+func (tvp TVPType) encode(schema, name string) ([]byte, error) {
+	columnStr, tvpFieldIndexes, err := tvp.columnTypes()
+	if err != nil {
+		return nil, err
 	}
 	preparedBuffer := make([]byte, 0, 20+(10*len(columnStr)))
 	buf := bytes.NewBuffer(preparedBuffer)
-	err := writeBVarChar(buf, "")
+	err = writeBVarChar(buf, "")
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,10 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 		writeTypeInfo(buf, &columnStr[i].ti)
 		writeBVarChar(buf, "")
 	}
-	// The returned error is always nil
-	buf.WriteByte(_TVP_END_TOKEN)
-
+	err = buf.WriteByte(_TVP_END_TOKEN)
+	if err != nil {
+		return nil, err
+	}
 	conn := new(Conn)
 	conn.sess = new(tdsSession)
 	conn.sess.loginAck = loginAckStruct{TDSVersion: verTDS73}
@@ -90,12 +91,12 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 		c: conn,
 	}
 
-	val := reflect.ValueOf(tvp.Value)
+	val := reflect.ValueOf(tvp.TVPValue)
 	for i := 0; i < val.Len(); i++ {
 		refStr := reflect.ValueOf(val.Index(i).Interface())
 		buf.WriteByte(_TVP_ROW_TOKEN)
-		for columnStrIdx, fieldIdx := range tvpFieldIndexes {
-			field := refStr.Field(fieldIdx)
+		for _, j := range tvpFieldIndexes {
+			field := refStr.Field(j)
 			tvpVal := field.Interface()
 			valOf := reflect.ValueOf(tvpVal)
 			elemKind := field.Kind()
@@ -122,20 +123,20 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 			if err != nil {
 				return nil, fmt.Errorf("failed to make tvp parameter row col: %s", err)
 			}
-			columnStr[columnStrIdx].ti.Writer(buf, param.ti, param.buffer)
+			columnStr[j].ti.Writer(buf, param.ti, param.buffer)
 		}
 	}
 	buf.WriteByte(_TVP_END_TOKEN)
 	return buf.Bytes(), nil
 }
 
-func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
-	val := reflect.ValueOf(tvp.Value)
+func (tvp TVPType) columnTypes() ([]columnStruct, []int, error) {
+	val := reflect.ValueOf(tvp.TVPValue)
 	var firstRow interface{}
 	if val.Len() != 0 {
 		firstRow = val.Index(0).Interface()
 	} else {
-		firstRow = reflect.New(reflect.TypeOf(tvp.Value).Elem()).Elem().Interface()
+		firstRow = reflect.New(reflect.TypeOf(tvp.TVPValue).Elem()).Elem().Interface()
 	}
 
 	tvpRow := reflect.TypeOf(firstRow)

@@ -25,7 +25,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190514213226-23b29e59681b
+	github.com/denisenkom/go-mssqldb v0.0.0-20190418034912-35416408c946
 	github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20151224045452-57eb5e1fc594 // indirect
@@ -129,6 +129,6 @@ require (
 )
 
 replace (
-	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20190514213226-23b29e59681b
+	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20190418034912-35416408c946
 	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
 )

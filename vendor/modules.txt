@@ -87,7 +87,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190514213226-23b29e59681b => github.com/denisenkom/go-mssqldb v0.0.0-20190514213226-23b29e59681b
+# github.com/denisenkom/go-mssqldb v0.0.0-20190418034912-35416408c946 => github.com/denisenkom/go-mssqldb v0.0.0-20190418034912-35416408c946
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
