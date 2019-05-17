@@ -71,10 +71,8 @@ type CreateRepoOption struct {
 // swagger:model
 type EditRepoOption struct {
 	// Name of the repository
-	//
-	// required: true
 	// unique: true
-	Name *string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// A short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
 	// A URL with more information about the repository.
@@ -100,7 +98,7 @@ type EditRepoOption struct {
 	// Either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.
-	AllowSquashMerge *bool `json:"allow_squash_merge,omitempty"`
+	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// `true` to archive this repository. Note: You cannot unarchive repositories through the API.
 	Archived *bool `json:"archived,omitempty"`
 }

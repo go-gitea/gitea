@@ -348,7 +348,7 @@ func IsErrUnitTypeNotExist(err error) bool {
 }
 
 func (err ErrUnitTypeNotExist) Error() string {
-	return"Unit does not exist"
+	return "Unit does not exist"
 }
 
 // MustGetUnit always returns a RepoUnit object
@@ -375,7 +375,7 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 		}
 	} else if tp == UnitTypeIssues {
 		return &RepoUnit{
-			Type: tp,
+			Type:   tp,
 			Config: new(IssuesConfig),
 		}
 	}
