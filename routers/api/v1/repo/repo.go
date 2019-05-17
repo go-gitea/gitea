@@ -154,7 +154,6 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-
 	repos, count, err := models.SearchRepositoryByName(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error(), api.SearchError{
