@@ -1023,7 +1023,7 @@ func GetMaxIndexOfIssue(repoID int64) (int64, error) {
 
 func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 	var maxIndex int64
-	has, err := e.SQL("SELECT MAX(`index`) FROM issue WHERE repo_id = ?", repoID).Get(&maxIndex)
+	has, err := e.SQL("SELECT IFNULL(MAX(`index`),0) FROM issue WHERE repo_id = ?", repoID).Get(&maxIndex)
 	if err != nil {
 		return 0, err
 	} else if !has {
