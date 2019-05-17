@@ -885,7 +885,10 @@ func DeliverHooks() {
 
 	// Update hook task status.
 	for _, t := range tasks {
-		t.deliver()
+		if err = t.deliver(); err != nil {
+			log.Error("deliver: %v", err)
+			continue
+		}
 	}
 
 	// Start listening on new hook requests.
@@ -905,7 +908,9 @@ func DeliverHooks() {
 			continue
 		}
 		for _, t := range tasks {
-			t.deliver()
+			if err = t.deliver(); err != nil {
+				log.Error("deliver: %v", err)
+			}
 		}
 	}
 }
