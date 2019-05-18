@@ -65,6 +65,12 @@
 					</div>
 				{{end}}
 			{{end}}
+			{{if .Note}}
+				<div class="ui top bottom attached info clearing segment">
+					<h3>git-notes:</h3>
+					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				</div>
+			{{end}}
 		{{end}}
 
 		{{template "repo/diff/box" .}}
