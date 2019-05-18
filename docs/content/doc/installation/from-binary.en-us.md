@@ -145,6 +145,7 @@ is already running.
 ### Gitea not running on Raspbian
 
 currently, as of v1.8, the arm7 version of gitea is broken and doesn't run on Raspberry Pi's and similar devices. 
+
 Therefore switch to the arm6 version, which works on Raspberry Pi's.
 
 <!---
