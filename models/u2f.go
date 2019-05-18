@@ -48,7 +48,7 @@ type U2FRegistrationList []*U2FRegistration
 
 // ToRegistrations will convert all U2FRegistrations to u2f.Registrations
 func (list U2FRegistrationList) ToRegistrations() []u2f.Registration {
-	regs := make([]u2f.Registration, len(list))
+	regs := make([]u2f.Registration, 0, len(list))
 	for _, reg := range list {
 		r, err := reg.Parse()
 		if err != nil {
