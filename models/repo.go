@@ -2510,8 +2510,8 @@ func (repo *Repository) AvatarLink() string {
 	return link
 }
 
-// UploadAvatar saves custom avatar for user.
-// FIXME: split uploads to different subdirs in case we have massive users.
+// UploadAvatar saves custom avatar for repository.
+// FIXME: split uploads to different subdirs in case we have massive number of repos.
 func (repo *Repository) UploadAvatar(data []byte) error {
 	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
@@ -2569,7 +2569,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	return sess.Commit()
 }
 
-// DeleteAvatar deletes the user's custom avatar.
+// DeleteAvatar deletes the repos's custom avatar.
 func (repo *Repository) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, repo.CustomAvatarPath())
 	if len(repo.Avatar) > 0 {
