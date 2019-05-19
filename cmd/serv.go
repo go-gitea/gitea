@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -71,7 +70,6 @@ func setup(logPath string) {
 	log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
-	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -98,11 +96,9 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.ProdMode {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
-		log.GitLogger.Fatal(logMessage, args...)
 		return
 	}
 
-	log.GitLogger.Close()
 	os.Exit(1)
 }
 
@@ -170,10 +166,16 @@ func runServ(c *cli.Context) error {
 			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}
 
-		stopCPUProfiler := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		if err != nil {
+			fail("Internal Server Error", "Unable to start CPU profile: %v", err)
+		}
 		defer func() {
 			stopCPUProfiler()
-			pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
+			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
+			if err != nil {
+				fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
+			}
 		}()
 	}
 
