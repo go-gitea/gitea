@@ -2477,7 +2477,7 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 // CustomAvatarPath returns repository custom avatar file path.
 func (repo *Repository) CustomAvatarPath() string {
 	// Avatar empty by default
-	if (len(repo.Avatar) <= 0) {
+	if len(repo.Avatar) <= 0 {
 		return ""
 	}
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
