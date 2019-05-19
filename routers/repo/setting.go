@@ -762,6 +762,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	return nil
 }
 
+// SettingsAvatar save new POSTed repository avatar
 func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
 	form.Source = auth.AvatarLocal
 	if err := UpdateAvatarSetting(ctx, form); err != nil {
@@ -772,6 +773,7 @@ func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
+// SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
 	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
