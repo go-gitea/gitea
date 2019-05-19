@@ -67,7 +67,7 @@
 			{{end}}
 			{{if .Note}}
 				<div class="ui top bottom attached info clearing segment">
-					<h3>git-notes:</h3>
+					<h3>{{.i18n.Tr "repo.diff.git-notes"}}</h3>
 					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 				</div>
 			{{end}}
