@@ -2483,9 +2483,8 @@ func (repo *Repository) CustomAvatarPath() string {
 // The link a sub-URL to this site
 // Since Gravatar support not needed here - just check for image path.
 func (repo *Repository) RelAvatarLink() string {
-	defaultImgUrl := ""
 	if !com.IsFile(repo.CustomAvatarPath()) {
-		return defaultImgUrl
+		return ""
 	}
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
