@@ -22,7 +22,20 @@ type PullRequestInfo struct {
 }
 
 // GetMergeBase checks and returns merge base of two branches.
-func (repo *Repository) GetMergeBase(base, head string) (string, error) {
+func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (string, error) {
+	if tmpRemote == "" {
+		tmpRemote = "origin"
+	}
+
+	if tmpRemote != "origin" {
+		tmpBaseName := "refs/remotes/" + tmpRemote + "/tmp_" + base
+		// Fetch commit into a temporary branch in order to be able to handle commits and tags
+		_, err := NewCommand("fetch", tmpRemote, base+":"+tmpBaseName).RunInDir(repo.Path)
+		if err == nil {
+			base = tmpBaseName
+		}
+	}
+
 	stdout, err := NewCommand("merge-base", base, head).RunInDir(repo.Path)
 	return strings.TrimSpace(stdout), err
 }
@@ -30,24 +43,23 @@ func (repo *Repository) GetMergeBase(base, head string) (string, error) {
 // GetPullRequestInfo generates and returns pull request information
 // between base and head branches of repositories.
 func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch string) (_ *PullRequestInfo, err error) {
-	var remoteBranch string
+	var (
+		remoteBranch string
+		tmpRemote    string
+	)
 
 	// We don't need a temporary remote for same repository.
 	if repo.Path != basePath {
 		// Add a temporary remote
-		tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
+		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
 		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
 		defer repo.RemoveRemote(tmpRemote)
-
-		remoteBranch = "remotes/" + tmpRemote + "/" + baseBranch
-	} else {
-		remoteBranch = baseBranch
 	}
 
 	prInfo := new(PullRequestInfo)
-	prInfo.MergeBase, err = repo.GetMergeBase(remoteBranch, headBranch)
+	prInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
 		// We have a common base
 		logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
