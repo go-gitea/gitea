@@ -2539,7 +2539,8 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 
 	oldAvatarPath := repo.CustomAvatarPath()
 
-	// Some one can upload the same image - prefix with ID
+	// Users can upload the same image to other repo - prefix it with ID
+	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
 	if _, err := x.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
