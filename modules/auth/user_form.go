@@ -23,6 +23,7 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
+	Charset  string
 	DbPath   string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
