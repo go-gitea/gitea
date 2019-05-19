@@ -19,6 +19,8 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 
 	sig := doer.NewGitSig()
 
+	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
+	// once we have hook and pushing infrastructure working correctly
 	return append(os.Environ(),
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
@@ -30,7 +32,6 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 		EnvPusherName+"="+doer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
 		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
-		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 
 }
