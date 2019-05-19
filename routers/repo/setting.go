@@ -732,7 +732,6 @@ func init() {
 }
 
 // UpdateAvatarSetting update repo's avatar
-// FIXME: limit size.
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	ctxRepo := ctx.Repo.Repository
 	if form.Avatar != nil {
@@ -741,6 +740,16 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 			return fmt.Errorf("Avatar.Open: %v", err)
 		}
 		defer r.Close()
+
+		fi, err := r.Stat()
+		if err != nil {
+			// Could not obtain stat, handle error
+			return fmt.Errorf("UploadAvatarSetting: %v", err)
+		}
+
+		if fi.Size() > settings.AvatarMaxFileSize {
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+		}
 
 		data, err := ioutil.ReadAll(r)
 		if err != nil {

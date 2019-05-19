@@ -291,6 +291,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    [http://www.libravatar.org](http://www.libravatar.org)).
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
+- `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
+- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
 
 ## Attachment (`attachment`)
 
