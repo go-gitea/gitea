@@ -741,13 +741,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 		}
 		defer r.Close()
 
-		fi, err := r.Stat()
-		if err != nil {
-			// Could not obtain stat, handle error
-			return fmt.Errorf("UploadAvatarSetting: %v", err)
-		}
-
-		if fi.Size() > settings.AvatarMaxFileSize {
+		if form.Avatar.Size > setting.AvatarMaxFileSize {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 

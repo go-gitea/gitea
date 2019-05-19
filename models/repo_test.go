@@ -179,6 +179,20 @@ func TestUploadAvatar(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
 }
 
+func TestUploadBigAvatar(t *testing.T) {
+
+	// Generate BIG image
+	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.Error(t, err)
+}
+
 func TestDeleteAvatar(t *testing.T) {
 
 	// Generate image
