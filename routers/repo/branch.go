@@ -24,13 +24,14 @@ const (
 
 // Branch contains the branch information
 type Branch struct {
-	Name          string
-	Commit        *git.Commit
-	IsProtected   bool
-	IsDeleted     bool
-	DeletedBranch *models.DeletedBranch
-	CommitsAhead  int
-	CommitsBehind int
+	Name              string
+	Commit            *git.Commit
+	IsProtected       bool
+	IsDeleted         bool
+	DeletedBranch     *models.DeletedBranch
+	CommitsAhead      int
+	CommitsBehind     int
+	LatestPullRequest *models.PullRequest
 }
 
 // Branches render repository branch page
@@ -178,12 +179,18 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		pr, err := models.GetLatestPullRequestsByHeadInfo(ctx.Repo.Repository.ID, branchName)
+		if pr != nil {
+			pr.LoadIssue()
+		}
+
 		branches[i] = &Branch{
-			Name:          branchName,
-			Commit:        commit,
-			IsProtected:   isProtected,
-			CommitsAhead:  divergence.Ahead,
-			CommitsBehind: divergence.Behind,
+			Name:              branchName,
+			Commit:            commit,
+			IsProtected:       isProtected,
+			CommitsAhead:      divergence.Ahead,
+			CommitsBehind:     divergence.Behind,
+			LatestPullRequest: pr,
 		}
 	}
 
