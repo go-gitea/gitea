@@ -23,15 +23,15 @@ func addAvatarFieldToRepository(x *xorm.Engine) (err error) {
 
 	switch dialect {
 	case "mysql":
-		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN `avatar` TEXT NOT NULL DEFAULT ''")
+		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN `avatar` TEXT")
 	case "postgres":
-		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN \"avatar\" VARCHAR NOT NULL DEFAULT ''")
+		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN \"avatar\" VARCHAR")
 	case "tidb":
-		_, err = sess.Exec("ALTER TABLE repository ADD `avatar` TEXT NOT NULL DEFAULT ''")
+		_, err = sess.Exec("ALTER TABLE repository ADD `avatar` TEXT")
 	case "mssql":
-		_, err = sess.Exec("ALTER TABLE repository ADD \"avatar\" VARCHAR NOT NULL DEFAULT ''")
+		_, err = sess.Exec("ALTER TABLE repository ADD \"avatar\" VARCHAR")
 	case "sqlite3":
-		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN `avatar` TEXT DEFAULT ''")
+		_, err = sess.Exec("ALTER TABLE repository ADD COLUMN `avatar` TEXT")
 	}
 
 	if err != nil {

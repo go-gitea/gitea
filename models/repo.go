@@ -175,7 +175,7 @@ type Repository struct {
 	Topics                          []string           `xorm:"TEXT JSON"`
 
 	// Avatar
-	Avatar string `xorm:"VARCHAR(2048) NOT NULL DEFAULT ''"`
+	Avatar string `xorm:"VARCHAR(2048)"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
