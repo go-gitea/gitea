@@ -86,7 +86,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name")
+	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN")
 	items := files.Map(func(i int, s *goquery.Selection) string {
 		cls, _ := s.Find("SPAN").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")

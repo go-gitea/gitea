@@ -76,6 +76,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
+## CORS (`cors`)
+
+- `ENABLED`: **false**: enable cors headers (disabled by default)
+- `SCHEME`: **http**: scheme of allowed requests
+- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
+- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
+- `MAX_AGE`: **10m**: max time to cache response
+- `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
@@ -85,6 +95,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
+- `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 
 ### UI - Admin (`ui.admin`)
 
@@ -323,7 +334,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
 
-- For the console logger `COLORIZE` will default to `true` if not on windows.
+- For the console logger `COLORIZE` will default to `true` if not on windows or the terminal is determined to be able to color.
 - `STDERR`: **false**: Use Stderr instead of Stdout.
 
 ### File log mode (`log.file`, `log.file.*` or `MODE=file`)
@@ -333,7 +344,6 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
 - `MAX_DAYS`: **7**: Delete the log file after n days
-- NB: `COLORIZE`: will default to `true` if not on windows.
 - `COMPRESS`: **true**: Compress old log files by default with gzip
 - `COMPRESSION_LEVEL`: **-1**: Compression level
 

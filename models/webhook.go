@@ -13,15 +13,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 )
@@ -105,6 +106,7 @@ type Webhook struct {
 	OrgID        int64  `xorm:"INDEX"`
 	URL          string `xorm:"url TEXT"`
 	Signature    string `xorm:"TEXT"`
+	HTTPMethod   string `xorm:"http_method"`
 	ContentType  HookContentType
 	Secret       string `xorm:"TEXT"`
 	Events       string `xorm:"TEXT"`
@@ -553,6 +555,7 @@ type HookTask struct {
 	Signature       string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
+	HTTPMethod      string `xorm:"http_method"`
 	ContentType     HookContentType
 	EventType       HookEventType
 	IsSSL           bool
@@ -707,6 +710,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		URL:         w.URL,
 		Signature:   signature,
 		Payloader:   payloader,
+		HTTPMethod:  w.HTTPMethod,
 		ContentType: w.ContentType,
 		EventType:   event,
 		IsSSL:       w.IsSSL,
@@ -753,7 +757,28 @@ func (t *HookTask) deliver() {
 	t.IsDelivered = true
 
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
+
+	var req *httplib.Request
+	switch t.HTTPMethod {
+	case "":
+		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
+		fallthrough
+	case http.MethodPost:
+		req = httplib.Post(t.URL)
+		switch t.ContentType {
+		case ContentTypeJSON:
+			req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
+		case ContentTypeForm:
+			req.Param("payload", t.PayloadContent)
+		}
+	case http.MethodGet:
+		req = httplib.Get(t.URL).Param("payload", t.PayloadContent)
+	default:
+		log.Error("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+		return
+	}
+
+	req = req.SetTimeout(timeout, timeout).
 		Header("X-Gitea-Delivery", t.UUID).
 		Header("X-Gitea-Event", string(t.EventType)).
 		Header("X-Gitea-Signature", t.Signature).
@@ -763,13 +788,6 @@ func (t *HookTask) deliver() {
 		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
 		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
-
-	switch t.ContentType {
-	case ContentTypeJSON:
-		req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
-	case ContentTypeForm:
-		req.Param("payload", t.PayloadContent)
-	}
 
 	// Record delivery information.
 	t.RequestInfo = &HookRequest{
