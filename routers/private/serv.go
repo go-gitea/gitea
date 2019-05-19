@@ -210,6 +210,16 @@ func ServCommand(ctx *macaron.Context) {
 		results.UserName = user.Name
 	}
 
+	// Don't allow pushing if the repo is archived
+	if mode > models.AccessModeRead && repo.IsArchived {
+		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
+			"results": results,
+			"type":    "ErrRepoIsArchived",
+			"err":     fmt.Sprintf("Repo: %s/%s is archived.", results.OwnerName, results.RepoName),
+		})
+		return
+	}
+
 	// Permissions checking:
 	if mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView {
 		if key.Type == models.KeyTypeDeploy {
@@ -217,7 +227,7 @@ func ServCommand(ctx *macaron.Context) {
 				ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
 					"results": results,
 					"type":    "ErrUnauthorized",
-					"err":     fmt.Sprintf("Deploy Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, ownerName, repoName),
+					"err":     fmt.Sprintf("Deploy Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
 				})
 				return
 			}
@@ -228,7 +238,7 @@ func ServCommand(ctx *macaron.Context) {
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"results": results,
 					"type":    "InternalServerError",
-					"err":     fmt.Sprintf("Unable to get permissions for user %d:%s with key %d in %s/%s Error: %v", user.ID, user.Name, key.ID, ownerName, repoName, err),
+					"err":     fmt.Sprintf("Unable to get permissions for user %d:%s with key %d in %s/%s Error: %v", user.ID, user.Name, key.ID, results.OwnerName, results.RepoName, err),
 				})
 				return
 			}
