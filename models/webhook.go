@@ -850,7 +850,7 @@ func (t *HookTask) deliver() error {
 		}
 	}()
 
-	resp, err := webhookHttpClient.Do(req)
+	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
@@ -915,13 +915,13 @@ func DeliverHooks() {
 	}
 }
 
-var webhookHttpClient *http.Client
+var webhookHTTPClient *http.Client
 
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
-	webhookHttpClient = &http.Client{
+	webhookHTTPClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Dial: func(netw, addr string) (net.Conn, error) {
