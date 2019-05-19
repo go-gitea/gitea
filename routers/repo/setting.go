@@ -8,14 +8,14 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
-	"io/ioutil"
 
-	"mvdan.cc/xurls/v2"
 	"github.com/Unknwon/com"
+	"mvdan.cc/xurls/v2"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -734,7 +734,7 @@ func init() {
 // UpdateAvatarSetting update repo's avatar
 // FIXME: limit size.
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
-	ctxRepo := ctx.Repo.Repository;
+	ctxRepo := ctx.Repo.Repository
 	if form.Avatar != nil {
 		r, err := form.Avatar.Open()
 		if err != nil {

@@ -250,15 +250,15 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath      string
-	AvatarMaxWidth        int
-	AvatarMaxHeight       int
-	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
-	RepositoryAvatarUploadPath   string
+	AvatarUploadPath           string
+	AvatarMaxWidth             int
+	AvatarMaxHeight            int
+	GravatarSource             string
+	GravatarSourceURL          *url.URL
+	DisableGravatar            bool
+	EnableFederatedAvatar      bool
+	LibravatarService          *libravatar.Libravatar
+	RepositoryAvatarUploadPath string
 
 	// Log settings
 	LogLevel           string

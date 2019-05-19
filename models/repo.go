@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -21,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"image"
 
 	// Needed for jpeg support
 	_ "image/jpeg"
@@ -38,10 +38,10 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/nfnt/resize"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"github.com/nfnt/resize"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -175,7 +175,7 @@ type Repository struct {
 	Topics                          []string           `xorm:"TEXT JSON"`
 
 	// Avatar
-	Avatar          string `xorm:"VARCHAR(2048) NOT NULL DEFAULT ''"`
+	Avatar string `xorm:"VARCHAR(2048) NOT NULL DEFAULT ''"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
