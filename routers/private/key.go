@@ -46,6 +46,39 @@ func UpdatePublicKey(ctx *macaron.Context) {
 	ctx.PlainText(200, []byte("success"))
 }
 
+// UpdatePublicKeyInRepo update public key and deploy key updates
+func UpdatePublicKeyInRepo(ctx *macaron.Context) {
+	keyID := ctx.ParamsInt64(":id")
+	repoID := ctx.ParamsInt64(":repoid")
+	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	deployKey, err := models.GetDeployKeyByRepo(keyID, repoID)
+	if err != nil {
+		if models.IsErrDeployKeyNotExist(err) {
+			ctx.PlainText(200, []byte("success"))
+			return
+		}
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	deployKey.UpdatedUnix = util.TimeStampNow()
+	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	ctx.PlainText(200, []byte("success"))
+}
+
 //GetPublicKeyByID chainload to models.GetPublicKeyByID
 func GetPublicKeyByID(ctx *macaron.Context) {
 	keyID := ctx.ParamsInt64(":id")

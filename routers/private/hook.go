@@ -35,6 +35,7 @@ func HookPreReceive(ctx *macaron.Context) {
 		})
 		return
 	}
+	repo.OwnerName = ownerName
 	protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
@@ -131,6 +132,8 @@ func HookPostReceive(ctx *macaron.Context) {
 			})
 			return
 		}
+		repo.OwnerName = ownerName
+
 		pullRequestAllowed := repo.AllowsPulls()
 		if !pullRequestAllowed {
 			ctx.JSON(http.StatusOK, map[string]interface{}{

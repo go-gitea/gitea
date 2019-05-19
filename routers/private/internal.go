@@ -79,6 +79,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/ssh/:id", GetPublicKeyByID)
 		m.Get("/ssh/:id/user", GetUserByKeyID)
 		m.Post("/ssh/:id/update", UpdatePublicKey)
+		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
 		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
 		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
 		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
@@ -92,5 +93,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/active-pull-request", GetActivePullRequest)
 		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
 		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
+		m.Get("/serv/none/:keyid", ServNoCommand)
+		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)
 }

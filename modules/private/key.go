@@ -139,3 +139,23 @@ func UpdatePublicKeyUpdated(keyID int64) error {
 	}
 	return nil
 }
+
+// UpdatePublicKeyInRepo update public key and if necessary deploy key updates
+func UpdatePublicKeyInRepo(keyID, repoID int64) error {
+	// Ask for running deliver hook and test pull request tasks.
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update/%d", keyID, repoID)
+	log.GitLogger.Trace("UpdatePublicKeyUpdated: %s", reqURL)
+
+	resp, err := newInternalRequest(reqURL, "POST").Response()
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	// All 2XX status codes are accepted and others will return an error
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
+	}
+	return nil
+}
