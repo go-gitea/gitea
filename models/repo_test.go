@@ -180,7 +180,7 @@ func TestDeleteAvatar(t *testing.T) {
 	err := repo.UploadAvatar(Pixel)
 	assert.NoError(t, err)
 
-	err  = repo.DeleteAvatar()
+	err = repo.DeleteAvatar()
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", repo.Avatar)
