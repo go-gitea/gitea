@@ -23,6 +23,7 @@ import (
 	"time"
 	"image"
 
+	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
 
