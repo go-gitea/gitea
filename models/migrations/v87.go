@@ -35,7 +35,7 @@ func addAvatarFieldToRepository(x *xorm.Engine) (err error) {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error changing mirror interval column type: %v", err)
+		return fmt.Errorf("Error while adding new column to repository table: %v", err)
 	}
 
 	return sess.Commit()
