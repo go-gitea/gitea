@@ -78,7 +78,8 @@ menu:
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
-- `SSL_MODE`: PostgreSQL数据库是否启用SSL模式。
+- `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
+- `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 
