@@ -48,6 +48,7 @@
 									{{end}}
 									</td>
 									<td class="ui">
+										{{if not .IsDeleted}}
 										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
@@ -58,6 +59,7 @@
                                             	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
 											</div>
 										</div>
+										{{end}}
 									</td>
 									<td class="right aligned">
 
