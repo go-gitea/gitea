@@ -19,10 +19,7 @@ func DumpMemProfileForUsername(pprofDataPath, username string) error {
 	}
 	defer f.Close()
 	runtime.GC() // get up-to-date statistics
-	if err := pprof.WriteHeapProfile(f); err != nil {
-		return err
-	}
-	return nil
+	return pprof.WriteHeapProfile(f)
 }
 
 // DumpCPUProfileForUsername dumps a CPU profile at pprofDataPath as cpuprofile_<username>_<temporary id>
