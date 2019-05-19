@@ -963,7 +963,6 @@ function initRepository() {
     if ($repoComparePull.length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
         // show pull request form
-        console.log('repository.compare');
         $repoComparePull.find('button.show-form').on('click', function(e) {
             e.preventDefault();
             $repoComparePull.find('.pullrequest-form').show();
