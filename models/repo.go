@@ -2562,7 +2562,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 
 	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
 		if err := os.Remove(oldAvatarPath); err != nil {
-			return fmt.Errorf("Failed to remove old %s: %v", oldAvatarPath, err)
+			return fmt.Errorf("Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
 
