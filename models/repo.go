@@ -2537,7 +2537,10 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	repo.Avatar = fmt.Sprintf("%x", md5.Sum(data))
+	oldAvatarPath := repo.CustomAvatarPath()
+
+	// Some one can upload the same image - prefix with ID
+	repo.Avatar = fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
 	if _, err := x.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
 	}
@@ -2554,6 +2557,12 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 
 	if err = png.Encode(fw, m); err != nil {
 		return fmt.Errorf("Encode: %v", err)
+	}
+
+	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
+		if err := os.Remove(oldAvatarPath); err != nil {
+			return fmt.Errorf("Failed to remove old %s: %v", oldAvatarPath, err)
+		}
 	}
 
 	return sess.Commit()

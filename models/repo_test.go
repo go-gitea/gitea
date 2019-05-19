@@ -5,6 +5,8 @@
 package models
 
 import (
+	"crypto/md5"
+	"fmt"
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
@@ -12,6 +14,9 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
+
+// GIF 1x1 1x1+0+0 8-bit sRGB
+var Pixel = []byte("\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\xFF\x00\xFF\xFF\xFF\x00\x00\x00\x2C\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3B")
 
 func TestRepo(t *testing.T) {
 	repo := &Repository{Name: "testRepo"}
@@ -157,4 +162,26 @@ func TestTransferOwnership(t *testing.T) {
 	})
 
 	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
+}
+
+func TestUploadAvatar(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(Pixel)
+	assert.NoError(t, err)
+	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(Pixel)), repo.Avatar)
+}
+
+func TestDeleteAvatar(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(Pixel)
+	assert.NoError(t, err)
+
+	err  = repo.DeleteAvatar()
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", repo.Avatar)
 }
