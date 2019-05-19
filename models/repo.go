@@ -2477,7 +2477,7 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 // CustomAvatarPath returns repository custom avatar file path.
 func (repo *Repository) CustomAvatarPath() string {
 	// Avatar empty by default
-	if (!len(repo.Avatar)) {
+	if (len(repo.Avatar) <= 0) {
 		return ""
 	}
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
@@ -2489,7 +2489,10 @@ func (repo *Repository) CustomAvatarPath() string {
 func (repo *Repository) RelAvatarLink() string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
-	if !len(avatarPath) || !com.IsFile(avatarPath) {
+	if len(avatarPath) <= 0 {
+		return ""
+	}
+	if !com.IsFile(avatarPath) {
 		return ""
 	}
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
@@ -2499,8 +2502,10 @@ func (repo *Repository) RelAvatarLink() string {
 func (repo *Repository) AvatarLink() string {
 	link := repo.RelAvatarLink()
 	// link may be empty!
-	if link && link[0] == '/' && link[1] != '/' {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
+	if len(link) > 0 {
+		if link[0] == '/' && link[1] != '/' {
+			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
+		}
 	}
 	return link
 }
