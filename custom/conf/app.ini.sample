@@ -501,6 +501,7 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = data/repo-avatars
 ; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
 ; used when resizing the image.
 AVATAR_MAX_WIDTH = 4096

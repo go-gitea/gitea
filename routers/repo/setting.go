@@ -7,12 +7,15 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+	"io/ioutil"
 
 	"mvdan.cc/xurls/v2"
+	"github.com/Unknwon/com"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -27,6 +30,7 @@ import (
 )
 
 const (
+	tplSettingsAvatar  base.TplName = "repo/settings/avatar"
 	tplSettingsOptions base.TplName = "repo/settings/options"
 	tplCollaboration   base.TplName = "repo/settings/collaboration"
 	tplBranches        base.TplName = "repo/settings/branches"
@@ -726,4 +730,52 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// UpdateAvatarSetting update repo's avatar
+// FIXME: limit size.
+func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+	ctxRepo := ctx.Repo.Repository;
+	if form.Avatar != nil {
+		r, err := form.Avatar.Open()
+		if err != nil {
+			return fmt.Errorf("Avatar.Open: %v", err)
+		}
+		defer r.Close()
+
+		data, err := ioutil.ReadAll(r)
+		if err != nil {
+			return fmt.Errorf("ioutil.ReadAll: %v", err)
+		}
+		if !base.IsImageFile(data) {
+			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+		}
+		if err = ctxRepo.UploadAvatar(data); err != nil {
+			return fmt.Errorf("UploadAvatar: %v", err)
+		}
+	} else {
+		// No avatar is uploaded but setting has been changed to enable
+		// No random avatar here.
+		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
+		}
+	}
+	return nil
+}
+
+func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+	form.Source = auth.AvatarLocal
+	if err := UpdateAvatarSetting(ctx, form); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+func SettingsDeleteAvatar(ctx *context.Context) {
+	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
