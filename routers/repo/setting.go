@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	tplSettingsAvatar  base.TplName = "repo/settings/avatar"
 	tplSettingsOptions base.TplName = "repo/settings/options"
 	tplCollaboration   base.TplName = "repo/settings/collaboration"
 	tplBranches        base.TplName = "repo/settings/branches"
