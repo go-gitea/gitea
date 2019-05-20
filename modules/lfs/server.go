@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	contentMediaType = "application/vnd.git-lfs"
-	metaMediaType    = contentMediaType + "+json"
+	metaMediaType = "application/vnd.git-lfs+json"
 )
 
 // RequestVars contain variables from the HTTP request. Variables from routing, json body decoding, and
@@ -385,7 +384,6 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 	}
 
 	header := make(map[string]string)
-	header["Accept"] = contentMediaType
 
 	if rv.Authorization == "" {
 		//https://github.com/github/git-lfs/issues/1088
@@ -415,7 +413,7 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 func ContentMatcher(r macaron.Request) bool {
 	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
-	return mt == contentMediaType
+	return mt != metaMediaType
 }
 
 // MetaMatcher provides a mux.MatcherFunc that only allows requests that contain
