@@ -1,5 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -155,7 +155,7 @@ func Search(ctx *context.APIContext) {
 	var err error
 	repos, count, err := models.SearchRepositoryByName(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), api.SearchError{
+		ctx.JSON(500, api.SearchError{
 			OK:    false,
 			Error: err.Error(),
 		})
@@ -165,7 +165,7 @@ func Search(ctx *context.APIContext) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), api.SearchError{
+			ctx.JSON(500, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
@@ -173,7 +173,7 @@ func Search(ctx *context.APIContext) {
 		}
 		accessMode, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), api.SearchError{
+			ctx.JSON(500, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
@@ -183,7 +183,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Error(http.StatusOK, err.Error(), api.SearchResults{
+	ctx.JSON(200, api.SearchResults{
 		OK:   true,
 		Data: results,
 	})
@@ -205,22 +205,22 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
-			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+			ctx.Error(409, "", "The repository with the same name already exists.")
 		} else if models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.Error(422, "", err)
 		} else {
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
 					log.Error("DeleteRepository: %v", err)
 				}
 			}
-			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
+			ctx.Error(500, "CreateRepository", err)
 		}
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
+	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -242,7 +242,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/Repository"
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
-		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
+		ctx.Error(422, "", "not allowed creating repository for organization")
 		return
 	}
 	CreateUserRepo(ctx, ctx.User, opt)
@@ -277,9 +277,9 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.Error(422, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+			ctx.Error(500, "GetOrgByName", err)
 		}
 		return
 	}
@@ -292,10 +292,10 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	if !ctx.User.IsAdmin {
 		isOwner, err := org.IsOwnedBy(ctx.User.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
+			ctx.ServerError("IsOwnedBy", err)
 			return
 		} else if !isOwner {
-			ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
+			ctx.Error(403, "", "Given user is not owner of organization.")
 			return
 		}
 	}
@@ -326,9 +326,9 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		org, err := models.GetUserByID(form.UID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				ctx.Error(422, "", err)
 			} else {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
+				ctx.Error(500, "GetUserByID", err)
 			}
 			return
 		}
@@ -336,13 +336,13 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
+		ctx.Error(422, "", ctx.GetErrMsg())
 		return
 	}
 
 	if !ctx.User.IsAdmin {
 		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
-			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
+			ctx.Error(403, "", "Given user is not an organization.")
 			return
 		}
 
@@ -350,10 +350,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 			// Check ownership of organization.
 			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
+				ctx.Error(500, "IsOwnedBy", err)
 				return
 			} else if !isOwner {
-				ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
+				ctx.Error(403, "", "Given user is not owner of organization.")
 				return
 			}
 		}
@@ -365,16 +365,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				ctx.Error(422, "", err)
 			case addrErr.IsPermissionDenied:
-				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
+				ctx.Error(422, "", "You are not allowed to import local repositories.")
 			case addrErr.IsInvalidPath:
-				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid local path, it does not exist or not a directory.")
+				ctx.Error(422, "", "Invalid local path, it does not exist or not a directory.")
 			default:
-				ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
+				ctx.Error(500, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
 			}
 		} else {
-			ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
+			ctx.Error(500, "ParseRemoteAddr", err)
 		}
 		return
 	}
@@ -407,33 +407,33 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
 	if err == nil {
 		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-		ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
+		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 		return
 	}
 
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+		ctx.Error(409, "", "The repository with the same name already exists.")
 	case migrations.IsRateLimitError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
+		ctx.Error(422, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
+		ctx.Error(422, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
+		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
 	case models.IsErrNameReserved(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
+		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+		ctx.Error(422, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Authentication failed: %v.", err))
+			ctx.Error(422, "", fmt.Sprintf("Authentication failed: %v.", err))
 		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Migration failed: %v.", err))
+			ctx.Error(422, "", fmt.Sprintf("Migration failed: %v.", err))
 		} else {
-			ctx.Error(http.StatusInternalServerError, "MigrateRepository", err)
+			ctx.Error(500, "MigrateRepository", err)
 		}
 	}
 }
@@ -459,7 +459,7 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -484,20 +484,20 @@ func GetByID(ctx *context.APIContext) {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+			ctx.Error(500, "GetRepositoryByID", err)
 		}
 		return
 	}
 
 	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -827,21 +827,21 @@ func Delete(ctx *context.APIContext) {
 	if owner.IsOrganization() && !ctx.User.IsAdmin {
 		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
+			ctx.Error(500, "IsOwnedBy", err)
 			return
 		} else if !isOwner {
-			ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
+			ctx.Error(403, "", "Given user is not owner of organization.")
 			return
 		}
 	}
 
 	if err := models.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
+		ctx.Error(500, "DeleteRepository", err)
 		return
 	}
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(204)
 }
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -868,15 +868,15 @@ func MirrorSync(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(http.StatusForbidden, "MirrorSync", "Must have write access")
+		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
 	go models.MirrorQueue.Add(repo.ID)
-	ctx.Status(http.StatusOK)
+	ctx.Status(200)
 }
 
 // TopicSearch search for creating topic
-func TopicSearch(ctx *context.APIContext) {
+func TopicSearch(ctx *context.Context) {
 	// swagger:operation GET /topics/search repository topicSearch
 	// ---
 	// summary: search topics via keyword
@@ -892,8 +892,9 @@ func TopicSearch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 	if ctx.User == nil {
-		err := fmt.Errorf("only owners could change the topics")
-		ctx.Error(http.StatusForbidden, err.Error(), err)
+		ctx.JSON(403, map[string]interface{}{
+			"message": "Only owners could change the topics.",
+		})
 		return
 	}
 
@@ -905,12 +906,13 @@ func TopicSearch(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("SearchTopics failed: %v", err)
-		err := fmt.Errorf("search topics failed")
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		ctx.JSON(500, map[string]interface{}{
+			"message": "Search topics failed.",
+		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(200, map[string]interface{}{
 		"topics": topics,
 	})
 }
