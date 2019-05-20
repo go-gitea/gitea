@@ -21,10 +21,12 @@ import (
 func HookPreReceive(ctx *macaron.Context) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-	oldCommitID := ctx.Query("old")
-	newCommitID := ctx.Query("new")
-	refFullName := ctx.Query("ref")
+	oldCommitID := ctx.QueryTrim("old")
+	newCommitID := ctx.QueryTrim("new")
+	refFullName := ctx.QueryTrim("ref")
 	userID := ctx.QueryInt64("userID")
+	revListOutput := ctx.Query("output")
+	revListErr := ctx.Query("err")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -56,14 +58,13 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		// detect force push
 		if git.EmptySHA != oldCommitID {
-			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDir(repo.RepoPath())
-			if err != nil {
-				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+			if revListErr != "" {
+				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, revListErr)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": fmt.Sprintf("Fail to detect force push: %v", err),
+					"err": fmt.Sprintf("Fail to detect force push: %v", revListErr),
 				})
 				return
-			} else if len(output) > 0 {
+			} else if len(revListOutput) > 0 {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": fmt.Sprintf("branch %s is protected from force push", branchName),

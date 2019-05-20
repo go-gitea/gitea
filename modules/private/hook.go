@@ -20,17 +20,21 @@ type HookOptions struct {
 	RefFullName string
 	UserID      int64
 	UserName    string
+	Output      string
+	Err         string
 }
 
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&output=%s&err=%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.QueryEscape(opts.OldCommitID),
 		url.QueryEscape(opts.NewCommitID),
 		url.QueryEscape(opts.RefFullName),
-		opts.UserID)
+		opts.UserID,
+		url.QueryEscape(opts.Output),
+		url.QueryEscape(opts.Err))
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {

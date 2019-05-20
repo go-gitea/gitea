@@ -150,12 +150,19 @@ func runHookPostReceive(c *cli.Context) error {
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
 
+		output, errErr := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).Run()
+		err := ""
+		if errErr != nil {
+			err = errErr.Error()
+		}
 		res, err := private.HookPostReceive(repoUser, repoName, private.HookOptions{
 			OldCommitID: oldCommitID,
 			NewCommitID: newCommitID,
 			RefFullName: refFullName,
 			UserID:      pusherID,
 			UserName:    pusherName,
+			Output:      output,
+			Err:         err,
 		})
 
 		if res == nil {
