@@ -204,6 +204,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
 		session.MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 
