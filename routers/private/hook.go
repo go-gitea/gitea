@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
 	macaron "gopkg.in/macaron.v1"
 )
 
@@ -140,6 +141,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"message": false,
 			})
+			return
 		}
 
 		baseRepo := repo
@@ -158,6 +160,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"message": false,
 			})
+			return
 		}
 
 		pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch)
