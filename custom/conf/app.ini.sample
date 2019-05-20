@@ -261,7 +261,7 @@ PASSWD =
 ; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
 ; For MySQL only, either "utf8" or "utf8mb4", default is "utf8".
-; NOTICE: your MySQL InnoDB have to great than 5.6 if this is "utf8mb4" and Gitea will not check that
+; NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 CHARSET = utf8
 ; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
