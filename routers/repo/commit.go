@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"io/ioutil"
 	"path"
 	"strings"
 
@@ -249,20 +248,10 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
 
-	notes, err := ctx.Repo.GitRepo.GetCommit("refs/notes/commits")
+	note := git.Note{}
+	err = git.GetNote(ctx.Repo.GitRepo, commitID, &note)
 	if err == nil {
-		entry, err := notes.GetTreeEntryByPath(commitID)
-		if err == nil {
-			blob := entry.Blob()
-			dataRc, err := blob.DataAsync()
-			if err == nil {
-				d, err := ioutil.ReadAll(dataRc)
-				dataRc.Close()
-				if err == nil {
-					ctx.Data["Note"] = string(templates.ToUTF8WithFallback(d))
-				}
-			}
-		}
+		ctx.Data["Note"] = string(templates.ToUTF8WithFallback(note.Message))
 	}
 
 	if commit.ParentCount() > 0 {
