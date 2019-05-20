@@ -140,6 +140,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"message": false,
 			})
+			return
 		}
 
 		baseRepo := repo
