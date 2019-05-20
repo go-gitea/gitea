@@ -159,6 +159,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"message": false,
 			})
+			return
 		}
 
 		pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch)
