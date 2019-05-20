@@ -142,6 +142,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	statuses, err := models.GetCommitStatuses(repo, sha, page)
 	if err != nil {
 		ctx.Error(500, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		return
 	}
 
 	apiStatuses := make([]*api.Status, 0, len(statuses))
