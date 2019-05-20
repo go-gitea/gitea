@@ -13,11 +13,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -153,7 +155,7 @@ func testGit(t *testing.T, u *url.URL) {
 				assert.Equal(t, bigSize, resp.Length)
 			}
 		})
-
+		t.Run("BranchProtectMerge", doBranchProtectPRMerge(httpContext.Username, httpContext.Reponame, dstPath))
 	})
 	t.Run("SSH", func(t *testing.T) {
 		PrintCurrentTest(t)
@@ -278,7 +280,7 @@ func testGit(t *testing.T, u *url.URL) {
 					assert.Equal(t, bigSize, resp.Body.Len())
 				}
 			})
-
+			t.Run("BranchProtectMerge", doBranchProtectPRMerge(sshContext.Username, sshContext.Reponame, dstPath))
 		})
 
 	})
@@ -308,21 +310,21 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 }
 
 func commitAndPush(t *testing.T, size int, repoPath string) string {
-	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two")
+	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", "data-file-")
 	assert.NoError(t, err)
-	_, err = git.NewCommand("push").RunInDir(repoPath) //Push
+	_, err = git.NewCommand("push", "origin", "master").RunInDir(repoPath) //Push
 	assert.NoError(t, err)
 	return name
 }
 
-func generateCommitWithNewData(size int, repoPath, email, fullName string) (string, error) {
+func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {
 	//Generate random file
 	data := make([]byte, size)
 	_, err := rand.Read(data)
 	if err != nil {
 		return "", err
 	}
-	tmpFile, err := ioutil.TempFile(repoPath, "data-file-")
+	tmpFile, err := ioutil.TempFile(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
@@ -351,4 +353,72 @@ func generateCommitWithNewData(size int, repoPath, email, fullName string) (stri
 		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 	})
 	return filepath.Base(tmpFile.Name()), err
+}
+
+func doBranchProtectPRMerge(username, reponame, dstPath string) func(t *testing.T) {
+	return func(t *testing.T) {
+		PrintCurrentTest(t)
+		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
+		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
+
+		ctx := NewAPITestContext(t, username, reponame)
+		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", ""))
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("FailToPushToProtectedBranch", doGitPushTestRepositoryFail(dstPath, "origin", "protected"))
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected"))
+		var pr api.PullRequest
+		var err error
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, username, reponame, "protected", "unprotected")(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR", doAPIMergePullRequest(ctx, username, reponame, pr.Index))
+		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
+		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", username))
+
+		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "master"))
+		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("FailToForcePushToProtectedBranch", doGitPushTestRepositoryFail(dstPath, "-f", "origin", "toforce:protected"))
+		t.Run("MergeProtectedToToforce", doGitMerge(dstPath, "protected"))
+		t.Run("PushToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "toforce:protected"))
+		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
+	}
+}
+
+func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) func(t *testing.T) {
+	// We are going to just use the owner to set the protection.
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
+
+		if userToWhitelist == "" {
+			// Change branch to protected
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+				"_csrf":     csrf,
+				"protected": "on",
+			})
+			ctx.Session.MakeRequest(t, req, http.StatusFound)
+		} else {
+			user, err := models.GetUserByName(userToWhitelist)
+			assert.NoError(t, err)
+			// Change branch to protected
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+				"_csrf":            csrf,
+				"protected":        "on",
+				"enable_whitelist": "on",
+				"whitelist_users":  strconv.FormatInt(user.ID, 10),
+			})
+			ctx.Session.MakeRequest(t, req, http.StatusFound)
+		}
+		// Check if master branch has been locked successfully
+		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		assert.NotNil(t, flashCookie)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+	}
 }
