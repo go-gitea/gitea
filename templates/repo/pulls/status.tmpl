@@ -1,6 +1,6 @@
 {{if $.LatestCommitStatus}}
-    <div class="item text">
-        {{if eq .LatestCommitStatus.State "pending"}}
+    <div class="ui top attached header">
+         {{if eq .LatestCommitStatus.State "pending"}}
             {{$.i18n.Tr "repo.pulls.status_checking"}}
         {{else if eq .LatestCommitStatus.State "success"}}
             {{$.i18n.Tr "repo.pulls.status_checks_success"}}
@@ -10,23 +10,12 @@
             {{$.i18n.Tr "repo.pulls.status_checking"}}
         {{end}}
     </div>
-    <div class="ui divider"></div>
+
     {{range $.LatestCommitStatuses}}
-        <div class="item text">
-            <span class="type-icon text red">
-                {{if eq .State "pending"}}
-                    <span class="octicon octicon-x"></span>
-                {{else if eq .State "success"}}
-                    <span class="octicon octicon-x"></span>
-                {{else if eq .State "error"}}
-                    <span class="octicon octicon-x"></span>
-                {{else}}
-                    <span class="octicon octicon-x"></span>
-                {{end}}
-            </span>
-            <span class="text grey">
-                {{if .TargetURL}}<a href="{{.TargetURL}}">{{end}}{{.Context}} - {{.Description}}{{if .TargetURL}}</a>{{end}}
-            </span>
+        <div class="ui attached segment">
+            <span>{{template "repo/commit_status" .}}</span>
+            <span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+            <div class="ui right">{{if .TargetURL}}<a href="{{.TargetURL}}">Details</a>{{end}}</div>
         </div>
     {{end}}
 {{end}}
