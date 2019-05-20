@@ -1,0 +1,25 @@
+root: true
+
+extends:
+  - eslint:recommended
+
+parserOptions:
+  ecmaVersion: 2015
+
+env:
+  browser: true
+  jquery: true
+  es6: true
+
+globals:
+  Clipboard: false
+  CodeMirror: false
+  emojify: false
+  SimpleMDE: false
+  Vue: false
+  Dropzone: false
+  u2fApi: false
+  hljs: false
+
+rules:
+  no-unused-vars: [error, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]

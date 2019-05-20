@@ -136,30 +136,36 @@ You should lint, vet and spell-check with:
 make vet lint misspell-check
 ```
 
-### Updating the stylesheets
+### Updating CSS
 
-To generate the stylsheets, you will need [Node.js](https://nodejs.org/) at version 8.0 or above.
-
-At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
-**not** edit the files in `public/css/` directly, as they are generated from
-`lessc` from the files in `public/less/`.
-
-If you wish to work on the stylesheets, you will need to install `lessc` the
-less compiler and `postcss`. The recommended way to do this is using `npm install`:
+To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
 
 ```bash
-cd "$GOPATH/src/code.gitea.io/gitea"
 npm install
 ```
 
-You can then edit the less stylesheets and regenerate the stylesheets using:
+At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do
+**not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
+
+Edit files in `public/less`, run the linter, regenerate the CSS and commit all changed files:
 
 ```bash
-make generate-stylesheets
+make css
 ```
 
-You should commit both the changes to the css and the less files when making
-PRs.
+### Updating JS
+
+To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
+
+```bash
+npm install
+```
+
+Edit files in `public/js` and run the linter:
+
+```bash
+make js
+```
 
 ### Updating the API
 
