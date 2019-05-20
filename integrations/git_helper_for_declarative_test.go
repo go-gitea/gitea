@@ -112,16 +112,44 @@ func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	}
 }
 
-func doGitPushTestRepository(dstPath, remoteName, branch string) func(*testing.T) {
+func doGitPushTestRepository(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("push", "-u", remoteName, branch).RunInDir(dstPath)
+		_, err := git.NewCommand(append([]string{"push", "-u"}, args...)...).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
 
-func doGitPushTestRepositoryFail(dstPath, remoteName, branch string) func(*testing.T) {
+func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("push", "-u", remoteName, branch).RunInDir(dstPath)
+		_, err := git.NewCommand(append([]string{"push"}, args...)...).RunInDir(dstPath)
 		assert.Error(t, err)
+	}
+}
+
+func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand("checkout", "-b", branch).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"checkout"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitMerge(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"merge"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitPull(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"pull"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
 	}
 }
