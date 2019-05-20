@@ -66,9 +66,27 @@
 				{{end}}
 			{{end}}
 			{{if .Note}}
-				<div class="ui top bottom attached info clearing segment">
+				<div class="ui top attached info clearing segment">
 					<h3>{{.i18n.Tr "repo.diff.git-notes"}}</h3>
 					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				</div>
+				<div class="ui bottom attached info segment">
+					<div class="ui stackable grid">
+						<div class="nine wide column">
+							{{if .NoteAuthor}}
+								<img class="ui avatar image" src="{{.NoteAuthor.RelAvatarLink}}" />
+							{{if .NoteAuthor.FullName}}
+							<a href="{{.NoteAuthor.HomeLink}}"><strong>{{.NoteAuthor.FullName}}</strong></a>
+							{{else}}
+							<a href="{{.NoteAuthor.HomeLink}}"><strong>{{.NoteCommit.Author.Name}}</strong></a>
+							{{end}}
+							{{else}}
+								<img class="ui avatar image" src="{{AvatarLink .NoteCommit.Author.Email}}" />
+								<strong>{{.NoteCommit.Author.Name}}</strong>
+							{{end}}
+							<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+						</div>
+					</div><!-- end grid -->
 				</div>
 			{{end}}
 		{{end}}

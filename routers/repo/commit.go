@@ -252,6 +252,8 @@ func Diff(ctx *context.Context) {
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, &note)
 	if err == nil {
 		ctx.Data["Note"] = string(templates.ToUTF8WithFallback(note.Message))
+		ctx.Data["NoteCommit"] = note.Commit
+		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
 	}
 
 	if commit.ParentCount() > 0 {

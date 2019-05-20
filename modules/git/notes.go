@@ -6,11 +6,14 @@ package git
 
 import (
 	"io/ioutil"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // Note stores information about a note created using git-notes.
 type Note struct {
 	Message []byte
+	Commit  *Commit
 }
 
 // GetNote retrieves the git-notes data for a given commit.
@@ -36,7 +39,18 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	if err != nil {
 		return err
 	}
-
 	note.Message = d
+
+	commit, err := repo.gogitRepo.CommitObject(plumbing.Hash(notes.ID))
+	if err != nil {
+		return err
+	}
+
+	lastCommits, err := getLastCommitForPaths(commit, "", []string{commitID})
+	if err != nil {
+		return err
+	}
+	note.Commit = convertCommit(lastCommits[commitID])
+
 	return nil
 }
