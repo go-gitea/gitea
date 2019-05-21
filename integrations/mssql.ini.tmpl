@@ -60,12 +60,12 @@ PROVIDER = file
 PROVIDER_CONFIG = data/sessions-mssql
 
 [log]
-MODE                 = info,file
+MODE                 = test,file
 ROOT_PATH            = sqlite-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,
-XORM                 = test
+XORM                 = file
 
 [log.test]
 LEVEL                = Info
