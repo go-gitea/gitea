@@ -86,7 +86,6 @@ func GlobalInit() {
 			log.Fatal("Failed to initialize OAuth2 support: %v", err)
 		}
 
-		models.LoadRepoConfig()
 		models.NewRepoContext()
 
 		// Booting long running goroutines.

@@ -68,7 +68,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 	// Now adjust these commands to add our global configuration options
 
 	// First calculate the default paths and set the AppHelpTemplates in this context
-	setting.SetCustomPathAndConf("", "")
+	setting.SetCustomPathAndConf("", "", "")
 	setAppHelpTemplates()
 
 	// default configuration flags
@@ -84,6 +84,11 @@ arguments - which can alternatively be run by running the subcommand web.`
 			Usage: "Custom configuration file path",
 		},
 		cli.VersionFlag,
+		cli.StringFlag{
+			Name:  "work-path, w",
+			Value: setting.AppWorkPath,
+			Usage: "Set the gitea working path",
+		},
 	}
 
 	// Set the default to be equivalent to cmdWeb and add the default flags
@@ -114,10 +119,11 @@ func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Fla
 func establishCustomPath(ctx *cli.Context) error {
 	var providedCustom string
 	var providedConf string
+	var providedWorkPath string
 
 	currentCtx := ctx
 	for {
-		if len(providedCustom) != 0 && len(providedConf) != 0 {
+		if len(providedCustom) != 0 && len(providedConf) != 0 && len(providedWorkPath) != 0 {
 			break
 		}
 		if currentCtx == nil {
@@ -129,10 +135,13 @@ func establishCustomPath(ctx *cli.Context) error {
 		if currentCtx.IsSet("config") && len(providedConf) == 0 {
 			providedConf = currentCtx.String("config")
 		}
+		if currentCtx.IsSet("work-path") && len(providedWorkPath) == 0 {
+			providedWorkPath = currentCtx.String("work-path")
+		}
 		currentCtx = currentCtx.Parent()
 
 	}
-	setting.SetCustomPathAndConf(providedCustom, providedConf)
+	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
 
 	setAppHelpTemplates()
 

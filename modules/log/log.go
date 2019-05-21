@@ -82,7 +82,7 @@ func NewGitLogger(logPath string) {
 	}
 
 	GitLogger = newLogger("git", 0)
-	GitLogger.SetLogger("file", "file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":false}`, logPath))
+	GitLogger.SetLogger("file", "file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":true,"maxsize":%d,"daily":true,"maxdays":7,"compress":true,"compressionLevel":-1, "stacktraceLevel":"NONE"}`, logPath, 1<<28))
 }
 
 // GetLevel returns the minimum logger level

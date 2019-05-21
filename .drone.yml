@@ -50,7 +50,8 @@ pipeline:
     pull: true
     commands:
       - npm install
-      - make stylesheets-check
+      - make css
+      - make js
     when:
       event: [ push, tag, pull_request ]
 

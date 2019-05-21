@@ -946,9 +946,15 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
+	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
+	if err != nil {
+		ctx.ServerError("GetPatch", err)
+		return
+	}
+
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
-		Index:       repo.NextIssueIndex(),
+		Index:       maxIndex + 1,
 		Title:       form.Title,
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,

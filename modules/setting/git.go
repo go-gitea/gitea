@@ -16,7 +16,6 @@ import (
 var (
 	// Git settings
 	Git = struct {
-		Version                  string `ini:"-"`
 		DisableDiffHighlight     bool
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
@@ -64,6 +63,8 @@ func newGit() {
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
+
+	log.Info("Git Version: %s", binVersion)
 
 	if version.Compare(binVersion, "2.9", ">=") {
 		// Explicitly disable credential helper, otherwise Git credentials might leak

@@ -1,3 +1,6 @@
+/* globals wipPrefixes, issuesTribute, emojiTribute */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
 function htmlEncode(text) {
@@ -89,7 +92,7 @@ if (!Array.from) {
 if (typeof Object.assign != 'function') {
     // Must be writable: true, enumerable: false, configurable: true
     Object.defineProperty(Object, "assign", {
-        value: function assign(target, varArgs) { // .length of function is 2
+        value: function assign(target, _varArgs) { // .length of function is 2
             'use strict';
             if (target == null) { // TypeError if undefined or null
                 throw new TypeError('Cannot convert undefined or null to object');
@@ -131,8 +134,8 @@ function initCommentPreviewTab($form) {
                 var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                 $previewPanel.html(data);
                 emojify.run($previewPanel[0]);
-                $('pre code', $previewPanel[0]).each(function (i, block) {
-                    hljs.highlightBlock(block);
+                $('pre code', $previewPanel[0]).each(function () {
+                    hljs.highlightBlock(this);
                 });
             }
         );
@@ -161,8 +164,8 @@ function initEditPreviewTab($form) {
                     var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                     $previewPanel.html(data);
                     emojify.run($previewPanel[0]);
-                    $('pre code', $previewPanel[0]).each(function (i, block) {
-                        hljs.highlightBlock(block);
+                    $('pre code', $previewPanel[0]).each(function () {
+                        hljs.highlightBlock(this);
                     });
                 }
             );
@@ -355,7 +358,8 @@ function reload() {
 }
 
 function initImagePaste(target) {
-    target.each(function(i, field) {
+    target.each(function() {
+        var field = this;
         field.addEventListener('paste', function(event){
             retrieveImageFromClipboardAsBlob(event, function(img) {
                 var name = img.name.substr(0, img.name.lastIndexOf('.'));
@@ -606,7 +610,7 @@ function initInstall() {
         $('#sql_settings').show();
 
         $('#pgsql_settings').toggle(dbType === "PostgreSQL");
-        $.each(dbDefaults, function(type, defaultHost) {
+        $.each(dbDefaults, function(_type, defaultHost) {
             if ($('#db_host').val() == defaultHost) {
                 $('#db_host').val(dbDefaults[dbType]);
                 return false;
@@ -636,8 +640,7 @@ function initInstall() {
     });
     $('#enable-openid-signin input').change(function () {
         if ($(this).is(':checked')) {
-            if ( $('#disable-registration input').is(':checked') ) {
-            } else {
+            if (!$('#disable-registration input').is(':checked')) {
                 $('#enable-openid-signup').checkbox('check');
             }
         } else {
@@ -669,7 +672,7 @@ function initRepository() {
         $dropdown.dropdown({
             fullTextSearch: true,
             selectOnKeydown: false,
-            onChange: function (text, value, $choice) {
+            onChange: function (_text, _value, $choice) {
                 if ($choice.data('url')) {
                     window.location.href = $choice.data('url');
                 }
@@ -756,9 +759,6 @@ function initRepository() {
     }
 
     // Milestones
-    if ($('.repository.milestones').length > 0) {
-
-    }
     if ($('.repository.new.milestone').length > 0) {
         var $datepicker = $('.milestone.datepicker');
         $datepicker.datetimepicker({
@@ -857,8 +857,8 @@ function initRepository() {
                             } else {
                                 $renderContent.html(data.content);
                                 emojify.run($renderContent[0]);
-                                $('pre code', $renderContent[0]).each(function (i, block) {
-                                    hljs.highlightBlock(block);
+                                $('pre code', $renderContent[0]).each(function () {
+                                    hljs.highlightBlock(this);
                                 });
                             }
                         });
@@ -912,7 +912,7 @@ function initRepository() {
             $(this).parent().hide();
         });
         $('.merge-button > .dropdown').dropdown({
-            onChange: function (text, value, $choice) {
+            onChange: function (_text, _value, $choice) {
                 if ($choice.data('do')) {
                     $mergeButton.find('.button-text').text($choice.text());
                     $mergeButton.data('do', $choice.data('do'));
@@ -930,16 +930,13 @@ function initRepository() {
 
     // Diff
     if ($('.repository.diff').length > 0) {
-        var $counter = $('.diff-counter');
-        if ($counter.length >= 1) {
-            $counter.each(function (i, item) {
-                var $item = $(item);
-                var addLine = $item.find('span[data-line].add').data("line");
-                var delLine = $item.find('span[data-line].del').data("line");
-                var addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-                $item.find(".bar .add").css("width", addPercent + "%");
-            });
-        }
+        $('.diff-counter').each(function () {
+            var $item = $(this);
+            var addLine = $item.find('span[data-line].add').data("line");
+            var delLine = $item.find('span[data-line].del').data("line");
+            var addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
+            $item.find(".bar .add").css("width", addPercent + "%");
+        });
     }
 
     // Quick start and repository home
@@ -982,7 +979,7 @@ function initRepository() {
 var toggleMigrations = function(){
     var authUserName = $('#auth_username').val();
     var cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0) 
+    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0)
     && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
         $('#migrate_items').show();
     } else {
@@ -1085,8 +1082,9 @@ function assingMenuAttributes(menu) {
     var id = Math.floor(Math.random() * Math.floor(1000000));
     menu.attr('data-write', menu.attr('data-write') + id);
     menu.attr('data-preview', menu.attr('data-preview') + id);
-    menu.find('.item').each(function(i, item) {
-        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    menu.find('.item').each(function() {
+        var tab = $(this).attr('data-tab') + id;
+        $(this).attr('data-tab', tab);
     });
     menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
     menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
@@ -1170,22 +1168,20 @@ String.prototype.endsWith = function (pattern) {
 };
 
 // Adding function to get the cursor position in a text field to jQuery object.
-(function ($, undefined) {
-    $.fn.getCursorPosition = function () {
-        var el = $(this).get(0);
-        var pos = 0;
-        if ('selectionStart' in el) {
-            pos = el.selectionStart;
-        } else if ('selection' in document) {
-            el.focus();
-            var Sel = document.selection.createRange();
-            var SelLength = document.selection.createRange().text.length;
-            Sel.moveStart('character', -el.value.length);
-            pos = Sel.text.length - SelLength;
-        }
-        return pos;
+$.fn.getCursorPosition = function () {
+    var el = $(this).get(0);
+    var pos = 0;
+    if ('selectionStart' in el) {
+        pos = el.selectionStart;
+    } else if ('selection' in document) {
+        el.focus();
+        var Sel = document.selection.createRange();
+        var SelLength = document.selection.createRange().text.length;
+        Sel.moveStart('character', -el.value.length);
+        pos = Sel.text.length - SelLength;
     }
-})(jQuery);
+    return pos;
+}
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -1249,7 +1245,7 @@ function setCodeMirror($editArea) {
     codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
         lineNumbers: true
     });
-    codeMirrorEditor.on("change", function (cm, change) {
+    codeMirrorEditor.on("change", function (cm, _change) {
         $editArea.val(cm.getValue());
     });
 
@@ -1271,10 +1267,13 @@ function initEditor() {
     $editFilename.keyup(function (e) {
         var $section = $('.breadcrumb span.section');
         var $divider = $('.breadcrumb div.divider');
+        var value;
+        var parts;
+
         if (e.keyCode == 8) {
             if ($(this).getCursorPosition() == 0) {
                 if ($section.length > 0) {
-                    var value = $section.last().find('a').text();
+                    value = $section.last().find('a').text();
                     $(this).val(value + $(this).val());
                     $(this)[0].setSelectionRange(value.length, value.length);
                     $section.last().remove();
@@ -1283,9 +1282,9 @@ function initEditor() {
             }
         }
         if (e.keyCode == 191) {
-            var parts = $(this).val().split('/');
+            parts = $(this).val().split('/');
             for (var i = 0; i < parts.length; ++i) {
-                var value = parts[i];
+                value = parts[i];
                 if (i < parts.length - 1) {
                     if (value.length) {
                         $('<span class="section"><a href="#">' + value + '</a></span>').insertBefore($(this));
@@ -1298,9 +1297,9 @@ function initEditor() {
                 $(this)[0].setSelectionRange(0, 0);
             }
         }
-        var parts = [];
-        $('.breadcrumb span.section').each(function (i, element) {
-            element = $(element);
+        parts = [];
+        $('.breadcrumb span.section').each(function () {
+            var element = $(this);
             if (element.find('a').length) {
                 parts.push(element.find('a').text());
             } else {
@@ -1319,10 +1318,11 @@ function initEditor() {
     var markdownFileExts = $editArea.data("markdown-file-exts").split(",");
     var lineWrapExtensions = $editArea.data("line-wrap-extensions").split(",");
 
-    $editFilename.on("keyup", function (e) {
+    $editFilename.on("keyup", function () {
         var val = $editFilename.val(), m, mode, spec, extension, extWithDot, previewLink, dataUrl, apiCall;
         extension = extWithDot = "";
-        if (m = /.+\.([^.]+)$/.exec(val)) {
+        m = /.+\.([^.]+)$/.exec(val);
+        if (m) {
             extension = m[1];
             extWithDot = "." + extension;
         }
@@ -1684,15 +1684,6 @@ function buttonsClickOnEnter() {
     });
 }
 
-function hideWhenLostFocus(body, parent) {
-    $(document).click(function (e) {
-        var target = e.target;
-        if (!$(target).is(body) && !$(target).parents().is(parent)) {
-            $(body).hide();
-        }
-    });
-}
-
 function searchUsers() {
     var $searchUserBox = $('#search-user-box');
     $searchUserBox.search({
@@ -1701,7 +1692,7 @@ function searchUsers() {
             url: suburl + '/api/v1/users/search?q={query}',
             onResponse: function(response) {
                 var items = [];
-                $.each(response.data, function (i, item) {
+                $.each(response.data, function (_i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
                         title += ' (' + htmlEncode(item.full_name) + ')';
@@ -1728,7 +1719,7 @@ function searchRepositories() {
             url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
             onResponse: function(response) {
                 var items = [];
-                $.each(response.data, function (i, item) {
+                $.each(response.data, function (_i, item) {
                     items.push({
                         title: item.full_name.split("/")[1],
                         description: item.full_name
@@ -1752,8 +1743,8 @@ function initCodeView() {
             deSelect();
         });
 
-        $(window).on('hashchange', function (e) {
-            var m = window.location.hash.match(/^#(L\d+)\-(L\d+)$/);
+        $(window).on('hashchange', function () {
+            var m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
             var $list = $('.code-view ol.linenums > li');
             var $first;
             if (m) {
@@ -1803,7 +1794,7 @@ function u2fSigned(resp) {
         contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
-    }).fail(function (xhr, textStatus) {
+    }).fail(function () {
         u2fError(1);
     });
 }
@@ -1821,7 +1812,7 @@ function u2fRegistered(resp) {
         success: function(){
             reload();
         },
-        fail: function (xhr, textStatus) {
+        fail: function () {
             u2fError(1);
         }
     });
@@ -1889,7 +1880,7 @@ function u2fRegisterRequest() {
                 }
                 u2fError(reason.metaData.code);
             });
-    }).fail(function(xhr, status, error) {
+    }).fail(function(xhr) {
         if(xhr.status === 409) {
             $("#nickname").closest("div.field").addClass("error");
         }
@@ -1962,7 +1953,7 @@ $(document).ready(function () {
     });
 
     // make table <tr> element clickable like a link
-    $('tr[data-href]').click(function(event) {
+    $('tr[data-href]').click(function() {
         window.location = $(this).data('href');
     });
 
@@ -2388,7 +2379,7 @@ function initVueComponents(){
                 var searchedURL = this.searchURL;
                 var searchedQuery = this.searchQuery;
 
-                $.getJSON(searchedURL, function(result, textStatus, request) {
+                $.getJSON(searchedURL, function(result, _textStatus, request) {
                     if (searchedURL == self.searchURL) {
                         self.repos = result.data;
                         var count = request.getResponseHeader('X-Total-Count');
@@ -2446,6 +2437,7 @@ function initVueApp() {
         },
     });
 }
+
 function timeAddManual() {
     $('.mini.modal')
         .modal({
@@ -2796,7 +2788,7 @@ function initTopicbar() {
         $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }, function(data, textStatus, xhr){
+        }, function(_data, _textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
                 if (topics.length) {
@@ -2873,14 +2865,14 @@ function initTopicbar() {
             this.attr("data-value", value).contents().first().replaceWith(value);
             return $(this);
         },
-        onAdd: function(addedValue, addedText, $addedChoice) {
+        onAdd: function(addedValue, _addedText, $addedChoice) {
             addedValue = addedValue.toLowerCase().trim();
             $($addedChoice).attr('data-value', addedValue);
             $($addedChoice).attr('data-text', addedValue);
         }
     });
 
-    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+    $.fn.form.settings.rules.validateTopic = function(_values, regExp) {
         var topics = topicDropdown.children('a.ui.label'),
             status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
         if (!status) {
@@ -2981,7 +2973,7 @@ function initIssueList() {
                     var filteredResponse = {'success': true, 'results': []};
                     var currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
-                    $.each(response, function(index, issue) {
+                    $.each(response, function(_i, issue) {
                         // Don't list current issue in the dependency list.
                         if(issue.id === currIssueId) {
                             return;
