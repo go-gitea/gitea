@@ -16,7 +16,7 @@ import (
 
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
-	ID          int64
+	ID          int64           `xorm:"pk autoincr"`
 	RepoID      int64           `xorm:"INDEX(s)"`
 	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
