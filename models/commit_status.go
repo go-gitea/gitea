@@ -313,3 +313,7 @@ func FindRepoCommitStatusContexts(repoID int64) ([]string, error) {
 	}
 	return contexts, nil
 }
+
+func init() {
+	tables = append(tables, new(CommitStatusContext))
+}
