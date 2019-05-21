@@ -40,7 +40,7 @@ func TestSearchRepo(t *testing.T) {
 
 	i := 0
 	for {
-		if repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0 && i <= 60 {
+		if (repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0) || i > 60 {
 			break
 		}
 		time.Sleep(1 * time.Second)
