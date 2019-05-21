@@ -49,10 +49,10 @@ func testGit(t *testing.T, u *url.URL) {
 		defer os.RemoveAll(dstPath)
 
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
+		ensureAnonymousClone(t, u)
 
 		u.Path = httpContext.GitPath()
 		u.User = url.UserPassword(username, userPassword)
-		ensureAnonymousClone(t, u)
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
@@ -73,6 +73,7 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
 
 			//Setup remote link
+			//TODO: get url from api
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
 
 			//Setup clone folder
@@ -82,7 +83,6 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("CreateRepo", doAPICreateRepository(sshContext, false))
 
-			//TODO get url from api
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
 			little, big := standardCommitAndPushTest(t, dstPath)
