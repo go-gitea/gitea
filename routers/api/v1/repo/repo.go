@@ -597,7 +597,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
-	// Update the name in the repo object for ther response
+	// Update the name in the repo object for the response
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 
