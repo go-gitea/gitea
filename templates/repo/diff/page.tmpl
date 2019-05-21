@@ -52,41 +52,38 @@
 			</div>
 			{{if .Commit.Signature}}
 				{{if .Verification.Verified }}
-					<div class="ui bottom attached positive message">
+					<div class="ui bottom attached positive message"{{if .Note}} style="margin-bottom: 0; border-radius: 0;"{{end}}>
 					  <i class="green lock icon"></i>
 						<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
 						<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					</div>
 				{{else}}
-					<div class="ui bottom attached message">
+					<div class="ui bottom attached message"{{if .Note}} style="margin-bottom: 0; border-radius: 0;"{{end}}>
 					  <i class="grey unlock icon"></i>
 					  {{.i18n.Tr .Verification.Reason}}
 					</div>
 				{{end}}
 			{{end}}
 			{{if .Note}}
-				<div class="ui top attached info clearing segment">
-					<h3>{{.i18n.Tr "repo.diff.git-notes"}}</h3>
-					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<div class="ui attached bottom message" style="margin-bottom: 0; border-radius: 0;">
+					<i class="sticky note icon"></i>
+					<span style="color: black;">{{.i18n.Tr "repo.diff.git-notes"}}:</span>
+					{{if .NoteAuthor}}
+						<a href="{{.NoteAuthor.HomeLink}}">
+							{{if .NoteAuthor.FullName}}
+							  <strong>{{.NoteAuthor.FullName}}</strong>
+							{{else}}
+							  <strong>{{.NoteCommit.Author.Name}}</strong>
+							{{end}}
+						</a>
+					{{else}}
+						<strong>{{.NoteCommit.Author.Name}}</strong>
+					{{end}}
+					<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
 				</div>
 				<div class="ui bottom attached info segment">
-					<div class="ui stackable grid">
-						<div class="nine wide column">
-							{{if .NoteAuthor}}
-								<img class="ui avatar image" src="{{.NoteAuthor.RelAvatarLink}}" />
-							{{if .NoteAuthor.FullName}}
-							<a href="{{.NoteAuthor.HomeLink}}"><strong>{{.NoteAuthor.FullName}}</strong></a>
-							{{else}}
-							<a href="{{.NoteAuthor.HomeLink}}"><strong>{{.NoteCommit.Author.Name}}</strong></a>
-							{{end}}
-							{{else}}
-								<img class="ui avatar image" src="{{AvatarLink .NoteCommit.Author.Email}}" />
-								<strong>{{.NoteCommit.Author.Name}}</strong>
-							{{end}}
-							<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
-						</div>
-					</div><!-- end grid -->
+					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 				</div>
 			{{end}}
 		{{end}}
