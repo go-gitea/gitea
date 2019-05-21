@@ -160,21 +160,21 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		session := loginUser(t, username)
 
 		// Request raw paths
-		req := NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/raw/branch/master/", little))
+		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Body.Len())
 
-		req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/raw/branch/master/", littleLFS))
+		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotEqual(t, littleSize, resp.Body.Len())
 		assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 
 		if !testing.Short() {
-			req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/raw/branch/master/", big))
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Body.Len())
 
-			req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/raw/branch/master/", bigLFS))
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, bigSize, resp.Body.Len())
 			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
@@ -192,20 +192,20 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 		session := loginUser(t, username)
 
 		// Request media paths
-		req := NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/media/branch/master/", little))
+		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", little))
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
-		req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/media/branch/master/", littleLFS))
+		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
 		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
 		if !testing.Short() {
-			req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/media/branch/master/", big))
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/", username, "/", reponame, "/media/branch/master/", bigLFS))
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Length)
 		}
