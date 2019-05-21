@@ -13,28 +13,33 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Git environment variables
+const (
+	GitAlternativeObjectDirectories = "GIT_ALTERNATE_OBJECT_DIRECTORIES"
+	GitObjectDirectory              = "GIT_OBJECT_DIRECTORY"
+	GitQuarantinePath               = "GIT_QUARANTINE_PATH"
+)
+
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
-	OldCommitID string
-	NewCommitID string
-	RefFullName string
-	UserID      int64
-	UserName    string
-	Output      string
-	Err         string
+	OldCommitID        string
+	NewCommitID        string
+	RefFullName        string
+	UserID             int64
+	UserName           string
+	GitObjectDirectory string
 }
 
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&output=%s&err=%s",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.QueryEscape(opts.OldCommitID),
 		url.QueryEscape(opts.NewCommitID),
 		url.QueryEscape(opts.RefFullName),
 		opts.UserID,
-		url.QueryEscape(opts.Output),
-		url.QueryEscape(opts.Err))
+		url.QueryEscape(opts.GitObjectDirectory))
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {

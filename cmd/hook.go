@@ -86,20 +86,14 @@ func runHookPreReceive(c *cli.Context) error {
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
 
-		output, errErr := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).Run()
-		err := ""
-		if errErr != nil {
-			err = errErr.Error()
-		}
 		// If the ref is a branch, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
 			statusCode, msg := private.HookPreReceive(username, reponame, private.HookOptions{
-				OldCommitID: oldCommitID,
-				NewCommitID: newCommitID,
-				RefFullName: refFullName,
-				UserID:      userID,
-				Output:      output,
-				Err:         err,
+				OldCommitID:        oldCommitID,
+				NewCommitID:        newCommitID,
+				RefFullName:        refFullName,
+				UserID:             userID,
+				GitObjectDirectory: os.Getenv(private.GitObjectDirectory),
 			})
 			switch statusCode {
 			case http.StatusInternalServerError:

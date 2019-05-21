@@ -8,11 +8,14 @@ package private
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/util"
 
 	macaron "gopkg.in/macaron.v1"
@@ -26,8 +29,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	newCommitID := ctx.QueryTrim("new")
 	refFullName := ctx.QueryTrim("ref")
 	userID := ctx.QueryInt64("userID")
-	revListOutput := ctx.Query("output")
-	revListErr := ctx.Query("err")
+	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -59,13 +61,26 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		// detect force push
 		if git.EmptySHA != oldCommitID {
-			if revListErr != "" {
-				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, revListErr)
+			alternativeObjectDirectories := os.Getenv(private.GitAlternativeObjectDirectories)
+			if len(alternativeObjectDirectories) > 0 {
+				alternativeObjectDirectories += ":"
+			}
+			alternativeObjectDirectories += "\"" + filepath.Join(repo.RepoPath(), "objects") + "\""
+
+			env := append(os.Environ(),
+				private.GitAlternativeObjectDirectories+"="+alternativeObjectDirectories,
+				private.GitObjectDirectory+"="+gitObjectDirectory,
+				private.GitQuarantinePath+"="+gitObjectDirectory,
+			)
+
+			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
+			if err != nil {
+				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": fmt.Sprintf("Fail to detect force push: %v", revListErr),
+					"err": fmt.Sprintf("Fail to detect force push: %v", err),
 				})
 				return
-			} else if len(revListOutput) > 0 {
+			} else if len(output) > 0 {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": fmt.Sprintf("branch %s is protected from force push", branchName),
