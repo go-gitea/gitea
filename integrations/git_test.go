@@ -142,6 +142,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 		})
 		t.Run("Big", func(t *testing.T) {
 			if testing.Short() {
+				t.Skip("Skipping test in short mode.")
 				return
 			}
 			PrintCurrentTest(t)
