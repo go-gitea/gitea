@@ -62,16 +62,17 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("PushCommit", func(t *testing.T) {
 				PrintCurrentTest(t)
+				prefix := "data-file-"
 				t.Run("Little", func(t *testing.T) {
 					PrintCurrentTest(t)
-					little = commitAndPush(t, littleSize, dstPath)
+					little = commitAndPush(t, littleSize, dstPath, prefix)
 				})
 				t.Run("Big", func(t *testing.T) {
 					if testing.Short() {
 						return
 					}
 					PrintCurrentTest(t)
-					big = commitAndPush(t, bigSize, dstPath)
+					big = commitAndPush(t, bigSize, dstPath, prefix)
 				})
 			})
 		})
@@ -80,16 +81,18 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("PushCommit", func(t *testing.T) {
 				PrintCurrentTest(t)
 				//Setup git LFS
+				prefix := "lfs-data-file-"
+
 				_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 				assert.NoError(t, err)
-				_, err = git.NewCommand("lfs").AddArguments("track", "data-file-*").RunInDir(dstPath)
+				_, err = git.NewCommand("lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
 				assert.NoError(t, err)
 				err = git.AddChanges(dstPath, false, ".gitattributes")
 				assert.NoError(t, err)
 
 				t.Run("Little", func(t *testing.T) {
 					PrintCurrentTest(t)
-					littleLFS = commitAndPush(t, littleSize, dstPath)
+					littleLFS = commitAndPush(t, littleSize, dstPath, prefix)
 					lockFileTest(t, littleLFS, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
@@ -97,7 +100,7 @@ func testGit(t *testing.T, u *url.URL) {
 						return
 					}
 					PrintCurrentTest(t)
-					bigLFS = commitAndPush(t, bigSize, dstPath)
+					bigLFS = commitAndPush(t, bigSize, dstPath, prefix)
 					lockFileTest(t, bigLFS, dstPath)
 				})
 			})
@@ -186,34 +189,37 @@ func testGit(t *testing.T, u *url.URL) {
 				//time.Sleep(5 * time.Minute)
 				t.Run("PushCommit", func(t *testing.T) {
 					PrintCurrentTest(t)
+					prefix := "data-file-"
 					t.Run("Little", func(t *testing.T) {
 						PrintCurrentTest(t)
-						little = commitAndPush(t, littleSize, dstPath)
+						little = commitAndPush(t, littleSize, dstPath, prefix)
 					})
 					t.Run("Big", func(t *testing.T) {
 						if testing.Short() {
 							return
 						}
 						PrintCurrentTest(t)
-						big = commitAndPush(t, bigSize, dstPath)
+						big = commitAndPush(t, bigSize, dstPath, prefix)
 					})
 				})
 			})
 			t.Run("LFS", func(t *testing.T) {
 				PrintCurrentTest(t)
+
 				t.Run("PushCommit", func(t *testing.T) {
 					PrintCurrentTest(t)
 					//Setup git LFS
+					prefix := "lfs-data-file-"
 					_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 					assert.NoError(t, err)
-					_, err = git.NewCommand("lfs").AddArguments("track", "data-file-*").RunInDir(dstPath)
+					_, err = git.NewCommand("lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
 					assert.NoError(t, err)
 					err = git.AddChanges(dstPath, false, ".gitattributes")
 					assert.NoError(t, err)
 
 					t.Run("Little", func(t *testing.T) {
 						PrintCurrentTest(t)
-						littleLFS = commitAndPush(t, littleSize, dstPath)
+						littleLFS = commitAndPush(t, littleSize, dstPath, prefix)
 						lockFileTest(t, littleLFS, dstPath)
 
 					})
@@ -222,7 +228,7 @@ func testGit(t *testing.T, u *url.URL) {
 							return
 						}
 						PrintCurrentTest(t)
-						bigLFS = commitAndPush(t, bigSize, dstPath)
+						bigLFS = commitAndPush(t, bigSize, dstPath, prefix)
 						lockFileTest(t, bigLFS, dstPath)
 
 					})
@@ -309,8 +315,8 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 	assert.NoError(t, err)
 }
 
-func commitAndPush(t *testing.T, size int, repoPath string) string {
-	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", "data-file-")
+func commitAndPush(t *testing.T, size int, repoPath, prefix string) string {
+	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
 	_, err = git.NewCommand("push", "origin", "master").RunInDir(repoPath) //Push
 	assert.NoError(t, err)
