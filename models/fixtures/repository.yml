@@ -497,3 +497,16 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+
+-
+  id: 42
+  owner_id: 1
+  lower_name: repo1
+  name: repo1
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  is_fork: true
+  fork_id: 1

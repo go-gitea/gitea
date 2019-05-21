@@ -19,10 +19,10 @@
   status: 2 # mergable
   issue_id: 3
   index: 3
-  head_repo_id: 1
+  head_repo_id: 42
   base_repo_id: 1
   head_user_name: user1
   head_branch: branch2
   base_branch: master
-  merge_base: fedcba9876543210
+  merge_base: 65f1bf27bc3bf70f
   has_merged: false
