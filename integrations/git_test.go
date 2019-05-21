@@ -52,6 +52,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		u.Path = httpContext.GitPath()
 		u.User = url.UserPassword(username, userPassword)
+		ensureAnonymousClone(t, u)
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
@@ -70,7 +71,6 @@ func testGit(t *testing.T, u *url.URL) {
 		//Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
-			PrintCurrentTest(t)
 
 			//Setup remote link
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
