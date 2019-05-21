@@ -1087,6 +1087,19 @@
           },
           {
             "type": "integer",
+            "format": "int64",
+            "description": "search only for repos that the user with the given id has starred",
+            "name": "starredBy",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include private repositories this user has access to (defaults to true)",
+            "name": "private",
+            "in": "query"
+          },
+          {
+            "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
