@@ -10,6 +10,10 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
+// NotesRef is the git ref where Gitea will look for git-notes data.
+// The value ("refs/notes/commits") is the default ref used by git-notes.
+const NotesRef = "refs/notes/commits"
+
 // Note stores information about a note created using git-notes.
 type Note struct {
 	Message []byte
@@ -18,7 +22,7 @@ type Note struct {
 
 // GetNote retrieves the git-notes data for a given commit.
 func GetNote(repo *Repository, commitID string, note *Note) error {
-	notes, err := repo.GetCommit("refs/notes/commits")
+	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
 		return err
 	}
