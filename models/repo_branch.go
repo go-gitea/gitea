@@ -75,7 +75,12 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		err = RemoveTemporaryPath(basePath)
+		if err != nil {
+			log.Error("CreateNewBranch: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,
@@ -117,7 +122,12 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		err = RemoveTemporaryPath(basePath)
+		if err != nil {
+			log.Error("CreateNewBranchFromCommit: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,

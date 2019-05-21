@@ -427,7 +427,12 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(tmpBasePath)
+	defer func() {
+		err = RemoveTemporaryPath(tmpBasePath)
+		if err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 

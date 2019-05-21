@@ -933,8 +933,7 @@ func InitDeliverHooks() {
 					return nil, err
 				}
 
-				conn.SetDeadline(time.Now().Add(timeout))
-				return conn, nil
+				return conn, conn.SetDeadline(time.Now().Add(timeout))
 
 			},
 		},
