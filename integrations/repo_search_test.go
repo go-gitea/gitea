@@ -5,10 +5,8 @@
 package integrations
 
 import (
-	"log"
 	"net/http"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models"
 
@@ -34,23 +32,10 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
-	models.UpdateRepoIndexer(repo)
+	waiter := make(chan error)
+	models.UpdateRepoIndexer(repo, waiter)
 
-	log.Printf("Waiting for indexing\n")
-
-	i := 0
-	for i < 60 {
-		if repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		i++
-	}
-	if i < 60 {
-		log.Printf("Indexing took: %ds\n", i)
-	} else {
-		log.Printf("Waited the limit: %ds for indexing, continuing\n", i)
-	}
+	assert.NoError(t, <-waiter)
 
 	req := NewRequestf(t, "GET", "/user2/repo1/search?q=Description&page=1")
 	resp := MakeRequest(t, req, http.StatusOK)
