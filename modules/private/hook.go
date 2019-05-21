@@ -22,24 +22,27 @@ const (
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
-	OldCommitID        string
-	NewCommitID        string
-	RefFullName        string
-	UserID             int64
-	UserName           string
-	GitObjectDirectory string
+	OldCommitID                     string
+	NewCommitID                     string
+	RefFullName                     string
+	UserID                          int64
+	UserName                        string
+	GitObjectDirectory              string
+	GitAlternativeObjectDirectories string
 }
 
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s&gitAlternativeObjectDirectories=%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.QueryEscape(opts.OldCommitID),
 		url.QueryEscape(opts.NewCommitID),
 		url.QueryEscape(opts.RefFullName),
 		opts.UserID,
-		url.QueryEscape(opts.GitObjectDirectory))
+		url.QueryEscape(opts.GitObjectDirectory),
+		url.QueryEscape(opts.GitAlternativeObjectDirectories),
+	)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {

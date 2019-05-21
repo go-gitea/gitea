@@ -89,11 +89,12 @@ func runHookPreReceive(c *cli.Context) error {
 		// If the ref is a branch, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
 			statusCode, msg := private.HookPreReceive(username, reponame, private.HookOptions{
-				OldCommitID:        oldCommitID,
-				NewCommitID:        newCommitID,
-				RefFullName:        refFullName,
-				UserID:             userID,
-				GitObjectDirectory: os.Getenv(private.GitObjectDirectory),
+				OldCommitID:                     oldCommitID,
+				NewCommitID:                     newCommitID,
+				RefFullName:                     refFullName,
+				UserID:                          userID,
+				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
+				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 			})
 			switch statusCode {
 			case http.StatusInternalServerError:

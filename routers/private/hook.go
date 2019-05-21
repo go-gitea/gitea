@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -30,6 +29,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	refFullName := ctx.QueryTrim("ref")
 	userID := ctx.QueryInt64("userID")
 	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
+	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -61,14 +61,8 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		// detect force push
 		if git.EmptySHA != oldCommitID {
-			alternativeObjectDirectories := os.Getenv(private.GitAlternativeObjectDirectories)
-			if len(alternativeObjectDirectories) > 0 {
-				alternativeObjectDirectories += ":"
-			}
-			alternativeObjectDirectories += "\"" + filepath.Join(repo.RepoPath(), "objects") + "\""
-
 			env := append(os.Environ(),
-				private.GitAlternativeObjectDirectories+"="+alternativeObjectDirectories,
+				private.GitAlternativeObjectDirectories+"="+gitAlternativeObjectDirectories,
 				private.GitObjectDirectory+"="+gitObjectDirectory,
 				private.GitQuarantinePath+"="+gitObjectDirectory,
 			)
