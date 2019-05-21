@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 
@@ -32,10 +33,15 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
-	waiter := make(chan error)
+	waiter := make(chan error, 1)
 	models.UpdateRepoIndexer(repo, waiter)
 
-	assert.NoError(t, <-waiter)
+	select {
+	case err := <-waiter:
+		assert.NoError(t, err)
+	case <-time.After(1 * time.Minute):
+		assert.Fail(t, "UpdateRepoIndexer took too long")
+	}
 
 	req := NewRequestf(t, "GET", "/user2/repo1/search?q=Description&page=1")
 	resp := MakeRequest(t, req, http.StatusOK)
