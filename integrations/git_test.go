@@ -60,7 +60,7 @@ func testGit(t *testing.T, u *url.URL) {
 		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
 		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
 
-		t.Run("BranchProtectMerge", doBranchProtectPRMerge(httpContext.Username, httpContext.Reponame, dstPath))
+		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 	})
 	t.Run("SSH", func(t *testing.T) {
 		PrintCurrentTest(t)
@@ -90,7 +90,7 @@ func testGit(t *testing.T, u *url.URL) {
 			rawTest(t, &sshContext, little, big, littleLFS, bigLFS)
 			mediaTest(t, &sshContext, little, big, littleLFS, bigLFS)
 
-			t.Run("BranchProtectMerge", doBranchProtectPRMerge(sshContext.Username, sshContext.Reponame, dstPath))
+			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 		})
 
 	})
@@ -273,13 +273,13 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 	return filepath.Base(tmpFile.Name()), err
 }
 
-func doBranchProtectPRMerge(username, reponame, dstPath string) func(t *testing.T) {
+func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		PrintCurrentTest(t)
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, username, reponame)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
 		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", ""))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -290,12 +290,12 @@ func doBranchProtectPRMerge(username, reponame, dstPath string) func(t *testing.
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(ctx, username, reponame, "protected", "unprotected")(t)
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
-		t.Run("MergePR", doAPIMergePullRequest(ctx, username, reponame, pr.Index))
+		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
-		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", username))
+		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username))
 
 		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "master"))
 		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
