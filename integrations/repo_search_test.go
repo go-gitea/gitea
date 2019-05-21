@@ -39,14 +39,18 @@ func TestSearchRepo(t *testing.T) {
 	log.Printf("Waiting for indexing\n")
 
 	i := 0
-	for {
-		if repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0 && i <= 60 {
+	for i < 60 {
+		if repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
 		i++
 	}
-	log.Printf("Indexing took: %d s\n", i)
+	if i < 60 {
+		log.Printf("Indexing took: %ds\n", i)
+	} else {
+		log.Printf("Waited the limit: %ds for indexing, continuing\n", i)
+	}
 
 	req := NewRequestf(t, "GET", "/user2/repo1/search?q=Description&page=1")
 	resp := MakeRequest(t, req, http.StatusOK)
