@@ -100,10 +100,8 @@ func ObjectOidHandler(ctx *context.Context) {
 			getMetaHandler(ctx)
 			return
 		}
-		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
-			getContentHandler(ctx)
-			return
-		}
+		getContentHandler(ctx)
+		return
 	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
 		PutHandler(ctx)
 		return
@@ -347,7 +345,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	if !ContentMatcher(ctx.Req) {
+	if !MetaMatcher(ctx.Req) {
 		writeStatus(ctx, 400)
 		return
 	}
@@ -402,6 +400,7 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload && !download {
 		// Force client side verify action while gitea lacks proper server side verification
+		header["Accept"] = metaMediaType
 		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
 	}
 
