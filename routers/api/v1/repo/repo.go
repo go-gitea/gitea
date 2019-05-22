@@ -527,6 +527,10 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	owner := ctx.Repo.Owner
 
 	if owner.IsOrganization() && !ctx.User.IsAdmin {
