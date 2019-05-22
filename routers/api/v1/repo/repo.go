@@ -651,7 +651,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
 	var units []models.RepoUnit
-	var unitTypesProcessed []models.UnitType
+
+	for _, tp := range models.MustRepoUnits {
+		units = append(units, models.RepoUnit{
+			RepoID: repo.ID,
+			Type:   tp,
+			Config: new(models.UnitConfig),
+		})
+	}
 
 	if opts.EnableIssues != nil {
 		if *opts.EnableIssues {
@@ -677,7 +684,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 		}
-		unitTypesProcessed = append(unitTypesProcessed, models.UnitTypeIssues)
 	}
 
 	if opts.EnableWiki != nil {
@@ -693,7 +699,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 		}
-		unitTypesProcessed = append(unitTypesProcessed, models.UnitTypeWiki)
 	}
 
 	if opts.EnablePullRequests != nil {
@@ -737,26 +742,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   models.UnitTypePullRequests,
 				Config: config,
 			})
-		}
-		unitTypesProcessed = append(unitTypesProcessed, models.UnitTypePullRequests)
-	}
-
-	// Put back onto the units array the unit types we didn't process due to not being in the API payload (if they
-	// exist).
-	// This will also get the types that "must" always exist, and makes sure they exist
-	for _, tp := range models.AllRepoUnitTypes {
-		if !unitTypeInTypes(tp, unitTypesProcessed) {
-			if unit, _ := repo.GetUnit(tp); unit != nil {
-				units = append(units, *unit)
-			} else {
-				if unitTypeInTypes(tp, models.MustRepoUnits) {
-					units = append(units, models.RepoUnit{
-						RepoID: repo.ID,
-						Type:   tp,
-						Config: new(models.UnitConfig),
-					})
-				}
-			}
 		}
 	}
 

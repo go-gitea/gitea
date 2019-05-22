@@ -23,11 +23,11 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	website := repo.Website
 	private := repo.IsPrivate
 	enableIssues := false
-	if _, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
+	if _, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
 		enableIssues = true
 	}
 	enableWiki := false
-	if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
 		enableWiki = true
 	}
 	defaultBranch := repo.DefaultBranch
@@ -139,9 +139,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Name, *repo1editedOption.Name)
 		assert.Equal(t, *repoEditOption.Description, *repo1editedOption.Description)
 		assert.Equal(t, *repoEditOption.Website, *repo1editedOption.Website)
-		assert.True(t, *repo1editedOption.Archived)
-		assert.True(t, *repo1editedOption.Private)
-		assert.False(t, *repo1editedOption.EnableWiki)
+		assert.Equal(t, *repoEditOption.Archived, *repo1editedOption.Archived)
+		assert.Equal(t, *repoEditOption.Private, *repo1editedOption.Private)
+		assert.Equal(t, *repoEditOption.EnableWiki, *repo1editedOption.EnableWiki)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
