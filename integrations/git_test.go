@@ -66,6 +66,7 @@ func testGit(t *testing.T, u *url.URL) {
 				})
 				t.Run("Big", func(t *testing.T) {
 					if testing.Short() {
+						t.Skip("skipping test in short mode.")
 						return
 					}
 					PrintCurrentTest(t)
