@@ -345,11 +345,6 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	if !MetaMatcher(ctx.Req) {
-		writeStatus(ctx, 400)
-		return
-	}
-
 	rv := unpack(ctx)
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
@@ -400,8 +395,12 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload && !download {
 		// Force client side verify action while gitea lacks proper server side verification
-		header["Accept"] = metaMediaType
-		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
+		verifyHeader := make(map[string]string)
+		for k, v := range header {
+			verifyHeader[k] = v
+		}
+		verifyHeader["Accept"] = metaMediaType
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: verifyHeader}
 	}
 
 	return rep
