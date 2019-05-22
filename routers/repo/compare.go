@@ -276,7 +276,7 @@ func CompareDiff(ctx *context.Context) {
 		} else {
 			ctx.Data["HasPullRequest"] = true
 			ctx.Data["PullRequest"] = pr
-			ctx.HTML(200, tplComparePull)
+			ctx.HTML(200, tplCompareDiff)
 			return
 		}
 
