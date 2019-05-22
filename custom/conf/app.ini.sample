@@ -698,7 +698,7 @@ DEFAULT_MAX_BLOB_SIZE = 10485760
 
 [oauth2]
 ; Enables OAuth2 provider
-ENABLED = true
+ENABLE = true
 ; Lifetime of an OAuth2 access token in seconds
 ACCESS_TOKEN_EXPIRATION_TIME=3600
 ; Lifetime of an OAuth2 access token in hours
