@@ -13,11 +13,11 @@
 		<div class="ui divider"></div>
 		{{template "base/alert" .}}
 		<div class="ui tiny basic buttons">
-			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.RepoLink}}/milestones?state=open">
+			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.RepoLink}}/+/milestones?state=open">
 				<i class="octicon octicon-milestone"></i>
 				{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
 			</a>
-			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.RepoLink}}/milestones?state=closed">
+			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.RepoLink}}/+/milestones?state=closed">
 				<i class="octicon octicon-milestone"></i>
 				{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
 			</a>

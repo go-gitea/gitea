@@ -15,7 +15,7 @@
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}
-				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
+				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/+/commit/{{.LatestCommit.ID}}">
 						{{ShortSha .LatestCommit.ID.String}}
 						{{if .LatestCommit.Signature}}
 							<div class="ui detail icon button">
