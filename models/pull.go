@@ -621,7 +621,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 
 	commits, err := ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.RepoPath(), pr.BaseRepo.HTMLURL())
 	if err != nil {
-		log.Error(4, "ToAPIPayloadCommits: %v", err)
+		log.Error("ToAPIPayloadCommits: %v", err)
 		return nil
 	}
 
