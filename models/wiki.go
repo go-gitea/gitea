@@ -6,15 +6,13 @@ package models
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
 
 	"github.com/Unknwon/com"
@@ -89,34 +87,6 @@ func (repo *Repository) InitWiki() error {
 	return nil
 }
 
-// LocalWikiPath returns the local wiki repository copy path.
-func LocalWikiPath() string {
-	if filepath.IsAbs(setting.Repository.Local.LocalWikiPath) {
-		return setting.Repository.Local.LocalWikiPath
-	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalWikiPath)
-}
-
-// LocalWikiPath returns the path to the local wiki repository (?).
-func (repo *Repository) LocalWikiPath() string {
-	return path.Join(LocalWikiPath(), com.ToStr(repo.ID))
-}
-
-// UpdateLocalWiki makes sure the local copy of repository wiki is up-to-date.
-func (repo *Repository) updateLocalWiki() error {
-	// Don't pass branch name here because it fails to clone and
-	// checkout to a specific branch when wiki is an empty repository.
-	var branch = ""
-	if com.IsExist(repo.LocalWikiPath()) {
-		branch = "master"
-	}
-	return UpdateLocalCopyBranch(repo.WikiPath(), repo.LocalWikiPath(), branch)
-}
-
-func discardLocalWikiChanges(localPath string) error {
-	return discardLocalRepoBranchChanges(localPath, "master")
-}
-
 // nameAllowed checks if a wiki name is allowed
 func nameAllowed(name string) error {
 	for _, reservedName := range reservedWikiNames {
@@ -132,7 +102,6 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
@@ -140,54 +109,113 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	localPath := repo.LocalWikiPath()
-	if err = discardLocalWikiChanges(localPath); err != nil {
-		return fmt.Errorf("discardLocalWikiChanges: %v", err)
-	} else if err = repo.updateLocalWiki(); err != nil {
-		return fmt.Errorf("UpdateLocalWiki: %v", err)
+	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
+
+	basePath, err := CreateTemporaryPath("update-wiki")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
+
+	cloneOpts := git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
 	}
 
-	newWikiPath := path.Join(localPath, WikiNameToFilename(newWikiName))
+	if hasMasterBranch {
+		cloneOpts.Branch = "master"
+	}
 
-	// If not a new file, show perform update not create.
+	if err := git.Clone(repo.WikiPath(), basePath, cloneOpts); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+	}
+
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
+
+	if hasMasterBranch {
+		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+			return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		}
+	}
+
+	newWikiPath := WikiNameToFilename(newWikiName)
 	if isNew {
-		if com.IsExist(newWikiPath) {
-			return ErrWikiAlreadyExist{newWikiPath}
+		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		for _, file := range filesInIndex {
+			if file == newWikiPath {
+				return ErrWikiAlreadyExist{newWikiPath}
+			}
 		}
 	} else {
-		oldWikiPath := path.Join(localPath, WikiNameToFilename(oldWikiName))
-		if err := os.Remove(oldWikiPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", oldWikiPath, err)
+		oldWikiPath := WikiNameToFilename(oldWikiName)
+		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		found := false
+		for _, file := range filesInIndex {
+			if file == oldWikiPath {
+				found = true
+				break
+			}
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
+			if err != nil {
+				log.Error("%v", err)
+				return err
+			}
 		}
 	}
 
-	// SECURITY: if new file is a symlink to non-exist critical file,
-	// attack content can be written to the target file (e.g. authorized_keys2)
-	// as a new page operation.
-	// So we want to make sure the symlink is removed before write anything.
-	// The new file we created will be in normal text format.
-	if err = os.RemoveAll(newWikiPath); err != nil {
+	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
+
+	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
+	if err != nil {
+		log.Error("%v", err)
 		return err
 	}
 
-	if err = ioutil.WriteFile(newWikiPath, []byte(content), 0666); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
+	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+		log.Error("%v", err)
+		return err
 	}
 
-	if len(message) == 0 {
-		message = "Update page '" + newWikiName + "'"
+	tree, err := gitRepo.WriteTree()
+	if err != nil {
+		log.Error("%v", err)
+		return err
 	}
-	if err = git.AddChanges(localPath, true); err != nil {
-		return fmt.Errorf("AddChanges: %v", err)
-	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
-		Committer: doer.NewGitSig(),
-		Message:   message,
-	}); err != nil {
-		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, git.PushOptions{
+
+	commitTreeOpts := git.CommitTreeOpts{
+		Message: message,
+	}
+	if hasMasterBranch {
+		commitTreeOpts.Parents = []string{"HEAD"}
+	}
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
+	if err != nil {
+		log.Error("%v", err)
+		return err
+	}
+
+	if err := git.Push(basePath, git.PushOptions{
 		Remote: "origin",
-		Branch: "master",
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Env:    PushingEnvironment(doer, repo),
 	}); err != nil {
+		log.Error("%v", err)
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -210,31 +238,74 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
-	localPath := repo.LocalWikiPath()
-	if err = discardLocalWikiChanges(localPath); err != nil {
-		return fmt.Errorf("discardLocalWikiChanges: %v", err)
-	} else if err = repo.updateLocalWiki(); err != nil {
-		return fmt.Errorf("UpdateLocalWiki: %v", err)
+	if err = repo.InitWiki(); err != nil {
+		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	filename := path.Join(localPath, WikiNameToFilename(wikiName))
+	basePath, err := CreateTemporaryPath("update-wiki")
+	if err != nil {
+		return err
+	}
+	defer RemoveTemporaryPath(basePath)
 
-	if err := os.Remove(filename); err != nil {
-		return fmt.Errorf("Failed to remove %s: %v", filename, err)
+	if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+		Branch: "master",
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
+	gitRepo, err := git.OpenRepository(basePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+	}
+
+	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+	}
+
+	wikiPath := WikiNameToFilename(wikiName)
+	filesInIndex, err := gitRepo.LsFiles(wikiPath)
+	found := false
+	for _, file := range filesInIndex {
+		if file == wikiPath {
+			found = true
+			break
+		}
+	}
+	if found {
+		err := gitRepo.RemoveFilesFromIndex(wikiPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		return os.ErrNotExist
+	}
+
+	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
+
+	tree, err := gitRepo.WriteTree()
+	if err != nil {
+		return err
+	}
 	message := "Delete page '" + wikiName + "'"
 
-	if err = git.AddChanges(localPath, true); err != nil {
-		return fmt.Errorf("AddChanges: %v", err)
-	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
-		Committer: doer.NewGitSig(),
-		Message:   message,
-	}); err != nil {
-		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, git.PushOptions{
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, git.CommitTreeOpts{
+		Message: message,
+		Parents: []string{"HEAD"},
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := git.Push(basePath, git.PushOptions{
 		Remote: "origin",
-		Branch: "master",
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Env:    PushingEnvironment(doer, repo),
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}

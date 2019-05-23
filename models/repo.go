@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -28,15 +27,13 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -67,8 +64,8 @@ var (
 	ItemsPerPage = 40
 )
 
-// LoadRepoConfig loads the repository config
-func LoadRepoConfig() {
+// loadRepoConfig loads the repository config
+func loadRepoConfig() {
 	// Load .gitignore and license files and readme templates.
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
@@ -119,45 +116,7 @@ func LoadRepoConfig() {
 
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
-	zip.Verbose = false
-
-	// Check Git installation.
-	if _, err := exec.LookPath("git"); err != nil {
-		log.Fatal("Failed to test 'git' command: %v (forgotten install?)", err)
-	}
-
-	// Check Git version.
-	var err error
-	setting.Git.Version, err = git.BinVersion()
-	if err != nil {
-		log.Fatal("Failed to get Git version: %v", err)
-	}
-
-	log.Info("Git Version: %s", setting.Git.Version)
-	if version.Compare("1.7.1", setting.Git.Version, ">") {
-		log.Fatal("Gitea requires Git version greater or equal to 1.7.1")
-	}
-
-	// Git requires setting user.name and user.email in order to commit changes.
-	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if stdout, stderr, err := process.GetManager().Exec("NewRepoContext(get setting)", "git", "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
-			// ExitError indicates this config is not set
-			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
-				if _, stderr, gerr := process.GetManager().Exec("NewRepoContext(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
-					log.Fatal("Failed to set git %s(%s): %s", configKey, gerr, stderr)
-				}
-				log.Info("Git config %s set to %s", configKey, defaultValue)
-			} else {
-				log.Fatal("Failed to get git %s(%s): %s", configKey, err, stderr)
-			}
-		}
-	}
-
-	// Set git some configurations.
-	if _, stderr, err := process.GetManager().Exec("NewRepoContext(git config --global core.quotepath false)",
-		"git", "config", "--global", "core.quotepath", "false"); err != nil {
-		log.Fatal("Failed to execute 'git config --global core.quotepath false': %s", stderr)
-	}
+	loadRepoConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
@@ -518,7 +477,7 @@ func (repo *Repository) DeleteWiki() error {
 }
 
 func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath(), repo.LocalWikiPath()}
+	wikiPaths := []string{repo.WikiPath()}
 	for _, wikiPath := range wikiPaths {
 		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
 	}
@@ -728,13 +687,6 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 	return users, nil
 }
 
-// NextIssueIndex returns the next issue index
-// FIXME: should have a mutex to prevent producing same index for two issues that are created
-// closely enough.
-func (repo *Repository) NextIssueIndex() int64 {
-	return int64(repo.NumIssues+repo.NumPulls) + 1
-}
-
 var (
 	descPattern = regexp.MustCompile(`https?://\S+`)
 )
@@ -747,56 +699,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 		return template.HTML(markup.Sanitize(repo.Description))
 	}
 	return template.HTML(markup.Sanitize(string(desc)))
-}
-
-// LocalCopyPath returns the local repository copy path.
-func LocalCopyPath() string {
-	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return setting.Repository.Local.LocalCopyPath
-	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
-}
-
-// LocalCopyPath returns the local repository copy path for the given repo.
-func (repo *Repository) LocalCopyPath() string {
-	return path.Join(LocalCopyPath(), com.ToStr(repo.ID))
-}
-
-// UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
-// It creates a new clone if local copy does not exist.
-// This function checks out target branch by default, it is safe to assume subsequent
-// operations are operating against target branch when caller has confidence for no race condition.
-func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
-	if !com.IsExist(localPath) {
-		if err := git.Clone(repoPath, localPath, git.CloneRepoOptions{
-			Timeout: time.Duration(setting.Git.Timeout.Clone) * time.Second,
-			Branch:  branch,
-		}); err != nil {
-			return fmt.Errorf("git clone %s: %v", branch, err)
-		}
-	} else {
-		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
-		if err != nil {
-			return fmt.Errorf("git fetch origin: %v", err)
-		}
-		if len(branch) > 0 {
-			if err := git.Checkout(localPath, git.CheckoutOptions{
-				Branch: branch,
-			}); err != nil {
-				return fmt.Errorf("git checkout %s: %v", branch, err)
-			}
-
-			if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
-				return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
-			}
-		}
-	}
-	return nil
-}
-
-// UpdateLocalCopyBranch makes sure local copy of repository in given branch is up-to-date.
-func (repo *Repository) UpdateLocalCopyBranch(branch string) error {
-	return UpdateLocalCopyBranch(repo.RepoPath(), repo.LocalCopyPath(), branch)
 }
 
 // PatchPath returns corresponding patch file path of repository by given issue ID.
@@ -896,6 +798,7 @@ type MigrateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	RemoteAddr  string
+	Wiki        bool // include wiki repository
 }
 
 /*
@@ -917,7 +820,7 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates a existing repository from other project hosting.
+// MigrateRepository migrates an existing repository from other project hosting.
 func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
@@ -930,7 +833,6 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	repoPath := RepoPath(u.Name, opts.Name)
-	wikiPath := WikiPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
 		t, err := u.GetOwnerTeam()
@@ -956,21 +858,24 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
-	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
-	if len(wikiRemotePath) > 0 {
-		if err := os.RemoveAll(wikiPath); err != nil {
-			return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-		}
-
-		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
-			Mirror:  true,
-			Quiet:   true,
-			Timeout: migrateTimeout,
-			Branch:  "master",
-		}); err != nil {
-			log.Warn("Clone wiki: %v", err)
+	if opts.Wiki {
+		wikiPath := WikiPath(u.Name, opts.Name)
+		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+			}
+
+			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:  true,
+				Quiet:   true,
+				Timeout: migrateTimeout,
+				Branch:  "master",
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := os.RemoveAll(wikiPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				}
 			}
 		}
 	}
@@ -1605,12 +1510,10 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
-	removeAllWithNotice(sess, "Delete repository local copy", repo.LocalCopyPath())
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(owner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
-		removeAllWithNotice(sess, "Delete repository wiki local copy", repo.LocalWikiPath())
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -1655,20 +1558,11 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
-	localPath := repo.LocalCopyPath()
-	if com.IsExist(localPath) {
-		_, err := git.NewCommand("remote", "set-url", "origin", newRepoPath).RunInDir(localPath)
-		if err != nil {
-			return fmt.Errorf("git remote set-url origin %s: %v", newRepoPath, err)
-		}
-	}
-
 	wikiPath := repo.WikiPath()
 	if com.IsExist(wikiPath) {
 		if err = os.Rename(wikiPath, WikiPath(u.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
 	sess := x.NewSession()

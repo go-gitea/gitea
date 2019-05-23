@@ -43,7 +43,7 @@ func runPR() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	setting.SetCustomPathAndConf("", "")
+	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
@@ -108,7 +108,6 @@ func runPR() {
 	models.LoadFixtures()
 	os.RemoveAll(setting.RepoRootPath)
 	os.RemoveAll(models.LocalCopyPath())
-	os.RemoveAll(models.LocalWikiPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")

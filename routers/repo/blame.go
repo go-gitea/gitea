@@ -236,7 +236,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 
 			//Code line
 			line = gotemplate.HTMLEscapeString(line)
-			if i != len(lines) {
+			if i != len(lines)-1 {
 				line += "\n"
 			}
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {

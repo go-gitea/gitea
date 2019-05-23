@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,4 +55,40 @@ func TestAPIMergePullWIP(t *testing.T) {
 	})
 
 	session.MakeRequest(t, req, http.StatusMethodNotAllowed)
+}
+
+func TestAPICreatePullSuccess1(t *testing.T) {
+	prepareTestEnv(t)
+	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	// repo10 have code, pulls units.
+	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
+	// repo11 only have code unit but should still create pulls
+	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+	owner11 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
+
+	session := loginUser(t, owner11.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
+		Head:  fmt.Sprintf("%s:master", owner11.Name),
+		Base:  "master",
+		Title: "create a failure pr",
+	})
+
+	session.MakeRequest(t, req, 201)
+}
+
+func TestAPICreatePullSuccess2(t *testing.T) {
+	prepareTestEnv(t)
+	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+
+	session := loginUser(t, owner10.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
+		Head:  "develop",
+		Base:  "master",
+		Title: "create a success pr",
+	})
+
+	session.MakeRequest(t, req, 201)
 }
