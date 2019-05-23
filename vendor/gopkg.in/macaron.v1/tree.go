@@ -317,6 +317,14 @@ func (t *Tree) matchSubtree(globLevel int, segment, url string, params Params) (
 				}
 			}
 		case _PATTERN_REGEXP:
+			// If the regex pattern ends with a slash, the segment to be matched must combine with the rest of the URL path.
+			if strings.HasSuffix(t.subtrees[i].reg.String(), "/") {
+				s, err := PathUnescape(strings.Join([]string{segment, url}, "/"))
+				if err != nil {
+					return nil, false
+				}
+				unescapedSegment = s
+			}
 			results := t.subtrees[i].reg.FindStringSubmatch(unescapedSegment)
 			if len(results)-1 != len(t.subtrees[i].wildcards) {
 				break
@@ -324,6 +332,11 @@ func (t *Tree) matchSubtree(globLevel int, segment, url string, params Params) (
 
 			for j := 0; j < len(t.subtrees[i].wildcards); j++ {
 				params[t.subtrees[i].wildcards[j]] = results[j+1]
+			}
+
+			// If the matched string contains a slash(/), the whole pattern should be treated as a single segment.
+			if strings.ContainsAny(results[0], "/") {
+				url = strings.TrimPrefix(unescapedSegment, results[0])
 			}
 			if handle, ok := t.subtrees[i].matchNextSegment(globLevel, url, params); ok {
 				return handle, true
