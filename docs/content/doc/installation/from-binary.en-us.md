@@ -142,7 +142,8 @@ For errors like `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:30
 bind: address already in use` Gitea needs to be started on another free port. This
 is possible using `./gitea web -p $PORT`. It's possible another instance of Gitea
 is already running.
-### Gitea not running on Raspbian
+
+### Running Gitea on Raspbian
 
 currently, as of v1.8, the arm7 version of gitea is broken and doesn't run on Raspberry Pi's and similar devices. 
 
