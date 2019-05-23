@@ -52,23 +52,23 @@
 			</div>
 			{{if .Commit.Signature}}
 				{{if .Verification.Verified }}
-					<div class="ui bottom attached positive message"{{if .Note}} style="margin-bottom: 0; border-radius: 0;"{{end}}>
+					<div class="ui bottom attached positive message">
 					  <i class="green lock icon"></i>
 						<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
 						<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					</div>
 				{{else}}
-					<div class="ui bottom attached message"{{if .Note}} style="margin-bottom: 0; border-radius: 0;"{{end}}>
+					<div class="ui bottom attached message">
 					  <i class="grey unlock icon"></i>
 					  {{.i18n.Tr .Verification.Reason}}
 					</div>
 				{{end}}
 			{{end}}
 			{{if .Note}}
-				<div class="ui attached bottom message" style="margin-bottom: 0; border-radius: 0;">
+				<div class="ui top attached info segment message git-notes">
 					<i class="sticky note icon"></i>
-					<span style="color: black;">{{.i18n.Tr "repo.diff.git-notes"}}:</span>
+					{{.i18n.Tr "repo.diff.git-notes"}}:
 					{{if .NoteAuthor}}
 						<a href="{{.NoteAuthor.HomeLink}}">
 							{{if .NoteAuthor.FullName}}
@@ -82,7 +82,7 @@
 					{{end}}
 					<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
 				</div>
-				<div class="ui bottom attached info segment">
+				<div class="ui bottom attached info segment git-notes">
 					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 				</div>
 			{{end}}
