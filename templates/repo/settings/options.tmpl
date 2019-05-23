@@ -109,176 +109,185 @@
 			{{.i18n.Tr "repo.settings.advanced_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" method="post">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="advanced">
-
-				{{if .Service.EnableWiki}}
-					{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.wiki"}}</label>
-						<div class="ui checkbox">
-							<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.settings.wiki_desc"}}</label>
-						</div>
-					</div>
-					<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}checked{{end}}/>
-								<label>{{.i18n.Tr "repo.settings.use_internal_wiki"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.UnitTypeExternalWiki}}checked{{end}}/>
-								<label>{{.i18n.Tr "repo.settings.use_external_wiki"}}</label>
-							</div>
-						</div>
-						<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
-							<label for="external_wiki_url">{{.i18n.Tr "repo.settings.external_wiki_url"}}</label>
-							<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
-							<p class="help">{{.i18n.Tr "repo.settings.external_wiki_url_desc"}}</p>
-						</div>
-					</div>
-				{{else}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.wiki.disabled"}}</label>
-					</div>
-				{{end}}
-
-				<div class="ui divider"></div>
-
-				{{if .Service.EnableIssues}}
-					{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.issues"}}</label>
-						<div class="ui checkbox">
-							<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.settings.issues_desc"}}</label>
-						</div>
-					</div>
-					<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
-								<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
-							</div>
-						</div>
-						<div class="field {{if (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
-							{{if .Repository.CanEnableTimetracker}}
-								<div class="field">
-									<div class="ui checkbox">
-										<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled}}checked{{end}}>
-										<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
-									</div>
-								</div>
-								<div class="field {{if not .Repository.IsTimetrackerEnabled}}disabled{{end}}" id="only_contributors">
-									<div class="ui checkbox">
-										<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime}}checked{{end}}>
-										<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
-									</div>
-								</div>
-							{{end}}
-								<div class="field">
-									<div class="ui checkbox">
-										<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
-										<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
-									</div>
-								</div>
-						</div>
-						<div class="field">
-							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
-								<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
-							</div>
-						</div>
-						<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
-							<div class="field">
-								<label for="external_tracker_url">{{.i18n.Tr "repo.settings.external_tracker_url"}}</label>
-								<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
-								<p class="help">{{.i18n.Tr "repo.settings.external_tracker_url_desc"}}</p>
-							</div>
-							<div class="field">
-								<label for="tracker_url_format">{{.i18n.Tr "repo.settings.tracker_url_format"}}</label>
-								<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
-								<p class="help">{{.i18n.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
-							</div>
-							<div class="inline fields">
-								<label for="issue_style">{{.i18n.Tr "repo.settings.tracker_issue_style"}}</label>
-								<div class="field">
-									<div class="ui radio checkbox">
-									{{$externalTracker := (.Repository.MustGetUnit $.UnitTypeExternalTracker)}}
-									{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
-										<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="numeric" {{if $externalTrackerStyle}}{{if eq $externalTrackerStyle "numeric"}}checked=""{{end}}{{end}}/>
-										<label>{{.i18n.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">(#1234)</span></label>
-									</div>
-								</div>
-								<div class="field">
-									<div class="ui radio checkbox">
-										<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="alphanumeric" {{if $externalTrackerStyle}}{{if eq $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle "alphanumeric"}}checked=""{{end}}{{end}} />
-										<label>{{.i18n.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">(ABC-123, DEFG-234)</span></label>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				{{else}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.issues.disabled"}}</label>
-					</div>
-				{{end}}
-
-				{{if .Repository.CanEnablePulls}}
-					<div class="ui divider"></div>
-					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
-					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.pulls"}}</label>
-						<div class="ui checkbox">
-							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.settings.pulls_desc"}}</label>
-						</div>
-					</div>
-					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.allow_merge_commits"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge_commit"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
-							</div>
-						</div>
-					</div>
-				{{end}}
-
-				<div class="ui divider"></div>
-				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+			{{if and (not .Service.EnableWiki) (not .Service.EnableIssues)}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.wiki.disabled"}}</label>
 				</div>
-			</form>
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.issues.disabled"}}</label>
+				</div>
+			{{else}}
+				<form class="ui form" method="post">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="action" value="advanced">
+
+					{{if .Service.EnableWiki}}
+						{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.wiki"}}</label>
+							<div class="ui checkbox">
+								<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.wiki_desc"}}</label>
+							</div>
+						</div>
+						<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}checked{{end}}/>
+									<label>{{.i18n.Tr "repo.settings.use_internal_wiki"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.UnitTypeExternalWiki}}checked{{end}}/>
+									<label>{{.i18n.Tr "repo.settings.use_external_wiki"}}</label>
+								</div>
+							</div>
+							<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+								<label for="external_wiki_url">{{.i18n.Tr "repo.settings.external_wiki_url"}}</label>
+								<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
+								<p class="help">{{.i18n.Tr "repo.settings.external_wiki_url_desc"}}</p>
+							</div>
+						</div>
+					{{else}}
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.wiki.disabled"}}</label>
+						</div>
+					{{end}}
+
+					<div class="ui divider"></div>
+
+					{{if .Service.EnableIssues}}
+						{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.issues"}}</label>
+							<div class="ui checkbox">
+								<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.issues_desc"}}</label>
+							</div>
+						</div>
+						<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
+									<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
+								</div>
+							</div>
+							<div class="field {{if (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+								{{if .Repository.CanEnableTimetracker}}
+									<div class="field">
+										<div class="ui checkbox">
+											<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled}}checked{{end}}>
+											<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
+										</div>
+									</div>
+									<div class="field {{if not .Repository.IsTimetrackerEnabled}}disabled{{end}}" id="only_contributors">
+										<div class="ui checkbox">
+											<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime}}checked{{end}}>
+											<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
+										</div>
+									</div>
+								{{end}}
+									<div class="field">
+										<div class="ui checkbox">
+											<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
+											<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
+										</div>
+									</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
+									<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
+								</div>
+							</div>
+							<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+								<div class="field">
+									<label for="external_tracker_url">{{.i18n.Tr "repo.settings.external_tracker_url"}}</label>
+									<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
+									<p class="help">{{.i18n.Tr "repo.settings.external_tracker_url_desc"}}</p>
+								</div>
+								<div class="field">
+									<label for="tracker_url_format">{{.i18n.Tr "repo.settings.tracker_url_format"}}</label>
+									<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
+									<p class="help">{{.i18n.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
+								</div>
+								<div class="inline fields">
+									<label for="issue_style">{{.i18n.Tr "repo.settings.tracker_issue_style"}}</label>
+									<div class="field">
+										<div class="ui radio checkbox">
+										{{$externalTracker := (.Repository.MustGetUnit $.UnitTypeExternalTracker)}}
+										{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
+											<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="numeric" {{if $externalTrackerStyle}}{{if eq $externalTrackerStyle "numeric"}}checked=""{{end}}{{end}}/>
+											<label>{{.i18n.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">(#1234)</span></label>
+										</div>
+									</div>
+									<div class="field">
+										<div class="ui radio checkbox">
+											<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="alphanumeric" {{if $externalTrackerStyle}}{{if eq $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle "alphanumeric"}}checked=""{{end}}{{end}} />
+											<label>{{.i18n.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">(ABC-123, DEFG-234)</span></label>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{{else}}
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.issues.disabled"}}</label>
+						</div>
+					{{end}}
+
+					{{if .Repository.CanEnablePulls}}
+						<div class="ui divider"></div>
+						{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
+						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.pulls"}}</label>
+							<div class="ui checkbox">
+								<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls_desc"}}</label>
+							</div>
+						</div>
+						<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.pulls.allow_merge_commits"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge_commit"}}</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
+								</div>
+							</div>
+						</div>
+					{{end}}
+
+					<div class="ui divider"></div>
+					<div class="field">
+						<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+					</div>
+				</form>
+			{{end}}
 		</div>
 
 		{{if .IsAdmin}}
