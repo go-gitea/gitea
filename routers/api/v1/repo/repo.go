@@ -240,6 +240,10 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "409":
+	//     description: The repository with the same name already exists.
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(422, "", "not allowed creating repository for organization")

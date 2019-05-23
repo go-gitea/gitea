@@ -6082,6 +6082,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "409": {
+            "description": "The repository with the same name already exists."
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
