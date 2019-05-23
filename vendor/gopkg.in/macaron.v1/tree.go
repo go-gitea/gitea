@@ -69,6 +69,9 @@ func getNextWildcard(pattern string) (wildcard, _ string) {
 		case isSpecialRegexp(pattern, ":string", pos):
 			pattern = strings.Replace(pattern, ":string", "([\\w]+)", 1)
 		default:
+			if strings.HasSuffix(wildcard, "+") {
+				return wildcard, strings.Replace(pattern, wildcard, `(.+)/+/`, 1)
+			}
 			return wildcard, strings.Replace(pattern, wildcard, `(.+)`, 1)
 		}
 	}
@@ -251,14 +254,6 @@ func (t *Tree) addNextSegment(pattern string, handle Handle) *Leaf {
 	i := strings.Index(pattern, "/")
 	if i == -1 {
 		return t.addLeaf(pattern, handle)
-	}
-	// If the segment ends with "/+/", it has to be included into the pattern.
-	if strings.HasPrefix(pattern[i+1:], "+/") {
-		// [0] = '/''
-		// [1] = '+'
-		// [2] = '/'
-		// [3] = start of next pattern
-		i += 3
 	}
 	return t.addSubtree(pattern[:i], pattern[i+1:], handle)
 }
