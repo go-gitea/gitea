@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -32,6 +33,10 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
+	if !setting.Service.EnableWiki {
+		ctx.NotFound("MustEnableWiki", nil)
+		return
+	}
 	if !ctx.Repo.CanRead(models.UnitTypeWiki) &&
 		!ctx.Repo.CanRead(models.UnitTypeExternalWiki) {
 		if log.IsTrace() {

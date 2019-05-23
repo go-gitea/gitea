@@ -1287,6 +1287,10 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 					EnableDependencies:               setting.Service.DefaultEnableDependencies,
 				},
 			})
+		} else if tp == UnitTypeWiki {
+			if !setting.Service.EnableWiki {
+				continue
+			}
 		} else if tp == UnitTypePullRequests {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,

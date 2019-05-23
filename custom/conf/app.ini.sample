@@ -424,6 +424,8 @@ SHOW_REGISTRATION_BUTTON = true
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
+; Set this to false to completely disable the wiki function
+ENABLE_WIKI = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging

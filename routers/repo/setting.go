@@ -218,7 +218,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			})
 		}
 
-		if form.EnableWiki {
+		if form.EnableWiki && setting.Service.EnableWiki {
 			if form.EnableExternalWiki {
 				if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))

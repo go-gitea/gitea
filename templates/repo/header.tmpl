@@ -79,7 +79,7 @@
 			</a>
 			{{end}}
 
-			{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
+			{{if and .Service.EnableWiki (or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki))}}
 				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>
