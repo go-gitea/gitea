@@ -426,6 +426,8 @@ SHOW_REGISTRATION_BUTTON = true
 AUTO_WATCH_NEW_REPOS = true
 ; Set this to false to completely disable the wiki function
 ENABLE_WIKI = true
+; Set this to false to completely disable the issue function
+ENABLE_ISSUES = true
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging

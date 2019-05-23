@@ -1278,6 +1278,9 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
 	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
+			if !setting.Service.EnableIssues {
+				continue
+			}
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,

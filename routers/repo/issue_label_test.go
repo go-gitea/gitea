@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -119,6 +120,7 @@ func TestDeleteLabel(t *testing.T) {
 }
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
+	setting.Service.EnableIssues = true
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
@@ -133,6 +135,7 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 }
 
 func TestUpdateIssueLabel_Toggle(t *testing.T) {
+	setting.Service.EnableIssues = true
 	for _, testCase := range []struct {
 		Action      string
 		IssueIDs    []int64

@@ -242,7 +242,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if form.EnableIssues {
+		if form.EnableIssues && setting.Service.EnableIssues {
 			if form.EnableExternalTracker {
 				if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))

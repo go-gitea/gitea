@@ -50,7 +50,8 @@ var Service struct {
 	OpenIDBlacklist    []*regexp.Regexp
 
 	// global feature flags
-	EnableWiki bool
+	EnableWiki   bool
+	EnableIssues bool
 }
 
 func newService() {
@@ -87,6 +88,7 @@ func newService() {
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 
 	// feature flags
+	Service.EnableIssues = sec.Key("ENABLE_ISSUES").MustBool(true)
 	Service.EnableWiki = sec.Key("ENABLE_WIKI").MustBool(true)
 
 	sec = Cfg.Section("openid")

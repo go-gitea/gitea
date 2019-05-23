@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
@@ -46,7 +47,7 @@ func Activity(ctx *context.Context) {
 	var err error
 	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(models.UnitTypeReleases),
-		ctx.Repo.CanRead(models.UnitTypeIssues),
+		setting.Service.EnableIssues && ctx.Repo.CanRead(models.UnitTypeIssues),
 		ctx.Repo.CanRead(models.UnitTypePullRequests),
 		ctx.Repo.CanRead(models.UnitTypeCode)); err != nil {
 		ctx.ServerError("GetActivityStats", err)

@@ -308,7 +308,7 @@ func Issues(ctx *context.Context) {
 			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
 			return
 		}
-		if !perm.CanRead(models.UnitTypeIssues) {
+		if !setting.Service.EnableIssues || !perm.CanRead(models.UnitTypeIssues) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
 					"User in repo has Permissions: %-+v",
