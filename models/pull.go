@@ -1046,7 +1046,7 @@ func GetLatestPullRequestsByHeadInfo(repoID int64, branch string) (*PullRequest,
 		OrderBy("id DESC").
 		Get(pr)
 	if !has {
-	  return nil, err
+		return nil, err
 	}
 	return pr, err
 }
