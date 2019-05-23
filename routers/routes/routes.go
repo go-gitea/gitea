@@ -94,6 +94,21 @@ func setupAccessLogger(m *macaron.Macaron) {
 	})
 }
 
+// RouterHandler is a macaron handler that will log the routing to the default gitea log
+func RouterHandler(level log.Level) func(ctx *macaron.Context) {
+	return func(ctx *macaron.Context) {
+		start := time.Now()
+
+		log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
+
+		rw := ctx.Resp.(macaron.ResponseWriter)
+		ctx.Next()
+
+		status := rw.Status()
+		log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -102,7 +117,9 @@ func NewMacaron() *macaron.Macaron {
 		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-			log.SetupRouterLogger(m, setting.RouterLogLevel)
+			if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
+				m.Use(RouterHandler(setting.RouterLogLevel))
+			}
 		}
 	} else {
 		m = macaron.New()
@@ -801,6 +818,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", repo.Activity)
 			m.Get("/:period", repo.Activity)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+
+		m.Group("/activity_author_data", func() {
+			m.Get("", repo.ActivityAuthors)
+			m.Get("/:period", repo.ActivityAuthors)
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
 
