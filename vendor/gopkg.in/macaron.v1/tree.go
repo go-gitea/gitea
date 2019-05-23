@@ -252,6 +252,14 @@ func (t *Tree) addNextSegment(pattern string, handle Handle) *Leaf {
 	if i == -1 {
 		return t.addLeaf(pattern, handle)
 	}
+	// If the segment ends with "/+/", it has to be included into the pattern.
+	if strings.HasPrefix(pattern[i+1:], "+/") {
+		// [0] = '/''
+		// [1] = '+'
+		// [2] = '/'
+		// [3] = start of next pattern
+		i += 3
+	}
 	return t.addSubtree(pattern[:i], pattern[i+1:], handle)
 }
 
