@@ -607,9 +607,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignIn)
 
 	// ***** Release Attachment Download without Signin
-	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
+	m.Get("/:username/:reponame+/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
 
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Group("/settings", func() {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(auth.RepoSettingForm{}), repo.SettingsPost)
@@ -663,9 +663,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
 
-	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.RepoMustNotBeArchived(), repo.Action)
+	m.Get("/:username/:reponame+/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.RepoMustNotBeArchived(), repo.Action)
 
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Group("/issues", func() {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
@@ -757,7 +757,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes())
 
 	// Releases
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.MustBeNotEmpty, repo.Releases)
 		}, repo.MustBeNotEmpty, context.RepoRef())
@@ -785,11 +785,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoReleaseReader)
 
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Post("/topics", repo.TopicsPost)
 	}, context.RepoAssignment(), context.RepoMustNotBeArchived(), reqRepoAdmin)
 
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Group("", func() {
 			m.Get("/^:type(issues|pulls)$", repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
@@ -899,19 +899,19 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
 			repo.SetDiffViewStyle, repo.MustBeNotEmpty, reqRepoCodeReader, repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
-	m.Group("/:username/:reponame", func() {
+	m.Group("/:username/:reponame+", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqRepoCodeReader, repo.Search)
 	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
-		m.Group("/:reponame", func() {
+		m.Group("/:reponame+", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
-		m.Group("/:reponame", func() {
+		m.Group("/:reponame+", func() {
 			m.Group("\\.git/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
