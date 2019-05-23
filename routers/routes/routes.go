@@ -906,12 +906,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
-		m.Group("/:reponame+/+", func() {
+		m.Group("/:reponame+", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
-		m.Group("/:reponame+/+", func() {
+		m.Group("/:reponame+", func() {
 			m.Group("\\.git/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
