@@ -64,5 +64,5 @@ func Test_PrepareWithInvalidImageSize(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = Prepare(data)
-	assert.EqualError(t, err, "Image width is to large: 10 > 5")
+	assert.EqualError(t, err, "Image width is too large: 10 > 5")
 }

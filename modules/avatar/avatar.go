@@ -58,10 +58,10 @@ func Prepare(data []byte) (*image.Image, error) {
 		return nil, fmt.Errorf("DecodeConfig: %v", err)
 	}
 	if imgCfg.Width > setting.AvatarMaxWidth {
-		return nil, fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
+		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
 	}
 	if imgCfg.Height > setting.AvatarMaxHeight {
-		return nil, fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
+		return nil, fmt.Errorf("Image height is too large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(data))
