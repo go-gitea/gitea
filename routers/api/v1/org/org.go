@@ -75,6 +75,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	// parameters:
 	// - name: organization
 	//   in: body
+	//   description: `visibility` can be "public", "limited" or "private"
 	//   required: true
 	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
 	// responses:
@@ -90,6 +91,11 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 		return
 	}
 
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+
 	org := &models.User{
 		Name:        form.UserName,
 		FullName:    form.FullName,
@@ -98,6 +104,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 		Location:    form.Location,
 		IsActive:    true,
 		Type:        models.UserTypeOrganization,
+		Visibility:  visibility,
 	}
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
@@ -153,6 +160,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   description: `visibility` can be "public", "limited" or "private"
 	//   schema:
 	//     "$ref": "#/definitions/EditOrgOption"
 	// responses:
@@ -163,8 +171,11 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location"); err != nil {
-		ctx.Error(500, "UpdateUser", err)
+	if form.Visibility != "" {
+		org.Visibility = api.VisibilityModes[form.Visibility]
+	}
+	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location", "visibility"); err != nil {
+		ctx.Error(500, "EditOrganization", err)
 		return
 	}
 

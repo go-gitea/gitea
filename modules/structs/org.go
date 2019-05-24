@@ -13,7 +13,7 @@ type Organization struct {
 	Description string      `json:"description"`
 	Website     string      `json:"website"`
 	Location    string      `json:"location"`
-	Visibility  VisibleType `json:"visibility"`
+	Visibility  string      `json:"visibility"`
 }
 
 // CreateOrgOption options for creating an organization
@@ -24,7 +24,7 @@ type CreateOrgOption struct {
 	Description string      `json:"description"`
 	Website     string      `json:"website"`
 	Location    string      `json:"location"`
-	Visibility  VisibleType `json:"visibility"`
+	Visibility  string      `json:"visibility" binding:"In(,visible,limited,private)"`
 }
 
 // EditOrgOption options for editing an organization
@@ -33,4 +33,5 @@ type EditOrgOption struct {
 	Description string `json:"description"`
 	Website     string `json:"website"`
 	Location    string `json:"location"`
+	Visibility  string `json:"visibility" binding:"In(,visible,limited,private)"`
 }
