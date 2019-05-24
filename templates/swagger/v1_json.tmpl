@@ -272,6 +272,7 @@
             "required": true
           },
           {
+            "description": "'visibility' can be \"public\", \"limited\" or \"private\"",
             "name": "organization",
             "in": "body",
             "required": true,
@@ -459,6 +460,7 @@
         "operationId": "orgCreate",
         "parameters": [
           {
+            "description": "'visibility' can be \"public\", \"limited\" or \"private\"",
             "name": "organization",
             "in": "body",
             "required": true,
@@ -550,6 +552,7 @@
             "required": true
           },
           {
+            "description": "'visibility' can be \"public\", \"limited\" or \"private\"",
             "name": "body",
             "in": "body",
             "schema": {
@@ -7140,7 +7143,8 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "$ref": "#/definitions/VisibleType"
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -7651,6 +7655,10 @@
         "location": {
           "type": "string",
           "x-go-name": "Location"
+        },
+        "visibility": {
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -8612,7 +8620,8 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "$ref": "#/definitions/VisibleType"
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -9465,12 +9474,6 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/models"
-    },
-    "VisibleType": {
-      "description": "VisibleType defines the visibility (Organization only)",
-      "type": "integer",
-      "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",

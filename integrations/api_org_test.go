@@ -28,7 +28,7 @@ func TestAPIOrgCreate(t *testing.T) {
 			Description: "This organization created by user1",
 			Website:     "https://try.gitea.io",
 			Location:    "Shanghai",
-			Visibility:   "limited",
+			Visibility:  "limited",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
 		resp := session.MakeRequest(t, req, http.StatusCreated)

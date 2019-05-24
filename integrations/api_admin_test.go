@@ -144,4 +144,3 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
-
