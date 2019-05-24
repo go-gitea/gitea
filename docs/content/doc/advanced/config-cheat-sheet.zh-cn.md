@@ -32,8 +32,6 @@ menu:
 - `DEFAULT_PRIVATE`: 默认创建的git工程为私有。 可以是`last`, `private` 或 `public`。默认值是 `last`表示用户最后创建的Repo的选择。
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
-- `ACCESS_CONTROL_ALLOW_ORIGIN`: ****: Access-Control-Allow-Origin 头的值，默认为空。
-   警告：如果您不熟悉这方面的设置请不要修改此值，可能影响网站安全。
 
 ## UI (`ui`)
 
