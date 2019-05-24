@@ -803,6 +803,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
 .commit-body{white-space:pre-wrap}
+.git-notes.top{text-align:left}
+.git-notes .commit-body{margin:0}
 @media only screen and (max-width:767px){.ui.stackable.menu.mobile--margin-between-items>.item{margin-top:5px;margin-bottom:5px}
 .ui.stackable.menu.mobile--no-negative-margins{margin-left:0;margin-right:0}
 }
