@@ -76,6 +76,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
+	if opts.Description != "" {
+		repo.Description = opts.Description
+	}
 	log.Trace("migrating git data")
 	if err := uploader.CreateRepo(repo, opts.Wiki); err != nil {
 		return err
