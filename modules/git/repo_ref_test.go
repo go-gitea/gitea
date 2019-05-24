@@ -19,13 +19,14 @@ func TestRepository_GetRefs(t *testing.T) {
 	refs, err := bareRepo1.GetRefs()
 
 	assert.NoError(t, err)
-	assert.Len(t, refs, 4)
+	assert.Len(t, refs, 5)
 
 	expectedRefs := []string{
 		BranchPrefix + "branch1",
 		BranchPrefix + "branch2",
 		BranchPrefix + "master",
 		TagPrefix + "test",
+		NotesRef,
 	}
 
 	for _, ref := range refs {
