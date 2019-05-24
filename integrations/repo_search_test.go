@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -34,22 +33,14 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
-	models.UpdateRepoIndexer(repo)
+	waiter := make(chan error, 1)
+	models.UpdateRepoIndexer(repo, waiter)
 
-	log.Printf("Waiting for indexing\n")
-
-	i := 0
-	for i < 60 {
-		if repo.IndexerStatus != nil && len(repo.IndexerStatus.CommitSha) != 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		i++
-	}
-	if i < 60 {
-		log.Printf("Indexing took: %ds\n", i)
-	} else {
-		log.Printf("Waited the limit: %ds for indexing, continuing\n", i)
+	select {
+	case err := <-waiter:
+		assert.NoError(t, err)
+	case <-time.After(1 * time.Minute):
+		assert.Fail(t, "UpdateRepoIndexer took too long")
 	}
 
 	req := NewRequestf(t, "GET", "/user2/repo1/search?q=Description&page=1")
