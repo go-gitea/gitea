@@ -687,13 +687,6 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 	return users, nil
 }
 
-// NextIssueIndex returns the next issue index
-// FIXME: should have a mutex to prevent producing same index for two issues that are created
-// closely enough.
-func (repo *Repository) NextIssueIndex() int64 {
-	return int64(repo.NumIssues+repo.NumPulls) + 1
-}
-
 var (
 	descPattern = regexp.MustCompile(`https?://\S+`)
 )
