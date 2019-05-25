@@ -15,6 +15,12 @@ import (
 func Init() {
 	getIssueFullPattern()
 	NewSanitizer()
+
+	for _, parser := range parsers {
+		for _, ext := range parser.Extensions() {
+			extParsers[strings.ToLower(ext)] = parser
+		}
+	}
 }
 
 // Parser defines an interface for parsering markup file to HTML
@@ -32,9 +38,6 @@ var (
 // RegisterParser registers a new markup file parser
 func RegisterParser(parser Parser) {
 	parsers[parser.Name()] = parser
-	for _, ext := range parser.Extensions() {
-		extParsers[strings.ToLower(ext)] = parser
-	}
 }
 
 // GetParserByFileName get parser by filename
