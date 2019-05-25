@@ -143,6 +143,15 @@ bind: address already in use` Gitea needs to be started on another free port. Th
 is possible using `./gitea web -p $PORT`. It's possible another instance of Gitea
 is already running.
 
+### Running Gitea on Raspbian
+
+As of v1.8, there is a problem with the arm7 version of Gitea and it doesn't run on Raspberry Pi and similar devices. 
+
+It is therefore recommended to switch to the arm6 version which has been tested and shown to work on Raspberry Pi and similar devices.
+
+<!---
+please remove after fixing the arm7 bug
+--->
 ### Git error after updating to a new version of Gitea
 
 If the binary file name has been changed during the update to a new version of Gitea, 
