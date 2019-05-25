@@ -39,6 +39,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	allowSquash := false
 	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
+		enablePullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
 		allowMerge = config.AllowMerge
 		allowRebase = config.AllowRebase
@@ -51,10 +52,10 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
-		EnableIssues:              &enableIssues,
-		EnableWiki:                &enableWiki,
+		HasIssues:                 &enableIssues,
+		HasWiki:                   &enableWiki,
 		DefaultBranch:             &defaultBranch,
-		EnablePullRequests:        &enablePullRequests,
+		AllowPullRequests:         &enablePullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
@@ -72,10 +73,10 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := !*opts.Private
-	enableIssues := !*opts.EnableIssues
-	enableWiki := !*opts.EnableWiki
+	enableIssues := !*opts.HasIssues
+	enableWiki := !*opts.HasWiki
 	defaultBranch := "master"
-	enablePullRequests := !*opts.EnablePullRequests
+	enablePullRequests := !*opts.AllowPullRequests
 	ignoreWhitespaceConflicts := !*opts.IgnoreWhitespaceConflicts
 	allowMerge := !*opts.AllowMerge
 	allowRebase := !*opts.AllowRebase
@@ -88,10 +89,10 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
-		EnableIssues:              &enableIssues,
-		EnableWiki:                &enableWiki,
+		HasIssues:                 &enableIssues,
+		HasWiki:                   &enableWiki,
 		DefaultBranch:             &defaultBranch,
-		EnablePullRequests:        &enablePullRequests,
+		AllowPullRequests:         &enablePullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
@@ -141,7 +142,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Website, *repo1editedOption.Website)
 		assert.Equal(t, *repoEditOption.Archived, *repo1editedOption.Archived)
 		assert.Equal(t, *repoEditOption.Private, *repo1editedOption.Private)
-		assert.Equal(t, *repoEditOption.EnableWiki, *repo1editedOption.EnableWiki)
+		assert.Equal(t, *repoEditOption.HasWiki, *repo1editedOption.HasWiki)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)

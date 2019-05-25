@@ -668,8 +668,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		})
 	}
 
-	if opts.EnableIssues != nil {
-		if *opts.EnableIssues {
+	if opts.HasIssues != nil {
+		if *opts.HasIssues {
 			// We don't currently allow setting individual issue settings through the API,
 			// only can enable/disable issues, so when enabling issues,
 			// we either get the existing config which means it was already enabled,
@@ -694,8 +694,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.EnableWiki != nil {
-		if *opts.EnableWiki {
+	if opts.HasWiki != nil {
+		if *opts.HasWiki {
 			// We don't currently allow setting individual wiki settings through the API,
 			// only can enable/disable the wiki, so when enabling the wiki,
 			// we either get the existing config which means it was already enabled,
@@ -709,8 +709,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.EnablePullRequests != nil {
-		if *opts.EnablePullRequests {
+	if opts.AllowPullRequests != nil {
+		if *opts.AllowPullRequests {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.

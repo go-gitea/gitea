@@ -265,31 +265,63 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
+	hasIssues := false
+	if _, err := repo.GetUnit(UnitTypeIssues); err == nil {
+		hasIssues = true
+	}
+	hasWiki := false
+	if _, err := repo.GetUnit(UnitTypeWiki); err == nil {
+		hasWiki = true
+	}
+	allowPullRequests := false
+	ignoreWhitespaceConflicts := false
+	allowMerge := false
+	allowRebase := false
+	allowRebaseMerge := false
+	allowSquash := false
+	if unit, err := repo.GetUnit(UnitTypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		allowPullRequests = true
+		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
+		allowMerge = config.AllowMerge
+		allowRebase = config.AllowRebase
+		allowRebaseMerge = config.AllowRebaseMerge
+		allowSquash = config.AllowSquash
+	}
+
 	return &api.Repository{
-		ID:            repo.ID,
-		Owner:         repo.Owner.APIFormat(),
-		Name:          repo.Name,
-		FullName:      repo.FullName(),
-		Description:   repo.Description,
-		Private:       repo.IsPrivate,
-		Empty:         repo.IsEmpty,
-		Archived:      repo.IsArchived,
-		Size:          int(repo.Size / 1024),
-		Fork:          repo.IsFork,
-		Parent:        parent,
-		Mirror:        repo.IsMirror,
-		HTMLURL:       repo.HTMLURL(),
-		SSHURL:        cloneLink.SSH,
-		CloneURL:      cloneLink.HTTPS,
-		Website:       repo.Website,
-		Stars:         repo.NumStars,
-		Forks:         repo.NumForks,
-		Watchers:      repo.NumWatches,
-		OpenIssues:    repo.NumOpenIssues,
-		DefaultBranch: repo.DefaultBranch,
-		Created:       repo.CreatedUnix.AsTime(),
-		Updated:       repo.UpdatedUnix.AsTime(),
-		Permissions:   permission,
+		ID:                        repo.ID,
+		Owner:                     repo.Owner.APIFormat(),
+		Name:                      repo.Name,
+		FullName:                  repo.FullName(),
+		Description:               repo.Description,
+		Private:                   repo.IsPrivate,
+		Empty:                     repo.IsEmpty,
+		Archived:                  repo.IsArchived,
+		Size:                      int(repo.Size / 1024),
+		Fork:                      repo.IsFork,
+		Parent:                    parent,
+		Mirror:                    repo.IsMirror,
+		HTMLURL:                   repo.HTMLURL(),
+		SSHURL:                    cloneLink.SSH,
+		CloneURL:                  cloneLink.HTTPS,
+		Website:                   repo.Website,
+		Stars:                     repo.NumStars,
+		Forks:                     repo.NumForks,
+		Watchers:                  repo.NumWatches,
+		OpenIssues:                repo.NumOpenIssues,
+		DefaultBranch:             repo.DefaultBranch,
+		Created:                   repo.CreatedUnix.AsTime(),
+		Updated:                   repo.UpdatedUnix.AsTime(),
+		Permissions:               permission,
+		HasIssues:                 hasIssues,
+		HasWiki:                   hasWiki,
+		AllowPullRequests:         allowPullRequests,
+		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
+		AllowMerge:                allowMerge,
+		AllowRebase:               allowRebase,
+		AllowRebaseMerge:          allowRebaseMerge,
+		AllowSquash:               allowSquash,
 	}
 }
 

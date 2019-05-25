@@ -41,8 +41,16 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated     time.Time   `json:"updated_at"`
-	Permissions *Permission `json:"permissions,omitempty"`
+	Updated                   time.Time   `json:"updated_at"`
+	Permissions               *Permission `json:"permissions,omitempty"`
+	HasIssues                 bool        `json:"has_issues"`
+	HasWiki                   bool        `json:"has_wiki"`
+	AllowPullRequests         bool        `json:"allow_pull_requests"`
+	IgnoreWhitespaceConflicts bool        `json:"ignore_whitespace_conflicts"`
+	AllowMerge                bool        `json:"allow_merge_commits"`
+	AllowRebase               bool        `json:"allow_rebase"`
+	AllowRebaseMerge          bool        `json:"allow_rebase_explicit"`
+	AllowSquash               bool        `json:"allow_squash_merge"`
 }
 
 // CreateRepoOption options when creating repository
@@ -82,15 +90,15 @@ type EditRepoOption struct {
 	// owners and a non-owner tries to change the value of private.
 	Private *bool `json:"private,omitempty"`
 	// Either `true` to enable issues for this repository or `false` to disable them.
-	EnableIssues *bool `json:"enable_issues,omitempty"`
+	HasIssues *bool `json:"has_issues,omitempty"`
 	// Either `true` to enable the wiki for this repository or `false` to disable it.
-	EnableWiki *bool `json:"enable_wiki,omitempty"`
+	HasWiki *bool `json:"has_wiki,omitempty"`
 	// Updates the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// Either `true` to allow pull requests, or `false` to prevent pull request.
-	EnablePullRequests *bool `json:"enable_pull_requests,omitempty"`
+	AllowPullRequests *bool `json:"allow_pull_requests,omitempty"`
 	// Either `true` to ignore whitepace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.
-	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace,omitempty"`
+	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
 	// Either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.
