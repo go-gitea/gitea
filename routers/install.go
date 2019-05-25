@@ -150,6 +150,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	models.DbCfg.Passwd = form.DbPasswd
 	models.DbCfg.Name = form.DbName
 	models.DbCfg.SSLMode = form.SSLMode
+	models.DbCfg.Charset = form.Charset
 	models.DbCfg.Path = form.DbPath
 
 	if (models.DbCfg.Type == "sqlite3") &&
