@@ -25,7 +25,7 @@ type CreateOrgOption struct {
 	Website     string `json:"website"`
 	Location    string `json:"location"`
 	// enum: public,limited,private
-	Visibility string `json:"visibility" binding:"In(,visible,limited,private)"`
+	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
 }
 
 // EditOrgOption options for editing an organization
@@ -35,5 +35,5 @@ type EditOrgOption struct {
 	Website     string `json:"website"`
 	Location    string `json:"location"`
 	// enum: public,limited,private
-	Visibility string `json:"visibility" binding:"In(,visible,limited,private)"`
+	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
 }
