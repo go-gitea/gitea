@@ -26,10 +26,10 @@ func TestRepoEdit(t *testing.T) {
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := true
-	enableIssues := false
-	enableWiki := false
+	hasIssues := false
+	hasWiki := false
 	defaultBranch := "master"
-	enablePullRequests := true
+	allowPullRequests := true
 	ignoreWhitespaceConflicts := true
 	allowMerge := false
 	allowRebase := false
@@ -41,10 +41,10 @@ func TestRepoEdit(t *testing.T) {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
-		EnableIssues:              &enableIssues,
-		EnableWiki:                &enableWiki,
+		HasIssues:                 &hasIssues,
+		HasWiki:                   &hasWiki,
 		DefaultBranch:             &defaultBranch,
-		EnablePullRequests:        &enablePullRequests,
+		AllowPullRequests:         &allowPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
