@@ -5,14 +5,15 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/context"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoEdit(t *testing.T) {
