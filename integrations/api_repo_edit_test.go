@@ -22,16 +22,16 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	description := repo.Description
 	website := repo.Website
 	private := repo.IsPrivate
-	enableIssues := false
+	hasIssues := false
 	if _, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
-		enableIssues = true
+		hasIssues = true
 	}
-	enableWiki := false
+	hasWiki := false
 	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
-		enableWiki = true
+		hasWiki = true
 	}
 	defaultBranch := repo.DefaultBranch
-	enablePullRequests := false
+	allowPullRequests := false
 	ignoreWhitespaceConflicts := false
 	allowMerge := false
 	allowRebase := false
@@ -39,7 +39,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	allowSquash := false
 	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
-		enablePullRequests = true
+		allowPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
 		allowMerge = config.AllowMerge
 		allowRebase = config.AllowRebase
@@ -52,10 +52,10 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
-		HasIssues:                 &enableIssues,
-		HasWiki:                   &enableWiki,
+		HasIssues:                 &hasIssues,
+		HasWiki:                   &hasWiki,
 		DefaultBranch:             &defaultBranch,
-		AllowPullRequests:         &enablePullRequests,
+		AllowPullRequests:         &allowPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
@@ -73,10 +73,10 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := !*opts.Private
-	enableIssues := !*opts.HasIssues
-	enableWiki := !*opts.HasWiki
+	hasIssues := !*opts.HasIssues
+	hasWiki := !*opts.HasWiki
 	defaultBranch := "master"
-	enablePullRequests := !*opts.AllowPullRequests
+	allowPullRequests := !*opts.AllowPullRequests
 	ignoreWhitespaceConflicts := !*opts.IgnoreWhitespaceConflicts
 	allowMerge := !*opts.AllowMerge
 	allowRebase := !*opts.AllowRebase
@@ -89,10 +89,10 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
-		HasIssues:                 &enableIssues,
-		HasWiki:                   &enableWiki,
+		HasIssues:                 &hasIssues,
+		HasWiki:                   &hasWiki,
 		DefaultBranch:             &defaultBranch,
-		AllowPullRequests:         &enablePullRequests,
+		AllowPullRequests:         &allowPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
