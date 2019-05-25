@@ -42,19 +42,34 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
-	if err := issue.MailParticipants(); err != nil {
+	if err := issue.MailParticipants(models.ActionCreateIssue); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
-	if err := issue.MailParticipants(); err != nil {
+	var actionType models.ActionType
+	if issue.IsPull {
+		if isClosed {
+			actionType = models.ActionClosePullRequest
+		} else {
+			actionType = models.ActionReopenPullRequest
+		}
+	} else {
+		if isClosed {
+			actionType = models.ActionCloseIssue
+		} else {
+			actionType = models.ActionReopenIssue
+		}
+	}
+
+	if err := issue.MailParticipants(actionType); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
-	if err := pr.Issue.MailParticipants(); err != nil {
+	if err := pr.Issue.MailParticipants(models.ActionCreatePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
