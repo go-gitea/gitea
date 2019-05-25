@@ -6,7 +6,6 @@
 package models
 
 import (
-	"bytes"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -14,7 +13,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"image"
 
 	// Needed for jpeg support
 	_ "image/jpeg"
@@ -39,7 +37,6 @@ import (
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
 )
@@ -457,23 +454,10 @@ func (u *User) IsPasswordSet() bool {
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
-	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	m, err := avatar.Prepare(data)
 	if err != nil {
-		return fmt.Errorf("DecodeConfig: %v", err)
+		return err
 	}
-	if imgCfg.Width > setting.AvatarMaxWidth {
-		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
-	}
-	if imgCfg.Height > setting.AvatarMaxHeight {
-		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Decode: %v", err)
-	}
-
-	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -497,7 +481,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 	defer fw.Close()
 
-	if err = png.Encode(fw, m); err != nil {
+	if err = png.Encode(fw, *m); err != nil {
 		return fmt.Errorf("Encode: %v", err)
 	}
 
