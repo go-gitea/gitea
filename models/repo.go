@@ -348,7 +348,7 @@ func IsErrUnitTypeNotExist(err error) bool {
 }
 
 func (err ErrUnitTypeNotExist) Error() string {
-	return "Unit does not exist"
+	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
 }
 
 // MustGetUnit always returns a RepoUnit object
