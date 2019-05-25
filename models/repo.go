@@ -11,7 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"image"
+
+	// Needed for jpeg support
+	_ "image/jpeg"
+	"image/png"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -22,10 +25,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
-	"image/png"
 
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/git"
@@ -41,7 +40,6 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
 	ini "gopkg.in/ini.v1"
 )
 
