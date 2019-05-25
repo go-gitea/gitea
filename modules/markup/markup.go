@@ -16,6 +16,8 @@ func Init() {
 	getIssueFullPattern()
 	NewSanitizer()
 
+	// since setting maybe changed extensions, this will reload all parser extensions mapping
+	extParsers = make(map[string]Parser)
 	for _, parser := range parsers {
 		for _, ext := range parser.Extensions() {
 			extParsers[strings.ToLower(ext)] = parser
@@ -38,6 +40,9 @@ var (
 // RegisterParser registers a new markup file parser
 func RegisterParser(parser Parser) {
 	parsers[parser.Name()] = parser
+	for _, ext := range parser.Extensions() {
+		extParsers[strings.ToLower(ext)] = parser
+	}
 }
 
 // GetParserByFileName get parser by filename
