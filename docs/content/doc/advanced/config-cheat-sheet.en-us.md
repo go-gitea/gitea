@@ -15,8 +15,8 @@ menu:
 
 # Configuration Cheat Sheet
 
-This is a cheat sheet for the Gitea configuration file. It contains most settings
-that can configured as well as their default values.
+This is a cheat sheet for the Gitea configuration file. It contains most of the settings
+that can be configured as well as their default values.
 
 Any changes to the Gitea configuration file should be made in `custom/conf/app.ini`
 or any corresponding location. When installing from a distribution, this will
