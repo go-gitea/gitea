@@ -671,6 +671,8 @@ MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
+; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+EnableAutoGitWireProtocol = true
 
 ; Operation timeout in seconds
 [git.timeout]

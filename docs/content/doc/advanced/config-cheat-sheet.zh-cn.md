@@ -210,6 +210,7 @@ menu:
 - `CLONE`: **300**: 内部仓库间克隆的超时时间，单位秒
 - `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
 - `GC`: **60**: git仓库GC的超时时间，单位秒
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: 是否根据 Git Wire Protocol协议支持情况自动切换版本，当 git 版本在 2.18 及以上时会自动切换到版本2。为 `false` 则不切换。
 
 ## API (`api`)
 
