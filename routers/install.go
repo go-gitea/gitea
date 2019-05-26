@@ -57,6 +57,7 @@ func Install(ctx *context.Context) {
 	form.DbPasswd = models.DbCfg.Passwd
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
+	form.Charset = models.DbCfg.Charset
 
 	ctx.Data["CurDbOption"] = "MySQL"
 	switch models.DbCfg.Type {
@@ -246,6 +247,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("database").Key("USER").SetValue(models.DbCfg.User)
 	cfg.Section("database").Key("PASSWD").SetValue(models.DbCfg.Passwd)
 	cfg.Section("database").Key("SSL_MODE").SetValue(models.DbCfg.SSLMode)
+	cfg.Section("database").Key("CHARSET").SetValue(models.DbCfg.Charset)
 	cfg.Section("database").Key("PATH").SetValue(models.DbCfg.Path)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
