@@ -490,6 +490,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 38
@@ -501,6 +502,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 39
@@ -512,6 +514,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 40
@@ -523,6 +526,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 41
@@ -556,3 +560,4 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
