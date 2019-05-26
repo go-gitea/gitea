@@ -188,11 +188,10 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	host := setting.Domain
-	if (setting.Protocol == setting.HTTP && setting.HTTPPort != "80") || (setting.Protocol == setting.HTTPS && setting.HTTPPort != "443") {
-		host += ":" + setting.HTTPPort
-	}
-	return path.Join(host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
+	/// setting.AppUrl is guaranteed to be parse as url
+	appURL, _ := url.Parse(setting.AppURL)
+
+	return path.Join(appURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200

@@ -258,8 +258,10 @@ func Contexter() macaron.Handler {
 			}
 			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 
+			appURL, _ := url.Parse(setting.AppURL)
+
 			insecure := ""
-			if setting.Protocol == setting.HTTP {
+			if appURL.Scheme == string(setting.HTTP) {
 				insecure = "--insecure "
 			}
 			c.Header().Set("Content-Type", "text/html")
