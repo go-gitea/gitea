@@ -166,7 +166,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, releases[len(releases)-1:])
 
 	// downloader.GetIssues()
-	issues, isEnd, err := downloader.GetIssues(1, 3)
+	issues, isEnd, err := downloader.GetIssues(1, 8)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(issues))
 	assert.False(t, isEnd)
