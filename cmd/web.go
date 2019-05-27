@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -39,11 +38,6 @@ and it takes care of all the other things for you`,
 			Name:  "port, p",
 			Value: "3000",
 			Usage: "Temporary port number to prevent conflict",
-		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
@@ -110,17 +104,11 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}
 
 	routers.GlobalInit()
-
-	external.RegisterParsers()
 
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)

@@ -38,7 +38,11 @@ func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body str
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", fromAddress, fromDisplayName)
 	msg.SetHeader("To", to...)
-	msg.SetHeader("Subject", subject)
+	if len(setting.MailService.SubjectPrefix) > 0 {
+		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+subject)
+	} else {
+		msg.SetHeader("Subject", subject)
+	}
 	msg.SetDateHeader("Date", time.Now())
 	msg.SetHeader("X-Auto-Response-Suppress", "All")
 

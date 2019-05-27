@@ -14,6 +14,7 @@ import (
 
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/storage"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 
 	"gopkg.in/src-d/go-billy.v4"
@@ -596,7 +597,7 @@ func (d *DotGit) checkReferenceAndTruncate(f billy.File, old *plumbing.Reference
 		return err
 	}
 	if ref.Hash() != old.Hash() {
-		return fmt.Errorf("reference has changed concurrently")
+		return storage.ErrReferenceHasChanged
 	}
 	_, err = f.Seek(0, io.SeekStart)
 	if err != nil {

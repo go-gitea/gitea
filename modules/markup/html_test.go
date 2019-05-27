@@ -16,12 +16,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var localMetas = map[string]string{
+	"user": "gogits",
+	"repo": "gogs",
+}
+
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(".md", input, setting.AppSubURL, nil)
+		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -45,7 +50,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -172,6 +177,9 @@ func TestRender_email(t *testing.T) {
 		"info@gitea.com.",
 		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`)
 	test(
+		"firstname+lastname@gitea.com",
+		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
+	test(
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
 
@@ -185,6 +193,18 @@ func TestRender_email(t *testing.T) {
 	test(
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
+	test(
+		"gitea@3",
+		`<p>gitea@3</p>`)
+	test(
+		"gitea@gmail.c",
+		`<p>gitea@gmail.c</p>`)
+	test(
+		"email@domain@domain.com",
+		`<p>email@domain@domain.com</p>`)
+	test(
+		"email@domain..com",
+		`<p>email@domain..com</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -195,7 +215,7 @@ func TestRender_ShortLinks(t *testing.T) {
 	test := func(input, expected, expectedWiki string) {
 		buffer := markdown.RenderString(input, tree, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, nil)
+		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 

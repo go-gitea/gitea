@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,14 +9,12 @@ import (
 	"bytes"
 	"strconv"
 	"time"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // Signature represents the Author or Committer information.
-type Signature struct {
-	Email string
-	Name  string
-	When  time.Time
-}
+type Signature = object.Signature
 
 const (
 	// GitTimeLayout is the (default) time layout used by git.

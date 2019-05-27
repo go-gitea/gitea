@@ -51,10 +51,16 @@ type MigrateRepoForm struct {
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
-	RepoName    string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Mirror      bool   `json:"mirror"`
-	Private     bool   `json:"private"`
-	Description string `json:"description" binding:"MaxSize(255)"`
+	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror       bool   `json:"mirror"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(255)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
 }
 
 // Validate validates the fields
@@ -196,6 +202,7 @@ func (f WebhookForm) ChooseEvents() bool {
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
+	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
 	Secret      string
 	WebhookForm
@@ -260,6 +267,29 @@ type NewDingtalkHookForm struct {
 
 // Validate validates the fields
 func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewTelegramHookForm form for creating telegram hook
+type NewTelegramHookForm struct {
+	BotToken string `binding:"Required"`
+	ChatID   string `binding:"Required"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewMSTeamsHookForm form for creating MS Teams hook
+type NewMSTeamsHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewMSTeamsHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -590,6 +620,7 @@ type DeleteRepoFileForm struct {
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
 }
 
 // Validate validates the fields

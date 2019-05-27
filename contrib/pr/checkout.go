@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -43,6 +44,7 @@ func runPR() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
@@ -107,12 +109,12 @@ func runPR() {
 	models.LoadFixtures()
 	os.RemoveAll(setting.RepoRootPath)
 	os.RemoveAll(models.LocalCopyPath())
-	os.RemoveAll(models.LocalWikiPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
 	external.RegisterParsers()
+	markup.Init()
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
 

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,8 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/paginater"
+	"code.gitea.io/gitea/modules/templates"
 )
 
 const (
@@ -55,7 +55,6 @@ func Commits(ctx *context.Context) {
 	if page <= 1 {
 		page = 1
 	}
-	ctx.Data["Page"] = paginater.New(int(commitsCount), git.CommitsRangeSize, page, 5)
 
 	// Both `git log branchName` and `git log commitId` work.
 	commits, err := ctx.Repo.Commit.CommitsByRange(page)
@@ -72,6 +71,11 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
+
+	pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplCommits)
 }
 
@@ -160,7 +164,6 @@ func FileHistory(ctx *context.Context) {
 	if page <= 1 {
 		page = 1
 	}
-	ctx.Data["Page"] = paginater.New(int(commitsCount), git.CommitsRangeSize, page, 5)
 
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(branchName, fileName, page)
 	if err != nil {
@@ -177,6 +180,11 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = branchName
+
+	pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplCommits)
 }
 
@@ -239,10 +247,20 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
+
+	note := &git.Note{}
+	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
+	if err == nil {
+		ctx.Data["Note"] = string(templates.ToUTF8WithFallback(note.Message))
+		ctx.Data["NoteCommit"] = note.Commit
+		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
+	}
+
 	if commit.ParentCount() > 0 {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
 	}
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
+	ctx.Data["BranchName"], err = commit.GetBranchName()
 	ctx.HTML(200, tplDiff)
 }
 

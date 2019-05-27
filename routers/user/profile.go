@@ -10,8 +10,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Unknwon/paginater"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -127,6 +125,7 @@ func Profile(ctx *context.Context) {
 	var (
 		repos   []*models.Repository
 		count   int64
+		total   int
 		orderBy models.SearchOrderBy
 	)
 
@@ -171,84 +170,51 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		if len(keyword) == 0 {
-			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetStarredRepos", err)
-				return
-			}
-
-			count, err = ctxUser.GetStarredRepoCount(showPrivate)
-			if err != nil {
-				ctx.ServerError("GetStarredRepoCount", err)
-				return
-			}
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
-				Private:     showPrivate,
-				Page:        page,
-				PageSize:    setting.UI.User.RepoPagingNum,
-				Starred:     true,
-				Collaborate: util.OptionalBoolFalse,
-				TopicOnly:   topicOnly,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
+		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Keyword:     keyword,
+			OrderBy:     orderBy,
+			Private:     ctx.IsSigned,
+			UserIsAdmin: ctx.IsUserSiteAdmin(),
+			UserID:      ctx.Data["SignedUserID"].(int64),
+			Page:        page,
+			PageSize:    setting.UI.User.RepoPagingNum,
+			StarredByID: ctxUser.ID,
+			Collaborate: util.OptionalBoolFalse,
+			TopicOnly:   topicOnly,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepositoryByName", err)
+			return
 		}
 
-		ctx.Data["Repos"] = repos
-		ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
-		ctx.Data["Total"] = count
+		total = int(count)
 	default:
-		if len(keyword) == 0 {
-			var total int
-			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetRepositories", err)
-				return
-			}
-			ctx.Data["Repos"] = repos
-
-			if showPrivate {
-				total = ctxUser.NumRepos
-			} else {
-				count, err := models.GetPublicRepositoryCount(ctxUser)
-				if err != nil {
-					ctx.ServerError("GetPublicRepositoryCount", err)
-					return
-				}
-				total = int(count)
-			}
-
-			ctx.Data["Page"] = paginater.New(total, setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = total
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
-				Private:     showPrivate,
-				Page:        page,
-				IsProfile:   true,
-				PageSize:    setting.UI.User.RepoPagingNum,
-				Collaborate: util.OptionalBoolFalse,
-				TopicOnly:   topicOnly,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
-
-			ctx.Data["Repos"] = repos
-			ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = count
+		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Keyword:     keyword,
+			OwnerID:     ctxUser.ID,
+			OrderBy:     orderBy,
+			Private:     ctx.IsSigned,
+			UserIsAdmin: ctx.IsUserSiteAdmin(),
+			UserID:      ctx.Data["SignedUserID"].(int64),
+			Page:        page,
+			IsProfile:   true,
+			PageSize:    setting.UI.User.RepoPagingNum,
+			Collaborate: util.OptionalBoolFalse,
+			TopicOnly:   topicOnly,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepositoryByName", err)
+			return
 		}
+
+		total = int(count)
 	}
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 

@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 )
@@ -27,7 +27,7 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a commit and branch to an api.Branch
-func ToBranch(repo *models.Repository, b *models.Branch, c *git.Commit) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
 	return &api.Branch{
 		Name:   b.Name,
 		Commit: ToCommit(repo, c),
@@ -177,6 +177,15 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		Events:  w.EventsArray(),
 		Updated: w.UpdatedUnix.AsTime(),
 		Created: w.CreatedUnix.AsTime(),
+	}
+}
+
+// ToGitHook convert git.Hook to api.GitHook
+func ToGitHook(h *git.Hook) *api.GitHook {
+	return &api.GitHook{
+		Name:     h.Name(),
+		IsActive: h.IsActive,
+		Content:  h.Content,
 	}
 }
 

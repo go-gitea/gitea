@@ -21,6 +21,7 @@ type Mailer struct {
 	FromEmail       string
 	SendAsPlainText bool
 	MailerType      string
+	SubjectPrefix   string
 
 	// SMTP sender
 	Host              string
@@ -65,6 +66,7 @@ func newMailService() {
 		CertFile:       sec.Key("CERT_FILE").String(),
 		KeyFile:        sec.Key("KEY_FILE").String(),
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
+		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}

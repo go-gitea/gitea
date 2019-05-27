@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
@@ -28,13 +27,6 @@ var (
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
@@ -67,12 +59,6 @@ func runHookPreReceive(c *cli.Context) error {
 		return nil
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
-	}
-
 	setup("hooks/pre-receive.log")
 
 	// the environment setted on serv command
@@ -103,34 +89,37 @@ func runHookPreReceive(c *cli.Context) error {
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
 
-		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
-		protectBranch, err := private.GetProtectedBranchBy(repoID, branchName)
-		if err != nil {
-			fail("Internal error", fmt.Sprintf("retrieve protected branches information failed: %v", err))
-		}
-
-		if protectBranch != nil && protectBranch.IsProtected() {
-			// check and deletion
-			if newCommitID == git.EmptySHA {
-				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
-			}
-
-			// detect force push
-			if git.EmptySHA != oldCommitID {
-				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
-				if err != nil {
-					fail("Internal error", "Fail to detect force push: %v", err)
-				} else if len(output) > 0 {
-					fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
-				}
-			}
-
-			userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-			canPush, err := private.CanUserPush(protectBranch.ID, userID)
+		// If the ref is a branch, check if it's protected
+		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+			branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+			protectBranch, err := private.GetProtectedBranchBy(repoID, branchName)
 			if err != nil {
-				fail("Internal error", "Fail to detect user can push: %v", err)
-			} else if !canPush {
-				fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
+				fail("Internal error", fmt.Sprintf("retrieve protected branches information failed: %v", err))
+			}
+
+			if protectBranch != nil && protectBranch.IsProtected() {
+				// check and deletion
+				if newCommitID == git.EmptySHA {
+					fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
+				}
+
+				// detect force push
+				if git.EmptySHA != oldCommitID {
+					output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
+					if err != nil {
+						fail("Internal error", "Fail to detect force push: %v", err)
+					} else if len(output) > 0 {
+						fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+					}
+				}
+
+				userID, _ := strconv.ParseInt(userIDStr, 10, 64)
+				canPush, err := private.CanUserPush(protectBranch.ID, userID)
+				if err != nil {
+					fail("Internal error", "Fail to detect user can push: %v", err)
+				} else if !canPush {
+					fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
+				}
 			}
 		}
 	}
@@ -143,12 +132,6 @@ func runHookUpdate(c *cli.Context) error {
 		return nil
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
-	}
-
 	setup("hooks/update.log")
 
 	return nil
@@ -157,12 +140,6 @@ func runHookUpdate(c *cli.Context) error {
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
-	}
-
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	} else if c.GlobalIsSet("config") {
-		setting.CustomConf = c.GlobalString("config")
 	}
 
 	setup("hooks/post-receive.log")
@@ -195,16 +172,22 @@ func runHookPostReceive(c *cli.Context) error {
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
 
-		if err := private.PushUpdate(models.PushUpdateOptions{
-			RefFullName:  refFullName,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  newCommitID,
-			PusherID:     pusherID,
-			PusherName:   pusherName,
-			RepoUserName: repoUser,
-			RepoName:     repoName,
-		}); err != nil {
-			log.GitLogger.Error("Update: %v", err)
+		// Only trigger activity updates for changes to branches or
+		// tags.  Updates to other refs (eg, refs/notes, refs/changes,
+		// or other less-standard refs spaces are ignored since there
+		// may be a very large number of them).
+		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
+			if err := private.PushUpdate(models.PushUpdateOptions{
+				RefFullName:  refFullName,
+				OldCommitID:  oldCommitID,
+				NewCommitID:  newCommitID,
+				PusherID:     pusherID,
+				PusherName:   pusherName,
+				RepoUserName: repoUser,
+				RepoName:     repoName,
+			}); err != nil {
+				log.GitLogger.Error("Update: %v", err)
+			}
 		}
 
 		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {

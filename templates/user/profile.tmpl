@@ -69,11 +69,15 @@
 							*/}}
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
+								<ul class="user-orgs">
 								{{range .Orgs}}
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.IsUserPartOfOrg $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
-										<a href="{{.HomeLink}}"><img class="ui mini image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
+									<li>
+										<a href="{{.HomeLink}}"><img class="ui image poping up" src="{{.RelAvatarLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted"></a>
+									</li>
 									{{end}}
 								{{end}}
+								</ul>
 							</li>
 							{{end}}
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}

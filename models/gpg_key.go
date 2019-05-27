@@ -232,10 +232,9 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 	}, nil
 }
 
-//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
-func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
-	pubkey := e.PrimaryKey
-
+//getExpiryTime extract the expire time of primary key based on sig
+func getExpiryTime(e *openpgp.Entity) time.Time {
+	expiry := time.Time{}
 	//Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
 	var selfSig *packet.Signature
 	for _, ident := range e.Identities {
@@ -246,10 +245,16 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 			break
 		}
 	}
-	expiry := time.Time{}
 	if selfSig.KeyLifetimeSecs != nil {
-		expiry = selfSig.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
+		expiry = e.PrimaryKey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
+	return expiry
+}
+
+//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
+func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
+	pubkey := e.PrimaryKey
+	expiry := getExpiryTime(e)
 
 	//Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))

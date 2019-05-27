@@ -6,7 +6,7 @@ package swagger
 
 import (
 	"code.gitea.io/gitea/modules/auth"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // not actually a response, just a hack to get go-swagger to include definitions
@@ -27,6 +27,9 @@ type swaggerParameterBodies struct {
 	CreateHookOption api.CreateHookOption
 	// in:body
 	EditHookOption api.EditHookOption
+
+	// in:body
+	EditGitHookOption api.EditGitHookOption
 
 	// in:body
 	CreateIssueOption api.CreateIssueOption
@@ -94,6 +97,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateUserOption api.CreateUserOption
+
 	// in:body
 	EditUserOption api.EditUserOption
 
@@ -102,4 +106,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	CreateFileOptions api.CreateFileOptions
+
+	// in:body
+	UpdateFileOptions api.UpdateFileOptions
+
+	// in:body
+	DeleteFileOptions api.DeleteFileOptions
 }
