@@ -75,7 +75,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 		otpKey, err = otp.NewKeyFromURL(uri.(string))
 	}
 	// Filter unsafe character ':' in issuer
-	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.Domain+")", ":", "")
+	issuer := strings.Replace(setting.AppName+" ("+setting.Domain+")", ":", "", -1)
 	if otpKey == nil {
 		err = nil // clear the error, in case the URL was invalid
 		otpKey, err = totp.Generate(totp.GenerateOpts{
