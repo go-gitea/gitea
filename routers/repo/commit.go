@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	tplCommits base.TplName = "repo/commits"
-	tplGraph   base.TplName = "repo/graph"
-	tplDiff    base.TplName = "repo/commit_page"
+	tplCommits    base.TplName = "repo/commits"
+	tplGraph      base.TplName = "repo/graph"
+	tplCommitPage base.TplName = "repo/commit_page"
 )
 
 // RefCommits render commits page
@@ -261,7 +261,7 @@ func Diff(ctx *context.Context) {
 	}
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.Data["BranchName"], err = commit.GetBranchName()
-	ctx.HTML(200, tplDiff)
+	ctx.HTML(200, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
