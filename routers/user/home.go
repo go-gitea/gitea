@@ -319,8 +319,10 @@ func Issues(ctx *context.Context) {
 						repo,
 						perm)
 				}
-				ctx.Status(404)
-				return
+				// ctx.Status(404)
+				// return
+				delete(showReposMap, repoID))
+				delete(counts, repoID)
 			}
 		}
 	}
