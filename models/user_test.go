@@ -261,6 +261,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
 	}
 
+	setting.Service.DefaultAllowCreateOrganization = true
+
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 

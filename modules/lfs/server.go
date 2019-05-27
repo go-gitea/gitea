@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	contentMediaType = "application/vnd.git-lfs"
-	metaMediaType    = contentMediaType + "+json"
+	metaMediaType = "application/vnd.git-lfs+json"
 )
 
 // RequestVars contain variables from the HTTP request. Variables from routing, json body decoding, and
@@ -101,11 +100,10 @@ func ObjectOidHandler(ctx *context.Context) {
 			getMetaHandler(ctx)
 			return
 		}
-		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
-			getContentHandler(ctx)
-			return
-		}
-	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
+
+		getContentHandler(ctx)
+		return
+	} else if ctx.Req.Method == "PUT" {
 		PutHandler(ctx)
 		return
 	}
@@ -348,7 +346,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	if !ContentMatcher(ctx.Req) {
+	if !MetaMatcher(ctx.Req) {
 		writeStatus(ctx, 400)
 		return
 	}
@@ -385,7 +383,6 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 	}
 
 	header := make(map[string]string)
-	header["Accept"] = contentMediaType
 
 	if rv.Authorization == "" {
 		//https://github.com/github/git-lfs/issues/1088
@@ -404,18 +401,18 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload && !download {
 		// Force client side verify action while gitea lacks proper server side verification
-		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
+		verifyHeader := make(map[string]string)
+		for k, v := range header {
+			verifyHeader[k] = v
+		}
+
+		// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
+		verifyHeader["Accept"] = metaMediaType
+
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: verifyHeader}
 	}
 
 	return rep
-}
-
-// ContentMatcher provides a mux.MatcherFunc that only allows requests that contain
-// an Accept header with the contentMediaType
-func ContentMatcher(r macaron.Request) bool {
-	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
-	mt := mediaParts[0]
-	return mt == contentMediaType
 }
 
 // MetaMatcher provides a mux.MatcherFunc that only allows requests that contain
