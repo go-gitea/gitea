@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	// "github.com/Unknwon/com"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 )
@@ -249,14 +249,7 @@ func Issues(ctx *context.Context) {
 
 	switch filterMode {
 	case models.FilterModeAll:
-		if len(repoIDs) == 1 {
-			if !com.IsSliceContainsInt64(userRepoIDs, repoIDs[0]) {
-				// force an empty result
-				opts.RepoIDs = []int64{-1}
-			}
-		} else {
-			opts.RepoIDs = userRepoIDs
-		}
+		opts.RepoIDs = userRepoIDs
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctxUser.ID
 	case models.FilterModeCreate:
