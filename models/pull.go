@@ -485,6 +485,20 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", errbuf.String())
 	}
 
+	// Stop LFS from running its filters
+	if err := git.NewCommand("config", "--local", "filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.clean -> \"\"]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.smudge -> \"\"]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.process -> \"\"]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.required -> false]: %v", errbuf.String())
+	}
+
 	// Read base branch index
 	if err := git.NewCommand("read-tree", "HEAD").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git read-tree HEAD: %s", errbuf.String())
