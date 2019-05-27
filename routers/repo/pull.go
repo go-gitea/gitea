@@ -28,7 +28,7 @@ import (
 
 const (
 	tplFork        base.TplName = "repo/pulls/fork"
-	tplComparePull base.TplName = "repo/diff/compare"
+	tplCompareDiff base.TplName = "repo/diff/compare"
 	tplPullCommits base.TplName = "repo/pulls/commits"
 	tplPullFiles   base.TplName = "repo/pulls/files"
 
@@ -666,7 +666,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.HTML(200, tplComparePull)
+		ctx.HTML(200, tplCompareDiff)
 		return
 	}
 
@@ -676,7 +676,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplComparePull, form)
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
 		return
 	}
 

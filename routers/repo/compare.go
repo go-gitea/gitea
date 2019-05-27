@@ -5,14 +5,14 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -276,7 +276,7 @@ func CompareDiff(ctx *context.Context) {
 		} else {
 			ctx.Data["HasPullRequest"] = true
 			ctx.Data["PullRequest"] = pr
-			ctx.HTML(200, tplComparePull)
+			ctx.HTML(200, tplCompareDiff)
 			return
 		}
 
