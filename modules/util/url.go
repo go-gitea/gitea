@@ -52,11 +52,8 @@ func IsExternalURL(rawURL string) bool {
 	if err != nil {
 		return true
 	}
-	host := setting.Domain
-	if (setting.Protocol == setting.HTTP && setting.HTTPPort != "80") || (setting.Protocol == setting.HTTPS && setting.HTTPPort != "443") {
-		host += ":" + setting.HTTPPort
-	}
-	if len(parsed.Host) != 0 && strings.Replace(parsed.Host, "www.", "", 1) != strings.Replace(host, "www.", "", 1) {
+	appURL, _ := url.Parse(setting.AppURL)
+	if len(parsed.Host) != 0 && strings.Replace(parsed.Host, "www.", "", 1) != strings.Replace(appURL.Host, "www.", "", 1) {
 		return true
 	}
 	return false
