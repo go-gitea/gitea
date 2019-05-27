@@ -321,7 +321,7 @@ func Issues(ctx *context.Context) {
 				}
 				// ctx.Status(404)
 				// return
-				delete(showReposMap, repoID))
+				delete(showReposMap, repoID)
 				delete(counts, repoID)
 			}
 		}
