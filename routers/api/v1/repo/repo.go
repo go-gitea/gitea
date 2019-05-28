@@ -535,19 +535,6 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	owner := ctx.Repo.Owner
-
-	if owner.IsOrganization() && !ctx.User.IsAdmin {
-		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
-			return
-		} else if !isOwner {
-			ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
-			return
-		}
-	}
-
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
