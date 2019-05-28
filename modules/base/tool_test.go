@@ -306,21 +306,21 @@ func TestFileSize(t *testing.T) {
 
 func TestSubtract(t *testing.T) {
 	toFloat64 := func(n interface{}) float64 {
-		switch n := n.(type) {
+		switch v := n.(type) {
 		case int:
-			return float64(n)
+			return float64(v)
 		case int8:
-			return float64(n)
+			return float64(v)
 		case int16:
-			return float64(n)
+			return float64(v)
 		case int32:
-			return float64(n)
+			return float64(v)
 		case int64:
-			return float64(n)
+			return float64(v)
 		case float32:
-			return float64(n)
+			return float64(v)
 		case float64:
-			return n
+			return v
 		default:
 			return 0.0
 		}
