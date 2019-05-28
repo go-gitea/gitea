@@ -107,7 +107,7 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
-	// set to `true` to archive this repository. Note: You cannot unarchive repositories through the API.
+	// set to `true` to archive this repository. Note: you cannot unarchive repositories through the API.
 	Archived *bool `json:"archived,omitempty"`
 }
 
