@@ -97,15 +97,15 @@ type EditRepoOption struct {
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
 	AllowPullRequests *bool `json:"allow_pull_requests,omitempty"`
-	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.
+	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `allow_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
-	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.
+	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `allow_pull_requests` must be `true`.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
-	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.
+	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `allow_pull_requests` must be `true`.
 	AllowRebase *bool `json:"allow_rebase,omitempty"`
-	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.
+	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `allow_pull_requests` must be `true`.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
-	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.
+	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `allow_pull_requests` must be `true`.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`

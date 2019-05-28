@@ -7794,7 +7794,7 @@
       "type": "object",
       "properties": {
         "allow_merge_commits": {
-          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `allow_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
@@ -7804,17 +7804,17 @@
           "x-go-name": "AllowPullRequests"
         },
         "allow_rebase": {
-          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `allow_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebase"
         },
         "allow_rebase_explicit": {
-          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `allow_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
         "allow_squash_merge": {
-          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `allow_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowSquash"
         },
@@ -7844,7 +7844,7 @@
           "x-go-name": "HasWiki"
         },
         "ignore_whitespace_conflicts": {
-          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `allow_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
