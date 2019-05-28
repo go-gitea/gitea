@@ -7794,73 +7794,73 @@
       "type": "object",
       "properties": {
         "allow_merge_commits": {
-          "description": "Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
         "allow_pull_requests": {
-          "description": "Either `true` to allow pull requests, or `false` to prevent pull request.",
+          "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
           "type": "boolean",
           "x-go-name": "AllowPullRequests"
         },
         "allow_rebase": {
-          "description": "Either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebase"
         },
         "allow_rebase_explicit": {
-          "description": "Either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
         "allow_squash_merge": {
-          "description": "Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowSquash"
         },
         "archived": {
-          "description": "`true` to archive this repository. Note: You cannot unarchive repositories through the API.",
+          "description": "set to `true` to archive this repository. Note: You cannot unarchive repositories through the API.",
           "type": "boolean",
           "x-go-name": "Archived"
         },
         "default_branch": {
-          "description": "Updates the default branch for this repository.",
+          "description": "ipdates the default branch for this repository.",
           "type": "string",
           "x-go-name": "DefaultBranch"
         },
         "description": {
-          "description": "A short description of the repository.",
+          "description": "a short description of the repository.",
           "type": "string",
           "x-go-name": "Description"
         },
         "has_issues": {
-          "description": "Either `true` to enable issues for this repository or `false` to disable them.",
+          "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
         "has_wiki": {
-          "description": "Either `true` to enable the wiki for this repository or `false` to disable it.",
+          "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
           "type": "boolean",
           "x-go-name": "HasWiki"
         },
         "ignore_whitespace_conflicts": {
-          "description": "Either `true` to ignore whitepace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.",
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
         "name": {
-          "description": "Name of the repository",
+          "description": "name of the repository",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Name"
         },
         "private": {
-          "description": "Either `true` to make the repository private or `false` to make it public.\nNote: You will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
+          "description": "either `true` to make the repository private or `false` to make it public.\nNote: you will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
           "type": "boolean",
           "x-go-name": "Private"
         },
         "website": {
-          "description": "A URL with more information about the repository.",
+          "description": "a URL with more information about the repository.",
           "type": "string",
           "x-go-name": "Website"
         }
