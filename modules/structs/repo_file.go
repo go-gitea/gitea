@@ -11,15 +11,15 @@ type FileOptions struct {
 	Message string `json:"message" binding:"Required"`
 	// branch (optional) to base this file from. if not given, the default branch is used
 	BranchName string `json:"branch"`
-	// new_branch (optional) will make a new branch from 'branch' before creating the file
+	// new_branch (optional) will make a new branch from `branch` before creating the file
 	NewBranchName string   `json:"new_branch"`
-	// author and committer are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 	Author        Identity `json:"author"`
 	Committer Identity `json:"committer"`
 }
 
 // CreateFileOptions options for creating files
-// Note: author and committer are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
 	FileOptions
 	// content must be base64 encoded
@@ -28,7 +28,7 @@ type CreateFileOptions struct {
 }
 
 // DeleteFileOptions options for deleting files (used for other File structs below)
-// Note: author and committer are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
 	FileOptions
 	// sha is the SHA for the file that already exists
@@ -37,7 +37,7 @@ type DeleteFileOptions struct {
 }
 
 // UpdateFileOptions options for updating files
-// Note: author and committer are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
 	DeleteFileOptions
 	// content must be base64 encoded
