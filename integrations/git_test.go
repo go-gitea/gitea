@@ -65,6 +65,10 @@ func testGit(t *testing.T, u *url.URL) {
 					little = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					if testing.Short() {
+						t.Skip("skipping test in short mode.")
+						return
+					}
 					PrintCurrentTest(t)
 					big = commitAndPush(t, bigSize, dstPath)
 				})
@@ -85,10 +89,16 @@ func testGit(t *testing.T, u *url.URL) {
 				t.Run("Little", func(t *testing.T) {
 					PrintCurrentTest(t)
 					littleLFS = commitAndPush(t, littleSize, dstPath)
+					lockFileTest(t, littleLFS, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					if testing.Short() {
+						t.Skip("skipping test in short mode.")
+						return
+					}
 					PrintCurrentTest(t)
 					bigLFS = commitAndPush(t, bigSize, dstPath)
+					lockFileTest(t, bigLFS, dstPath)
 				})
 			})
 			t.Run("Locks", func(t *testing.T) {
@@ -105,19 +115,21 @@ func testGit(t *testing.T, u *url.URL) {
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Body.Len())
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
-			nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, nilResp.Length)
-
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
 			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", bigLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.NotEqual(t, bigSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			if !testing.Short() {
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
+				nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, nilResp.Length)
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, bigSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			}
 
 		})
 		t.Run("Media", func(t *testing.T) {
@@ -129,17 +141,19 @@ func testGit(t *testing.T, u *url.URL) {
 			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
-
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", littleLFS))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			if !testing.Short() {
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+			}
 		})
 
 	})
@@ -177,6 +191,10 @@ func testGit(t *testing.T, u *url.URL) {
 						little = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
+						if testing.Short() {
+							t.Skip("skipping test in short mode.")
+							return
+						}
 						PrintCurrentTest(t)
 						big = commitAndPush(t, bigSize, dstPath)
 					})
@@ -197,10 +215,17 @@ func testGit(t *testing.T, u *url.URL) {
 					t.Run("Little", func(t *testing.T) {
 						PrintCurrentTest(t)
 						littleLFS = commitAndPush(t, littleSize, dstPath)
+						lockFileTest(t, littleLFS, dstPath)
+
 					})
 					t.Run("Big", func(t *testing.T) {
+						if testing.Short() {
+							return
+						}
 						PrintCurrentTest(t)
 						bigLFS = commitAndPush(t, bigSize, dstPath)
+						lockFileTest(t, bigLFS, dstPath)
+
 					})
 				})
 				t.Run("Locks", func(t *testing.T) {
@@ -217,20 +242,21 @@ func testGit(t *testing.T, u *url.URL) {
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", big))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
-
 				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", littleLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, littleSize, resp.Body.Len())
 				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.NotEqual(t, bigSize, resp.Body.Len())
-				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				if !testing.Short() {
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", big))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
 
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", bigLFS))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.NotEqual(t, bigSize, resp.Body.Len())
+					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				}
 			})
 			t.Run("Media", func(t *testing.T) {
 				PrintCurrentTest(t)
@@ -241,17 +267,19 @@ func testGit(t *testing.T, u *url.URL) {
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", big))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
-
 				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", littleLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
+				if !testing.Short() {
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", big))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
+
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", bigLFS))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
+				}
 			})
 
 		})
@@ -268,15 +296,17 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 }
 
 func lockTest(t *testing.T, remote, repoPath string) {
-	_, err := git.NewCommand("remote").AddArguments("set-url", "origin", remote).RunInDir(repoPath) //TODO add test ssh git-lfs-creds
+	lockFileTest(t, "README.md", repoPath)
+}
+
+func lockFileTest(t *testing.T, filename, repoPath string) {
+	_, err := git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
+	assert.NoError(t, err)
+	_, err = git.NewCommand("lfs").AddArguments("lock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
 	_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("lock", "README.md").RunInDir(repoPath)
-	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
-	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("unlock", "README.md").RunInDir(repoPath)
+	_, err = git.NewCommand("lfs").AddArguments("unlock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
 }
 

@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -113,6 +114,7 @@ func runPR() {
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
 	external.RegisterParsers()
+	markup.Init()
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
 

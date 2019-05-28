@@ -78,7 +78,8 @@ menu:
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
-- `SSL_MODE`: PostgreSQL数据库是否启用SSL模式。
+- `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
+- `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 
@@ -209,6 +210,7 @@ menu:
 - `CLONE`: **300**: 内部仓库间克隆的超时时间，单位秒
 - `PULL`: **300**: 内部仓库间拉取的超时时间，单位秒
 - `GC`: **60**: git仓库GC的超时时间，单位秒
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: 是否根据 Git Wire Protocol协议支持情况自动切换版本，当 git 版本在 2.18 及以上时会自动切换到版本2。为 `false` 则不切换。
 
 ## API (`api`)
 
