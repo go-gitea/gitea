@@ -125,6 +125,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessage":      RenderCommitMessage,
 		"RenderCommitMessageLink":  RenderCommitMessageLink,
 		"RenderCommitBody":         RenderCommitBody,
+		"RenderNote":               RenderNote,
 		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
@@ -390,6 +391,17 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 	return template.HTML(strings.Join(body[1:], "\n"))
+}
+
+// RenderNote renders the contents of a git-notes file as a commit message.
+func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error("RenderNote: %v", err)
+		return ""
+	}
+	return template.HTML(string(fullMessage))
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
