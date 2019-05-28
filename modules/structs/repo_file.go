@@ -12,9 +12,9 @@ type FileOptions struct {
 	// branch (optional) to base this file from. if not given, the default branch is used
 	BranchName string `json:"branch"`
 	// new_branch (optional) will make a new branch from `branch` before creating the file
-	NewBranchName string   `json:"new_branch"`
+	NewBranchName string `json:"new_branch"`
 	// `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
-	Author        Identity `json:"author"`
+	Author    Identity `json:"author"`
 	Committer Identity `json:"committer"`
 }
 
@@ -42,7 +42,7 @@ type UpdateFileOptions struct {
 	DeleteFileOptions
 	// content must be base64 encoded
 	// required: true
-	Content  string `json:"content"`
+	Content string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
 }
