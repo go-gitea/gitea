@@ -472,7 +472,7 @@ func CheckLFSVersion() {
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {
 			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=", "-c", "filter.lfs.process=")
 		}
 	}
 }
