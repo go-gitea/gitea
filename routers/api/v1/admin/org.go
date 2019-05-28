@@ -31,7 +31,6 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//   required: true
 	// - name: organization
 	//   in: body
-	//   description: "'visibility' can be \"public\", \"limited\" or \"private\""
 	//   required: true
 	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
 	// responses:

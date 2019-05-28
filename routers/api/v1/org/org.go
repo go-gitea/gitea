@@ -75,7 +75,6 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	// parameters:
 	// - name: organization
 	//   in: body
-	//   description: "'visibility' can be \"public\", \"limited\" or \"private\""
 	//   required: true
 	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
 	// responses:
@@ -160,7 +159,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'visibility' can be \"public\", \"limited\" or \"private\""
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/EditOrgOption"
 	// responses:
