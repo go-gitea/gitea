@@ -7,7 +7,7 @@ package structs
 
 // FileOptions options for all file APIs
 type FileOptions struct {
-	// message (optional) for the commit of this file. if not supplied, default create/update file message will be used
+	// message (optional) for the commit of this file. if not supplied, a default message will be used
 	Message string `json:"message" binding:"Required"`
 	// branch (optional) to base this file from. if not given, the default branch is used
 	BranchName string `json:"branch"`
