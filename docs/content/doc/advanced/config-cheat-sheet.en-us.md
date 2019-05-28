@@ -15,8 +15,8 @@ menu:
 
 # Configuration Cheat Sheet
 
-This is a cheat sheet for the Gitea configuration file. It contains most settings
-that can configured as well as their default values.
+This is a cheat sheet for the Gitea configuration file. It contains most of the settings
+that can be configured as well as their default values.
 
 Any changes to the Gitea configuration file should be made in `custom/conf/app.ini`
 or any corresponding location. When installing from a distribution, this will
@@ -160,6 +160,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
+- `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
@@ -395,6 +396,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
 
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.

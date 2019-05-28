@@ -57,6 +57,7 @@ func Install(ctx *context.Context) {
 	form.DbPasswd = models.DbCfg.Passwd
 	form.DbName = models.DbCfg.Name
 	form.DbPath = models.DbCfg.Path
+	form.Charset = models.DbCfg.Charset
 
 	ctx.Data["CurDbOption"] = "MySQL"
 	switch models.DbCfg.Type {
@@ -150,6 +151,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	models.DbCfg.Passwd = form.DbPasswd
 	models.DbCfg.Name = form.DbName
 	models.DbCfg.SSLMode = form.SSLMode
+	models.DbCfg.Charset = form.Charset
 	models.DbCfg.Path = form.DbPath
 
 	if (models.DbCfg.Type == "sqlite3") &&
@@ -213,18 +215,42 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	// Check admin password.
-	if len(form.AdminName) > 0 && len(form.AdminPasswd) == 0 {
-		ctx.Data["Err_Admin"] = true
-		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
-		return
-	}
-	if form.AdminPasswd != form.AdminConfirmPasswd {
-		ctx.Data["Err_Admin"] = true
-		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
-		return
+	// Check admin user creation
+	if len(form.AdminName) > 0 {
+		// Ensure AdminName is valid
+		if err := models.IsUsableUsername(form.AdminName); err != nil {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminName"] = true
+			if models.IsErrNameReserved(err) {
+				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
+				return
+			} else if models.IsErrNamePatternNotAllowed(err) {
+				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
+				return
+			}
+			ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_invalid"), tplInstall, form)
+			return
+		}
+		// Check Admin email
+		if len(form.AdminEmail) == 0 {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminEmail"] = true
+			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_email"), tplInstall, form)
+			return
+		}
+		// Check admin password.
+		if len(form.AdminPasswd) == 0 {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminPasswd"] = true
+			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
+			return
+		}
+		if form.AdminPasswd != form.AdminConfirmPasswd {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminPasswd"] = true
+			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
+			return
+		}
 	}
 
 	if form.AppURL[len(form.AppURL)-1] != '/' {
@@ -245,6 +271,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("database").Key("USER").SetValue(models.DbCfg.User)
 	cfg.Section("database").Key("PASSWD").SetValue(models.DbCfg.Passwd)
 	cfg.Section("database").Key("SSL_MODE").SetValue(models.DbCfg.SSLMode)
+	cfg.Section("database").Key("CHARSET").SetValue(models.DbCfg.Charset)
 	cfg.Section("database").Key("PATH").SetValue(models.DbCfg.Path)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
