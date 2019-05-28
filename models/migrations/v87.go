@@ -10,7 +10,8 @@ import (
 
 func addAvatarFieldToRepository(x *xorm.Engine) error {
 	type Repository struct {
-		Avatar string `xorm:"VARCHAR(2048)"`
+		// ID(10-20)-md5(32) - must fit into 64 symbols
+		Avatar string `xorm:"VARCHAR(64)"`
 	}
 
 	return x.Sync2(new(Repository))

@@ -172,8 +172,8 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 
-	// Avatar
-	Avatar string `xorm:"VARCHAR(2048)"`
+	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
+	Avatar string `xorm:"VARCHAR(64)"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
