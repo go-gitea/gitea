@@ -93,7 +93,7 @@ type EditRepoOption struct {
 	HasIssues *bool `json:"has_issues,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
-	// ipdates the default branch for this repository.
+	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
 	AllowPullRequests *bool `json:"allow_pull_requests,omitempty"`
