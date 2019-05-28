@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 
@@ -74,6 +75,7 @@ func GlobalInit() {
 
 	if setting.InstallLock {
 		highlight.NewContext()
+		external.RegisterParsers()
 		markup.Init()
 		if err := initDBEngine(); err == nil {
 			log.Info("ORM engine initialization successful!")
