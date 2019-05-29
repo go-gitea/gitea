@@ -2565,7 +2565,7 @@ func (repo *Repository) DeleteAvatar() error {
 
 		sess := x.NewSession()
 		defer sess.Close()
-		if err = sess.Begin(); err != nil {
+		if err := sess.Begin(); err != nil {
 			return err
 		}
 
