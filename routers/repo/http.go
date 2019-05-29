@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -89,9 +91,24 @@ func HTTP(ctx *context.Context) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	owner, err := models.GetUserByName(username)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
+		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		return
+	}
+
+	repo, err := models.GetRepositoryByName(owner.ID, reponame)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame)
+			if err == nil {
+				context.RedirectToRepo(ctx, redirectRepoID)
+			} else {
+				ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
+			}
+		} else {
+			ctx.ServerError("GetRepositoryByName", err)
+		}
 		return
 	}
 
@@ -151,6 +168,16 @@ func HTTP(ctx *context.Context) {
 				// Assume password is token
 				authToken = authPasswd
 			}
+			uid := auth.CheckOAuthAccessToken(authToken)
+			if uid != 0 {
+				ctx.Data["IsApiToken"] = true
+
+				authUser, err = models.GetUserByID(uid)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return
+				}
+			}
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
@@ -181,7 +208,7 @@ func HTTP(ctx *context.Context) {
 				}
 			} else {
 				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error(4, "GetAccessTokenBySha: %v", err)
+					log.Error("GetAccessTokenBySha: %v", err)
 				}
 			}
 
@@ -324,7 +351,7 @@ func gitCommand(dir string, args ...string) []byte {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		log.GitLogger.Error(4, fmt.Sprintf("%v - %s", err, out))
+		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, out))
 	}
 	return out
 }
@@ -382,7 +409,7 @@ func serviceRPC(h serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.GitLogger.Error(2, "fail to create gzip reader: %v", err)
+			log.GitLogger.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -401,7 +428,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error(2, "fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.GitLogger.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
 		return
 	}
 }
@@ -514,7 +541,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
-					log.GitLogger.Error(4, err.Error())
+					log.GitLogger.Error(err.Error())
 					ctx.NotFound("HTTPBackend", err)
 					return
 				}

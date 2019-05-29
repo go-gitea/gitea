@@ -13,10 +13,7 @@
 
 package unix
 
-import (
-	"syscall"
-	"unsafe"
-)
+import "unsafe"
 
 /*
  * Wrapped
@@ -230,7 +227,7 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 
 		// Some versions of AIX have a bug in getsockname (see IV78655).
 		// We can't rely on sa.Len being set correctly.
-		n := SizeofSockaddrUnix - 3 // substract leading Family, Len, terminating NUL.
+		n := SizeofSockaddrUnix - 3 // subtract leading Family, Len, terminating NUL.
 		for i := 0; i < n; i++ {
 			if pp.Path[i] == 0 {
 				n = i
@@ -269,6 +266,13 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 func Gettimeofday(tv *Timeval) (err error) {
 	err = gettimeofday(tv, nil)
 	return
+}
+
+func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
+	if raceenabled {
+		raceReleaseMerge(unsafe.Pointer(&ioSync))
+	}
+	return sendfile(outfd, infd, offset, count)
 }
 
 // TODO
@@ -384,10 +388,6 @@ func IoctlGetTermios(fd int, req uint) (*Termios, error) {
 //sys	FcntlFlock(fd uintptr, cmd int, lk *Flock_t) (err error) = fcntl
 
 //sys	fcntl(fd int, cmd int, arg int) (val int, err error)
-
-func Flock(fd int, how int) (err error) {
-	return syscall.Flock(fd, how)
-}
 
 /*
  * Direct access
@@ -545,3 +545,5 @@ func Poll(fds []PollFd, timeout int) (n int, err error) {
 //sys	gettimeofday(tv *Timeval, tzp *Timezone) (err error)
 //sysnb	Time(t *Time_t) (tt Time_t, err error)
 //sys	Utime(path string, buf *Utimbuf) (err error)
+
+//sys	Getsystemcfg(label int) (n uint64)

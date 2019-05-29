@@ -13,7 +13,7 @@
 				{{if IsMultilineCommitMessage .Commit.Message}}
 					<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 				{{end}}
-				<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.Commit.Branch}}</span>
+				<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
 			</div>
 			<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
 				<div class="ui stackable grid">
@@ -64,6 +64,27 @@
 					  {{.i18n.Tr .Verification.Reason}}
 					</div>
 				{{end}}
+			{{end}}
+			{{if .Note}}
+				<div class="ui top attached info segment message git-notes">
+					<i class="sticky note icon"></i>
+					{{.i18n.Tr "repo.diff.git-notes"}}:
+					{{if .NoteAuthor}}
+						<a href="{{.NoteAuthor.HomeLink}}">
+							{{if .NoteAuthor.FullName}}
+							  <strong>{{.NoteAuthor.FullName}}</strong>
+							{{else}}
+							  <strong>{{.NoteCommit.Author.Name}}</strong>
+							{{end}}
+						</a>
+					{{else}}
+						<strong>{{.NoteCommit.Author.Name}}</strong>
+					{{end}}
+					<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+				</div>
+				<div class="ui bottom attached info segment git-notes">
+					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				</div>
 			{{end}}
 		{{end}}
 

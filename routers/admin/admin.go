@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -210,7 +211,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	ctx.Data["GitVersion"] = setting.Git.Version
+	ctx.Data["GitVersion"], _ = git.BinVersion()
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
@@ -234,6 +235,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
 	ctx.Data["CacheConn"] = setting.CacheService.Conn
+	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	ctx.Data["SessionConfig"] = setting.SessionConfig
 
@@ -259,11 +261,13 @@ func Config(ctx *context.Context) {
 	type logger struct {
 		Mode, Config string
 	}
-	loggers := make([]*logger, len(setting.LogModes))
-	for i := range setting.LogModes {
-		loggers[i] = &logger{setting.LogModes[i], setting.LogConfigs[i]}
-	}
-	ctx.Data["Loggers"] = loggers
+	ctx.Data["Loggers"] = setting.LogDescriptions
+	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
+	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
+	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
+	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
+	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["LogSQL"] = setting.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }

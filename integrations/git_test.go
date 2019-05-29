@@ -38,6 +38,7 @@ func testGit(t *testing.T, u *url.URL) {
 	u.Path = baseAPITestContext.GitPath()
 
 	t.Run("HTTP", func(t *testing.T) {
+		PrintCurrentTest(t)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
 
@@ -47,6 +48,7 @@ func testGit(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
 		t.Run("Standard", func(t *testing.T) {
+			PrintCurrentTest(t)
 			ensureAnonymousClone(t, u)
 
 			t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
@@ -57,16 +59,25 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("Clone", doGitClone(dstPath, u))
 
 			t.Run("PushCommit", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("Little", func(t *testing.T) {
+					PrintCurrentTest(t)
 					little = commitAndPush(t, littleSize, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					if testing.Short() {
+						t.Skip("skipping test in short mode.")
+						return
+					}
+					PrintCurrentTest(t)
 					big = commitAndPush(t, bigSize, dstPath)
 				})
 			})
 		})
 		t.Run("LFS", func(t *testing.T) {
+			PrintCurrentTest(t)
 			t.Run("PushCommit", func(t *testing.T) {
+				PrintCurrentTest(t)
 				//Setup git LFS
 				_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 				assert.NoError(t, err)
@@ -76,17 +87,27 @@ func testGit(t *testing.T, u *url.URL) {
 				assert.NoError(t, err)
 
 				t.Run("Little", func(t *testing.T) {
+					PrintCurrentTest(t)
 					littleLFS = commitAndPush(t, littleSize, dstPath)
+					lockFileTest(t, littleLFS, dstPath)
 				})
 				t.Run("Big", func(t *testing.T) {
+					if testing.Short() {
+						t.Skip("skipping test in short mode.")
+						return
+					}
+					PrintCurrentTest(t)
 					bigLFS = commitAndPush(t, bigSize, dstPath)
+					lockFileTest(t, bigLFS, dstPath)
 				})
 			})
 			t.Run("Locks", func(t *testing.T) {
+				PrintCurrentTest(t)
 				lockTest(t, u.String(), dstPath)
 			})
 		})
 		t.Run("Raw", func(t *testing.T) {
+			PrintCurrentTest(t)
 			session := loginUser(t, "user2")
 
 			// Request raw paths
@@ -94,22 +115,25 @@ func testGit(t *testing.T, u *url.URL) {
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Body.Len())
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
-			nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, nilResp.Length)
-
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
 			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", bigLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.NotEqual(t, bigSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			if !testing.Short() {
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", big))
+				nilResp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, nilResp.Length)
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/raw/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, bigSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			}
 
 		})
 		t.Run("Media", func(t *testing.T) {
+			PrintCurrentTest(t)
 			session := loginUser(t, "user2")
 
 			// Request media paths
@@ -117,27 +141,31 @@ func testGit(t *testing.T, u *url.URL) {
 			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
-
 			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", littleLFS))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, littleSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			if !testing.Short() {
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", big))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+
+				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-17/media/branch/master/", bigLFS))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+			}
 		})
 
 	})
 	t.Run("SSH", func(t *testing.T) {
+		PrintCurrentTest(t)
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
 		//Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
+			PrintCurrentTest(t)
 
 			//Setup remote link
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
@@ -149,6 +177,7 @@ func testGit(t *testing.T, u *url.URL) {
 			var little, big, littleLFS, bigLFS string
 
 			t.Run("Standard", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("CreateRepo", doAPICreateRepository(sshContext, false))
 
 				//TODO get url from api
@@ -156,16 +185,25 @@ func testGit(t *testing.T, u *url.URL) {
 
 				//time.Sleep(5 * time.Minute)
 				t.Run("PushCommit", func(t *testing.T) {
+					PrintCurrentTest(t)
 					t.Run("Little", func(t *testing.T) {
+						PrintCurrentTest(t)
 						little = commitAndPush(t, littleSize, dstPath)
 					})
 					t.Run("Big", func(t *testing.T) {
+						if testing.Short() {
+							t.Skip("skipping test in short mode.")
+							return
+						}
+						PrintCurrentTest(t)
 						big = commitAndPush(t, bigSize, dstPath)
 					})
 				})
 			})
 			t.Run("LFS", func(t *testing.T) {
+				PrintCurrentTest(t)
 				t.Run("PushCommit", func(t *testing.T) {
+					PrintCurrentTest(t)
 					//Setup git LFS
 					_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 					assert.NoError(t, err)
@@ -175,17 +213,28 @@ func testGit(t *testing.T, u *url.URL) {
 					assert.NoError(t, err)
 
 					t.Run("Little", func(t *testing.T) {
+						PrintCurrentTest(t)
 						littleLFS = commitAndPush(t, littleSize, dstPath)
+						lockFileTest(t, littleLFS, dstPath)
+
 					})
 					t.Run("Big", func(t *testing.T) {
+						if testing.Short() {
+							return
+						}
+						PrintCurrentTest(t)
 						bigLFS = commitAndPush(t, bigSize, dstPath)
+						lockFileTest(t, bigLFS, dstPath)
+
 					})
 				})
 				t.Run("Locks", func(t *testing.T) {
+					PrintCurrentTest(t)
 					lockTest(t, u.String(), dstPath)
 				})
 			})
 			t.Run("Raw", func(t *testing.T) {
+				PrintCurrentTest(t)
 				session := loginUser(t, "user2")
 
 				// Request raw paths
@@ -193,22 +242,24 @@ func testGit(t *testing.T, u *url.URL) {
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", big))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
-
 				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", littleLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, littleSize, resp.Body.Len())
 				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.NotEqual(t, bigSize, resp.Body.Len())
-				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				if !testing.Short() {
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", big))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
 
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/raw/branch/master/", bigLFS))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.NotEqual(t, bigSize, resp.Body.Len())
+					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				}
 			})
 			t.Run("Media", func(t *testing.T) {
+				PrintCurrentTest(t)
 				session := loginUser(t, "user2")
 
 				// Request media paths
@@ -216,17 +267,19 @@ func testGit(t *testing.T, u *url.URL) {
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", big))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
-
 				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", littleLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, littleSize, resp.Body.Len())
 
-				req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, bigSize, resp.Body.Len())
+				if !testing.Short() {
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", big))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
+
+					req = NewRequest(t, "GET", path.Join("/user2/repo-tmp-18/media/branch/master/", bigLFS))
+					resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Equal(t, bigSize, resp.Body.Len())
+				}
 			})
 
 		})
@@ -243,15 +296,17 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 }
 
 func lockTest(t *testing.T, remote, repoPath string) {
-	_, err := git.NewCommand("remote").AddArguments("set-url", "origin", remote).RunInDir(repoPath) //TODO add test ssh git-lfs-creds
+	lockFileTest(t, "README.md", repoPath)
+}
+
+func lockFileTest(t *testing.T, filename, repoPath string) {
+	_, err := git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
+	assert.NoError(t, err)
+	_, err = git.NewCommand("lfs").AddArguments("lock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
 	_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("lock", "README.md").RunInDir(repoPath)
-	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
-	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("unlock", "README.md").RunInDir(repoPath)
+	_, err = git.NewCommand("lfs").AddArguments("unlock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
 }
 

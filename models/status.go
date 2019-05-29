@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
 )
@@ -281,7 +281,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		}
 		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
 		if err != nil {
-			log.Error(3, "GetLatestCommitStatus: %v", err)
+			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
 			commit.Status = CalcCommitStatus(statuses)
 		}

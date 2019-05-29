@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -200,16 +200,16 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := models.NewAttachment(filename, buf, file)
+	attach, err := models.NewAttachment(&models.Attachment{
+		UploaderID: ctx.User.ID,
+		Name:       filename,
+		ReleaseID:  release.ID,
+	}, buf, file)
 	if err != nil {
 		ctx.Error(500, "NewAttachment", err)
 		return
 	}
-	attach.ReleaseID = release.ID
-	if err := models.UpdateAttachment(attach); err != nil {
-		ctx.Error(500, "UpdateAttachment", err)
-		return
-	}
+
 	ctx.JSON(201, attach.APIFormat())
 }
 

@@ -61,10 +61,17 @@
 
 				<div class="issue list">
 					{{range .Issues}}
+
 						{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 						<li class="item">
 							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
+
+                            {{if .IsPull }}
+                                {{if (index $.CommitStatus .ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{end}}
+                            {{end}}
 
 							{{with .Labels}}
 								{{/* If we have any labels, we should show them
@@ -87,12 +94,12 @@
 
 							<p class="desc">
 								{{if gt .Poster.ID 0}}
-									{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+									{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName|Escape) | Safe}}
 								{{else}}
-									{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
 								{{if .Assignee}}
-									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
+									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.GetDisplayName}}" data-variation="inverted" data-position="left center">
 										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
 									</a>
 								{{end}}
@@ -107,27 +114,7 @@
 						</li>
 					{{end}}
 
-					{{with .Page}}
-						{{if gt .TotalPages 1}}
-							<div class="center page buttons">
-								<div class="ui borderless pagination menu">
-									<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?type={{$.ViewType}}&repo={{$.RepoID}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
-										<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-									</a>
-									{{range .Pages}}
-										{{if eq .Num -1}}
-											<a class="disabled item">...</a>
-										{{else}}
-											<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?type={{$.ViewType}}&repo={{$.RepoID}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
-										{{end}}
-									{{end}}
-									<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?type={{$.ViewType}}&repo={{$.RepoID}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
-										{{$.i18n.Tr "repo.issues.next"}} <i class="icon right arrow"></i>
-									</a>
-								</div>
-							</div>
-						{{end}}
-					{{end}}
+					{{template "base/paginate" .}}
 				</div>
 			</div>
 		</div>

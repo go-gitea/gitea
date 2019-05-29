@@ -1,3 +1,4 @@
+
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -33,7 +34,7 @@ PREFERRED_LICENSES = Apache License 2.0,MIT License
 DISABLE_HTTP_GIT = false
 ; Value for Access-Control-Allow-Origin header, default is not to present
 ; WARNING: This maybe harmful to you website if you do not give it a right value.
-ACCESS_CONTROL_ALLOW_ORIGIN = 
+ACCESS_CONTROL_ALLOW_ORIGIN =
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
@@ -73,6 +74,23 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 ; List of reasons why a Pull Request or Issue can be locked
 LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
+[cors]
+; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
+; enable cors headers (disabled by default)
+ENABLED=false
+; scheme of allowed requests
+SCHEME=http
+; list of requesting domains that are allowed
+ALLOW_DOMAIN=*
+; allow subdomains of headers listed above to request
+ALLOW_SUBDOMAIN=false
+; list of methods allowed to request
+METHODS=GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS
+; max time to cache response
+MAX_AGE=10m
+; allow request with credentials
+ALLOW_CREDENTIALS=false
+
 [ui]
 ; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
@@ -96,6 +114,8 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
+; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+DEFAULT_SHOW_FULL_NAME = false
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -240,6 +260,9 @@ PASSWD =
 ; For Postgres, either "disable" (default), "require", or "verify-full"
 ; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
+; For MySQL only, either "utf8" or "utf8mb4", default is "utf8".
+; NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
+CHARSET = utf8
 ; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
@@ -260,9 +283,11 @@ ISSUE_INDEXER_TYPE = bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
 ISSUE_INDEXER_QUEUE_TYPE = levelqueue
-; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path, 
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
 ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
+; When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
+ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
 
@@ -359,6 +384,8 @@ CAPTCHA_TYPE = image
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
 RECAPTCHA_SECRET  =
 RECAPTCHA_SITEKEY =
+; Change this to use recaptcha.net or other recaptcha service
+RECAPTCHA_URL = https://www.google.com/recaptcha/
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
@@ -390,8 +417,8 @@ NO_REPLY_ADDRESS = noreply.example.org
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
 ; Default value for AutoWatchNewRepos
-; When adding a repo to a team or creating a new repo all team members will watch the 
-; repo automatically if enabled 
+; When adding a repo to a team or creating a new repo all team members will watch the
+; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
 
 [webhook]
@@ -408,8 +435,8 @@ PAGING_NUM = 10
 ENABLED = false
 ; Buffer length of channel, keep it as it is if you don't know what it is.
 SEND_BUFFER_LEN = 100
-; Name displayed in mail title
-SUBJECT = %(APP_NAME)s
+; Prefix displayed before subject in mail
+SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
@@ -516,17 +543,37 @@ ROOT_PATH =
 MODE = console
 ; Buffer length of the channel, keep it as it is if you don't know what it is.
 BUFFER_LEN = 10000
-; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
-LEVEL = Trace
 REDIRECT_MACARON_LOG = false
+MACARON = file
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Info"
+ROUTER_LOG_LEVEL = Info
+ROUTER = console
+ENABLE_ACCESS_LOG = false
+ACCESS_LOG_TEMPLATE = {{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"
+ACCESS = file
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
+LEVEL = Info
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "None"
+STACKTRACE_LEVEL = None
+
+; Generic log modes
+[log.x]
+FLAGS = stdflags
+EXPRESSION =
+PREFIX =
+COLORIZE = false
 
 ; For "console" mode only
 [log.console]
 LEVEL =
+STDERR = false
 
 ; For "file" mode only
 [log.file]
 LEVEL =
+; Set the file_name for the logger. If this is a relative path this
+; will be relative to ROOT_PATH
+FILE_NAME =
 ; This enables automated log rotate(switch of following options), default is true
 LOG_ROTATE = true
 ; Max number of lines in a single file, default is 1000000
@@ -537,6 +584,10 @@ MAX_SIZE_SHIFT = 28
 DAILY_ROTATE = true
 ; delete the log file after n days, default is 7
 MAX_DAYS = 7
+; compress logs with gzip
+COMPRESS = true
+; compression level see godoc for compress/gzip
+COMPRESSION_LEVEL = -1
 
 ; For "conn" mode only
 [log.conn]
@@ -563,14 +614,6 @@ USER =
 PASSWD =
 ; Receivers, can be one or more, e.g. 1@example.com,2@example.com
 RECEIVERS =
-
-; For "database" mode only
-[log.database]
-LEVEL =
-; Either "mysql" or "postgres"
-DRIVER =
-; Based on xorm, e.g.: root:root@localhost/gitea?charset=utf8
-CONN =
 
 [cron]
 ; Enable running cron tasks periodically.
@@ -628,6 +671,8 @@ MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
+; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+EnableAutoGitWireProtocol = true
 
 ; Operation timeout in seconds
 [git.timeout]
@@ -653,14 +698,18 @@ MAX_RESPONSE_ITEMS = 50
 DEFAULT_PAGING_NUM = 30
 ; Default and maximum number of items per page for git trees api
 DEFAULT_GIT_TREES_PER_PAGE = 1000
+; Default size of a blob returned by the blobs API (default is 10MiB)
+DEFAULT_MAX_BLOB_SIZE = 10485760
 
 [oauth2]
 ; Enables OAuth2 provider
-ENABLED = true
+ENABLE = true
 ; Lifetime of an OAuth2 access token in seconds
 ACCESS_TOKEN_EXPIRATION_TIME=3600
 ; Lifetime of an OAuth2 access token in hours
 REFRESH_TOKEN_EXPIRATION_TIME=730
+; Check if refresh token got already used
+INVALIDATE_REFRESH_TOKENS=false
 ; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 

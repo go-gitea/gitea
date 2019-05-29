@@ -23,6 +23,7 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
+	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
@@ -168,16 +169,15 @@ func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // AccessTokenForm for issuing access tokens from authorization codes or refresh tokens
 type AccessTokenForm struct {
-	GrantType    string
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-	// TODO Specify authentication code length to prevent against birthday attacks
-	Code         string
-	RefreshToken string
+	GrantType    string `json:"grant_type"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	RedirectURI  string `json:"redirect_uri"`
+	Code         string `json:"code"`
+	RefreshToken string `json:"refresh_token"`
 
 	// PKCE support
-	CodeVerifier string
+	CodeVerifier string `json:"code_verifier"`
 }
 
 // Validate valideates the fields

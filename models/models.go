@@ -14,8 +14,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
@@ -60,8 +60,8 @@ var (
 
 	// DbCfg holds the database settings
 	DbCfg struct {
-		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout                                       int
+		Type, Host, Name, User, Passwd, Path, SSLMode, Charset string
+		Timeout                                                int
 	}
 
 	// EnableSQLite3 use SQLite3
@@ -108,6 +108,7 @@ func init() {
 		new(LFSMetaObject),
 		new(TwoFactor),
 		new(GPGKey),
+		new(GPGKeyImport),
 		new(RepoUnit),
 		new(RepoRedirect),
 		new(ExternalLoginUser),
@@ -160,6 +161,7 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
+	DbCfg.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
 	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 }
@@ -222,8 +224,8 @@ func getEngine() (*xorm.Engine, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=utf8&parseTime=true&tls=%s",
-			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
+			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, DbCfg.Charset, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
@@ -260,7 +262,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 	}
 
 	x.SetMapper(core.GonicMapper{})
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
@@ -275,8 +277,13 @@ func SetEngine() (err error) {
 	x.SetMapper(core.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(setting.LogSQL))
 	x.ShowSQL(setting.LogSQL)
+	if DbCfg.Type == "mysql" {
+		x.SetMaxIdleConns(0)
+		x.SetConnMaxLifetime(3 * time.Second)
+	}
+
 	return nil
 }
 

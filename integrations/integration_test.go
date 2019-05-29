@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -81,6 +82,8 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
+	writerCloser.t = nil
+
 	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("os.RemoveAll: %v\n", err)
 		os.Exit(1)
@@ -94,7 +97,7 @@ func TestMain(m *testing.M) {
 }
 
 func initIntegrationTest() {
-	giteaRoot := os.Getenv("GITEA_ROOT")
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
@@ -115,6 +118,7 @@ func initIntegrationTest() {
 		setting.CustomConf = giteaConf
 	}
 
+	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
@@ -165,11 +169,15 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t testing.TB) {
+func prepareTestEnv(t testing.TB, skip ...int) {
+	ourSkip := 2
+	if len(skip) > 0 {
+		ourSkip += skip[0]
+	}
+	PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
-	assert.NoError(t, os.RemoveAll(models.LocalWikiPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))

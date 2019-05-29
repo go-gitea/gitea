@@ -1,44 +1,23 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package git
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // EmptySHA defines empty git SHA
 const EmptySHA = "0000000000000000000000000000000000000000"
 
 // SHA1 a git commit name
-type SHA1 [20]byte
-
-// Equal returns true if s has the same SHA1 as caller.
-// Support 40-length-string, []byte, SHA1.
-func (id SHA1) Equal(s2 interface{}) bool {
-	switch v := s2.(type) {
-	case string:
-		if len(v) != 40 {
-			return false
-		}
-		return v == id.String()
-	case []byte:
-		return bytes.Equal(v, id[:])
-	case SHA1:
-		return v == id
-	default:
-		return false
-	}
-}
-
-// String returns string (hex) representation of the Oid.
-func (id SHA1) String() string {
-	return hex.EncodeToString(id[:])
-}
+type SHA1 = plumbing.Hash
 
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.
 func MustID(b []byte) SHA1 {

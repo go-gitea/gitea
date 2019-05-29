@@ -4,19 +4,37 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.8.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc2) - 2019-03-27
+## [1.8.1](https://github.com/go-gitea/gitea/releases/tag/v1.8.1) - 2019-05-08
 * BUGFIXES
-  * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
-  * Make sure units of a team are returned (#6379) (#6381)
-  * Don't Unescape redirect_to cookie value (#6399) (#6401)
-  * Fix dump table name error and add some test for dump database (#6394) (#6402)
-  * Fix migration v82 to ignore unsynced tags between database and git data; Add missing is_archived column on repository table (#6387) (#6403)
-  * Display correct error for invalid mirror interval (#6414) (#6429)
-  * Clean up ref name rules (#6437) (#6439)
-  * Fix Hook & HookList in Swagger (#6432) (#6440)
-  * Change order that PostProcess Processors are run (#6445) (#6447)
+  * Fix 404 when sending pull requests in some situations (#6871) (#6873)
+  * Enforce osusergo build tag for releases (#6862) (#6869)
+  * Don't post process commit summary in templates (#6842) (#6868)
+  * Fix 500 when reviewer is deleted (#6856) (#6860)
+  * Fix v78 migration for MSSQL (#6823) (#6854)
+  * Added tags pull step to drone config to show correct version hashes (#6836) (#6839)
+  * Fix double-generation of scratch token (#6833) (#6835)
+  * When mirroring we should set the remote to mirror (#6824) (#6834)
+  * Show scrollbar only when needed (#6802) (#6803)
+  * Service worker js is missing a comma (#6788) (#6795)
+  * Set user search base field optional in LDAP (simple auth) edit page (#6779) (#6789)
+  * Fix team edit API panic (#6780) (#6785)
+  * Minor CSS cleanup for the navbar (#6553) (#6781)
+  * Stricter domain name pattern in email regex (#6739) (#6768)
+  * Detect and restore encoding and BOM in content (#6727) (#6765)
+  * Fix org visibility bug when git cloning (#6743) (#6762)
+  * OAuth2 token can be used in basic auth (#6747) (#6761)
+  * Fix missing return (#6751) (#6756)
+  * Fix sorting repos on org home page with non-admin login (#6741) (#6746)
+  * Drop is_bare IDX only when it exists for MySQL and MariaDB (#6736) (#6744)
+  * Fix team members API (#6714) (#6729)
+  * Load issue attributes when editing an issue with API (#6723) (#6725)
+  * Fix config ui error about cache ttl (#6861) (#6865)
 
-## [1.8.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.8.0-rc1) - 2019-03-18
+## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
+* SECURITY
+  * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
+  * Resolve 2FA bypass on API (#6676) (#6674)
+  * Prevent the creation of empty sessions for non-logged in users (#6690) (#6677)
 * BREAKING
   * Add "ghost" and "notifications" to list of reserved user names. (#6208)
   * Change sqlite DB path default to data directory (#6198)
@@ -96,7 +114,31 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Allow markdown table to scroll (#4401)
   * Automatically clear stopwatch on merging a PR (#4327)
   * Add the Owner Name to differentiate when merging (#3807)
+  * Add title attributes to all items in the repo list viewer (#6258) (#6650)
 * BUGFIXES
+  * Fix dropdown icon padding (#6651) (#6654)
+  * Fix wrong GPG expire date (#6643) (#6644)
+  * Fix forking an empty repository (#6637) (#6653)
+  * Remove call to EscapePound .Link as it is already escaped (#6656) (#6666)
+  * Properly escape on the redirect from the web editor (#6657) (#6667)
+  * Allow resend of confirmation email when logged in (#6482) (#6486)
+  * Fix mail notification when close/reopen issue (#6581) (#6588)
+  * Change API commit summary to full message (#6591) (#6592)
+  * Add option to disable refresh token invalidation (#6584) (#6587)
+  * Fix bug user search API pagesize didn't obey ExplorePagingNum (#6579) (#6586)
+  * Fix new repo alignment (#6583) (#6585)
+  * Prevent server 500 on compare branches with no common history (#6555) (#6558)
+  * Properly escape release attachment URL (#6512) (#6523)
+  * Hacky fix for alignment of the create-organization dialog (#6455) (#6462)
+  * Disable benchmarking during tag events on DroneIO (#6365) (#6366)
+  * Make sure units of a team are returned (#6379) (#6381)
+  * Don't Unescape redirect_to cookie value (#6399) (#6401)
+  * Fix dump table name error and add some test for dump database (#6394) (#6402)
+  * Fix migration v82 to ignore unsynced tags between database and git data; Add missing is_archived column on repository table (#6387) (#6403)
+  * Display correct error for invalid mirror interval (#6414) (#6429)
+  * Clean up ref name rules (#6437) (#6439)
+  * Fix Hook & HookList in Swagger (#6432) (#6440)
+  * Change order that PostProcess Processors are run (#6445) (#6447)
   * Clean up various use of escape/unescape functions for URL generation (#6334)
   * Return 409 when creating repo if it already exists. (#6330)
   * Add same changes from issues page to milestone->issues page (#6328)
@@ -221,6 +263,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add single commit API support (#5843)
   * Add missing GET teams endpoints (#5382)
   * Migrate database if app.ini found (#5290)
+
+## [1.7.6](https://github.com/go-gitea/gitea/releases/tag/v1.7.6) - 2019-04-12
+* SECURITY
+  * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6595)
+* BUGFIXES
+  * Allow resend of confirmation email when logged in (#6482) (#6487)
 
 ## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27  
 * BUGFIXES

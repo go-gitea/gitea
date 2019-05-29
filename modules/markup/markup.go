@@ -15,6 +15,14 @@ import (
 func Init() {
 	getIssueFullPattern()
 	NewSanitizer()
+
+	// since setting maybe changed extensions, this will reload all parser extensions mapping
+	extParsers = make(map[string]Parser)
+	for _, parser := range parsers {
+		for _, ext := range parser.Extensions() {
+			extParsers[strings.ToLower(ext)] = parser
+		}
+	}
 }
 
 // Parser defines an interface for parsering markup file to HTML
@@ -74,7 +82,7 @@ func render(parser Parser, rawBytes []byte, urlPrefix string, metas map[string]s
 	// TODO: one day the error should be returned.
 	result, err := PostProcess(result, urlPrefix, metas, isWiki)
 	if err != nil {
-		log.Error(3, "PostProcess: %v", err)
+		log.Error("PostProcess: %v", err)
 	}
 	return SanitizeBytes(result)
 }

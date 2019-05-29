@@ -30,13 +30,13 @@ func URLJoin(base string, elems ...string) string {
 	}
 	baseURL, err := url.Parse(base)
 	if err != nil {
-		log.Error(4, "URLJoin: Invalid base URL %s", base)
+		log.Error("URLJoin: Invalid base URL %s", base)
 		return ""
 	}
 	joinedPath := path.Join(elems...)
 	argURL, err := url.Parse(joinedPath)
 	if err != nil {
-		log.Error(4, "URLJoin: Invalid arg %s", joinedPath)
+		log.Error("URLJoin: Invalid arg %s", joinedPath)
 		return ""
 	}
 	joinedURL := baseURL.ResolveReference(argURL).String()
@@ -52,7 +52,8 @@ func IsExternalURL(rawURL string) bool {
 	if err != nil {
 		return true
 	}
-	if len(parsed.Host) != 0 && strings.Replace(parsed.Host, "www.", "", 1) != strings.Replace(setting.Domain, "www.", "", 1) {
+	appURL, _ := url.Parse(setting.AppURL)
+	if len(parsed.Host) != 0 && strings.Replace(parsed.Host, "www.", "", 1) != strings.Replace(appURL.Host, "www.", "", 1) {
 		return true
 	}
 	return false

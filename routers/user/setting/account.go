@@ -110,7 +110,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		models.SendActivateEmailMail(ctx.Context, ctx.User, email)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {

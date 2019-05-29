@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"gopkg.in/gomail.v2"
-	"gopkg.in/macaron.v1"
 )
 
 const (
@@ -34,7 +33,7 @@ const (
 
 var templates *template.Template
 
-// InitMailRender initializes the macaron mail renderer
+// InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
 	templates = tmpls
 }
@@ -45,18 +44,18 @@ func SendTestMail(email string) error {
 }
 
 // SendUserMail sends a mail to the user
-func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
+func SendUserMail(language string, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
-		"Username":          u.DisplayName(),
-		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
-		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
+		"DisplayName":       u.DisplayName(),
+		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
+		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
 	}
 
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -66,21 +65,27 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 	mailer.SendAsync(msg)
 }
 
+// Locale represents an interface to translation
+type Locale interface {
+	Language() string
+	Tr(string, ...interface{}) string
+}
+
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, mailAuthActivate, u.GenerateActivateCode(), c.Tr("mail.activate_account"), "activate account")
+func SendActivateAccountMail(locale Locale, u *User) {
+	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, mailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "reset password")
+func SendResetPasswordMail(locale Locale, u *User) {
+	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
+func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
-		"Username":        u.DisplayName(),
-		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
+		"DisplayName":     u.DisplayName(),
+		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
@@ -88,30 +93,31 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{email.Email}, c.Tr("mail.activate_email"), content.String())
+	msg := mailer.NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	mailer.SendAsync(msg)
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(c *macaron.Context, u *User) {
+func SendRegisterNotifyMail(locale Locale, u *User) {
 	data := map[string]interface{}{
-		"Username": u.DisplayName(),
+		"DisplayName": u.DisplayName(),
+		"Username":    u.Name,
 	}
 
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.register_notify"), content.String())
+	msg := mailer.NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	mailer.SendAsync(msg)
@@ -131,7 +137,7 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 	var content bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 		return
 	}
 
@@ -165,7 +171,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	var mailBody bytes.Buffer
 
 	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
-		log.Error(3, "Template: %v", err)
+		log.Error("Template: %v", err)
 	}
 
 	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())

@@ -6,7 +6,6 @@
 package models
 
 import (
-	"bytes"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -14,10 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"image"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
+	_ "image/jpeg" // Needed for jpeg support
 	"image/png"
 	"os"
 	"path/filepath"
@@ -32,14 +28,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
 )
@@ -144,6 +139,13 @@ type User struct {
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
+}
+
+// ColorFormat writes a colored string to identify this struct
+func (u *User) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(u.ID),
+		log.NewColoredValue(u.Name))
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -367,7 +369,7 @@ func (u *User) SizedRelAvatarLink(size int) string {
 	case setting.DisableGravatar, setting.OfflineMode:
 		if !com.IsFile(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
-				log.Error(3, "GenerateRandomAvatar: %v", err)
+				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
 
@@ -450,23 +452,10 @@ func (u *User) IsPasswordSet() bool {
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
-	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	m, err := avatar.Prepare(data)
 	if err != nil {
-		return fmt.Errorf("DecodeConfig: %v", err)
+		return err
 	}
-	if imgCfg.Width > setting.AvatarMaxWidth {
-		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
-	}
-	if imgCfg.Height > setting.AvatarMaxHeight {
-		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Decode: %v", err)
-	}
-
-	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -490,7 +479,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 	defer fw.Close()
 
-	if err = png.Encode(fw, m); err != nil {
+	if err = png.Encode(fw, *m); err != nil {
 		return fmt.Errorf("Encode: %v", err)
 	}
 
@@ -523,7 +512,7 @@ func (u *User) IsOrganization() bool {
 func (u *User) IsUserOrgOwner(orgID int64) bool {
 	isOwner, err := IsOrganizationOwner(orgID, u.ID)
 	if err != nil {
-		log.Error(4, "IsOrganizationOwner: %v", err)
+		log.Error("IsOrganizationOwner: %v", err)
 		return false
 	}
 	return isOwner
@@ -531,9 +520,13 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 
 // IsUserPartOfOrg returns true if user with userID is part of the u organisation.
 func (u *User) IsUserPartOfOrg(userID int64) bool {
-	isMember, err := IsOrganizationMember(u.ID, userID)
+	return u.isUserPartOfOrg(x, userID)
+}
+
+func (u *User) isUserPartOfOrg(e Engine, userID int64) bool {
+	isMember, err := isOrganizationMember(e, u.ID, userID)
 	if err != nil {
-		log.Error(4, "IsOrganizationMember: %v", err)
+		log.Error("IsOrganizationMember: %v", err)
 		return false
 	}
 	return isMember
@@ -543,7 +536,7 @@ func (u *User) IsUserPartOfOrg(userID int64) bool {
 func (u *User) IsPublicMember(orgID int64) bool {
 	isMember, err := IsPublicMembership(orgID, u.ID)
 	if err != nil {
-		log.Error(4, "IsPublicMembership: %v", err)
+		log.Error("IsPublicMembership: %v", err)
 		return false
 	}
 	return isMember
@@ -650,6 +643,16 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
+// returns username otherwise.
+func (u *User) GetDisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
+		return trimmed
+	}
+	return u.Name
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
@@ -747,7 +750,7 @@ var (
 		".",
 		"..",
 	}
-	reservedUserPatterns = []string{"*.keys"}
+	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
@@ -828,10 +831,9 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 	u.HashPassword(u.Passwd)
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
-	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -864,7 +866,7 @@ func getVerifyUser(code string) (user *User) {
 		if user, err = GetUserByName(string(b)); user != nil {
 			return user
 		}
-		log.Error(4, "user.getVerifyUser: %v", err)
+		log.Error("user.getVerifyUser: %v", err)
 	}
 
 	return nil
@@ -920,17 +922,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 
 	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
 		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
-	}
-
-	// Delete all local copies of repository wiki that user owns.
-	if err = x.BufferSize(setting.IterateBufferSize).
-		Where("owner_id=?", u.ID).
-		Iterate(new(Repository), func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-			return nil
-		}); err != nil {
-		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
 	// Do not fail if directory does not exist
@@ -1490,11 +1481,11 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	for _, KeyToDelete := range keys {
 		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
 		if err != nil {
-			log.Error(4, "SearchPublicKeyByContent: %v", err)
+			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
 		}
 		if err = deletePublicKeys(sess, key.ID); err != nil {
-			log.Error(4, "deletePublicKeys: %v", err)
+			log.Error("deletePublicKeys: %v", err)
 			continue
 		}
 		sshKeysNeedUpdate = true
@@ -1515,7 +1506,11 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
 			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
-				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+				if IsErrKeyAlreadyExist(err) {
+					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
+				} else {
+					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+				}
 			} else {
 				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
 				sshKeysNeedUpdate = true
@@ -1537,7 +1532,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	var giteaKeys []string
 	keys, err := ListPublicLdapSSHKeys(usr.ID, s.ID)
 	if err != nil {
-		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+		log.Error("synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
 
 	for _, v := range keys {
@@ -1586,7 +1581,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 	// Delete LDAP keys from DB that doesn't exist in LDAP
 	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
-		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
+		log.Error("synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}
 	if needUpd {
 		sshKeysNeedUpdate = true
@@ -1606,7 +1601,7 @@ func SyncExternalUsers() {
 
 	ls, err := LoginSources()
 	if err != nil {
-		log.Error(4, "SyncExternalUsers: %v", err)
+		log.Error("SyncExternalUsers: %v", err)
 		return
 	}
 
@@ -1625,7 +1620,7 @@ func SyncExternalUsers() {
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
-			var users []User
+			var users []*User
 			x.Where("login_type = ?", LoginLDAP).
 				And("login_source = ?", s.ID).
 				Find(&users)
@@ -1644,7 +1639,7 @@ func SyncExternalUsers() {
 				// Search for existing user
 				for _, du := range users {
 					if du.LowerName == strings.ToLower(su.Username) {
-						usr = &du
+						usr = du
 						break
 					}
 				}
@@ -1669,7 +1664,7 @@ func SyncExternalUsers() {
 					err = CreateUser(usr)
 
 					if err != nil {
-						log.Error(4, "SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
+						log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
 					} else if isAttributeSSHPublicKeySet {
 						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
 						if addLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
@@ -1702,7 +1697,7 @@ func SyncExternalUsers() {
 
 						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
 						if err != nil {
-							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
 					}
 				}
@@ -1727,9 +1722,9 @@ func SyncExternalUsers() {
 						log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
 
 						usr.IsActive = false
-						err = UpdateUserCols(&usr, "is_active")
+						err = UpdateUserCols(usr, "is_active")
 						if err != nil {
-							log.Error(4, "SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
+							log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
 						}
 					}
 				}

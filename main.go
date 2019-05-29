@@ -7,6 +7,7 @@
 package main // import "code.gitea.io/gitea"
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -23,15 +24,27 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Version holds the current Gitea version
-var Version = "1.5.0-dev"
+var (
+	// Version holds the current Gitea version
+	Version = "1.9.0-dev"
+	// Tags holds the build tags used
+	Tags = ""
+	// MakeVersion holds the current Make version if built with make
+	MakeVersion = ""
 
-// Tags holds the build tags used
-var Tags = ""
+	originalAppHelpTemplate        = ""
+	originalCommandHelpTemplate    = ""
+	originalSubcommandHelpTemplate = ""
+)
 
 func init() {
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith(Tags)
+
+	// Grab the original help templates
+	originalAppHelpTemplate = cli.AppHelpTemplate
+	originalCommandHelpTemplate = cli.CommandHelpTemplate
+	originalSubcommandHelpTemplate = cli.SubcommandHelpTemplate
 }
 
 func main() {
@@ -52,18 +65,124 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
 	}
+	// Now adjust these commands to add our global configuration options
+
+	// First calculate the default paths and set the AppHelpTemplates in this context
+	setting.SetCustomPathAndConf("", "", "")
+	setAppHelpTemplates()
+
+	// default configuration flags
+	defaultFlags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "custom-path, C",
+			Value: setting.CustomPath,
+			Usage: "Custom path file path",
+		},
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: setting.CustomConf,
+			Usage: "Custom configuration file path",
+		},
+		cli.VersionFlag,
+		cli.StringFlag{
+			Name:  "work-path, w",
+			Value: setting.AppWorkPath,
+			Usage: "Set the gitea working path",
+		},
+	}
+
+	// Set the default to be equivalent to cmdWeb and add the default flags
 	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
+	app.Flags = append(app.Flags, defaultFlags...)
 	app.Action = cmd.CmdWeb.Action
+
+	// Add functions to set these paths and these flags to the commands
+	app.Before = establishCustomPath
+	for i := range app.Commands {
+		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
+	}
+
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)
+		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
 }
 
-func formatBuiltWith(Tags string) string {
-	if len(Tags) == 0 {
-		return " built with " + runtime.Version()
+func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Flag, before cli.BeforeFunc) {
+	command.Flags = append(command.Flags, defaultFlags...)
+	command.Before = establishCustomPath
+	for i := range command.Subcommands {
+		setFlagsAndBeforeOnSubcommands(&command.Subcommands[i], defaultFlags, before)
+	}
+}
+
+func establishCustomPath(ctx *cli.Context) error {
+	var providedCustom string
+	var providedConf string
+	var providedWorkPath string
+
+	currentCtx := ctx
+	for {
+		if len(providedCustom) != 0 && len(providedConf) != 0 && len(providedWorkPath) != 0 {
+			break
+		}
+		if currentCtx == nil {
+			break
+		}
+		if currentCtx.IsSet("custom-path") && len(providedCustom) == 0 {
+			providedCustom = currentCtx.String("custom-path")
+		}
+		if currentCtx.IsSet("config") && len(providedConf) == 0 {
+			providedConf = currentCtx.String("config")
+		}
+		if currentCtx.IsSet("work-path") && len(providedWorkPath) == 0 {
+			providedWorkPath = currentCtx.String("work-path")
+		}
+		currentCtx = currentCtx.Parent()
+
+	}
+	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
+
+	setAppHelpTemplates()
+
+	if ctx.IsSet("version") {
+		cli.ShowVersion(ctx)
+		os.Exit(0)
 	}
 
-	return " built with " + runtime.Version() + " : " + strings.Replace(Tags, " ", ", ", -1)
+	return nil
+}
+
+func setAppHelpTemplates() {
+	cli.AppHelpTemplate = adjustHelpTemplate(originalAppHelpTemplate)
+	cli.CommandHelpTemplate = adjustHelpTemplate(originalCommandHelpTemplate)
+	cli.SubcommandHelpTemplate = adjustHelpTemplate(originalSubcommandHelpTemplate)
+}
+
+func adjustHelpTemplate(originalTemplate string) string {
+	overrided := ""
+	if _, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
+		overrided = "(GITEA_CUSTOM)"
+	}
+
+	return fmt.Sprintf(`%s
+DEFAULT CONFIGURATION:
+     CustomPath:  %s %s
+     CustomConf:  %s
+     AppPath:     %s
+     AppWorkPath: %s
+
+`, originalTemplate, setting.CustomPath, overrided, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
+}
+
+func formatBuiltWith(makeTags string) string {
+	var version = runtime.Version()
+	if len(MakeVersion) > 0 {
+		version = MakeVersion + ", " + runtime.Version()
+	}
+	if len(Tags) == 0 {
+		return " built with " + version
+	}
+
+	return " built with " + version + " : " + strings.Replace(Tags, " ", ", ", -1)
 }

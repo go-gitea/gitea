@@ -14,11 +14,12 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
@@ -55,6 +56,15 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: starredBy
+	//   in: query
+	//   description: search only for repos that the user with the given id has starred
+	//   type: integer
+	//   format: int64
+	// - name: private
+	//   in: query
+	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -95,6 +105,10 @@ func Search(ctx *context.APIContext) {
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:   ctx.QueryBool("topic"),
 		Collaborate: util.OptionalBoolNone,
+		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin: ctx.IsUserSiteAdmin(),
+		UserID:      ctx.Data["SignedUserID"].(int64),
+		StarredByID: ctx.QueryInt64("starredBy"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -139,42 +153,6 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	if opts.OwnerID > 0 {
-		var repoOwner *models.User
-		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-			repoOwner = ctx.User
-		} else {
-			repoOwner, err = models.GetUserByID(opts.OwnerID)
-			if err != nil {
-				ctx.JSON(500, api.SearchError{
-					OK:    false,
-					Error: err.Error(),
-				})
-				return
-			}
-		}
-
-		if repoOwner.IsOrganization() {
-			opts.Collaborate = util.OptionalBoolFalse
-		}
-
-		// Check visibility.
-		if ctx.IsSigned {
-			if ctx.User.ID == repoOwner.ID {
-				opts.Private = true
-			} else if repoOwner.IsOrganization() {
-				opts.Private, err = repoOwner.IsOwnedBy(ctx.User.ID)
-				if err != nil {
-					ctx.JSON(500, api.SearchError{
-						OK:    false,
-						Error: err.Error(),
-					})
-					return
-				}
-			}
-		}
-	}
-
 	repos, count, err := models.SearchRepositoryByName(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
@@ -234,7 +212,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		} else {
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
-					log.Error(4, "DeleteRepository: %v", err)
+					log.Error("DeleteRepository: %v", err)
 				}
 			}
 			ctx.Error(500, "CreateRepository", err)
@@ -401,31 +379,63 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := models.MigrateRepository(ctx.User, ctxUser, models.MigrateRepoOptions{
-		Name:        form.RepoName,
-		Description: form.Description,
-		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
-		IsMirror:    form.Mirror,
-		RemoteAddr:  remoteAddr,
-	})
-	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
-			ctx.Error(409, "", "The repository with the same name already exists.")
-			return
-		}
+	var opts = migrations.MigrateOptions{
+		RemoteURL:    remoteAddr,
+		Name:         form.RepoName,
+		Description:  form.Description,
+		Private:      form.Private || setting.Repository.ForcePrivate,
+		Mirror:       form.Mirror,
+		AuthUsername: form.AuthUsername,
+		AuthPassword: form.AuthPassword,
+		Wiki:         form.Wiki,
+		Issues:       form.Issues,
+		Milestones:   form.Milestones,
+		Labels:       form.Labels,
+		Comments:     true,
+		PullRequests: form.PullRequests,
+		Releases:     form.Releases,
+	}
+	if opts.Mirror {
+		opts.Issues = false
+		opts.Milestones = false
+		opts.Labels = false
+		opts.Comments = false
+		opts.PullRequests = false
+		opts.Releases = false
+	}
 
-		err = util.URLSanitizedError(err, remoteAddr)
-		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-				log.Error(4, "DeleteRepository: %v", errDelete)
-			}
-		}
-		ctx.Error(500, "MigrateRepository", err)
+	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
+	if err == nil {
+		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+	switch {
+	case models.IsErrRepoAlreadyExist(err):
+		ctx.Error(409, "", "The repository with the same name already exists.")
+	case migrations.IsRateLimitError(err):
+		ctx.Error(422, "", "Remote visit addressed rate limitation.")
+	case migrations.IsTwoFactorAuthError(err):
+		ctx.Error(422, "", "Remote visit required two factors authentication.")
+	case models.IsErrReachLimitOfRepo(err):
+		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
+	case models.IsErrNameReserved(err):
+		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
+	case models.IsErrNamePatternNotAllowed(err):
+		ctx.Error(422, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+	default:
+		err = util.URLSanitizedError(err, remoteAddr)
+		if strings.Contains(err.Error(), "Authentication failed") ||
+			strings.Contains(err.Error(), "Bad credentials") ||
+			strings.Contains(err.Error(), "could not read Username") {
+			ctx.Error(422, "", fmt.Sprintf("Authentication failed: %v.", err))
+		} else if strings.Contains(err.Error(), "fatal:") {
+			ctx.Error(422, "", fmt.Sprintf("Migration failed: %v.", err))
+		} else {
+			ctx.Error(500, "MigrateRepository", err)
+		}
+	}
 }
 
 // Get one repository
@@ -597,7 +607,7 @@ func TopicSearch(ctx *context.Context) {
 		Limit:   10,
 	})
 	if err != nil {
-		log.Error(2, "SearchTopics failed: %v", err)
+		log.Error("SearchTopics failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
 			"message": "Search topics failed.",
 		})

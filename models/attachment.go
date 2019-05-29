@@ -7,13 +7,12 @@ package models
 import (
 	"fmt"
 	"io"
-	"mime/multipart"
 	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
@@ -25,6 +24,7 @@ type Attachment struct {
 	UUID          string `xorm:"uuid UNIQUE"`
 	IssueID       int64  `xorm:"INDEX"`
 	ReleaseID     int64  `xorm:"INDEX"`
+	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
 	DownloadCount int64          `xorm:"DEFAULT 0"`
@@ -72,11 +72,8 @@ func (a *Attachment) DownloadURL() string {
 }
 
 // NewAttachment creates a new attachment object.
-func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment, err error) {
-	attach := &Attachment{
-		UUID: gouuid.NewV4().String(),
-		Name: name,
-	}
+func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
+	attach.UUID = gouuid.NewV4().String()
 
 	localPath := attach.LocalPath()
 	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
