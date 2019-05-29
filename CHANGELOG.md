@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Escape the commit message on issues update (#6901) (#6902)
   * Fix regression for API users search (#6882) (#6885)
   * Handle early git version's lack of get-url (#7065) (#7076)
+  * Fix wrong init dependency on markup extensions (#7038) (#7074)
 
 ## [1.8.1](https://github.com/go-gitea/gitea/releases/tag/v1.8.1) - 2019-05-08
 * BUGFIXES
