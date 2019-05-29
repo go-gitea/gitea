@@ -11,9 +11,9 @@ type Downloader interface {
 	GetMilestones() ([]*Milestone, error)
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
-	GetIssues(page, PerPage int) ([]*Issue, bool, error)
+	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
-	GetPullRequests(page, PerPage int) ([]*PullRequest, error)
+	GetPullRequests(page, perPage int) ([]*PullRequest, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader

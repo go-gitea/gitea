@@ -53,8 +53,8 @@ func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
 	return nil, ErrNotSupported
 }
 
-// GetIssues returns issues according page and PerPage
-func (g *PlainGitDownloader) GetIssues(page, PerPage int) ([]*base.Issue, bool, error) {
+// GetIssues returns issues according page and perPage
+func (g *PlainGitDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	return nil, false, ErrNotSupported
 }
 
