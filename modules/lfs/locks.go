@@ -7,6 +7,7 @@ package lfs
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
