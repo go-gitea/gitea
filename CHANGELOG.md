@@ -4,6 +4,21 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.8.2](https://github.com/go-gitea/gitea/releases/tag/v1.8.2) - 2019-05-29
+* BUGFIXES
+  * Fix possbile mysql invalid connnection error (#7051) (#7071)
+  * Handle invalid administrator username on install page (#7060) (#7063)
+  * Disable arm7 builds (#7037) (#7042)
+  * Fix default for allowing new organization creation for new users (#7017) (#7034)
+  * SearchRepositoryByName improvements and unification (#6897) (#7002)
+  * Fix u2f registrationlist ToRegistrations() method (#6980) (#6982)
+  * Allow collaborators to view repo owned by private org (#6965) (#6968)
+  * Use AppURL for Oauth user link (#6894) (#6925)
+  * Escape the commit message on issues update (#6901) (#6902)
+  * Fix regression for API users search (#6882) (#6885)
+  * Handle early git version's lack of get-url (#7065) (#7076)
+  * Fix wrong init dependency on markup extensions (#7038) (#7074)
+
 ## [1.8.1](https://github.com/go-gitea/gitea/releases/tag/v1.8.1) - 2019-05-08
 * BUGFIXES
   * Fix 404 when sending pull requests in some situations (#6871) (#6873)
