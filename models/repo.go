@@ -2527,27 +2527,27 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
-	if _, err := x.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
-		return fmt.Errorf("UpdateRepository: %v", err)
+	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
 	if err := os.MkdirAll(setting.RepositoryAvatarUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", setting.RepositoryAvatarUploadPath, err)
+		return fmt.Errorf("UploadAvatar: Failed to create dir %s: %v", setting.RepositoryAvatarUploadPath, err)
 	}
 
 	fw, err := os.Create(repo.CustomAvatarPath())
 	if err != nil {
-		return fmt.Errorf("Create: %v", err)
+		return fmt.Errorf("UploadAvatar: Create file: %v", err)
 	}
 	defer fw.Close()
 
 	if err = png.Encode(fw, *m); err != nil {
-		return fmt.Errorf("Encode: %v", err)
+		return fmt.Errorf("UploadAvatar: Encode png: %v", err)
 	}
 
 	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
 		if err := os.Remove(oldAvatarPath); err != nil {
-			return fmt.Errorf("Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
+			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
 
@@ -2556,16 +2556,34 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 
 // DeleteAvatar deletes the repos's custom avatar.
 func (repo *Repository) DeleteAvatar() error {
-	log.Trace("DeleteAvatar[%d]: %s", repo.ID, repo.CustomAvatarPath())
+
+	// Avatar exists
 	if len(repo.Avatar) > 0 {
-		if err := os.Remove(repo.CustomAvatarPath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", repo.CustomAvatarPath(), err)
+
+		avatarPath := repo.CustomAvatarPath()
+		log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
+
+		sess := x.NewSession()
+		defer sess.Close()
+		if err = sess.Begin(); err != nil {
+			return err
 		}
+
+		repo.Avatar = ""
+		if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+			return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
+		}
+
+		if _, err := os.Stat(avatarPath); err == nil {
+			if err := os.Remove(avatarPath); err != nil {
+				return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
+			}
+		} else {
+			// // Schrodinger: file may or may not exist. See err for details.
+			log.Trace("DeleteAvatar[%d]: %v", err)
+		}
+		return sess.Commit()
 	}
 
-	repo.Avatar = ""
-	if _, err := x.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
-		return fmt.Errorf("UpdateRepository: %v", err)
-	}
 	return nil
 }
