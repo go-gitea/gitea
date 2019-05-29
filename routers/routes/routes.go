@@ -923,7 +923,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
 					m.Post("/:lid/unlock", lfs.UnLockHandler)
-				}, context.RepoAssignment())
+				})
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})
