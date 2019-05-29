@@ -734,33 +734,36 @@ func init() {
 // UpdateAvatarSetting update repo's avatar
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	ctxRepo := ctx.Repo.Repository
-	if form.Avatar != nil {
-		r, err := form.Avatar.Open()
-		if err != nil {
-			return fmt.Errorf("Avatar.Open: %v", err)
-		}
-		defer r.Close()
 
-		if form.Avatar.Size > setting.AvatarMaxFileSize {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
-		}
-
-		data, err := ioutil.ReadAll(r)
-		if err != nil {
-			return fmt.Errorf("ioutil.ReadAll: %v", err)
-		}
-		if !base.IsImageFile(data) {
-			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
-		}
-		if err = ctxRepo.UploadAvatar(data); err != nil {
-			return fmt.Errorf("UploadAvatar: %v", err)
-		}
-	} else {
-		// No avatar is uploaded but setting has been changed to enable
-		// No random avatar here.
+	if form.Avatar == nil {
+		// No avatar is uploaded and we not removing it here.
+		// No random avatar generated here.
+		// Just exit, no action.
 		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
 			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
 		}
+		return nil
+	}
+
+	r, err := form.Avatar.Open()
+	if err != nil {
+		return fmt.Errorf("Avatar.Open: %v", err)
+	}
+	defer r.Close()
+
+	if form.Avatar.Size > setting.AvatarMaxFileSize {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("ioutil.ReadAll: %v", err)
+	}
+	if !base.IsImageFile(data) {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+	}
+	if err = ctxRepo.UploadAvatar(data); err != nil {
+		return fmt.Errorf("UploadAvatar: %v", err)
 	}
 	return nil
 }
