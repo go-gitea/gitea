@@ -531,11 +531,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.view.issue .comment-list .comment .actions .item.tag{margin-right:5px}
 .repository.view.issue .comment-list .comment .actions .item.action{margin-top:6px;margin-left:10px}
 .repository.view.issue .comment-list .comment .content{margin-left:4em}
-.repository.view.issue .comment-list .comment .content>.header{font-weight:400;position:relative;padding:0 15px;color:#767676;background-color:#f7f7f7;border-bottom:1px solid #eee;border-top-left-radius:3px;border-top-right-radius:3px;justify-content:space-between}
+.repository.view.issue .comment-list .comment .content>.header{font-weight:400;padding:auto 15px;position:relative;color:#767676;background-color:#f7f7f7;border-bottom:1px solid #eee;border-top-left-radius:3px;border-top-right-radius:3px}
 .repository.view.issue .comment-list .comment .content>.header:after,.repository.view.issue .comment-list .comment .content>.header:before{right:100%;top:20px;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}
 .repository.view.issue .comment-list .comment .content>.header:before{border-right-color:#d3d3d4;border-width:9px;margin-top:-9px}
 .repository.view.issue .comment-list .comment .content>.header:after{border-right-color:#f7f7f7;border-width:8px;margin-top:-8px}
-.repository.view.issue .comment-list .comment .content>.header .text{padding-top:10px;padding-bottom:10px}
+.repository.view.issue .comment-list .comment .content>.header .text{max-width:78%;padding-top:10px;padding-bottom:10px}
 .repository.view.issue .comment-list .comment .content .markdown{font-size:14px}
 .repository.view.issue .comment-list .comment .content .no-content{color:#767676;font-style:italic}
 .repository.view.issue .comment-list .comment .content>.bottom.segment{background:#f3f4f5}
