@@ -79,8 +79,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(baseBranch)
 	baseIsTag := ctx.Repo.GitRepo.IsTagExist(baseBranch)
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
-		ctx.NotFound("IsRefExist", nil)
-		return nil, nil, nil, nil, "", ""
+		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(baseBranch); baseCommit != nil {
+			baseBranch = baseCommit.ID.String()
+			ctx.Data["BaseBranch"] = baseBranch
+			baseIsCommit = true
+		} else {
+			ctx.NotFound("IsRefExist", nil)
+			return nil, nil, nil, nil, "", ""
+		}
 	}
 	ctx.Data["BaseIsCommit"] = baseIsCommit
 	ctx.Data["BaseIsBranch"] = baseIsBranch
@@ -145,8 +151,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	headIsBranch := headGitRepo.IsBranchExist(headBranch)
 	headIsTag := headGitRepo.IsTagExist(headBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
-		ctx.NotFound("IsRefExist", nil)
-		return nil, nil, nil, nil, "", ""
+		if headCommit, _ := ctx.Repo.GitRepo.GetCommit(headBranch); headCommit != nil {
+			headBranch = headCommit.ID.String()
+			ctx.Data["HeadBranch"] = headBranch
+			headIsCommit = true
+		} else {
+			ctx.NotFound("IsRefExist", nil)
+			return nil, nil, nil, nil, "", ""
+		}
 	}
 	ctx.Data["HeadIsCommit"] = headIsCommit
 	ctx.Data["HeadIsBranch"] = headIsBranch
@@ -295,7 +307,6 @@ func CompareDiff(ctx *context.Context) {
 		}
 		ctx.Data["HeadBranches"] = headBranches
 	}
-
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
