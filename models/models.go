@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -277,6 +278,11 @@ func SetEngine() (err error) {
 	// so use log file to instead print to stdout.
 	x.SetLogger(log.XORMLogger)
 	x.ShowSQL(setting.LogSQL)
+	if DbCfg.Type == "mysql" {
+		x.SetMaxIdleConns(0)
+		x.SetConnMaxLifetime(3 * time.Second)
+	}
+
 	return nil
 }
 
