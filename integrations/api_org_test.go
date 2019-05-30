@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIOrg(t *testing.T) {
+func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
@@ -28,6 +28,7 @@ func TestAPIOrg(t *testing.T) {
 			Description: "This organization created by user1",
 			Website:     "https://try.gitea.io",
 			Location:    "Shanghai",
+			Visibility:  "limited",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
 		resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -40,6 +41,7 @@ func TestAPIOrg(t *testing.T) {
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
 		assert.Equal(t, org.Location, apiOrg.Location)
+		assert.Equal(t, org.Visibility, apiOrg.Visibility)
 
 		models.AssertExistsAndLoadBean(t, &models.User{
 			Name:      org.UserName,
@@ -69,6 +71,50 @@ func TestAPIOrg(t *testing.T) {
 		DecodeJSON(t, resp, &users)
 		assert.EqualValues(t, 1, len(users))
 		assert.EqualValues(t, "user1", users[0].UserName)
+	})
+}
+
+func TestAPIOrgEdit(t *testing.T) {
+	onGiteaRun(t, func(*testing.T, *url.URL) {
+		session := loginUser(t, "user1")
+
+		token := getTokenForLoggedInUser(t, session)
+		var org = api.EditOrgOption{
+			FullName:    "User3 organization new full name",
+			Description: "A new description",
+			Website:     "https://try.gitea.io/new",
+			Location:    "Beijing",
+			Visibility:  "private",
+		}
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		var apiOrg api.Organization
+		DecodeJSON(t, resp, &apiOrg)
+
+		assert.Equal(t, "user3", apiOrg.UserName)
+		assert.Equal(t, org.FullName, apiOrg.FullName)
+		assert.Equal(t, org.Description, apiOrg.Description)
+		assert.Equal(t, org.Website, apiOrg.Website)
+		assert.Equal(t, org.Location, apiOrg.Location)
+		assert.Equal(t, org.Visibility, apiOrg.Visibility)
+	})
+}
+
+func TestAPIOrgEditBadVisibility(t *testing.T) {
+	onGiteaRun(t, func(*testing.T, *url.URL) {
+		session := loginUser(t, "user1")
+
+		token := getTokenForLoggedInUser(t, session)
+		var org = api.EditOrgOption{
+			FullName:    "User3 organization new full name",
+			Description: "A new description",
+			Website:     "https://try.gitea.io/new",
+			Location:    "Beijing",
+			Visibility:  "badvisibility",
+		}
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
