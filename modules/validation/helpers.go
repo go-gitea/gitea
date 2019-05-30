@@ -85,10 +85,6 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 		return false
 	}
 
-	if !strings.Contains(uri, "{index}") {
-		return false
-	}
-
 	var re = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
 	// check for typoed variables like /{index/ or /[repo}
