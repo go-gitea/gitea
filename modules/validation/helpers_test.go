@@ -141,7 +141,7 @@ func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
 			description: "External tracker URL missing optional placeholder",
 			url:         "https://github.com/issues/{user}",
 			valid:       true,
-		},		
+		},
 		{
 			description: "External tracker URL with similar placeholder names test",
 			url:         "https://github.com/user/repo/issues/{index}",
