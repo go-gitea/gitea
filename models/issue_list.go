@@ -148,17 +148,19 @@ func (issues IssueList) loadLabels(e Engine) error {
 			var labelIssue LabelIssue
 			err = rows.Scan(&labelIssue)
 			if err != nil {
-				errclose := rows.Close()
-				if errclose != nil {
-					log.Error("IssueList.loadLabels: %v", errclose)
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadLabels: Close: %v", err)
 				}
 				return err
 			}
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadLabels: Close: %v", err)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -239,18 +241,20 @@ func (issues IssueList) loadAssignees(e Engine) error {
 			var assigneeIssue AssigneeIssue
 			err = rows.Scan(&assigneeIssue)
 			if err != nil {
-				errclose := rows.Close()
-				if errclose != nil {
-					log.Error("IssueList.loadAssignees: %v", errclose)
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadAssignees: Close: %v", err)
 				}
 				return err
 			}
 
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadAssignees: Close: %v", err)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -296,17 +300,19 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 			var pr PullRequest
 			err = rows.Scan(&pr)
 			if err != nil {
-				err = rows.Close()
-				if err != nil {
-					return err
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadPullRequests: Close: %v", err)
 				}
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadPullRequests: Close: %v", err)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -343,17 +349,19 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 			var attachment Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
-				errclose := rows.Close()
-				if errclose != nil {
-					log.Error("IssueList.loadAttachments: %v", errclose)
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadAttachments: Close: %v", err)
 				}
 				return err
 			}
 			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadAttachments: Close: %v", err)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -391,17 +399,19 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 			var comment Comment
 			err = rows.Scan(&comment)
 			if err != nil {
-				errclose := rows.Close()
-				if errclose != nil {
-					log.Error("IssueList.loadCommentsg: %v", errclose)
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadComments: Close: %v", err)
 				}
 				return err
 			}
 			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadComments: Close: %v", err)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -451,17 +461,19 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			var totalTime totalTimesByIssue
 			err = rows.Scan(&totalTime)
 			if err != nil {
-				errclose := rows.Close()
-				if errclose != nil {
-					log.Error("IssueList.loadTotalTrackedTimes: %v", errclose)
+				// When there are no rows left and we try to close it, xorm will complain with an error.
+				// Since that is not relevant for us, we can safely ignore it.
+				if err := rows.Close(); err != nil {
+					log.Error("IssueList.loadTotalTrackedTimes: Close: %v", err)
 				}
 				return err
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
-		err = rows.Close()
-		if err != nil {
-			return err
+		// When there are no rows left and we try to close it, xorm will complain with an error.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err := rows.Close(); err != nil {
+			log.Error("IssueList.loadTotalTrackedTimes: Close: %v", err)
 		}
 		left -= limit
 		ids = ids[limit:]
