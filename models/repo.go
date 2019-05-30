@@ -2527,8 +2527,8 @@ func RemoveRandomAvatars() error {
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
-				stringifiedId := strconv.FormatInt(repository.ID, 10)
-				if repository.Avatar == stringifiedId {
+				stringifiedID := strconv.FormatInt(repository.ID, 10)
+				if repository.Avatar == stringifiedID {
 					return repository.DeleteAvatar()
 				}
 				return nil
