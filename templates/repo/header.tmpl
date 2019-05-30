@@ -3,7 +3,11 @@
 	<div class="ui container">
 		<div class="repo-header">
 			<div class="ui huge breadcrumb repo-title">
+				{{if .RelAvatarLink}}
+				<img class="ui avatar image" src="{{.RelAvatarLink}}">
+				{{else}}
 				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
+				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
