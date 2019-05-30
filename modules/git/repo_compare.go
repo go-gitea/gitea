@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,8 +15,8 @@ import (
 	"time"
 )
 
-// PullRequestInfo represents needed information for a pull request.
-type PullRequestInfo struct {
+// CompareInfo represents needed information for comparing references.
+type CompareInfo struct {
 	MergeBase string
 	Commits   *list.List
 	NumFiles  int
@@ -40,9 +41,8 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 	return strings.TrimSpace(stdout), err
 }
 
-// GetPullRequestInfo generates and returns pull request information
-// between base and head branches of repositories.
-func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch string) (_ *PullRequestInfo, err error) {
+// GetCompareInfo generates and returns compare information between base and head branches of repositories.
+func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -58,23 +58,23 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 		defer repo.RemoveRemote(tmpRemote)
 	}
 
-	prInfo := new(PullRequestInfo)
-	prInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo := new(CompareInfo)
+	compareInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
 		// We have a common base
-		logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 		if err != nil {
 			return nil, err
 		}
-		prInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
+		compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
 		if err != nil {
 			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
 		}
 	} else {
-		prInfo.Commits = list.New()
-		prInfo.MergeBase, err = GetFullCommitID(repo.Path, remoteBranch)
+		compareInfo.Commits = list.New()
+		compareInfo.MergeBase, err = GetFullCommitID(repo.Path, remoteBranch)
 		if err != nil {
-			prInfo.MergeBase = remoteBranch
+			compareInfo.MergeBase = remoteBranch
 		}
 	}
 
@@ -83,9 +83,9 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 	if err != nil {
 		return nil, err
 	}
-	prInfo.NumFiles = len(strings.Split(stdout, "\n")) - 1
+	compareInfo.NumFiles = len(strings.Split(stdout, "\n")) - 1
 
-	return prInfo, nil
+	return compareInfo, nil
 }
 
 // GetPatch generates and returns patch data between given revisions.

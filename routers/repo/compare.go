@@ -20,8 +20,8 @@ const (
 	tplCompare base.TplName = "repo/diff/compare"
 )
 
-// ParseCompareInfo parse compare info between two commit for preparing pull request
-func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
+// ParseCompareInfo parse compare info between two commit for preparing comparing references
+func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
 	baseRepo := ctx.Repo.Repository
 
 	// Get compared branches information
@@ -47,7 +47,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	baseBranch := infos[0]
 	ctx.Data["BaseBranch"] = baseBranch
 
-	// If there is no head repository, it means pull request between same repository.
+	// If there is no head repository, it means compare between same repository.
 	headInfos := strings.Split(infos[1], ":")
 	if len(headInfos) == 1 {
 		isSameRepo = true
@@ -79,6 +79,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(baseBranch)
 	baseIsTag := ctx.Repo.GitRepo.IsTagExist(baseBranch)
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
+		// Check if baseBranch is short sha commit hash
 		if baseCommit, _ := ctx.Repo.GitRepo.GetCommit(baseBranch); baseCommit != nil {
 			baseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = baseBranch
@@ -137,7 +138,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	}
 	if !permHead.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot read code requests in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 				ctx.User,
 				headRepo,
 				permHead)
@@ -151,6 +152,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	headIsBranch := headGitRepo.IsBranchExist(headBranch)
 	headIsTag := headGitRepo.IsTagExist(headBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
+		// Check if headBranch is short sha commit hash
 		if headCommit, _ := ctx.Repo.GitRepo.GetCommit(headBranch); headCommit != nil {
 			headBranch = headCommit.ID.String()
 			ctx.Data["HeadBranch"] = headBranch
@@ -169,14 +171,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	ctx.Data["BeforeCommitID"] = prInfo.MergeBase
+	ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 
-	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
+	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
 }
 
 // PrepareCompareDiff render pull request preview diff page
@@ -185,7 +187,7 @@ func PrepareCompareDiff(
 	headUser *models.User,
 	headRepo *models.Repository,
 	headGitRepo *git.Repository,
-	prInfo *git.PullRequestInfo,
+	compareInfo *git.CompareInfo,
 	baseBranch, headBranch string) bool {
 
 	var (
@@ -212,13 +214,13 @@ func PrepareCompareDiff(
 
 	ctx.Data["AfterCommitID"] = headCommitID
 
-	if headCommitID == prInfo.MergeBase {
+	if headCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
 		return true
 	}
 
 	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
-		prInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
+		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
 		ctx.ServerError("GetDiffRange", err)
@@ -233,17 +235,17 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	prInfo.Commits = models.ValidateCommitsWithEmails(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithSignature(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
-	ctx.Data["Commits"] = prInfo.Commits
-	ctx.Data["CommitCount"] = prInfo.Commits.Len()
+	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
+	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits)
+	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
+	ctx.Data["Commits"] = compareInfo.Commits
+	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
 	if ctx.Data["CommitCount"] == 0 {
 		ctx.Data["PageIsComparePull"] = false
 	}
 
-	if prInfo.Commits.Len() == 1 {
-		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+	if compareInfo.Commits.Len() == 1 {
+		c := compareInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
 		title = strings.TrimSpace(c.UserCommit.Summary())
 
 		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
@@ -261,19 +263,19 @@ func PrepareCompareDiff(
 
 	headTarget := path.Join(headUser.Name, repo.Name)
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", compareInfo.MergeBase)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
 	return false
 }
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
+	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch)
 	if ctx.Written() {
 		return
 	}

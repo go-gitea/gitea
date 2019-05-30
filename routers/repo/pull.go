@@ -280,13 +280,13 @@ func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	prInfo, err := ctx.Repo.GitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
+	prInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		pull.MergeBase, pull.GetGitRefName())
 
 	if err != nil {
@@ -298,7 +298,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
@@ -307,7 +307,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
@@ -336,7 +336,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		return nil
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(repo.Owner.Name, repo.Name),
+	prInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(repo.Owner.Name, repo.Name),
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
@@ -347,7 +347,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
 
