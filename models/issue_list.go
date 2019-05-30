@@ -156,7 +156,10 @@ func (issues IssueList) loadLabels(e Engine) error {
 			}
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
-		_ = rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -245,7 +248,10 @@ func (issues IssueList) loadAssignees(e Engine) error {
 
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
-		_ = rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -298,7 +304,10 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
-		_ = rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
@@ -450,7 +459,10 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
-		_ = rows.Close()
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
 		left -= limit
 		ids = ids[limit:]
 	}
