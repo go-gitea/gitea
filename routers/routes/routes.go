@@ -159,6 +159,14 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: time.Hour * 6,
 		},
 	))
+	m.Use(public.StaticHandler(
+		setting.RepositoryAvatarUploadPath,
+		&public.Options{
+			Prefix:       "repo-avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
 
 	m.Use(templates.HTMLRenderer())
 	models.InitMailRender(templates.Mailer())
@@ -613,6 +621,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/settings", func() {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(auth.RepoSettingForm{}), repo.SettingsPost)
+			m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), repo.SettingsAvatar)
+			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
+
 			m.Group("/collaboration", func() {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)

@@ -43,6 +43,7 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Updated     time.Time   `json:"updated_at"`
 	Permissions *Permission `json:"permissions,omitempty"`
+	AvatarURL   string      `json:"avatar_url"`
 }
 
 // CreateRepoOption options when creating repository
