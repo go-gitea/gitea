@@ -119,9 +119,9 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
+	if !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot create/read pull requests or cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
+			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
 				ctx.User,
 				baseRepo,
 				permBase)
@@ -169,6 +169,17 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// Treat as pull request if both references are branches
 	if ctx.Data["PageIsComparePull"] == nil {
 		ctx.Data["PageIsComparePull"] = headIsBranch && baseIsBranch
+	}
+
+	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot create/read pull requests in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
+				ctx.User,
+				baseRepo,
+				permBase)
+		}
+		ctx.NotFound("ParseCompareInfo", nil)
+		return nil, nil, nil, nil, "", ""
 	}
 
 	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
