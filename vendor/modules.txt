@@ -292,12 +292,8 @@ github.com/russross/blackfriday
 github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
-github.com/shurcooL/httpfs/vfsutil
 # github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc
 github.com/shurcooL/sanitized_anchor_name
-# github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
-github.com/shurcooL/vfsgen
 # github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d
 github.com/siddontang/go-snappy/snappy
 # github.com/src-d/gcfg v1.4.0

@@ -205,7 +205,7 @@ func Mailer() *template.Template {
 }
 
 func Asset(name string) ([]byte, error) {
-	f, err := Assets.Open(name)
+	f, err := Assets.Open("/" + name)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	var results = make([]string, 0, len(realFS))
 	for k, _ := range realFS {
-		results = append(results, k)
+		results = append(results, k[1:])
 	}
 	return results
 }

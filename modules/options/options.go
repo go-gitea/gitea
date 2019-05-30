@@ -4,7 +4,7 @@
 
 package options
 
-//go:generate go run ../embed/main.go options
+//go:generate go run main.go
 //go:generate go fmt bindata.go
 
 type directorySet map[string][]string

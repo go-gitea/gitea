@@ -17,7 +17,7 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-//go:generate go run ../embed/main.go public
+//go:generate go run main.go
 //go:generate go fmt bindata.go
 
 // Options represents the available options to configure the macaron handler.
