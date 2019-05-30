@@ -1,4 +1,4 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package validation
 import (
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -72,6 +73,30 @@ func IsValidExternalURL(uri string) bool {
 
 	// TODO: Later it should be added to allow local network IP addreses
 	//       only if allowed by special setting
+
+	return true
+}
+
+// IsValidExternalTrackerURLFormat checks if URL matches required syntax for external trackers
+// {index} is required, {user} and {repo} are optional
+
+func IsValidExternalTrackerURLFormat(uri string) bool {
+	if !IsValidExternalURL(uri) {
+		return false
+	}
+
+	if !strings.Contains(uri, "{index}") {
+		return false
+	}
+
+	var re = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
+
+	// check for typoed variables like /{index/ or /[repo}
+	for _, match := range re.FindAllStringSubmatch(uri, -1) {
+		if (match[1] == "{" || match[2] == "}") && (match[1] != "{" || match[2] != "}") {
+			return false
+		}
+	}
 
 	return true
 }
