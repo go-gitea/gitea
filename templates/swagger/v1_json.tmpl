@@ -1210,6 +1210,51 @@
             "$ref": "#/responses/forbidden"
           }
         }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a repository's properties. Only fields that are set will be changed.",
+        "operationId": "repoEdit",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to edit",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to edit",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Properties of a repo that you can edit",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/archive/{archive}": {
@@ -6037,6 +6082,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "409": {
+            "description": "The repository with the same name already exists."
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -7738,6 +7789,84 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "EditRepoOption": {
+      "description": "EditRepoOption options when editing a repository's properties",
+      "type": "object",
+      "properties": {
+        "allow_merge_commits": {
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowMerge"
+        },
+        "allow_rebase": {
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebase"
+        },
+        "allow_rebase_explicit": {
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebaseMerge"
+        },
+        "allow_squash_merge": {
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowSquash"
+        },
+        "archived": {
+          "description": "set to `true` to archive this repository.",
+          "type": "boolean",
+          "x-go-name": "Archived"
+        },
+        "default_branch": {
+          "description": "sets the default branch for this repository.",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
+        },
+        "description": {
+          "description": "a short description of the repository.",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "has_issues": {
+          "description": "either `true` to enable issues for this repository or `false` to disable them.",
+          "type": "boolean",
+          "x-go-name": "HasIssues"
+        },
+        "has_pull_requests": {
+          "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
+          "type": "boolean",
+          "x-go-name": "HasPullRequests"
+        },
+        "has_wiki": {
+          "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "HasWiki"
+        },
+        "ignore_whitespace_conflicts": {
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "name": {
+          "description": "name of the repository",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        },
+        "private": {
+          "description": "either `true` to make the repository private or `false` to make it public.\nNote: you will get a 422 error if the organization restricts changing repository visibility to organization\nowners and a non-owner tries to change the value of private.",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "website": {
+          "description": "a URL with more information about the repository.",
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "EditTeamOption": {
       "description": "EditTeamOption options for editing a team",
       "type": "object",
@@ -9062,6 +9191,22 @@
       "description": "Repository represents a repository",
       "type": "object",
       "properties": {
+        "allow_merge_commits": {
+          "type": "boolean",
+          "x-go-name": "AllowMerge"
+        },
+        "allow_rebase": {
+          "type": "boolean",
+          "x-go-name": "AllowRebase"
+        },
+        "allow_rebase_explicit": {
+          "type": "boolean",
+          "x-go-name": "AllowRebaseMerge"
+        },
+        "allow_squash_merge": {
+          "type": "boolean",
+          "x-go-name": "AllowSquash"
+        },
         "archived": {
           "type": "boolean",
           "x-go-name": "Archived"
@@ -9104,6 +9249,18 @@
           "type": "string",
           "x-go-name": "FullName"
         },
+        "has_issues": {
+          "type": "boolean",
+          "x-go-name": "HasIssues"
+        },
+        "has_pull_requests": {
+          "type": "boolean",
+          "x-go-name": "HasPullRequests"
+        },
+        "has_wiki": {
+          "type": "boolean",
+          "x-go-name": "HasWiki"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -9112,6 +9269,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "ignore_whitespace_conflicts": {
+          "type": "boolean",
+          "x-go-name": "IgnoreWhitespaceConflicts"
         },
         "mirror": {
           "type": "boolean",
