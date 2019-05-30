@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -113,7 +112,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			panic(err.Error())
 		}
 
-		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
 		logConfig["filename"] = logPath
 		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
@@ -211,6 +209,8 @@ func newAccessLogService() {
 
 func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
+	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
+	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
 	if !DisableRouterLog && RedirectMacaronLog {
 		options := newDefaultLogOptions()
@@ -293,8 +293,5 @@ func NewXORMLogService(disableConsole bool) {
 
 		Cfg.Section("log").Key("XORM").MustString(",")
 		generateNamedLogger("xorm", options)
-		log.InitXORMLogger(LogSQL)
-	} else {
-		log.InitXORMLogger(false)
 	}
 }

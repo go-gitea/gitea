@@ -226,6 +226,10 @@ var migrations = []Migration{
 	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 	// v85 -> v86
 	NewMigration("hash application token", hashAppToken),
+	// v86 -> v87
+	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	// v87 -> v88
+	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
 }
 
 // Migrate database to current version
@@ -263,7 +267,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration: %s", m.Description())
+		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}

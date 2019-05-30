@@ -465,41 +465,41 @@ func Subtract(left interface{}, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
 	var isInt = true
-	switch left := left.(type) {
+	switch v := left.(type) {
 	case int:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int8:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int16:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int32:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int64:
-		rleft = left
+		rleft = v
 	case float32:
-		fleft = float64(left)
+		fleft = float64(v)
 		isInt = false
 	case float64:
-		fleft = left
+		fleft = v
 		isInt = false
 	}
 
-	switch right := right.(type) {
+	switch v := right.(type) {
 	case int:
-		rright = int64(right)
+		rright = int64(v)
 	case int8:
-		rright = int64(right)
+		rright = int64(v)
 	case int16:
-		rright = int64(right)
+		rright = int64(v)
 	case int32:
-		rright = int64(right)
+		rright = int64(v)
 	case int64:
-		rright = right
+		rright = v
 	case float32:
-		fright = float64(right)
+		fright = float64(v)
 		isInt = false
 	case float64:
-		fright = right
+		fright = v
 		isInt = false
 	}
 

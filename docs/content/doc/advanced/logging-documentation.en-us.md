@@ -66,7 +66,7 @@ multiple subloggers that will log to files.
 
 By default Macaron will log to its own go `log` instance. This writes
 to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `ENABLE_MACARON_REDIRECT` setting in the `[log]`
+through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
 section which you can configure the outputs of by setting the `MACARON`
 value in the `[log]` section of the configuration. `MACARON` defaults
 to `file` if unset.
@@ -89,7 +89,7 @@ log using the value: `MACARON = ,`
 
 There are two types of Router log. By default Macaron send its own
 router log which will be directed to Macaron's go `log`, however if you
-`ENABLE_MACARON_REDIRECT` you will enable Gitea's router log. You can
+`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
 disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
 
 If you enable the redirect, you can configure the outputs of this
@@ -213,7 +213,7 @@ from `[log.sublogger]`.
 a stacktrace. This value is inherited.
 * `MODE` is the mode of the log output. It will default to the sublogger
 name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will default to `true` for `file` and `console` as
+* `COLORIZE` will default to `true` for `console` as
 described, otherwise it will default to `false`.
 
 ### Non-inherited default values
@@ -274,7 +274,6 @@ Other values:
 * `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 * `DAILY_ROTATE`: **true**: Rotate logs daily.
 * `MAX_DAYS`: **7**: Delete the log file after n days
-* NB: `COLORIZE`: will default to `true` if not on windows.
 * `COMPRESS`: **true**: Compress old log files by default with gzip
 * `COMPRESSION_LEVEL`: **-1**: Compression level
 

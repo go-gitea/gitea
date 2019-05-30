@@ -15,8 +15,8 @@ menu:
 
 # Configuration Cheat Sheet
 
-This is a cheat sheet for the Gitea configuration file. It contains most settings
-that can configured as well as their default values.
+This is a cheat sheet for the Gitea configuration file. It contains most of the settings
+that can be configured as well as their default values.
 
 Any changes to the Gitea configuration file should be made in `custom/conf/app.ini`
 or any corresponding location. When installing from a distribution, this will
@@ -76,6 +76,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
+## CORS (`cors`)
+
+- `ENABLED`: **false**: enable cors headers (disabled by default)
+- `SCHEME`: **http**: scheme of allowed requests
+- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
+- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
+- `MAX_AGE`: **10m**: max time to cache response
+- `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
@@ -85,6 +95,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
+- `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 
 ### UI - Admin (`ui.admin`)
 
@@ -149,6 +160,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
+- `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
@@ -278,7 +290,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
    [http://www.libravatar.org](http://www.libravatar.org)).
-- `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store local and cached files.
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
+- `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
+- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
 
 ## Attachment (`attachment`)
 
@@ -323,7 +339,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
 
-- For the console logger `COLORIZE` will default to `true` if not on windows.
+- For the console logger `COLORIZE` will default to `true` if not on windows or the terminal is determined to be able to color.
 - `STDERR`: **false**: Use Stderr instead of Stdout.
 
 ### File log mode (`log.file`, `log.file.*` or `MODE=file`)
@@ -333,7 +349,6 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
 - `MAX_DAYS`: **7**: Delete the log file after n days
-- NB: `COLORIZE`: will default to `true` if not on windows.
 - `COMPRESS`: **true**: Compress old log files by default with gzip
 - `COMPRESSION_LEVEL`: **-1**: Compression level
 
@@ -385,6 +400,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
 
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
@@ -409,7 +425,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## OAuth2 (`oauth2`)
 
-- `ENABLED`: **true**: Enables OAuth2 provider.
+- `ENABLE`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used

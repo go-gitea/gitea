@@ -63,6 +63,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
+		"DefaultShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
+		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
@@ -122,6 +125,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessage":      RenderCommitMessage,
 		"RenderCommitMessageLink":  RenderCommitMessageLink,
 		"RenderCommitBody":         RenderCommitBody,
+		"RenderNote":               RenderNote,
 		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
@@ -152,8 +156,7 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1])
-				path = append(path, str[index+1:])
+				path = append(path, str[0:index+1], str[index+1:])
 			} else {
 				path = append(path, str)
 			}
@@ -222,6 +225,13 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return dict, nil
+		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
 		},
 	}}
 }
@@ -319,10 +329,10 @@ func ToUTF8(content string) string {
 	return res
 }
 
-// ReplaceLeft replaces all prefixes 'old' in 's' with 'new'.
-func ReplaceLeft(s, old, new string) string {
-	oldLen, newLen, i, n := len(old), len(new), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], old); n++ {
+// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
+func ReplaceLeft(s, oldS, newS string) string {
+	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
+	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
 		i += oldLen
 	}
 
@@ -337,7 +347,7 @@ func ReplaceLeft(s, old, new string) string {
 
 	j := 0
 	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], new)
+		copy(replacement[j:j+newLen], newS)
 	}
 
 	copy(replacement[j:], s[i:])
@@ -380,6 +390,17 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 	return template.HTML(strings.Join(body[1:], "\n"))
+}
+
+// RenderNote renders the contents of a git-notes file as a commit message.
+func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error("RenderNote: %v", err)
+		return ""
+	}
+	return template.HTML(string(fullMessage))
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
@@ -485,6 +506,12 @@ var trNLangRules = map[string]func(int64) int{
 	},
 	"zh-TW": func(cnt int64) int {
 		return 0
+	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
 	},
 }
 

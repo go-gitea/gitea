@@ -60,7 +60,7 @@ func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
 		return nil, err
 	}
 
-	if !entry.IsDir() {
+	if !entry.IsDir() && !entry.IsSubModule() {
 		return entry.Blob(), nil
 	}
 

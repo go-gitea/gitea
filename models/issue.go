@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -14,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -1015,9 +1016,35 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
+// GetMaxIndexOfIssue returns the max index on issue
+func GetMaxIndexOfIssue(repoID int64) (int64, error) {
+	return getMaxIndexOfIssue(x, repoID)
+}
+
+func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
+	var (
+		maxIndex int64
+		has      bool
+		err      error
+	)
+
+	has, err = e.SQL("SELECT COALESCE((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, errors.New("Retrieve Max index from issue failed")
+	}
+	return maxIndex, nil
+}
+
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-	opts.Issue.Index = opts.Repo.NextIssueIndex()
+
+	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
+	if err != nil {
+		return err
+	}
+	opts.Issue.Index = maxIndex + 1
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
