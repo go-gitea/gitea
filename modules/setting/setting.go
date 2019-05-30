@@ -250,14 +250,16 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath      string
-	AvatarMaxWidth        int
-	AvatarMaxHeight       int
-	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
+	AvatarUploadPath           string
+	AvatarMaxWidth             int
+	AvatarMaxHeight            int
+	GravatarSource             string
+	GravatarSourceURL          *url.URL
+	DisableGravatar            bool
+	EnableFederatedAvatar      bool
+	LibravatarService          *libravatar.Libravatar
+	AvatarMaxFileSize          int64
+	RepositoryAvatarUploadPath string
 
 	// Log settings
 	LogLevel           string
@@ -835,8 +837,14 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
+	forcePathSeparator(RepositoryAvatarUploadPath)
+	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
+		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
+	}
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
