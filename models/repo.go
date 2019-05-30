@@ -282,7 +282,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
 		hasWiki = true
 	}
-	allowPullRequests := false
+	hasPullRequests := false
 	ignoreWhitespaceConflicts := false
 	allowMerge := false
 	allowRebase := false
@@ -290,7 +290,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 	allowSquash := false
 	if unit, err := repo.getUnit(e, UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
-		allowPullRequests = true
+		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
 		allowMerge = config.AllowMerge
 		allowRebase = config.AllowRebase
@@ -325,7 +325,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Permissions:               permission,
 		HasIssues:                 hasIssues,
 		HasWiki:                   hasWiki,
-		AllowPullRequests:         allowPullRequests,
+		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
 		AllowMerge:                allowMerge,
 		AllowRebase:               allowRebase,

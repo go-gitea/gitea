@@ -696,8 +696,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.AllowPullRequests != nil {
-		if *opts.AllowPullRequests {
+	if opts.HasPullRequests != nil {
+		if *opts.HasPullRequests {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.

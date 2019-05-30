@@ -7794,27 +7794,22 @@
       "type": "object",
       "properties": {
         "allow_merge_commits": {
-          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `allow_pull_requests` must be `true`.",
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
-        "allow_pull_requests": {
-          "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
-          "type": "boolean",
-          "x-go-name": "AllowPullRequests"
-        },
         "allow_rebase": {
-          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `allow_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebase"
         },
         "allow_rebase_explicit": {
-          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `allow_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
         "allow_squash_merge": {
-          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `allow_pull_requests` must be `true`.",
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowSquash"
         },
@@ -7838,13 +7833,18 @@
           "type": "boolean",
           "x-go-name": "HasIssues"
         },
+        "has_pull_requests": {
+          "description": "either `true` to allow pull requests, or `false` to prevent pull request.",
+          "type": "boolean",
+          "x-go-name": "HasPullRequests"
+        },
         "has_wiki": {
           "description": "either `true` to enable the wiki for this repository or `false` to disable it.",
           "type": "boolean",
           "x-go-name": "HasWiki"
         },
         "ignore_whitespace_conflicts": {
-          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `allow_pull_requests` must be `true`.",
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
@@ -9195,10 +9195,6 @@
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
-        "allow_pull_requests": {
-          "type": "boolean",
-          "x-go-name": "AllowPullRequests"
-        },
         "allow_rebase": {
           "type": "boolean",
           "x-go-name": "AllowRebase"
@@ -9256,6 +9252,10 @@
         "has_issues": {
           "type": "boolean",
           "x-go-name": "HasIssues"
+        },
+        "has_pull_requests": {
+          "type": "boolean",
+          "x-go-name": "HasPullRequests"
         },
         "has_wiki": {
           "type": "boolean",

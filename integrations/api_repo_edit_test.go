@@ -31,7 +31,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		hasWiki = true
 	}
 	defaultBranch := repo.DefaultBranch
-	allowPullRequests := false
+	hasPullRequests := false
 	ignoreWhitespaceConflicts := false
 	allowMerge := false
 	allowRebase := false
@@ -39,7 +39,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	allowSquash := false
 	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
-		allowPullRequests = true
+		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
 		allowMerge = config.AllowMerge
 		allowRebase = config.AllowRebase
@@ -55,7 +55,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		HasIssues:                 &hasIssues,
 		HasWiki:                   &hasWiki,
 		DefaultBranch:             &defaultBranch,
-		AllowPullRequests:         &allowPullRequests,
+		HasPullRequests:           &hasPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,
@@ -76,7 +76,7 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 	hasIssues := !*opts.HasIssues
 	hasWiki := !*opts.HasWiki
 	defaultBranch := "master"
-	allowPullRequests := !*opts.AllowPullRequests
+	hasPullRequests := !*opts.HasPullRequests
 	ignoreWhitespaceConflicts := !*opts.IgnoreWhitespaceConflicts
 	allowMerge := !*opts.AllowMerge
 	allowRebase := !*opts.AllowRebase
@@ -89,10 +89,10 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 		Description:               &description,
 		Website:                   &website,
 		Private:                   &private,
+		DefaultBranch:             &defaultBranch,
 		HasIssues:                 &hasIssues,
 		HasWiki:                   &hasWiki,
-		DefaultBranch:             &defaultBranch,
-		AllowPullRequests:         &allowPullRequests,
+		HasPullRequests:           &hasPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,

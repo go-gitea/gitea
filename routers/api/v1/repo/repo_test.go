@@ -29,7 +29,7 @@ func TestRepoEdit(t *testing.T) {
 	hasIssues := false
 	hasWiki := false
 	defaultBranch := "master"
-	allowPullRequests := true
+	hasPullRequests := true
 	ignoreWhitespaceConflicts := true
 	allowMerge := false
 	allowRebase := false
@@ -44,7 +44,7 @@ func TestRepoEdit(t *testing.T) {
 		HasIssues:                 &hasIssues,
 		HasWiki:                   &hasWiki,
 		DefaultBranch:             &defaultBranch,
-		AllowPullRequests:         &allowPullRequests,
+		HasPullRequests:           &hasPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
 		AllowMerge:                &allowMerge,
 		AllowRebase:               &allowRebase,

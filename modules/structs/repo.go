@@ -45,7 +45,7 @@ type Repository struct {
 	Permissions               *Permission `json:"permissions,omitempty"`
 	HasIssues                 bool        `json:"has_issues"`
 	HasWiki                   bool        `json:"has_wiki"`
-	AllowPullRequests         bool        `json:"allow_pull_requests"`
+	HasPullRequests           bool        `json:"has_pull_requests"`
 	IgnoreWhitespaceConflicts bool        `json:"ignore_whitespace_conflicts"`
 	AllowMerge                bool        `json:"allow_merge_commits"`
 	AllowRebase               bool        `json:"allow_rebase"`
@@ -97,16 +97,16 @@ type EditRepoOption struct {
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
-	AllowPullRequests *bool `json:"allow_pull_requests,omitempty"`
-	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `allow_pull_requests` must be `true`.
+	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
+	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
-	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `allow_pull_requests` must be `true`.
+	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
-	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `allow_pull_requests` must be `true`.
+	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.
 	AllowRebase *bool `json:"allow_rebase,omitempty"`
-	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `allow_pull_requests` must be `true`.
+	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
-	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `allow_pull_requests` must be `true`.
+	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
