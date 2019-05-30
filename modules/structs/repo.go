@@ -41,9 +41,17 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated     time.Time   `json:"updated_at"`
-	Permissions *Permission `json:"permissions,omitempty"`
-	AvatarURL   string      `json:"avatar_url"`
+	Updated                   time.Time   `json:"updated_at"`
+	Permissions               *Permission `json:"permissions,omitempty"`
+	HasIssues                 bool        `json:"has_issues"`
+	HasWiki                   bool        `json:"has_wiki"`
+	HasPullRequests           bool        `json:"has_pull_requests"`
+	IgnoreWhitespaceConflicts bool        `json:"ignore_whitespace_conflicts"`
+	AllowMerge                bool        `json:"allow_merge_commits"`
+	AllowRebase               bool        `json:"allow_rebase"`
+	AllowRebaseMerge          bool        `json:"allow_rebase_explicit"`
+	AllowSquash               bool        `json:"allow_squash_merge"`
+	AvatarURL                 string      `json:"avatar_url"`
 }
 
 // CreateRepoOption options when creating repository
@@ -71,38 +79,36 @@ type CreateRepoOption struct {
 // EditRepoOption options when editing a repository's properties
 // swagger:model
 type EditRepoOption struct {
-	// Name of the repository
-	//
-	// required: true
+	// name of the repository
 	// unique: true
-	Name *string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	// A short description of the repository.
+	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
+	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
-	// A URL with more information about the repository.
+	// a URL with more information about the repository.
 	Website *string `json:"website,omitempty" binding:"MaxSize(255)"`
-	// Either `true` to make the repository private or `false` to make it public.
-	// Note: You will get a 422 error if the organization restricts changing repository visibility to organization
+	// either `true` to make the repository private or `false` to make it public.
+	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
 	Private *bool `json:"private,omitempty"`
-	// Either `true` to enable issues for this repository or `false` to disable them.
-	EnableIssues *bool `json:"enable_issues,omitempty"`
-	// Either `true` to enable the wiki for this repository or `false` to disable it.
-	EnableWiki *bool `json:"enable_wiki,omitempty"`
-	// Updates the default branch for this repository.
+	// either `true` to enable issues for this repository or `false` to disable them.
+	HasIssues *bool `json:"has_issues,omitempty"`
+	// either `true` to enable the wiki for this repository or `false` to disable it.
+	HasWiki *bool `json:"has_wiki,omitempty"`
+	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
-	// Either `true` to allow pull requests, or `false` to prevent pull request.
-	EnablePullRequests *bool `json:"enable_pull_requests,omitempty"`
-	// Either `true` to ignore whitepace for conflicts, or `false` to not ignore whitespace. `enabled_pull_requests` must be `true`.
-	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace,omitempty"`
-	// Either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `enabled_pull_requests` must be `true`.
+	// either `true` to allow pull requests, or `false` to prevent pull request.
+	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
+	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
+	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
+	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
-	// Either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `enabled_pull_requests` must be `true`.
+	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.
 	AllowRebase *bool `json:"allow_rebase,omitempty"`
-	// Either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `enabled_pull_requests` must be `true`.
+	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
-	// Either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `enabled_pull_requests` must be `true`.
-	AllowSquashMerge *bool `json:"allow_squash_merge,omitempty"`
-	// `true` to archive this repository. Note: You cannot unarchive repositories through the API.
+	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
+	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 }
 
