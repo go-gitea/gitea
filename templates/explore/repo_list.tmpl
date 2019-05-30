@@ -2,6 +2,7 @@
 	{{range .Repos}}
 		<div class="item">
 			<div class="ui header">
+				<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				<a class="name" href="{{.Link}}">
 					{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
@@ -14,7 +15,7 @@
 					<span><i class="octicon octicon-repo-clone"></i></span>
 				{{else if .Owner}}
 					{{if .Owner.Visibility.IsPrivate}}
-			          <span class="text gold"><i class="octicon octicon-lock"></i></span>
+					<span class="text gold"><i class="octicon octicon-lock"></i></span>
 					{{end}}
 				{{end}}
 				<div class="ui right metas">
@@ -22,15 +23,17 @@
 					<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
 				</div>
 			</div>
-			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
-			{{if .Topics }}
-				<div class="ui tags">
-				{{range .Topics}}
-					{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+			<div class="description">
+				{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
+				{{if .Topics }}
+					<div class="ui tags">
+					{{range .Topics}}
+						{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+					{{end}}
+					</div>
 				{{end}}
-				</div>
-			{{end}}
-			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
+				<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
+			</div>
 		</div>
 	{{else}}
 	<div>

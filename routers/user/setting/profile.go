@@ -127,6 +127,10 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 		defer fr.Close()
 
+		if form.Avatar.Size > setting.AvatarMaxFileSize {
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+		}
+
 		data, err := ioutil.ReadAll(fr)
 		if err != nil {
 			return fmt.Errorf("ioutil.ReadAll: %v", err)

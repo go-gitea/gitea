@@ -162,8 +162,8 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(allRepUnitTypes))
-	for _, tp := range allRepUnitTypes {
+	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
 			TeamID: t.ID,
