@@ -192,7 +192,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
 }
 
-// PrepareCompareDiff render pull request preview diff page
+// PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
 	headUser *models.User,
