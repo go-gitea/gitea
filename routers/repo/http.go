@@ -340,7 +340,7 @@ var routes = []route{
 	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
 	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
 	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
-	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$`), "GET", getIdxFile},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
 // FIXME: use process module
