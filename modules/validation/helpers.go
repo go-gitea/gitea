@@ -15,6 +15,8 @@ import (
 
 var loopbackIPBlocks []*net.IPNet
 
+var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
+
 func init() {
 	for _, cidr := range []string{
 		"127.0.0.0/8", // IPv4 loopback
@@ -83,10 +85,8 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 		return false
 	}
 
-	var re = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
-
 	// check for typoed variables like /{index/ or /[repo}
-	for _, match := range re.FindAllStringSubmatch(uri, -1) {
+	for _, match := range externalTrackerRegex.FindAllStringSubmatch(uri, -1) {
 		if (match[1] == "{" || match[2] == "}") && (match[1] != "{" || match[2] != "}") {
 			return false
 		}
