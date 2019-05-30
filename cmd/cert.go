@@ -193,9 +193,5 @@ func runCert(c *cli.Context) error {
 		log.Fatalf("Failed to write key: %v", err)
 	}
 	log.Println("Written key.pem")
-	if err != nil {
-		log.Fatalf("Failed to open key.pem for writing: %v", err)
-	}
-
 	return nil
 }
