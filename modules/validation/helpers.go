@@ -78,8 +78,6 @@ func IsValidExternalURL(uri string) bool {
 }
 
 // IsValidExternalTrackerURLFormat checks if URL matches required syntax for external trackers
-// {index} is required, {user} and {repo} are optional
-
 func IsValidExternalTrackerURLFormat(uri string) bool {
 	if !IsValidExternalURL(uri) {
 		return false
