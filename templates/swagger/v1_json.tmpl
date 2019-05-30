@@ -552,6 +552,7 @@
           {
             "name": "body",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/EditOrgOption"
             }
@@ -1649,9 +1650,9 @@
             "required": true
           },
           {
-            "description": "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file",
             "name": "body",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/UpdateFileOptions"
             }
@@ -1698,9 +1699,9 @@
             "required": true
           },
           {
-            "description": "'content' must be base64 encoded\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'sha' is the SHA for the file that already exists\n\n 'new_branch' (optional) will make a new branch from 'branch' before creating the file",
             "name": "body",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/CreateFileOptions"
             }
@@ -1747,9 +1748,9 @@
             "required": true
           },
           {
-            "description": "'sha' is the SHA for the file to be deleted\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before deleting the file",
             "name": "body",
             "in": "body",
+            "required": true,
             "schema": {
               "$ref": "#/definitions/DeleteFileOptions"
             }
@@ -6935,13 +6936,17 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateFileOptions": {
-      "description": "CreateFileOptions options for creating files",
+      "description": "CreateFileOptions options for creating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
+      "required": [
+        "content"
+      ],
       "properties": {
         "author": {
           "$ref": "#/definitions/Identity"
         },
         "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -6949,14 +6954,17 @@
           "$ref": "#/definitions/Identity"
         },
         "content": {
+          "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
         },
         "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
           "type": "string",
           "x-go-name": "NewBranchName"
         }
@@ -7191,7 +7199,14 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "$ref": "#/definitions/VisibleType"
+          "description": "possible values are `public` (default), `limited` or `private`",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -7459,13 +7474,17 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DeleteFileOptions": {
-      "description": "DeleteFileOptions options for deleting files (used for other File structs below)",
+      "description": "DeleteFileOptions options for deleting files (used for other File structs below)\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
+      "required": [
+        "sha"
+      ],
       "properties": {
         "author": {
           "$ref": "#/definitions/Identity"
         },
         "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -7473,14 +7492,17 @@
           "$ref": "#/definitions/Identity"
         },
         "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
         "sha": {
+          "description": "sha is the SHA for the file that already exists",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -7702,6 +7724,16 @@
         "location": {
           "type": "string",
           "x-go-name": "Location"
+        },
+        "visibility": {
+          "description": "possible values are `public`, `limited` or `private`",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -8741,7 +8773,8 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "$ref": "#/definitions/VisibleType"
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -9537,13 +9570,18 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "UpdateFileOptions": {
-      "description": "UpdateFileOptions options for updating files",
+      "description": "UpdateFileOptions options for updating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
+      "required": [
+        "sha",
+        "content"
+      ],
       "properties": {
         "author": {
           "$ref": "#/definitions/Identity"
         },
         "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -9551,22 +9589,27 @@
           "$ref": "#/definitions/Identity"
         },
         "content": {
+          "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
         },
         "from_path": {
+          "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
           "type": "string",
           "x-go-name": "FromPath"
         },
         "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
         "sha": {
+          "description": "sha is the SHA for the file that already exists",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -9630,12 +9673,6 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/models"
-    },
-    "VisibleType": {
-      "description": "VisibleType defines the visibility (Organization only)",
-      "type": "integer",
-      "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",

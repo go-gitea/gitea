@@ -38,6 +38,7 @@ func TestUserOrgs(t *testing.T) {
 			Description: "",
 			Website:     "",
 			Location:    "",
+			Visibility:  "public",
 		},
 	}, orgs)
 }
@@ -63,6 +64,7 @@ func TestMyOrgs(t *testing.T) {
 			Description: "",
 			Website:     "",
 			Location:    "",
+			Visibility:  "public",
 		},
 	}, orgs)
 }
