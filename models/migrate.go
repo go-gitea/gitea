@@ -31,7 +31,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 	return sess.Commit()
 }
 
-// InsertIssue insert one issue to database
+// InsertIssues insert issues to database
 func InsertIssues(issues ...*Issue) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
@@ -121,7 +121,7 @@ func InsertIssueComments(comments []*Comment) error {
 	if _, err := sess.NoAutoTime().Insert(comments); err != nil {
 		return err
 	}
-	for issueID, _ := range issueIDs {
+	for issueID := range issueIDs {
 		if _, err := sess.Exec("UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func InsertIssueComments(comments []*Comment) error {
 	return sess.Commit()
 }
 
-// InsertPullRequest inserted a pull request
+// InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*PullRequest) error {
 	sess := x.NewSession()
 	defer sess.Close()

@@ -76,7 +76,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool)
 	return err
 }
 
-// CreateMilestone creates milestone
+// CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	var mss = make([]*models.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
@@ -111,7 +111,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 	return nil
 }
 
-// CreateLabel creates label
+// CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	var lbs = make([]*models.Label, 0, len(labels))
 	for _, label := range labels {
@@ -133,7 +133,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	return nil
 }
 
-// CreateRelease creates release
+// CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
@@ -201,7 +201,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	return models.InsertReleases(rels...)
 }
 
-// CreateIssue creates issue
+// CreateIssues creates issues
 func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	var iss = make([]*models.Issue, 0, len(issues))
 	for _, issue := range issues {
@@ -251,7 +251,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	return nil
 }
 
-// CreateComment creates comments of one issue
+// CreateComments creates comments of issues
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	var cms = make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
@@ -281,7 +281,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	return models.InsertIssueComments(cms)
 }
 
-// CreatePullRequest creates pull request
+// CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
 	var gprs = make([]*models.PullRequest, 0, len(prs))
 	for _, pr := range prs {
