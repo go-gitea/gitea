@@ -9,11 +9,16 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
+
+	"code.gitea.io/gitea/modules/lfs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -119,34 +124,22 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
 
+	// Switch off LFS process (set required, clean and smudge here also)
+	if err := git.NewCommand("config", "--local", "filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.process -> <> ]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v", errbuf.String())
+	}
+	if err := git.NewCommand("config", "--local", "filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v", errbuf.String())
+	}
+
 	if err := git.NewCommand("config", "--local", "core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", errbuf.String())
-	}
-
-	originLFSURL := setting.LocalURL + pr.HeadRepo.FullName() + ".git/info/lfs"
-	if err := git.NewCommand("config", "--local", "remote.origin.lfsurl", originLFSURL).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-		return fmt.Errorf("git config [remote.origin.lfsurl]: %v", errbuf.String())
-	}
-
-	originToken, err := models.GenerateLFSAuthenticationToken(doer, pr.HeadRepo, "upload")
-	if err != nil {
-		return fmt.Errorf("Failed to generate authentication token for lfs")
-	}
-	if err := git.NewCommand("config", "--local", "http."+originLFSURL+".extraheader", "Authorization: "+originToken.Header["Authorization"]).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-		return fmt.Errorf("git config [http.origin.extraheader]: %v", errbuf.String())
-	}
-
-	remoteLFSURL := setting.LocalURL + pr.BaseRepo.FullName() + ".git/info/lfs"
-	if err := git.NewCommand("config", "--local", "remote."+remoteRepoName+".lfsurl", remoteLFSURL).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-		return fmt.Errorf("git config [remote.remote.lfsurl]: %v", errbuf.String())
-	}
-
-	remoteToken, err := models.GenerateLFSAuthenticationToken(doer, pr.BaseRepo, "upload")
-	if err != nil {
-		return fmt.Errorf("Failed to generate authentication token for lfs")
-	}
-	if err := git.NewCommand("config", "--local", "http."+remoteLFSURL+".extraheader", "Authorization: "+remoteToken.Header["Authorization"]).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-		return fmt.Errorf("git config [http.remote.extraheader]: %v", errbuf.String())
 	}
 
 	// Read base branch index
@@ -217,6 +210,166 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 	default:
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+	}
+
+	if setting.LFS.StartServer {
+		// Now we have to implement git lfs pre-push
+		// git rev-list --objects --filter=blob:limit=1k HEAD --not base
+		// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
+		// ensure only blobs and <=1k size then pass in to git cat-file --batch
+		// to read each sha and check each as a pointer
+		// Then if they are lfs -> add them to the baseRepo
+		revListReader, revListWriter := io.Pipe()
+		shasToCheckReader, shasToCheckWriter := io.Pipe()
+		catFileCheckReader, catFileCheckWriter := io.Pipe()
+		shasToBatchReader, shasToBatchWriter := io.Pipe()
+		catFileBatchReader, catFileBatchWriter := io.Pipe()
+		errChan := make(chan error, 1)
+		wg := sync.WaitGroup{}
+		wg.Add(6)
+		go func() {
+			defer wg.Done()
+			defer catFileBatchReader.Close()
+
+			bufferedReader := bufio.NewReader(catFileBatchReader)
+			buf := make([]byte, 1025)
+			for {
+				// File descriptor line
+				_, err := bufferedReader.ReadString(' ')
+				if err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+				// Throw away the blob
+				if _, err := bufferedReader.ReadString(' '); err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+				sizeStr, err := bufferedReader.ReadString('\n')
+				if err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+				size, err := strconv.Atoi(sizeStr[:len(sizeStr)-1])
+				if err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+				pointerBuf := buf[:size+1]
+				if _, err := io.ReadFull(bufferedReader, pointerBuf); err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+				pointerBuf = pointerBuf[:size]
+				// now we need to check if the pointerBuf is an LFS pointer
+				pointer := lfs.IsPointerFile(&pointerBuf)
+				if pointer == nil {
+					continue
+				}
+				pointer.RepositoryID = pr.BaseRepoID
+				if _, err := models.NewLFSMetaObject(pointer); err != nil {
+					catFileBatchReader.CloseWithError(err)
+					break
+				}
+
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			defer shasToBatchReader.Close()
+			defer catFileBatchWriter.Close()
+
+			stderr := new(bytes.Buffer)
+			if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
+				shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			defer catFileCheckReader.Close()
+
+			scanner := bufio.NewScanner(catFileCheckReader)
+			defer shasToBatchWriter.CloseWithError(scanner.Err())
+			for scanner.Scan() {
+				line := scanner.Text()
+				if len(line) == 0 {
+					continue
+				}
+				fields := strings.Split(line, " ")
+				if len(fields) < 3 || fields[1] != "blob" {
+					continue
+				}
+				size, _ := strconv.Atoi(string(fields[2]))
+				if size > 1024 {
+					continue
+				}
+				toWrite := []byte(fields[0] + "\n")
+				for len(toWrite) > 0 {
+					n, err := shasToBatchWriter.Write(toWrite)
+					if err != nil {
+						catFileCheckReader.CloseWithError(err)
+						break
+					}
+					toWrite = toWrite[n:]
+				}
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			defer shasToCheckReader.Close()
+			defer catFileCheckWriter.Close()
+
+			stderr := new(bytes.Buffer)
+			cmd := git.NewCommand("cat-file", "--batch-check")
+			if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
+				shasToCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			defer revListReader.Close()
+			defer shasToCheckWriter.Close()
+			scanner := bufio.NewScanner(revListReader)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if len(line) == 0 {
+					continue
+				}
+				fields := strings.Split(line, " ")
+				if len(fields) < 2 || len(fields[1]) == 0 {
+					continue
+				}
+				toWrite := []byte(fields[0] + "\n")
+				for len(toWrite) > 0 {
+					n, err := shasToCheckWriter.Write(toWrite)
+					if err != nil {
+						revListReader.CloseWithError(err)
+						break
+					}
+					toWrite = toWrite[n:]
+				}
+			}
+			shasToCheckWriter.CloseWithError(scanner.Err())
+		}()
+		go func() {
+			defer wg.Done()
+			defer revListWriter.Close()
+			stderr := new(bytes.Buffer)
+			cmd := git.NewCommand("rev-list", "--objects", "--filter=blob:limit=1k", "HEAD", "--not", "origin/"+pr.BaseBranch)
+			if err := cmd.RunInDirPipeline(tmpBasePath, revListWriter, stderr); err != nil {
+				log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+				errChan <- fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
+		}()
+
+		wg.Wait()
+		select {
+		case err, has := <-errChan:
+			if has {
+				return err
+			}
+		default:
+		}
 	}
 
 	env := models.PushingEnvironment(doer, pr.BaseRepo)
