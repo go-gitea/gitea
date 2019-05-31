@@ -22,8 +22,9 @@ import (
 	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 const minDBVersion = 4

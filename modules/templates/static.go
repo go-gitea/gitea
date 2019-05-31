@@ -15,8 +15,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 	"github.com/Unknwon/com"
 	"gopkg.in/macaron.v1"
 )

@@ -11,9 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/log"
 )
 
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.

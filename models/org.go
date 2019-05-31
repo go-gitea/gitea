@@ -11,8 +11,9 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/log"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"

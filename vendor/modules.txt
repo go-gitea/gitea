@@ -1,8 +1,6 @@
 # code.gitea.io/log v0.0.0-20190608101221-52ddba89623c
 code.gitea.io/log
-# gitea.com/gitea/log v0.0.0-20190515030314-0a66fbccccb4
-gitea.com/gitea/log
-# gitea.com/xorm/gitea_log_bridge v0.0.0-20190515055409-ff68dd741ee6
+# gitea.com/xorm/gitea_log_bridge v0.0.0-20190527041858-1699849c7e28
 gitea.com/xorm/gitea_log_bridge
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml

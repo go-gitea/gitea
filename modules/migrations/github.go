@@ -12,8 +12,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/log"
 
 	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"

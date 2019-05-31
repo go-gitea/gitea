@@ -12,8 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 )
 
 func hashAppToken(x *xorm.Engine) error {

@@ -7,7 +7,7 @@ package bridge
 import (
 	"strings"
 
-	"gitea.com/gitea/log"
+	"code.gitea.io/log"
 	"github.com/go-xorm/core"
 )
 

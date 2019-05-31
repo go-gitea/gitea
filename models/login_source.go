@@ -21,8 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 )
 
 // LoginType represents an login type.

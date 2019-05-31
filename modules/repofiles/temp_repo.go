@@ -17,9 +17,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone

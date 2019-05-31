@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	code.gitea.io/log v0.0.0-20190608101221-52ddba89623c
-	gitea.com/xorm/gitea_log_bridge v0.0.0-20190515055409-ff68dd741ee6
+	gitea.com/xorm/gitea_log_bridge v0.0.0-20190527041858-1699849c7e28
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect

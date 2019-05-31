@@ -18,8 +18,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"

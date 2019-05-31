@@ -20,9 +20,10 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.

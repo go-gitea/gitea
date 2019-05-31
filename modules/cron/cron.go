@@ -10,8 +10,9 @@ import (
 	"github.com/gogits/cron"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 var c = cron.New()

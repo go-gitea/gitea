@@ -7,7 +7,6 @@ package user
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/go-macaron/binding"
 	"net/url"
 	"strings"
 
@@ -15,11 +14,12 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-macaron/binding"
 )
 
 const (

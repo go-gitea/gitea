@@ -11,8 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 func renderAttachmentSettings(ctx *context.Context) {

@@ -20,9 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/log"
 )
 
 const (

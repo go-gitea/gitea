@@ -13,8 +13,9 @@ import (
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 )
 
 // env keys for git hooks need

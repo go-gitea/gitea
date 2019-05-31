@@ -13,8 +13,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/cmd"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 
 	// register supported doc types
 	_ "code.gitea.io/gitea/modules/markup/csv"

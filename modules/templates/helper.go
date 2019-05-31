@@ -24,9 +24,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"

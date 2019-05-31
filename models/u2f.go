@@ -5,8 +5,9 @@
 package models
 
 import (
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 
 	"github.com/tstranex/u2f"
 )

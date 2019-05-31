@@ -9,8 +9,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/log"
 )
 
 // MigrateOptions is equal to base.MigrateOptions

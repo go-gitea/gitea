@@ -10,8 +10,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/log"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required

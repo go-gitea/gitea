@@ -17,9 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/log"
 )
 
 // IdentityOptions for a person's identity like an author or committer

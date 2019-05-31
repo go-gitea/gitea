@@ -23,9 +23,10 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/log"
+
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/log"
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"

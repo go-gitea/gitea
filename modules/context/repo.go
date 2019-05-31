@@ -15,8 +15,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 
 	"github.com/Unknwon/com"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"

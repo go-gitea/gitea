@@ -1,5 +1,5 @@
-gitea.com/gitea/log v0.0.0-20190515030314-0a66fbccccb4 h1:y9Ep7Fhwz3D7mko8XRwbpGahnZNaPkJ43Qg/d6Ss9EU=
-gitea.com/gitea/log v0.0.0-20190515030314-0a66fbccccb4/go.mod h1:1nV03yHcYc8sGKHpWDe++gxd7yoMDdNOWhIhuykDSnI=
+code.gitea.io/log v0.0.0-20190526010349-0560851a166a h1:c1wd1bb9rP28jMyXa0X19yrnX0Ux/zoOlv4j/fhwi8Y=
+code.gitea.io/log v0.0.0-20190526010349-0560851a166a/go.mod h1:YOBHMQw/14CwuwNStgQyvnzoDJEO6ARjcSdD48QRzhM=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-sql-driver/mysql v1.4.1 h1:g24URVg0OFbNUTx9qqY1IRZ9D9z3iPyi5zKhQZpNwpA=

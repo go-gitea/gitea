@@ -11,11 +11,12 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 	"gopkg.in/gomail.v2"
 )
 

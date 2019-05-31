@@ -7,8 +7,9 @@ package indexer
 import (
 	"code.gitea.io/gitea/models"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/log"
 )
 
 type indexerNotifier struct {

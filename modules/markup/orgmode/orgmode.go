@@ -5,9 +5,10 @@
 package markup
 
 import (
-	"code.gitea.io/log"
+
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/log"
 
 	"github.com/chaseadamsio/goorgeous"
 	"github.com/russross/blackfriday"
