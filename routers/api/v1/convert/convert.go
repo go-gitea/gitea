@@ -27,11 +27,12 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 	}
 }
 
-// ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
+// ToBranch convert a commit and branch to an api.Branch
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, protected bool) *api.Branch {
 	return &api.Branch{
-		Name:   b.Name,
-		Commit: ToCommit(repo, c),
+		Name:      b.Name,
+		Commit:    ToCommit(repo, c),
+		Protected: protected,
 	}
 }
 

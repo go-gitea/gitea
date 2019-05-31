@@ -6,6 +6,7 @@ package structs
 
 // Branch represents a repository branch
 type Branch struct {
-	Name   string         `json:"name"`
-	Commit *PayloadCommit `json:"commit"`
+	Name      string         `json:"name"`
+	Commit    *PayloadCommit `json:"commit"`
+	Protected bool           `json:"protected"`
 }

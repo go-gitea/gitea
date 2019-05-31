@@ -87,6 +87,9 @@ type swaggerParameterBodies struct {
 	CreateForkOption api.CreateForkOption
 
 	// in:body
+	ProtectBranchForm auth.ProtectBranchForm
+
+	// in:body
 	CreateStatusOption api.CreateStatusOption
 
 	// in:body
