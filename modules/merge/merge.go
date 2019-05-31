@@ -355,7 +355,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			defer wg.Done()
 			defer revListWriter.Close()
 			stderr := new(bytes.Buffer)
-			cmd := git.NewCommand("rev-list", "--objects", "--filter=blob:limit=1k", "HEAD", "--not", "origin/"+pr.BaseBranch)
+			cmd := git.NewCommand("rev-list", "--objects", "HEAD", "--not", "origin/"+pr.BaseBranch)
 			if err := cmd.RunInDirPipeline(tmpBasePath, revListWriter, stderr); err != nil {
 				log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 				errChan <- fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
