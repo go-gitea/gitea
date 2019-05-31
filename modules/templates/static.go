@@ -216,7 +216,7 @@ func Asset(name string) ([]byte, error) {
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	var results = make([]string, 0, len(realFS))
-	for k, _ := range realFS {
+	for k := range realFS {
 		results = append(results, k[1:])
 	}
 	return results
