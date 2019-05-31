@@ -2505,15 +2505,15 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 	}
 	defer fw.Close()
 
+	if err = png.Encode(fw, img); err != nil {
+		return fmt.Errorf("Encode: %v", err)
+	}
+	log.Info("New random avatar created for repository: %d", repo.ID)
+	
 	if _, err := e.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return err
 	}
 
-	if err = png.Encode(fw, img); err != nil {
-		return fmt.Errorf("Encode: %v", err)
-	}
-
-	log.Info("New random avatar created for repository: %d", repo.ID)
 	return nil
 }
 
