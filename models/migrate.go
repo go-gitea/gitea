@@ -102,7 +102,7 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 	return nil
 }
 
-// InsertIssueComments inserts many comments of one issue.
+// InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(comments []*Comment) error {
 	if len(comments) == 0 {
 		return nil
