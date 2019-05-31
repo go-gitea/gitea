@@ -132,8 +132,8 @@ type RepositoryStatus int
 
 // all kinds of RepositoryStatus
 const (
-	RepositoryCreated  RepositoryStatus = iota // a normal repository
-	RepositoryCreating                         // repository is migrating or forking
+	RepositoryReady         RepositoryStatus = iota // a normal repository
+	RepositoryBeingMigrated                         // repository is migrating
 )
 
 // Repository represents a git repository.
@@ -207,9 +207,14 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 		repo.Name)
 }
 
-// IsCreating indicates that repository is creating
-func (repo *Repository) IsCreating() bool {
-	return repo.Status == RepositoryCreating
+// IsBeingMigrated indicates that repository is being migtated
+func (repo *Repository) IsBeingMigrated() bool {
+	return repo.Status == RepositoryBeingMigrated
+}
+
+// IsBeingCreated indicates that repository is being migtated or forked
+func (repo *Repository) IsBeingCreated() bool {
+	return repo.IsBeingMigrated()
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -945,7 +950,7 @@ func MigrateRepository(doer, u *User, opts structs.MigrateRepoOptions) (*Reposit
 		OriginalURL: opts.OriginalURL,
 		IsPrivate:   opts.IsPrivate,
 		IsMirror:    opts.IsMirror,
-		Status:      RepositoryCreating,
+		Status:      RepositoryBeingMigrated,
 	})
 	if err != nil {
 		return nil, err

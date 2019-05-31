@@ -198,7 +198,7 @@ func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
-		Status:      RepositoryCreating,
+		Status:      RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()
@@ -230,7 +230,7 @@ func FinishMigrateTask(task *Task) error {
 	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
 		return err
 	}
-	task.Repo.Status = RepositoryCreated
+	task.Repo.Status = RepositoryBeingMigrated
 	if _, err := sess.ID(task.RepoID).Cols("status").Update(task.Repo); err != nil {
 		return err
 	}

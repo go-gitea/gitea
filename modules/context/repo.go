@@ -415,7 +415,7 @@ func RepoAssignment() macaron.Handler {
 		}
 
 		// repo is empty and display enable
-		if ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsCreating() {
+		if ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBeingCreated() {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
