@@ -76,8 +76,8 @@ func (c *Commit) Tree() (*Tree, error) {
 	return GetTree(c.s, c.TreeHash)
 }
 
-// Patch returns the Patch between the actual commit and the provided one.
-// Error will be return if context expires. Provided context must be non-nil
+// PatchContext returns the Patch between the actual commit and the provided one.
+// Error will be return if context expires. Provided context must be non-nil.
 func (c *Commit) PatchContext(ctx context.Context, to *Commit) (*Patch, error) {
 	fromTree, err := c.Tree()
 	if err != nil {
@@ -291,25 +291,33 @@ func (b *Commit) encode(o plumbing.EncodedObject, includeSig bool) (err error) {
 	return err
 }
 
-// Stats shows the status of commit.
+// Stats returns the stats of a commit.
 func (c *Commit) Stats() (FileStats, error) {
-	// Get the previous commit.
-	ci := c.Parents()
-	parentCommit, err := ci.Next()
+	return c.StatsContext(context.Background())
+}
+
+// StatsContext returns the stats of a commit. Error will be return if context
+// expires. Provided context must be non-nil.
+func (c *Commit) StatsContext(ctx context.Context) (FileStats, error) {
+	fromTree, err := c.Tree()
 	if err != nil {
-		if err == io.EOF {
-			emptyNoder := treeNoder{}
-			parentCommit = &Commit{
-				Hash: emptyNoder.hash,
-				// TreeHash: emptyNoder.parent.Hash,
-				s: c.s,
-			}
-		} else {
+		return nil, err
+	}
+
+	toTree := &Tree{}
+	if c.NumParents() != 0 {
+		firstParent, err := c.Parents().Next()
+		if err != nil {
+			return nil, err
+		}
+
+		toTree, err = firstParent.Tree()
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	patch, err := parentCommit.Patch(c)
+	patch, err := toTree.PatchContext(ctx, fromTree)
 	if err != nil {
 		return nil, err
 	}

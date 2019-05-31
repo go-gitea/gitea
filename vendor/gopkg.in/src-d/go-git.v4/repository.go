@@ -49,6 +49,7 @@ var (
 	ErrRepositoryAlreadyExists   = errors.New("repository already exists")
 	ErrRemoteNotFound            = errors.New("remote not found")
 	ErrRemoteExists              = errors.New("remote already exists")
+	ErrAnonymousRemoteName       = errors.New("anonymous remote name must be 'anonymous'")
 	ErrWorktreeNotProvided       = errors.New("worktree should be provided")
 	ErrIsBareRepository          = errors.New("worktree not available in a bare repository")
 	ErrUnableToResolveCommit     = errors.New("unable to resolve commit")
@@ -490,6 +491,22 @@ func (r *Repository) CreateRemote(c *config.RemoteConfig) (*Remote, error) {
 
 	cfg.Remotes[c.Name] = c
 	return remote, r.Storer.SetConfig(cfg)
+}
+
+// CreateRemoteAnonymous creates a new anonymous remote. c.Name must be "anonymous".
+// It's used like 'git fetch git@github.com:src-d/go-git.git master:master'.
+func (r *Repository) CreateRemoteAnonymous(c *config.RemoteConfig) (*Remote, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+
+	if c.Name != "anonymous" {
+		return nil, ErrAnonymousRemoteName
+	}
+
+	remote := newRemote(r.Storer, c)
+
+	return remote, nil
 }
 
 // DeleteRemote delete a remote from the repository and delete the config
