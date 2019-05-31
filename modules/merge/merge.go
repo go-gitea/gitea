@@ -18,11 +18,10 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/lfs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
