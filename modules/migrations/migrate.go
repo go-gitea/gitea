@@ -76,6 +76,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
+	if opts.Description != "" {
+		repo.Description = opts.Description
+	}
 	log.Trace("migrating git data")
 	if err := uploader.CreateRepo(repo, opts.Wiki); err != nil {
 		return err
@@ -125,8 +128,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
-		for {
-			issues, err := downloader.GetIssues(0, 100)
+		for i := 1; ; i++ {
+			issues, isEnd, err := downloader.GetIssues(i, 100)
 			if err != nil {
 				return err
 			}
@@ -157,7 +160,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(issues) < 100 {
+			if isEnd {
 				break
 			}
 		}
@@ -165,8 +168,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
-		for {
-			prs, err := downloader.GetPullRequests(0, 100)
+		for i := 1; ; i++ {
+			prs, err := downloader.GetPullRequests(i, 100)
 			if err != nil {
 				return err
 			}

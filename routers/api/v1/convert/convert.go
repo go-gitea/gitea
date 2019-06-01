@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 )
@@ -213,6 +213,7 @@ func ToOrganization(org *models.User) *api.Organization {
 		Description: org.Description,
 		Website:     org.Website,
 		Location:    org.Location,
+		Visibility:  org.Visibility.String(),
 	}
 }
 
