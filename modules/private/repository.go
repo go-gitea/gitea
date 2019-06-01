@@ -10,7 +10,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
-	log "code.gitea.io/gitea/modules/git_log"
+	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
 )
 

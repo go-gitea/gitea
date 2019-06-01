@@ -7,7 +7,7 @@ package private
 import (
 	"fmt"
 
-	log "code.gitea.io/gitea/modules/git_log"
+	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
 )
 
