@@ -9,15 +9,15 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 // PushUpdate update publick key updates
 func PushUpdate(opt models.PushUpdateOptions) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + "api/internal/push/update"
-	log.GitLogger.Trace("PushUpdate: %s", reqURL)
+	log.Trace("PushUpdate: %s", reqURL)
 
 	body, err := json.Marshal(&opt)
 	if err != nil {

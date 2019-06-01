@@ -7,15 +7,15 @@ package private
 import (
 	"fmt"
 
-	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 // InitWiki initwiki via repo id
 func InitWiki(repoID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/wiki/init", repoID)
-	log.GitLogger.Trace("InitWiki: %s", reqURL)
+	log.Trace("InitWiki: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {

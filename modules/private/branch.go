@@ -9,16 +9,16 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/log"
 )
 
 // GetProtectedBranchBy get protected branch information
 func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBranch, error) {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/branch/%d/%s", repoID, util.PathEscapeSegments(branchName))
-	log.GitLogger.Trace("GetProtectedBranchBy: %s", reqURL)
+	log.Trace("GetProtectedBranchBy: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
@@ -44,7 +44,7 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBra
 func CanUserPush(protectedBranchID, userID int64) (bool, error) {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/protectedbranch/%d/%d", protectedBranchID, userID)
-	log.GitLogger.Trace("CanUserPush: %s", reqURL)
+	log.Trace("CanUserPush: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {

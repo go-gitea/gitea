@@ -10,14 +10,14 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
-	log "code.gitea.io/gitea/modules/gitlog"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 )
 
 // GetRepository return the repository by its ID and a bool about if it's allowed to have PR
 func GetRepository(repoID int64) (*models.Repository, bool, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repository/%d", repoID)
-	log.GitLogger.Trace("GetRepository: %s", reqURL)
+	log.Trace("GetRepository: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
@@ -45,7 +45,7 @@ func GetRepository(repoID int64) (*models.Repository, bool, error) {
 // ActivePullRequest returns an active pull request if it exists
 func ActivePullRequest(baseRepoID int64, headRepoID int64, baseBranch, headBranch string) (*models.PullRequest, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/active-pull-request?baseRepoID=%d&headRepoID=%d&baseBranch=%s&headBranch=%s", baseRepoID, headRepoID, url.QueryEscape(baseBranch), url.QueryEscape(headBranch))
-	log.GitLogger.Trace("ActivePullRequest: %s", reqURL)
+	log.Trace("ActivePullRequest: %s", reqURL)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
