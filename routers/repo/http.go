@@ -351,7 +351,7 @@ func gitCommand(dir string, args ...string) []byte {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, out))
+		log.Error("%v - %s", err, out)
 	}
 	return out
 }
@@ -409,7 +409,7 @@ func serviceRPC(h serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.GitLogger.Error("Fail to create gzip reader: %v", err)
+			log.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -428,7 +428,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
 		return
 	}
 }
@@ -541,7 +541,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
-					log.GitLogger.Error(err.Error())
+					log.Error(err.Error())
 					ctx.NotFound("HTTPBackend", err)
 					return
 				}
