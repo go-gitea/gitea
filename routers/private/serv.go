@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/log"
 
 	macaron "gopkg.in/macaron.v1"
 )
