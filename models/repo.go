@@ -2510,7 +2510,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 	}
 	log.Info("New random avatar created for repository: %d", repo.ID)
 
-	if _, err := e.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
 		return err
 	}
 
