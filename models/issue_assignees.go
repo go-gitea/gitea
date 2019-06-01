@@ -7,9 +7,9 @@ package models
 import (
 	"fmt"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/log"
 
-	api "code.gitea.io/gitea/modules/structs"
 	"github.com/go-xorm/xorm"
 )
 
