@@ -97,10 +97,7 @@ vet:
 
 .PHONY: generate
 generate:
-	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/jteeuwen/go-bindata/go-bindata; \
-	fi
-	$(GO) generate $(PACKAGES)
+	GO111MODULE=on $(GO) generate $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
