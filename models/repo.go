@@ -2528,17 +2528,78 @@ func (repo *Repository) CustomAvatarPath() string {
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
 }
 
-// RelAvatarLink returns a relative link to the user's avatar.
-// The link a sub-URL to this site
-// Since Gravatar support not needed here - just check for image path.
+// GenerateRandomAvatar generates a random avatar for repository.
+func (repo *Repository) GenerateRandomAvatar() error {
+	return repo.generateRandomAvatar(x)
+}
+
+func (repo *Repository) generateRandomAvatar(e Engine) error {
+	idToString := fmt.Sprintf("%d", repo.ID)
+
+	seed := idToString
+	img, err := avatar.RandomImage([]byte(seed))
+	if err != nil {
+		return fmt.Errorf("RandomImage: %v", err)
+	}
+
+	repo.Avatar = idToString
+	if err = os.MkdirAll(filepath.Dir(repo.CustomAvatarPath()), os.ModePerm); err != nil {
+		return fmt.Errorf("MkdirAll: %v", err)
+	}
+	fw, err := os.Create(repo.CustomAvatarPath())
+	if err != nil {
+		return fmt.Errorf("Create: %v", err)
+	}
+	defer fw.Close()
+
+	if err = png.Encode(fw, img); err != nil {
+		return fmt.Errorf("Encode: %v", err)
+	}
+	log.Info("New random avatar created for repository: %d", repo.ID)
+
+	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
+func RemoveRandomAvatars() error {
+	var (
+		err error
+	)
+	err = x.
+		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repository := bean.(*Repository)
+				stringifiedID := strconv.FormatInt(repository.ID, 10)
+				if repository.Avatar == stringifiedID {
+					return repository.DeleteAvatar()
+				}
+				return nil
+			})
+	return err
+}
+
+// RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
+
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
-	if len(avatarPath) <= 0 {
-		return ""
-	}
-	if !com.IsFile(avatarPath) {
-		return ""
+	if len(avatarPath) <= 0 || !com.IsFile(avatarPath) {
+		switch mode := setting.RepositoryAvatarFallback; mode {
+		case "image":
+			return setting.RepositoryAvatarFallbackImage
+		case "random":
+			if err := repo.GenerateRandomAvatar(); err != nil {
+				log.Error("GenerateRandomAvatar: %v", err)
+			}
+		default:
+			// default behaviour: do not display avatar
+			return ""
+		}
 	}
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
