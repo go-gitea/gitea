@@ -96,7 +96,7 @@ func runHookPreReceive(c *cli.Context) error {
 				UserID:                          userID,
 				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
-				ProtectedBranchPRID:             prID,
+				ProtectedBranchID:               prID,
 			})
 			switch statusCode {
 			case http.StatusInternalServerError:
