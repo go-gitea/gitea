@@ -587,15 +587,14 @@ function initInstall() {
         var tidbDefault = 'data/gitea_tidb';
 
         var dbType = $(this).val();
-        if (dbType === "SQLite3" || dbType === "TiDB") {
+        if (dbType === "SQLite3") {
             $('#sql_settings').hide();
             $('#pgsql_settings').hide();
+            $('#mysql_settings').hide();
             $('#sqlite_settings').show();
 
             if (dbType === "SQLite3" && $('#db_path').val() == tidbDefault) {
                 $('#db_path').val(sqliteDefault);
-            } else if (dbType === "TiDB" && $('#db_path').val() == sqliteDefault) {
-                $('#db_path').val(tidbDefault);
             }
             return;
         }
@@ -610,6 +609,7 @@ function initInstall() {
         $('#sql_settings').show();
 
         $('#pgsql_settings').toggle(dbType === "PostgreSQL");
+        $('#mysql_settings').toggle(dbType === "MySQL");
         $.each(dbDefaults, function(_type, defaultHost) {
             if ($('#db_host').val() == defaultHost) {
                 $('#db_host').val(dbDefaults[dbType]);
@@ -1048,6 +1048,10 @@ function initPullRequestReview() {
             $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
         });
     $('.add-code-comment').on('click', function(e) {
+        // https://github.com/go-gitea/gitea/issues/4745
+        if ($(e.target).hasClass('btn-add-single')) {
+          return;
+        }
         e.preventDefault();
         var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
         var side = $(this).data('side');

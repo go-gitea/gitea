@@ -68,10 +68,10 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool)
 		IsPrivate:   repo.IsPrivate,
 		Wiki:        includeWiki,
 	})
+	g.repo = r
 	if err != nil {
 		return err
 	}
-	g.repo = r
 	g.gitRepo, err = git.OpenRepository(r.RepoPath())
 	return err
 }
