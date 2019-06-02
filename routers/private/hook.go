@@ -91,7 +91,7 @@ func HookPreReceive(ctx *macaron.Context) {
 			if err != nil {
 				log.Error("Unable to get PullRequest %d Error: %v", prID, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", prID, err)
+					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", prID, err),
 				})
 				return
 			}
