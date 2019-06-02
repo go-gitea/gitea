@@ -5,9 +5,7 @@
 package log
 
 import (
-	"fmt"
 	"os"
-	"path"
 	"runtime"
 	"strings"
 )
@@ -17,9 +15,7 @@ var (
 	DEFAULT = "default"
 	// NamedLoggers map of named loggers
 	NamedLoggers = make(map[string]*Logger)
-	// GitLogger logger for git
-	GitLogger *Logger
-	prefix    string
+	prefix       string
 )
 
 // NewLogger create a logger for the default logger
@@ -70,19 +66,6 @@ func GetLogger(name string) *Logger {
 		return logger
 	}
 	return NamedLoggers[DEFAULT]
-}
-
-// NewGitLogger create a logger for git
-// FIXME: use same log level as other loggers.
-func NewGitLogger(logPath string) {
-	path := path.Dir(logPath)
-
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		Fatal("Failed to create dir %s: %v", path, err)
-	}
-
-	GitLogger = newLogger("git", 0)
-	GitLogger.SetLogger("file", "file", fmt.Sprintf(`{"level":"TRACE","filename":"%s","rotate":true,"maxsize":%d,"daily":true,"maxdays":7,"compress":true,"compressionLevel":-1, "stacktraceLevel":"NONE"}`, logPath, 1<<28))
 }
 
 // GetLevel returns the minimum logger level

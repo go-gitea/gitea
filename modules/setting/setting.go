@@ -250,16 +250,18 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath           string
-	AvatarMaxWidth             int
-	AvatarMaxHeight            int
-	GravatarSource             string
-	GravatarSourceURL          *url.URL
-	DisableGravatar            bool
-	EnableFederatedAvatar      bool
-	LibravatarService          *libravatar.Libravatar
-	AvatarMaxFileSize          int64
-	RepositoryAvatarUploadPath string
+	AvatarUploadPath              string
+	AvatarMaxWidth                int
+	AvatarMaxHeight               int
+	GravatarSource                string
+	GravatarSourceURL             *url.URL
+	DisableGravatar               bool
+	EnableFederatedAvatar         bool
+	LibravatarService             *libravatar.Libravatar
+	AvatarMaxFileSize             int64
+	RepositoryAvatarUploadPath    string
+	RepositoryAvatarFallback      string
+	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -842,6 +844,8 @@ func NewContext() {
 	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
 		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
 	}
+	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
+	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
