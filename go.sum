@@ -380,8 +380,8 @@ gopkg.in/src-d/go-billy.v4 v4.3.0 h1:KtlZ4c1OWbIs4jCv5ZXrTqG8EQocr0g/d4DjNg70aek
 gopkg.in/src-d/go-billy.v4 v4.3.0/go.mod h1:tm33zBoOwxjYHZIE+OV8bxTWFMJLrconzFMd38aARFk=
 gopkg.in/src-d/go-git-fixtures.v3 v3.1.1 h1:XWW/s5W18RaJpmo1l0IYGqXKuJITWRFuA45iOf1dKJs=
 gopkg.in/src-d/go-git-fixtures.v3 v3.1.1/go.mod h1:dLBcvytrw/TYZsNTWCnkNF2DSIlzWYqTe3rJR56Ac7g=
-gopkg.in/src-d/go-git.v4 v4.10.0 h1:NWjTJTQnk8UpIGlssuefyDZ6JruEjo5s88vm88uASbw=
-gopkg.in/src-d/go-git.v4 v4.10.0/go.mod h1:Vtut8izDyrM8BUVQnzJ+YvmNcem2J89EmfZYCkLokZk=
+gopkg.in/src-d/go-git.v4 v4.11.0 h1:cJwWgJ0DXifrNrXM6RGN1Y2yR60Rr1zQ9Q5DX5S9qgU=
+gopkg.in/src-d/go-git.v4 v4.11.0/go.mod h1:Vtut8izDyrM8BUVQnzJ+YvmNcem2J89EmfZYCkLokZk=
 gopkg.in/stretchr/testify.v1 v1.2.2 h1:yhQC6Uy5CqibAIlk1wlusa/MJ3iAN49/BsR/dCCKz3M=
 gopkg.in/stretchr/testify.v1 v1.2.2/go.mod h1:QI5V/q6UbPmuhtm10CaFZxED9NreB8PnFYN9JcR6TxU=
 gopkg.in/testfixtures.v2 v2.5.0 h1:N08B7l2GzFQenyYbzqthDnKAA+cmb17iAZhhFxr7JHw=

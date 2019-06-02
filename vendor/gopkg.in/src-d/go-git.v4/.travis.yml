@@ -1,8 +1,8 @@
 language: go
 
 go:
-  - "1.10"
   - "1.11"
+  - "1.12"
 
 go_import_path: gopkg.in/src-d/go-git.v4
 

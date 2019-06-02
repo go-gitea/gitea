@@ -166,9 +166,11 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, releases[len(releases)-1:])
 
 	// downloader.GetIssues()
-	issues, err := downloader.GetIssues(0, 3)
+	issues, isEnd, err := downloader.GetIssues(1, 8)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(issues))
+	assert.False(t, isEnd)
+
 	var (
 		closed1 = time.Date(2018, 10, 23, 02, 57, 43, 0, time.UTC)
 	)
@@ -319,7 +321,7 @@ something like in the latest 15days could be enough don't you think ?
 	}, comments[:3])
 
 	// downloader.GetPullRequests()
-	prs, err := downloader.GetPullRequests(0, 3)
+	prs, err := downloader.GetPullRequests(1, 3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(prs))
 
