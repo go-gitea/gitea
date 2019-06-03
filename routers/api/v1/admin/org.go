@@ -45,6 +45,11 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		return
 	}
 
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+
 	org := &models.User{
 		Name:        form.UserName,
 		FullName:    form.FullName,
@@ -53,7 +58,9 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		Location:    form.Location,
 		IsActive:    true,
 		Type:        models.UserTypeOrganization,
+		Visibility:  visibility,
 	}
+
 	if err := models.CreateOrganization(org, u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||

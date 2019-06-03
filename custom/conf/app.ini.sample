@@ -505,6 +505,10 @@ SESSION_LIFE_TIME = 86400
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
 REPOSITORY_AVATAR_UPLOAD_PATH = data/repo-avatars
+; How Gitea deals with missing repository avatars
+; none = no avatar will be displayed; random = random avatar will be displayed; image = default image will be used
+REPOSITORY_AVATAR_FALLBACK = none
+REPOSITORY_AVATAR_FALLBACK_IMAGE = /img/repo_default.png
 ; Max Width and Height of uploaded avatars.
 ; This is to limit the amount of RAM used when resizing the image.
 AVATAR_MAX_WIDTH = 4096

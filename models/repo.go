@@ -274,32 +274,64 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
+	hasIssues := false
+	if _, err := repo.getUnit(e, UnitTypeIssues); err == nil {
+		hasIssues = true
+	}
+	hasWiki := false
+	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
+		hasWiki = true
+	}
+	hasPullRequests := false
+	ignoreWhitespaceConflicts := false
+	allowMerge := false
+	allowRebase := false
+	allowRebaseMerge := false
+	allowSquash := false
+	if unit, err := repo.getUnit(e, UnitTypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		hasPullRequests = true
+		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
+		allowMerge = config.AllowMerge
+		allowRebase = config.AllowRebase
+		allowRebaseMerge = config.AllowRebaseMerge
+		allowSquash = config.AllowSquash
+	}
+
 	return &api.Repository{
-		ID:            repo.ID,
-		Owner:         repo.Owner.APIFormat(),
-		Name:          repo.Name,
-		FullName:      repo.FullName(),
-		Description:   repo.Description,
-		Private:       repo.IsPrivate,
-		Empty:         repo.IsEmpty,
-		Archived:      repo.IsArchived,
-		Size:          int(repo.Size / 1024),
-		Fork:          repo.IsFork,
-		Parent:        parent,
-		Mirror:        repo.IsMirror,
-		HTMLURL:       repo.HTMLURL(),
-		SSHURL:        cloneLink.SSH,
-		CloneURL:      cloneLink.HTTPS,
-		Website:       repo.Website,
-		Stars:         repo.NumStars,
-		Forks:         repo.NumForks,
-		Watchers:      repo.NumWatches,
-		OpenIssues:    repo.NumOpenIssues,
-		DefaultBranch: repo.DefaultBranch,
-		Created:       repo.CreatedUnix.AsTime(),
-		Updated:       repo.UpdatedUnix.AsTime(),
-		Permissions:   permission,
-		AvatarURL:     repo.AvatarLink(),
+		ID:                        repo.ID,
+		Owner:                     repo.Owner.APIFormat(),
+		Name:                      repo.Name,
+		FullName:                  repo.FullName(),
+		Description:               repo.Description,
+		Private:                   repo.IsPrivate,
+		Empty:                     repo.IsEmpty,
+		Archived:                  repo.IsArchived,
+		Size:                      int(repo.Size / 1024),
+		Fork:                      repo.IsFork,
+		Parent:                    parent,
+		Mirror:                    repo.IsMirror,
+		HTMLURL:                   repo.HTMLURL(),
+		SSHURL:                    cloneLink.SSH,
+		CloneURL:                  cloneLink.HTTPS,
+		Website:                   repo.Website,
+		Stars:                     repo.NumStars,
+		Forks:                     repo.NumForks,
+		Watchers:                  repo.NumWatches,
+		OpenIssues:                repo.NumOpenIssues,
+		DefaultBranch:             repo.DefaultBranch,
+		Created:                   repo.CreatedUnix.AsTime(),
+		Updated:                   repo.UpdatedUnix.AsTime(),
+		Permissions:               permission,
+		HasIssues:                 hasIssues,
+		HasWiki:                   hasWiki,
+		HasPullRequests:           hasPullRequests,
+		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
+		AllowMerge:                allowMerge,
+		AllowRebase:               allowRebase,
+		AllowRebaseMerge:          allowRebaseMerge,
+		AllowSquash:               allowSquash,
+		AvatarURL:                 repo.AvatarLink(),
 	}
 }
 
@@ -346,10 +378,20 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	return false
 }
 
-var (
-	// ErrUnitNotExist organization does not exist
-	ErrUnitNotExist = errors.New("Unit does not exist")
-)
+// ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
+type ErrUnitTypeNotExist struct {
+	UT UnitType
+}
+
+// IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
+func IsErrUnitTypeNotExist(err error) bool {
+	_, ok := err.(ErrUnitTypeNotExist)
+	return ok
+}
+
+func (err ErrUnitTypeNotExist) Error() string {
+	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
+}
 
 // MustGetUnit always returns a RepoUnit object
 func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
@@ -373,6 +415,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
+	} else if tp == UnitTypeIssues {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(IssuesConfig),
+		}
 	}
 	return &RepoUnit{
 		Type:   tp,
@@ -394,7 +441,7 @@ func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 			return unit, nil
 		}
 	}
-	return nil, ErrUnitNotExist
+	return nil, ErrUnitTypeNotExist{tp}
 }
 
 func (repo *Repository) getOwner(e Engine) (err error) {
@@ -1232,8 +1279,8 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	}
 
 	// insert units for repo
-	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
-	for _, tp := range defaultRepoUnits {
+	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
+	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
@@ -2481,17 +2528,78 @@ func (repo *Repository) CustomAvatarPath() string {
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
 }
 
-// RelAvatarLink returns a relative link to the user's avatar.
-// The link a sub-URL to this site
-// Since Gravatar support not needed here - just check for image path.
+// GenerateRandomAvatar generates a random avatar for repository.
+func (repo *Repository) GenerateRandomAvatar() error {
+	return repo.generateRandomAvatar(x)
+}
+
+func (repo *Repository) generateRandomAvatar(e Engine) error {
+	idToString := fmt.Sprintf("%d", repo.ID)
+
+	seed := idToString
+	img, err := avatar.RandomImage([]byte(seed))
+	if err != nil {
+		return fmt.Errorf("RandomImage: %v", err)
+	}
+
+	repo.Avatar = idToString
+	if err = os.MkdirAll(filepath.Dir(repo.CustomAvatarPath()), os.ModePerm); err != nil {
+		return fmt.Errorf("MkdirAll: %v", err)
+	}
+	fw, err := os.Create(repo.CustomAvatarPath())
+	if err != nil {
+		return fmt.Errorf("Create: %v", err)
+	}
+	defer fw.Close()
+
+	if err = png.Encode(fw, img); err != nil {
+		return fmt.Errorf("Encode: %v", err)
+	}
+	log.Info("New random avatar created for repository: %d", repo.ID)
+
+	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
+func RemoveRandomAvatars() error {
+	var (
+		err error
+	)
+	err = x.
+		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repository := bean.(*Repository)
+				stringifiedID := strconv.FormatInt(repository.ID, 10)
+				if repository.Avatar == stringifiedID {
+					return repository.DeleteAvatar()
+				}
+				return nil
+			})
+	return err
+}
+
+// RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
+
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
-	if len(avatarPath) <= 0 {
-		return ""
-	}
-	if !com.IsFile(avatarPath) {
-		return ""
+	if len(avatarPath) <= 0 || !com.IsFile(avatarPath) {
+		switch mode := setting.RepositoryAvatarFallback; mode {
+		case "image":
+			return setting.RepositoryAvatarFallbackImage
+		case "random":
+			if err := repo.GenerateRandomAvatar(); err != nil {
+				log.Error("GenerateRandomAvatar: %v", err)
+			}
+		default:
+			// default behaviour: do not display avatar
+			return ""
+		}
 	}
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
