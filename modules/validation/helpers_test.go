@@ -88,3 +88,70 @@ func Test_IsValidExternalURL(t *testing.T) {
 		})
 	}
 }
+
+func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
+	setting.AppURL = "https://try.gitea.io/"
+
+	cases := []struct {
+		description string
+		url         string
+		valid       bool
+	}{
+		{
+			description: "Correct external tracker URL with all placeholders",
+			url:         "https://github.com/{user}/{repo}/issues/{index}",
+			valid:       true,
+		},
+		{
+			description: "Local external tracker URL with all placeholders",
+			url:         "https://127.0.0.1/{user}/{repo}/issues/{index}",
+			valid:       false,
+		},
+		{
+			description: "External tracker URL with typo placeholder",
+			url:         "https://github.com/{user}/{repo/issues/{index}",
+			valid:       false,
+		},
+		{
+			description: "External tracker URL with typo placeholder",
+			url:         "https://github.com/[user}/{repo/issues/{index}",
+			valid:       false,
+		},
+		{
+			description: "External tracker URL with typo placeholder",
+			url:         "https://github.com/{user}/repo}/issues/{index}",
+			valid:       false,
+		},
+		{
+			description: "External tracker URL missing optional placeholder",
+			url:         "https://github.com/{user}/issues/{index}",
+			valid:       true,
+		},
+		{
+			description: "External tracker URL missing optional placeholder",
+			url:         "https://github.com/{repo}/issues/{index}",
+			valid:       true,
+		},
+		{
+			description: "External tracker URL missing optional placeholder",
+			url:         "https://github.com/issues/{index}",
+			valid:       true,
+		},
+		{
+			description: "External tracker URL missing optional placeholder",
+			url:         "https://github.com/issues/{user}",
+			valid:       true,
+		},
+		{
+			description: "External tracker URL with similar placeholder names test",
+			url:         "https://github.com/user/repo/issues/{index}",
+			valid:       true,
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.description, func(t *testing.T) {
+			assert.Equal(t, testCase.valid, IsValidExternalTrackerURLFormat(testCase.url))
+		})
+	}
+}

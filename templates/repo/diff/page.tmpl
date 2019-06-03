@@ -65,6 +65,27 @@
 					</div>
 				{{end}}
 			{{end}}
+			{{if .Note}}
+				<div class="ui top attached info segment message git-notes">
+					<i class="sticky note icon"></i>
+					{{.i18n.Tr "repo.diff.git-notes"}}:
+					{{if .NoteAuthor}}
+						<a href="{{.NoteAuthor.HomeLink}}">
+							{{if .NoteAuthor.FullName}}
+							  <strong>{{.NoteAuthor.FullName}}</strong>
+							{{else}}
+							  <strong>{{.NoteCommit.Author.Name}}</strong>
+							{{end}}
+						</a>
+					{{else}}
+						<strong>{{.NoteCommit.Author.Name}}</strong>
+					{{end}}
+					<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+				</div>
+				<div class="ui bottom attached info segment git-notes">
+					<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				</div>
+			{{end}}
 		{{end}}
 
 		{{template "repo/diff/box" .}}

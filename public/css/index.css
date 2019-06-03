@@ -803,6 +803,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
 .commit-body{white-space:pre-wrap}
+.git-notes.top{text-align:left}
+.git-notes .commit-body{margin:0}
 @media only screen and (max-width:767px){.ui.stackable.menu.mobile--margin-between-items>.item{margin-top:5px;margin-bottom:5px}
 .ui.stackable.menu.mobile--no-negative-margins{margin-left:0;margin-right:0}
 }
@@ -954,6 +956,7 @@ tbody.commit-list{vertical-align:baseline}
 .ui.repository.list .item .ui.header .metas span:not(:last-child){margin-right:5px}
 .ui.repository.list .item .time{font-size:12px;color:grey}
 .ui.repository.list .item .ui.tags{margin-bottom:1em}
+.ui.repository.list .item .ui.avatar.image{width:24px;height:24px}
 .ui.repository.branches .time{font-size:12px;color:grey}
 .ui.user.list .item{padding-bottom:25px}
 .ui.user.list .item:not(:first-child){border-top:1px solid #eee;padding-top:25px}
