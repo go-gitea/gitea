@@ -53,7 +53,7 @@ func checkLFSVersion() {
 		//Needs at least git v2.1.2
 		binVersion, err := git.BinVersion()
 		if err != nil {
-			fail(fmt.Sprintf("Error retrieving git version: %v", err), fmt.Sprintf("Error retrieving git version: %v", err))
+			fail("LFS server error", "Error retrieving git version: %v", err)
 		}
 
 		if !version.Compare(binVersion, "2.1.2", ">=") {
@@ -199,12 +199,12 @@ func runServ(c *cli.Context) error {
 		if private.IsErrServCommand(err) {
 			errServCommand := err.(private.ErrServCommand)
 			if errServCommand.StatusCode != http.StatusInternalServerError {
-				fail("Unauthorized", errServCommand.Error())
+				fail("Unauthorized", "%s", errServCommand.Error())
 			} else {
-				fail("Internal Server Error", errServCommand.Error())
+				fail("Internal Server Error", "%s", errServCommand.Error())
 			}
 		}
-		fail("Internal Server Error", err.Error())
+		fail("Internal Server Error", "%s", err.Error())
 	}
 	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
 	os.Setenv(models.EnvRepoName, results.RepoName)
