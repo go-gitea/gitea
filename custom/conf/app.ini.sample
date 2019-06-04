@@ -504,10 +504,18 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
-; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
-; used when resizing the image.
+REPOSITORY_AVATAR_UPLOAD_PATH = data/repo-avatars
+; How Gitea deals with missing repository avatars
+; none = no avatar will be displayed; random = random avatar will be displayed; image = default image will be used
+REPOSITORY_AVATAR_FALLBACK = none
+REPOSITORY_AVATAR_FALLBACK_IMAGE = /img/repo_default.png
+; Max Width and Height of uploaded avatars.
+; This is to limit the amount of RAM used when resizing the image.
 AVATAR_MAX_WIDTH = 4096
 AVATAR_MAX_HEIGHT = 3072
+; Maximum alloved file size for uploaded avatars.
+; This is to limit the amount of RAM used when resizing the image.
+AVATAR_MAX_FILE_SIZE = 1048576
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
@@ -671,6 +679,8 @@ MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
+; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+EnableAutoGitWireProtocol = true
 
 ; Operation timeout in seconds
 [git.timeout]

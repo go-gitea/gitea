@@ -1048,6 +1048,10 @@ function initPullRequestReview() {
             $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
         });
     $('.add-code-comment').on('click', function(e) {
+        // https://github.com/go-gitea/gitea/issues/4745
+        if ($(e.target).hasClass('btn-add-single')) {
+          return;
+        }
         e.preventDefault();
         var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
         var side = $(this).data('side');

@@ -126,9 +126,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
-      - make test-sqlite-migration
-      - make test-sqlite
+      - timeout -s ABRT 20m make test-sqlite-migration
+      - timeout -s ABRT 20m make test-sqlite
     when:
       event: [ push, tag, pull_request ]
 
@@ -158,9 +157,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-mysql-migration
-      - make test-mysql
+      - timeout -s ABRT 20m make test-mysql-migration
+      - timeout -s ABRT 20m make test-mysql
     when:
       event: [ tag ]
 
@@ -174,9 +172,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-mysql8-migration
-      - make test-mysql8
+      - timeout -s ABRT 20m make test-mysql8-migration
+      - timeout -s ABRT 20m make test-mysql8
     when:
       event: [ push, tag, pull_request ]
 
@@ -190,9 +187,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-pgsql-migration
-      - make test-pgsql
+      - timeout -s ABRT 20m make test-pgsql-migration
+      - timeout -s ABRT 20m make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 

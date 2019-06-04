@@ -41,7 +41,7 @@ func Dir(name string) ([]string, error) {
 		result = append(result, files...)
 	}
 
-	files, err := AssetDir(path.Join("..", "..", "options", name))
+	files, err := AssetDir(name)
 
 	if err != nil {
 		return []string{}, fmt.Errorf("Failed to read embedded directory. %v", err)
@@ -50,6 +50,24 @@ func Dir(name string) ([]string, error) {
 	result = append(result, files...)
 
 	return directories.AddAndGet(name, result), nil
+}
+
+func AssetDir(dirName string) ([]string, error) {
+	d, err := Assets.Open(dirName)
+	if err != nil {
+		return nil, err
+	}
+	defer d.Close()
+
+	files, err := d.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
+	var results = make([]string, 0, len(files))
+	for _, file := range files {
+		results = append(results, file.Name())
+	}
+	return results, nil
 }
 
 // Locale reads the content of a specific locale from bindata or custom path.
@@ -85,5 +103,11 @@ func fileFromDir(name string) ([]byte, error) {
 		return ioutil.ReadFile(customPath)
 	}
 
-	return Asset(name)
+	f, err := Assets.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return ioutil.ReadAll(f)
 }
