@@ -272,71 +272,65 @@ func convertGithubReactions(reactions *github.Reactions) *base.Reactions {
 }
 
 // GetIssues returns issues according start and limit
-func (g *GithubDownloaderV3) GetIssues(start, limit int) ([]*base.Issue, error) {
-	var perPage = 100
+func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	opt := &github.IssueListByRepoOptions{
 		Sort:      "created",
 		Direction: "asc",
 		State:     "all",
 		ListOptions: github.ListOptions{
 			PerPage: perPage,
+			Page:    page,
 		},
 	}
-	var allIssues = make([]*base.Issue, 0, limit)
-	for {
-		issues, resp, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
-		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %v", err)
-		}
-		for _, issue := range issues {
-			if issue.IsPullRequest() {
-				continue
-			}
-			var body string
-			if issue.Body != nil {
-				body = *issue.Body
-			}
-			var milestone string
-			if issue.Milestone != nil {
-				milestone = *issue.Milestone.Title
-			}
-			var labels = make([]*base.Label, 0, len(issue.Labels))
-			for _, l := range issue.Labels {
-				labels = append(labels, convertGithubLabel(&l))
-			}
-			var reactions *base.Reactions
-			if issue.Reactions != nil {
-				reactions = convertGithubReactions(issue.Reactions)
-			}
 
-			var email string
-			if issue.User.Email != nil {
-				email = *issue.User.Email
-			}
-			allIssues = append(allIssues, &base.Issue{
-				Title:       *issue.Title,
-				Number:      int64(*issue.Number),
-				PosterName:  *issue.User.Login,
-				PosterEmail: email,
-				Content:     body,
-				Milestone:   milestone,
-				State:       *issue.State,
-				Created:     *issue.CreatedAt,
-				Labels:      labels,
-				Reactions:   reactions,
-				Closed:      issue.ClosedAt,
-				IsLocked:    *issue.Locked,
-			})
-			if len(allIssues) >= limit {
-				return allIssues, nil
-			}
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+	var allIssues = make([]*base.Issue, 0, perPage)
+
+	issues, _, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
+	if err != nil {
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
-	return allIssues, nil
+	for _, issue := range issues {
+		if issue.IsPullRequest() {
+			continue
+		}
+		var body string
+		if issue.Body != nil {
+			body = *issue.Body
+		}
+		var milestone string
+		if issue.Milestone != nil {
+			milestone = *issue.Milestone.Title
+		}
+		var labels = make([]*base.Label, 0, len(issue.Labels))
+		for _, l := range issue.Labels {
+			labels = append(labels, convertGithubLabel(&l))
+		}
+		var reactions *base.Reactions
+		if issue.Reactions != nil {
+			reactions = convertGithubReactions(issue.Reactions)
+		}
+
+		var email string
+		if issue.User.Email != nil {
+			email = *issue.User.Email
+		}
+		allIssues = append(allIssues, &base.Issue{
+			Title:       *issue.Title,
+			Number:      int64(*issue.Number),
+			PosterName:  *issue.User.Login,
+			PosterEmail: email,
+			Content:     body,
+			Milestone:   milestone,
+			State:       *issue.State,
+			Created:     *issue.CreatedAt,
+			Labels:      labels,
+			Reactions:   reactions,
+			Closed:      issue.ClosedAt,
+			IsLocked:    *issue.Locked,
+		})
+	}
+
+	return allIssues, len(issues) < perPage, nil
 }
 
 // GetComments returns comments according issueNumber
@@ -379,97 +373,91 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 	return allComments, nil
 }
 
-// GetPullRequests returns pull requests according start and limit
-func (g *GithubDownloaderV3) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
+// GetPullRequests returns pull requests according page and perPage
+func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
 	opt := &github.PullRequestListOptions{
 		Sort:      "created",
 		Direction: "asc",
 		State:     "all",
 		ListOptions: github.ListOptions{
-			PerPage: 100,
+			PerPage: perPage,
+			Page:    page,
 		},
 	}
-	var allPRs = make([]*base.PullRequest, 0, 100)
-	for {
-		prs, resp, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
-		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %v", err)
-		}
-		for _, pr := range prs {
-			var body string
-			if pr.Body != nil {
-				body = *pr.Body
-			}
-			var milestone string
-			if pr.Milestone != nil {
-				milestone = *pr.Milestone.Title
-			}
-			var labels = make([]*base.Label, 0, len(pr.Labels))
-			for _, l := range pr.Labels {
-				labels = append(labels, convertGithubLabel(l))
-			}
+	var allPRs = make([]*base.PullRequest, 0, perPage)
 
-			// FIXME: This API missing reactions, we may need another extra request to get reactions
-
-			var email string
-			if pr.User.Email != nil {
-				email = *pr.User.Email
-			}
-			var merged bool
-			// pr.Merged is not valid, so use MergedAt to test if it's merged
-			if pr.MergedAt != nil {
-				merged = true
-			}
-
-			var headRepoName string
-			var cloneURL string
-			if pr.Head.Repo != nil {
-				headRepoName = *pr.Head.Repo.Name
-				cloneURL = *pr.Head.Repo.CloneURL
-			}
-			var mergeCommitSHA string
-			if pr.MergeCommitSHA != nil {
-				mergeCommitSHA = *pr.MergeCommitSHA
-			}
-
-			allPRs = append(allPRs, &base.PullRequest{
-				Title:          *pr.Title,
-				Number:         int64(*pr.Number),
-				PosterName:     *pr.User.Login,
-				PosterEmail:    email,
-				Content:        body,
-				Milestone:      milestone,
-				State:          *pr.State,
-				Created:        *pr.CreatedAt,
-				Closed:         pr.ClosedAt,
-				Labels:         labels,
-				Merged:         merged,
-				MergeCommitSHA: mergeCommitSHA,
-				MergedTime:     pr.MergedAt,
-				IsLocked:       pr.ActiveLockReason != nil,
-				Head: base.PullRequestBranch{
-					Ref:       *pr.Head.Ref,
-					SHA:       *pr.Head.SHA,
-					RepoName:  headRepoName,
-					OwnerName: *pr.Head.User.Login,
-					CloneURL:  cloneURL,
-				},
-				Base: base.PullRequestBranch{
-					Ref:       *pr.Base.Ref,
-					SHA:       *pr.Base.SHA,
-					RepoName:  *pr.Base.Repo.Name,
-					OwnerName: *pr.Base.User.Login,
-				},
-				PatchURL: *pr.PatchURL,
-			})
-			if len(allPRs) >= limit {
-				return allPRs, nil
-			}
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+	prs, _, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
+	if err != nil {
+		return nil, fmt.Errorf("error while listing repos: %v", err)
 	}
+	for _, pr := range prs {
+		var body string
+		if pr.Body != nil {
+			body = *pr.Body
+		}
+		var milestone string
+		if pr.Milestone != nil {
+			milestone = *pr.Milestone.Title
+		}
+		var labels = make([]*base.Label, 0, len(pr.Labels))
+		for _, l := range pr.Labels {
+			labels = append(labels, convertGithubLabel(l))
+		}
+
+		// FIXME: This API missing reactions, we may need another extra request to get reactions
+
+		var email string
+		if pr.User.Email != nil {
+			email = *pr.User.Email
+		}
+		var merged bool
+		// pr.Merged is not valid, so use MergedAt to test if it's merged
+		if pr.MergedAt != nil {
+			merged = true
+		}
+
+		var headRepoName string
+		var cloneURL string
+		if pr.Head.Repo != nil {
+			headRepoName = *pr.Head.Repo.Name
+			cloneURL = *pr.Head.Repo.CloneURL
+		}
+		var mergeCommitSHA string
+		if pr.MergeCommitSHA != nil {
+			mergeCommitSHA = *pr.MergeCommitSHA
+		}
+
+		allPRs = append(allPRs, &base.PullRequest{
+			Title:          *pr.Title,
+			Number:         int64(*pr.Number),
+			PosterName:     *pr.User.Login,
+			PosterEmail:    email,
+			Content:        body,
+			Milestone:      milestone,
+			State:          *pr.State,
+			Created:        *pr.CreatedAt,
+			Closed:         pr.ClosedAt,
+			Labels:         labels,
+			Merged:         merged,
+			MergeCommitSHA: mergeCommitSHA,
+			MergedTime:     pr.MergedAt,
+			IsLocked:       pr.ActiveLockReason != nil,
+			Head: base.PullRequestBranch{
+				Ref:       *pr.Head.Ref,
+				SHA:       *pr.Head.SHA,
+				RepoName:  headRepoName,
+				OwnerName: *pr.Head.User.Login,
+				CloneURL:  cloneURL,
+			},
+			Base: base.PullRequestBranch{
+				Ref:       *pr.Base.Ref,
+				SHA:       *pr.Base.SHA,
+				RepoName:  *pr.Base.Repo.Name,
+				OwnerName: *pr.Base.User.Login,
+			},
+			PatchURL: *pr.PatchURL,
+		})
+	}
+
 	return allPRs, nil
 }

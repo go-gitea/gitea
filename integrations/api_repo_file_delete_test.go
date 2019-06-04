@@ -108,7 +108,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		DecodeJSON(t, resp, &apiError)
 		assert.Equal(t, expectedAPIError, apiError)
 
-		// Test creating a file in repo1 by user4 who does not have write access
+		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo16, treePath)

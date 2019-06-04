@@ -76,19 +76,10 @@ func CheckUnitUser(ctx *macaron.Context) {
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
-		m.Get("/ssh/:id", GetPublicKeyByID)
-		m.Get("/ssh/:id/user", GetUserByKeyID)
-		m.Post("/ssh/:id/update", UpdatePublicKey)
-		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
-		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
-		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
-		m.Get("/repositories/:repoid/keys/:keyid", GetDeployKey)
-		m.Get("/repositories/:repoid/wiki/init", InitWiki)
-		m.Post("/push/update", PushUpdate)
-		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
-		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)
-		m.Get("/branch/:id/*", GetProtectedBranchBy)
-		m.Get("/repository/:rid", GetRepository)
-		m.Get("/active-pull-request", GetActivePullRequest)
+		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
+		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
+		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
+		m.Get("/serv/none/:keyid", ServNoCommand)
+		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)
 }
