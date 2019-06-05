@@ -75,13 +75,13 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 			return nil, err
 		}
 		tag := &Tag{
-			Name:   name,
-			ID:     tagID,
-			Object: commitID,
-			Type:   string(ObjectCommit),
-			Tagger: commit.Committer,
+			Name:    name,
+			ID:      tagID,
+			Object:  commitID,
+			Type:    string(ObjectCommit),
+			Tagger:  commit.Committer,
 			Message: commit.Message(),
-			repo:   repo,
+			repo:    repo,
 		}
 
 		repo.tagCache.Set(id.String(), tag)

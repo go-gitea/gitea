@@ -6,14 +6,11 @@ package structs
 
 // Tag represents a repository tag for the /tags API endpoint
 type Tag struct {
-	Name   string `json:"name"`
-	ID     string `json:"id"`
-	Commit struct {
-		SHA string `json:"sha"`
-		URL string `json:"url"`
-	} `json:"commit"`
-	ZipballURL string `json:"zipball_url"`
-	TarballURL string `json:"tarball_url"`
+	Name       string      `json:"name"`
+	ID         string      `json:"id"`
+	Commit     *CommitMeta `json:"commit"`
+	ZipballURL string      `json:"zipball_url"`
+	TarballURL string      `json:"tarball_url"`
 }
 
 // GitTag represents a git tag for the /git/tags API endpoint

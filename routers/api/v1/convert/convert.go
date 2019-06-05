@@ -38,17 +38,11 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch
 // ToTag convert a tag to an api.Tag
 func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
-		Name: t.Name,
-		ID:   t.ID.String(),
-		Commit: struct {
-			SHA string `json:"sha"`
-			URL string `json:"url"`
-		}{
-			SHA: t.ID.String(),
-			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
-		},
-		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.Link(), "archive", t.Name+".tar.gz"),
+		Name:       t.Name,
+		ID:         t.ID.String(),
+		Commit:     ToCommitMeta(repo, t),
+		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
 	}
 }
 
@@ -71,7 +65,7 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
-		URL:     util.URLJoin(repo.Link(), "commit", c.ID.String()),
+		URL:     util.URLJoin(repo.HTMLURL(), "commit", c.ID.String()),
 		Author: &api.PayloadUser{
 			Name:     c.Author.Name,
 			Email:    c.Author.Email,
@@ -264,7 +258,7 @@ func ToGitTagObject(repo *models.Repository, commit *git.Commit) *api.GitTagObje
 	return &api.GitTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
-		URL:  util.URLJoin(repo.Link(), "git/commits", commit.ID.String()),
+		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
 	}
 }
 
@@ -275,5 +269,13 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 			Email: sig.Email,
 		},
 		Date: sig.When.UTC().Format(time.RFC3339),
+	}
+}
+
+func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
+	return &api.CommitMeta{
+		SHA: tag.ID.String(),
+		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
+		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }
