@@ -219,7 +219,12 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 	}
 	baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch)
 	if err != nil {
-		apiPullRequest.Base = nil
+		if git.IsErrBranchNotExist(err) {
+			apiPullRequest.Base = nil
+		} else {
+			log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
+			return nil
+		}
 	} else {
 		apiBaseBranchInfo := &api.PRBranchInfo{
 			Name:       pr.BaseBranch,
@@ -229,7 +234,12 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 		baseCommit, err = baseBranch.GetCommit()
 		if err != nil {
-			apiBaseBranchInfo.Sha = ""
+			if git.IsErrNotExist(err) {
+				apiBaseBranchInfo.Sha = ""
+			} else {
+				log.Error("GetCommit[%s]: %v", baseBranch.Name, err)
+				return nil
+			}
 		} else {
 			apiBaseBranchInfo.Sha = baseCommit.ID.String()
 		}
@@ -238,7 +248,12 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 
 	headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch)
 	if err != nil {
-		apiPullRequest.Head = nil
+		if git.IsErrBranchNotExist(err) {
+			apiPullRequest.Head = nil
+		} else {
+			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
+			return nil
+		}
 	} else {
 		apiHeadBranchInfo := &api.PRBranchInfo{
 			Name:       pr.HeadBranch,
@@ -248,7 +263,12 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 		headCommit, err = headBranch.GetCommit()
 		if err != nil {
-			apiHeadBranchInfo.Sha = ""
+			if git.IsErrNotExist(err) {
+				apiHeadBranchInfo.Sha = ""
+			} else {
+				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				return nil
+			}
 		} else {
 			apiHeadBranchInfo.Sha = headCommit.ID.String()
 		}
