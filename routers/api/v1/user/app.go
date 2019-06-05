@@ -6,6 +6,7 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -89,6 +90,12 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+
+	if models.AccessTokenByNameExists(t) {
+		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
+		return
+	}
+
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
