@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#TODO maybe /data/git/.ssh not needed anymore
 if [ ! -d /data/git/.ssh ]; then
     mkdir -p /data/git/.ssh
     chmod 700 /data/git/.ssh
@@ -45,4 +46,5 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
 fi
 
-chmod 0755 /data/gitea /app/gitea /data/git
+chmod 0755 /data/gitea /data/git
+#chmod 0755 /app/gitea

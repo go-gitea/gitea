@@ -46,10 +46,11 @@ RUN addgroup \
   echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 
-RUN mkdir -p /data /app/gitea && chown -R git:git /data /app/gitea
+ENV HOME "/data/git"
+RUN mkdir -p /data /app/gitea && chmod 777 /data
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
 
-USER git
+USER git:git
 ENV GITEA_CUSTOM /data/gitea
 
 VOLUME ["/data"]
