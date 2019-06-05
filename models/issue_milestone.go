@@ -192,18 +192,24 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 // GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
 
-	// defaults to false
-	// always show opened milestones unless api.StateClosed is passed as a
-	// parameter
-	var isClosed bool
+	sess := x.Where("repo_id = ?", repoID)
 
-	if state == api.StateClosed {
-		isClosed = true
+	switch state {
+	case api.StateClosed:
+		sess = sess.And("is_closed = ?", true)
+
+	case api.StateAll:
+		break
+
+	case api.StateOpen:
+		fallthrough
+
+	default:
+		sess = sess.And("is_closed = ?", false)
 	}
 
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed).
-		Asc("deadline_unix").Asc("id").Find(&miles)
+	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
