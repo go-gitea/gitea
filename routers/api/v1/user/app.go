@@ -6,6 +6,9 @@
 package user
 
 import (
+	"errors"
+	"net/http"
+
 	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
@@ -82,6 +85,12 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	if t.Name == "drone" {
 		t.Name = "drone-legacy-use-oauth2-instead"
 	}
+
+	if models.AccessTokenByNameExists(t) {
+		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
+		return
+	}
+
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(500, "NewAccessToken", err)
 		return
