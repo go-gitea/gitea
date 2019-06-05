@@ -8,7 +8,7 @@
 				<div class="{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}push news{{end}}">
 					<p>
 						{{if gt .ActUser.ID 0}}
-							<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetActFullName}}">{{.ShortActUserName}}</a>
+							<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetDisplayNameTitle}}">{{.GetDisplayName}}</a>
 						{{else}}
 							{{.ShortActUserName}}
 						{{end}}

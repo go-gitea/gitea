@@ -94,6 +94,21 @@ func setupAccessLogger(m *macaron.Macaron) {
 	})
 }
 
+// RouterHandler is a macaron handler that will log the routing to the default gitea log
+func RouterHandler(level log.Level) func(ctx *macaron.Context) {
+	return func(ctx *macaron.Context) {
+		start := time.Now()
+
+		log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
+
+		rw := ctx.Resp.(macaron.ResponseWriter)
+		ctx.Next()
+
+		status := rw.Status()
+		log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
+	}
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -102,7 +117,9 @@ func NewMacaron() *macaron.Macaron {
 		loggerAsWriter := log.NewLoggerAsWriter("INFO", log.GetLogger("macaron"))
 		m = macaron.NewWithLogger(loggerAsWriter)
 		if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-			log.SetupRouterLogger(m, setting.RouterLogLevel)
+			if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
+				m.Use(RouterHandler(setting.RouterLogLevel))
+			}
 		}
 	} else {
 		m = macaron.New()
@@ -138,6 +155,14 @@ func NewMacaron() *macaron.Macaron {
 		setting.AvatarUploadPath,
 		&public.Options{
 			Prefix:       "avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
+	m.Use(public.StaticHandler(
+		setting.RepositoryAvatarUploadPath,
+		&public.Options{
+			Prefix:       "repo-avatars",
 			SkipLogging:  setting.DisableRouterLog,
 			ExpiresAfter: time.Hour * 6,
 		},
@@ -596,6 +621,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/settings", func() {
 			m.Combo("").Get(repo.Settings).
 				Post(bindIgnErr(auth.RepoSettingForm{}), repo.SettingsPost)
+			m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), repo.SettingsAvatar)
+			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
+
 			m.Group("/collaboration", func() {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
@@ -802,6 +830,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:period", repo.Activity)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
+		m.Group("/activity_author_data", func() {
+			m.Get("", repo.ActivityAuthors)
+			m.Get("/:period", repo.ActivityAuthors)
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
+
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
 
 		m.Group("/branches", func() {
@@ -901,7 +934,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
 					m.Post("/:lid/unlock", lfs.UnLockHandler)
-				}, context.RepoAssignment())
+				})
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})

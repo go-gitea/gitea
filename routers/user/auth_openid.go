@@ -312,6 +312,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -337,6 +338,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
@@ -357,11 +359,11 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		}
 	}
 
-	len := setting.MinPasswordLength
-	if len < 256 {
-		len = 256
+	length := setting.MinPasswordLength
+	if length < 256 {
+		length = 256
 	}
-	password, err := generate.GetRandomString(len)
+	password, err := generate.GetRandomString(length)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return

@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/Unknwon/com"
 )
@@ -176,6 +176,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
+		HTTPMethod:   form.HTTPMethod,
 		ContentType:  contentType,
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
@@ -563,6 +564,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w.Secret = form.Secret
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
+	w.HTTPMethod = form.HTTPMethod
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
