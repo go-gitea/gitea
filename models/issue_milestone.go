@@ -190,9 +190,19 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 }
 
 // GetMilestonesByRepoID returns all opened milestones of a repository.
-func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
+func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
+
+	// defaults to false
+	// always show opened milestones unless api.StateClosed is passed as a
+	// parameter
+	var isClosed bool
+
+	if state == api.StateClosed {
+		isClosed = true
+	}
+
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, false).
+	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed).
 		Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
