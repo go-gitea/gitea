@@ -27,7 +27,7 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 	}
 }
 
-// ToBranch convert a commit and branch to an api.Branch
+// ToBranch convert a git.Commit and git.Branch to an api.Branch
 func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
 	return &api.Branch{
 		Name:   b.Name,
@@ -35,7 +35,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch
 	}
 }
 
-// ToTag convert a tag to an api.Tag
+// ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
 		Name:       t.Name,
@@ -46,7 +46,7 @@ func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToCommit convert a commit to api.PayloadCommit
+// ToCommit convert a git.Commit to api.PayloadCommit
 func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
@@ -81,6 +81,7 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	}
 }
 
+// ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	verif := models.ParseCommitWithSignature(c)
 	var signature, payload string
@@ -254,6 +255,7 @@ func ToGitTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.GitTag {
 	}
 }
 
+// ToGitTagObject convert a git.Commit to an api.GitTagObject
 func ToGitTagObject(repo *models.Repository, commit *git.Commit) *api.GitTagObject {
 	return &api.GitTagObject{
 		SHA:  commit.ID.String(),
@@ -262,6 +264,7 @@ func ToGitTagObject(repo *models.Repository, commit *git.Commit) *api.GitTagObje
 	}
 }
 
+// ToCommitUser convert a git.Signature to an api.CommitUser
 func ToCommitUser(sig *git.Signature) *api.CommitUser {
 	return &api.CommitUser{
 		Identity: api.Identity{
@@ -272,6 +275,7 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 	}
 }
 
+// ToCommitMeta convert a git.Tag to an api.CommitMeta
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA: tag.ID.String(),
