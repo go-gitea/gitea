@@ -27,7 +27,7 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 		"GIT_COMMITTER_NAME="+sig.Name,
 		"GIT_COMMITTER_EMAIL="+sig.Email,
 		EnvRepoName+"="+repo.Name,
-		EnvRepoUsername+"="+repo.OwnerName,
+		EnvRepoUsername+"="+repo.MustOwnerName(),
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+doer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),

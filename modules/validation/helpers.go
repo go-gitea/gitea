@@ -7,12 +7,15 @@ package validation
 import (
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 )
 
 var loopbackIPBlocks []*net.IPNet
+
+var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
 func init() {
 	for _, cidr := range []string{
@@ -72,6 +75,22 @@ func IsValidExternalURL(uri string) bool {
 
 	// TODO: Later it should be added to allow local network IP addreses
 	//       only if allowed by special setting
+
+	return true
+}
+
+// IsValidExternalTrackerURLFormat checks if URL matches required syntax for external trackers
+func IsValidExternalTrackerURLFormat(uri string) bool {
+	if !IsValidExternalURL(uri) {
+		return false
+	}
+
+	// check for typoed variables like /{index/ or /[repo}
+	for _, match := range externalTrackerRegex.FindAllStringSubmatch(uri, -1) {
+		if (match[1] == "{" || match[2] == "}") && (match[1] != "{" || match[2] != "}") {
+			return false
+		}
+	}
 
 	return true
 }

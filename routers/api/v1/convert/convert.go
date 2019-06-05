@@ -218,6 +218,7 @@ func ToOrganization(org *models.User) *api.Organization {
 		Description: org.Description,
 		Website:     org.Website,
 		Location:    org.Location,
+		Visibility:  org.Visibility.String(),
 	}
 }
 

@@ -53,9 +53,9 @@ func (g *PlainGitDownloader) GetReleases() ([]*base.Release, error) {
 	return nil, ErrNotSupported
 }
 
-// GetIssues returns issues according start and limit
-func (g *PlainGitDownloader) GetIssues(start, limit int) ([]*base.Issue, error) {
-	return nil, ErrNotSupported
+// GetIssues returns issues according page and perPage
+func (g *PlainGitDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+	return nil, false, ErrNotSupported
 }
 
 // GetComments returns comments according issueNumber
@@ -63,7 +63,7 @@ func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, er
 	return nil, ErrNotSupported
 }
 
-// GetPullRequests returns pull requests according start and limit
+// GetPullRequests returns pull requests according page and perPage
 func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
 	return nil, ErrNotSupported
 }
