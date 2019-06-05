@@ -34,7 +34,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   required: true
 	// - name: state
 	//   in: query
-	//   description: Milestone state, Recognised values are open, close and all. Defaults to "open"
+	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
 	//   type: string
 	// responses:
 	//   "200":
