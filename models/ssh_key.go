@@ -361,18 +361,11 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 
 func calcFingerprint(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
-	tmpPath, err := writeTmpKeyFile(publicKeyContent)
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeyContent))
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmpPath)
-	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
-	if err != nil {
-		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
-	} else if len(stdout) < 2 {
-		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
-	}
-	return strings.Split(stdout, " ")[1], nil
+	return ssh.FingerprintSHA256(pk), nil
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
