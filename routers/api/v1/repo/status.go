@@ -93,6 +93,23 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   description: sha of the commit
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results
+	//   type: int
+	//   required: false
+	// - name: sort
+	//   in: query
+	//   description: type of sort
+	//   type: string
+	//   enum: [oldest, recentupdate, leastupdate, leastindex, highestindex]
+	//   required: false
+	// - name: state
+	//   in: query
+	//   description: type of state
+	//   type: string
+	//   enum: [pending, success, error, failure, warning]
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
@@ -122,6 +139,23 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   description: name of branch/tag/commit
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results
+	//   type: int
+	//   required: false
+	// - name: sort
+	//   in: query
+	//   description: type of sort
+	//   type: string
+	//   enum: [oldest, recentupdate, leastupdate, leastindex, highestindex]
+	//   required: false
+	// - name: state
+	//   in: query
+	//   description: type of state
+	//   type: string
+	//   enum: [pending, success, error, failure, warning]
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
@@ -135,11 +169,13 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	}
 	repo := ctx.Repo.Repository
 
-	page := ctx.ParamsInt("page")
-
-	statuses, err := models.GetCommitStatuses(repo, sha, page)
+	statuses, _, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
+		Page:     ctx.QueryInt("page"),
+		SortType: ctx.QueryTrim("sort"),
+		State:    ctx.QueryTrim("state"),
+	})
 	if err != nil {
-		ctx.Error(500, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		ctx.Error(500, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, ctx.QueryInt("page"), err))
 	}
 
 	apiStatuses := make([]*api.Status, 0, len(statuses))
@@ -183,6 +219,11 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   description: name of branch/tag/commit
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results
+	//   type: int
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Status"
@@ -193,7 +234,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	}
 	repo := ctx.Repo.Repository
 
-	page := ctx.ParamsInt("page")
+	page := ctx.QueryInt("page")
 
 	statuses, err := models.GetLatestCommitStatus(repo, sha, page)
 	if err != nil {

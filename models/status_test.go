@@ -17,8 +17,9 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234"
 
-	statuses, err := GetCommitStatuses(repo1, sha1, 0)
+	statuses, maxResults, err := GetCommitStatuses(repo1, sha1, &CommitStatusOptions{})
 	assert.NoError(t, err)
+	assert.Equal(t, int(maxResults), 5)
 	if assert.Len(t, statuses, 5) {
 		assert.Equal(t, statuses[0].Context, "ci/awesomeness")
 		assert.Equal(t, statuses[0].State, CommitStatusPending)
