@@ -9492,18 +9492,7 @@
       "type": "object",
       "properties": {
         "commit": {
-          "type": "object",
-          "properties": {
-            "sha": {
-              "type": "string",
-              "x-go-name": "SHA"
-            },
-            "url": {
-              "type": "string",
-              "x-go-name": "URL"
-            }
-          },
-          "x-go-name": "Commit"
+          "$ref": "#/definitions/CommitMeta"
         },
         "id": {
           "type": "string",
