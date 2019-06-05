@@ -74,7 +74,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 		milestones, err := GetMilestonesByRepoID(repo.ID, state)
 		assert.NoError(t, err)
 
-		var n = repo.NumMilestones
+		var n = repo.NumOpenMilestones
 
 		if state == api.StateClosed {
 			n = repo.NumClosedMilestones
