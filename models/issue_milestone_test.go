@@ -69,20 +69,30 @@ func TestGetMilestoneByRepoID(t *testing.T) {
 
 func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	test := func(repoID int64) {
+	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID)
+		milestones, err := GetMilestonesByRepoID(repo.ID, state)
 		assert.NoError(t, err)
-		assert.Len(t, milestones, repo.NumMilestones)
+
+		var n = repo.NumMilestones
+
+		if state == api.StateClosed {
+			n = repo.NumClosedMilestones
+		}
+
+		assert.Len(t, milestones, n)
 		for _, milestone := range milestones {
 			assert.EqualValues(t, repoID, milestone.RepoID)
 		}
 	}
-	test(1)
-	test(2)
-	test(3)
+	test(1, api.StateOpen)
+	test(1, api.StateClosed)
+	test(2, api.StateOpen)
+	test(2, api.StateClosed)
+	test(3, api.StateOpen)
+	test(3, api.StateClosed)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID)
+	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
