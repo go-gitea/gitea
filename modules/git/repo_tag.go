@@ -6,6 +6,7 @@
 package git
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/mcuadros/go-version"
@@ -42,19 +43,44 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return t.(*Tag), nil
 	}
 
-	// Get tag type
-	tp, err := NewCommand("cat-file", "-t", id.String()).RunInDir(repo.Path)
+	// Get tag name
+	name, err := repo.GetTagNameBySHA(id.String())
 	if err != nil {
 		return nil, err
 	}
-	tp = strings.TrimSpace(tp)
 
-	// Tag is a commit.
+	tp, err := repo.GetTagType(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// The id passed in could be a tag object ID or a commit ID, so getting both
+	tagID := id
+	if tagIDStr, _ := repo.GetTagID(name); tagIDStr != "" {
+		if tID, err := NewIDFromString(tagIDStr); err == nil {
+			tagID = tID
+		}
+	}
+	commitID := id
+	if commitIDStr, _ := repo.GetTagCommitID(name); commitIDStr != "" {
+		if cID, err := NewIDFromString(commitIDStr); err == nil {
+			commitID = cID
+		}
+	}
+
+	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
+		commit, err := repo.GetCommit(id.String())
+		if err != nil {
+			return nil, err
+		}
 		tag := &Tag{
-			ID:     id,
-			Object: id,
+			Name:   name,
+			ID:     tagID,
+			Object: commitID,
 			Type:   string(ObjectCommit),
+			Tagger: commit.Committer,
+			Message: commit.Message(),
 			repo:   repo,
 		}
 
@@ -62,7 +88,7 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return tag, nil
 	}
 
-	// Tag with message.
+	// The tag is an annotated tag with a message.
 	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
@@ -73,11 +99,51 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return nil, err
 	}
 
+	tag.Name = name
 	tag.ID = id
 	tag.repo = repo
 
 	repo.tagCache.Set(id.String(), tag)
 	return tag, nil
+}
+
+// GetTagNameBySHA returns the name of a tag from its tag object SHA or commit SHA
+func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
+	if len(sha) < 5 {
+		return "", fmt.Errorf("SHA is too short: %s", sha)
+	}
+
+	stdout, err := NewCommand("show-ref", "--tags", "-d").RunInDir(repo.Path)
+	if err != nil {
+		return "", err
+	}
+
+	tagRefs := strings.Split(stdout, "\n")
+	for _, tagRef := range tagRefs {
+		if len(strings.TrimSpace(tagRef)) > 0 {
+			fields := strings.Fields(tagRef)
+			if strings.HasPrefix(fields[0], sha) && strings.HasPrefix(fields[1], "refs/tags/") {
+				name := strings.Split(fields[1], "/")[2]
+				// annotated tags show up twice, their name for commit ID is suffixed with ^{}
+				name = strings.TrimSuffix(name, "^{}")
+				return name, nil
+			}
+		}
+	}
+	return "", ErrNotExist{ID: sha}
+}
+
+// GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
+func (repo *Repository) GetTagID(name string) (string, error) {
+	stdout, err := NewCommand("show-ref", name).RunInDir(repo.Path)
+	if err != nil {
+		return "", err
+	}
+	fields := strings.Fields(stdout)
+	if len(fields) != 2 {
+		return "", ErrNotExist{ID: name}
+	}
+	return fields[0], nil
 }
 
 // GetTag returns a Git tag by given name.
@@ -96,7 +162,6 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 	if err != nil {
 		return nil, err
 	}
-	tag.Name = name
 	return tag, nil
 }
 
@@ -149,4 +214,39 @@ func (repo *Repository) GetTags() ([]string, error) {
 	}
 
 	return tagNames, nil
+}
+
+// GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
+func (repo *Repository) GetTagType(id SHA1) (string, error) {
+	// Get tag type
+	stdout, err := NewCommand("cat-file", "-t", id.String()).RunInDir(repo.Path)
+	if err != nil {
+		return "", err
+	}
+	if len(stdout) == 0 {
+		return "", ErrNotExist{ID: id.String()}
+	}
+	return strings.TrimSpace(stdout), nil
+}
+
+// GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
+func (repo *Repository) GetAnnotatedTag(sha string) (*Tag, error) {
+	id, err := NewIDFromString(sha)
+	if err != nil {
+		return nil, err
+	}
+
+	// Tag type must be "tag" (annotated) and not a "commit" (lightweight) tag
+	if tagType, err := repo.GetTagType(id); err != nil {
+		return nil, err
+	} else if ObjectType(tagType) != ObjectTag {
+		// not an annotated tag
+		return nil, ErrNotExist{ID: id.String()}
+	}
+
+	tag, err := repo.getTag(id)
+	if err != nil {
+		return nil, err
+	}
+	return tag, nil
 }

@@ -6,6 +6,7 @@ package convert
 
 import (
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -38,6 +39,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch
 func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
 		Name: t.Name,
+		ID:   t.ID.String(),
 		Commit: struct {
 			SHA string `json:"sha"`
 			URL string `json:"url"`
@@ -66,13 +68,6 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
-	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
-	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
-	}
-
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
@@ -87,13 +82,23 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 			Email:    c.Committer.Email,
 			UserName: committerUsername,
 		},
-		Timestamp: c.Author.When,
-		Verification: &api.PayloadCommitVerification{
-			Verified:  verif.Verified,
-			Reason:    verif.Reason,
-			Signature: signature,
-			Payload:   payload,
-		},
+		Timestamp:    c.Author.When,
+		Verification: ToVerification(c),
+	}
+}
+
+func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
+	verif := models.ParseCommitWithSignature(c)
+	var signature, payload string
+	if c.Signature != nil {
+		signature = c.Signature.Signature
+		payload = c.Signature.Payload
+	}
+	return &api.PayloadCommitVerification{
+		Verified:  verif.Verified,
+		Reason:    verif.Reason,
+		Signature: signature,
+		Payload:   payload,
 	}
 }
 
@@ -240,4 +245,34 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 		result.Email = user.Email
 	}
 	return result
+}
+
+// ToGitTag convert git.Tag to api.GitTag
+func ToGitTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.GitTag {
+	return &api.GitTag{
+		Tag:          t.Name,
+		SHA:          t.ID.String(),
+		Object:       ToGitTagObject(repo, c),
+		Message:      t.Message,
+		Tagger:       ToCommitUser(t.Tagger),
+		Verification: ToVerification(c),
+	}
+}
+
+func ToGitTagObject(repo *models.Repository, commit *git.Commit) *api.GitTagObject {
+	return &api.GitTagObject{
+		SHA:  commit.ID.String(),
+		Type: string(git.ObjectCommit),
+		URL:  util.URLJoin(repo.Link(), "git/commits", commit.ID.String()),
+	}
+}
+
+func ToCommitUser(sig *git.Signature) *api.CommitUser {
+	return &api.CommitUser{
+		Identity: api.Identity{
+			Name:  sig.Name,
+			Email: sig.Email,
+		},
+		Date: sig.When.UTC().Format(time.RFC3339),
+	}
 }

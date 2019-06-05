@@ -1990,6 +1990,46 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/tags/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tag of a repository.",
+        "operationId": "GetTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the tag",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Tag"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/trees/{sha}": {
       "get": {
         "produces": [
@@ -9250,7 +9290,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Tag": {
-      "description": "Tag represents a repository tag",
+      "description": "Tag represents a repository tag for the /tags API endpoint",
       "type": "object",
       "properties": {
         "commit": {
@@ -9266,6 +9306,10 @@
             }
           },
           "x-go-name": "Commit"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
         },
         "name": {
           "type": "string",
@@ -9846,6 +9890,12 @@
         "items": {
           "$ref": "#/definitions/Status"
         }
+      }
+    },
+    "Tag": {
+      "description": "Tag",
+      "schema": {
+        "$ref": "#/definitions/Tag"
       }
     },
     "TagList": {
