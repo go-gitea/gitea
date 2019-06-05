@@ -13,7 +13,7 @@ menu:
     identifier: "issue-pull-request-templates"
 ---
 
-# 使用 Issue 和 Pull Request 模板
+{{% h1 %}}使用 Issue 和 Pull Request 模板{{% /h1 %}}
 
 对于一些项目，在创建 issue 或 pull request 时有一个标准的询问列表需要提交者填写。Gitea 支持添加此类模板至 repository 的主分支，以便提交者在创建 issue 或 pull request 时可以自动生成一个需要完成的表单，这么做可以减少一些前期关于 issue 抑或 pull request 细节上的沟通成本。
 

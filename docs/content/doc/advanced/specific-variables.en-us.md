@@ -13,7 +13,7 @@ menu:
     identifier: "specific-variables"
 ---
 
-# Specific variables
+{{% h1 %}}Specific variables{{% /h1 %}}
 
 This is an inventory of Gitea environment variables. They change Gitea behaviour.
 
@@ -23,7 +23,7 @@ Initialize them before Gitea command to be effective, for example:
 GITEA_CUSTOM=/home/gitea/custom ./gitea web
 ```
 
-## From Go language
+{{% h2 %}}From Go language{{% /h2 %}}
 
 As Gitea is written in Go, it uses some Go variables, such as:
 
@@ -34,7 +34,7 @@ As Gitea is written in Go, it uses some Go variables, such as:
 For documentation about each of the variables available, refer to the
 [official Go documentation](https://golang.org/cmd/go/#hdr-Environment_variables).
 
-## Gitea files
+{{% h2 %}}Gitea files{{% /h2 %}}
 
   * `GITEA_WORK_DIR`: Absolute path of working directory.
   * `GITEA_CUSTOM`: Gitea uses `GITEA_WORK_DIR`/custom folder by default. Use this variable
@@ -42,19 +42,19 @@ For documentation about each of the variables available, refer to the
   * `GOGS_WORK_DIR`: Deprecated, use `GITEA_WORK_DIR`
   * `GOGS_CUSTOM`: Deprecated, use `GITEA_CUSTOM`
 
-## Operating system specifics
+{{% h2 %}}Operating system specifics{{% /h2 %}}
 
   * `USER`: System user that Gitea will run as. Used for some repository access strings.
   * `USERNAME`: if no `USER` found, Gitea will use `USERNAME`
   * `HOME`: User home directory path. The `USERPROFILE` environment variable is used in Windows.
 
-### Only on Windows
+{{% h3 %}}Only on Windows{{% /h3 %}}
 
   * `USERPROFILE`: User home directory path. If empty, uses `HOMEDRIVE` + `HOMEPATH`
   * `HOMEDRIVE`: Main drive path used to access the home directory (C:)
   * `HOMEPATH`: Home relative path in the given home drive path
 
-## Macaron (framework used by Gitea)
+{{% h2 %}}Macaron (framework used by Gitea){{% /h2 %}}
 
   * `HOST`: Host Macaron will listen on
   * `PORT`: Port Macaron will listen on
@@ -63,6 +63,6 @@ For documentation about each of the variables available, refer to the
      be recompiled on every request. For more performance, set the MACARON_ENV environment variable
      to "production".
 
-## Miscellaneous
+{{% h2 %}}Miscellaneous{{% /h2 %}}
 
   * `SKIP_MINWINSVC`: If set to 1, do not run as a service on Windows.

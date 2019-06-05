@@ -13,6 +13,6 @@ menu:
     identifier: "localization"
 ---
 
-# 本地化
+{{% h1 %}}本地化{{% /h1 %}}
 
-## TBD
+{{% h2 %}}TBD{{% /h2 %}}

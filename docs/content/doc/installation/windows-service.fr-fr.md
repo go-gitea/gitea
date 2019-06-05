@@ -13,7 +13,7 @@ menu:
     identifier: "windows-service"
 ---
 
-# Activer un service Windows
+{{% h1 %}}Activer un service Windows{{% /h1 %}}
 
 Pour activer le service Windows Gitea, ouvrez une `cmd` en tant qu'Administrateur puis utilisez la commande suivante :
 
@@ -25,7 +25,7 @@ N'oubliez pas de remplacer `C:\gitea` par le chemin que vous avez utilisez pour 
 
 Ensuite, ouvrez "Services Windows", puis recherchez le service `gitea`, faites un clique droit et selectionnez "Run". Si tout fonctionne, vous devriez être capable d'accèder à Gitea à l'URL `http://localhost:3000` (ou sur le port configuré si différent de 3000).
 
-## Désactiver un service Windows
+{{% h2 %}}Désactiver un service Windows{{% /h2 %}}
 
 Pour désactiver le service Windows Gitea, ouvrez une `cmd` en tant qu'Administrateur puis utilisez la commande suivante :
 

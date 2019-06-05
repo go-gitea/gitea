@@ -13,6 +13,6 @@ menu:
     identifier: "authentication"
 ---
 
-# 認證
+{{% h1 %}}認證{{% /h1 %}}
 
-## TBD
+{{% h2 %}}TBD{{% /h2 %}}

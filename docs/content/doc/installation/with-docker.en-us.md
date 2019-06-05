@@ -13,7 +13,7 @@ menu:
     identifier: "install-with-docker"
 ---
 
-# Installation with Docker
+{{% h1 %}}Installation with Docker{{% /h1 %}}
 
 Gitea provides automatically updated Docker images within its Docker Hub organization. It is
 possible to always use the latest stable tag or to use another service that handles updating
@@ -23,7 +23,7 @@ This reference setup guides users through the setup based on `docker-compose`, b
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
 the official [install instructions](https://docs.docker.com/compose/install/).
 
-## Basics
+{{% h2 %}}Basics{{% /h2 %}}
 
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest`
 image as a service. Since there is no database available, one can be initialized using SQLite3.
@@ -56,7 +56,7 @@ services:
       - "222:22"
 ```
 
-## Custom port
+{{% h2 %}}Custom port{{% /h2 %}}
 
 To bind the integrated openSSH daemon and the webserver on a different port, adjust
 the port section. It's common to just change the host port and keep the ports within
@@ -87,7 +87,7 @@ services:
 +      - "2221:22"
 ```
 
-## MySQL database
+{{% h2 %}}MySQL database{{% /h2 %}}
 
 To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
@@ -135,7 +135,7 @@ services:
 +      - ./mysql:/var/lib/mysql
 ```
 
-## PostgreSQL database
+{{% h2 %}}PostgreSQL database{{% /h2 %}}
 
 To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
@@ -182,7 +182,7 @@ services:
 +      - ./postgres:/var/lib/postgresql/data
 ```
 
-## Named volumes
+{{% h2 %}}Named volumes{{% /h2 %}}
 
 To use named volumes instead of host volumes, define and use the named volume
 within the `docker-compose.yml` configuration. This change will automatically
@@ -216,7 +216,7 @@ services:
 
 MySQL or PostgreSQL containers will need to be created separately.
 
-## Start
+{{% h2 %}}Start{{% /h2 %}}
 
 To start this setup based on `docker-compose`, execute `docker-compose up -d`,
 to launch Gitea in the background. Using `docker-compose ps` will show if Gitea
@@ -228,14 +228,14 @@ and kill the containers. The volumes will still exist.
 Notice: if using a non-3000 port on http, change app.ini to match
 `LOCAL_ROOT_URL = http://localhost:3000/`.
 
-## Install
+{{% h2 %}}Install{{% /h2 %}}
 
 After starting the Docker setup via `docker-compose`, Gitea should be available using a
 favorite browser to finalize the installation. Visit http://server-ip:3000 and follow the
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
-## Environments variables
+{{% h2 %}}Environments variables{{% /h2 %}}
 
 You can configure some of Gitea's settings via environment variables:
 
@@ -260,7 +260,7 @@ You can configure some of Gitea's settings via environment variables:
 * `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 * `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
-# Customization
+{{% h1 %}}Customization{{% /h1 %}}
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
 be placed in `/data/gitea` directory. If using host volumes, it's quite easy to access these
@@ -268,7 +268,7 @@ files; for named volumes, this is done through another container or by direct ac
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
 
-# Upgrading
+{{% h1 %}}Upgrading{{% /h1 %}}
 
 :exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:
 
@@ -281,7 +281,7 @@ docker-compose pull
 docker-compose up -d
 ```
 
-# SSH Container Passthrough
+{{% h1 %}}SSH Container Passthrough{{% /h1 %}}
 
 Since SSH is running inside the container, you'll have to pass SSH from the host to the
 container if you wish to use SSH support. If you wish to do this without running the container

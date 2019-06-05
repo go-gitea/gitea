@@ -13,7 +13,7 @@ menu:
     identifier: "install-with-docker"
 ---
 
-# 从Docker安装
+{{% h1 %}}从Docker安装{{% /h1 %}}
 
 阅读本章之前我们已经假设您对docker已经有了解并能够正常使用docker。
 
@@ -39,6 +39,6 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 注意：目前端口改为非3000时，需要修改配置文件 `LOCAL_ROOT_URL  = http://localhost:3000/`。
 
-## 需要帮助?
+{{% h2 %}}需要帮助?{{% /h2 %}}
 
 如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})

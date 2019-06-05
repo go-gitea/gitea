@@ -13,11 +13,11 @@ menu:
     identifier: "make"
 ---
 
-# Make
+{{% h1 %}}Make{{% /h1 %}}
 
 Gitea fait largement usage de Make pour automatiser les tâches et avoir un développement plus rapide. Ce guide explique comment installer Make.
 
-### Linux
+{{% h3 %}}Linux{{% /h3 %}}
 
 Vous pouvez installer Make avec votre gestionnaire de paquetages 
 
@@ -33,7 +33,7 @@ Depuis Fedora/RHEL/CentOS:
 sudo yum install make
 ```
 
-### Windows
+{{% h3 %}}Windows{{% /h3 %}}
 
 Si vous utilisez Windows, vous pouvez télécharger une des versions suivantes de Make:
 

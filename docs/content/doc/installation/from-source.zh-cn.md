@@ -13,11 +13,11 @@ menu:
     identifier: "install-from-source"
 ---
 
-# 从源代码安装
+{{% h1 %}}从源代码安装{{% /h1 %}}
 
 首先你需要安装Golang，关于Golang的安装，参见官方文档 [install instructions](https://golang.org/doc/install)。
 
-## 下载
+{{% h2 %}}下载{{% /h2 %}}
 
 你需要获取Gitea的源码，最方便的方式是使用 go 命令。执行以下命令：
 
@@ -42,7 +42,7 @@ git tag -l
 git checkout v1.0.0
 ```
 
-## 编译
+{{% h2 %}}编译{{% /h2 %}}
 
 我们已经将所有的依赖项拷贝到本工程，我们提供了一些 [编译选项](https://github.com/go-gitea/gitea/blob/master/Makefile) 来让编译更简单。你可以按照你的需求来设置编译开关，可用编译选项如下：
 
@@ -70,7 +70,7 @@ TAGS="bindata" make generate build
 go build
 ```
 
-## 测试
+{{% h2 %}}测试{{% /h2 %}}
 
 在执行了以上步骤之后，你将会获得 `gitea` 的二进制文件，在你复制到部署的机器之前可以先测试一下。在命令行执行完后，你可以 `Ctrl + C` 关掉程序。
 
@@ -78,6 +78,6 @@ go build
 ./gitea web
 ```
 
-## 需要帮助?
+{{% h2 %}}需要帮助?{{% /h2 %}}
 
 如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})

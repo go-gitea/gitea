@@ -13,14 +13,14 @@ menu:
     identifier: "faq"
 ---
 
-# Frequently Asked Questions
+{{% h1 %}}Frequently Asked Questions{{% /h1 %}}
 
 This page contains some common questions and answers.  
 Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 
 * [Difference between 1.x and 1.x.x downloads](#difference-between-1-x-and-1-x-x-downloads)
 * [How to migrate from Gogs/GitHub/etc. to Gitea](#how-to-migrate-from-gogs-github-etc-to-gitea)
-* [Where does Gitea store "x" file](#where-does-gitea-store-x-file)
+* [Where does Gitea store "x" file](#where-does-gitea-store-ldquo-x-rdquo-file)
 * [Not seeing a clone URL or the clone URL being incorrect](#not-seeing-a-clone-url-or-the-clone-url-being-incorrect)
 * [Custom Templates not loading or working incorrectly](#custom-templates-not-loading-or-working-incorrectly)
 * [Active user vs login prohibited user](#active-user-vs-login-prohibited-user)
@@ -34,7 +34,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
 * [Gitea is running slow](#gitea-is-running-slow)
-* [Can't create repositories/files](#cant-create-repositories-files)
+* [Can't create repositories/files](#can-rsquo-t-create-repositories-files)
 * [Translation is incorrect/how to add more translations](#translation-is-incorrect-how-to-add-more-translations)
 * [Hooks aren't running](#hooks-aren-t-running)
 * [SSH Issues](#ssh-issues)
@@ -43,7 +43,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [LFS Issues](#lfs-issues)
 
 
-## Difference between 1.x and 1.x.x downloads
+{{% h2 %}}Difference between 1.x and 1.x.x downloads{{% /h2 %}}
 Version 1.7.x will be used for this example.  
 **NOTE:** this example applies to Docker images as well!  
 
@@ -54,7 +54,7 @@ The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](ht
 This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
 On the other hand, 1.x.x downloads should never change.
 
-## How to migrate from Gogs/GitHub/etc. to Gitea
+{{% h2 %}}How to migrate from Gogs/GitHub/etc. to Gitea{{% /h2 %}}
 To migrate from Gogs to Gitea:
 
 * [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
@@ -65,7 +65,8 @@ To migrate from GitHub to Gitea, you can use Gitea's [Migrator tool](https://git
 To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
 
-## Where does Gitea store "x" file
+{{% h2 %}}Where does Gitea store "x" file{{% /h2 %}}
+
 * WorkPath
   * Environment variable `GITEA_WORK_DIR`
   * Else binary location
@@ -88,7 +89,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
   * `PATH` in `database` section of `app.ini`
   * Else `%(AppDataPath)/gitea.db`
 
-## Not seeing a clone URL or the clone URL being incorrect
+{{% h2 %}}Not seeing a clone URL or the clone URL being incorrect{{% /h2 %}}
 There are a few places that could make this show incorrectly.
 
 1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})
@@ -101,7 +102,7 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 `SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users  
 
 
-## Custom Templates not loading or working incorrectly
+{{% h2 %}}Custom Templates not loading or working incorrectly{{% /h2 %}}
 Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
 The correct path for the template(s) will be relative to the `CustomPath`
 
@@ -110,41 +111,41 @@ The correct path for the template(s) will be relative to the `CustomPath`
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
-## Active user vs login prohibited user
+{{% h2 %}}Active user vs login prohibited user{{% /h2 %}}
 In Gitea, an "active" user refers to a user that has activated their account via email.  
 A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
 
-## Setting up logging 
+{{% h2 %}}Setting up logging {{% /h2 %}}
 * [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
 
-## What is Swagger?
+{{% h2 %}}What is Swagger?{{% /h2 %}}
 [Swagger](https://swagger.io/) is what Gitea uses for its API.  
 All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
 For more information, refer to Gitea's [API docs]({{< relref "doc/advanced/api-usage.en-us.md" >}})
 
 [Swagger Example](https://try.gitea.io/api/swagger)
 
-## Adjusting your server for public/private use
+{{% h2 %}}Adjusting your server for public/private use{{% /h2 %}}
 
-### Preventing spammers
+{{% h3 %}}Preventing spammers{{% /h3 %}}
 There are multiple things you can combine to prevent spammers.  
 
 1. By only whitelisting certain domains with OpenID (see below)
 2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
-### Only allow/block certain email domains
+{{% h3 %}}Only allow/block certain email domains{{% /h3 %}}
 If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`  
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
-### Issue only users
+{{% h3 %}}Issue only users{{% /h3 %}}
 The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
 
-### Enable Fail2ban
+{{% h3 %}}Enable Fail2ban{{% /h3 %}}
 
 Use [Fail2Ban]({{ relref "doc/usage/fail2ban-setup.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
-## How to add/use custom themes
+{{% h2 %}}How to add/use custom themes{{% /h2 %}}
 Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)  
   
@@ -152,16 +153,16 @@ As an example, let's say our theme is `arc-blue` (this is a real theme, and can 
 Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
-## SSHD vs built-in SSH
+{{% h2 %}}SSHD vs built-in SSH{{% /h2 %}}
 SSHD is the built-in SSH server on most Unix systems.  
 Gitea also provides its own SSH server, for usage when SSHD is not available.
 
-## Gitea is running slow
+{{% h2 %}}Gitea is running slow{{% /h2 %}}
 The most common culprit for this is loading federated avatars.  
 This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`  
 Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `true` in your `app.ini`
 
-## Can't create repositories/files
+{{% h2 %}}Can't create repositories/files{{% /h2 %}}
 Make sure that Gitea has sufficient permissions to write to its home directory and data directory.  
 See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
 
@@ -169,17 +170,17 @@ See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
 `ReadWritePaths=/etc/gitea/app.ini`  
 Which makes all other paths non-writeable to Gitea.
 
-## Translation is incorrect/how to add more translations
+{{% h2 %}}Translation is incorrect/how to add more translations{{% /h2 %}}
 Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+{{% h2 %}}Hooks aren't running{{% /h2 %}}
 If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
 See [SSH Issues](#ssh-issues) for more information.  
   
 You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
 
-## SSH issues
+{{% h2 %}}SSH issues{{% /h2 %}}
 If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
 
 First, make sure you can access Gitea via SSH.  
@@ -196,7 +197,7 @@ If you do not get the above message but still connect, it means your SSH key is 
 If you cannot connect at all, your SSH key may not be configured correctly locally. 
 This is specific to SSH and not Gitea, so will not be covered here. 
 
-### SSH Common Errors
+{{% h3 %}}SSH Common Errors{{% /h3 %}}
 
 ```
 Permission denied (publickey).
@@ -241,7 +242,7 @@ In this case, look into the following settings:
   * Ensure that the `gitea serv` command in `.ssh/authorized_keys` uses the
     correct configuration file.
 
-## Missing releases after migrating repository with tags
+{{% h2 %}}Missing releases after migrating repository with tags{{% /h2 %}}
 
 To migrate an repository *with* all tags, you need to do two things:
 
@@ -255,7 +256,7 @@ To migrate an repository *with* all tags, you need to do two things:
  gitea admin repo-sync-releases
  ```
 
-## LFS Issues
+{{% h2 %}}LFS Issues{{% /h2 %}}
 
 For issues concerning LFS data upload
 

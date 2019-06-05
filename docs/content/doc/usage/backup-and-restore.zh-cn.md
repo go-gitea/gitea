@@ -13,11 +13,11 @@ menu:
     identifier: "backup-and-restore"
 ---
 
-# 备份与恢复
+{{% h1 %}}备份与恢复{{% /h1 %}}
 
 Gitea 已经实现了 `dump` 命令可以用来备份所有需要的文件到一个zip压缩文件。该压缩文件可以被用来进行数据恢复。
 
-## 备份命令 (`dump`)
+{{% h2 %}}备份命令 (`dump`){{% /h2 %}}
 
 先转到git用户的权限: `su git`. 再Gitea目录运行 `./gitea dump`。一般会显示类似如下的输出：
 
@@ -40,7 +40,7 @@ Gitea 已经实现了 `dump` 命令可以用来备份所有需要的文件到一
 
 中间备份文件将会在临时目录进行创建，如果您要重新指定临时目录，可以用 `--tempdir` 参数，或者用 `TMPDIR` 环境变量。
 
-## Restore Command (`restore`)
+{{% h2 %}}Restore Command (`restore`){{% /h2 %}}
 
 当前还没有恢复命令，恢复需要人工进行。主要是把文件和数据库进行恢复。
 

@@ -13,11 +13,11 @@ menu:
     identifier: "install-with-docker"
 ---
 
-# Installation avec Docker
+{{% h1 %}}Installation avec Docker{{% /h1 %}}
 
 Nous fournissons des images Docker mises à jour automatiquement via le Docker Hub de notre organisation. C'est à vous, lors devotre déploiement, de vous assurez d'utiliser toujours la dernière version stable ou d'utiliser un autre service qui met à jour l'image Docker pour vous.
 
-## Données stockées sur l'hôte
+{{% h2 %}}Données stockées sur l'hôte{{% /h2 %}}
 
 Tout d'abord, vous devez simplement récupérer l'image Docker avec la commande suivante :
 
@@ -39,11 +39,11 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 Vous devriez avoir une instance fonctionnelle de Gitea. Pour accèder à l'interface web, visitez l'adresse http://hostname:10080 avec votre navigateur web préféré. Si vous voulez clôner un dépôt, vous pouvez le faire avec la commande  `git clone ssh://git@hostname:10022/username/repo.git`.
 
-## Named Volumes 
+{{% h2 %}}Named Volumes {{% /h2 %}}
 
 Ce guide aboutira à une installation avec les données Gita et PostgreSQL stockées dans des volumes nommés. Cela permet une sauvegarde, une restauration et des mises à niveau en toute simplicité.
 
-### The Database
+{{% h3 %}}The Database{{% /h3 %}}
 
 Création du volume nommé pour la base de données :
 
@@ -77,7 +77,7 @@ postgres=# \q
 $
 ```
 
-### Gitea
+{{% h3 %}}Gitea{{% /h3 %}}
 
 Premièrement, le volume nommé :
 
@@ -99,12 +99,12 @@ $ docker run -d --name gitea \
 
 Vous devriez maintenant avoir deux conteneurs Docker pour Gitea et PostgreSQL plus deux volumes nommés Docker.
 
-# Personnalisation
+{{% h1 %}}Personnalisation{{% /h1 %}}
 
 Les fichier personnalisés ([voir les instructions](https://docs.gitea.io/en-us/customizing-gitea/)) peuvent être placés dans le répertoire `/data/gitea`.
 
 Le fichier de configuration sera sauvegardé à l'emplacement suivant : `/data/gitea/conf/app.ini`
 
-## Il manque quelque chose ?
+{{% h2 %}}Il manque quelque chose ?{{% /h2 %}}
 
 Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/NsatcWJ), vous obtiendrez des réponses à toute vos questions assez rapidement.

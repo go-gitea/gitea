@@ -13,13 +13,13 @@ menu:
     identifier: "command-line"
 ---
 
-## Command Line
+{{% h2 %}}Command Line{{% /h2 %}}
 
-### Usage
+{{% h3 %}}Usage{{% /h3 %}}
 
 `gitea [global options] command [command or global options] [arguments...]`
 
-### Global options
+{{% h3 %}}Global options{{% /h3 %}}
 
 All global options can be placed at the command level.
 
@@ -32,9 +32,9 @@ All global options can be placed at the command level.
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).
 
-### Commands
+{{% h3 %}}Commands{{% /h3 %}}
 
-#### web
+{{% h4 %}}web{{% /h4 %}}
 
 Starts the server:
 
@@ -50,7 +50,7 @@ Starts the server:
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
       redone every time you update Gitea.
 
-#### admin
+{{% h4 %}}admin{{% /h4 %}}
 
 Admin operations:
 
@@ -124,7 +124,7 @@ Admin operations:
             - Examples:
                 - `gitea admin auth update-oauth --id 1 --name external-github-updated`
 
-#### cert
+{{% h4 %}}cert{{% /h4 %}}
 
 Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in the current
 directory and will overwrite any existing files.
@@ -142,7 +142,7 @@ directory and will overwrite any existing files.
 - Examples:
     - `gitea cert --host git.example.com,example.com,www.example.com --ca`
 
-#### dump
+{{% h4 %}}dump{{% /h4 %}}
 
 Dumps all files and databases into a zip file. Outputs into a file like `gitea-dump-1482906742.zip`
 in the current directory.
@@ -157,7 +157,7 @@ in the current directory.
     - `gitea dump`
     - `gitea dump --verbose`
 
-#### generate
+{{% h4 %}}generate{{% /h4 %}}
 
 Generates random values and tokens for usage in configuration file. Useful for generating values
 for automatic deployments.
@@ -173,7 +173,7 @@ for automatic deployments.
             - `gitea generate secret JWT_SECRET`
             - `gitea generate secret SECRET_KEY`
 
-#### keys
+{{% h4 %}}keys{{% /h4 %}}
 
 Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd config file:
 

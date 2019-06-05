@@ -13,7 +13,7 @@ menu:
     identifier: "reverse-proxies"
 ---
 
-## 使用 Nginx 作为反向代理服务
+{{% h2 %}}使用 Nginx 作为反向代理服务{{% /h2 %}}
 
 如果您想使用 Nginx 作为 Gitea 的反向代理服务，您可以参照以下 `nginx.conf` 配置中 `server` 的 `http` 部分：
 
@@ -28,7 +28,7 @@ server {
 }
 ```
 
-## 使用 Nginx 作为反向代理服务并将 Gitea 路由至一个子路径
+{{% h2 %}}使用 Nginx 作为反向代理服务并将 Gitea 路由至一个子路径{{% /h2 %}}
 
 如果您已经有一个域名并且想与 Gitea 共享该域名，您可以增加以下 `nginx.conf` 配置中 `server` 的 `http` 部分，为 Gitea 添加路由规则：
 
@@ -45,7 +45,7 @@ server {
 
 然后在您的 Gitea 配置文件中添加 `[server] ROOT_URL = http://git.example.com/git/`。
 
-## 使用 Apache HTTPD 作为反向代理服务
+{{% h2 %}}使用 Apache HTTPD 作为反向代理服务{{% /h2 %}}
 
 如果您想使用 Apache HTTPD 作为 Gitea 的反向代理服务，您可以为您的 Apache HTTPD 作如下配置（在 Ubuntu 中，配置文件通常在 `/etc/apache2/httpd.conf` 目录下）：
 
@@ -61,7 +61,7 @@ server {
 
 注：必须启用以下 Apache HTTPD 组件：`proxy`， `proxy_http`
 
-## 使用 Apache HTTPD 作为反向代理服务并将 Gitea 路由至一个子路径
+{{% h2 %}}使用 Apache HTTPD 作为反向代理服务并将 Gitea 路由至一个子路径{{% /h2 %}}
 
 如果您已经有一个域名并且想与 Gitea 共享该域名，您可以增加以下配置为 Gitea 添加路由规则（在 Ubuntu 中，配置文件通常在 `/etc/apache2/httpd.conf` 目录下）：
 
@@ -82,7 +82,7 @@ server {
 
 注：必须启用以下 Apache HTTPD 组件：`proxy`， `proxy_http`
 
-## 使用 Caddy 作为反向代理服务
+{{% h2 %}}使用 Caddy 作为反向代理服务{{% /h2 %}}
 
 如果您想使用 Caddy 作为 Gitea 的反向代理服务，您可以在 `Caddyfile` 中添加如下配置：
 
@@ -92,7 +92,7 @@ git.example.com {
 }
 ```
 
-## 使用 Caddy 作为反向代理服务并将 Gitea 路由至一个子路径
+{{% h2 %}}使用 Caddy 作为反向代理服务并将 Gitea 路由至一个子路径{{% /h2 %}}
 
 如果您已经有一个域名并且想与 Gitea 共享该域名，您可以在您的 `Caddyfile` 文件中增加以下配置，为 Gitea 添加路由规则：
 

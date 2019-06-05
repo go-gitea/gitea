@@ -13,7 +13,7 @@ menu:
     identifier: "upgrade-from-gogs"
 ---
 
-# 从 Gogs 升级
+{{% h1 %}}从 Gogs 升级{{% /h1 %}}
 
 如果你正在运行Gogs 0.9.146以下版本，你可以平滑的升级到Gitea。该升级需要如下的步骤：
 

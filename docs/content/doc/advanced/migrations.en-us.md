@@ -13,7 +13,7 @@ menu:
     identifier: "migrations-interfaces"
 ---
 
-# Migration Features
+{{% h1 %}}Migration Features{{% /h1 %}}
 
 The new migration features were introduced in Gitea 1.9.0. It defines two interfaces to support migrating 
 repositories data from other git host platforms to gitea or, in the future migrating gitea data to other 
@@ -22,7 +22,7 @@ git host platforms. Currently, only the migrations from github via APIv3 to Gite
 First of all, Gitea defines some standard objects in packages `modules/migrations/base`. They are
  `Repository`, `Milestone`, `Release`, `Label`, `Issue`, `Comment`, `PullRequest`.
 
-## Downloader Interfaces
+{{% h2 %}}Downloader Interfaces{{% /h2 %}}
 
 To migrate from a new git host platform, there are two steps to be updated.
 
@@ -50,7 +50,7 @@ type DownloaderFactory interface {
 }
 ```
 
-## Uploader Interface
+{{% h2 %}}Uploader Interface{{% /h2 %}}
 
 Currently, only a `GiteaLocalUploader` is implemented, so we only save downloaded 
 data via this `Uploader` on the local Gitea instance. Other uploaders are not supported

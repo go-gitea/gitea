@@ -13,9 +13,9 @@ menu:
     identifier: "hacking-on-gitea"
 ---
 
-# Hacking on Gitea
+{{% h1 %}}Hacking on Gitea{{% /h1 %}}
 
-## Installing go and setting the GOPATH
+{{% h2 %}}Installing go and setting the GOPATH{{% /h2 %}}
 
 You should [install go](https://golang.org/doc/install) and set up your go
 environment correctly. In particular, it is recommended to set the `$GOPATH`
@@ -44,7 +44,7 @@ checked by looking at the
 [line 67](https://github.com/go-gitea/gitea/blob/8917d66571a95f3da232a0c27bc1300210d10fde/.drone.yml#L67)
 is the relevant line - but this may change.)
 
-## Downloading and cloning the Gitea source code
+{{% h2 %}}Downloading and cloning the Gitea source code{{% /h2 %}}
 
 Go is quite opinionated about where it expects its source code, and simply
 cloning the Gitea repository to an arbitrary path is likely to lead to
@@ -62,7 +62,7 @@ cd "$GOPATH/src/code.gitea.io/gitea"
 This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
 is not set `"$HOME/go/src/code.gitea.io/gitea"`.
 
-## Forking Gitea
+{{% h2 %}}Forking Gitea{{% /h2 %}}
 
 As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
 code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
@@ -88,7 +88,7 @@ git fetch --all --prune
 To be able to create pull requests, the forked repository should be added as a remote
 to the Gitea sources. Otherwise, changes can't be pushed.
 
-## Building Gitea (Basic)
+{{% h2 %}}Building Gitea (Basic){{% /h2 %}}
 
 Take a look at our
 <a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>instructions</a>
@@ -108,7 +108,7 @@ and look at our
 [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
 how our continuous integration works.
 
-### Formatting, linting, vetting and spell-check
+{{% h3 %}}Formatting, linting, vetting and spell-check{{% /h3 %}}
 
 Our continous integration will reject PRs that are not properly formatted, fail
 linting, vet or spell-check.
@@ -136,7 +136,7 @@ You should lint, vet and spell-check with:
 make vet lint misspell-check
 ```
 
-### Updating CSS
+{{% h3 %}}Updating CSS{{% /h3 %}}
 
 To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
 
@@ -153,7 +153,7 @@ Edit files in `public/less`, run the linter, regenerate the CSS and commit all c
 make css
 ```
 
-### Updating JS
+{{% h3 %}}Updating JS{{% /h3 %}}
 
 To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
 
@@ -167,7 +167,7 @@ Edit files in `public/js` and run the linter:
 make js
 ```
 
-### Updating the API
+{{% h3 %}}Updating the API{{% /h3 %}}
 
 When creating new API routes or modifying existing API routes, you **MUST**
 update and/or create [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/)
@@ -204,7 +204,7 @@ make swagger-check
 **Note**: Please note you should use the Swagger 2.0 documentation, not the
 OpenAPI 3 documentation.
 
-### Creating new configuration options
+{{% h3 %}}Creating new configuration options{{% /h3 %}}
 
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
@@ -212,7 +212,7 @@ and to the
 <a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
 found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
-### Changing the logo
+{{% h3 %}}Changing the logo{{% /h3 %}}
 
 When changing the Gitea logo SVG, you will need to run and commit the results
 of:
@@ -223,7 +223,7 @@ make generate-images
 
 This will create the necessary Gitea favicon and others.
 
-### Database Migrations
+{{% h3 %}}Database Migrations{{% /h3 %}}
 
 If you make breaking changes to any of the database persisted structs in the
 `models/` directory, you will need to make a new migration. These can be found
@@ -234,7 +234,7 @@ database types using:
 make test-sqlite-migration # with sqlite switched for the appropriate database
 ```
 
-## Testing
+{{% h2 %}}Testing{{% /h2 %}}
 
 There are two types of test run by Gitea: Unit tests and Integration Tests.
 
@@ -263,7 +263,7 @@ Migration from several recent versions of Gitea will also be tested.
 Please submit your PR with additional tests and integration tests as
 appropriate.
 
-## Documentation for the website
+{{% h2 %}}Documentation for the website{{% /h2 %}}
 
 Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
@@ -277,14 +277,14 @@ You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
 note: this may generate a number of untracked git objects, which will need to
 be cleaned up.
 
-## Visual Studio Code
+{{% h2 %}}Visual Studio Code{{% /h2 %}}
 
 A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
 Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/master/contrib/ide/README.md)
 for more information.
 
-## Submitting PRs
+{{% h2 %}}Submitting PRs{{% /h2 %}}
 
 Once you're happy with your changes, push them up and open a pull request. It
 is recommended that you allow Gitea Managers and Owners to modify your PR

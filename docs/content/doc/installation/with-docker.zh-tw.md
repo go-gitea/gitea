@@ -13,7 +13,7 @@ menu:
     identifier: "install-with-docker"
 ---
 
-# 用 Docker 安裝
+{{% h1 %}}用 Docker 安裝{{% /h1 %}}
 
 我們在 Docker Hub 提供了自動更新的映像檔，它會保持最新穩定版。根據您的部屬環境來使用最新版本或用其他服務來更新 Docker 映像檔。首先您需要下載映像檔：
 
@@ -35,6 +35,6 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 然後 Gitea 容器已經開始運行，您可以透過個人喜愛的瀏覽器來訪問 http://hostname:10080，假如您想要開始 Clone 儲存庫，可以直接執行 `git clone ssh://git@hostname:10022/username/repo.git` 指令。
 
-## 需要協助？
+{{% h2 %}}需要協助？{{% /h2 %}}
 
 如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/NsatcWJ)，在那邊可以快速得到協助。

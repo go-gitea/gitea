@@ -13,14 +13,14 @@ menu:
     identifier: "api-usage"
 ---
 
-# Gitea API 使用指南
+{{% h1 %}}Gitea API 使用指南{{% /h1 %}}
 
-## 开启/配置 API 访问
+{{% h2 %}}开启/配置 API 访问{{% /h2 %}}
 
 通常情况下， `ENABLE_SWAGGER` 默认开启并且参数 `MAX_RESPONSE_ITEMS` 默认为 50。您可以从 [Config Cheat
 Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) 中获取更多配置相关信息。
 
-## 通过 API 认证
+{{% h2 %}}通过 API 认证{{% /h2 %}}
 
 Gitea 支持以下几种 API 认证方式：
 
@@ -35,7 +35,7 @@ Gitea 调用解析查询参数以及头部信息来获取 token 的代码可以�
 您可以通过您的 gitea web 界面来创建 apiKey token：
 `Settings | Applications | Generate New Token`.
 
-### 关于 `Authorization:` header
+{{% h3 %}}关于 `Authorization:` header{{% /h3 %}}
 
 由于一些历史原因，Gitea 需要在 header 的 apiKey token 里引入前缀 `token`，类似于如下形式：
 
@@ -54,18 +54,18 @@ curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 
 正如上例所示，您也可以在 GET 请求中使用同一个 token 并以 `token=` 的查询参数形式携带 token 来进行认证。
 
-## 通过 API 列出您发布的令牌
+{{% h2 %}}通过 API 列出您发布的令牌{{% /h2 %}}
 
 `/users/:name/tokens` 是一个特殊的接口，需要您使用 basic authentication 进行认证，具体原因在 issue 中
 [#3842](https://github.com/go-gitea/gitea/issues/3842#issuecomment-397743346) 有所提及，使用方法如下所示：
 
-### 使用 Basic authentication 认证：
+{{% h3 %}}使用 Basic authentication 认证：{{% /h3 %}}
 
 ```
 $ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 [{"name":"test","sha1":"..."},{"name":"dev","sha1":"..."}]
 ```
 
-## 使用 Sudo 方式请求 API
+{{% h2 %}}使用 Sudo 方式请求 API{{% /h2 %}}
 
 此 API 允许管理员借用其他用户身份进行 API 请求。只需在请求中指定查询参数 `sudo=` 或是指定 header 中的 `Sudo:` 为需要使用的用户 username 即可。

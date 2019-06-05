@@ -13,9 +13,9 @@ menu:
     identifier: "linux-service"
 ---
 
-### 在 Ubuntu 16.04 LTS 中以 service 方式运行
+{{% h3 %}}在 Ubuntu 16.04 LTS 中以 service 方式运行{{% /h3 %}}
 
-#### systemd 方式
+{{% h4 %}}systemd 方式{{% /h4 %}}
 
 在 terminal 中执行以下命令：
 ```
@@ -33,7 +33,7 @@ sudo systemctl start gitea
 ```
 
 
-#### 使用 supervisor
+{{% h4 %}}使用 supervisor{{% /h4 %}}
 
 在 terminal 中执行以下命令安装 supervisor：
 ```

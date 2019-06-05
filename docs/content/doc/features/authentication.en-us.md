@@ -13,13 +13,9 @@ menu:
     identifier: "authentication"
 ---
 
----
-name: Authentication
----
+{{% h1 %}}Authentication{{% /h1 %}}
 
-# Authentication
-
-## LDAP (Lightweight Directory Access Protocol)
+{{% h2 %}}LDAP (Lightweight Directory Access Protocol){{% /h2 %}}
 
 Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 
@@ -144,13 +140,13 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     * Which group LDAP attribute contains an array above user attribute names.
     * Example: `memberUid`
 
-## PAM (Pluggable Authentication Module)
+{{% h2 %}}PAM (Pluggable Authentication Module){{% /h2 %}}
 
 To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
 work with normal Linux passwords, the user running Gitea must have read access
 to `/etc/shadow`.
 
-## SMTP (Simple Mail Transfer Protocol)
+{{% h2 %}}SMTP (Simple Mail Transfer Protocol){{% /h2 %}}
 
 This option allows Gitea to log in to an SMTP host as a Gitea user. To
 configure this, set the fields below:
@@ -183,7 +179,7 @@ configure this, set the fields below:
 - This authentication is activate
   - Enable or disable this auth.
 
-## FreeIPA
+{{% h2 %}}FreeIPA{{% /h2 %}}
 
 - In order to log in to Gitea using FreeIPA credentials, a bind account needs to
   be created for Gitea:

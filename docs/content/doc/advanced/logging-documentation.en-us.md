@@ -13,11 +13,11 @@ menu:
     identifier: "logging-configuration"
 ---
 
-# Logging Configuration
+{{% h1 %}}Logging Configuration{{% /h1 %}}
 
 The logging framework has been revamped in Gitea 1.9.0.
 
-## Log Groups
+{{% h2 %}}Log Groups{{% /h2 %}}
 
 The fundamental thing to be aware of in Gitea is that there are several
 log groups:
@@ -30,7 +30,7 @@ log groups:
 
 There is also the go log logger.
 
-### The go log logger
+{{% h3 %}}The go log logger{{% /h3 %}}
 
 Go provides its own extremely basic logger in the `log` package,
 however, this is not sufficient for our purposes as it does not provide
@@ -41,7 +41,7 @@ writer.
 We have therefore redirected this logger to our Default logger, and we
 will log anything that is logged using the go logger at the INFO level.
 
-### The "Default" logger
+{{% h3 %}}The "Default" logger{{% /h3 %}}
 
 Calls to `log.Info`, `log.Debug`, `log.Error` etc. from the `code.gitea.io/gitea/modules/log` package will log to this logger.
 
@@ -61,7 +61,7 @@ The provider type of the sublogger can be set using the `MODE` value in
 its subsection, but will default to the name. This allows you to have
 multiple subloggers that will log to files.
 
-### The "Macaron" logger
+{{% h3 %}}The "Macaron" logger{{% /h3 %}}
 
 By default Macaron will log to its own go `log` instance. This writes
 to `os.Stdout`. You can redirect this log to a Gitea configurable logger
@@ -84,7 +84,7 @@ which will not be inherited from the `[log]` or relevant
 NB: You can redirect the macaron logger to send its events to the gitea
 log using the value: `MACARON = ,`
 
-### The "Router" logger
+{{% h3 %}}The "Router" logger{{% /h3 %}}
 
 There are two types of Router log. By default Macaron send its own
 router log which will be directed to Macaron's go `log`, however if you
@@ -111,7 +111,7 @@ which will not be inherited from the `[log]` or relevant
 NB: You can redirect the router logger to send its events to the Gitea
 log using the value: `ROUTER = ,`
 
-### The "Access" logger
+{{% h3 %}}The "Access" logger{{% /h3 %}}
 
 The Access logger is a new logger for version 1.9. It provides a NCSA
 Common Log compliant log format. It's highly configurable but caution
@@ -139,7 +139,7 @@ the value of the `ACCESS_LOG_TEMPLATE`.
 NB: You can redirect the access logger to send its events to the Gitea
 log using the value: `ACCESS = ,`
 
-#### The ACCESS_LOG_TEMPLATE
+{{% h4 %}}The ACCESS_LOG_TEMPLATE{{% /h4 %}}
 
 This value represent a go template. It's default value is:
 
@@ -157,7 +157,7 @@ Caution must be taken when changing this template as it runs outside of
 the standard panic recovery trap. The template should also be as simple
 as it runs for every request.
 
-### The "XORM" logger
+{{% h3 %}}The "XORM" logger{{% /h3 %}}
 
 The XORM logger is a long-standing logger that exists to collect XORM
 log events. It is enabled by default but can be switched off by setting
@@ -179,7 +179,7 @@ which will not be inherited from the `[log]` or relevant
 * `EXPRESSION` will default to `""`
 * `PREFIX` will default to `""`
 
-## Log outputs
+{{% h2 %}}Log outputs{{% /h2 %}}
 
 Gitea provides 4 possible log outputs:
 
@@ -200,20 +200,20 @@ name. Thus `[log.console.macaron]` will default to `MODE = console`.
 * `COLORIZE` will default to `true` for `console` as
 described, otherwise it will default to `false`.
 
-### Non-inherited default values
+{{% h3 %}}Non-inherited default values{{% /h3 %}}
 
 There are several values which are not inherited as described above but
 rather default to those specific to type of logger, these are:
 `EXPRESSION`, `FLAGS`, `PREFIX` and `FILE_NAME`.
 
-#### `EXPRESSION`
+{{% h4 %}}`EXPRESSION`{{% /h4 %}}
 
 `EXPRESSION` represents a regular expression that log events must match to be logged by the sublogger. Either the log message, (with colors removed), must match or the `longfilename:linenumber:functionname` must match. NB: the whole message or string doesn't need to completely match.
 
 Please note this expression will be run in the sublogger's goroutine
 not the logging event subroutine. Therefore it can be complicated.
 
-#### `FLAGS`
+{{% h4 %}}`FLAGS`{{% /h4 %}}
 
 `FLAGS` represents the preceding logging context information that is
 printed before each message. It is a comma-separated string set. The order of values does not matter.
@@ -238,7 +238,7 @@ zone.
 `shortfile,longfile`.
 * `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
 
-### Console mode
+{{% h3 %}}Console mode{{% /h3 %}}
 
 For loggers in console mode, `COLORIZE` will default to `true` if not
 on windows, or the windows terminal can be set into ANSI mode or is a
@@ -247,7 +247,7 @@ cygwin or Msys pipe.
 If `STDERR` is set to `true` the logger will use `os.Stderr` instead of
 `os.Stdout`.
 
-### File mode
+{{% h3 %}}File mode{{% /h3 %}}
 
 The `FILE_NAME` defaults as described above. If set it will be relative
 to the provided `ROOT_PATH` in the master `[log]` section.
@@ -261,14 +261,14 @@ Other values:
 * `COMPRESS`: **true**: Compress old log files by default with gzip
 * `COMPRESSION_LEVEL`: **-1**: Compression level
 
-### Conn mode
+{{% h3 %}}Conn mode{{% /h3 %}}
 
 * `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 * `RECONNECT`: **false**: Try to reconnect when connection is lost.
 * `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 * `ADDR`: **:7020**: Sets the address to connect to.
 
-### SMTP mode
+{{% h3 %}}SMTP mode{{% /h3 %}}
 
 It is not recommended to use this logger to send general logging
 messages. However, you could perhaps set this logger to work on `FATAL`.
@@ -279,7 +279,7 @@ messages. However, you could perhaps set this logger to work on `FATAL`.
 * `RECEIVERS`: Email addresses to send to.
 * `SUBJECT`: **Diagnostic message from Gitea**
 
-## Default Configuration
+{{% h2 %}}Default Configuration{{% /h2 %}}
 
 The default empty configuration is equivalent to:
 
@@ -305,7 +305,7 @@ COLORIZE = true # Or false if your windows terminal cannot color
 
 This is equivalent to sending all logs to the console, with default go log being sent to the console log too.
 
-## Log colorization
+{{% h2 %}}Log colorization{{% /h2 %}}
 
 Logs to the console will be colorized by default when not running on
 Windows. Terminal sniffing will occur on Windows and if it is
@@ -345,7 +345,7 @@ also set the `resetBytes` to the cached `resetBytes`.
 The `colorBytes` and `resetBytes` are not exported to prevent
 accidental overwriting of internal values.
 
-## ColorFormat & ColorFormatted
+{{% h2 %}}ColorFormat & ColorFormatted{{% /h2 %}}
 
 Structs may implement the `log.ColorFormatted` interface by implementing the `ColorFormat(fmt.State)` function.
 
@@ -356,14 +356,14 @@ In order to help implementers provide `ColorFormat` methods. There is a
 
 In general it is recommended not to make the results of this function too verbose to help increase its versatility. Usually this should simply be an `ID`:`Name`. If you wish to make a more verbose result, it is recommended to use `%-+v` as your marker.
 
-## Log Spoofing protection
+{{% h2 %}}Log Spoofing protection{{% /h2 %}}
 
 In order to protect the logs from being spoofed with cleverly
 constructed messages. Newlines are now prefixed with a tab and control
 characters except those used in an ANSI CSI are escaped with a
 preceding `\` and their octal value.
 
-## Creating a new named logger group
+{{% h2 %}}Creating a new named logger group{{% /h2 %}}
 
 Should a developer wish to create a new named logger, `NEWONE`. It is
 recommended to add an `ENABLE_NEWONE_LOG` value to the `[log]`

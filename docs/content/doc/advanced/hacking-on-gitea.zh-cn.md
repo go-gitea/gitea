@@ -13,7 +13,7 @@ menu:
     identifier: "hacking-on-gitea"
 ---
 
-# Hacking on Gitea
+{{% h1 %}}Hacking on Gitea{{% /h1 %}}
 
 首先你需要一些运行环境，这和 [从源代码安装]({{< relref "from-source.zh-cn.md" >}}) 相同，如果你还没有设置好，可以先阅读那个章节。
 

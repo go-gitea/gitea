@@ -13,7 +13,7 @@ menu:
     identifier: "config-cheat-sheet"
 ---
 
-# Configuration Cheat Sheet
+{{% h1 %}}Configuration Cheat Sheet{{% /h1 %}}
 
 This is a cheat sheet for the Gitea configuration file. It contains most of the settings
 that can be configured as well as their default values.
@@ -31,7 +31,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
 
-## Overall (`DEFAULT`)
+{{% h2 %}}Overall (`DEFAULT`){{% /h2 %}}
 
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
 - `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
@@ -40,7 +40,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    deployed to a production environment. The installation process will set this to `prod`
    automatically. \[prod, dev, test\]
 
-## Repository (`repository`)
+{{% h2 %}}Repository (`repository`){{% /h2 %}}
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
    an absolute path.
@@ -67,16 +67,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    give it a right value.
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
-### Repository - Pull Request (`repository.pull-request`)
+{{% h3 %}}Repository - Pull Request (`repository.pull-request`){{% /h3 %}}
 
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
 
-### Repository - Issue (`repository.issue`)
+{{% h3 %}}Repository - Issue (`repository.issue`){{% /h3 %}}
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
-## CORS (`cors`)
+{{% h2 %}}CORS (`cors`){{% /h2 %}}
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
 - `SCHEME`: **http**: scheme of allowed requests
@@ -86,7 +86,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
 
-## UI (`ui`)
+{{% h2 %}}UI (`ui`){{% /h2 %}}
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
@@ -97,18 +97,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 
-### UI - Admin (`ui.admin`)
+{{% h3 %}}UI - Admin (`ui.admin`){{% /h3 %}}
 
 - `USER_PAGING_NUM`: **50**: Number of users that are shown in one page.
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
-## Markdown (`markdown`)
+{{% h2 %}}Markdown (`markdown`){{% /h2 %}}
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
 
-## Server (`server`)
+{{% h2 %}}Server (`server`){{% /h2 %}}
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
@@ -152,7 +152,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
 - `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 
-## Database (`database`)
+{{% h2 %}}Database (`database`){{% /h2 %}}
 
 - `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
@@ -166,7 +166,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
-## Indexer (`indexer`)
+{{% h2 %}}Indexer (`indexer`){{% /h2 %}}
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
@@ -180,7 +180,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 
-## Security (`security`)
+{{% h2 %}}Security (`security`){{% /h2 %}}
 
 - `INSTALL_LOCK`: **false**: Disallow access to the install page.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This should be changed.
@@ -196,7 +196,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    git hooks.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 
-## OpenID (`openid`)
+{{% h2 %}}OpenID (`openid`){{% /h2 %}}
 
 - `ENABLE_OPENID_SIGNIN`: **false**: Allow authentication in via OpenID.
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**: Allow registering via OpenID.
@@ -205,7 +205,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to block.
 
-## Service (`service`)
+{{% h2 %}}Service (`service`){{% /h2 %}}
 
 - `ACTIVE_CODE_LIVE_MINUTES`: **180**: Time limit (min) to confirm account/email registration.
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: **180**: Time limit (min) to confirm forgot password reset
@@ -235,14 +235,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 
-## Webhook (`webhook`)
+{{% h2 %}}Webhook (`webhook`){{% /h2 %}}
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
 
-## Mailer (`mailer`)
+{{% h2 %}}Mailer (`mailer`){{% /h2 %}}
 
 - `ENABLED`: **false**: Enable to use a mail service.
 - `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
@@ -267,7 +267,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    command or full path).
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
-## Cache (`cache`)
+{{% h2 %}}Cache (`cache`){{% /h2 %}}
 
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
@@ -275,7 +275,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 
-## Session (`session`)
+{{% h2 %}}Session (`session`){{% /h2 %}}
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
@@ -283,7 +283,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
 
-## Picture (`picture`)
+{{% h2 %}}Picture (`picture`){{% /h2 %}}
 
 - `GRAVATAR_SOURCE`: **gravatar**: Can be `gravatar`, `duoshuo` or anything like
    `http://cn.gravatar.com/avatar/`.
@@ -301,7 +301,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
 - `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
 
-## Attachment (`attachment`)
+{{% h2 %}}Attachment (`attachment`){{% /h2 %}}
 
 - `ENABLED`: **true**: Enable this to allow uploading attachments.
 - `PATH`: **data/attachments**: Path to store attachments.
@@ -310,7 +310,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 
-## Log (`log`)
+{{% h2 %}}Log (`log`){{% /h2 %}}
 
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
@@ -332,7 +332,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
 - `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
-### Log subsections (`log.name`, `log.name.*`)
+{{% h3 %}}Log subsections (`log.name`, `log.name.*`){{% /h3 %}}
 
 - `LEVEL`: **log.LEVEL**: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
 - `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
@@ -342,12 +342,12 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
 - `COLORIZE`: **false**: Colorize the log lines by default
 
-### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
+{{% h3 %}}Console log mode (`log.console`, `log.console.*`, or `MODE=console`){{% /h3 %}}
 
 - For the console logger `COLORIZE` will default to `true` if not on windows or the terminal is determined to be able to color.
 - `STDERR`: **false**: Use Stderr instead of Stdout.
 
-### File log mode (`log.file`, `log.file.*` or `MODE=file`)
+{{% h3 %}}File log mode (`log.file`, `log.file.*` or `MODE=file`){{% /h3 %}}
 
 - `FILE_NAME`: Set the file name for this logger. Defaults as described above. If relative will be relative to the `ROOT_PATH`
 - `LOG_ROTATE`: **true**: Rotate the log files.
@@ -357,14 +357,14 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `COMPRESS`: **true**: Compress old log files by default with gzip
 - `COMPRESSION_LEVEL`: **-1**: Compression level
 
-### Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`)
+{{% h3 %}}Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`){{% /h3 %}}
 
 - `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 - `RECONNECT`: **false**: Try to reconnect when connection is lost.
 - `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 - `ADDR`: **:7020**: Sets the address to connect to.
 
-### SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`)
+{{% h3 %}}SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`){{% /h3 %}}
 
 - `USER`: User email address to send from.
 - `PASSWD`: Password for the smtp server.
@@ -372,34 +372,34 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `RECEIVERS`: Email addresses to send to.
 - `SUBJECT`: **Diagnostic message from Gitea**
 
-## Cron (`cron`)
+{{% h2 %}}Cron (`cron`){{% /h2 %}}
 
 - `ENABLED`: **true**: Run cron tasks periodically.
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 
-### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
+{{% h3 %}}Cron - Cleanup old repository archives (`cron.archive_cleanup`){{% /h3 %}}
 
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 - `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
-### Cron - Update Mirrors (`cron.update_mirrors`)
+{{% h3 %}}Cron - Update Mirrors (`cron.update_mirrors`){{% /h3 %}}
 
 - `SCHEDULE`: **@every 10m**: Cron syntax for scheduling update mirrors, e.g. `@every 3h`.
 
-### Cron - Repository Health Check (`cron.repo_health_check`)
+{{% h3 %}}Cron - Repository Health Check (`cron.repo_health_check`){{% /h3 %}}
 
 - `SCHEDULE`: **every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
-### Cron - Repository Statistics Check (`cron.check_repo_stats`)
+{{% h3 %}}Cron - Repository Statistics Check (`cron.check_repo_stats`){{% /h3 %}}
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
 
-## Git (`git`)
+{{% h2 %}}Git (`git`){{% /h2 %}}
 
 - `MAX_GIT_DIFF_LINES`: **100**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
@@ -407,7 +407,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 - `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
 
-## Git - Timeout settings (`git.timeout`)
+{{% h2 %}}Git - Timeout settings (`git.timeout`){{% /h2 %}}
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
@@ -415,12 +415,12 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
-## Metrics (`metrics`)
+{{% h2 %}}Metrics (`metrics`){{% /h2 %}}
 
 - `ENABLED`: **false**: Enables /metrics endpoint for prometheus. 
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
-## API (`api`)
+{{% h2 %}}API (`api`){{% /h2 %}}
 
 - `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
@@ -428,7 +428,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees API.
 - `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
 
-## OAuth2 (`oauth2`)
+{{% h2 %}}OAuth2 (`oauth2`){{% /h2 %}}
 
 - `ENABLE`: **true**: Enables OAuth2 provider.
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
@@ -436,12 +436,12 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
-## i18n (`i18n`)
+{{% h2 %}}i18n (`i18n`){{% /h2 %}}
 
 - `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
 - `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
 
-### i18n - Datepicker Language (`i18n.datelang`)
+{{% h3 %}}i18n - Datepicker Language (`i18n.datelang`){{% /h3 %}}
 Maps locales to the languages used by the datepicker plugin
 
 - `en-US`: **en**
@@ -466,11 +466,11 @@ Maps locales to the languages used by the datepicker plugin
 - `sv-SE`: **sv**
 - `ko-KR`: **ko**
 
-## U2F (`U2F`)
+{{% h2 %}}U2F (`U2F`){{% /h2 %}}
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
 - `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
 
-## Markup (`markup`)
+{{% h2 %}}Markup (`markup`){{% /h2 %}}
 
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 
@@ -492,7 +492,7 @@ Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
-## Other (`other`)
+{{% h2 %}}Other (`other`){{% /h2 %}}
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea version information in the footer.

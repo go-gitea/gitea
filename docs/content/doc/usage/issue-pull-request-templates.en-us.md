@@ -13,7 +13,7 @@ menu:
     identifier: "issue-pull-request-templates"
 ---
 
-# Issue and Pull Request Templates
+{{% h1 %}}Issue and Pull Request Templates{{% /h1 %}}
 
 Some projects have a standard list of questions that users need to answer
 when creating an issue or pull request. Gitea supports adding templates to the

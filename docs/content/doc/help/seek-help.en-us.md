@@ -13,7 +13,7 @@ menu:
     identifier: "seek-help"
 ---
 
-# Support Options
+{{% h1 %}}Support Options{{% /h1 %}}
 
 - [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
@@ -27,10 +27,10 @@ menu:
 4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
   * This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
 
-## Bugs
+{{% h2 %}}Bugs{{% /h2 %}}
 
 If you found a bug, please create an [issue on GitHub](https://github.com/go-gitea/gitea/issues).
 
-## Chinese Support
+{{% h2 %}}Chinese Support{{% /h2 %}}
 
 Support for the Chinese language is provided at [gocn.io](https://gocn.io/topic/Gitea).

@@ -13,7 +13,7 @@ menu:
     identifier: "upgrade-from-gogs"
 ---
 
-# Upgrade from Gogs
+{{% h1 %}}Upgrade from Gogs{{% /h1 %}}
 
 Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
@@ -34,7 +34,7 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 * Launch every major version of the binary ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) to migrate database.
 * If custom or config path was changed, run `Rewrite all update hook of repositories`.
 
-## Change gogs specific information
+{{% h2 %}}Change gogs specific information{{% /h2 %}}
 
 * Rename `gogs-repositories/` to `gitea-repositories/`
 * Rename `gogs-data/` to `gitea-data/`
@@ -68,19 +68,19 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 
 * Verify by starting Gitea with `gitea web`
 
-## Upgrading to most recent `gitea` version
+{{% h2 %}}Upgrading to most recent `gitea` version{{% /h2 %}}
 
 After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgrade to the recent `gitea` version.
 Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
 and replace the binary.
 
-## Troubleshooting
+{{% h2 %}}Troubleshooting{{% /h2 %}}
 
 * If errors are encountered relating to custom templates in the `gitea/custom/templates`
   folder, try moving the templates causing the errors away one by one. They may not be
   compatible with Gitea or an update.
 
-## Add Gitea to startup on Unix
+{{% h2 %}}Add Gitea to startup on Unix{{% /h2 %}}
 
 Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/master/contrib)
 with the right environment variables.

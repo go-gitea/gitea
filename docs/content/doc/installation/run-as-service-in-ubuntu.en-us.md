@@ -13,9 +13,9 @@ menu:
     identifier: "linux-service"
 ---
 
-### Run as service in Ubuntu 16.04 LTS
+{{% h3 %}}Run as service in Ubuntu 16.04 LTS{{% /h3 %}}
 
-#### Using systemd
+{{% h4 %}}Using systemd{{% /h4 %}}
 
 Run the below command in a terminal:
 ```
@@ -36,7 +36,7 @@ sudo systemctl start gitea
 ```
 
 
-#### Using supervisor
+{{% h4 %}}Using supervisor{{% /h4 %}}
 
 Install supervisor by running below command in terminal:
 ```

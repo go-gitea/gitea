@@ -13,9 +13,9 @@ menu:
     identifier: "https-setup"
 ---
 
-# HTTPS setup to encrypt connections to Gitea
+{{% h1 %}}HTTPS setup to encrypt connections to Gitea{{% /h1 %}}
 
-## Using the built-in server
+{{% h2 %}}Using the built-in server{{% /h2 %}}
 
 Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
@@ -33,7 +33,7 @@ KEY_FILE = key.pem
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
 
-### Setting up HTTP redirection
+{{% h3 %}}Setting up HTTP redirection{{% /h3 %}}
 
 The Gitea server is only able to listen to one port; to redirect HTTP requests to the HTTPS port, you will need to enable the HTTP redirection service:
 
@@ -46,7 +46,7 @@ PORT_TO_REDIRECT = 3080
 
 If you are using Docker, make sure that this port is configured in your `docker-compose.yml` file.
 
-## Using Let's Encrypt
+{{% h2 %}}Using Let's Encrypt{{% /h2 %}}
 
 [Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates, Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
 
@@ -64,7 +64,7 @@ LETSENCRYPT_EMAIL=email@example.com
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
 
-## Using reverse proxy
+{{% h2 %}}Using reverse proxy{{% /h2 %}}
 
 Setup up your reverse proxy as shown in the [reverse proxy guide](../reverse-proxies).
 

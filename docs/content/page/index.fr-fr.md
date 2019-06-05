@@ -8,15 +8,15 @@ toc: true
 draft: false
 ---
 
-# A propos de Gitea
+{{% h1 %}}A propos de Gitea{{% /h1 %}}
 
 Gitea est un service Git auto-hébergé très simple à installer et à utiliser. Il est similaire à GitHub, Bitbucket ou Gitlab. Le développement initial provient sur [Gogs] (http://gogs.io), mais nous l'avons forké puis renommé Gitea. Si vous souhaitez en savoir plus sur les raisons pour lesquelles nous avons fait cela, lisez [cette publication] (https://blog.gitea.io/2016/12/welcome-to-gitea/) sur le blog.
 
-## Objectif
+{{% h2 %}}Objectif{{% /h2 %}}
 
 Le but de ce projet est de fournir de la manière la plus simple, la plus rapide et sans complication un service Git auto-hébergé. Grâce à Go, cela peut se faire via un binaire indépendant fonctionnant sur toutes les plateformes que Go prend en charge, y compris Linux, macOS et Windows, même sur des architectures comme ARM ou PowerPC.
 
-## Fonctionalités
+{{% h2 %}}Fonctionalités{{% /h2 %}}
 
 - Tableau de bord de l'utilisateur
     - Choix du contexte (organisation ou utilisateur actuel)
@@ -241,18 +241,18 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
         - Git hooks
         - Clefs de déploiement
 
-## Configuration requise
+{{% h2 %}}Configuration requise{{% /h2 %}}
 
 - Un simple Raspberry Pi est assez puissant pour les fonctionnalités de base.
 - Un processeur double coeurs et 1Gb de RAM est une bonne base pour une utilisation en équipe.
 - Gitea est censé être exécuté avec un compte utilisateur dédié et non root, aucun autre mode de fonctionnement n'est pris en charge. (**NOTE**: Dans le cas où vous l'exécutez avec votre propre compte d'utilisateur et que le serveur SSH intégré est désactivé, Gitea modifie le fichier `~ /.ssh /authorized_keys` afin que vous ne soyez **plus capable** de vous connecter interactivement).
 
-## Navigateurs supportés
+{{% h2 %}}Navigateurs supportés{{% /h2 %}}
 
 - Consultez [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) pour la liste des navigateurs supportés.
 - La taille minimale supportée officielement est de **1024*768**, l'interface utilisateur peut toujours fonctionner à une taille plus petite, mais ce n'est pas garanti et les problèmes remontés ne seront pas corrigés.
 
-## Composants
+{{% h2 %}}Composants{{% /h2 %}}
 
 * Framework web : [Macaron](http://go-macaron.com/)
 * ORM : [XORM](https://github.com/go-xorm/xorm)
@@ -274,6 +274,6 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
   * [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## Logiciels et services
+{{% h2 %}}Logiciels et services{{% /h2 %}}
 
 - [Drone](https://github.com/drone/drone) (Intégration continue)

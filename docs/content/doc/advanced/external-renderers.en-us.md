@@ -13,7 +13,7 @@ menu:
     identifier: "external-renderers"
 ---
 
-# Custom files rendering configuration
+{{% h1 %}}Custom files rendering configuration{{% /h1 %}}
 
 Gitea supports custom file renderings (i.e., Jupyter notebooks, asciidoc, etc.) through external binaries, 
 it is just a matter of:
@@ -21,7 +21,7 @@ it is just a matter of:
 * add some configuration to your `app.ini` file
 * restart your Gitea instance
 
-## Installing external binaries
+{{% h2 %}}Installing external binaries{{% /h2 %}}
 
 In order to get file rendering through external binaries, their associated packages must be installed. 
 If you're using a Docker image, your `Dockerfile` should contain something along this lines:
@@ -42,7 +42,7 @@ RUN pip3 install jupyter matplotlib docutils
 # add above any other python package you may need to install
 ```
 
-## `app.ini` file configuration
+{{% h2 %}}`app.ini` file configuration{{% /h2 %}}
 
 add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 

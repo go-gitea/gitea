@@ -13,7 +13,7 @@ menu:
     identifier: "windows-service"
 ---
 
-# 注册为Windows服务
+{{% h1 %}}注册为Windows服务{{% /h1 %}}
 
 要注册为Windows服务，首先以Administrator身份运行 `cmd`，然后执行以下命令：
 
@@ -25,7 +25,7 @@ sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gite
 
 之后在控制面板打开 "Windows Services"，搜索 "gitea"，右键选择 "Run"。在浏览器打开 `http://localhost:3000` 就可以访问了。（如果你修改了端口，请访问对应的端口，3000是默认端口）。
 
-## 从Windows服务中删除
+{{% h2 %}}从Windows服务中删除{{% /h2 %}}
 
 以Administrator身份运行 `cmd`，然后执行以下命令：
 

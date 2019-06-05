@@ -13,7 +13,7 @@ menu:
     identifier: "reverse-proxies"
 ---
 
-##  Using Nginx as a reverse proxy
+{{% h2 %}} Using Nginx as a reverse proxy{{% /h2 %}}
 If you want Nginx to serve your Gitea instance, you can the following `server` section inside the `http` section of `nginx.conf`:
 
 ```
@@ -27,7 +27,7 @@ server {
 }
 ```
 
-## Using Nginx with a sub-path as a reverse proxy
+{{% h2 %}}Using Nginx with a sub-path as a reverse proxy{{% /h2 %}}
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Nginx to serve Gitea under a sub-path by adding the following `server` section inside the `http` section of `nginx.conf`:
 
@@ -44,7 +44,7 @@ server {
 
 Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
 
-## Using Apache HTTPD as a reverse proxy
+{{% h2 %}}Using Apache HTTPD as a reverse proxy{{% /h2 %}}
 
 If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
 
@@ -60,7 +60,7 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
-## Using Apache HTTPD with a sub-path as a reverse proxy
+{{% h2 %}}Using Apache HTTPD with a sub-path as a reverse proxy{{% /h2 %}}
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Apache HTTPD to serve Gitea under a sub-path by adding the following to you Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
 
@@ -81,7 +81,7 @@ Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
-## Using Caddy as a reverse proxy
+{{% h2 %}}Using Caddy as a reverse proxy{{% /h2 %}}
 
 If you want Caddy to serve your Gitea instance, you can add the following server block to your Caddyfile:
 
@@ -91,7 +91,7 @@ git.example.com {
 }
 ```
 
-## Using Caddy with a sub-path as a reverse proxy
+{{% h2 %}}Using Caddy with a sub-path as a reverse proxy{{% /h2 %}}
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Caddy to serve Gitea under a sub-path by adding the following to your server block in your Caddyfile:
 

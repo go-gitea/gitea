@@ -8,15 +8,15 @@ toc: true
 draft: false
 ---
 
-# 關於 Gitea
+{{% h1 %}}關於 Gitea{{% /h1 %}}
 
 Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。初期是從 [Gogs](http://gogs.io) 發展而來，不過我們已經 Fork 並且命名為 Gitea。如果您想更深入了解 Fork 原因，請直接參考[這裡](https://blog.gitea.io/2016/12/welcome-to-gitea/)。
 
-## 目標
+{{% h2 %}}目標{{% /h2 %}}
 
 Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使用體驗良好的自建 Git 服務。我們採用 GO 為後端語言，Go 可以產生各平台使用的執行檔。除了支援 Linux、macOS 和 Windows 外，甚至還包含 ARM 和 PowerPC。
 
-## 功能
+{{% h2 %}}功能{{% /h2 %}}
 
 - 支援個人活動時間表
 - 支援 SSH 和 HTTP/HTTPS 協定
@@ -35,17 +35,17 @@ Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使�
 - 支援 MySQL, PostgreSQL, SQLite3, MSSQL 和 [TiDB](https://github.com/pingcap/tidb) (實驗性)
 - 支援多國語言 ([21 國語言](https://github.com/go-gitea/gitea/tree/master/options/locale))
 
-## 系統需求
+{{% h2 %}}系統需求{{% /h2 %}}
 
 - 最低的系統需求就是一片便宜的樹莓派 (Raspberry Pi)。
 - 如果用於團隊，建議使用 2 核 CPU 和 1GB 記憶體。
 
-## 瀏覽器支援
+{{% h2 %}}瀏覽器支援{{% /h2 %}}
 
 - 請參考 [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) 所支援的瀏覽器列表。
 - 官方支援最小 UI 尺寸為 **1024*768**， UI 在更小尺寸也看起來不錯，但是我們並不保證。
 
-## 元件
+{{% h2 %}}元件{{% /h2 %}}
 
 * Web 框架： [Macaron](http://go-macaron.com/)
 * ORM： [XORM](https://github.com/go-xorm/xorm)

@@ -13,16 +13,16 @@ menu:
     identifier: "api-usage"
 ---
 
-# Gitea API Usage
+{{% h1 %}}Gitea API Usage{{% /h1 %}}
 
-## Enabling/configuring API access
+{{% h2 %}}Enabling/configuring API access{{% /h2 %}}
 
 By default, `ENABLE_SWAGGER` is true, and
 `MAX_RESPONSE_ITEMS` is set to 50.  See [Config Cheat
 Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/) for more
 information.
 
-## Authentication via the API
+{{% h2 %}}Authentication via the API{{% /h2 %}}
 
 Gitea supports these methods of API authentication:
 
@@ -39,7 +39,7 @@ Gitea parses queries and headers to find the token in
 You can create an API key token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
-### OAuth2
+{{% h3 %}}OAuth2{{% /h3 %}}
 
 Access tokens obtained from Gitea's [OAuth2 provider](https://docs.gitea.io/en-us/oauth2-provider) are accepted by these methods:
 
@@ -47,7 +47,7 @@ Access tokens obtained from Gitea's [OAuth2 provider](https://docs.gitea.io/en-u
 - `token=...` parameter in URL query string
 - `access_token=...` parameter in URL query string
 
-### More on the `Authorization:` header
+{{% h3 %}}More on the `Authorization:` header{{% /h3 %}}
 
 For historical reasons, Gitea needs the word `token` included before
 the API key token in an authorization header, like this:
@@ -68,14 +68,14 @@ curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 As mentioned above, the token used is the same one you would use in
 the `token=` string in a GET request.
 
-## Listing your issued tokens via the API
+{{% h2 %}}Listing your issued tokens via the API{{% /h2 %}}
 
 As mentioned in
 [#3842](https://github.com/go-gitea/gitea/issues/3842#issuecomment-397743346),
 `/users/:name/tokens` is special and requires you to authenticate
 using BasicAuth, as follows:
 
-### Using basic authentication:
+{{% h3 %}}Using basic authentication:{{% /h3 %}}
 
 ```
 $ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
@@ -88,6 +88,6 @@ As of v1.8.0 of Gitea, if using basic authentication with the API and your user 
 $ curl -H "X-Gitea-OTP: 123456" --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 ```
 
-## Sudo
+{{% h2 %}}Sudo{{% /h2 %}}
 
 The API allows admin users to sudo API requests as another user. Simply add either a `sudo=` parameter or `Sudo:` request header with the username of the user to sudo.

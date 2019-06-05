@@ -13,7 +13,7 @@ menu:
     identifier: "install-from-source"
 ---
 
-# Installation from source
+{{% h1 %}}Installation from source{{% /h1 %}}
 
 You should [install go](https://golang.org/doc/install) and set up your go
 environment correctly. In particular, it is recommended to set the `$GOPATH`
@@ -32,7 +32,7 @@ obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
 
-## Download
+{{% h2 %}}Download{{% /h2 %}}
 
 First, retrieve the source code. The easiest way is to use the Go tool. Use the
 following commands to fetch the source and switch into the source directory.
@@ -73,7 +73,7 @@ git tag -l
 git checkout v1.0.0  # or git checkout pr-xyz
 ```
 
-## Build
+{{% h2 %}}Build{{% /h2 %}}
 
 Since all required libraries are already bundled in the Gitea source, it's
 possible to build Gitea with no additional downloads apart from Make
@@ -108,7 +108,7 @@ recommended way to build from source is therefore:
 TAGS="bindata sqlite sqlite_unlock_notify" make generate build
 ```
 
-## Test
+{{% h2 %}}Test{{% /h2 %}}
 
 After following the steps above, a `gitea` binary will be available in the working directory.
 It can be tested from this directory or moved to a directory with test data. When Gitea is
@@ -118,7 +118,7 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ./gitea web
 ```
 
-## Changing the default CustomPath, CustomConf and AppWorkDir
+{{% h2 %}}Changing the default CustomPath, CustomConf and AppWorkDir{{% /h2 %}}
 
 Gitea will search for a number of things from the `CustomPath`. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also

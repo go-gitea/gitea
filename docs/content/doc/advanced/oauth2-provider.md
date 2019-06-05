@@ -14,11 +14,11 @@ menu:
 ---
 
 
-# OAuth2 provider
+{{% h1 %}}OAuth2 provider{{% /h1 %}}
 
 Gitea supports acting as an OAuth2 provider to allow third party applications to access its resources with the user's consent. This feature is available since release 1.8.0.
 
-## Endpoints
+{{% h2 %}}Endpoints{{% /h2 %}}
 
 
 Endpoint               | URL
@@ -27,18 +27,18 @@ Authorization Endpoint | `/login/oauth/authorize`
 Access Token Endpoint  | `/login/oauth/access_token`
 
 
-## Supported OAuth2 Grants
+{{% h2 %}}Supported OAuth2 Grants{{% /h2 %}}
 
 At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636) extension.
  
 
 To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings.
 
-## Scopes
+{{% h2 %}}Scopes{{% /h2 %}}
 
 Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and his/her organizations.
 
-## Example
+{{% h2 %}}Example{{% /h2 %}}
 
 **Note:** This example does not use PKCE.
 

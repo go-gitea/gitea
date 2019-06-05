@@ -13,12 +13,12 @@ menu:
     identifier: "backup-and-restore"
 ---
 
-# Backup and Restore
+{{% h1 %}}Backup and Restore{{% /h1 %}}
 
 Gitea currently has a `dump` command that will save the installation to a zip file. This
 file can be unpacked and used to restore an instance.
 
-## Backup Command (`dump`)
+{{% h2 %}}Backup Command (`dump`){{% /h2 %}}
 
 Switch to the user running Gitea: `su git`. Run `./gitea dump -c /path/to/app.ini` in the Gitea installation
 directory. There should be some output similar to the following:
@@ -44,7 +44,7 @@ Inside the `gitea-dump-1482906742.zip` file, will be the following:
 Intermediate backup files are created in a temporary directory specified either with the
 `--tempdir` command-line parameter or the `TMPDIR` environment variable.
 
-### Using Docker (`dump`)
+{{% h3 %}}Using Docker (`dump`){{% /h3 %}}
 
 There are a few caveats for using the `dump` command with Docker.
 
@@ -60,7 +60,7 @@ docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf "name=<NAME_OF_D
 
 The result should be a file, stored in the `--tempdir` specified, along the lines of: `gitea-dump-1482906742.zip`
 
-## Restore Command (`restore`)
+{{% h2 %}}Restore Command (`restore`){{% /h2 %}}
 
 There is currently no support for a recovery command. It is a manual process that mostly
 involves moving files to their correct locations and restoring a database dump.

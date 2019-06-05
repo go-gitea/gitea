@@ -13,11 +13,11 @@ menu:
     identifier: "install-from-source"
 ---
 
-# 從原始碼安裝
+{{% h1 %}}從原始碼安裝{{% /h1 %}}
 
 我們不會在本文教大家如何安裝 Golang 環境。假如您不知道如何設定環境，請直接參考[官方安裝文件](https://golang.org/doc/install)。
 
-## 下載
+{{% h2 %}}下載{{% /h2 %}}
 
 首先您必須先下載原始碼，最簡單的方式就是透過 Go 指令下載，請透過底下指令下載原始碼並且切換到工作目錄。
 
@@ -42,7 +42,7 @@ git tag -l
 git checkout v1.0.0
 ```
 
-## 編譯
+{{% h2 %}}編譯{{% /h2 %}}
 
 完成設定相依性套件環境等工作後，您就可以開始編譯工作了。我們提供了不同的[編譯選項](https://github.com/go-gitea/gitea/blob/master/Makefile) ，讓編譯過程更加簡單。您可以根據需求來調整編譯選項，底下是可用的編譯選項說明：
 
@@ -58,7 +58,7 @@ TAGS="bindata" make generate build
 
 **注意**: 因為使用了套件管理工具，我們建議 Go 環境版本為 1.6 或者是更高，這樣不用在 Go 1.5 版本設定全域變數 `GO15VENDOREXPERIMENT`。
 
-## 測試
+{{% h2 %}}測試{{% /h2 %}}
 
 完成上述步驟後，您可以在當下目錄發現 `gitea` 執行檔，在複製執行檔到遠端環境之前，您必須透過底下指令執行測試，使用 `Ctrl + C` 則可以關閉當下 gitea 程序。
 
@@ -66,7 +66,7 @@ TAGS="bindata" make generate build
 ./gitea web
 ```
 
-## 需要協助？
+{{% h2 %}}需要協助？{{% /h2 %}}
 
 如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/NsatcWJ)，在那邊可以快速得到協助。
 

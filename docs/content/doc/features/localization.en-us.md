@@ -13,6 +13,6 @@ menu:
     identifier: "localization"
 ---
 
-# Localization
+{{% h1 %}}Localization{{% /h1 %}}
 
-## TBD
+{{% h2 %}}TBD{{% /h2 %}}

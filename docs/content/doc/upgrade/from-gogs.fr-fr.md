@@ -13,7 +13,7 @@ menu:
     identifier: "upgrade-from-gogs"
 ---
 
-# Mise à jour depuis Gogs
+{{% h1 %}}Mise à jour depuis Gogs{{% /h1 %}}
 
 À partir de la version 0.9.146 (schéma de la base de données : version 15) de Gogs, Il est possible de migrer vers Gitea simplement et sans encombre.
 
@@ -30,7 +30,7 @@ Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécute
 * Lancez le binaire de version majeure en version majeure ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) afin de récupérer les migrations de base de données.
 * Connectez vous au panel d'administration de Gitea et exécutez l'action `Rewrite '.ssh/authorized_keys' file`, puis l'action `Rewrite all update hook of repositories` (obligatoire si le chemin menant à votre configuration personnalisée à changé).
 
-## Modifier les informations spécifiques de gogs
+{{% h2 %}}Modifier les informations spécifiques de gogs{{% /h2 %}}
 
 * Renommez `gogs-repositories/` vers `gitea-repositories/`
 * Renommez `gogs-data/` to `gitea-data/`
@@ -64,11 +64,11 @@ Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécute
 
 * Vérifiez votre installation en exécutant Gitea avec la commande `gitea web`.
 
-## Dépannage
+{{% h2 %}}Dépannage{{% /h2 %}}
 
 * Si vous rencontrez des erreurs relatives à des modèles personnalisés dans le dossier `gitea/custom/templates`, essayez de déplacer un par un les modèles provoquant les erreurs. Il est possible qu'ils ne soient pas compatibles avec Gitea.
 
-## Démarrer automatiquement Gitea (Unix)
+{{% h2 %}}Démarrer automatiquement Gitea (Unix){{% /h2 %}}
 
 Distributions utilisant systemd:
 

@@ -8,20 +8,20 @@ toc: true
 draft: false
 ---
 
-# What is Gitea?
+{{% h1 %}}What is Gitea?{{% /h1 %}}
 
 Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab.
 Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
 blog post to read about the justification for a fork.
 
-## Purpose
+{{% h2 %}}Purpose{{% /h2 %}}
 
 The goal of this project is to provide the easiest, fastest, and most painless way of setting
 up a self-hosted Git service. With Go, this can be done with an independent binary distribution
 across all platforms and architectures that Go supports. This support includes Linux, macOS, and
 Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
-## Features
+{{% h2 %}}Features{{% /h2 %}}
 
 - User Dashboard
     - Context switcher (organization or current user)
@@ -249,18 +249,18 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - Git hooks
         - Deploy keys
 
-## System Requirements
+{{% h2 %}}System Requirements{{% /h2 %}}
 
 - A Raspberry Pi 3 is powerful enough to run Gitea for small workloads.
 - 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 
-## Browser Support
+{{% h2 %}}Browser Support{{% /h2 %}}
 
 - Please see [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) for specific versions of supported browsers.
 
-## Components
+{{% h2 %}}Components{{% /h2 %}}
 
 * Web framework: [Macaron](http://go-macaron.com/)
 * ORM: [XORM](https://github.com/go-xorm/xorm)
@@ -282,6 +282,6 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
   * [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## Software and Service Support
+{{% h2 %}}Software and Service Support{{% /h2 %}}
 
 - [Drone](https://github.com/drone/drone) (CI)

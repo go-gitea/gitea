@@ -13,9 +13,9 @@ menu:
     identifier: "install-from-package"
 ---
 
-# Installation from package
+{{% h1 %}}Installation from package{{% /h1 %}}
 
-## Debian
+{{% h2 %}}Debian{{% /h2 %}}
 
 Although there is a package of Gitea in Debian's [contrib](https://wiki.debian.org/SourcesList),
 it is not supported directly by us.
@@ -25,13 +25,13 @@ Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}
 
 Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
 
-## Windows
+{{% h2 %}}Windows{{% /h2 %}}
 
 There are no published packages for Windows. This page will change when packages are published,
 in the form of `MSI` installers or via [Chocolatey](https://chocolatey.org/). In the meantime
 the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
 
-## macOS
+{{% h2 %}}macOS{{% /h2 %}}
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
 Following the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide may work,
@@ -42,7 +42,7 @@ brew tap go-gitea/gitea
 brew install gitea
 ```
 
-## FreeBSD
+{{% h2 %}}FreeBSD{{% /h2 %}}
 
 A FreeBSD port `www/gitea` is available. To install the pre-built binary package:
 
@@ -65,7 +65,7 @@ is in `/usr/local/etc/rc.d/gitea`.
 
 To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it with `service gitea start`.
 
-## Cloudron
+{{% h2 %}}Cloudron{{% /h2 %}}
 
 Gitea is available as a 1-click install on [Cloudron](https://cloudron.io). For those unaware,
 Cloudron makes it easy to run apps like Gitea on your server and keep them up-to-date and secure.

@@ -13,11 +13,11 @@ menu:
     identifier: "make"
 ---
 
-# 安装 Make
+{{% h1 %}}安装 Make{{% /h1 %}}
 
 Gitea 大量使用了 Make 工具来自动执行任务并改进开发，本文将介绍如何安装 Make。
 
-### 在 Linux 环境下
+{{% h3 %}}在 Linux 环境下{{% /h3 %}}
 
 可以使用包管理工具来安装 Make。
 
@@ -33,7 +33,7 @@ Fedora/RHEL/CentOS，执行以下命令：
 sudo yum install make
 ```
 
-### 在 Windows 环境下
+{{% h3 %}}在 Windows 环境下{{% /h3 %}}
 
 您可以参照以下三种方案在 Windows 环境安装 Make：
 

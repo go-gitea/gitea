@@ -13,7 +13,7 @@ menu:
     identifier: "comparison"
 ---
 
-# Gitea compared to other Git hosting options
+{{% h1 %}}Gitea compared to other Git hosting options{{% /h1 %}}
 
 To help decide if Gitea is suited for your needs, here is how it compares to other Git self hosted options.
 
@@ -27,7 +27,7 @@ _Symbols used in table:_
 
 * _✘ - unsupported_
 
-#### General Features
+{{% h4 %}}General Features{{% /h4 %}}
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
@@ -50,7 +50,7 @@ _Symbols used in table:_
 | Built-in CI/CD | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Subgroups: groups within groups | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✓ |
 
-#### Code management
+{{% h4 %}}Code management{{% /h4 %}}
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
@@ -69,7 +69,7 @@ _Symbols used in table:_
 | Web code editor | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Commit graph | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-#### Issue Tracker
+{{% h4 %}}Issue Tracker{{% /h4 %}}
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
@@ -91,7 +91,7 @@ _Symbols used in table:_
 | Create issue via email | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘ | ✘ | ✓ | ✓ | ✘ |
 | Service Desk | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘ | ✘ | ✘ | ✓ | ✘ | ✘ |
 
-#### Pull/Merge requests
+{{% h4 %}}Pull/Merge requests{{% /h4 %}}
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|
@@ -107,7 +107,7 @@ _Symbols used in table:_
 | Cherry-picking changes | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 
 
-#### 3rd-party integrations
+{{% h4 %}}3rd-party integrations{{% /h4 %}}
 
 | Feature | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
 |---------|-------|------|-----------|-----------|-----------|-----------|--------------|

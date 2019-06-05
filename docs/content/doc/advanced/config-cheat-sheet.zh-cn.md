@@ -13,17 +13,17 @@ menu:
     identifier: "config-cheat-sheet"
 ---
 
-# 配置说明
+{{% h1 %}}配置说明{{% /h1 %}}
 
 这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
-## Overall (`DEFAULT`)
+{{% h2 %}}Overall (`DEFAULT`){{% /h2 %}}
 
 - `APP_NAME`: 应用名称，改成你希望的名字。
 - `RUN_USER`: 运行Gitea的用户，推荐使用 `git`；如果在你自己的个人电脑使用改成你自己的用户名。如果设置不正确，Gitea可能崩溃。
 - `RUN_MODE`: 从性能考虑，如果在产品级的服务上改成 `prod`。如果您使用安装向导安装的那么会自动设置为 `prod`。
 
-## Repository (`repository`)
+{{% h2 %}}Repository (`repository`){{% /h2 %}}
 
 - `ROOT`: 存放git工程的根目录。这里必须填绝对路径，默认值是 `~/<username>/gitea-repositories`。
 - `SCRIPT_TYPE`: 服务器支持的Shell类型，通常是 `bash`，但有些服务器也有可能是 `sh`。
@@ -33,24 +33,24 @@ menu:
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
-## UI (`ui`)
+{{% h2 %}}UI (`ui`){{% /h2 %}}
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
 - `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交树木。
 
-### UI - Admin (`ui.admin`)
+{{% h3 %}}UI - Admin (`ui.admin`){{% /h3 %}}
 
 - `USER_PAGING_NUM`: 用户管理页面每页显示的用户数量。
 - `REPO_PAGING_NUM`: 仓库管理页面每页显示的仓库数量。
 - `NOTICE_PAGING_NUM`: 系统提示页面每页显示的提示数量。
 - `ORG_PAGING_NUM`: 组织管理页面每页显示的组织数量。
 
-## Markdown (`markdown`)
+{{% h2 %}}Markdown (`markdown`){{% /h2 %}}
 
 - `ENABLE_HARD_LINE_BREAK`: 是否启用硬换行扩展。
 
-## Server (`server`)
+{{% h2 %}}Server (`server`){{% /h2 %}}
 
 - `PROTOCOL`: 可选 `http` 或 `https`。
 - `DOMAIN`: 服务器域名。
@@ -71,7 +71,7 @@ menu:
 - `LFS_CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 
-## Database (`database`)
+{{% h2 %}}Database (`database`){{% /h2 %}}
 
 - `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql`, `tidb` 或 `sqlite3`。
 - `HOST`: 数据库服务器地址和端口。
@@ -83,7 +83,7 @@ menu:
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 
-## Indexer (`indexer`)
+{{% h2 %}}Indexer (`indexer`){{% /h2 %}}
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve` 或 `db`，当为 `db` 时其它工单索引项可不用设置。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
@@ -97,7 +97,7 @@ menu:
 - `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 
-## Security (`security`)
+{{% h2 %}}Security (`security`){{% /h2 %}}
 
 - `INSTALL_LOCK`: 是否允许运行安装向导，(跟管理员账号有关，十分重要)。
 - `SECRET_KEY`: 全局服务器安全密钥 **最好改成你自己的** (当你运行安装向导的时候会被设置为一个随机值)。
@@ -106,7 +106,7 @@ menu:
 - `COOKIE_REMEMBER_NAME`: 保存自动登录信息的 cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: 反向代理认证的 HTTP 头名称。
 
-## Service (`service`)
+{{% h2 %}}Service (`service`){{% /h2 %}}
 
 - `ACTIVE_CODE_LIVE_MINUTES`: 登陆验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
@@ -120,14 +120,14 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: 注册时使用图片验证码。
 
-## Webhook (`webhook`)
+{{% h2 %}}Webhook (`webhook`){{% /h2 %}}
 
 - `QUEUE_LENGTH`: 说明: Hook 任务队列长度。
 - `DELIVER_TIMEOUT`: 请求webhooks的超时时间，单位秒。
 - `SKIP_TLS_VERIFY`: 是否允许不安全的证书。
 - `PAGING_NUM`: 每页显示的Webhook 历史数量。
 
-## Mailer (`mailer`)
+{{% h2 %}}Mailer (`mailer`){{% /h2 %}}
 
 - `ENABLED`: 是否启用邮件服务。
 - `DISABLE_HELO`: 禁用 HELO 命令。
@@ -140,7 +140,7 @@ menu:
 
 说明：实际上 Gitea 仅仅支持基于 STARTTLS 的 SMTP。
 
-## Cache (`cache`)
+{{% h2 %}}Cache (`cache`){{% /h2 %}}
 
 - `ADAPTER`: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: 只对内存缓存有效，GC间隔，单位秒。
@@ -148,20 +148,20 @@ menu:
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 
-## Session (`session`)
+{{% h2 %}}Session (`session`){{% /h2 %}}
 
 - `PROVIDER`: Session 内容存储方式，可选 `memory`, `file`, `redis` 或 `mysql`。
 - `PROVIDER_CONFIG`: 如果是文件，那么这里填根目录；其他的要填主机地址和端口。
 - `COOKIE_SECURE`: 强制使用 HTTPS 作为session访问。
 - `GC_INTERVAL_TIME`: Session失效时间。
 
-## Picture (`picture`)
+{{% h2 %}}Picture (`picture`){{% /h2 %}}
 
 - `GRAVATAR_SOURCE`: 头像来源，可以是 `gravatar`, `duoshuo` 或者类似 `http://cn.gravatar.com/avatar/` 的来源
 - `DISABLE_GRAVATAR`: 开启则只使用内部头像。
 - `ENABLE_FEDERATED_AVATAR`: 启用头像联盟支持 (参见 http://www.libravatar.org)
 
-## Attachment (`attachment`)
+{{% h2 %}}Attachment (`attachment`){{% /h2 %}}
 
 - `ENABLED`: 是否允许用户上传附件。
 - `PATH`: 附件存储路径
@@ -169,40 +169,40 @@ menu:
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
 
-## Log (`log`)
+{{% h2 %}}Log (`log`){{% /h2 %}}
 
 - `ROOT_PATH`: 日志文件根目录。
 - `MODE`: 日志记录模式，默认是为 `console`。如果要写到多个通道，用逗号分隔
 - `LEVEL`: 日志级别，默认为`Trace`。
 
-## Cron (`cron`)
+{{% h2 %}}Cron (`cron`){{% /h2 %}}
 
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
 
-### Cron - Update Mirrors (`cron.update_mirrors`)
+{{% h3 %}}Cron - Update Mirrors (`cron.update_mirrors`){{% /h3 %}}
 
 - `SCHEDULE`: 自动同步镜像仓库的Cron语法，比如：`@every 1h`。
 
-### Cron - Repository Health Check (`cron.repo_health_check`)
+{{% h3 %}}Cron - Repository Health Check (`cron.repo_health_check`){{% /h3 %}}
 
 - `SCHEDULE`: 仓库健康监测的Cron语法，比如：`@every 24h`。
 - `TIMEOUT`: 仓库健康监测的超时时间，比如：`60s`.
 - `ARGS`: 执行 `git fsck` 命令的参数，比如：`--unreachable --tags`。
 
-### Cron - Repository Statistics Check (`cron.check_repo_stats`)
+{{% h3 %}}Cron - Repository Statistics Check (`cron.check_repo_stats`){{% /h3 %}}
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
 - `SCHEDULE`: 藏亏统计时的Cron 语法，比如：`@every 24h`.
 
-## Git (`git`)
+{{% h2 %}}Git (`git`){{% /h2 %}}
 
 - `MAX_GIT_DIFF_LINES`: 比较视图中，一个文件最多显示行数。
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: 比较视图中一行最大字符数。
 - `MAX_GIT_DIFF_FILES`: 比较视图中的最大现实文件数目。
 - `GC_ARGS`: 执行 `git gc` 命令的参数, 比如： `--aggressive --auto`。
 
-## Git - 超时设置 (`git.timeout`)
+{{% h2 %}}Git - 超时设置 (`git.timeout`){{% /h2 %}}
 
 - `DEFAUlT`: **360**: Git操作默认超时时间，单位秒
 - `MIGRATE`: **600**: 迁移外部仓库时的超时时间，单位秒
@@ -212,7 +212,7 @@ menu:
 - `GC`: **60**: git仓库GC的超时时间，单位秒
 - `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: 是否根据 Git Wire Protocol协议支持情况自动切换版本，当 git 版本在 2.18 及以上时会自动切换到版本2。为 `false` 则不切换。
 
-## API (`api`)
+{{% h2 %}}API (`api`){{% /h2 %}}
 
 - `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
@@ -220,7 +220,7 @@ menu:
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
 - `DEFAULT_MAX_BLOB_SIZE`: **10485760**: BLOBS API默认最大大小.
 
-## Markup (`markup`)
+{{% h2 %}}Markup (`markup`){{% /h2 %}}
 
 外部渲染工具支持，你可以用你熟悉的文档渲染工具. 比如一下将新增一个名字为 `asciidoc` 的渲染工具which is followed `markup.` ini section. And there are some config items below.
 
@@ -239,7 +239,7 @@ IS_INPUT_FILE = false
 
 
 
-## Other (`other`)
+{{% h2 %}}Other (`other`){{% /h2 %}}
 
 - `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
 - `SHOW_FOOTER_VERSION`: 为真则在页面底部显示Gitea的版本。
