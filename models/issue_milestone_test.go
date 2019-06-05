@@ -74,10 +74,20 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 		milestones, err := GetMilestonesByRepoID(repo.ID, state)
 		assert.NoError(t, err)
 
-		var n = repo.NumOpenMilestones
+		var n int
 
-		if state == api.StateClosed {
+		switch state {
+		case api.StateClosed:
 			n = repo.NumClosedMilestones
+
+		case api.StateAll:
+			n = repo.NumMilestones
+
+		case api.StateOpen:
+			fallthrough
+
+		default:
+			n = repo.NumOpenMilestones
 		}
 
 		assert.Len(t, milestones, n)
@@ -86,11 +96,14 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 		}
 	}
 	test(1, api.StateOpen)
+	test(1, api.StateAll)
 	test(1, api.StateClosed)
 	test(2, api.StateOpen)
+	test(2, api.StateAll)
 	test(2, api.StateClosed)
 	test(3, api.StateOpen)
 	test(3, api.StateClosed)
+	test(3, api.StateAll)
 
 	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
 	assert.NoError(t, err)
