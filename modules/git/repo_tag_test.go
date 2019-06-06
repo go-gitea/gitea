@@ -46,7 +46,7 @@ func TestRepository_GetTag(t *testing.T) {
 	aTagID, _ := bareRepo1.GetTagID(aTagName)
 
 	lTag, err := bareRepo1.GetTag(lTagName)
-	lTag.repo =nil
+	lTag.repo = nil
 	assert.NoError(t, err)
 	assert.NotNil(t, lTag)
 	assert.EqualValues(t, lTagName, lTag.Name)
