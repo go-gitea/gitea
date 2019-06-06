@@ -222,7 +222,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// - name: page
 	//   in: query
 	//   description: page number of results
-	//   type: int
+	//   type: integer
 	//   required: false
 	// responses:
 	//   "200":
