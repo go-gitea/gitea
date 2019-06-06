@@ -62,6 +62,7 @@ Admin operations:
             - `--password value`: Password. Required.
             - `--email value`: Email. Required.
             - `--admin`: If provided, this makes the user an admin. Optional.
+            - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
             - `--must-change-password`: If provided, the created user will be required to choose a newer password after
 	    the initial login. Optional. (default: true).
             - ``--random-password``: If provided, a randomly generated password will be used as the password of
