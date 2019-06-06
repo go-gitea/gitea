@@ -108,6 +108,7 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	tag.Name = name
 	tag.ID = id
 	tag.repo = repo
+	tag.Type = tp
 
 	repo.tagCache.Set(id.String(), tag)
 	return tag, nil
