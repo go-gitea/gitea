@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
 )
 

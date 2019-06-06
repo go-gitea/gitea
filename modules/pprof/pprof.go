@@ -5,6 +5,7 @@
 package pprof
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"fmt"
 	"io/ioutil"
 	"runtime"
@@ -32,13 +33,13 @@ func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		log.GitLogger.Fatal("StartCPUProfile: %v", err)
+		log.Fatal("StartCPUProfile: %v", err)
 	}
 	return func() {
 		pprof.StopCPUProfile()
 		err = f.Close()
 		if err != nil {
-			log.GitLogger.Fatal("StopCPUProfile Close: %v", err)
+			log.Fatal("StopCPUProfile Close: %v", err)
 		}
 	}, nil
 }

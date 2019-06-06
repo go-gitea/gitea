@@ -2560,10 +2560,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars() error {
-	var (
-		err error
-	)
-	err = x.
+	return x.
 		Where("id > 0").BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
@@ -2574,7 +2571,6 @@ func RemoveRandomAvatars() error {
 				}
 				return nil
 			})
-	return err
 }
 
 // RelAvatarLink returns a relative link to the repository's avatar.
