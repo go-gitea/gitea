@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"net/http"
 	"testing"
 
@@ -23,7 +24,8 @@ func TestAPIReposGitRefs(t *testing.T) {
 		"refs/tags/v1.1",    // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
-		session.MakeRequest(t, req, http.StatusOK)
+		res := session.MakeRequest(t, req, http.StatusOK)
+		spew.Dump(res.Body)
 	}
 	// Test getting all refs
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs?token="+token, user.Name)

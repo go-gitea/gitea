@@ -250,6 +250,7 @@ func ToGitTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.GitTag {
 		SHA:          t.ID.String(),
 		Object:       ToGitTagObject(repo, c),
 		Message:      t.Message,
+		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(c),
 	}

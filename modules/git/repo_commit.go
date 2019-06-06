@@ -94,7 +94,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	commit.repo = repo
 
 	if tagObject != nil {
-		commit.CommitMessage = strings.TrimRight(strings.TrimSpace(tagObject.Message), "\n")
+		commit.CommitMessage = strings.TrimSpace(tagObject.Message)
 		commit.Author = &tagObject.Tagger
 		commit.Signature = convertPGPSignatureForTag(tagObject)
 	}

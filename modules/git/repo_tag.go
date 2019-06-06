@@ -36,6 +36,12 @@ func (repo *Repository) CreateTag(name, revision string) error {
 	return err
 }
 
+// CreateAnnotatedTag create one annotated tag in the repository
+func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
+	_, err := NewCommand("tag", "-a", "-m", message, name, revision).RunInDir(repo.Path)
+	return err
+}
+
 func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	t, ok := repo.tagCache.Get(id.String())
 	if ok {
@@ -148,7 +154,7 @@ func (repo *Repository) GetTagID(name string) (string, error) {
 
 // GetTag returns a Git tag by given name.
 func (repo *Repository) GetTag(name string) (*Tag, error) {
-	idStr, err := repo.GetTagCommitID(name)
+	idStr, err := repo.GetTagID(name)
 	if err != nil {
 		return nil, err
 	}
