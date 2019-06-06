@@ -243,12 +243,12 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 	return result
 }
 
-// ToGitTag convert git.Tag to api.GitTag
-func ToGitTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.GitTag {
-	return &api.GitTag{
+// ToAnnotatedTag convert git.Tag to api.AnnotatedTag
+func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+	return &api.AnnotatedTag{
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
-		Object:       ToGitTagObject(repo, c),
+		Object:       ToAnnotatedTagObject(repo, c),
 		Message:      t.Message,
 		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
 		Tagger:       ToCommitUser(t.Tagger),
@@ -256,9 +256,9 @@ func ToGitTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.GitTag {
 	}
 }
 
-// ToGitTagObject convert a git.Commit to an api.GitTagObject
-func ToGitTagObject(repo *models.Repository, commit *git.Commit) *api.GitTagObject {
-	return &api.GitTagObject{
+// ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
+func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+	return &api.AnnotatedTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
 		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),

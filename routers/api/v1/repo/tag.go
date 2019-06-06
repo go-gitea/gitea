@@ -72,7 +72,7 @@ func GetTag(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Tag"
+	//     "$ref": "#/responses/AnnotatedTag"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
@@ -87,6 +87,6 @@ func GetTag(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusBadRequest, "GetTag", err)
 		}
-		ctx.JSON(http.StatusOK, convert.ToGitTag(ctx.Repo.Repository, tag, commit))
+		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
 	}
 }

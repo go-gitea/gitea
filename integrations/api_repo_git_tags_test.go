@@ -42,7 +42,7 @@ func TestAPIGitTags(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, aTag.ID.String(), token)
 	res := session.MakeRequest(t, req, http.StatusOK)
 
-	var tag *api.GitTag
+	var tag *api.AnnotatedTag
 	DecodeJSON(t, res, &tag)
 
 	assert.Equal(t, aTagName, tag.Tag)

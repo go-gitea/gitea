@@ -50,6 +50,13 @@ type swaggerResponseTag struct {
 	Body api.Tag `json:"body"`
 }
 
+// AnnotatedTag
+// swagger:response AnnotatedTag
+type swaggerResponseAnnotatedTag struct {
+	// in:body
+	Body api.AnnotatedTag `json:"body"`
+}
+
 // Reference
 // swagger:response Reference
 type swaggerResponseReference struct {

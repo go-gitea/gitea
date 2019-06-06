@@ -4,7 +4,7 @@
 
 package structs
 
-// Tag represents a repository tag for the /tags API endpoint
+// Tag represents a repository tag
 type Tag struct {
 	Name       string      `json:"name"`
 	ID         string      `json:"id"`
@@ -13,19 +13,19 @@ type Tag struct {
 	TarballURL string      `json:"tarball_url"`
 }
 
-// GitTag represents a git tag for the /git/tags API endpoint
-type GitTag struct {
+// AnnotatedTag represents an annotated tag
+type AnnotatedTag struct {
 	Tag          string                     `json:"tag"`
 	SHA          string                     `json:"sha"`
 	URL          string                     `json:"url"`
 	Message      string                     `json:"message"`
 	Tagger       *CommitUser                `json:"tagger"`
-	Object       *GitTagObject              `json:"object"`
+	Object       *AnnotatedTagObject        `json:"object"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }
 
-// GitTagObject contains meta information of the tag object
-type GitTagObject struct {
+// AnnotatedTagObject contains meta information of the tag object
+type AnnotatedTagObject struct {
 	Type string `json:"type"`
 	URL  string `json:"url"`
 	SHA  string `json:"sha"`

@@ -2071,7 +2071,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Tag"
+            "$ref": "#/responses/AnnotatedTag"
           }
         }
       }
@@ -6802,6 +6802,57 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag represents an annotated tag",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "object": {
+          "$ref": "#/definitions/AnnotatedTagObject"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tag": {
+          "type": "string",
+          "x-go-name": "Tag"
+        },
+        "tagger": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "AnnotatedTagObject": {
+      "description": "AnnotatedTagObject contains meta information of the tag object",
+      "type": "object",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Attachment": {
       "description": "Attachment a generic attachment",
       "type": "object",
@@ -9494,7 +9545,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Tag": {
-      "description": "Tag represents a repository tag for the /tags API endpoint",
+      "description": "Tag represents a repository tag",
       "type": "object",
       "properties": {
         "commit": {
@@ -9767,6 +9818,12 @@
     },
     "AccessTokenList": {
       "description": "AccessTokenList represents a list of API access token."
+    },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag",
+      "schema": {
+        "$ref": "#/definitions/AnnotatedTag"
+      }
     },
     "Attachment": {
       "description": "Attachment",
