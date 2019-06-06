@@ -76,8 +76,7 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 		return err
 	}
 	defer func() {
-		err = RemoveTemporaryPath(basePath)
-		if err != nil {
+		if err := RemoveTemporaryPath(basePath); err != nil {
 			log.Error("CreateNewBranch: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -123,8 +122,7 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 		return err
 	}
 	defer func() {
-		err = RemoveTemporaryPath(basePath)
-		if err != nil {
+		if err := RemoveTemporaryPath(basePath); err != nil {
 			log.Error("CreateNewBranchFromCommit: RemoveTemporaryPath: %s", err)
 		}
 	}()

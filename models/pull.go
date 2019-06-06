@@ -428,8 +428,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return err
 	}
 	defer func() {
-		err = RemoveTemporaryPath(tmpBasePath)
-		if err != nil {
+		if err := RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -1154,7 +1153,9 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 		return fmt.Errorf("AddRemote: %v", err)
 	}
 	defer func() {
-		_ = headGitRepo.RemoveRemote(tmpRemote)
+		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("UpdatePatch: RemoveRemote: %s", err)
+		}
 	}()
 	remoteBranch := "remotes/" + tmpRemote + "/" + pr.BaseBranch
 	pr.MergeBase, err = headGitRepo.GetMergeBase(remoteBranch, pr.HeadBranch)
@@ -1194,7 +1195,9 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	}
 	// Make sure to remove the remote even if the push fails
 	defer func() {
-		_ = headGitRepo.RemoveRemote(tmpRemoteName)
+		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
+			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
+		}
 	}()
 
 	headFile := pr.GetGitRefName()

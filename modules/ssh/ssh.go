@@ -52,8 +52,7 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 
 		go func(in <-chan *ssh.Request) {
 			defer func() {
-				err = ch.Close()
-				if err != nil {
+				if err = ch.Close(); err != nil {
 					log.Error("Close: %v", err)
 				}
 			}()
@@ -229,8 +228,7 @@ func GenKeyPair(keyPath string) error {
 		return err
 	}
 	defer func() {
-		err = f.Close()
-		if err != nil {
+		if err = f.Close(); err != nil {
 			log.Error("Close: %v", err)
 		}
 	}()
@@ -251,8 +249,7 @@ func GenKeyPair(keyPath string) error {
 		return err
 	}
 	defer func() {
-		err = p.Close()
-		if err != nil {
+		if err = p.Close(); err != nil {
 			log.Error("Close: %v", err)
 		}
 	}()

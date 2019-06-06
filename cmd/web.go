@@ -184,8 +184,7 @@ func runWeb(ctx *cli.Context) error {
 			log.Fatal("Failed to bind %s: %v", listenAddr, err)
 		}
 		defer func() {
-			err = listener.Close()
-			if err != nil {
+			if err := listener.Close(); err != nil {
 				log.Fatal("Failed to stop server: %v", err)
 			}
 		}()

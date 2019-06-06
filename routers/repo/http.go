@@ -392,7 +392,10 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 
 func serviceRPC(h serviceHandler, service string) {
 	defer func() {
-		_ = h.r.Body.Close()
+		if err := h.r.Body.Close(); err != nil {
+			log.Error("serviceRPC: Close: %v", err)
+		}
+
 	}()
 
 	if !hasAccess(service, h, true) {

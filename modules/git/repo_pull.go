@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	logger "code.gitea.io/gitea/modules/log"
 )
 
 // PullRequestInfo represents needed information for a pull request.
@@ -40,7 +42,9 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
 		defer func() {
-			_ = repo.RemoveRemote(tmpRemote)
+			if err := repo.RemoveRemote(tmpRemote); err != nil {
+				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
+			}
 		}()
 
 		remoteBranch = "remotes/" + tmpRemote + "/" + baseBranch

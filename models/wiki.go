@@ -251,8 +251,7 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		return err
 	}
 	defer func() {
-		err = RemoveTemporaryPath(basePath)
-		if err != nil {
+		if err := RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
