@@ -46,7 +46,8 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	t, ok := repo.tagCache.Get(id.String())
 	if ok {
 		log("Hit cache: %s", id)
-		return t.(*Tag), nil
+		tagClone := *t.(*Tag)
+		return &tagClone, nil
 	}
 
 	// Get tag name
@@ -180,7 +181,7 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 		return nil, err
 	}
 
-	tagNames := strings.Split(stdout, "\n")
+	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
 	var tags = make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
@@ -192,6 +193,7 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 		if err != nil {
 			return nil, err
 		}
+		tag.Name = tagName
 		tags = append(tags, tag)
 	}
 	sortTagsByTime(tags)
