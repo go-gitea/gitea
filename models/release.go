@@ -41,7 +41,7 @@ type Release struct {
 	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
 }
 
-func (r *Release) loadAttributes() error {
+func (r *Release) loadAttributes(e Engine) error {
 	var err error
 	if r.Repo == nil {
 		r.Repo, err = GetRepositoryByID(r.RepoID)
@@ -50,7 +50,7 @@ func (r *Release) loadAttributes() error {
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = GetUserByID(r.PublisherID)
+		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func (r *Release) loadAttributes() error {
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes()
+	return r.loadAttributes(x)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -395,7 +395,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		return err
 	}
 
-	err = rel.loadAttributes()
+	err = rel.loadAttributes(x)
 	if err != nil {
 		return err
 	}
