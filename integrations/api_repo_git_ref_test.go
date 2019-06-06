@@ -23,7 +23,7 @@ func TestAPIReposGitRefs(t *testing.T) {
 		"refs/tags/v1.1",    // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/%s?token="+token, user.Name, ref)
-		res := session.MakeRequest(t, req, http.StatusOK)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 	// Test getting all refs
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/refs?token="+token, user.Name)
