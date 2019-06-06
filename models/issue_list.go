@@ -486,32 +486,32 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(e Engine) (err error) {
-	if _, err = issues.loadRepositories(e); err != nil {
+func (issues IssueList) loadAttributes(e Engine) error {
+	if _, err := issues.loadRepositories(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
 	}
 
-	if err = issues.loadPosters(e); err != nil {
+	if err := issues.loadPosters(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadPosters: %v", err)
 	}
 
-	if err = issues.loadLabels(e); err != nil {
+	if err := issues.loadLabels(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadLabels: %v", err)
 	}
 
-	if err = issues.loadMilestones(e); err != nil {
+	if err := issues.loadMilestones(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
 	}
 
-	if err = issues.loadAssignees(e); err != nil {
+	if err := issues.loadAssignees(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadAssignees: %v", err)
 	}
 
-	if err = issues.loadPullRequests(e); err != nil {
+	if err := issues.loadPullRequests(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %v", err)
 	}
 
-	if err = issues.loadTotalTrackedTimes(e); err != nil {
+	if err := issues.loadTotalTrackedTimes(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %v", err)
 	}
 
