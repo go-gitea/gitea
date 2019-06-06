@@ -96,7 +96,7 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// - name: page
 	//   in: query
 	//   description: page number of results
-	//   type: int
+	//   type: integer
 	//   required: false
 	// - name: sort
 	//   in: query
