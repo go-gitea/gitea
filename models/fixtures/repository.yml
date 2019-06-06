@@ -11,6 +11,7 @@
   num_milestones: 3
   num_closed_milestones: 1
   num_watches: 3
+  num_forks: 1
 
 -
   id: 2
