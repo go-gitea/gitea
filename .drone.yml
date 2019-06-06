@@ -7,6 +7,9 @@ pipeline:
     image: docker:git
     commands:
       - git fetch --tags --force
+    when:
+      event:
+        exclude: [ pull_request ]
 
   download_translations:
     image: jonasfranz/crowdin

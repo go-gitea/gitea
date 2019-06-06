@@ -249,7 +249,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					ctx.Redirect(repo.Link() + "/settings")
 					return
 				}
-				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalURL(form.TrackerURLFormat) {
+				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return

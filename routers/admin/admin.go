@@ -125,6 +125,7 @@ const (
 	reinitMissingRepository
 	syncExternalUsers
 	gitFsck
+	deleteGeneratedRepositoryAvatars
 )
 
 // Dashboard show admin panel dashboard
@@ -167,6 +168,9 @@ func Dashboard(ctx *context.Context) {
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
 			go models.GitFsck()
+		case deleteGeneratedRepositoryAvatars:
+			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
+			err = models.RemoveRandomAvatars()
 		}
 
 		if err != nil {

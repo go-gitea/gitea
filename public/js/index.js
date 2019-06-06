@@ -2160,6 +2160,14 @@ $(document).ready(function () {
             break;
         }
     }
+
+    var $cloneAddr = $('#clone_addr');
+    $cloneAddr.change(function() {
+        var $repoName = $('#repo_name');
+        if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
+            $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+        }
+    });
 });
 
 function changeHash(hash) {

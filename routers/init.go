@@ -5,7 +5,6 @@
 package routers
 
 import (
-	"path"
 	"strings"
 	"time"
 
@@ -99,7 +98,6 @@ func GlobalInit() {
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
-		log.NewGitLogger(path.Join(setting.LogRootPath, "http.log"))
 	}
 	if models.EnableSQLite3 {
 		log.Info("SQLite3 Supported")

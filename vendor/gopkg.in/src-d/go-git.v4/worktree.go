@@ -152,17 +152,6 @@ func (w *Worktree) Checkout(opts *CheckoutOptions) error {
 		}
 	}
 
-	if !opts.Force {
-		unstaged, err := w.containsUnstagedChanges()
-		if err != nil {
-			return err
-		}
-
-		if unstaged {
-			return ErrUnstagedChanges
-		}
-	}
-
 	c, err := w.getCommitFromCheckoutOptions(opts)
 	if err != nil {
 		return err
