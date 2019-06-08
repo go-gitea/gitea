@@ -144,7 +144,7 @@ code.wrap,pre.wrap{white-space:pre-wrap;word-break:break-all;overflow-wrap:break
 .ui .border.light.grey{border-color:#888!important}
 .ui .border.green{border-color:#6cc644!important}
 .ui .border.purple{border-color:#6e5494!important}
-.ui .border.yellow{border-color:#FBBD08!important}
+.ui .border.yellow{border-color:#fbbd08!important}
 .ui .border.gold{border-color:#a1882b!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
