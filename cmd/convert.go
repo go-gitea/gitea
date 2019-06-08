@@ -17,7 +17,7 @@ import (
 // CmdConvert represents the available convert sub-command.
 var CmdConvert = cli.Command{
 	Name:        "convert",
-	Usage:       "Covert the database",
+	Usage:       "Convert the database",
 	Description: "This is a command for converting the database.",
 	Action:      runConvert,
 }
