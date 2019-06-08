@@ -27,6 +27,16 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	return ref.Hash().String(), nil
 }
 
+// IsCommitExist returns true if given commit exists in current repository.
+func (repo *Repository) IsCommitExist(name string) bool {
+	hash := plumbing.NewHash(name)
+	_, err := repo.gogitRepo.CommitObject(hash)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 	return repo.GetRefCommitID(BranchPrefix + name)
