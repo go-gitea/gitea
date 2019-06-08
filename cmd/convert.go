@@ -34,7 +34,7 @@ func runConvert(ctx *cli.Context) error {
 	models.LoadConfigs()
 
 	if models.DbCfg.Type != "mysql" {
-		fmt.Println("This command only be used with mysql database")
+		fmt.Println("This command can only be used with a MySQL database")
 		return nil
 	}
 
