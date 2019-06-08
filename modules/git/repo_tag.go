@@ -67,11 +67,10 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		// every tag should have a commit ID so return all errors
 		return nil, err
 	}
-	cID, err := NewIDFromString(commitIDStr)
+	commitID, err := NewIDFromString(commitIDStr)
 	if err != nil {
 		return nil, err
 	}
-	commitID := cID
 
 	// defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
 	tagID := commitID
