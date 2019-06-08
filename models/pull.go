@@ -1037,9 +1037,9 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
-// GetLatestPullRequestsByHeadInfo returns the latest pull request (regardless of its status)
+// GetLatestPullRequestByHeadInfo returns the latest pull request (regardless of its status)
 // by given head information (repo and branch).
-func GetLatestPullRequestsByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
+func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
 		Where("head_repo_id = ? AND head_branch = ?", repoID, branch).

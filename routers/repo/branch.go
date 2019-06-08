@@ -179,7 +179,11 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
-		pr, err := models.GetLatestPullRequestsByHeadInfo(ctx.Repo.Repository.ID, branchName)
+		pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
+		if err != nil {
+			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
+			return nil
+		}
 		if pr != nil {
 			pr.LoadIssue()
 		}
