@@ -18,7 +18,7 @@ import (
 var CmdConvert = cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
-	Description: "This is a command for converting the database.",
+	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4",
 	Action:      runConvert,
 }
 
