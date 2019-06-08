@@ -959,8 +959,15 @@ function initRepository() {
     });
 
     // Pull request
-    if ($('.repository.compare.pull').length > 0) {
+    var $repoComparePull = $('.repository.compare.pull');
+    if ($repoComparePull.length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
+        // show pull request form
+        $repoComparePull.find('button.show-form').on('click', function(e) {
+            e.preventDefault();
+            $repoComparePull.find('.pullrequest-form').show();
+            $(this).parent().hide();
+        });
     }
 
     // Branches

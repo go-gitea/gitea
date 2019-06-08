@@ -591,6 +591,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .milestone.list>.item .content{padding-top:10px}
 .repository.new.milestone textarea{height:200px}
 .repository.new.milestone #deadline{width:150px}
+.repository.compare.pull .show-form-container{text-align:left}
 .repository.compare.pull .choose.branch .octicon{padding-right:10px}
 .repository.compare.pull .comment.form .content:after,.repository.compare.pull .comment.form .content:before{right:100%;top:20px;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}
 .repository.compare.pull .comment.form .content:before{border-right-color:#d3d3d4;border-width:9px;margin-top:-9px}
