@@ -81,11 +81,10 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 			return nil, err
 		}
 	} else {
-		tID, err := NewIDFromString(tagIDStr)
+		tagID, err = NewIDFromString(tagIDStr)
 		if err != nil {
 			return nil, err
 		}
-		tagID = tID
 	}
 
 	// If type is "commit, the tag is a lightweight tag
