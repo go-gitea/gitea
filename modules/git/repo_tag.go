@@ -61,18 +61,30 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return nil, err
 	}
 
-	// The id passed in could be a tag object ID or a commit ID, so getting both
-	tagID := id
-	if tagIDStr, _ := repo.GetTagID(name); tagIDStr != "" {
-		if tID, err := NewIDFromString(tagIDStr); err == nil {
-			tagID = tID
+	var commitID SHA1
+	if commitIDStr, _ := repo.GetTagCommitID(name); err != nil {
+		// every tag should have a commit ID so return all errors
+		return nil, err
+	} else {
+		cID, err := NewIDFromString(commitIDStr)
+		if err != nil {
+			return nil, err
 		}
+		commitID = cID
 	}
-	commitID := id
-	if commitIDStr, _ := repo.GetTagCommitID(name); commitIDStr != "" {
-		if cID, err := NewIDFromString(commitIDStr); err == nil {
-			commitID = cID
+	tagID := commitID // defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
+	if tagIDStr, err := repo.GetTagID(name); err != nil {
+		// if the err is NotExist then we can ignore and just keep tagID as ID (is lightweight tag)
+		// all other errors we return
+		if !IsErrNotExist(err) {
+			return nil, err
 		}
+	} else {
+		tID, err := NewIDFromString(tagIDStr)
+		if err != nil {
+			return nil, err
+		}
+		tagID = tID
 	}
 
 	// If type is "commit, the tag is a lightweight tag
