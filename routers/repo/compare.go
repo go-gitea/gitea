@@ -247,12 +247,12 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitId := baseBranch
+	baseCommitID := baseBranch
 	if ctx.Data["BaseIsCommit"] == false {
 		if ctx.Data["BaseIsTag"] == true {
-			baseCommitId, err = baseGitRepo.GetTagCommitID(baseBranch)
+			baseCommitID, err = baseGitRepo.GetTagCommitID(baseBranch)
 		} else {
-			baseCommitId, err = baseGitRepo.GetBranchCommitID(baseBranch)
+			baseCommitID, err = baseGitRepo.GetBranchCommitID(baseBranch)
 		}
 		if err != nil {
 			ctx.ServerError("GetRefCommitID", err)
@@ -260,7 +260,7 @@ func PrepareCompareDiff(
 		}
 	}
 
-	baseCommit, err := baseGitRepo.GetCommit(baseCommitId)
+	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
@@ -313,7 +313,7 @@ func PrepareCompareDiff(
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", compareInfo.MergeBase)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
-	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", baseCommitId)
+	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", baseCommitID)
 	return false
 }
 
