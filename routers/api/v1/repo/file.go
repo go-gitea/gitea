@@ -181,7 +181,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'content' must be base64 encoded\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'sha' is the SHA for the file that already exists\n\n 'new_branch' (optional) will make a new branch from 'branch' before creating the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateFileOptions"
 	// responses:
@@ -238,7 +238,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/UpdateFileOptions"
 	// responses:
@@ -316,7 +316,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'sha' is the SHA for the file to be deleted\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before deleting the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/DeleteFileOptions"
 	// responses:

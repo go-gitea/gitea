@@ -156,8 +156,7 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1])
-				path = append(path, str[index+1:])
+				path = append(path, str[0:index+1], str[index+1:])
 			} else {
 				path = append(path, str)
 			}
@@ -330,10 +329,10 @@ func ToUTF8(content string) string {
 	return res
 }
 
-// ReplaceLeft replaces all prefixes 'old' in 's' with 'new'.
-func ReplaceLeft(s, old, new string) string {
-	oldLen, newLen, i, n := len(old), len(new), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], old); n++ {
+// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
+func ReplaceLeft(s, oldS, newS string) string {
+	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
+	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
 		i += oldLen
 	}
 
@@ -348,7 +347,7 @@ func ReplaceLeft(s, old, new string) string {
 
 	j := 0
 	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], new)
+		copy(replacement[j:j+newLen], newS)
 	}
 
 	copy(replacement[j:], s[i:])
