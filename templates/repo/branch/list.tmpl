@@ -62,24 +62,22 @@
 										{{end}}
 									</td>
 									<td class="right aligned">
-
-									{{if not .LatestPullRequest}}
-										{{if not .IsDeleted}}
-										<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
-                                        	<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
-                                        </a>
+										{{if not .LatestPullRequest}}
+											{{if not .IsDeleted}}
+											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
+												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
+											</a>
+											{{end}}
+										{{else}}
+											<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}">#{{.LatestPullRequest.Issue.Index}}</a>
+											{{if .LatestPullRequest.HasMerged}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui purple small label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
+											{{else if .LatestPullRequest.Issue.IsClosed}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui red small label"><i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.closed_title"}}</a>
+											{{else}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui green small label"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_title"}}</a>
+											{{end}}
 										{{end}}
-									{{else}}
-										<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}">#{{.LatestPullRequest.Issue.Index}}</a>
-                                        {{if .LatestPullRequest.HasMerged}}
-                                        	<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui purple small label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
-                                        {{else if .LatestPullRequest.Issue.IsClosed}}
-                                        	<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui red small label"><i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.closed_title"}}</a>
-                                        {{else}}
-                                        	<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui green small label"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_title"}}</a>
-                                        {{end}}
-									{{end}}
-
 									</td>
 									{{if and $.IsWriter (not $.IsMirror)}}
 										<td class="right aligned">
