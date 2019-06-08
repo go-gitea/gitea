@@ -72,7 +72,7 @@ func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 		return nil, err
 	}
 
-	// defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
+	// tagID defaults to the commit ID as the tag ID and then tries to get a tag ID (only annotated tags)
 	tagID := commitID
 	if tagIDStr, err := repo.GetTagID(name); err != nil {
 		// if the err is NotExist then we can ignore and just keep tagID as ID (is lightweight tag)
