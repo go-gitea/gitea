@@ -43,7 +43,7 @@ func runConvert(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println("Convert successfully, please confirm your database connstr with utf8mb4")
+	fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
 
 	return nil
 }
