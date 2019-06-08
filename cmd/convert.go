@@ -39,7 +39,7 @@ func runConvert(ctx *cli.Context) error {
 	}
 
 	if err := models.ConvertUtf8ToUtf8mb4(); err != nil {
-		log.Fatal("Failed to comvert database from utf8 to utf8mb4: %v", err)
+		log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
 		return err
 	}
 
