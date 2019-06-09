@@ -28,7 +28,7 @@ import (
 
 const (
 	tplFork        base.TplName = "repo/pulls/fork"
-	tplComparePull base.TplName = "repo/pulls/compare"
+	tplCompareDiff base.TplName = "repo/diff/compare"
 	tplPullCommits base.TplName = "repo/pulls/commits"
 	tplPullFiles   base.TplName = "repo/pulls/files"
 
@@ -280,13 +280,13 @@ func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	prInfo, err := ctx.Repo.GitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
+	prInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		pull.MergeBase, pull.GetGitRefName())
 
 	if err != nil {
@@ -298,7 +298,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
 	ctx.Data["NumCommits"] = prInfo.Commits.Len()
@@ -307,7 +307,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
@@ -336,7 +336,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		return nil
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(repo.Owner.Name, repo.Name),
+	prInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(repo.Owner.Name, repo.Name),
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
@@ -347,7 +347,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
 
@@ -628,266 +628,6 @@ func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 	return nil
 }
 
-// ParseCompareInfo parse compare info between two commit for preparing pull request
-func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
-	baseRepo := ctx.Repo.Repository
-
-	// Get compared branches information
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
-
-	var (
-		headUser   *models.User
-		headBranch string
-		isSameRepo bool
-		infoPath   string
-		err        error
-	)
-	infoPath = ctx.Params("*")
-	infos := strings.Split(infoPath, "...")
-	if len(infos) != 2 {
-		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	baseBranch := infos[0]
-	ctx.Data["BaseBranch"] = baseBranch
-
-	// If there is no head repository, it means pull request between same repository.
-	headInfos := strings.Split(infos[1], ":")
-	if len(headInfos) == 1 {
-		isSameRepo = true
-		headUser = ctx.Repo.Owner
-		headBranch = headInfos[0]
-
-	} else if len(headInfos) == 2 {
-		headUser, err = models.GetUserByName(headInfos[0])
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
-			} else {
-				ctx.ServerError("GetUserByName", err)
-			}
-			return nil, nil, nil, nil, "", ""
-		}
-		headBranch = headInfos[1]
-		isSameRepo = headUser.ID == ctx.Repo.Owner.ID
-	} else {
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["HeadUser"] = headUser
-	ctx.Data["HeadBranch"] = headBranch
-	ctx.Repo.PullRequest.SameRepo = isSameRepo
-
-	// Check if base branch is valid.
-	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound("IsBranchExist", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	// Check if current user has fork of repository or in the same repository.
-	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
-	if !has && !isSameRepo {
-		log.Trace("ParseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	var headGitRepo *git.Repository
-	if isSameRepo {
-		headRepo = ctx.Repo.Repository
-		headGitRepo = ctx.Repo.GitRepo
-		ctx.Data["BaseName"] = headUser.Name
-	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
-		ctx.Data["BaseName"] = baseRepo.OwnerName
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return nil, nil, nil, nil, "", ""
-		}
-	}
-
-	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot create/read pull requests or cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.User,
-				baseRepo,
-				permBase)
-		}
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	// user should have permission to read headrepo's codes
-	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	if !permHead.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot read code requests in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-				ctx.User,
-				headRepo,
-				permHead)
-		}
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	// Check if head branch is valid.
-	if !headGitRepo.IsBranchExist(headBranch) {
-		ctx.NotFound("IsBranchExist", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	headBranches, err := headGitRepo.GetBranches()
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["HeadBranches"] = headBranches
-
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
-	if err != nil {
-		ctx.ServerError("GetPullRequestInfo", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["BeforeCommitID"] = prInfo.MergeBase
-
-	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
-}
-
-// PrepareCompareDiff render pull request preview diff page
-func PrepareCompareDiff(
-	ctx *context.Context,
-	headUser *models.User,
-	headRepo *models.Repository,
-	headGitRepo *git.Repository,
-	prInfo *git.PullRequestInfo,
-	baseBranch, headBranch string) bool {
-
-	var (
-		repo  = ctx.Repo.Repository
-		err   error
-		title string
-	)
-
-	// Get diff information.
-	ctx.Data["CommitRepoLink"] = headRepo.Link()
-
-	headCommitID, err := headGitRepo.GetBranchCommitID(headBranch)
-	if err != nil {
-		ctx.ServerError("GetBranchCommitID", err)
-		return false
-	}
-	ctx.Data["AfterCommitID"] = headCommitID
-
-	if headCommitID == prInfo.MergeBase {
-		ctx.Data["IsNothingToCompare"] = true
-		return true
-	}
-
-	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
-		prInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
-	if err != nil {
-		ctx.ServerError("GetDiffRange", err)
-		return false
-	}
-	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-
-	headCommit, err := headGitRepo.GetCommit(headCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return false
-	}
-
-	prInfo.Commits = models.ValidateCommitsWithEmails(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithSignature(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
-	ctx.Data["Commits"] = prInfo.Commits
-	ctx.Data["CommitCount"] = prInfo.Commits.Len()
-
-	if prInfo.Commits.Len() == 1 {
-		c := prInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
-		title = strings.TrimSpace(c.UserCommit.Summary())
-
-		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
-		if len(body) > 1 {
-			ctx.Data["content"] = strings.Join(body[1:], "\n")
-		}
-	} else {
-		title = headBranch
-	}
-
-	ctx.Data["title"] = title
-	ctx.Data["Username"] = headUser.Name
-	ctx.Data["Reponame"] = headRepo.Name
-	ctx.Data["IsImageFile"] = headCommit.IsImageFile
-
-	headTarget := path.Join(headUser.Name, repo.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
-	return false
-}
-
-// CompareAndPullRequest render pull request preview page
-func CompareAndPullRequest(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
-	ctx.Data["PageIsComparePull"] = true
-	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-	renderAttachmentSettings(ctx)
-
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
-	if err != nil {
-		if !models.IsErrPullRequestNotExist(err) {
-			ctx.ServerError("GetUnmergedPullRequest", err)
-			return
-		}
-	} else {
-		ctx.Data["HasPullRequest"] = true
-		ctx.Data["PullRequest"] = pr
-		ctx.HTML(200, tplComparePull)
-		return
-	}
-
-	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
-	if ctx.Written() {
-		return
-	}
-
-	if !nothingToCompare {
-		// Setup information for new form.
-		RetrieveRepoMetas(ctx, ctx.Repo.Repository)
-		if ctx.Written() {
-			return
-		}
-	}
-
-	ctx.HTML(200, tplComparePull)
-}
-
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
@@ -926,7 +666,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.HTML(200, tplComparePull)
+		ctx.HTML(200, tplCompareDiff)
 		return
 	}
 
@@ -936,7 +676,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplComparePull, form)
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
 		return
 	}
 
