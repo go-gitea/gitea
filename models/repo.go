@@ -331,7 +331,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebase:               allowRebase,
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
-		AvatarURL:                 repo.AvatarLink(),
+		AvatarURL:                 repo.avatarLink(e),
 	}
 }
 
@@ -2585,7 +2585,10 @@ func RemoveRandomAvatars() error {
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
+	return repo.relAvatarLink(x)
+}
 
+func (repo *Repository) relAvatarLink(e Engine) string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
 	if len(avatarPath) <= 0 || !com.IsFile(avatarPath) {
@@ -2593,7 +2596,7 @@ func (repo *Repository) RelAvatarLink() string {
 		case "image":
 			return setting.RepositoryAvatarFallbackImage
 		case "random":
-			if err := repo.GenerateRandomAvatar(); err != nil {
+			if err := repo.generateRandomAvatar(e); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		default:
@@ -2604,9 +2607,9 @@ func (repo *Repository) RelAvatarLink() string {
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
 
-// AvatarLink returns user avatar absolute link.
-func (repo *Repository) AvatarLink() string {
-	link := repo.RelAvatarLink()
+// avatarLink returns user avatar absolute link.
+func (repo *Repository) avatarLink(e Engine) string {
+	link := repo.relAvatarLink(e)
 	// link may be empty!
 	if len(link) > 0 {
 		if link[0] == '/' && link[1] != '/' {
