@@ -502,8 +502,8 @@
 -
   id: 42
   owner_id: 1
-  lower_name: repo1
-  name: repo1
+  lower_name: forked_repo1
+  name: forked_repo1
   is_private: false
   num_stars: 0
   num_forks: 0

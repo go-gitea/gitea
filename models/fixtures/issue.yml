@@ -88,8 +88,8 @@
 
 -
   id: 8
-  repo_id: 1
-  index: 5
+  repo_id: 10
+  index: 1
   poster_id: 1
   name: pr2
   content: a pull request

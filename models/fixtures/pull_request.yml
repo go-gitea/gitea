@@ -33,10 +33,10 @@
   status: 2 # mergable
   issue_id: 8
   index: 4
-  head_repo_id: 42
-  base_repo_id: 1
-  head_user_name: user1
+  head_repo_id: 11
+  base_repo_id: 10
+  head_user_name: user13
   head_branch: branch2
   base_branch: master
-  merge_base: 65f1bf27bc3bf70f
+  merge_base: 0abcb056019adb83
   has_merged: false
