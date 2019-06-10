@@ -16,6 +16,8 @@ const (
 	StateOpen StateType = "open"
 	// StateClosed pr is closed
 	StateClosed StateType = "closed"
+	// StateAll is all
+	StateAll StateType = "all"
 )
 
 // PullRequestMeta PR info if an issue is a PR

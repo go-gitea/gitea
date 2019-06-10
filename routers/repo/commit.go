@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	tplCommits base.TplName = "repo/commits"
-	tplGraph   base.TplName = "repo/graph"
-	tplDiff    base.TplName = "repo/diff/page"
+	tplCommits    base.TplName = "repo/commits"
+	tplGraph      base.TplName = "repo/graph"
+	tplCommitPage base.TplName = "repo/commit_page"
 )
 
 // RefCommits render commits page
@@ -261,7 +261,7 @@ func Diff(ctx *context.Context) {
 	}
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.Data["BranchName"], err = commit.GetBranchName()
-	ctx.HTML(200, tplDiff)
+	ctx.HTML(200, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
@@ -275,55 +275,4 @@ func RawDiff(ctx *context.Context) {
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}
-}
-
-// CompareDiff show different from one commit to another commit
-func CompareDiff(ctx *context.Context) {
-	ctx.Data["IsRepoToolbarCommits"] = true
-	ctx.Data["IsDiffCompare"] = true
-	userName := ctx.Repo.Owner.Name
-	repoName := ctx.Repo.Repository.Name
-	beforeCommitID := ctx.Params(":before")
-	afterCommitID := ctx.Params(":after")
-
-	commit, err := ctx.Repo.GitRepo.GetCommit(afterCommitID)
-	if err != nil {
-		ctx.NotFound("GetCommit", err)
-		return
-	}
-
-	diff, err := models.GetDiffRange(models.RepoPath(userName, repoName), beforeCommitID,
-		afterCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
-	if err != nil {
-		ctx.NotFound("GetDiffRange", err)
-		return
-	}
-
-	commits, err := commit.CommitsBeforeUntil(beforeCommitID)
-	if err != nil {
-		ctx.ServerError("CommitsBeforeUntil", err)
-		return
-	}
-	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
-	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
-
-	ctx.Data["CommitRepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["Commits"] = commits
-	ctx.Data["CommitCount"] = commits.Len()
-	ctx.Data["BeforeCommitID"] = beforeCommitID
-	ctx.Data["AfterCommitID"] = afterCommitID
-	ctx.Data["Username"] = userName
-	ctx.Data["Reponame"] = repoName
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID) + " · " + userName + "/" + repoName
-	ctx.Data["Commit"] = commit
-	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", afterCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", beforeCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", afterCommitID)
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.HTML(200, tplDiff)
 }

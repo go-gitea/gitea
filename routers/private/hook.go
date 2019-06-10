@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 
 	macaron "gopkg.in/macaron.v1"
@@ -117,7 +118,15 @@ func HookPostReceive(ctx *macaron.Context) {
 	// or other less-standard refs spaces are ignored since there
 	// may be a very large number of them).
 	if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
-		if err := models.PushUpdate(branch, models.PushUpdateOptions{
+		repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+		if err != nil {
+			log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+		if err := repofiles.PushUpdate(repo, branch, models.PushUpdateOptions{
 			RefFullName:  refFullName,
 			OldCommitID:  oldCommitID,
 			NewCommitID:  newCommitID,
