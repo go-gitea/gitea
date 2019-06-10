@@ -61,7 +61,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	}
 
 	compareInfo := new(CompareInfo)
-	compareInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, remoteBranch, headBranch)
 	if err == nil {
 		// We have a common base
 		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
