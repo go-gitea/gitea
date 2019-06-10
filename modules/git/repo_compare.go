@@ -47,6 +47,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		remoteBranch string
 		tmpRemote    string
 	)
+	remoteBranch = baseBranch
 
 	// We don't need a temporary remote for same repository.
 	if repo.Path != basePath {
@@ -56,6 +57,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
 		defer repo.RemoveRemote(tmpRemote)
+		remoteBranch = tmpRemote
 	}
 
 	compareInfo := new(CompareInfo)
