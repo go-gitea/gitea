@@ -147,10 +147,10 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 14},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true},
-			count: 22},
+			count: 21},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
-			count: 28},
+			count: 27},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
 			count: 15},
@@ -159,7 +159,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 13},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
-			count: 22},
+			count: 21},
 	}
 
 	for _, testCase := range testCases {
