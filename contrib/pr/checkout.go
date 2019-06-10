@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
