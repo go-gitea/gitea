@@ -58,7 +58,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
-	return err != nil
+	return err == nil
 }
 
 // InitRepository initializes a new Git repository.

@@ -290,7 +290,7 @@ func ColorFprintf(w io.Writer, format string, args ...interface{}) (int, error) 
 		}
 		return fmt.Fprintf(w, format, v...)
 	}
-	return fmt.Fprintf(w, "%s", format)
+	return fmt.Fprint(w, format)
 }
 
 // ColorFormatted structs provide their own colored string when formatted with ColorSprintf

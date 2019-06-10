@@ -172,9 +172,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		log.Error("%v", err)
 	}
 	defer t.Close()
-	if err != nil {
-		return nil, err
-	}
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}

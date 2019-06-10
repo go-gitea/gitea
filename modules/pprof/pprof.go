@@ -5,11 +5,12 @@
 package pprof
 
 import (
-	"code.gitea.io/gitea/modules/log"
 	"fmt"
 	"io/ioutil"
 	"runtime"
 	"runtime/pprof"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // DumpMemProfileForUsername dumps a memory profile at pprofDataPath as memprofile_<username>_<temporary id>
