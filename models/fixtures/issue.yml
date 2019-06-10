@@ -90,7 +90,7 @@
   id: 8
   repo_id: 10
   index: 1
-  poster_id: 1
+  poster_id: 11
   name: pr2
   content: a pull request
   is_closed: false
