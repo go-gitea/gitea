@@ -1334,6 +1334,19 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
+	// Finally, if email address is the protected email address:
+	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+		user := &User{LowerName: username}
+		has, err := x.Get(user)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return user, nil
+		}
+	}
+
 	return nil, ErrUserNotExist{0, email, 0}
 }
 

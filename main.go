@@ -67,6 +67,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdGenerate,
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
+		cmd.CmdConvert,
 	}
 	// Now adjust these commands to add our global configuration options
 
