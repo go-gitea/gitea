@@ -426,12 +426,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
-	milestone, err := models.GetMilestoneByID(milestoneID)
-	if err != nil {
-		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-	} else {
-		ctx.Data["milestone_id"] = milestoneID
-		ctx.Data["Milestone"] = milestone
+	if milestoneID > 0 {
+		milestone, err := models.GetMilestoneByID(milestoneID)
+		if err != nil {
+			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+		} else {
+			ctx.Data["milestone_id"] = milestoneID
+			ctx.Data["Milestone"] = milestone
+		}
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
