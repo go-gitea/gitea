@@ -2528,11 +2528,7 @@ func (repo *Repository) CustomAvatarPath() string {
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
 }
 
-// GenerateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) GenerateRandomAvatar() error {
-	return repo.generateRandomAvatar(x)
-}
-
+// generateRandomAvatar generates a random avatar for repository.
 func (repo *Repository) generateRandomAvatar(e Engine) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
@@ -2597,7 +2593,7 @@ func (repo *Repository) relAvatarLink(e Engine) string {
 			return setting.RepositoryAvatarFallbackImage
 		case "random":
 			if err := repo.generateRandomAvatar(e); err != nil {
-				log.Error("GenerateRandomAvatar: %v", err)
+				log.Error("generateRandomAvatar: %v", err)
 			}
 		default:
 			// default behaviour: do not display avatar
