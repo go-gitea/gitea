@@ -448,7 +448,7 @@ func getServiceType(r *http.Request) string {
 func updateServerInfo(dir string) []byte {
 	out, err := git.NewCommand("update-server-info").RunInDirBytes(dir)
 	if err != nil {
-		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, string(out)))
+		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
 	return out
 }
@@ -467,7 +467,7 @@ func getInfoRefs(h serviceHandler) {
 		service := getServiceType(h.r)
 		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
 		if err != nil {
-			log.GitLogger.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))

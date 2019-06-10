@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
-	"code.gitea.io/gitea3/modules/highlight"
 
 	macaron "gopkg.in/macaron.v1"
 )
