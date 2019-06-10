@@ -156,27 +156,6 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 	return statuses, x.In("id", ids).Find(&statuses)
 }
 
-// GetCommitStatus populates a given status for a given commit.
-// NOTE: If ID or Index isn't given, and only Context, TargetURL and/or Description
-//       is given, the CommitStatus created _last_ will be returned.
-func GetCommitStatus(repo *Repository, sha string, status *CommitStatus) (*CommitStatus, error) {
-	conds := &CommitStatus{
-		Context:     status.Context,
-		State:       status.State,
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-	}
-	has, err := x.Where("repo_id = ?", repo.ID).And("sha = ?", sha).Desc("created_unix").Get(conds)
-	if err != nil {
-		return nil, fmt.Errorf("GetCommitStatus[%s, %s]: %v", repo.RepoPath(), sha, err)
-	}
-	if !has {
-		return nil, fmt.Errorf("GetCommitStatus[%s, %s]: not found", repo.RepoPath(), sha)
-	}
-
-	return conds, nil
-}
-
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *Repository
@@ -240,7 +219,9 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
-	exist, err := sess.Table("commit_status_context").Where("context_hash = ?", opts.CommitStatus.ContextHash).Exist()
+	exist, err := sess.Table("commit_status_context").
+		Where("repo_id =? AND context_hash = ?", opts.Repo.ID, opts.CommitStatus.ContextHash).
+		Exist()
 	if err != nil {
 		return fmt.Errorf("Check CommistStatusContext Exist failed: %v", err)
 	}
@@ -297,8 +278,8 @@ func HashCommitStatusContext(context string) string {
 // CommitStatusContext represents commit status context
 type CommitStatusContext struct {
 	ID          int64
-	RepoID      int64          `xorm:"index"`
-	ContextHash string         `xorm:"varchar(40) unique"`
+	RepoID      int64          `xorm:"index unique(s)"`
+	ContextHash string         `xorm:"varchar(40) unique(s)"`
 	ContextLogo string         `xorm:"TEXT"`
 	Context     string         `xorm:"TEXT"`
 	CreatedUnix util.TimeStamp `xorm:"created"`

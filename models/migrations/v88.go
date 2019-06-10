@@ -66,8 +66,8 @@ func addCommitStatusContext(x *xorm.Engine) error {
 
 	type CommitStatusContext struct {
 		ID          int64
-		RepoID      int64          `xorm:"index"`
-		ContextHash string         `xorm:"varchar(64) unique"`
+		RepoID      int64          `xorm:"index unique(s)"`
+		ContextHash string         `xorm:"varchar(40) unique(s)"`
 		ContextLogo string         `xorm:"TEXT"`
 		Context     string         `xorm:"TEXT"`
 		CreatedUnix util.TimeStamp `xorm:"created"`

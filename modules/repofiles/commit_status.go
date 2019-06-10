@@ -14,7 +14,7 @@ import (
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
-func CreateCommitStatus(repo *models.Repository, creator *models.User, sha string, status *models.CommitStatus, isOAuth bool) error {
+func CreateCommitStatus(repo *models.Repository, creator *models.User, sha string, status *models.CommitStatus) error {
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist

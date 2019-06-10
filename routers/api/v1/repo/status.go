@@ -58,18 +58,12 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	isOAuthToken := ctx.Data["IsApiToken"] == true
-	if err := repofiles.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status, isOAuthToken); err != nil {
-		ctx.Error(500, "NewCommitStatus", err)
+	if err := repofiles.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
+		ctx.Error(500, "CreateCommitStatus", err)
 		return
 	}
 
-	newStatus, err := models.GetCommitStatus(ctx.Repo.Repository, sha, status)
-	if err != nil {
-		ctx.Error(500, "GetCommitStatus", err)
-		return
-	}
-	ctx.JSON(201, newStatus.APIFormat())
+	ctx.JSON(201, status.APIFormat())
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
