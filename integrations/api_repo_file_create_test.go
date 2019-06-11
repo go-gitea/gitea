@@ -160,7 +160,7 @@ func TestAPICreateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "repository file already exists [path: " + treePath + "]",
-			URL:     base.DocURL,
+			URL:     setting.API.SwaggerURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)
