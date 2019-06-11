@@ -3034,3 +3034,95 @@ function onOAuthLoginClick() {
         oauthNav.show();
     },5000);
 }
+(function() {
+    // html listings ----------------------------------------------------
+    let openedLists, listEopen;
+    // close list
+    const _closeList = function (count) {
+        let out = '';
+        if(count == false || count == 0 || count == 'undefined' || typeof(count) == 'undefined' ) {
+            count = openedLists.length;
+        } else {
+            count = Math.min(count, openedLists.length);
+        }
+        while (count > 0){
+            out += '</li>' + openedLists.pop();
+            listEopen = true;
+            count--;
+        }
+        return out;
+    };
+    // open list
+    const _openList = function () {
+        let out = '<ul>';
+        openedLists.push('</ul>');
+        listEopen = false;
+        return out;
+    };
+    // handle list element
+    // create valid html list
+    const __list = function (line, level, id) {
+        let out = '';
+        let diff = level - openedLists.length;
+        if(diff > 0) { //open new level
+            out += _openList();
+            out += __list(line,level, id);
+        }  else if(diff < 0 ) {
+            out += _closeList(-diff);
+            out += __list(line, level, id);
+        } else { // only add list element
+            out += ((listEopen)?'</li>':'') + '<li><a href="#' + id + '" rel="nofollow">' + line + '</a>';
+            listEopen = true;
+        }
+        return out;
+    };
+    /**
+    * find headlines and create list ----------------------------------
+    * @param target	Element	 target container where toc should be created
+    */
+    const create_toc_inside = function(target) {
+        let rm;
+        if(target != null) {
+            if( (rm = target.querySelector('.auto-toc-wrapper')) != null ) {
+                rm.parentNode.removeChild(rm);
+            }
+            openedLists = []; listEopen = false;
+            // get content and create html
+            const elms = target.querySelectorAll('h1,h2,h3,h4,h5');
+            let html = '';
+            for(let i = 0; i < elms.length; i++){
+                let l = elms[i].tagName.substr(1); //level
+                let t = elms[i].innerText.trim().trim(''); //text
+                let id = elms[i].id;
+                // create html
+                if(t.length > 0 && l >= 1) {
+                    html += __list( t, l, id);
+                } else {
+                    html += _closeList(0) + l;
+                }
+            }
+            html += _closeList(0);
+            //create elements
+            let d = document.createElement('div');
+            d.id = 'auto-toc';
+            d.className = 'anchor-wrap';
+            d.innerHTML = '<h2>Table of Contents</h2>';
+            let d2 = document.createElement('div');
+            d2.className = 'auto-toc-container';
+            d2.innerHTML = html;
+            d2.insertBefore(d, d2.firstChild);
+            let c = document.createElement('div');
+            c.className = 'auto-toc-wrapper';
+            c.appendChild(d2);
+            //inject toc
+            target.insertBefore(c, target.firstChild);
+            //set style
+            c.style.cssText = "float:right;background:#fff;padding:0 0 7px 20px;position:relative;z-index:1";
+            d2.style.cssText = "padding:7px;border:1px solid #333;border-radius:5px";
+        }
+    };
+    // create toc ----------------------------------
+    create_toc_inside(document.querySelector('.file-view.markdown')); // md
+    create_toc_inside(document.querySelector('.segment.markdown')); // wiki pages
+})();
+
