@@ -111,7 +111,10 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		return cli.ShowSubcommandHelp(c)
+		if err := cli.ShowSubcommandHelp(c); err != nil {
+			fmt.Printf("error showing subcommand help: %v\n", err)
+		}
+		return nil
 	}
 
 	keys := strings.Split(c.Args()[0], "-")
