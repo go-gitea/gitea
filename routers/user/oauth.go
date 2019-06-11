@@ -7,6 +7,7 @@ package user
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/go-macaron/binding"
 	"net/url"
 	"strings"
 
@@ -161,6 +162,17 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
+	errs := binding.Errors{}
+	errs = form.Validate(ctx.Context, errs)
+	if len(errs) > 0 {
+		errstring := ""
+		for _, e := range errs {
+			errstring += e.Error() + "\n"
+		}
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occured during validation: %s", errstring))
+		return
+	}
+
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		if models.IsErrOauthClientIDInvalid(err) {
