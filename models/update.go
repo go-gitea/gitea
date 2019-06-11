@@ -263,10 +263,6 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 		commits = ListToPushCommits(l)
 	}
 
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		UpdateRepoIndexer(repo)
-	}
-
 	if err := CommitRepoAction(CommitRepoActionOptions{
 		PusherName:  opts.PusherName,
 		RepoOwnerID: owner.ID,
