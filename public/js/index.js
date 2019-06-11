@@ -3116,9 +3116,6 @@ function onOAuthLoginClick() {
             c.appendChild(d2);
             //inject toc
             target.insertBefore(c, target.firstChild);
-            //set style
-            c.style.cssText = "float:right;background:#fff;padding:0 0 7px 20px;position:relative;z-index:1";
-            d2.style.cssText = "padding:7px;border:1px solid #333;border-radius:5px";
         }
     };
     // create toc ----------------------------------
