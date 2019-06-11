@@ -1371,6 +1371,130 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/branches/{branch}/protection": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Retrieve a specific branch protection from a repository",
+        "operationId": "repoGetBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "branch to get",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Branch"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update branch protection of a repository",
+        "operationId": "repoUpdateProtectBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "branch to update",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProtectBranchForm"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Branch"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove branch protection from a repository",
+        "operationId": "repoDeleteProtectedBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "branch to remove protection",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/collaborators": {
       "get": {
         "produces": [
@@ -6941,6 +7065,10 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "protected": {
+          "type": "boolean",
+          "x-go-name": "Protected"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -9114,6 +9242,44 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ProtectBranchForm": {
+      "description": "ProtectBranchForm form for changing protected branch settings",
+      "type": "object",
+      "properties": {
+        "ApprovalsWhitelistTeams": {
+          "type": "string"
+        },
+        "ApprovalsWhitelistUsers": {
+          "type": "string"
+        },
+        "EnableMergeWhitelist": {
+          "type": "boolean"
+        },
+        "EnableWhitelist": {
+          "type": "boolean"
+        },
+        "MergeWhitelistTeams": {
+          "type": "string"
+        },
+        "MergeWhitelistUsers": {
+          "type": "string"
+        },
+        "Protected": {
+          "type": "boolean"
+        },
+        "RequiredApprovals": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "WhitelistTeams": {
+          "type": "string"
+        },
+        "WhitelistUsers": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/auth"
     },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
