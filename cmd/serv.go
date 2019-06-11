@@ -209,7 +209,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
 	os.Setenv(models.EnvRepoName, results.RepoName)
 	os.Setenv(models.EnvRepoUsername, results.OwnerName)
-	os.Setenv(models.EnvPusherName, username)
+	os.Setenv(models.EnvPusherName, results.UserName)
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
 	os.Setenv(models.ProtectedBranchRepoID, strconv.FormatInt(results.RepoID, 10))
 
