@@ -125,6 +125,7 @@ func NewMacaron() *macaron.Macaron {
 		setupAccessLogger(m)
 	}
 	m.Use(macaron.Recovery())
+	m.Use(ginBridgeMiddleware())
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
 	}
@@ -252,10 +253,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
-	// for health check
-	m.Head("/", func() string {
-		return ""
-	})
 	m.Get("/", routers.Home)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -953,15 +950,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.
 		private.RegisterRoutes(m)
-	})
-
-	// robots.txt
-	m.Get("/robots.txt", func(ctx *context.Context) {
-		if setting.HasRobotsTxt {
-			ctx.ServeFileContent(path.Join(setting.CustomPath, "robots.txt"))
-		} else {
-			ctx.NotFound("", nil)
-		}
 	})
 
 	// Progressive Web App

@@ -1,0 +1,26 @@
+language: go
+sudo: false
+go:
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+  - master
+
+git:
+  depth: 10
+
+matrix:
+  fast_finish: true
+  include:
+  - go: 1.11.x
+    env: GO111MODULE=on
+  - go: 1.12.x
+    env: GO111MODULE=on
+
+script:
+  - go test -v -covermode=count -coverprofile=coverage.out
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

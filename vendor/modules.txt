@@ -116,6 +116,13 @@ github.com/facebookgo/httpdown
 github.com/facebookgo/stats
 # github.com/gliderlabs/ssh v0.2.2
 github.com/gliderlabs/ssh
+# github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3
+github.com/gin-contrib/sse
+# github.com/gin-gonic/gin v1.4.0
+github.com/gin-gonic/gin
+github.com/gin-gonic/gin/binding
+github.com/gin-gonic/gin/internal/json
+github.com/gin-gonic/gin/render
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 github.com/glycerine/go-unsnap-stream
 # github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
@@ -182,6 +189,8 @@ github.com/issue9/identicon
 github.com/jaytaylor/html2text
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 github.com/jbenet/go-context/io
+# github.com/json-iterator/go v1.1.6
+github.com/json-iterator/go
 # github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 github.com/kballard/go-shellquote
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
@@ -250,6 +259,10 @@ github.com/mcuadros/go-version
 github.com/microcosm-cc/bluemonday
 # github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.1
+github.com/modern-go/reflect2
 # github.com/mrjones/oauth v0.0.0-20180629183705-f4e24b6d100c
 github.com/mrjones/oauth
 # github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae
@@ -326,6 +339,8 @@ github.com/syndtr/goleveldb/leveldb/util
 github.com/tinylib/msgp/msgp
 # github.com/tstranex/u2f v1.0.0
 github.com/tstranex/u2f
+# github.com/ugorji/go v1.1.4
+github.com/ugorji/go/codec
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
@@ -415,6 +430,8 @@ gopkg.in/asn1-ber.v1
 gopkg.in/bufio.v1
 # gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
 gopkg.in/editorconfig/editorconfig-core-go.v1
+# gopkg.in/go-playground/validator.v8 v8.18.2
+gopkg.in/go-playground/validator.v8
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
 # gopkg.in/ini.v1 v1.42.0
