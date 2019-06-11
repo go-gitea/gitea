@@ -757,6 +757,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
+						m.Get("", repo.GetAllCommits)
 						m.Get("/:sha", repo.GetSingleCommit)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
