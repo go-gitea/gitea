@@ -219,23 +219,6 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
-	exist, err := sess.Table("commit_status_context").
-		Where("repo_id =? AND context_hash = ?", opts.Repo.ID, opts.CommitStatus.ContextHash).
-		Exist()
-	if err != nil {
-		return fmt.Errorf("Check CommistStatusContext Exist failed: %v", err)
-	}
-	if !exist {
-		if _, err = sess.Insert(&CommitStatusContext{
-			RepoID:      opts.Repo.ID,
-			ContextHash: opts.CommitStatus.ContextHash,
-			ContextLogo: "",
-			Context:     opts.CommitStatus.Context,
-		}); err != nil {
-			return fmt.Errorf("Insert CommitStatusContext[%s, %s]: %v", repoPath, opts.SHA, err)
-		}
-	}
-
 	return sess.Commit()
 }
 
@@ -273,28 +256,4 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 // HashCommitStatusContext hash context
 func HashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(context)))
-}
-
-// CommitStatusContext represents commit status context
-type CommitStatusContext struct {
-	ID          int64
-	RepoID      int64          `xorm:"index unique(s)"`
-	ContextHash string         `xorm:"varchar(40) unique(s)"`
-	ContextLogo string         `xorm:"TEXT"`
-	Context     string         `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp `xorm:"created"`
-}
-
-// FindRepoCommitStatusContexts find repository's commit status contexts
-func FindRepoCommitStatusContexts(repoID int64) ([]string, error) {
-	var contexts = make([]string, 0, 3)
-	err := x.Where("repo_id = ?", repoID).Table("commit_status_context").Find(&contexts)
-	if err != nil {
-		return nil, err
-	}
-	return contexts, nil
-}
-
-func init() {
-	tables = append(tables, new(CommitStatusContext))
 }

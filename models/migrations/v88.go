@@ -8,8 +8,6 @@ import (
 	"crypto/md5"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/go-xorm/xorm"
 )
 
@@ -64,14 +62,5 @@ func addCommitStatusContext(x *xorm.Engine) error {
 		start += len(statuses)
 	}
 
-	type CommitStatusContext struct {
-		ID          int64
-		RepoID      int64          `xorm:"index unique(s)"`
-		ContextHash string         `xorm:"varchar(40) unique(s)"`
-		ContextLogo string         `xorm:"TEXT"`
-		Context     string         `xorm:"TEXT"`
-		CreatedUnix util.TimeStamp `xorm:"created"`
-	}
-
-	return x.Sync2(new(CommitStatusContext))
+	return nil
 }
