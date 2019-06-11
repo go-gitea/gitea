@@ -6,7 +6,6 @@
 package models
 
 import (
-	"bytes"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -14,10 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"image"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
+	_ "image/jpeg" // Needed for jpeg support
 	"image/png"
 	"os"
 	"path/filepath"
@@ -32,14 +28,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
 )
@@ -457,23 +452,10 @@ func (u *User) IsPasswordSet() bool {
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
-	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	m, err := avatar.Prepare(data)
 	if err != nil {
-		return fmt.Errorf("DecodeConfig: %v", err)
+		return err
 	}
-	if imgCfg.Width > setting.AvatarMaxWidth {
-		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
-	}
-	if imgCfg.Height > setting.AvatarMaxHeight {
-		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Decode: %v", err)
-	}
-
-	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -497,7 +479,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 	defer fw.Close()
 
-	if err = png.Encode(fw, m); err != nil {
+	if err = png.Encode(fw, *m); err != nil {
 		return fmt.Errorf("Encode: %v", err)
 	}
 
@@ -849,10 +831,9 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 	u.HashPassword(u.Passwd)
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
-	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -941,17 +922,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 
 	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
 		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
-	}
-
-	// Delete all local copies of repository wiki that user owns.
-	if err = x.BufferSize(setting.IterateBufferSize).
-		Where("owner_id=?", u.ID).
-		Iterate(new(Repository), func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-			return nil
-		}); err != nil {
-		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
 	// Do not fail if directory does not exist
@@ -1364,6 +1334,19 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
+	// Finally, if email address is the protected email address:
+	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+		user := &User{LowerName: username}
+		has, err := x.Get(user)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return user, nil
+		}
+	}
+
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
@@ -1650,7 +1633,7 @@ func SyncExternalUsers() {
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
-			var users []User
+			var users []*User
 			x.Where("login_type = ?", LoginLDAP).
 				And("login_source = ?", s.ID).
 				Find(&users)
@@ -1669,7 +1652,7 @@ func SyncExternalUsers() {
 				// Search for existing user
 				for _, du := range users {
 					if du.LowerName == strings.ToLower(su.Username) {
-						usr = &du
+						usr = du
 						break
 					}
 				}
@@ -1752,7 +1735,7 @@ func SyncExternalUsers() {
 						log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
 
 						usr.IsActive = false
-						err = UpdateUserCols(&usr, "is_active")
+						err = UpdateUserCols(usr, "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
 						}

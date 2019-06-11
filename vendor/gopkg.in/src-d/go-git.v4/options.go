@@ -229,7 +229,7 @@ var (
 	ErrCreateRequiresBranch = errors.New("Branch is mandatory when Create is used")
 )
 
-// CheckoutOptions describes how a checkout 31operation should be performed.
+// CheckoutOptions describes how a checkout operation should be performed.
 type CheckoutOptions struct {
 	// Hash is the hash of the commit to be checked out. If used, HEAD will be
 	// in detached mode. If Create is not used, Branch and Hash are mutually
@@ -288,7 +288,7 @@ const (
 
 // ResetOptions describes how a reset operation should be performed.
 type ResetOptions struct {
-	// Commit, if commit is pressent set the current branch head (HEAD) to it.
+	// Commit, if commit is present set the current branch head (HEAD) to it.
 	Commit plumbing.Hash
 	// Mode, form resets the current branch head to Commit and possibly updates
 	// the index (resetting it to the tree of Commit) and the working tree

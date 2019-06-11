@@ -11,9 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/utils"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 )
@@ -98,6 +98,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		URL:         form.Config["url"],
 		ContentType: models.ToHookContentType(form.Config["content_type"]),
 		Secret:      form.Config["secret"],
+		HTTPMethod:  "POST",
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{

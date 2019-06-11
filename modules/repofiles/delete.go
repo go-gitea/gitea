@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -183,7 +183,8 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if err = repo.GetOwner(); err != nil {
 		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	err = PushUpdate(
+		repo,
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -198,8 +199,6 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if err != nil {
 		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
-
-	// FIXME: Should we UpdateRepoIndexer(repo) here?
 
 	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
 	if err != nil {

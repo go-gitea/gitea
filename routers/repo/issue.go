@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -305,7 +306,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -425,12 +426,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
-	milestone, err := models.GetMilestoneByID(milestoneID)
-	if err != nil {
-		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-	} else {
-		ctx.Data["milestone_id"] = milestoneID
-		ctx.Data["Milestone"] = milestone
+	if milestoneID > 0 {
+		milestone, err := models.GetMilestoneByID(milestoneID)
+		if err != nil {
+			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+		} else {
+			ctx.Data["milestone_id"] = milestoneID
+			ctx.Data["Milestone"] = milestone
+		}
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)

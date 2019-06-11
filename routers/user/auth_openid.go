@@ -359,11 +359,11 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		}
 	}
 
-	len := setting.MinPasswordLength
-	if len < 256 {
-		len = 256
+	length := setting.MinPasswordLength
+	if length < 256 {
+		length = 256
 	}
-	password, err := generate.GetRandomString(len)
+	password, err := generate.GetRandomString(length)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return

@@ -27,6 +27,7 @@ import (
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
+	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
@@ -250,14 +251,18 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath      string
-	AvatarMaxWidth        int
-	AvatarMaxHeight       int
-	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
+	AvatarUploadPath              string
+	AvatarMaxWidth                int
+	AvatarMaxHeight               int
+	GravatarSource                string
+	GravatarSourceURL             *url.URL
+	DisableGravatar               bool
+	EnableFederatedAvatar         bool
+	LibravatarService             *libravatar.Libravatar
+	AvatarMaxFileSize             int64
+	RepositoryAvatarUploadPath    string
+	RepositoryAvatarFallback      string
+	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -480,7 +485,10 @@ func CheckLFSVersion() {
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
-func SetCustomPathAndConf(providedCustom, providedConf string) {
+func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
+	if len(providedWorkPath) != 0 {
+		AppWorkPath = filepath.ToSlash(providedWorkPath)
+	}
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom
 	}
@@ -853,8 +861,16 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
+	forcePathSeparator(RepositoryAvatarUploadPath)
+	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
+		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
+	}
+	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
+	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
@@ -950,6 +966,8 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+
+	zip.Verbose = false
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1028,6 +1046,7 @@ func NewServices() {
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()
+	newCORSService()
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()

@@ -31,14 +31,18 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 	if err = refsIter.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Name() != plumbing.HEAD && !ref.Name().IsRemote() &&
 			(pattern == "" || strings.HasPrefix(ref.Name().String(), pattern)) {
+			refType := string(ObjectCommit)
+			if ref.Name().IsTag() {
+				// tags can be of type `commit` (lightweight) or `tag` (annotated)
+				if tagType, _ := repo.GetTagType(SHA1(ref.Hash())); err == nil {
+					refType = tagType
+				}
+			}
 			r := &Reference{
 				Name:   ref.Name().String(),
 				Object: SHA1(ref.Hash()),
-				Type:   string(ObjectCommit),
+				Type:   refType,
 				repo:   repo,
-			}
-			if ref.Name().IsTag() {
-				r.Type = string(ObjectTag)
 			}
 			refs = append(refs, r)
 		}
