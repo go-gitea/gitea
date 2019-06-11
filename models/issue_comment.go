@@ -403,16 +403,23 @@ func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (e
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 
-	content := c.Content
+	if len(c.Content) > 0 {
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, c.Content, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
+	}
 
 	switch opType {
 	case ActionCloseIssue:
-		content = fmt.Sprintf("Closed #%d", issue.Index)
+		ct := fmt.Sprintf("Closed #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	case ActionReopenIssue:
-		content = fmt.Sprintf("Reopened #%d", issue.Index)
-	}
-	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
-		log.Error("mailIssueCommentToParticipants: %v", err)
+		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	}
 
 	return nil
