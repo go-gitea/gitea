@@ -297,14 +297,12 @@ var (
 	// API settings
 	API = struct {
 		EnableSwagger          bool
-		SwaggerURL             string
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
 		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
-		SwaggerURL:             "",
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
@@ -900,10 +898,6 @@ func NewContext() {
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
-
-	u := *appURL
-	u.Path = path.Join(u.Path, "api", "swagger")
-	API.SwaggerURL = u.String()
 
 	newCron()
 	newGit()

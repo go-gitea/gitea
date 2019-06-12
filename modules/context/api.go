@@ -6,7 +6,10 @@
 package context
 
 import (
+	"code.gitea.io/gitea/modules/base"
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/go-macaron/csrf"
@@ -73,7 +76,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 	ctx.JSON(status, APIError{
 		Message: message,
-		URL:     setting.API.SwaggerURL,
+		URL:     base.DocURL,
 	})
 }
 
@@ -177,9 +180,15 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
+	u, err := url.Parse(setting.AppURL)
+	if err != nil {
+		ctx.Error(500, "Invalid AppURL", err)
+		return
+	}
+	u.Path = path.Join(u.Path, "api", "swagger")
 	ctx.JSON(404, map[string]interface{}{
 		"message":           message,
-		"documentation_url": setting.API.SwaggerURL,
+		"documentation_url": u.String(),
 		"errors":            errors,
 	})
 }

@@ -173,7 +173,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     setting.API.SwaggerURL,
+			URL:     base.DocURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)
