@@ -41,7 +41,7 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
-	cache.NewContext()
+	_ = cache.NewContext()
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
