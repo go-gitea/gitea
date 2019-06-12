@@ -23,17 +23,15 @@ func ginBridgeMiddleware() macaron.Handler {
 
 	// for health check
 	g.HEAD("/", func(c *gin.Context) {
-		c.String(200, "")
+		c.AbortWithStatus(http.StatusOK)
 	})
 
 	// robots.txt
-	g.GET("/robots.txt", func(ctx *gin.Context) {
-		if setting.HasRobotsTxt {
+	if setting.HasRobotsTxt {
+		g.GET("/robots.txt", func(ctx *gin.Context) {
 			ctx.File(path.Join(setting.CustomPath, "robots.txt"))
-		} else {
-			ctx.String(http.StatusNotFound, http.StatusText(http.StatusNotFound))
-		}
-	})
+		})
+	}
 
 	routes := g.Routes()
 	isGinRoutePath := func(method, p string) bool {
