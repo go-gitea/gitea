@@ -10,13 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var accessModes = []AccessMode{
-	AccessModeRead,
-	AccessModeWrite,
-	AccessModeAdmin,
-	AccessModeOwner,
-}
-
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

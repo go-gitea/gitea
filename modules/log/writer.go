@@ -252,10 +252,7 @@ func (logger *WriterLogger) Match(event *Event) bool {
 		mode: removeColor,
 	}).Write([]byte(event.msg))
 	msg = baw
-	if logger.regexp.Match(msg) {
-		return true
-	}
-	return false
+	return logger.regexp.Match(msg)
 }
 
 // Close the base logger

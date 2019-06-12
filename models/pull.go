@@ -192,15 +192,19 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 	}
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
 		return nil
 	}
 	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		log.Error("baseBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
 		return nil
 	}
 	if headCommit, err = headBranch.GetCommit(); err != nil {
+		log.Error("headBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	apiBaseBranchInfo := &api.PRBranchInfo{
@@ -218,7 +222,10 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
 	}
 
-	pr.Issue.loadRepo(e)
+	if err = pr.Issue.loadRepo(e); err != nil {
+		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
+		return nil
+	}
 
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
@@ -420,7 +427,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(tmpBasePath)
+	defer func() {
+		if err := RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
@@ -1142,7 +1153,9 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 		return fmt.Errorf("AddRemote: %v", err)
 	}
 	defer func() {
-		headGitRepo.RemoveRemote(tmpRemote)
+		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("UpdatePatch: RemoveRemote: %s", err)
+		}
 	}()
 	pr.MergeBase, _, err = headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
 	if err != nil {
@@ -1180,7 +1193,11 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
 	}
 	// Make sure to remove the remote even if the push fails
-	defer headGitRepo.RemoveRemote(tmpRemoteName)
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
+			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
+		}
+	}()
 
 	headFile := pr.GetGitRefName()
 

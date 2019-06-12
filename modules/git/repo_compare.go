@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	logger "code.gitea.io/gitea/modules/log"
 )
 
 // CompareInfo represents needed information for comparing references.
@@ -55,7 +57,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
-		defer repo.RemoveRemote(tmpRemote)
+		defer func() {
+			if err := repo.RemoveRemote(tmpRemote); err != nil {
+				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
+			}
+		}()
 	}
 
 	compareInfo := new(CompareInfo)
