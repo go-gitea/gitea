@@ -688,7 +688,7 @@ func IsErrForkAlreadyExist(err error) bool {
 }
 
 func (err ErrForkAlreadyExist) Error() string {
-	return fmt.Sprintf("repository is already forked [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
 }
 
 // ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
