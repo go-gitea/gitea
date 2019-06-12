@@ -5,13 +5,13 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"

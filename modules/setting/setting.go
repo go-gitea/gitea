@@ -580,17 +580,17 @@ func NewContext() {
 	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
-	appURL, err := url.Parse(AppURL)
+	url, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	AppSubURL = strings.TrimSuffix(url.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
+	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}

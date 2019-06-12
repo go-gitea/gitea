@@ -6,7 +6,6 @@
 package context
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"fmt"
 	"net/url"
 	"path"
@@ -15,6 +14,7 @@ import (
 	"github.com/go-macaron/csrf"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
