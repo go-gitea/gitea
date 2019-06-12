@@ -45,7 +45,7 @@
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
+		<div class="file-view {{if .IsMarkup}}markdown{{if (.Repository.TocMarkdownAlways)}} auto-toc{{else if (.Repository.TocMarkdownByFlag)}} auto-toc-by-flag{{end}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji"{{if or .Repository.TocMarkdownAlways .Repository.TocMarkdownByFlag}} data-toc="{{.i18n.Tr "repo.settings.toc.toc"}}"{{end}}>
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}

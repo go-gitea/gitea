@@ -3077,6 +3077,42 @@ function onOAuthLoginClick() {
         return out;
     };
     /**
+     * find headlines and create list ----------------------------------
+     * @param target	Element	 target container where toc should look for headlines
+     * @return Element  toc wrapper - div container
+     */
+    const get_toc_inside = function (target) {
+        openedLists = []; listEopen = false;
+        // get content and create html
+        const elms = target.querySelectorAll('h1,h2,h3,h4,h5');
+        let html = '';
+        for(let i = 0; i < elms.length; i++){
+            let l = elms[i].tagName.substr(1); //level
+            let t = elms[i].innerText.trim().trim(''); //text
+            let id = elms[i].id;
+            // create html
+            if(t.length > 0 && l >= 1) {
+                html += __list( t, l, id);
+            } else {
+                html += _closeList(0) + l;
+            }
+        }
+        html += _closeList(0);
+        //create elements
+        let d = document.createElement('div');
+        d.id = 'auto-toc';
+        d.className = 'anchor-wrap';
+        d.innerHTML = '<h2>'+((typeof(target.dataset.toc) == 'string' && target.dataset.toc != '')?target.dataset.toc:'Table of Contents')+'</h2>';
+        let d2 = document.createElement('div');
+        d2.className = 'auto-toc-container';
+        d2.innerHTML = html;
+        d2.insertBefore(d, d2.firstChild);
+        let c = document.createElement('div');
+        c.className = 'auto-toc-wrapper';
+        c.appendChild(d2);
+        return c;
+    };
+    /**
     * find headlines and create list ----------------------------------
     * @param target	Element	 target container where toc should be created
     */
@@ -3086,40 +3122,45 @@ function onOAuthLoginClick() {
             if( (rm = target.querySelector('.auto-toc-wrapper')) != null ) {
                 rm.parentNode.removeChild(rm);
             }
-            openedLists = []; listEopen = false;
-            // get content and create html
-            const elms = target.querySelectorAll('h1,h2,h3,h4,h5');
-            let html = '';
-            for(let i = 0; i < elms.length; i++){
-                let l = elms[i].tagName.substr(1); //level
-                let t = elms[i].innerText.trim().trim(''); //text
-                let id = elms[i].id;
-                // create html
-                if(t.length > 0 && l >= 1) {
-                    html += __list( t, l, id);
-                } else {
-                    html += _closeList(0) + l;
-                }
+            //remove optional toc flag
+            let ps = target.querySelectorAll('p');
+            //look for toc keywoard
+            for (let i = 0; i < ps.length; i++) {
+              if (ps[i].textContent.trim() == '%%TOC%%') {
+                  ps[i].parentNode.removeChild(ps[i]);
+              }
             }
-            html += _closeList(0);
-            //create elements
-            let d = document.createElement('div');
-            d.id = 'auto-toc';
-            d.className = 'anchor-wrap';
-            d.innerHTML = '<h2>Table of Contents</h2>';
-            let d2 = document.createElement('div');
-            d2.className = 'auto-toc-container';
-            d2.innerHTML = html;
-            d2.insertBefore(d, d2.firstChild);
-            let c = document.createElement('div');
-            c.className = 'auto-toc-wrapper';
-            c.appendChild(d2);
             //inject toc
-            target.insertBefore(c, target.firstChild);
+            target.insertBefore(get_toc_inside(target), target.firstChild);
+        }
+    };
+    /**
+    * search for %%TOC%% inside document if found create toc --------------------------
+    * @param target	Element	target container where toc should be created
+    */
+    const detect_toc_flag = function(target) {
+        if(target != null) {
+            let ps = target.querySelectorAll('p');
+            let found = false;
+            //look for toc keywoard
+            for (let i = 0; i < ps.length; i++) {
+              if (ps[i].textContent.trim() == '%%TOC%%') {
+                found = ps[i];
+                break;
+              }
+            }
+            if(found !== false) {
+                //remove toc keywoard
+                found.parentNode.removeChild(found);
+                //create toc
+                create_toc_inside(target);
+            }
         }
     };
     // create toc ----------------------------------
-    create_toc_inside(document.querySelector('.file-view.markdown')); // md
-    create_toc_inside(document.querySelector('.segment.markdown')); // wiki pages
+    addEventListener("load", function(){
+        create_toc_inside(document.querySelector('.file-view.markdown.auto-toc')); // md
+        detect_toc_flag(  document.querySelector('.file-view.markdown.auto-toc-by-flag')); // md by %%TOC%% flag
+        create_toc_inside(document.querySelector('.segment.markdown.auto-toc')); // wiki pages
+    });
 })();
-
