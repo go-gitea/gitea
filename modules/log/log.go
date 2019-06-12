@@ -218,7 +218,7 @@ func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 func (l *LoggerAsWriter) Log(msg string) {
 	for _, logger := range l.ourLoggers {
 		// Set the skip to reference the call just above this
-		logger.Log(1, l.level, msg)
+		_ = logger.Log(1, l.level, msg)
 	}
 }
 

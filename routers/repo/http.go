@@ -206,10 +206,8 @@ func HTTP(ctx *context.Context) {
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySha: %v", err)
 			}
 
 			if authUser == nil {
@@ -332,17 +330,17 @@ type route struct {
 }
 
 var routes = []route{
-	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
-	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
-	{regexp.MustCompile("(.*?)/info/refs$"), "GET", getInfoRefs},
-	{regexp.MustCompile("(.*?)/HEAD$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/http-alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/packs$"), "GET", getInfoPacks},
-	{regexp.MustCompile("(.*?)/objects/info/[^/]*$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$"), "GET", getLooseObject},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.pack$"), "GET", getPackFile},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
+	{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
+	{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
+	{regexp.MustCompile(`(.*?)/info/refs$`), "GET", getInfoRefs},
+	{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
+	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
 // FIXME: use process module
@@ -393,7 +391,12 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 }
 
 func serviceRPC(h serviceHandler, service string) {
-	defer h.r.Body.Close()
+	defer func() {
+		if err := h.r.Body.Close(); err != nil {
+			log.Error("serviceRPC: Close: %v", err)
+		}
+
+	}()
 
 	if !hasAccess(service, h, true) {
 		h.w.WriteHeader(http.StatusUnauthorized)
@@ -469,9 +472,9 @@ func getInfoRefs(h serviceHandler) {
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
 		h.w.WriteHeader(http.StatusOK)
-		h.w.Write(packetWrite("# service=git-" + service + "\n"))
-		h.w.Write([]byte("0000"))
-		h.w.Write(refs)
+		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
+		_, _ = h.w.Write([]byte("0000"))
+		_, _ = h.w.Write(refs)
 	} else {
 		updateServerInfo(h.dir)
 		h.sendFile("text/plain; charset=utf-8")
@@ -524,16 +527,25 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 				if setting.Repository.DisableHTTPGit {
 					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					if err != nil {
+						log.Error(err.Error())
+					}
 					return
 				}
 				if route.method != r.Method {
 					if r.Proto == "HTTP/1.1" {
 						w.WriteHeader(http.StatusMethodNotAllowed)
-						w.Write([]byte("Method Not Allowed"))
+						_, err := w.Write([]byte("Method Not Allowed"))
+						if err != nil {
+							log.Error(err.Error())
+						}
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request"))
+						_, err := w.Write([]byte("Bad Request"))
+						if err != nil {
+							log.Error(err.Error())
+						}
 					}
 					return
 				}
@@ -552,6 +564,5 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 		}
 
 		ctx.NotFound("HTTPBackend", nil)
-		return
 	}
 }

@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
 )
 
@@ -67,7 +66,7 @@ func checkLFSVersion() {
 }
 
 func setup(logPath string) {
-	log.DelLogger("console")
+	_ = log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
 }
@@ -112,7 +111,9 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		cli.ShowSubcommandHelp(c)
+		if err := cli.ShowSubcommandHelp(c); err != nil {
+			fmt.Printf("error showing subcommand help: %v\n", err)
+		}
 		return nil
 	}
 

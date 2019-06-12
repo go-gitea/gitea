@@ -36,11 +36,11 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.Equal(t, "2b3668e11cb82d3af8c6e4524fc7841297668f5008d1626f0ad3417e9fa39af84c268248b78c481daa7e5dc437784003494f", token.TokenHash)
 	assert.Equal(t, "e4efbf36", token.TokenLastEight)
 
-	token, err = GetAccessTokenBySHA("notahash")
+	_, err = GetAccessTokenBySHA("notahash")
 	assert.Error(t, err)
 	assert.True(t, IsErrAccessTokenNotExist(err))
 
-	token, err = GetAccessTokenBySHA("")
+	_, err = GetAccessTokenBySHA("")
 	assert.Error(t, err)
 	assert.True(t, IsErrAccessTokenEmpty(err))
 }
