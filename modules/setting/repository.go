@@ -34,6 +34,9 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		DefaultTocWikiFile                      bool
+		DefaultTocMarkdownAlways                bool
+		DefaultTocMarkdownByFlag                bool
 
 		// Repository editor settings
 		Editor struct {
@@ -76,6 +79,9 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		DefaultTocWikiFile:                      true,
+		DefaultTocMarkdownAlways:                false,
+		DefaultTocMarkdownByFlag:                true,
 
 		// Repository editor settings
 		Editor: struct {
