@@ -331,7 +331,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebase:               allowRebase,
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
-		AvatarURL:                 repo.AvatarLink(),
+		AvatarURL:                 repo.avatarLink(e),
 	}
 }
 
@@ -2528,11 +2528,7 @@ func (repo *Repository) CustomAvatarPath() string {
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
 }
 
-// GenerateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) GenerateRandomAvatar() error {
-	return repo.generateRandomAvatar(x)
-}
-
+// generateRandomAvatar generates a random avatar for repository.
 func (repo *Repository) generateRandomAvatar(e Engine) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
@@ -2585,7 +2581,10 @@ func RemoveRandomAvatars() error {
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
+	return repo.relAvatarLink(x)
+}
 
+func (repo *Repository) relAvatarLink(e Engine) string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
 	if len(avatarPath) <= 0 || !com.IsFile(avatarPath) {
@@ -2593,8 +2592,8 @@ func (repo *Repository) RelAvatarLink() string {
 		case "image":
 			return setting.RepositoryAvatarFallbackImage
 		case "random":
-			if err := repo.GenerateRandomAvatar(); err != nil {
-				log.Error("GenerateRandomAvatar: %v", err)
+			if err := repo.generateRandomAvatar(e); err != nil {
+				log.Error("generateRandomAvatar: %v", err)
 			}
 		default:
 			// default behaviour: do not display avatar
@@ -2604,9 +2603,9 @@ func (repo *Repository) RelAvatarLink() string {
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
 
-// AvatarLink returns user avatar absolute link.
-func (repo *Repository) AvatarLink() string {
-	link := repo.RelAvatarLink()
+// avatarLink returns user avatar absolute link.
+func (repo *Repository) avatarLink(e Engine) string {
+	link := repo.relAvatarLink(e)
 	// link may be empty!
 	if len(link) > 0 {
 		if link[0] == '/' && link[1] != '/' {
