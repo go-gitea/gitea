@@ -289,6 +289,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .ui.list .list,.markdown:not(code) ol.ui.list ol,.markdown:not(code) ul.ui.list ul{padding-left:2em}
 .markdown:not(code) .auto-toc-wrapper{position:relative;padding:0 0 7px 20px;float:right;background:#fff;z-index:1}
 .markdown:not(code) .auto-toc-container{padding:7px;border:1px solid #d4d4d5;border-radius:5px}
+.markdown:not(code) .auto-toc-container h2{padding:.3em;font-size:1.65em}
 .home .logo{max-width:220px}
 @media only screen and (max-width:767px){.home .hero h1{font-size:3.5em}
 .home .hero h2{font-size:2em}
