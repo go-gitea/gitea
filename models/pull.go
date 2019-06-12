@@ -1157,7 +1157,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 			log.Error("UpdatePatch: RemoveRemote: %s", err)
 		}
 	}()
-	pr.MergeBase, err = headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
+	pr.MergeBase, _, err = headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
 	if err != nil {
 		return fmt.Errorf("GetMergeBase: %v", err)
 	} else if err = pr.Update(); err != nil {
