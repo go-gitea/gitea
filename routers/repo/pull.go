@@ -286,7 +286,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	prInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
+	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		pull.MergeBase, pull.GetGitRefName())
 
 	if err != nil {
@@ -301,9 +301,9 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["NumCommits"] = prInfo.Commits.Len()
-	ctx.Data["NumFiles"] = prInfo.NumFiles
-	return prInfo
+	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumFiles"] = compareInfo.NumFiles
+	return compareInfo
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
@@ -336,7 +336,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
-	prInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(repo.Owner.Name, repo.Name),
+	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(repo.Owner.Name, repo.Name),
 		pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
@@ -361,9 +361,9 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
 	}
 
-	ctx.Data["NumCommits"] = prInfo.Commits.Len()
-	ctx.Data["NumFiles"] = prInfo.NumFiles
-	return prInfo
+	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumFiles"] = compareInfo.NumFiles
+	return compareInfo
 }
 
 // ViewPullCommits show commits for a pull request
