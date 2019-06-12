@@ -674,6 +674,23 @@ func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+// ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
+type ErrForkAlreadyExist struct {
+	Uname    string
+	RepoName string
+	ForkName string
+}
+
+// IsErrForkAlreadyExist checks if an error is an ErrForkAlreadyExist.
+func IsErrForkAlreadyExist(err error) bool {
+	_, ok := err.(ErrForkAlreadyExist)
+	return ok
+}
+
+func (err ErrForkAlreadyExist) Error() string {
+	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+}
+
 // ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
 type ErrRepoRedirectNotExist struct {
 	OwnerID  int64
