@@ -945,7 +945,15 @@ func ViewIssue(ctx *context.Context) {
 
 	// Get Dependencies
 	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	if err != nil {
+		ctx.ServerError("BlockedByDependencies", err)
+		return
+	}
 	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	if err != nil {
+		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -1226,7 +1234,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
-				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
+				var err error
+				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)

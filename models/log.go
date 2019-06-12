@@ -15,7 +15,6 @@ import (
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
 	showSQL bool
-	level   core.LogLevel
 	logger  *log.Logger
 }
 
@@ -34,42 +33,42 @@ func (l *XORMLogBridge) Log(skip int, level log.Level, format string, v ...inter
 
 // Debug show debug log
 func (l *XORMLogBridge) Debug(v ...interface{}) {
-	l.Log(2, log.DEBUG, fmt.Sprint(v...))
+	_ = l.Log(2, log.DEBUG, fmt.Sprint(v...))
 }
 
 // Debugf show debug log
 func (l *XORMLogBridge) Debugf(format string, v ...interface{}) {
-	l.Log(2, log.DEBUG, format, v...)
+	_ = l.Log(2, log.DEBUG, format, v...)
 }
 
 // Error show error log
 func (l *XORMLogBridge) Error(v ...interface{}) {
-	l.Log(2, log.ERROR, fmt.Sprint(v...))
+	_ = l.Log(2, log.ERROR, fmt.Sprint(v...))
 }
 
 // Errorf show error log
 func (l *XORMLogBridge) Errorf(format string, v ...interface{}) {
-	l.Log(2, log.ERROR, format, v...)
+	_ = l.Log(2, log.ERROR, format, v...)
 }
 
 // Info show information level log
 func (l *XORMLogBridge) Info(v ...interface{}) {
-	l.Log(2, log.INFO, fmt.Sprint(v...))
+	_ = l.Log(2, log.INFO, fmt.Sprint(v...))
 }
 
 // Infof show information level log
 func (l *XORMLogBridge) Infof(format string, v ...interface{}) {
-	l.Log(2, log.INFO, format, v...)
+	_ = l.Log(2, log.INFO, format, v...)
 }
 
 // Warn show warning log
 func (l *XORMLogBridge) Warn(v ...interface{}) {
-	l.Log(2, log.WARN, fmt.Sprint(v...))
+	_ = l.Log(2, log.WARN, fmt.Sprint(v...))
 }
 
 // Warnf show warnning log
 func (l *XORMLogBridge) Warnf(format string, v ...interface{}) {
-	l.Log(2, log.WARN, format, v...)
+	_ = l.Log(2, log.WARN, format, v...)
 }
 
 // Level get logger level

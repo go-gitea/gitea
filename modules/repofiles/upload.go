@@ -57,10 +57,10 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return err
 	}
@@ -108,10 +108,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			}
 			infos[i] = uploadInfo
 
-		} else {
-			if objectHash, err = t.HashObject(file); err != nil {
-				return err
-			}
+		} else if objectHash, err = t.HashObject(file); err != nil {
+			return err
 		}
 
 		// Add the object to the index

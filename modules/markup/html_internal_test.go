@@ -29,11 +29,6 @@ func numericIssueLink(baseURL string, index int) string {
 	return link(util.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
 }
 
-// urlContentsLink an HTML link whose contents is the target URL
-func urlContentsLink(href string) string {
-	return link(href, href)
-}
-
 // link an HTML link
 func link(href, contents string) string {
 	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)

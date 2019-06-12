@@ -142,7 +142,7 @@ func parseKeyString(content string) (string, error) {
 			if continuationLine || strings.ContainsAny(line, ":-") {
 				continuationLine = strings.HasSuffix(line, "\\")
 			} else {
-				keyContent = keyContent + line
+				keyContent += line
 			}
 		}
 
@@ -392,7 +392,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -427,7 +427,7 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		Content:       content,
 		Mode:          AccessModeWrite,
 		Type:          KeyTypeUser,
-		LoginSourceID: LoginSourceID,
+		LoginSourceID: loginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -491,10 +491,10 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
-		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
+		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
 		Find(&keys)
 }
 

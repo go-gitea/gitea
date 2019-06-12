@@ -545,13 +545,14 @@ func NewContext() {
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Protocol = HTTP
-	if sec.Key("PROTOCOL").String() == "https" {
+	switch sec.Key("PROTOCOL").String() {
+	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
-	} else if sec.Key("PROTOCOL").String() == "fcgi" {
+	case "fcgi":
 		Protocol = FCGI
-	} else if sec.Key("PROTOCOL").String() == "unix" {
+	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)

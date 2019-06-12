@@ -135,6 +135,10 @@ errcheck:
 
 .PHONY: lint
 lint:
+	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
+
+.PHONY: revive
+revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/mgechev/revive; \
 	fi
@@ -461,3 +465,10 @@ generate-images:
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)
+
+.PHONY: golangci-lint
+golangci-lint:
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.16.0; \
+	fi
+	golangci-lint run
