@@ -145,6 +145,8 @@ CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
 ; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
 FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
+; Create 'Table of Pages' on internal wiki pages
+DEFAULT_TOC_WIKI_TREE = true
 ; Create Table of Contents based on headlines on wiki page (does not alter file)
 DEFAULT_TOC_WIKI_FILE = true
 ; Create Table of Contents on all rendered markdown files (does not alter file), enabled: overwrites DEFAULT_TOC_MARKDOWN_BY_FLAG

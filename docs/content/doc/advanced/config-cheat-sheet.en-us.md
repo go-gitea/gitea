@@ -107,6 +107,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `DEFAULT_TOC_WIKI_TREE`: **true**: Create 'Table of Pages' on internal wiki pages.
 - `DEFAULT_TOC_WIKI_FILE`: **true**: Create Table of Contents based on headlines on wiki page (does
    not alter file)
 - `DEFAULT_TOC_MARKDOWN_ALWAYS`: **false** : Create Table of Contents on all rendered markdown files

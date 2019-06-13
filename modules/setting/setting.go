@@ -239,6 +239,7 @@ var (
 		EnableHardLineBreak       bool
 		CustomURLSchemes          []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions            []string
+		DefaultTocWikiTree        bool
 		DefaultTocWikiFile        bool
 		DefaultTocMarkdownAlways  bool
 		DefaultTocMarkdownByFlag  bool
@@ -246,6 +247,7 @@ var (
 	}{
 		EnableHardLineBreak:       false,
 		FileExtensions:            strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		DefaultTocWikiTree:        true,
 		DefaultTocWikiFile:        true,
 		DefaultTocMarkdownAlways:  false,
 		DefaultTocMarkdownByFlag:  true,

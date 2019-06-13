@@ -269,6 +269,12 @@
 						<label>{{.i18n.Tr "repo.settings.toc.toc"}}</label>
 						<div class="field">
 							<div class="ui checkbox">
+								<input name="toc_wiki_tree" type="checkbox" {{if (.Repository.TocWikiTree)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.toc.toc_wiki_tree"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
 								<input name="toc_wiki_file" type="checkbox" {{if (.Repository.TocWikiFile)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.toc.toc_wiki_file"}}</label>
 							</div>

@@ -295,6 +295,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		// update toc settings
+		if repo.TocWikiTree != form.TocWikiTree {
+			repo.TocWikiTree = form.TocWikiTree
+		}
+
 		if repo.TocWikiFile != form.TocWikiFile {
 			repo.TocWikiFile = form.TocWikiFile
 		}

@@ -125,6 +125,7 @@ type RepoSettingForm struct {
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
 	IsArchived                       bool
+	TocWikiTree                      bool
 	TocWikiFile                      bool
 	TocMarkdownAlways                bool
 	TocMarkdownByFlag                bool

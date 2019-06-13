@@ -79,7 +79,7 @@
 			</div>
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown has-emoji{{if (.Repository.TocWikiFile)}} auto-toc{{end}}"{{if .Repository.TocWikiFile}} data-toc="{{.i18n.Tr "repo.settings.toc.toc"}}"{{end}}>
+			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown has-emoji{{if (.Repository.TocWikiFile)}} auto-toc{{end}}{{if (.Repository.TocWikiTree)}} page-toc{{end}}"{{if .Repository.TocWikiFile}} data-toc="{{.i18n.Tr "repo.settings.toc.toc"}}"{{end}}{{if .Repository.TocWikiTree}} data-pagetoc="{{.i18n.Tr "repo.settings.toc.pagetoc"}}"{{end}}>
 				{{.content | Str2html}}
 			</div>
 			{{if .sidebarPresent}}

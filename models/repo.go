@@ -169,6 +169,7 @@ type Repository struct {
 	IndexerStatus                   *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
+	TocWikiTree                     bool               `xorm:"NOT NULL DEFAULT true"`
 	TocWikiFile                     bool               `xorm:"NOT NULL DEFAULT true"`
 	TocMarkdownAlways               bool               `xorm:"NOT NULL DEFAULT false"`
 	TocMarkdownByFlag               bool               `xorm:"NOT NULL DEFAULT true"`
@@ -1367,6 +1368,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
+		TocWikiTree:                     setting.Markdown.DefaultTocWikiTree,
 		TocWikiFile:                     setting.Markdown.DefaultTocWikiFile,
 		TocMarkdownAlways:               setting.Markdown.DefaultTocMarkdownAlways,
 		TocMarkdownByFlag:               setting.Markdown.DefaultTocMarkdownByFlag,
