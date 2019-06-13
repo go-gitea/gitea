@@ -21,8 +21,8 @@ func TestRepository_GetTags(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, tags, 1)
 	assert.EqualValues(t, "test", tags[0].Name)
-	assert.EqualValues(t, "37991dec2c8e592043f47155ce4808d4580f9123", tags[0].ID.String())
-	assert.EqualValues(t, "commit", tags[0].Type)
+	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[0].ID.String())
+	assert.EqualValues(t, "tag", tags[0].Type)
 }
 
 func TestRepository_GetTag(t *testing.T) {
@@ -35,10 +35,78 @@ func TestRepository_GetTag(t *testing.T) {
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
 
-	tag, err := bareRepo1.GetTag("test")
+	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
+	lTagName := "lightweightTag"
+	bareRepo1.CreateTag(lTagName, lTagCommitID)
+
+	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
+	aTagName := "annotatedTag"
+	aTagMessage := "my annotated message"
+	bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
+	aTagID, _ := bareRepo1.GetTagID(aTagName)
+
+	lTag, err := bareRepo1.GetTag(lTagName)
+	lTag.repo = nil
+	assert.NoError(t, err)
+	assert.NotNil(t, lTag)
+	assert.EqualValues(t, lTagName, lTag.Name)
+	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
+	assert.EqualValues(t, lTagCommitID, lTag.Object.String())
+	assert.EqualValues(t, "commit", lTag.Type)
+
+	aTag, err := bareRepo1.GetTag(aTagName)
+	assert.NoError(t, err)
+	assert.NotNil(t, aTag)
+	assert.EqualValues(t, aTagName, aTag.Name)
+	assert.EqualValues(t, aTagID, aTag.ID.String())
+	assert.NotEqual(t, aTagID, aTag.Object.String())
+	assert.EqualValues(t, aTagCommitID, aTag.Object.String())
+	assert.EqualValues(t, "tag", aTag.Type)
+}
+
+func TestRepository_GetAnnotatedTag(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+
+	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1_TestRepository_GetTag")
+	assert.NoError(t, err)
+	defer os.RemoveAll(clonedPath)
+
+	bareRepo1, err := OpenRepository(clonedPath)
+	assert.NoError(t, err)
+
+	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
+	lTagName := "lightweightTag"
+	bareRepo1.CreateTag(lTagName, lTagCommitID)
+
+	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
+	aTagName := "annotatedTag"
+	aTagMessage := "my annotated message"
+	bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
+	aTagID, _ := bareRepo1.GetTagID(aTagName)
+
+	// Try an annotated tag
+	tag, err := bareRepo1.GetAnnotatedTag(aTagID)
 	assert.NoError(t, err)
 	assert.NotNil(t, tag)
-	assert.EqualValues(t, "test", tag.Name)
-	assert.EqualValues(t, "37991dec2c8e592043f47155ce4808d4580f9123", tag.ID.String())
-	assert.EqualValues(t, "commit", tag.Type)
+	assert.EqualValues(t, aTagName, tag.Name)
+	assert.EqualValues(t, aTagID, tag.ID.String())
+	assert.EqualValues(t, "tag", tag.Type)
+
+	// Annotated tag's Commit ID should fail
+	tag2, err := bareRepo1.GetAnnotatedTag(aTagCommitID)
+	assert.Error(t, err)
+	assert.True(t, IsErrNotExist(err))
+	assert.Nil(t, tag2)
+
+	// Annotated tag's name should fail
+	tag3, err := bareRepo1.GetAnnotatedTag(aTagName)
+	assert.Error(t, err)
+	assert.Errorf(t, err, "Length must be 40: %d", len(aTagName))
+	assert.Nil(t, tag3)
+
+	// Lightweight Tag should fail
+	tag4, err := bareRepo1.GetAnnotatedTag(lTagCommitID)
+	assert.Error(t, err)
+	assert.True(t, IsErrNotExist(err))
+	assert.Nil(t, tag4)
 }

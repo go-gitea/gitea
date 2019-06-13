@@ -19,7 +19,6 @@ import (
 const (
 	tplMilestone       base.TplName = "repo/issue/milestones"
 	tplMilestoneNew    base.TplName = "repo/issue/milestone_new"
-	tplMilestoneEdit   base.TplName = "repo/issue/milestone_edit"
 	tplMilestoneIssues base.TplName = "repo/issue/milestone_issues"
 )
 
@@ -57,7 +56,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 	if ctx.Repo.Repository.IsTimetrackerEnabled() {
-		if miles.LoadTotalTrackedTimes(); err != nil {
+		if err := miles.LoadTotalTrackedTimes(); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}

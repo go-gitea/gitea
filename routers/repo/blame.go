@@ -192,7 +192,7 @@ func RefBlame(ctx *context.Context) {
 func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]models.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	var lines = make([]string, 0, 0)
+	var lines = make([]string, 0)
 
 	var commitInfo bytes.Buffer
 	var lineNumbers bytes.Buffer

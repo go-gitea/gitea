@@ -287,20 +287,19 @@ func TestHtmlTimeSince(t *testing.T) {
 }
 
 func TestFileSize(t *testing.T) {
-	var size int64
-	size = 512
+	var size int64 = 512
 	assert.Equal(t, "512B", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512KB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512MB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512GB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512TB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512PB", FileSize(size))
-	size = size * 4
+	size *= 4
 	assert.Equal(t, "2.0EB", FileSize(size))
 }
 

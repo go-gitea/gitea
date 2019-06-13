@@ -114,7 +114,7 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 		v = append(v, u)
 	}
 
-	sort.Slice(v[:], func(i, j int) bool {
+	sort.Slice(v, func(i, j int) bool {
 		return v[i].Commits < v[j].Commits
 	})
 
