@@ -113,6 +113,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   (does not alter file), enabled: overwrites `TOC_MARKDOWN_BY_FLAG`
 - `DEFAULT_TOC_MARKDOWN_BY_FLAG`: **true** : Create Table of Contents on renderes markdown files if
    line '%%TOC%%' is present
+- `TOC_MARKDOWN_FILE_EXTENSIONS`: **.md,.markdown,.mdown,.mkd,.org** : List of markup file extensions
+   that TOC should be created on, set to not interfere with external renderers.
+   Separate the extensions with a comma. To ignore file extension check, just put a comma.
 
 ## Server (`server`)
 

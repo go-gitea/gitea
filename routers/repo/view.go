@@ -12,6 +12,7 @@ import (
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -163,6 +164,23 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				buf = templates.ToUTF8WithFallback(append(buf, d...))
 
 				if markup.Type(readmeFile.Name()) != "" {
+					// Check if extension matches TOC file list
+					tocExts := setting.Markdown.TocMarkdownFileExtensions
+					isTocMarkup := false
+					if len(tocExts) == 0 || len(tocExts) == 1 && tocExts[0] == "" || len(tocExts) == 2 && tocExts[0] == "" && tocExts[1] == "" {
+						isTocMarkup = true
+					} else {
+						fileExt := strings.ToLower(filepath.Ext(readmeFile.Name()))
+						if fileExt != "" {
+							for _, tExt := range tocExts {
+								if tExt == fileExt {
+									isTocMarkup = true
+									break
+								}
+							}
+						}
+					}
+					ctx.Data["IsTocMarkup"] = isTocMarkup
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
@@ -283,6 +301,23 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markup.Type(blob.Name()) != "" {
+			// Check if extension matches TOC file list
+			tocExts := setting.Markdown.TocMarkdownFileExtensions
+			isTocMarkup := false
+			if len(tocExts) == 0 || len(tocExts) == 1 && tocExts[0] == "" || len(tocExts) == 2 && tocExts[0] == "" && tocExts[1] == "" {
+				isTocMarkup = true
+			} else {
+				fileExt := strings.ToLower(filepath.Ext(blob.Name()))
+				if fileExt != "" {
+					for _, tExt := range tocExts {
+						if tExt == fileExt {
+							isTocMarkup = true
+							break
+						}
+					}
+				}
+			}
+			ctx.Data["IsTocMarkup"] = isTocMarkup
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
