@@ -6,6 +6,7 @@ package structs
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // User represents a user
@@ -25,6 +26,8 @@ type User struct {
 	Language string `json:"language"`
 	// Is the user an administrator
 	IsAdmin bool `json:"is_admin"`
+	// swagger:strfmt date-time
+	LastLogin time.Time `json:"last_login,omitempty"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

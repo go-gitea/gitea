@@ -236,6 +236,7 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 		AvatarURL: user.AvatarLink(),
 		FullName:  markup.Sanitize(user.FullName),
 		IsAdmin:   user.IsAdmin,
+		LastLogin: user.LastLoginUnix.AsTime(),
 	}
 	if signed && (!user.KeepEmailPrivate || admin) {
 		result.Email = user.Email
