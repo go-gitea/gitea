@@ -44,21 +44,21 @@ var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
 	m := md5.New()
-	m.Write([]byte(str))
+	_, _ = m.Write([]byte(str))
 	return hex.EncodeToString(m.Sum(nil))
 }
 
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
 	h := sha1.New()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 // EncodeSha256 string to sha1 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -193,7 +193,7 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
@@ -425,16 +425,6 @@ const (
 	EByte = PByte * 1024
 )
 
-var bytesSizeTable = map[string]uint64{
-	"b":  Byte,
-	"kb": KByte,
-	"mb": MByte,
-	"gb": GByte,
-	"tb": TByte,
-	"pb": PByte,
-	"eb": EByte,
-}
-
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
@@ -582,27 +572,27 @@ func IsTextFile(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	return strings.Index(http.DetectContentType(data), "text/") != -1
+	return strings.Contains(http.DetectContentType(data), "text/")
 }
 
 // IsImageFile detects if data is an image format
 func IsImageFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "image/") != -1
+	return strings.Contains(http.DetectContentType(data), "image/")
 }
 
 // IsPDFFile detects if data is a pdf format
 func IsPDFFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
+	return strings.Contains(http.DetectContentType(data), "application/pdf")
 }
 
 // IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "video/") != -1
+	return strings.Contains(http.DetectContentType(data), "video/")
 }
 
 // IsAudioFile detects if data is an video format
 func IsAudioFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "audio/") != -1
+	return strings.Contains(http.DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories

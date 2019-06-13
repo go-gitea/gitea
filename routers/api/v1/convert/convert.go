@@ -6,6 +6,7 @@ package convert
 
 import (
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -26,7 +27,7 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 	}
 }
 
-// ToBranch convert a commit and branch to an api.Branch
+// ToBranch convert a git.Commit and git.Branch to an api.Branch
 func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
 	return &api.Branch{
 		Name:   b.Name,
@@ -34,23 +35,18 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch
 	}
 }
 
-// ToTag convert a tag to an api.Tag
+// ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
-		Name: t.Name,
-		Commit: struct {
-			SHA string `json:"sha"`
-			URL string `json:"url"`
-		}{
-			SHA: t.ID.String(),
-			URL: util.URLJoin(repo.Link(), "commit", t.ID.String()),
-		},
-		ZipballURL: util.URLJoin(repo.Link(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.Link(), "archive", t.Name+".tar.gz"),
+		Name:       t.Name,
+		ID:         t.ID.String(),
+		Commit:     ToCommitMeta(repo, t),
+		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
 	}
 }
 
-// ToCommit convert a commit to api.PayloadCommit
+// ToCommit convert a git.Commit to api.PayloadCommit
 func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
@@ -66,17 +62,10 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
-	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
-	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
-	}
-
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
-		URL:     util.URLJoin(repo.Link(), "commit", c.ID.String()),
+		URL:     util.URLJoin(repo.HTMLURL(), "commit", c.ID.String()),
 		Author: &api.PayloadUser{
 			Name:     c.Author.Name,
 			Email:    c.Author.Email,
@@ -87,13 +76,24 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 			Email:    c.Committer.Email,
 			UserName: committerUsername,
 		},
-		Timestamp: c.Author.When,
-		Verification: &api.PayloadCommitVerification{
-			Verified:  verif.Verified,
-			Reason:    verif.Reason,
-			Signature: signature,
-			Payload:   payload,
-		},
+		Timestamp:    c.Author.When,
+		Verification: ToVerification(c),
+	}
+}
+
+// ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
+func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
+	verif := models.ParseCommitWithSignature(c)
+	var signature, payload string
+	if c.Signature != nil {
+		signature = c.Signature.Signature
+		payload = c.Signature.Payload
+	}
+	return &api.PayloadCommitVerification{
+		Verified:  verif.Verified,
+		Reason:    verif.Reason,
+		Signature: signature,
+		Payload:   payload,
 	}
 }
 
@@ -241,4 +241,46 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 		result.Email = user.Email
 	}
 	return result
+}
+
+// ToAnnotatedTag convert git.Tag to api.AnnotatedTag
+func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+	return &api.AnnotatedTag{
+		Tag:          t.Name,
+		SHA:          t.ID.String(),
+		Object:       ToAnnotatedTagObject(repo, c),
+		Message:      t.Message,
+		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
+		Tagger:       ToCommitUser(t.Tagger),
+		Verification: ToVerification(c),
+	}
+}
+
+// ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
+func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+	return &api.AnnotatedTagObject{
+		SHA:  commit.ID.String(),
+		Type: string(git.ObjectCommit),
+		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+	}
+}
+
+// ToCommitUser convert a git.Signature to an api.CommitUser
+func ToCommitUser(sig *git.Signature) *api.CommitUser {
+	return &api.CommitUser{
+		Identity: api.Identity{
+			Name:  sig.Name,
+			Email: sig.Email,
+		},
+		Date: sig.When.UTC().Format(time.RFC3339),
+	}
+}
+
+// ToCommitMeta convert a git.Tag to an api.CommitMeta
+func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
+	return &api.CommitMeta{
+		SHA: tag.ID.String(),
+		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
+		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+	}
 }

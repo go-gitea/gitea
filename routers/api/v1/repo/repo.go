@@ -631,15 +631,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	return nil
 }
 
-func unitTypeInTypes(unitType models.UnitType, unitTypes []models.UnitType) bool {
-	for _, tp := range unitTypes {
-		if unitType == tp {
-			return true
-		}
-	}
-	return false
-}
-
 // updateRepoUnits updates repo units: Issue settings, Wiki settings, PR settings
 func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner

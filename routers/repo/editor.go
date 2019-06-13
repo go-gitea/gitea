@@ -118,9 +118,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
 		if content, err := templates.ToUTF8WithErr(buf); err != nil {
-			if err != nil {
-				log.Error("ToUTF8WithErr: %v", err)
-			}
+			log.Error("ToUTF8WithErr: %v", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {
 			ctx.Data["FileContent"] = content
@@ -235,16 +233,12 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
-					break
 				default:
 					ctx.Error(500, err.Error())
-					break
 				}
 			} else {
 				ctx.Error(500, err.Error())
@@ -403,16 +397,12 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeTree:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
-					break
 				case git.EntryModeBlob:
 					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
-					break
 				default:
 					ctx.ServerError("DeleteRepoFile", err)
-					break
 				}
 			} else {
 				ctx.ServerError("DeleteRepoFile", err)

@@ -700,7 +700,10 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 			log.Error("prepareWebhooks.JSONPayload: %v", err)
 		}
 		sig := hmac.New(sha256.New, []byte(w.Secret))
-		sig.Write(data)
+		_, err = sig.Write(data)
+		if err != nil {
+			log.Error("prepareWebhooks.sigWrite: %v", err)
+		}
 		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
@@ -930,8 +933,7 @@ func InitDeliverHooks() {
 					return nil, err
 				}
 
-				conn.SetDeadline(time.Now().Add(timeout))
-				return conn, nil
+				return conn, conn.SetDeadline(time.Now().Add(timeout))
 
 			},
 		},

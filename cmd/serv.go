@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
 )
 
@@ -67,7 +66,7 @@ func checkLFSVersion() {
 }
 
 func setup(logPath string) {
-	log.DelLogger("console")
+	_ = log.DelLogger("console")
 	setting.NewContext()
 	checkLFSVersion()
 }
@@ -112,7 +111,9 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		cli.ShowSubcommandHelp(c)
+		if err := cli.ShowSubcommandHelp(c); err != nil {
+			fmt.Printf("error showing subcommand help: %v\n", err)
+		}
 		return nil
 	}
 
@@ -209,7 +210,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
 	os.Setenv(models.EnvRepoName, results.RepoName)
 	os.Setenv(models.EnvRepoUsername, results.OwnerName)
-	os.Setenv(models.EnvPusherName, username)
+	os.Setenv(models.EnvPusherName, results.UserName)
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
 	os.Setenv(models.ProtectedBranchRepoID, strconv.FormatInt(results.RepoID, 10))
 	os.Setenv(models.ProtectedBranchPRID, fmt.Sprintf("%d", 0))
