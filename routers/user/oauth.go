@@ -169,7 +169,7 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 		for _, e := range errs {
 			errstring += e.Error() + "\n"
 		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occured during validation: %s", errstring))
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
 		return
 	}
 
