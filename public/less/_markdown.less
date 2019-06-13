@@ -1,5 +1,4 @@
 .markdown:not(code) {
-    overflow: hidden;
     font-size: 16px;
     line-height: 1.6 !important;
     word-wrap: break-word;
@@ -503,6 +502,13 @@
         float: right;
         background: #ffffff;
         z-index: 1;
+        @media only screen and (min-width:1760px) {
+            right: -31%;
+            width: 26%;
+            padding: 0;
+            margin-top: -3em !important;
+            margin-left: -26%;
+        }
     }
 
     .auto-toc-container {
@@ -518,5 +524,6 @@
 
     .auto-toc-clear {
         clear: both;
+        margin-bottom: -20px !important;
     }
 }
