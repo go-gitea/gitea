@@ -667,8 +667,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 
+			m.Group("/lfs", func() {
+				m.Get("", repo.LFSFiles)
+				m.Get("/show/:oid", repo.LFSFileGet)
+				m.Post("/delete/:oid", repo.LFSDelete)
+			})
+
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
+			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
 		})
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 

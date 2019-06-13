@@ -106,21 +106,47 @@ func (repo *Repository) GetLFSMetaObjectByOid(oid string) (*LFSMetaObject, error
 
 // RemoveLFSMetaObjectByOid removes a LFSMetaObject entry from database by its OID.
 // It may return ErrLFSObjectNotExist or a database error.
-func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) error {
+func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 	if len(oid) == 0 {
-		return ErrLFSObjectNotExist
+		return 0, ErrLFSObjectNotExist
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return err
+		return -1, err
 	}
 
 	m := &LFSMetaObject{Oid: oid, RepositoryID: repo.ID}
 	if _, err := sess.Delete(m); err != nil {
-		return err
+		return -1, err
 	}
 
-	return sess.Commit()
+	count, err := sess.Count(&LFSMetaObject{Oid: oid})
+	if err != nil {
+		return count, err
+	}
+
+	return count, sess.Commit()
+}
+
+// GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
+func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if page >= 0 && pageSize > 0 {
+		start := 0
+		if page > 0 {
+			start = (page - 1) * pageSize
+		}
+		sess.Limit(pageSize, start)
+	}
+	lfsObjects := make([]*LFSMetaObject, 0, pageSize)
+	return lfsObjects, sess.Find(&lfsObjects, &LFSMetaObject{RepositoryID: repo.ID})
+}
+
+// CountLFSMetaObjects returns a count of all LFSMetaObjects associated with a repository
+func (repo *Repository) CountLFSMetaObjects() (int64, error) {
+	return x.Count(&LFSMetaObject{RepositoryID: repo.ID})
 }
