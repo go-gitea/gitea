@@ -3094,7 +3094,7 @@ function onOAuthLoginClick() {
             if(t.length > 0 && l >= 1) {
                 html += __list( t, l, id);
             } else {
-                html += _closeList(0) + l;
+                html += _closeList(0);
             }
         }
         html += _closeList(0);
