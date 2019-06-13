@@ -62,7 +62,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": getCsrf(t, htmlDoc.doc),
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	url, err := url.Parse(link)
 	assert.NoError(t, err)

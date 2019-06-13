@@ -91,8 +91,6 @@ github.com/denisenkom/go-mssqldb
 github.com/dgrijalva/jwt-go
 # github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712
 github.com/edsrzf/mmap-go
-# github.com/elazarl/go-bindata-assetfs v0.0.0-20151224045452-57eb5e1fc594
-github.com/elazarl/go-bindata-assetfs
 # github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/containers
@@ -115,8 +113,6 @@ github.com/facebookgo/httpdown
 github.com/facebookgo/stats
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 github.com/glycerine/go-unsnap-stream
-# github.com/go-macaron/bindata v0.0.0-20161222093048-85786f57eee3
-github.com/go-macaron/bindata
 # github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
 github.com/go-macaron/binding
 # github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
@@ -296,8 +292,12 @@ github.com/russross/blackfriday
 github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
+# github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
+github.com/shurcooL/httpfs/vfsutil
 # github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc
 github.com/shurcooL/sanitized_anchor_name
+# github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
+github.com/shurcooL/vfsgen
 # github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d
 github.com/siddontang/go-snappy/snappy
 # github.com/src-d/gcfg v1.4.0

@@ -62,7 +62,12 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if err != nil {
 		return err
 	}
-	defer models.RemoveTemporaryPath(tmpBasePath)
+
+	defer func() {
+		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	headRepoPath := models.RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
@@ -416,13 +421,13 @@ func readRevListObjects(revListReader *io.PipeReader, shasToCheckWriter *io.Pipe
 		for len(toWrite) > 0 {
 			n, err := shasToCheckWriter.Write(toWrite)
 			if err != nil {
-				revListReader.CloseWithError(err)
+				_ = revListReader.CloseWithError(err)
 				break
 			}
 			toWrite = toWrite[n:]
 		}
 	}
-	shasToCheckWriter.CloseWithError(scanner.Err())
+	_ = shasToCheckWriter.CloseWithError(scanner.Err())
 }
 
 func doCatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
@@ -434,7 +439,7 @@ func doCatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *i
 	var errbuf strings.Builder
 	cmd := git.NewCommand("cat-file", "--batch-check")
 	if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
-		catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
 
@@ -443,7 +448,9 @@ func readCatFileBatchCheck(catFileCheckReader *io.PipeReader, shasToBatchWriter 
 	defer catFileCheckReader.Close()
 
 	scanner := bufio.NewScanner(catFileCheckReader)
-	defer shasToBatchWriter.CloseWithError(scanner.Err())
+	defer func() {
+		_ = shasToBatchWriter.CloseWithError(scanner.Err())
+	}()
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(line) == 0 {
@@ -461,7 +468,7 @@ func readCatFileBatchCheck(catFileCheckReader *io.PipeReader, shasToBatchWriter 
 		for len(toWrite) > 0 {
 			n, err := shasToBatchWriter.Write(toWrite)
 			if err != nil {
-				catFileCheckReader.CloseWithError(err)
+				_ = catFileCheckReader.CloseWithError(err)
 				break
 			}
 			toWrite = toWrite[n:]
@@ -477,7 +484,7 @@ func doCatFileBatch(shasToBatchReader *io.PipeReader, catFileBatchWriter *io.Pip
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
 	if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
-		shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
 
@@ -491,27 +498,27 @@ func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr 
 		// File descriptor line: sha
 		_, err := bufferedReader.ReadString(' ')
 		if err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		// Throw away the blob
 		if _, err := bufferedReader.ReadString(' '); err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		sizeStr, err := bufferedReader.ReadString('\n')
 		if err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		size, err := strconv.Atoi(sizeStr[:len(sizeStr)-1])
 		if err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		pointerBuf := buf[:size+1]
 		if _, err := io.ReadFull(bufferedReader, pointerBuf); err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		pointerBuf = pointerBuf[:size]
@@ -526,7 +533,7 @@ func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr 
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
 			}
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 		// OK we have a pointer that is associated with the head repo
@@ -534,7 +541,7 @@ func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr 
 		// Therefore it should be associated with the base repo
 		pointer.RepositoryID = pr.BaseRepoID
 		if _, err := models.NewLFSMetaObject(pointer); err != nil {
-			catFileBatchReader.CloseWithError(err)
+			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
 	}

@@ -481,7 +481,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping *oauth2.CustomURLMapping
+	var customURLMapping = &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL

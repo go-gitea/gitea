@@ -91,8 +91,7 @@ func runPR() {
 	routers.NewServices()
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	var helper testfixtures.Helper
-	helper = &testfixtures.SQLite{}
+	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	models.NewEngine(func(_ *xorm.Engine) error {
 		return nil
 	})

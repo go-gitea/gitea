@@ -20,7 +20,7 @@ var (
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
 		MaxGitDiffFiles           int
-		GCArgs                    []string `delim:" "`
+		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
 		EnableAutoGitWireProtocol bool
 		Timeout                   struct {
 			Default int
