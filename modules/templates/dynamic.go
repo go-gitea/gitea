@@ -83,12 +83,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}
@@ -113,12 +116,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}

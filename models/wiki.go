@@ -115,7 +115,11 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		if err := RemoveTemporaryPath(basePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	cloneOpts := git.CloneRepoOptions{
 		Bare:   true,
@@ -246,7 +250,11 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		if err := RemoveTemporaryPath(basePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,

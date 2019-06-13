@@ -45,7 +45,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
 	}
 
-	lfsID = lfsID + 1
+	lfsID++
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
 	contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}

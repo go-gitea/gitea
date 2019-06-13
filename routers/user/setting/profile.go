@@ -141,13 +141,11 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		if err = ctxUser.UploadAvatar(data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
-	} else {
+	} else if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
-			if err := ctxUser.GenerateRandomAvatar(); err != nil {
-				log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
-			}
+		if err := ctxUser.GenerateRandomAvatar(); err != nil {
+			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
 

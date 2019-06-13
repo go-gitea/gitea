@@ -608,7 +608,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(), reqOwner(), repo.Delete)
+					Delete(reqToken(), reqOwner(), repo.Delete).
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -750,6 +751,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/commits/:ref", func() {
+					// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 					m.Get("/status", repo.GetCombinedCommitStatusByRef)
 					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				}, reqRepoReader(models.UnitTypeCode))
@@ -761,6 +763,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/refs/*", repo.GetGitRefs)
 					m.Get("/trees/:sha", context.RepoRef(), repo.GetTree)
 					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
+					m.Get("/tags/:sha", context.RepoRef(), repo.GetTag)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("/*", repo.GetFileContents)

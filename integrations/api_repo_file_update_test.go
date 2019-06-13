@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -136,8 +135,8 @@ func TestAPIUpdateFile(t *testing.T) {
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedHTMLURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/blob/new_branch/update/file%d.txt", fileID)
-		expectedDownloadURL := fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
+		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/blob/new_branch/update/file%d.txt", fileID)
+		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
@@ -155,8 +154,8 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedHTMLURL = fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/blob/master/rename/update/file%d.txt", fileID)
-		expectedDownloadURL = fmt.Sprintf("http://localhost:"+setting.HTTPPort+"/user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
+		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/blob/master/rename/update/file%d.txt", fileID)
+		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
@@ -173,7 +172,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     base.DocURL,
+			URL:     setting.API.SwaggerURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)
