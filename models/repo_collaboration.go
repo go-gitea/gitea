@@ -142,7 +142,7 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 	}
 
 	if _, err = sess.
-		Id(collaboration.ID).
+		ID(collaboration.ID).
 		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -98,7 +97,7 @@ func testAPIGetFileContents(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 	expectedAPIError := context.APIError{
 		Message: "object does not exist [id: " + branch + ", rel_path: ]",
-		URL:     base.DocURL,
+		URL:     setting.API.SwaggerURL,
 	}
 	var apiError context.APIError
 	DecodeJSON(t, resp, &apiError)

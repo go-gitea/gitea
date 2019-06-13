@@ -126,7 +126,10 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
 	log.Trace("Form-passed openid-remember: %t", form.Remember)
-	ctx.Session.Set("openid_signin_remember", form.Remember)
+	err = ctx.Session.Set("openid_signin_remember", form.Remember)
+	if err != nil {
+		log.Error("SignInOpenIDPost: Could not set session: %v", err.Error())
+	}
 
 	ctx.Redirect(url)
 }
@@ -152,7 +155,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	/* Now we should seek for the user and log him in, or prompt
 	 * to register if not found */
 
-	u, _ := models.GetUserByOpenID(id)
+	u, err := models.GetUserByOpenID(id)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
@@ -160,6 +163,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 			})
 			return
 		}
+		log.Error("signInOpenIDVerify: %v", err)
 	}
 	if u != nil {
 		log.Trace("User exists, logging in")
@@ -191,7 +195,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("User has email=" + email + " and nickname=" + nickname)
 
 	if email != "" {
-		u, _ = models.GetUserByEmail(email)
+		u, err = models.GetUserByEmail(email)
 		if err != nil {
 			if !models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
@@ -199,6 +203,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 				})
 				return
 			}
+			log.Error("signInOpenIDVerify: %v", err)
 		}
 		if u != nil {
 			log.Trace("Local user " + u.LowerName + " has OpenID provided email " + email)
@@ -220,15 +225,24 @@ func signInOpenIDVerify(ctx *context.Context) {
 		}
 	}
 
-	ctx.Session.Set("openid_verified_uri", id)
+	err = ctx.Session.Set("openid_verified_uri", id)
+	if err != nil {
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
-	ctx.Session.Set("openid_determined_email", email)
+	err = ctx.Session.Set("openid_determined_email", email)
+	if err != nil {
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
 	if u != nil {
 		nickname = u.LowerName
 	}
 
-	ctx.Session.Set("openid_determined_username", nickname)
+	err = ctx.Session.Set("openid_determined_username", nickname)
+	if err != nil {
+		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
@@ -350,7 +364,11 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		ctx.Req.ParseForm()
+		err := ctx.Req.ParseForm()
+		if err != nil {
+			ctx.ServerError("", err)
+			return
+		}
 		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true

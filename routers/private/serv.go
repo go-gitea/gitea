@@ -62,7 +62,6 @@ func ServNoCommand(ctx *macaron.Context) {
 		results.Owner = user
 	}
 	ctx.JSON(http.StatusOK, &results)
-	return
 }
 
 // ServCommand returns information about the provided keyid
@@ -282,5 +281,4 @@ func ServCommand(ctx *macaron.Context) {
 
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
-	return
 }
