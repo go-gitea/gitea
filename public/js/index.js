@@ -3077,42 +3077,6 @@ function onOAuthLoginClick() {
         return out;
     };
     /**
-     * find headlines and create list ----------------------------------
-     * @param target	Element	 target container where toc should look for headlines
-     * @return Element  toc wrapper - div container
-     */
-    const get_toc_inside = function (target) {
-        openedLists = []; listEopen = false;
-        // get content and create html
-        const elms = target.querySelectorAll('h1,h2,h3,h4,h5');
-        let html = '';
-        for(let i = 0; i < elms.length; i++){
-            let l = elms[i].tagName.substr(1); //level
-            let t = elms[i].innerText.trim().trim(''); //text
-            let id = elms[i].id;
-            // create html
-            if(t.length > 0 && l >= 1) {
-                html += __list( t, l, id);
-            } else {
-                html += _closeList(0);
-            }
-        }
-        html += _closeList(0);
-        //create elements
-        let d = document.createElement('div');
-        d.id = 'auto-toc';
-        d.className = 'anchor-wrap';
-        d.innerHTML = '<h2>'+((typeof(target.dataset.toc) == 'string' && target.dataset.toc != '')?target.dataset.toc:'Table of Contents')+'</h2>';
-        let d2 = document.createElement('div');
-        d2.className = 'auto-toc-container';
-        d2.innerHTML = html;
-        d2.insertBefore(d, d2.firstChild);
-        let c = document.createElement('div');
-        c.className = 'auto-toc-wrapper';
-        c.appendChild(d2);
-        return c;
-    };
-    /**
     * find headlines and create list ----------------------------------
     * @param target	Element	 target container where toc should be created
     */
@@ -3130,8 +3094,43 @@ function onOAuthLoginClick() {
                   ps[i].parentNode.removeChild(ps[i]);
               }
             }
-            //inject toc
-            target.insertBefore(get_toc_inside(target), target.firstChild);
+            openedLists = []; listEopen = false;
+            // get content and create html
+            const elms = target.querySelectorAll('h1,h2,h3,h4,h5');
+            if (elms.length > 0) {
+                let html = '';
+                for(let i = 0; i < elms.length; i++){
+                    let l = elms[i].tagName.substr(1); //level
+                    let t = elms[i].innerText.trim().trim(''); //text
+                    let id = elms[i].id;
+                    // create html
+                    if(t.length > 0 && l >= 1) {
+                        html += __list(t, l, id);
+                    } else {
+                        html += _closeList(0);
+                    }
+                }
+                html += _closeList(0);
+                //create elements
+                let d = document.createElement('div');
+                d.id = 'auto-toc';
+                d.className = 'anchor-wrap';
+                d.innerHTML = '<h2>'+((typeof(target.dataset.toc) == 'string' && target.dataset.toc != '')?target.dataset.toc:'Table of Contents')+'</h2>';
+                let d2 = document.createElement('div');
+                d2.className = 'auto-toc-container';
+                d2.innerHTML = html;
+                d2.insertBefore(d, d2.firstChild);
+                let c = document.createElement('div');
+                c.className = 'auto-toc-wrapper';
+                c.appendChild(d2);
+                //inject toc
+                target.insertBefore(c, target.firstChild);
+                if( (rm = document.querySelector('.auto-toc-clear')) != null ) {
+                    rm.parentNode.removeChild(rm);
+                }
+                let a = document.createElement('div'); a.className = 'auto-toc-clear';
+                target.appendChild(a);
+            }
         }
     };
     /**
