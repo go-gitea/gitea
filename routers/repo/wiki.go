@@ -62,7 +62,7 @@ type PageMeta struct {
 
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entries, err := commit.ListEntries()
+	entries, err := commit.ListEntriesRecursive()
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +126,11 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		}
 		return nil, nil
 	}
-
 	// Get page list.
 	if isViewPage {
-		entries, err := commit.ListEntries()
+		entries, err := commit.Tree.ListEntriesRecursive()
 		if err != nil {
-			ctx.ServerError("ListEntries", err)
+			ctx.ServerError("ListEntriesRecursive", err)
 			return nil, nil
 		}
 		pages := make([]PageMeta, 0, len(entries))
@@ -170,12 +169,20 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 
 	pageFilename := models.WikiNameToFilename(pageName)
 	var entry *git.TreeEntry
+	// old wiki pages are all inside git base directory
 	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 		ctx.ServerError("findEntryForFile", err)
 		return nil, nil
 	} else if entry == nil {
-		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
-		return nil, nil
+		// lookup file inside directory structure
+		pageFilename = models.WikiNameToPathFilename(pageName)
+		if entry, err = findEntryForFile(commit, pageFilename); err != nil {
+			ctx.ServerError("findEntryForFile", err)
+			return nil, nil
+		} else if entry == nil {
+			ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+			return nil, nil
+		}
 	}
 	data := wikiContentsByEntry(ctx, entry)
 	if ctx.Written() {
@@ -263,16 +270,26 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree.ListEntriesRecursive()
+	fmt.Printf("%v", entries)
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerError("ListEntriesRecursive", err)
 		return
 	}
 	pages := make([]PageMeta, 0, len(entries))
+LoopPages:
 	for _, entry := range entries {
+		blacklistWikifiles := strings.Split(".gitignore,.git", ",")
+		for _, b := range blacklistWikifiles {
+			if entry.Name() == b || strings.HasSuffix(entry.Name(), b) {
+				continue LoopPages
+			}
+		}
+
 		if !entry.IsRegular() {
 			continue
 		}
+
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
 			ctx.ServerError("GetCommit", err)

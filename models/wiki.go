@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -37,6 +38,16 @@ func WikiNameToSubURL(name string) string {
 func WikiNameToFilename(name string) string {
 	name = strings.Replace(name, " ", "-", -1)
 	return url.QueryEscape(name) + ".md"
+}
+
+// WikiNameToFilename converts a wiki name to its corresponding filename - keep direcory paths.
+func WikiNameToPathFilename(name string) string {
+	// remove path up
+	re1 := regexp.MustCompile(`(\.\.\/)`)
+	name = re1.ReplaceAllString(name, "")
+	// trim whitespace and /
+	re2 := regexp.MustCompile(`(?m)^([\s\/]*)(([^\/]+|[^\/]+\/[^\/]+)*)([\s\/]*)$`)
+	return re2.ReplaceAllString(name, "$2") + ".md"
 }
 
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
@@ -149,6 +160,8 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	}
 
 	newWikiPath := WikiNameToFilename(newWikiName)
+	newWikiDirPath := WikiNameToPathFilename(newWikiName)
+
 	if isNew {
 		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
 		if err != nil {
@@ -158,6 +171,16 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		for _, file := range filesInIndex {
 			if file == newWikiPath {
 				return ErrWikiAlreadyExist{newWikiPath}
+			}
+		}
+		filesInIndex, err = gitRepo.LsFiles(newWikiDirPath)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		for _, file := range filesInIndex {
+			if file == newWikiDirPath {
+				return ErrWikiAlreadyExist{newWikiDirPath}
 			}
 		}
 	} else {
@@ -181,6 +204,26 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 				return err
 			}
 		}
+		oldWikiDirPath := WikiNameToPathFilename(oldWikiName)
+		filesInIndex, err = gitRepo.LsFiles(oldWikiDirPath)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		found = false
+		for _, file := range filesInIndex {
+			if file == oldWikiDirPath {
+				found = true
+				break
+			}
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(oldWikiDirPath)
+			if err != nil {
+				log.Error("%v", err)
+				return err
+			}
+		}
 	}
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
@@ -191,7 +234,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		return err
 	}
 
-	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiDirPath); err != nil {
 		log.Error("%v", err)
 		return err
 	}
@@ -291,7 +334,23 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 			return err
 		}
 	} else {
-		return os.ErrNotExist
+		wikiDirPath := WikiNameToPathFilename(wikiName)
+		filesInIndex, err = gitRepo.LsFiles(wikiDirPath)
+		found = false
+		for _, file := range filesInIndex {
+			if file == wikiDirPath {
+				found = true
+				break
+			}
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(wikiDirPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			return os.ErrNotExist
+		}
 	}
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
