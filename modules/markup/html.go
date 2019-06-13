@@ -108,24 +108,6 @@ func FindAllMentions(content string) []string {
 	return ret
 }
 
-// cutoutVerbosePrefix cutouts URL prefix including sub-path to
-// return a clean unified string of request URL path.
-func cutoutVerbosePrefix(prefix string) string {
-	if len(prefix) == 0 || prefix[0] != '/' {
-		return prefix
-	}
-	count := 0
-	for i := 0; i < len(prefix); i++ {
-		if prefix[i] == '/' {
-			count++
-		}
-		if count >= 3+setting.AppSubURLDepth {
-			return prefix[:i]
-		}
-	}
-	return prefix
-}
-
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
 	if strings.HasPrefix(s, "/") {
@@ -146,7 +128,7 @@ type postProcessError struct {
 }
 
 func (p *postProcessError) Error() string {
-	return "PostProcess: " + p.context + ", " + p.Error()
+	return "PostProcess: " + p.context + ", " + p.err.Error()
 }
 
 type processor func(ctx *postProcessCtx, node *html.Node)
@@ -302,20 +284,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 		}
 	}
 	// ignore everything else
-}
-
-func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
-	switch node.Type {
-	case html.TextNode:
-		shortLinkProcessorFull(ctx, node, true)
-	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
-			return
-		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNodeForShortLinks(n)
-		}
-	}
 }
 
 // textNode runs the passed node through various processors, in order to handle

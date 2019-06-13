@@ -20,7 +20,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -334,7 +333,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebase:               allowRebase,
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
-		AvatarURL:                 repo.AvatarLink(),
+		AvatarURL:                 repo.avatarLink(e),
 	}
 }
 
@@ -746,10 +745,6 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 	return users, nil
 }
-
-var (
-	descPattern = regexp.MustCompile(`https?://\S+`)
-)
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
@@ -1336,11 +1331,9 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
 		go HookQueue.Add(repo.ID)
-	} else {
+	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
-		if err = repo.recalculateAccesses(e); err != nil {
-			return fmt.Errorf("recalculateAccesses: %v", err)
-		}
+		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
@@ -1518,11 +1511,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		} else if err = t.addRepository(sess, repo); err != nil {
 			return fmt.Errorf("add to owner team: %v", err)
 		}
-	} else {
+	} else if err = repo.recalculateAccesses(sess); err != nil {
 		// Organization called this in addRepository method.
-		if err = repo.recalculateAccesses(sess); err != nil {
-			return fmt.Errorf("recalculateAccesses: %v", err)
-		}
+		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	// Update repository count.
@@ -1870,7 +1861,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	repoPath := repo.repoPath(sess)
 	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
-	repo.deleteWiki(sess)
+	err = repo.deleteWiki(sess)
+	if err != nil {
+		return err
+	}
 
 	// Remove attachment files.
 	for i := range attachmentPaths {
@@ -2407,9 +2401,10 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 	if forkedRepo != nil {
-		return nil, ErrRepoAlreadyExist{
-			Uname: u.Name,
-			Name:  forkedRepo.Name,
+		return nil, ErrForkAlreadyExist{
+			Uname:    u.Name,
+			RepoName: oldRepo.FullName(),
+			ForkName: forkedRepo.FullName(),
 		}
 	}
 
@@ -2528,17 +2523,13 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 // CustomAvatarPath returns repository custom avatar file path.
 func (repo *Repository) CustomAvatarPath() string {
 	// Avatar empty by default
-	if len(repo.Avatar) <= 0 {
+	if len(repo.Avatar) == 0 {
 		return ""
 	}
 	return filepath.Join(setting.RepositoryAvatarUploadPath, repo.Avatar)
 }
 
-// GenerateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) GenerateRandomAvatar() error {
-	return repo.generateRandomAvatar(x)
-}
-
+// generateRandomAvatar generates a random avatar for repository.
 func (repo *Repository) generateRandomAvatar(e Engine) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
@@ -2572,10 +2563,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars() error {
-	var (
-		err error
-	)
-	err = x.
+	return x.
 		Where("id > 0").BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
@@ -2586,21 +2574,23 @@ func RemoveRandomAvatars() error {
 				}
 				return nil
 			})
-	return err
 }
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
+	return repo.relAvatarLink(x)
+}
 
+func (repo *Repository) relAvatarLink(e Engine) string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarPath()
-	if len(avatarPath) <= 0 || !com.IsFile(avatarPath) {
+	if len(avatarPath) == 0 || !com.IsFile(avatarPath) {
 		switch mode := setting.RepositoryAvatarFallback; mode {
 		case "image":
 			return setting.RepositoryAvatarFallbackImage
 		case "random":
-			if err := repo.GenerateRandomAvatar(); err != nil {
-				log.Error("GenerateRandomAvatar: %v", err)
+			if err := repo.generateRandomAvatar(e); err != nil {
+				log.Error("generateRandomAvatar: %v", err)
 			}
 		default:
 			// default behaviour: do not display avatar
@@ -2610,9 +2600,9 @@ func (repo *Repository) RelAvatarLink() string {
 	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
 }
 
-// AvatarLink returns user avatar absolute link.
-func (repo *Repository) AvatarLink() string {
-	link := repo.RelAvatarLink()
+// avatarLink returns user avatar absolute link.
+func (repo *Repository) avatarLink(e Engine) string {
+	link := repo.relAvatarLink(e)
 	// link may be empty!
 	if len(link) > 0 {
 		if link[0] == '/' && link[1] != '/' {

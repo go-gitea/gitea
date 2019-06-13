@@ -77,8 +77,14 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	isSucceed = true
-	ctx.Session.Set("uid", u.ID)
-	ctx.Session.Set("uname", u.Name)
+	err = ctx.Session.Set("uid", u.ID)
+	if err != nil {
+		return false, err
+	}
+	err = ctx.Session.Set("uname", u.Name)
+	if err != nil {
+		return false, err
+	}
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	return true, nil
 }
@@ -191,8 +197,16 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", form.Remember)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	err = ctx.Session.Set("twofaRemember", form.Remember)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
 
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
@@ -383,6 +397,10 @@ func U2FChallenge(ctx *context.Context) {
 		return
 	}
 	challenge, err := u2f.NewChallenge(setting.U2F.AppID, setting.U2F.TrustedFacets)
+	if err != nil {
+		ctx.ServerError("u2f.NewChallenge", err)
+		return
+	}
 	if err = ctx.Session.Set("u2fChallenge", challenge); err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -462,16 +480,22 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	}
 
-	ctx.Session.Delete("openid_verified_uri")
-	ctx.Session.Delete("openid_signin_remember")
-	ctx.Session.Delete("openid_determined_email")
-	ctx.Session.Delete("openid_determined_username")
-	ctx.Session.Delete("twofaUid")
-	ctx.Session.Delete("twofaRemember")
-	ctx.Session.Delete("u2fChallenge")
-	ctx.Session.Delete("linkAccount")
-	ctx.Session.Set("uid", u.ID)
-	ctx.Session.Set("uname", u.Name)
+	_ = ctx.Session.Delete("openid_verified_uri")
+	_ = ctx.Session.Delete("openid_signin_remember")
+	_ = ctx.Session.Delete("openid_determined_email")
+	_ = ctx.Session.Delete("openid_determined_username")
+	_ = ctx.Session.Delete("twofaUid")
+	_ = ctx.Session.Delete("twofaRemember")
+	_ = ctx.Session.Delete("u2fChallenge")
+	_ = ctx.Session.Delete("linkAccount")
+	err := ctx.Session.Set("uid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("uname", u.Name)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
@@ -563,7 +587,10 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 
 	if u == nil {
 		// no existing user is found, request attach or new account
-		ctx.Session.Set("linkAccountGothUser", gothUser)
+		err = ctx.Session.Set("linkAccountGothUser", gothUser)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
 		ctx.Redirect(setting.AppSubURL + "/user/link_account")
 		return
 	}
@@ -573,8 +600,14 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Session.Set("uid", u.ID)
-			ctx.Session.Set("uname", u.Name)
+			err = ctx.Session.Set("uid", u.ID)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
+			}
+			err = ctx.Session.Set("uname", u.Name)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
+			}
 
 			// Clear whatever CSRF has right now, force to generate a new one
 			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
@@ -600,8 +633,14 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", false)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("twofaRemember", false)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
@@ -760,9 +799,18 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", signInForm.Remember)
-	ctx.Session.Set("linkAccount", true)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("twofaRemember", signInForm.Remember)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("linkAccount", true)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
@@ -897,11 +945,11 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 }
 
 func handleSignOut(ctx *context.Context) {
-	ctx.Session.Delete("uid")
-	ctx.Session.Delete("uname")
-	ctx.Session.Delete("socialId")
-	ctx.Session.Delete("socialName")
-	ctx.Session.Delete("socialEmail")
+	_ = ctx.Session.Delete("uid")
+	_ = ctx.Session.Delete("uname")
+	_ = ctx.Session.Delete("socialId")
+	_ = ctx.Session.Delete("socialName")
+	_ = ctx.Session.Delete("socialEmail")
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
@@ -1086,8 +1134,14 @@ func Activate(ctx *context.Context) {
 
 		log.Trace("User activated: %s", user.Name)
 
-		ctx.Session.Set("uid", user.ID)
-		ctx.Session.Set("uname", user.Name)
+		err = ctx.Session.Set("uid", user.ID)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
+		err = ctx.Session.Set("uname", user.Name)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
 		ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 		ctx.Redirect(setting.AppSubURL + "/")
 		return
@@ -1113,7 +1167,6 @@ func ActivateEmail(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
-	return
 }
 
 // ForgotPasswd render the forget pasword page
