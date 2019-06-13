@@ -23,17 +23,17 @@ func addCanTocOnWikiAndMarkdown(x *xorm.Engine) error {
 	}
 
 	if _, err := x.Exec("UPDATE repository SET toc_wiki_file = ?",
-		setting.Repository.DefaultTocWikiFile); err != nil {
+		setting.Markdown.DefaultTocWikiFile); err != nil {
 		return err
 	}
 
 	if _, err := x.Exec("UPDATE repository SET toc_markdown_always = ?",
-		setting.Repository.DefaultTocMarkdownAlways); err != nil {
+		setting.Markdown.DefaultTocMarkdownAlways); err != nil {
 		return err
 	}
 
 	if _, err := x.Exec("UPDATE repository SET toc_markdown_by_flag = ?",
-		setting.Repository.DefaultTocMarkdownByFlag); err != nil {
+		setting.Markdown.DefaultTocMarkdownByFlag); err != nil {
 		return err
 	}
 	return nil

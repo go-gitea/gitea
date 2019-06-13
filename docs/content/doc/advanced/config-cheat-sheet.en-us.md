@@ -66,12 +66,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    default is not to present. **WARNING**: This maybe harmful to you website if you do not
    give it a right value.
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
-- `DEFAULT_TOC_WIKI_FILE`: **true**: Create Table of Contents based on headlines on wiki page (does
-   not alter file)
-- `DEFAULT_TOC_MARKDOWN_ALWAYS`: **false** : Create Table of Contents on all rendered markdown files
-  (does not alter file), enabled: overwrites `TOC_MARKDOWN_BY_FLAG`
-- `DEFAULT_TOC_MARKDOWN_BY_FLAG`: **true** : Create Table of Contents on renderes markdown files if
-   line '%%TOC%%' is present
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -113,6 +107,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `DEFAULT_TOC_WIKI_FILE`: **true**: Create Table of Contents based on headlines on wiki page (does
+   not alter file)
+- `DEFAULT_TOC_MARKDOWN_ALWAYS`: **false** : Create Table of Contents on all rendered markdown files
+  (does not alter file), enabled: overwrites `TOC_MARKDOWN_BY_FLAG`
+- `DEFAULT_TOC_MARKDOWN_BY_FLAG`: **true** : Create Table of Contents on renderes markdown files if
+   line '%%TOC%%' is present
 
 ## Server (`server`)
 

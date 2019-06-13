@@ -1374,9 +1374,9 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		TocWikiFile:                     setting.Repository.DefaultTocWikiFile,
-		TocMarkdownAlways:               setting.Repository.DefaultTocMarkdownAlways,
-		TocMarkdownByFlag:               setting.Repository.DefaultTocMarkdownByFlag,
+		TocWikiFile:                     setting.Markdown.DefaultTocWikiFile,
+		TocMarkdownAlways:               setting.Markdown.DefaultTocMarkdownAlways,
+		TocMarkdownByFlag:               setting.Markdown.DefaultTocMarkdownByFlag,
 	}
 
 	sess := x.NewSession()
