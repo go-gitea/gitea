@@ -511,6 +511,35 @@
         }
     }
 
+    .page-toc-wrapper {
+        position: relative;
+        padding: 0 20px 7px 0;
+        float: left;
+        background: #ffffff;
+        z-index: 1;
+
+        @media only screen and (min-width:1760px) {
+            left: -31%;
+            width: 26%;
+            padding: 0;
+            margin-top: -3em !important;
+            margin-right: -26%;
+        }
+
+        @media only screen and (max-width:1759px) {
+            display: none;
+        }
+
+        a.selected {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        span.error {
+            color: #ff2222;
+        }
+    }
+
     .auto-toc-container {
         padding: 7px;
         border: 1px solid #d4d4d5;

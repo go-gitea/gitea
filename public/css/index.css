@@ -290,6 +290,13 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .auto-toc-wrapper{position:relative;padding:0 0 7px 20px;float:right;background:#fff;z-index:1}
 @media only screen and (min-width:1760px){.markdown:not(code) .auto-toc-wrapper{right:-31%;width:26%;padding:0;margin-top:-3em!important;margin-left:-26%}
 }
+.markdown:not(code) .page-toc-wrapper{position:relative;padding:0 20px 7px 0;float:left;background:#fff;z-index:1}
+@media only screen and (min-width:1760px){.markdown:not(code) .page-toc-wrapper{left:-31%;width:26%;padding:0;margin-top:-3em!important;margin-right:-26%}
+}
+@media only screen and (max-width:1759px){.markdown:not(code) .page-toc-wrapper{display:none}
+}
+.markdown:not(code) .page-toc-wrapper a.selected{font-weight:700;font-style:italic}
+.markdown:not(code) .page-toc-wrapper span.error{color:#f22}
 .markdown:not(code) .auto-toc-container{padding:7px;border:1px solid #d4d4d5;border-radius:5px}
 .markdown:not(code) .auto-toc-container h2{padding:.3em;font-size:1.65em}
 .markdown:not(code) .auto-toc-clear{clear:both;margin-bottom:-20px!important}
