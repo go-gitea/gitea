@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
@@ -490,7 +490,7 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: fmt.Sprintf("%s", p.Release.Note),
+				Description: p.Release.Note,
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{

@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -39,11 +38,6 @@ and it takes care of all the other things for you`,
 			Name:  "port, p",
 			Value: "3000",
 			Usage: "Temporary port number to prevent conflict",
-		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
@@ -110,17 +104,11 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}
 
 	routers.GlobalInit()
-
-	external.RegisterParsers()
 
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
@@ -190,11 +178,16 @@ func runWeb(ctx *cli.Context) error {
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
-		listener, err := net.Listen("tcp", listenAddr)
+		var listener net.Listener
+		listener, err = net.Listen("tcp", listenAddr)
 		if err != nil {
 			log.Fatal("Failed to bind %s: %v", listenAddr, err)
 		}
-		defer listener.Close()
+		defer func() {
+			if err := listener.Close(); err != nil {
+				log.Fatal("Failed to stop server: %v", err)
+			}
+		}()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {

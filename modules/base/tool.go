@@ -5,9 +5,11 @@
 package base
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -36,17 +38,27 @@ import (
 	"github.com/gogits/chardet"
 )
 
+// UTF8BOM is the utf-8 byte-order marker
+var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
+
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
 	m := md5.New()
-	m.Write([]byte(str))
+	_, _ = m.Write([]byte(str))
 	return hex.EncodeToString(m.Sum(nil))
 }
 
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
 	h := sha1.New()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// EncodeSha256 string to sha1 hex value.
+func EncodeSha256(str string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -89,6 +101,14 @@ func DetectEncoding(content []byte) (string, error) {
 
 	log.Debug("Detected encoding: %s", result.Charset)
 	return result.Charset, err
+}
+
+// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
+func RemoveBOMIfPresent(content []byte) []byte {
+	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
+		return content[3:]
+	}
+	return content
 }
 
 // BasicAuthDecode decode basic auth string
@@ -173,7 +193,7 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
@@ -405,16 +425,6 @@ const (
 	EByte = PByte * 1024
 )
 
-var bytesSizeTable = map[string]uint64{
-	"b":  Byte,
-	"kb": KByte,
-	"mb": MByte,
-	"gb": GByte,
-	"tb": TByte,
-	"pb": PByte,
-	"eb": EByte,
-}
-
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
@@ -445,41 +455,41 @@ func Subtract(left interface{}, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
 	var isInt = true
-	switch left := left.(type) {
+	switch v := left.(type) {
 	case int:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int8:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int16:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int32:
-		rleft = int64(left)
+		rleft = int64(v)
 	case int64:
-		rleft = left
+		rleft = v
 	case float32:
-		fleft = float64(left)
+		fleft = float64(v)
 		isInt = false
 	case float64:
-		fleft = left
+		fleft = v
 		isInt = false
 	}
 
-	switch right := right.(type) {
+	switch v := right.(type) {
 	case int:
-		rright = int64(right)
+		rright = int64(v)
 	case int8:
-		rright = int64(right)
+		rright = int64(v)
 	case int16:
-		rright = int64(right)
+		rright = int64(v)
 	case int32:
-		rright = int64(right)
+		rright = int64(v)
 	case int64:
-		rright = right
+		rright = v
 	case float32:
-		fright = float64(right)
+		fright = float64(v)
 		isInt = false
 	case float64:
-		fright = right
+		fright = v
 		isInt = false
 	}
 
@@ -562,27 +572,27 @@ func IsTextFile(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	return strings.Index(http.DetectContentType(data), "text/") != -1
+	return strings.Contains(http.DetectContentType(data), "text/")
 }
 
 // IsImageFile detects if data is an image format
 func IsImageFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "image/") != -1
+	return strings.Contains(http.DetectContentType(data), "image/")
 }
 
 // IsPDFFile detects if data is a pdf format
 func IsPDFFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
+	return strings.Contains(http.DetectContentType(data), "application/pdf")
 }
 
 // IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "video/") != -1
+	return strings.Contains(http.DetectContentType(data), "video/")
 }
 
 // IsAudioFile detects if data is an video format
 func IsAudioFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "audio/") != -1
+	return strings.Contains(http.DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories

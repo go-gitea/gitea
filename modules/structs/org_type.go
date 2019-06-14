@@ -40,6 +40,16 @@ func (vt VisibleType) IsPrivate() bool {
 	return vt == VisibleTypePrivate
 }
 
+// VisibilityString provides the mode string of the visibility type (public, limited, private)
+func (vt VisibleType) String() string {
+	for k, v := range VisibilityModes {
+		if vt == v {
+			return k
+		}
+	}
+	return ""
+}
+
 // ExtractKeysFromMapString provides a slice of keys from map
 func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	for k := range in {

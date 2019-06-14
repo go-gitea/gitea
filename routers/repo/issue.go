@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -223,7 +224,12 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 
-		if isPullOption == util.OptionalBoolTrue {
+		if issues[i].IsPull {
+			if err := issues[i].LoadPullRequest(); err != nil {
+				ctx.ServerError("LoadPullRequest", err)
+				return
+			}
+
 			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
 		}
 	}
@@ -300,7 +306,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -420,12 +426,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
-	milestone, err := models.GetMilestoneByID(milestoneID)
-	if err != nil {
-		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-	} else {
-		ctx.Data["milestone_id"] = milestoneID
-		ctx.Data["Milestone"] = milestone
+	if milestoneID > 0 {
+		milestone, err := models.GetMilestoneByID(milestoneID)
+		if err != nil {
+			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+		} else {
+			ctx.Data["milestone_id"] = milestoneID
+			ctx.Data["Milestone"] = milestone
+		}
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
@@ -768,6 +776,8 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		comment.Issue = issue
+
 		if err := comment.LoadPoster(); err != nil {
 			ctx.ServerError("LoadPoster", err)
 			return
@@ -845,8 +855,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 			if err = comment.Review.LoadAttributes(); err != nil {
-				ctx.ServerError("Review.LoadAttributes", err)
-				return
+				if !models.IsErrUserNotExist(err) {
+					ctx.ServerError("Review.LoadAttributes", err)
+					return
+				}
+				comment.Review.Reviewer = models.NewGhostUser()
 			}
 			if err = comment.Review.LoadCodeComments(); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
@@ -932,7 +945,15 @@ func ViewIssue(ctx *context.Context) {
 
 	// Get Dependencies
 	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	if err != nil {
+		ctx.ServerError("BlockedByDependencies", err)
+		return
+	}
 	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	if err != nil {
+		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -1213,7 +1234,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
-				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
+				var err error
+				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)

@@ -130,7 +130,6 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/")
-	return
 }
 
 // HTML calls Context.HTML and converts template name to string.
@@ -257,16 +256,23 @@ func Contexter() macaron.Handler {
 				branchName = repo.DefaultBranch
 			}
 			prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+
+			appURL, _ := url.Parse(setting.AppURL)
+
+			insecure := ""
+			if appURL.Scheme == string(setting.HTTP) {
+				insecure = "--insecure "
+			}
 			c.Header().Set("Content-Type", "text/html")
 			c.WriteHeader(http.StatusOK)
-			c.Write([]byte(com.Expand(`<!doctype html>
+			_, _ = c.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
 		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
 	</head>
 	<body>
-		go get {GoGetImport}
+		go get {Insecure}{GoGetImport}
 	</body>
 </html>
 `, map[string]string{
@@ -274,6 +280,7 @@ func Contexter() macaron.Handler {
 				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
 				"GoDocDirectory": prefix + "{/dir}",
 				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
+				"Insecure":       insecure,
 			})))
 			return
 		}

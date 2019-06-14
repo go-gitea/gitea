@@ -115,6 +115,10 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
   - Example: `cn=%s,ou=Users,dc=mydomain,dc=com`
   - Example: `uid=%s,ou=Users,dc=mydomain,dc=com`
 
+- User Search Base  (optional)
+  - The LDAP base at which user accounts will be searched for.
+  - Example: `ou=Users,dc=mydomain,dc=com`
+
 - User Filter **(required)**
   - An LDAP filter declaring when a user should be allowed to log in. The `%s`
     matching parameter will be substituted with login name given on sign-in

@@ -27,19 +27,19 @@
 	{{if .Issue.IsPull}}
 		{{if .Issue.PullRequest.HasMerged}}
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
-			<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.Name}}</a>
+			<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
 			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Str2html}}</span>
 		{{else}}
-			<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.Name}}</a>
+			<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
 			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 		{{end}}
 	{{else}}
 		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 		<span class="time-desc">
 			{{if gt .Issue.Poster.ID 0}}
-				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.Name | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{else}}
-				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr .Issue.Poster.Name | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{end}}
 			·
 			{{$.i18n.Tr "repo.issues.num_comments" .Issue.NumComments}}

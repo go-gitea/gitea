@@ -20,6 +20,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/mcuadros/go-version"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
@@ -70,7 +71,17 @@ func (m *Mirror) ScheduleNextUpdate() {
 }
 
 func remoteAddress(repoPath string) (string, error) {
-	cmd := git.NewCommand("remote", "get-url", "origin")
+	var cmd *git.Command
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		return "", err
+	}
+	if version.Compare(binVersion, "2.7", ">=") {
+		cmd = git.NewCommand("remote", "get-url", "origin")
+	} else {
+		cmd = git.NewCommand("config", "--get", "remote.origin.url")
+	}
+
 	result, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
@@ -128,7 +139,7 @@ func (m *Mirror) SaveAddress(addr string) error {
 		return err
 	}
 
-	_, err = git.NewCommand("remote", "add", "origin", addr).RunInDir(repoPath)
+	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
 	return err
 }
 

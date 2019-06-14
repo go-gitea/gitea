@@ -25,6 +25,11 @@ const (
 	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
+// Value returns integer value for unit type
+func (u UnitType) Value() int {
+	return int(u)
+}
+
 func (u UnitType) String() string {
 	switch u {
 	case UnitTypeCode:
@@ -53,8 +58,8 @@ func (u UnitType) ColorFormat(s fmt.State) {
 }
 
 var (
-	// allRepUnitTypes contains all the unit types
-	allRepUnitTypes = []UnitType{
+	// AllRepoUnitTypes contains all the unit types
+	AllRepoUnitTypes = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
@@ -64,8 +69,8 @@ var (
 		UnitTypeExternalTracker,
 	}
 
-	// defaultRepoUnits contains the default unit types
-	defaultRepoUnits = []UnitType{
+	// DefaultRepoUnits contains the default unit types
+	DefaultRepoUnits = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
