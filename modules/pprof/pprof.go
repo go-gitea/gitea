@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"runtime"
 	"runtime/pprof"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // DumpMemProfileForUsername dumps a memory profile at pprofDataPath as memprofile_<username>_<temporary id>
@@ -30,9 +32,15 @@ func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
 		return nil, err
 	}
 
-	pprof.StartCPUProfile(f)
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		log.Fatal("StartCPUProfile: %v", err)
+	}
 	return func() {
 		pprof.StopCPUProfile()
-		f.Close()
+		err = f.Close()
+		if err != nil {
+			log.Fatal("StopCPUProfile Close: %v", err)
+		}
 	}, nil
 }

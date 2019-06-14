@@ -793,10 +793,10 @@ func CleanUpPullRequest(ctx *context.Context) {
 		// Forked repository has already been deleted
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
-	} else if pr.GetBaseRepo(); err != nil {
+	} else if err = pr.GetBaseRepo(); err != nil {
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if pr.HeadRepo.GetOwner(); err != nil {
+	} else if err = pr.HeadRepo.GetOwner(); err != nil {
 		ctx.ServerError("HeadRepo.GetOwner", err)
 		return
 	}

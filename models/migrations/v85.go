@@ -58,6 +58,9 @@ func hashAppToken(x *xorm.Engine) error {
 
 		if len(indexes) >= 1 {
 			_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")

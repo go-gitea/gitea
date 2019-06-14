@@ -142,6 +142,9 @@ func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
 func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
 	has, err := e.ID(id).Get(app)
+	if err != nil {
+		return nil, err
+	}
 	if !has {
 		return nil, ErrOAuthApplicationNotFound{ID: id}
 	}
@@ -295,10 +298,10 @@ func (code *OAuth2AuthorizationCode) invalidate(e Engine) error {
 
 // ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
 func (code *OAuth2AuthorizationCode) ValidateCodeChallenge(verifier string) bool {
-	return code.validateCodeChallenge(x, verifier)
+	return code.validateCodeChallenge(verifier)
 }
 
-func (code *OAuth2AuthorizationCode) validateCodeChallenge(e Engine, verifier string) bool {
+func (code *OAuth2AuthorizationCode) validateCodeChallenge(verifier string) bool {
 	switch code.CodeChallengeMethod {
 	case "S256":
 		// base64url(SHA256(verifier)) see https://tools.ietf.org/html/rfc7636#section-4.6

@@ -99,6 +99,10 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 
 	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
 
 	if n > 2 {
 		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
@@ -135,10 +139,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
-		}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -166,10 +168,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
-		return nil, err
+		log.Error("%v", err)
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}

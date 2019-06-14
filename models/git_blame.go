@@ -40,7 +40,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 	scanner := r.scanner
 
 	if r.lastSha != nil {
-		blamePart = &BlamePart{*r.lastSha, make([]string, 0, 0)}
+		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
 	}
 
 	for scanner.Scan() {
@@ -56,7 +56,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 			sha1 := lines[1]
 
 			if blamePart == nil {
-				blamePart = &BlamePart{sha1, make([]string, 0, 0)}
+				blamePart = &BlamePart{sha1, make([]string, 0)}
 			}
 
 			if blamePart.Sha != sha1 {

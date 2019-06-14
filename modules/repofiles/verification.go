@@ -20,10 +20,8 @@ func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVeri
 	}
 	if verification.Reason != "" {
 		verification.Reason = commitVerification.Reason
-	} else {
-		if verification.Verified {
-			verification.Reason = "unsigned"
-		}
+	} else if verification.Verified {
+		verification.Reason = "unsigned"
 	}
 	return verification
 }

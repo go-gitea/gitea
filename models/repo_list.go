@@ -148,19 +148,19 @@ func (s SearchOrderBy) String() string {
 // Strings for sorting result
 const (
 	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
-	SearchOrderByAlphabeticallyReverse               = "name DESC"
-	SearchOrderByLeastUpdated                        = "updated_unix ASC"
-	SearchOrderByRecentUpdated                       = "updated_unix DESC"
-	SearchOrderByOldest                              = "created_unix ASC"
-	SearchOrderByNewest                              = "created_unix DESC"
-	SearchOrderBySize                                = "size ASC"
-	SearchOrderBySizeReverse                         = "size DESC"
-	SearchOrderByID                                  = "id ASC"
-	SearchOrderByIDReverse                           = "id DESC"
-	SearchOrderByStars                               = "num_stars ASC"
-	SearchOrderByStarsReverse                        = "num_stars DESC"
-	SearchOrderByForks                               = "num_forks ASC"
-	SearchOrderByForksReverse                        = "num_forks DESC"
+	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
+	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
+	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
+	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
+	SearchOrderByNewest                SearchOrderBy = "created_unix DESC"
+	SearchOrderBySize                  SearchOrderBy = "size ASC"
+	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
+	SearchOrderByID                    SearchOrderBy = "id ASC"
+	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
+	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
+	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
+	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
+	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
