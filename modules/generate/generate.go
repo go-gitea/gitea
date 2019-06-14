@@ -35,7 +35,7 @@ func GetRandomString(n int) (string, error) {
 	return string(buffer), nil
 }
 
-//GetRandomPassword generate random password
+// GetRandomPassword generates a random password
 func GetRandomPassword(n int) (string, error) {
 	const lower = "abcdefghijklmnopqrstuvwxyz"
 	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
