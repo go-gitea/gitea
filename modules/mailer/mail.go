@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package mailer
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"html/template"
 	"path"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -42,11 +42,11 @@ func InitMailRender(tmpls *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(mailer.Sender, mailer.NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
 }
 
 // SendUserMail sends a mail to the user
-func SendUserMail(language string, u *User, tpl base.TplName, code, subject, info string) {
+func SendUserMail(language string, u *models.User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
@@ -61,10 +61,10 @@ func SendUserMail(language string, u *User, tpl base.TplName, code, subject, inf
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage([]string{u.Email}, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
-	mailer.SendAsync(msg)
+	SendAsync(msg)
 }
 
 // Locale represents an interface to translation
@@ -74,17 +74,17 @@ type Locale interface {
 }
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(locale Locale, u *User) {
+func SendActivateAccountMail(locale Locale, u *models.User) {
 	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(locale Locale, u *User) {
+func SendResetPasswordMail(locale Locale, u *models.User) {
 	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
+func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
@@ -99,14 +99,18 @@ func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
-	mailer.SendAsync(msg)
+	SendAsync(msg)
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(locale Locale, u *User) {
+func SendRegisterNotifyMail(locale Locale, u *models.User) {
+	if setting.MailService == nil {
+		return
+	}
+
 	data := map[string]interface{}{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
@@ -119,14 +123,14 @@ func SendRegisterNotifyMail(locale Locale, u *User) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
-	mailer.SendAsync(msg)
+	SendAsync(msg)
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *User, repo *Repository) {
+func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	repoName := path.Join(repo.Owner.Name, repo.Name)
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
@@ -143,10 +147,10 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage([]string{u.Email}, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
-	mailer.SendAsync(msg)
+	SendAsync(msg)
 }
 
 func composeTplData(subject, body, link string) map[string]interface{} {
@@ -157,14 +161,13 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
-func composeIssueCommentMessage(issue *Issue, doer *User, content string, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
+func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tplName base.TplName, tos []string, info string) *Message {
 	var subject string
 	if comment != nil {
-		subject = "Re: " + issue.mailSubject()
+		subject = "Re: " + mailSubject(issue)
 	} else {
-		subject = issue.mailSubject()
+		subject = mailSubject(issue)
 	}
-
 	err := issue.LoadRepo()
 	if err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -185,7 +188,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 		log.Error("Template: %v", err)
 	}
 
-	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 	// Set Message-ID on first message so replies know what to reference
@@ -200,18 +203,18 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 }
 
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *Issue, doer *User, content string, comment *Comment, tos []string) {
+func SendIssueCommentMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	mailer.SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
+	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *Issue, doer *User, content string, comment *Comment, tos []string) {
+func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	mailer.SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
+	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
 }

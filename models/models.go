@@ -120,6 +120,26 @@ func init() {
 	}
 }
 
+// WithEngine represents executing database operations
+func WithEngine(f func(e Engine) error) error {
+	return f(x)
+}
+
+// WithTransaction represents executing database operations on a trasaction
+func WithTransaction(f func(e Engine) error) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := f(sess); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 func getEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {

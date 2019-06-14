@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -197,7 +198,7 @@ func Dashboard(ctx *context.Context) {
 func SendTestMail(ctx *context.Context) {
 	email := ctx.Query("email")
 	// Send a test email to the user's email address and redirect back to Config
-	if err := models.SendTestMail(email); err != nil {
+	if err := mailer.SendTestMail(email); err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
 	} else {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
