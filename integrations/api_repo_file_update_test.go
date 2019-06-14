@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -173,7 +172,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     base.DocURL,
+			URL:     setting.API.SwaggerURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)

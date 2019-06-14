@@ -48,6 +48,7 @@ type Engine interface {
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
+	Asc(colNames ...string) *xorm.Session
 }
 
 var (
@@ -181,14 +182,14 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DBSSLMode string) (connStr string) {
-	host, port := parsePostgreSQLHostPort(DBHost)
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+	host, port := parsePostgreSQLHostPort(dbHost)
 	if host[0] == '/' { // looks like a unix socket
 		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), port, DBName, DBParam, DBSSLMode, host)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
 	} else {
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), host, port, DBName, DBParam, DBSSLMode)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
 	return
 }

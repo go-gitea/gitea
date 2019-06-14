@@ -24,10 +24,7 @@ func IsTagExist(repoPath, name string) bool {
 // IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
 	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(TagPrefix+name), true)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // CreateTag create one tag in the repository
@@ -221,7 +218,7 @@ func (repo *Repository) GetTags() ([]string, error) {
 		return nil, err
 	}
 
-	tags.ForEach(func(tag *plumbing.Reference) error {
+	_ = tags.ForEach(func(tag *plumbing.Reference) error {
 		tagNames = append(tagNames, strings.TrimPrefix(tag.Name().String(), TagPrefix))
 		return nil
 	})

@@ -171,17 +171,6 @@ func (c *Comment) loadPoster(e Engine) (err error) {
 	return err
 }
 
-func (c *Comment) loadAttachments(e Engine) (err error) {
-	if len(c.Attachments) > 0 {
-		return
-	}
-	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
-	if err != nil {
-		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
-	}
-	return err
-}
-
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
@@ -463,7 +452,7 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil {
@@ -479,7 +468,7 @@ func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
 func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
-	return c.checkInvalidation(x, doer, repo, branch)
+	return c.checkInvalidation(doer, repo, branch)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -915,7 +904,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
 		if err == nil {
 			commitID = commit.ID.String()
-		} else if err != nil && !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
+		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
 	}
