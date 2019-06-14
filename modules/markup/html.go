@@ -569,10 +569,8 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		return
 	}
 
-	var index string
-	var content string
-	var start int
-	var end int
+	var index, content string
+	var start, end int
 	switch ctx.metas["style"] {
 	case IssueNameStyleAlphanumeric:
 		content = node.Data[match[2]:match[3]]
@@ -594,7 +592,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	var link *html.Node
 	if _, ok := ctx.metas["format"]; ok {
 		ctx.metas["index"] = index
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), index)
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), content)
 	} else {
 		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", index), content)
 	}
