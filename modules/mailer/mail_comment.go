@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 )
 
-// MailParticipants sends new comment emails to repository watchers
+// MailParticipantsComment sends new comment emails to repository watchers
 // and mentioned people.
 func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
 	return models.WithEngine(func(e models.Engine) error {
