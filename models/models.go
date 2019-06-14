@@ -120,20 +120,25 @@ func init() {
 	}
 }
 
+// DBContext represents a db context
+type DBContext struct {
+	e Engine
+}
+
 // WithEngine represents executing database operations
-func WithEngine(f func(e Engine) error) error {
-	return f(x)
+func WithEngine(f func(ctx DBContext) error) error {
+	return f(DBContext{x})
 }
 
 // WithTransaction represents executing database operations on a trasaction
-func WithTransaction(f func(e Engine) error) error {
+func WithTransaction(f func(ctx DBContext) error) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := f(sess); err != nil {
+	if err := f(DBContext{sess}); err != nil {
 		return err
 	}
 

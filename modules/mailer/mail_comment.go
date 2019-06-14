@@ -15,14 +15,14 @@ import (
 // MailParticipantsComment sends new comment emails to repository watchers
 // and mentioned people.
 func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	return models.WithEngine(func(e models.Engine) error {
-		return mailParticipantsComment(c, e, opType, issue)
+	return models.WithEngine(func(ctx models.DBContext) error {
+		return mailParticipantsComment(ctx, c, opType, issue)
 	})
 }
 
-func mailParticipantsComment(c *models.Comment, e models.Engine, opType models.ActionType, issue *models.Issue) (err error) {
+func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
 	mentions := markup.FindAllMentions(c.Content)
-	if err = models.UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
+	if err = models.UpdateIssueMentions(ctx, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 

@@ -119,15 +119,15 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, cont
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	return models.WithEngine(func(e models.Engine) error {
-		return mailParticipants(issue, e, doer, opType)
+	return models.WithEngine(func(ctx models.DBContext) error {
+		return mailParticipants(ctx, issue, doer, opType)
 	})
 }
 
-func mailParticipants(issue *models.Issue, e models.Engine, doer *models.User, opType models.ActionType) (err error) {
+func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
 	mentions := markup.FindAllMentions(issue.Content)
 
-	if err = models.UpdateIssueMentions(e, issue.ID, mentions); err != nil {
+	if err = models.UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
