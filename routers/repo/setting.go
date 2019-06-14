@@ -299,12 +299,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			repo.TocWikiFile = form.TocWikiFile
 		}
 
-		if repo.TocMarkdownAlways != form.TocMarkdownAlways {
-			repo.TocMarkdownAlways = form.TocMarkdownAlways
+		if repo.TocMarkupAlways != form.TocMarkupAlways {
+			repo.TocMarkupAlways = form.TocMarkupAlways
 		}
 
-		if repo.TocMarkdownByFlag != form.TocMarkdownByFlag {
-			repo.TocMarkdownByFlag = form.TocMarkdownByFlag
+		if repo.TocMarkupByFlag != form.TocMarkupByFlag {
+			repo.TocMarkupByFlag = form.TocMarkupByFlag
 		}
 
 		if err := models.UpdateRepository(repo, false); err != nil {

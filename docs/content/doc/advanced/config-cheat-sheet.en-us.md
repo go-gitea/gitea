@@ -109,12 +109,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
 - `DEFAULT_TOC_WIKI_FILE`: **true**: Create Table of Contents based on headlines on wiki page (does
    not alter file)
-- `DEFAULT_TOC_MARKDOWN_ALWAYS`: **false** : Create Table of Contents on all rendered markdown files
-  (does not alter file), enabled: overwrites `TOC_MARKDOWN_BY_FLAG`
-- `DEFAULT_TOC_MARKDOWN_BY_FLAG`: **true** : Create Table of Contents on renderes markdown files if
-   line '%%TOC%%' is present
-- `TOC_MARKDOWN_FILE_EXTENSIONS`: **.md,.markdown,.mdown,.mkd,.org** : List of markup file extensions
-   that TOC should be created on, set to not interfere with external renderers.
+- `DEFAULT_TOC_MARKUP_ALWAYS`: **false** : Create 'Table of Contents' on all rendered markup files. This does not alter files. Enabled: overwrites `DEFAULT_TOC_MARKUP_BY_FLAG`
+- `DEFAULT_TOC_MARKUP_BY_FLAG`: **true** : Create 'Table of Contents' on rendered markup files if line `%%TOC%%` is present.
+- `TOC_MARKUP_FILE_EXTENSIONS`: **.md,.markdown,.mdown,.mkd,.org** : List of markup file extensions that TOC should be created on, set to not interfere with external markup renderer.
    Separate the extensions with a comma. To ignore file extension check, just put a comma.
 
 ## Server (`server`)

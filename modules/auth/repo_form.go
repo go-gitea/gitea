@@ -126,8 +126,8 @@ type RepoSettingForm struct {
 	EnableIssueDependencies          bool
 	IsArchived                       bool
 	TocWikiFile                      bool
-	TocMarkdownAlways                bool
-	TocMarkdownByFlag                bool
+	TocMarkupAlways                  bool
+	TocMarkupByFlag                  bool
 
 	// Admin settings
 	EnableHealthCheck                     bool

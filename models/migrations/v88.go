@@ -13,9 +13,9 @@ import (
 func addCanTocOnWikiAndMarkdown(x *xorm.Engine) error {
 
 	type Repository struct {
-		TocWikiFile       bool `xorm:"NOT NULL DEFAULT true"`
-		TocMarkdownAlways bool `xorm:"NOT NULL DEFAULT false"`
-		TocMarkdownByFlag bool `xorm:"NOT NULL DEFAULT true"`
+		TocWikiFile     bool `xorm:"NOT NULL DEFAULT true"`
+		TocMarkupAlways bool `xorm:"NOT NULL DEFAULT false"`
+		TocMarkupByFlag bool `xorm:"NOT NULL DEFAULT true"`
 	}
 
 	if err := x.Sync2(new(Repository)); err != nil {
@@ -27,13 +27,13 @@ func addCanTocOnWikiAndMarkdown(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE repository SET toc_markdown_always = ?",
-		setting.Markdown.DefaultTocMarkdownAlways); err != nil {
+	if _, err := x.Exec("UPDATE repository SET toc_markup_always = ?",
+		setting.Markdown.DefaultTocMarkupAlways); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE repository SET toc_markdown_by_flag = ?",
-		setting.Markdown.DefaultTocMarkdownByFlag); err != nil {
+	if _, err := x.Exec("UPDATE repository SET toc_markup_by_flag = ?",
+		setting.Markdown.DefaultTocMarkupByFlag); err != nil {
 		return err
 	}
 	return nil

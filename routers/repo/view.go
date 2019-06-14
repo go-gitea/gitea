@@ -165,7 +165,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 				if markup.Type(readmeFile.Name()) != "" {
 					// Check if extension matches TOC file list
-					tocExts := setting.Markdown.TocMarkdownFileExtensions
+					tocExts := setting.Markdown.TocMarkupFileExtensions
 					isTocMarkup := false
 					if len(tocExts) == 0 || len(tocExts) == 1 && tocExts[0] == "" || len(tocExts) == 2 && tocExts[0] == "" && tocExts[1] == "" {
 						isTocMarkup = true
@@ -302,7 +302,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markup.Type(blob.Name()) != "" {
 			// Check if extension matches TOC file list
-			tocExts := setting.Markdown.TocMarkdownFileExtensions
+			tocExts := setting.Markdown.TocMarkupFileExtensions
 			isTocMarkup := false
 			if len(tocExts) == 0 || len(tocExts) == 1 && tocExts[0] == "" || len(tocExts) == 2 && tocExts[0] == "" && tocExts[1] == "" {
 				isTocMarkup = true
