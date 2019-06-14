@@ -236,22 +236,22 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak       bool
-		CustomURLSchemes          []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions            []string
-		DefaultTocWikiTree        bool
-		DefaultTocWikiFile        bool
-		DefaultTocMarkdownAlways  bool
-		DefaultTocMarkdownByFlag  bool
-		TocMarkdownFileExtensions []string
+		EnableHardLineBreak     bool
+		CustomURLSchemes        []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions          []string
+		DefaultTocWikiTree      bool
+		DefaultTocWikiFile      bool
+		DefaultTocMarkupAlways  bool
+		DefaultTocMarkupByFlag  bool
+		TocMarkupFileExtensions []string
 	}{
-		EnableHardLineBreak:       false,
-		FileExtensions:            strings.Split(".md,.markdown,.mdown,.mkd", ","),
-		DefaultTocWikiTree:        true,
-		DefaultTocWikiFile:        true,
-		DefaultTocMarkdownAlways:  false,
-		DefaultTocMarkdownByFlag:  true,
-		TocMarkdownFileExtensions: strings.Split(".md,.markdown,.mdown,.mkd,.org", ","),
+		EnableHardLineBreak:     false,
+		FileExtensions:          strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		DefaultTocWikiTree:      true,
+		DefaultTocWikiFile:      true,
+		DefaultTocMarkupAlways:  false,
+		DefaultTocMarkupByFlag:  true,
+		TocMarkupFileExtensions: strings.Split(".md,.markdown,.mdown,.mkd,.org", ","),
 	}
 
 	// Admin settings

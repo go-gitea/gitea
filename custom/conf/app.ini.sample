@@ -149,13 +149,13 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 DEFAULT_TOC_WIKI_TREE = true
 ; Create Table of Contents based on headlines on wiki page (does not alter file)
 DEFAULT_TOC_WIKI_FILE = true
-; Create Table of Contents on all rendered markdown files (does not alter file), enabled: overwrites DEFAULT_TOC_MARKDOWN_BY_FLAG
-DEFAULT_TOC_MARKDOWN_ALWAYS = false
-; Create Table of Contents on renderes markdown files if line '%%TOC%%' is present
-DEFAULT_TOC_MARKDOWN_BY_FLAG = true
-; List of markup file extensions that TOC should be created on, set to not interfere with external renderers
-; Separate the extensions with a comma. To ignore file extension check, just put a comma
-TOC_MARKDOWN_FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd,.org
+; Create 'Table of Contents' on all rendered markup files. This does not alter files. Enabled: overwrites DEFAULT_TOC_MARKUP_BY_FLAG
+DEFAULT_TOC_MARKUP_ALWAYS = false
+; Create 'Table of Contents' on rendered markup files if line '%%TOC%%' is present.
+DEFAULT_TOC_MARKUP_BY_FLAG = true
+; List of markup file extensions that TOC should be created on, set to not interfere with external markup renderer.
+; Separate the extensions with a comma. To ignore file extension check, just put a comma.
+TOC_MARKUP_FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd,.org
 
 [server]
 ; The protocol the server listens on. One of 'http', 'https', 'unix' or 'fcgi'.

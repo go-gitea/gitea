@@ -171,8 +171,8 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	TocWikiTree                     bool               `xorm:"NOT NULL DEFAULT true"`
 	TocWikiFile                     bool               `xorm:"NOT NULL DEFAULT true"`
-	TocMarkdownAlways               bool               `xorm:"NOT NULL DEFAULT false"`
-	TocMarkdownByFlag               bool               `xorm:"NOT NULL DEFAULT true"`
+	TocMarkupAlways                 bool               `xorm:"NOT NULL DEFAULT false"`
+	TocMarkupByFlag                 bool               `xorm:"NOT NULL DEFAULT true"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
@@ -1370,8 +1370,8 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
 		TocWikiTree:                     setting.Markdown.DefaultTocWikiTree,
 		TocWikiFile:                     setting.Markdown.DefaultTocWikiFile,
-		TocMarkdownAlways:               setting.Markdown.DefaultTocMarkdownAlways,
-		TocMarkdownByFlag:               setting.Markdown.DefaultTocMarkdownByFlag,
+		TocMarkupAlways:                 setting.Markdown.DefaultTocMarkupAlways,
+		TocMarkupByFlag:                 setting.Markdown.DefaultTocMarkupByFlag,
 	}
 
 	sess := x.NewSession()
