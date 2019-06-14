@@ -125,8 +125,8 @@ type DBContext struct {
 	e Engine
 }
 
-// WithEngine represents executing database operations
-func WithEngine(f func(ctx DBContext) error) error {
+// WithContext represents executing database operations
+func WithContext(f func(ctx DBContext) error) error {
 	return f(DBContext{x})
 }
 
