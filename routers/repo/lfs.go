@@ -5,25 +5,34 @@
 package repo
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	gotemplate "html/template"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"github.com/Unknwon/com"
+	"github.com/mcuadros/go-version"
 )
 
 const (
-	tplSettingsLFS     base.TplName = "repo/settings/lfs"
-	tplSettingsLFSFile base.TplName = "repo/settings/lfs_file"
+	tplSettingsLFS         base.TplName = "repo/settings/lfs"
+	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
+	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
 )
 
 // LFSFiles shows a repository's LFS files
@@ -67,6 +76,10 @@ func LFSFileGet(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(oid)
 	if err != nil {
+		if err == models.ErrLFSObjectNotExist {
+			ctx.NotFound("LFSFileGet", nil)
+			return
+		}
 		ctx.ServerError("LFSFileGet", err)
 		return
 	}
@@ -164,6 +177,242 @@ func LFSDelete(ctx *context.Context) {
 			ctx.ServerError("LFSDelete", err)
 			return
 		}
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")
+}
+
+// LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
+func LFSPointerFiles(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSFileGet", nil)
+		return
+	}
+	ctx.Data["PageIsSettingsLFS"] = true
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Fatal("Error retrieving git version: %v", err)
+	}
+
+	if !version.Compare(binVersion, "2.6.0", ">=") {
+		ctx.ServerError("LFSPointerFiles", fmt.Errorf("Git version too low"))
+		return
+	}
+
+	basePath := ctx.Repo.Repository.RepoPath()
+
+	pointerChan := make(chan pointerResult)
+
+	catFileCheckReader, catFileCheckWriter := io.Pipe()
+	shasToBatchReader, shasToBatchWriter := io.Pipe()
+	catFileBatchReader, catFileBatchWriter := io.Pipe()
+	wg := sync.WaitGroup{}
+	wg.Add(5)
+
+	var numPointers, numAssociated, numNoExist, numAssociatable int
+
+	go func() {
+		defer wg.Done()
+		pointers := make([]pointerResult, 0, 50)
+		for pointer := range pointerChan {
+			pointers = append(pointers, pointer)
+			if pointer.InRepo {
+				numAssociated++
+			}
+			if !pointer.Exists {
+				numNoExist++
+			}
+			if !pointer.InRepo && pointer.Accessible {
+				numAssociatable++
+			}
+		}
+		numPointers = len(pointers)
+		ctx.Data["Pointers"] = pointers
+		ctx.Data["NumPointers"] = numPointers
+		ctx.Data["NumAssociated"] = numAssociated
+		ctx.Data["NumAssociatable"] = numAssociatable
+		ctx.Data["NumNoExist"] = numNoExist
+		ctx.Data["NumNotAssociated"] = numPointers - numAssociated
+	}()
+	go readCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
+	go doCatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
+	go readCatFileBatchCheckAllObjects(catFileCheckReader, shasToBatchWriter, &wg)
+	go doCatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath)
+
+	wg.Wait()
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+	ctx.HTML(200, tplSettingsLFSPointers)
+}
+
+type pointerResult struct {
+	SHA        string
+	Oid        string
+	Size       int64
+	InRepo     bool
+	Exists     bool
+	Accessible bool
+}
+
+func doCatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+	defer wg.Done()
+	defer catFileCheckWriter.Close()
+
+	stderr := new(bytes.Buffer)
+	var errbuf strings.Builder
+	cmd := git.NewCommand("cat-file", "--batch-check", "--batch-all-objects")
+	if err := cmd.RunInDirPipeline(tmpBasePath, catFileCheckWriter, stderr); err != nil {
+		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+	}
+}
+
+func readCatFileBatchCheckAllObjects(catFileCheckReader *io.PipeReader, shasToBatchWriter *io.PipeWriter, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer catFileCheckReader.Close()
+	scanner := bufio.NewScanner(catFileCheckReader)
+	defer func() {
+		_ = shasToBatchWriter.CloseWithError(scanner.Err())
+	}()
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(line) == 0 {
+			continue
+		}
+		fields := strings.Split(line, " ")
+		if len(fields) < 3 || fields[1] != "blob" {
+			continue
+		}
+		size, _ := strconv.Atoi(string(fields[2]))
+		if size > 1024 {
+			continue
+		}
+		toWrite := []byte(fields[0] + "\n")
+		for len(toWrite) > 0 {
+			n, err := shasToBatchWriter.Write(toWrite)
+			if err != nil {
+				_ = catFileCheckReader.CloseWithError(err)
+				break
+			}
+			toWrite = toWrite[n:]
+		}
+	}
+}
+
+func doCatFileBatch(shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+	defer wg.Done()
+	defer shasToBatchReader.Close()
+	defer catFileBatchWriter.Close()
+
+	stderr := new(bytes.Buffer)
+	var errbuf strings.Builder
+	if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
+		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+	}
+}
+
+func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
+	defer wg.Done()
+	defer catFileBatchReader.Close()
+	contentStore := lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+
+	bufferedReader := bufio.NewReader(catFileBatchReader)
+	buf := make([]byte, 1025)
+	for {
+		// File descriptor line: sha
+		sha, err := bufferedReader.ReadString(' ')
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
+		// Throw away the blob
+		if _, err := bufferedReader.ReadString(' '); err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
+		sizeStr, err := bufferedReader.ReadString('\n')
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
+		size, err := strconv.Atoi(sizeStr[:len(sizeStr)-1])
+		if err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
+		pointerBuf := buf[:size+1]
+		if _, err := io.ReadFull(bufferedReader, pointerBuf); err != nil {
+			_ = catFileBatchReader.CloseWithError(err)
+			break
+		}
+		pointerBuf = pointerBuf[:size]
+		// Now we need to check if the pointerBuf is an LFS pointer
+		pointer := lfs.IsPointerFile(&pointerBuf)
+		if pointer == nil {
+			continue
+		}
+
+		result := pointerResult{
+			SHA:  strings.TrimSpace(sha),
+			Oid:  pointer.Oid,
+			Size: pointer.Size,
+		}
+
+		// Then we need to check that this pointer is in the db
+		if _, err := repo.GetLFSMetaObjectByOid(pointer.Oid); err != nil {
+			if err != models.ErrLFSObjectNotExist {
+				_ = catFileBatchReader.CloseWithError(err)
+				break
+			}
+		} else {
+			result.InRepo = true
+		}
+
+		result.Exists = contentStore.Exists(pointer)
+
+		if result.Exists {
+			if !result.InRepo {
+				// Can we fix?
+				// OK well that's "simple"
+				// - we need to check whether current user has access to a repo that has access to the file
+				result.Accessible, err = models.LFSObjectAccessible(user, result.Oid)
+				if err != nil {
+					_ = catFileBatchReader.CloseWithError(err)
+					break
+				}
+			} else {
+				result.Accessible = true
+			}
+		}
+		pointerChan <- result
+	}
+	close(pointerChan)
+}
+
+// LFSAutoAssociate auto associates accessible lfs files
+func LFSAutoAssociate(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSAutoAssociate", nil)
+		return
+	}
+	oids := ctx.QueryStrings("oid")
+	metas := make([]*models.LFSMetaObject, len(oids))
+	for i, oid := range oids {
+		idx := strings.IndexRune(oid, ' ')
+		if idx < 0 || idx+1 > len(oid) {
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s", oid))
+			return
+		}
+		var err error
+		metas[i] = &models.LFSMetaObject{}
+		metas[i].Size, err = com.StrTo(oid[idx+1:]).Int64()
+		if err != nil {
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
+			return
+		}
+		metas[i].Oid = oid[:idx]
+		//metas[i].RepositoryID = ctx.Repo.Repository.ID
+	}
+	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
+		ctx.ServerError("LFSAutoAssociate", err)
+		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")
 }
