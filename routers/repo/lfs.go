@@ -192,11 +192,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	if err != nil {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
-
-	if !version.Compare(binVersion, "2.6.0", ">=") {
-		ctx.ServerError("LFSPointerFiles", fmt.Errorf("Git version too low"))
-		return
-	}
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
 	basePath := ctx.Repo.Repository.RepoPath()
 
@@ -205,6 +201,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	catFileCheckReader, catFileCheckWriter := io.Pipe()
 	shasToBatchReader, shasToBatchWriter := io.Pipe()
 	catFileBatchReader, catFileBatchWriter := io.Pipe()
+	errChan := make(chan error, 1)
 	wg := sync.WaitGroup{}
 	wg.Add(5)
 
@@ -236,10 +233,25 @@ func LFSPointerFiles(ctx *context.Context) {
 	go readCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
 	go doCatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
 	go readCatFileBatchCheckAllObjects(catFileCheckReader, shasToBatchWriter, &wg)
-	go doCatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath)
-
+	if !version.Compare(binVersion, "2.6.0", ">=") {
+		revListReader, revListWriter := io.Pipe()
+		shasToCheckReader, shasToCheckWriter := io.Pipe()
+		wg.Add(2)
+		go doCatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, basePath)
+		go readRevListAllObjects(revListReader, shasToCheckWriter, &wg)
+		go doRevListAllObjects(revListWriter, &wg, basePath, errChan)
+	} else {
+		go doCatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath, errChan)
+	}
 	wg.Wait()
-	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+
+	select {
+	case err, has := <-errChan:
+		if has {
+			ctx.ServerError("LFSPointerFiles", err)
+		}
+	default:
+	}
 	ctx.HTML(200, tplSettingsLFSPointers)
 }
 
@@ -252,7 +264,63 @@ type pointerResult struct {
 	Accessible bool
 }
 
-func doCatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func doRevListAllObjects(revListWriter *io.PipeWriter, wg *sync.WaitGroup, basePath string, errChan chan<- error) {
+	defer wg.Done()
+	defer revListWriter.Close()
+
+	stderr := new(bytes.Buffer)
+	var errbuf strings.Builder
+	cmd := git.NewCommand("rev-list", "--objects", "--all")
+	if err := cmd.RunInDirPipeline(basePath, revListWriter, stderr); err != nil {
+		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
+		err = fmt.Errorf("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
+		_ = revListWriter.CloseWithError(err)
+		errChan <- err
+	}
+}
+
+func readRevListAllObjects(revListReader *io.PipeReader, shasToCheckWriter *io.PipeWriter, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer revListReader.Close()
+	scanner := bufio.NewScanner(revListReader)
+	defer func() {
+		_ = shasToCheckWriter.CloseWithError(scanner.Err())
+	}()
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(line) == 0 {
+			continue
+		}
+		fields := strings.Split(line, " ")
+		if len(fields) < 2 || len(fields[1]) == 0 {
+			continue
+		}
+		toWrite := []byte(fields[0] + "\n")
+		for len(toWrite) > 0 {
+			n, err := shasToCheckWriter.Write(toWrite)
+			if err != nil {
+				_ = revListReader.CloseWithError(err)
+				break
+			}
+			toWrite = toWrite[n:]
+		}
+	}
+}
+
+func doCatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+	defer wg.Done()
+	defer shasToCheckReader.Close()
+	defer catFileCheckWriter.Close()
+
+	stderr := new(bytes.Buffer)
+	var errbuf strings.Builder
+	cmd := git.NewCommand("cat-file", "--batch-check")
+	if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
+		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+	}
+}
+
+func doCatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
 	defer wg.Done()
 	defer catFileCheckWriter.Close()
 
@@ -260,7 +328,10 @@ func doCatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.W
 	var errbuf strings.Builder
 	cmd := git.NewCommand("cat-file", "--batch-check", "--batch-all-objects")
 	if err := cmd.RunInDirPipeline(tmpBasePath, catFileCheckWriter, stderr); err != nil {
-		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		_ = catFileCheckWriter.CloseWithError(err)
+		errChan <- err
 	}
 }
 
