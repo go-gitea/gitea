@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/builder"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -149,4 +150,47 @@ func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject,
 // CountLFSMetaObjects returns a count of all LFSMetaObjects associated with a repository
 func (repo *Repository) CountLFSMetaObjects() (int64, error) {
 	return x.Count(&LFSMetaObject{RepositoryID: repo.ID})
+}
+
+// LFSObjectAccessible checks if a provided Oid is accessible to the user
+func LFSObjectAccessible(user *User, oid string) (bool, error) {
+	if user.IsAdmin {
+		count, err := x.Count(&LFSMetaObject{Oid: oid})
+		return (count > 0), err
+	}
+	cond := accessibleRepositoryCondition(user.ID)
+	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Oid: oid})
+	return (count > 0), err
+}
+
+// LFSAutoAssociate auto associates accessible LFSMetaObjects
+func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	oids := make([]interface{}, len(metas))
+	for i, meta := range metas {
+		oids[i] = meta.Oid
+	}
+
+	cond := builder.NewCond()
+	if !user.IsAdmin {
+		cond = builder.In("`lfs_meta_object`.repository_id",
+			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user.ID)))
+	}
+	newMetas := make([]*LFSMetaObject, 0, len(metas))
+	if err := sess.Cols("oid", "size").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
+		return err
+	}
+	for i := range newMetas {
+		newMetas[i].RepositoryID = repoID
+	}
+	if _, err := sess.InsertMulti(newMetas); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

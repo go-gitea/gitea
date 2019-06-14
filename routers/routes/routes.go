@@ -666,6 +666,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("", repo.LFSFiles)
 				m.Get("/show/:oid", repo.LFSFileGet)
 				m.Post("/delete/:oid", repo.LFSDelete)
+				m.Get("/pointers", repo.LFSPointerFiles)
+				m.Post("/pointers/associate", repo.LFSAutoAssociate)
 			})
 
 		}, func(ctx *context.Context) {
