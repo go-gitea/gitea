@@ -863,7 +863,17 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 					line := scanner.Text()
 
 					if strings.HasPrefix(line, prefix) {
-						pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+						var found bool
+						var filepath = strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+						for _, f := range pr.ConflictedFiles {
+							if f == filepath {
+								found = true
+								break
+							}
+						}
+						if !found {
+							pr.ConflictedFiles = append(pr.ConflictedFiles, filepath)
+						}
 					}
 					// only list 10 conflicted files
 					if len(pr.ConflictedFiles) >= 10 {
