@@ -14,7 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ListMilestones list all the opened milestones for a repository
+// ListMilestones list milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
@@ -32,10 +32,14 @@ func ListMilestones(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: state
+	//   in: query
+	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.Error(500, "GetMilestonesByRepoID", err)
 		return

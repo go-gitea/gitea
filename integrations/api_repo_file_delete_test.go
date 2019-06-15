@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -102,7 +102,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + deleteFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     base.DocURL,
+			URL:     setting.API.SwaggerURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)

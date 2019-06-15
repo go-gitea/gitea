@@ -7,7 +7,6 @@ package git
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -73,13 +72,6 @@ func concatenateError(err error, stderr string) error {
 		return err
 	}
 	return fmt.Errorf("%v - %s", err, stderr)
-}
-
-// If the object is stored in its own file (i.e not in a pack file),
-// this function returns the full path to the object file.
-// It does not test if the file exists.
-func filepathFromSHA1(rootdir, sha1 string) string {
-	return filepath.Join(rootdir, "objects", sha1[:2], sha1[2:])
 }
 
 // RefEndName return the end name of a ref name

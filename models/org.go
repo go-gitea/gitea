@@ -172,7 +172,9 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	if _, err = sess.Insert(&units); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("CreateOrganization: sess.Rollback: %v", err)
+		}
 		return err
 	}
 
@@ -376,10 +378,7 @@ func HasOrgVisible(org *User, user *User) bool {
 func hasOrgVisible(e Engine, org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		if org.Visibility == structs.VisibleTypePublic {
-			return true
-		}
-		return false
+		return org.Visibility == structs.VisibleTypePublic
 	}
 
 	if user.IsAdmin {
@@ -485,10 +484,14 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	}
 
