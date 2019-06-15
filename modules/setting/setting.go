@@ -438,7 +438,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
