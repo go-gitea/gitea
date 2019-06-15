@@ -171,7 +171,7 @@ func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr 
 	defer catFileBatchReader.Close()
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
-	buf := make([]byte, 1024)
+	buf := make([]byte, 1025)
 	for {
 		// File descriptor line: sha
 		_, err := bufferedReader.ReadString(' ')
