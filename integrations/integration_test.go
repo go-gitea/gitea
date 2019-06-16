@@ -29,12 +29,12 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/Unknwon/com"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
 	"gopkg.in/testfixtures.v2"
 )
 
-var mac *macaron.Macaron
+var g *gin.Engine
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -55,8 +55,8 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 
 func TestMain(m *testing.M) {
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	g = routes.NewGin()
+	routes.RegisterRoutes(g)
 
 	var helper testfixtures.Helper
 	if setting.UseMySQL {

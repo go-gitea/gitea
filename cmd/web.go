@@ -107,8 +107,8 @@ func runWeb(ctx *cli.Context) error {
 
 	routers.GlobalInit()
 
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	g := routes.NewGin()
+	routes.RegisterRoutes(g)
 
 	// Flag for port number in case first time run conflict.
 	if ctx.IsSet("port") {
@@ -164,16 +164,16 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
-		err = runHTTP(listenAddr, context2.ClearHandler(m))
+		err = runHTTP(listenAddr, context2.ClearHandler(g))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(g))
 			break
 		}
 		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
 		}
-		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(g))
 	case setting.FCGI:
 		var listener net.Listener
 		listener, err = net.Listen("tcp", listenAddr)
@@ -185,7 +185,7 @@ func runWeb(ctx *cli.Context) error {
 				log.Fatal("Failed to stop server: %v", err)
 			}
 		}()
-		err = fcgi.Serve(listener, context2.ClearHandler(m))
+		err = fcgi.Serve(listener, context2.ClearHandler(g))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
@@ -201,7 +201,7 @@ func runWeb(ctx *cli.Context) error {
 		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
 			log.Fatal("Failed to set permission of unix socket: %v", err)
 		}
-		err = http.Serve(listener, context2.ClearHandler(m))
+		err = http.Serve(listener, context2.ClearHandler(g))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
