@@ -1136,18 +1136,20 @@ function initWikiForm() {
             forceSync: true,
             previewRender: function (plainText, preview) { // Async method
                 setTimeout(function () {
-                    // FIXME: still send render request when return back to edit mode
-                    $.post($editArea.data('url'), {
-                            "_csrf": csrf,
-                            "mode": "gfm",
-                            "context": $editArea.data('context'),
-                            "text": plainText
-                        },
-                        function (data) {
-                            preview.innerHTML = '<div class="markdown">' + data + '</div>';
-                            emojify.run($('.editor-preview')[0]);
-                        }
-                    );
+                    let $toolbar = $(preview).closest('.CodeMirror-wrap').prev();
+                    if ($toolbar.hasClass('disabled-for-preview')) {
+                        $.post($editArea.data('url'), {
+                                "_csrf": csrf,
+                                "mode": "gfm",
+                                "context": $editArea.data('context'),
+                                "text": plainText
+                            },
+                            function (data) {
+                                preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                                emojify.run($('.editor-preview')[0]);
+                            }
+                        );
+                    }
                 }, 0);
 
                 return "Loading...";
