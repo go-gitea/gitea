@@ -217,10 +217,11 @@ func runServ(c *cli.Context) error {
 
 	// Allow anonymous clone for public repositories.
 	var (
-		keyID int64
-		user  *models.User
+		keyID  int64
+		user   *models.User
+		userID int64
 	)
-	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
+	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView || verb == lfsAuthenticateVerb {
 		keys := strings.Split(c.Args()[0], "-")
 		if len(keys) != 2 {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
@@ -258,6 +259,7 @@ func runServ(c *cli.Context) error {
 			// so for now use the owner
 			os.Setenv(models.EnvPusherName, username)
 			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
+			userID = repo.OwnerID
 		} else {
 			user, err = private.GetUserByKeyID(key.ID)
 			if err != nil {
@@ -285,6 +287,7 @@ func runServ(c *cli.Context) error {
 
 			os.Setenv(models.EnvPusherName, user.Name)
 			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
+			userID = user.ID
 		}
 	}
 
@@ -299,8 +302,8 @@ func runServ(c *cli.Context) error {
 			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
-		if user != nil {
-			claims["user"] = user.ID
+		if userID > 0 {
+			claims["user"] = userID
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
