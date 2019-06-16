@@ -8,8 +8,6 @@ import (
 	"encoding/gob"
 	"net/http"
 	"os"
-	"path"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -19,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
@@ -62,35 +59,6 @@ func NewMacaron() *macaron.Macaron {
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
-	m.Use(public.Custom(
-		&public.Options{
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
-		},
-	))
-	m.Use(public.Static(
-		&public.Options{
-			Directory:    path.Join(setting.StaticRootPath, "public"),
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
-		},
-	))
-	m.Use(public.StaticHandler(
-		setting.AvatarUploadPath,
-		&public.Options{
-			Prefix:       "avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
-		},
-	))
-	m.Use(public.StaticHandler(
-		setting.RepositoryAvatarUploadPath,
-		&public.Options{
-			Prefix:       "repo-avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
-		},
-	))
 
 	m.Use(templates.HTMLRenderer())
 	models.InitMailRender(templates.Mailer())

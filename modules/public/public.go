@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/macaron.v1"
+	"github.com/gin-gonic/gin"
 )
 
 //go:generate go run -mod=vendor main.go
 //go:generate go fmt bindata.go
 
-// Options represents the available options to configure the macaron handler.
+// Options represents the available options to configure the gin handler.
 type Options struct {
 	Directory   string
 	IndexFile   string
@@ -32,8 +32,8 @@ type Options struct {
 	Prefix       string
 }
 
-// Custom implements the macaron static handler for serving custom assets.
-func Custom(opts *Options) macaron.Handler {
+// Custom implements the gin static handler for serving custom assets.
+func Custom(opts *Options) gin.HandlerFunc {
 	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
 }
 
@@ -44,7 +44,7 @@ type staticFileSystem struct {
 
 func newStaticFileSystem(directory string) staticFileSystem {
 	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(macaron.Root, directory)
+		directory = filepath.Join(setting.StaticRootPath, directory)
 	}
 	dir := http.Dir(directory)
 	return staticFileSystem{&dir}
@@ -55,11 +55,11 @@ func (fs staticFileSystem) Open(name string) (http.File, error) {
 }
 
 // StaticHandler sets up a new middleware for serving static files in the
-func StaticHandler(dir string, opts *Options) macaron.Handler {
+func StaticHandler(dir string, opts *Options) gin.HandlerFunc {
 	return opts.staticHandler(dir)
 }
 
-func (opts *Options) staticHandler(dir string) macaron.Handler {
+func (opts *Options) staticHandler(dir string) gin.HandlerFunc {
 	// Defaults
 	if len(opts.IndexFile) == 0 {
 		opts.IndexFile = "index.html"
@@ -77,17 +77,17 @@ func (opts *Options) staticHandler(dir string) macaron.Handler {
 		opts.FileSystem = newStaticFileSystem(dir)
 	}
 
-	return func(ctx *macaron.Context, log *log.Logger) {
-		opts.handle(ctx, log, opts)
+	return func(ctx *gin.Context) {
+		opts.handle(ctx, opts)
 	}
 }
 
-func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options) bool {
-	if ctx.Req.Method != "GET" && ctx.Req.Method != "HEAD" {
+func (opts *Options) handle(ctx *gin.Context, opt *Options) bool {
+	if ctx.Request.Method != "GET" && ctx.Request.Method != "HEAD" {
 		return false
 	}
 
-	file := ctx.Req.URL.Path
+	file := ctx.Request.URL.Path
 	// if we have a prefix, filter requests by stripping the prefix
 	if opt.Prefix != "" {
 		if !strings.HasPrefix(file, opt.Prefix) {
@@ -114,8 +114,8 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	// Try to serve index file
 	if fi.IsDir() {
 		// Redirect if missing trailing slash.
-		if !strings.HasSuffix(ctx.Req.URL.Path, "/") {
-			http.Redirect(ctx.Resp, ctx.Req.Request, path.Clean(ctx.Req.URL.Path+"/"), http.StatusFound)
+		if !strings.HasSuffix(ctx.Request.URL.Path, "/") {
+			http.Redirect(ctx.Writer, ctx.Request, path.Clean(ctx.Request.URL.Path+"/"), http.StatusFound)
 			return true
 		}
 
@@ -137,16 +137,16 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 
 	// Add an Expires header to the static content
 	if opt.ExpiresAfter > 0 {
-		ctx.Resp.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
+		ctx.Writer.Header().Set("Expires", time.Now().Add(opt.ExpiresAfter).UTC().Format(http.TimeFormat))
 		tag := GenerateETag(string(fi.Size()), fi.Name(), fi.ModTime().UTC().Format(http.TimeFormat))
-		ctx.Resp.Header().Set("ETag", tag)
-		if ctx.Req.Header.Get("If-None-Match") == tag {
-			ctx.Resp.WriteHeader(304)
+		ctx.Writer.Header().Set("ETag", tag)
+		if ctx.Request.Header.Get("If-None-Match") == tag {
+			ctx.Writer.WriteHeader(304)
 			return false
 		}
 	}
 
-	http.ServeContent(ctx.Resp, ctx.Req.Request, file, fi.ModTime(), f)
+	http.ServeContent(ctx.Writer, ctx.Request, file, fi.ModTime(), f)
 	return true
 }
 

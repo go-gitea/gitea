@@ -7,11 +7,11 @@
 package public
 
 import (
-	"gopkg.in/macaron.v1"
+	"github.com/gin-gonic/gin"
 )
 
 // Static implements the macaron static handler for serving assets.
-func Static(opts *Options) macaron.Handler {
+func Static(opts *Options) gin.HandlerFunc {
 	opts.FileSystem = Assets
 	// we don't need to pass the directory, because the directory var is only
 	// used when in the options there is no FileSystem.

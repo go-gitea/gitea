@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gin-gonic/gin"
@@ -111,6 +112,37 @@ func NewGin() *gin.Engine {
 	if setting.ProdMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	g.Use(public.Custom(
+		&public.Options{
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
+	g.Use(public.Static(
+		&public.Options{
+			Directory:    path.Join(setting.StaticRootPath, "public"),
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
+	g.Use(public.StaticHandler(
+		setting.AvatarUploadPath,
+		&public.Options{
+			Prefix:       "avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
+	g.Use(public.StaticHandler(
+		setting.RepositoryAvatarUploadPath,
+		&public.Options{
+			Prefix:       "repo-avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
+		},
+	))
+
 	return g
 }
 
