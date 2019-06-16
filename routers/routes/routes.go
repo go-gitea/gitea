@@ -47,19 +47,6 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
-/*func giteaLogger(l *log.LoggerAsWriter) macaron.Handler {
-	return func(ctx *macaron.Context) {
-		start := time.Now()
-
-		l.Log(fmt.Sprintf("[Macaron] Started %s %s for %s", ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr()))
-
-		ctx.Next()
-
-		rw := ctx.Resp.(macaron.ResponseWriter)
-		l.Log(fmt.Sprintf("[Macaron] Completed %s %s %v %s in %v", ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start)))
-	}
-}*/
-
 type routerLoggerOptions struct {
 	Ctx            *macaron.Context
 	Identity       *string
@@ -83,14 +70,20 @@ func setupAccessLogger(m *macaron.Macaron) {
 		rw := ctx.Resp.(macaron.ResponseWriter)
 
 		buf := bytes.NewBuffer([]byte{})
-		logTemplate.Execute(buf, routerLoggerOptions{
+		err := logTemplate.Execute(buf, routerLoggerOptions{
 			Ctx:            ctx,
 			Identity:       &identity,
 			Start:          &start,
 			ResponseWriter: &rw,
 		})
+		if err != nil {
+			log.Error("Could not set up macaron access logger: %v", err.Error())
+		}
 
-		logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
+		err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
+		if err != nil {
+			log.Error("Could not set up macaron access logger: %v", err.Error())
+		}
 	})
 }
 
@@ -99,13 +92,13 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 
-		log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
+		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
 
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		ctx.Next()
 
 		status := rw.Status()
-		log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
+		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
 	}
 }
 
@@ -443,14 +436,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteDefaultWebhook)
 			m.Get("/:type/new", repo.WebhooksNew)
 			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
+			m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
-			m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
+			m.Post("/gogs/:id", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
@@ -582,7 +575,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/:type/new", repo.WebhooksNew)
 					m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-					m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
+					m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 					m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
@@ -640,7 +633,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", repo.DeleteWebhook)
 				m.Get("/:type/new", repo.WebhooksNew)
 				m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-				m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
+				m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
 				m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 				m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 				m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
@@ -674,7 +667,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
 
-	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.RepoMustNotBeArchived(), repo.Action)
+	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
@@ -732,9 +725,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/milestone", func() {
 			m.Get("/:id", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
-		m.Combo("/compare/*", context.RepoMustNotBeArchived(), reqRepoCodeReader, reqRepoPullsReader, repo.MustAllowPulls, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.CompareAndPullRequest).
-			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
+			Get(repo.SetDiffViewStyle, repo.CompareDiff).
+			Post(context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
 			m.Group("", func() {
@@ -906,9 +899,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
 			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
-
-		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
-			repo.SetDiffViewStyle, repo.MustBeNotEmpty, reqRepoCodeReader, repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
