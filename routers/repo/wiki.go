@@ -201,7 +201,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		}
 
 		metas := ctx.Repo.Repository.ComposeMetas()
-		ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+		ctx.Data["content"] = markdown.RenderWiki(data, models.WikiNameToRawPrefix(ctx.Repo.RepoLink, pageFilename), metas)
 		ctx.Data["sidebarPresent"] = sidebarPresent
 		ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
 		ctx.Data["footerPresent"] = footerPresent

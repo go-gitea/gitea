@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -48,6 +49,14 @@ func WikiNameToPathFilename(name string) string {
 	// trim whitespace and /
 	re2 := regexp.MustCompile(`(?m)^([\s\/]*)(([^\/]+|[^\/]+\/[^\/]+)*)([\s\/]*)$`)
 	return re2.ReplaceAllString(name, "$2") + ".md"
+}
+
+// Get raw file path inside wiki
+// removes last path element and returns
+func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
+	a := strings.Split(wikiPage, "/")
+	a = a[:len(a)-1]
+	return util.URLJoin(repositoryName, "wiki", "raw", strings.Join(a, "/"))
 }
 
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
