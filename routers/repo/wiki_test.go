@@ -179,7 +179,7 @@ func TestEditWikiPost(t *testing.T) {
 func TestDeleteWikiPagePost(t *testing.T) {
 	models.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/Home/delete")
+	ctx := test.MockContext(t, "user2/repo1/wiki/Home/_delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	DeleteWikiPagePost(ctx)
