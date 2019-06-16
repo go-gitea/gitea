@@ -133,16 +133,19 @@ func WithContext(f func(ctx DBContext) error) error {
 // WithTransaction represents executing database operations on a trasaction
 func WithTransaction(f func(ctx DBContext) error) error {
 	sess := x.NewSession()
-	defer sess.Close()
 	if err := sess.Begin(); err != nil {
+		sess.Close()
 		return err
 	}
 
 	if err := f(DBContext{sess}); err != nil {
+		sess.Close()
 		return err
 	}
 
-	return sess.Commit()
+	err := sess.Commit()
+	sess.Close()
+	return err
 }
 
 func getEngine() (*xorm.Engine, error) {
