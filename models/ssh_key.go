@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -359,7 +360,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 	return nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath, err := writeTmpKeyFile(publicKeyContent)
 	if err != nil {
@@ -373,6 +374,34 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
 	return strings.Split(stdout, " ")[1], nil
+}
+
+func calcFingerprintNative(publicKeyContent string) (string, error) {
+	// Calculate fingerprint.
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeyContent))
+	if err != nil {
+		return "", err
+	}
+	return ssh.FingerprintSHA256(pk), nil
+}
+
+func calcFingerprint(publicKeyContent string) (string, error) {
+	//Call the method based on configuration
+	var (
+		fnName, fp string
+		err        error
+	)
+	if setting.SSH.StartBuiltinServer {
+		fnName = "calcFingerprintNative"
+		fp, err = calcFingerprintNative(publicKeyContent)
+	} else {
+		fnName = "calcFingerprintSSHKeygen"
+		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
+	}
+	if err != nil {
+		return "", fmt.Errorf("%s: %v", fnName, err)
+	}
+	return fp, nil
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
