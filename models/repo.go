@@ -1882,10 +1882,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 
 		oidPath := filepath.Join(v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
-		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
-		if err != nil {
-			return err
-		}
+		removeAllWithNotice(sess, "Delete orphaned LFS file", oidPath)
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
