@@ -803,6 +803,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell{display:table-cell}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
+.commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 24px);display:inline-block;vertical-align:middle}
+.commit-list .message-wrapper .commit-status-link{display:inline-block;vertical-align:middle}
 .commit-body{white-space:pre-wrap}
 .git-notes.top{text-align:left}
 .git-notes .commit-body{margin:0}
