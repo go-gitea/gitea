@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,7 +45,7 @@ type staticFileSystem struct {
 
 func newStaticFileSystem(directory string) staticFileSystem {
 	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(setting.StaticRootPath, directory)
+		directory = filepath.Join(setting.AppWorkPath, directory)
 	}
 	dir := http.Dir(directory)
 	return staticFileSystem{&dir}
