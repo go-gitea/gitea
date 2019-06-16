@@ -23,6 +23,7 @@
 				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="text right">
+				<a class="ui small red button" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{.i18n.Tr "repo.wiki.abort_edit_page_button"}}</a>
 				<button class="ui green button">
 					{{.i18n.Tr "repo.wiki.save_page"}}
 				</button>
