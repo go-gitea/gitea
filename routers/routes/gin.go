@@ -26,6 +26,8 @@ type routerLoggerOptions struct {
 }
 
 // SignedUserName returns signed user's name via context
+// FIXME currently no any data stored on gin.Context but macaron.Context, so this will
+// return "" before we remove macaron totally
 func SignedUserName(ctx *gin.Context) string {
 	if v, ok := ctx.Get("SignedUserName"); !ok {
 		return ""
