@@ -39,7 +39,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 
 // GetParams returns the configured URL params
 func (p *Pagination) GetParams() template.URL {
-	return template.URL(strings.Join(p.urlParams[:], "&"))
+	return template.URL(strings.Join(p.urlParams, "&"))
 }
 
 // SetDefaultParams sets common pagination params that are often used

@@ -220,8 +220,7 @@ func GetDefaultProfileURL(provider string) string {
 
 // GetDefaultEmailURL return the default email url for the given provider
 func GetDefaultEmailURL(provider string) string {
-	switch provider {
-	case "github":
+	if provider == "github" {
 		return github.EmailURL
 	}
 	return ""

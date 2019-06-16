@@ -261,10 +261,6 @@ func Config(ctx *context.Context) {
 	}
 
 	ctx.Data["EnvVars"] = envVars
-
-	type logger struct {
-		Mode, Config string
-	}
 	ctx.Data["Loggers"] = setting.LogDescriptions
 	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog

@@ -87,7 +87,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	status.loadRepo(x)
+	_ = status.loadRepo(x)
 	return fmt.Sprintf("%sapi/v1/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -95,7 +95,7 @@ func (status *CommitStatus) APIURL() string {
 // APIFormat assumes some fields assigned with values:
 // Required - Repo, Creator
 func (status *CommitStatus) APIFormat() *api.Status {
-	status.loadRepo(x)
+	_ = status.loadRepo(x)
 	apiStatus := &api.Status{
 		Created:     status.CreatedUnix.AsTime(),
 		Updated:     status.CreatedUnix.AsTime(),
@@ -219,7 +219,9 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 	}
 	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
 	if err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("newCommitStatus: sess.Rollback: %v", err)
+		}
 		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 	if has {
@@ -231,7 +233,9 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 
 	// Insert new CommitStatus
 	if _, err = sess.Insert(opts.CommitStatus); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("newCommitStatus: sess.Rollback: %v", err)
+		}
 		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 

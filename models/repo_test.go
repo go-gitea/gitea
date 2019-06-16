@@ -131,7 +131,7 @@ func TestForkRepository(t *testing.T) {
 	fork, err := ForkRepository(user, user, repo, "test", "test")
 	assert.Nil(t, fork)
 	assert.Error(t, err)
-	assert.True(t, IsErrRepoAlreadyExist(err))
+	assert.True(t, IsErrForkAlreadyExist(err))
 }
 
 func TestRepoAPIURL(t *testing.T) {

@@ -353,7 +353,11 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
 
@@ -547,7 +551,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	pr.Issue.Repo = ctx.Repo.Repository
 
 	if ctx.IsSigned {

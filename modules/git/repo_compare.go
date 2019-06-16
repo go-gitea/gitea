@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	logger "code.gitea.io/gitea/modules/log"
 )
 
 // CompareInfo represents needed information for comparing references.
@@ -22,8 +24,8 @@ type CompareInfo struct {
 	NumFiles  int
 }
 
-// GetMergeBase checks and returns merge base of two branches.
-func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (string, error) {
+// GetMergeBase checks and returns merge base of two branches and the reference used as base.
+func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (string, string, error) {
 	if tmpRemote == "" {
 		tmpRemote = "origin"
 	}
@@ -38,7 +40,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 	}
 
 	stdout, err := NewCommand("merge-base", base, head).RunInDir(repo.Path)
-	return strings.TrimSpace(stdout), err
+	return strings.TrimSpace(stdout), base, err
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
@@ -55,11 +57,15 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
-		defer repo.RemoveRemote(tmpRemote)
+		defer func() {
+			if err := repo.RemoveRemote(tmpRemote); err != nil {
+				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
+			}
+		}()
 	}
 
 	compareInfo := new(CompareInfo)
-	compareInfo.MergeBase, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
 		// We have a common base
 		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
