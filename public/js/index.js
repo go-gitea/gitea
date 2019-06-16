@@ -1141,7 +1141,8 @@ function initWikiForm() {
                         $.post($editArea.data('url'), {
                                 "_csrf": csrf,
                                 "mode": "gfm",
-                                "context": $editArea.data('context'),
+                                "wiki": true,
+                                "context": decodeURIComponent($editArea.data('context')),
                                 "text": plainText
                             },
                             function (data) {
