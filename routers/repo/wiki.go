@@ -367,6 +367,13 @@ func NewWiki(ctx *context.Context) {
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
+	} else if len(ctx.Params(":page")) != 0 {
+		// create files on same subdiretory like current file
+		wikiName := models.NormalizeWikiName(ctx.Params(":page"))
+		// remove current filename
+		a := strings.Split(wikiName, "/")
+		a[len(a)-1] = "New Page"
+		ctx.Data["title"] = strings.Join(a, "/")
 	}
 
 	ctx.HTML(200, tplWikiNew)
