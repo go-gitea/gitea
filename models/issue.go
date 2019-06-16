@@ -1537,7 +1537,7 @@ func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []string) error 
 		ids = append(ids, memberIDs...)
 	}
 
-	if err := UpdateIssueUsersByMentions(ctx.e, issueID, ids); err != nil {
+	if err := UpdateIssueUsersByMentions(ctx, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
 

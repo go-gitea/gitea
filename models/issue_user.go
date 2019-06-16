@@ -94,22 +94,22 @@ func UpdateIssueUserByRead(uid, issueID int64) error {
 }
 
 // UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
+func UpdateIssueUsersByMentions(ctx DBContext, issueID int64, uids []int64) error {
 	for _, uid := range uids {
 		iu := &IssueUser{
 			UID:     uid,
 			IssueID: issueID,
 		}
-		has, err := e.Get(iu)
+		has, err := ctx.e.Get(iu)
 		if err != nil {
 			return err
 		}
 
 		iu.IsMentioned = true
 		if has {
-			_, err = e.ID(iu.ID).Cols("is_mentioned").Update(iu)
+			_, err = ctx.e.ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
-			_, err = e.Insert(iu)
+			_, err = ctx.e.Insert(iu)
 		}
 		if err != nil {
 			return err
