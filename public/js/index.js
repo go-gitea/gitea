@@ -3254,7 +3254,7 @@ function onOAuthLoginClick() {
                 let d = document.createElement('div');
                 d.id = 'auto-page-toc';
                 d.className = 'anchor-wrap';
-                d.innerHTML = '<h2>'+((typeof(target.dataset.pagetoc) == 'string' && target.dataset.pagetoc != '')?target.dataset.pagetoc:'Table of Pages')+'</h2>';
+                d.innerHTML = '<h2>'+((typeof(target.dataset.pagetoc) == 'string' && target.dataset.pagetoc != '')?target.dataset.pagetoc:'Table of Pages')+'<label for="page-toc-wiki-cb" class="page-toc-close ui basic button"><i class="fa fa-fw fa-times"></i></label></h2>';
                 let d2 = document.createElement('div');
                 d2.className = 'auto-toc-container';
                 d2.innerHTML = html;
@@ -3264,11 +3264,31 @@ function onOAuthLoginClick() {
                 c.appendChild(d2);
                 //inject page toc
                 target.insertBefore(c, target.firstChild);
-                if( (rm = document.querySelector('.auto-toc-clear')) != null ) {
-                    rm.parentNode.removeChild(rm);
+                if( (rm = document.querySelector('.auto-toc-clear')) == null ) {
+                    let a = document.createElement('div'); a.className = 'auto-toc-clear';
+                    target.appendChild(a);
                 }
-                let a = document.createElement('div'); a.className = 'auto-toc-clear';
-                target.appendChild(a);
+                // small screen toggle
+                if( (rm = document.querySelector('.page-toc-label')) == null ) {
+                    let a = document.createElement('label');
+                    a.className = 'page-toc-wiki-label ui basic button'; a.htmlFor = 'page-toc-wiki-cb';
+                    a.title = ((typeof(target.dataset.pagetoc) == 'string' && target.dataset.pagetoc != '')?target.dataset.pagetoc:'Table of Pages');
+                    a.innerHTML = '<i class="fa fa-fw fa-list-ul"></i>';
+                    let ltarget = document.querySelector('.repository.wiki .ui.container .ui.dividing.header .ui.stackable.grid').firstElementChild;
+                    ltarget.insertBefore(a, ltarget.firstChild);
+                    let cb = document.createElement('input');
+                    cb.type = 'checkbox'; cb.id = 'page-toc-wiki-cb'; cb.hidden = true;
+                    target.insertBefore(cb, target.firstChild);
+                    // may update height if toc size > container
+                    cb.addEventListener("click", function(){
+                        if (cb.checked && target.offsetHeight < c.offsetHeight) {
+                            target.style.minHeight = c.offsetHeight + 'px';
+                        } else {
+                            target.style.removeProperty('min-height');
+                        }
+                        return false;
+                    });
+                }
             }
         }
     };

@@ -511,35 +511,6 @@
         }
     }
 
-    .page-toc-wrapper {
-        position: relative;
-        padding: 0 20px 7px 0;
-        float: left;
-        background: #ffffff;
-        z-index: 1;
-
-        @media only screen and (min-width:1760px) {
-            left: -31%;
-            width: 26%;
-            padding: 0;
-            margin-top: -3em !important;
-            margin-right: -26%;
-        }
-
-        @media only screen and (max-width:1759px) {
-            display: none;
-        }
-
-        a.selected {
-            font-weight: bold;
-            font-style: italic;
-        }
-
-        span.error {
-            color: #ff2222;
-        }
-    }
-
     .auto-toc-container {
         padding: 7px;
         border: 1px solid #d4d4d5;
@@ -555,4 +526,80 @@
         clear: both;
         margin-bottom: -20px !important;
     }
+
+    .page-toc-wrapper {
+        z-index: 1;
+        background: #ffffff;
+        position: relative;
+        display: none;
+
+        @media only screen and (min-width:1760px) {
+            display: block;
+            float: left;
+            left: -31%;
+            width: 26%;
+            padding: 0;
+            margin-top: -3em !important;
+            margin-right: -26%;
+        }
+
+        a.selected {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        span.error {
+            color: #ff2222;
+        }
+
+        .page-toc-close {
+        	display: none;
+        }
+    }
+
+    #page-toc-wiki-cb {
+    	display: none;
+    }
+
+    @media only screen and (max-width:1759px) {
+        #page-toc-wiki-cb:checked + .page-toc-wrapper {
+            display: block;
+            position: absolute;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #404552;
+            border-radius: 5px;
+            padding: 20px;
+            background: #ffffff;
+            margin: -3em -3em 3em !important;
+            z-index: 5;
+        }
+
+        .page-toc-wrapper .page-toc-close {
+            display: inline-block;
+            float: right;
+            margin-top: -0.6em !important;
+            margin-right: -0.2em !important;
+        }
+    }
+}
+
+label.ui.basic.button.page-toc-wiki-label {
+	display: none;
+	float: left;
+	padding: 11px !important;
+	margin-right: 10px !important;
+
+    @media only screen and (max-width:1759px) {
+	    display: block;
+	}
+
+	i {
+	    -webkit-touch-callout: none;
+        	-webkit-user-select: none;
+        	 -khtml-user-select: none;
+        	   -moz-user-select: none;
+        		-ms-user-select: none;
+        			user-select: none;
+	}
 }
