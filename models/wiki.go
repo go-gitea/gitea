@@ -93,7 +93,7 @@ func WikiFilenameToName(filename string) (string, string, error) {
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)
 	if err != nil {
-		return "","", err
+		return basename, basename, err
 	}
 	return unescaped, basename, nil
 }

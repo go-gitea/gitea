@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -143,8 +144,10 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 				if models.IsErrWikiInvalidFileName(err) {
 					continue
 				}
-				ctx.ServerError("WikiFilenameToName", err)
-				return nil, nil
+				if _, ok := err.(url.EscapeError); !ok {
+					ctx.ServerError("WikiFilenameToName", err)
+					return nil, nil
+				}
 			} else if wikiUnescapedName == "_Sidebar" || wikiUnescapedName == "_Footer" {
 				continue
 			}
@@ -301,8 +304,10 @@ LoopPages:
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.ServerError("WikiFilenameToName", err)
-			return
+			if _, ok := err.(url.EscapeError); !ok {
+				ctx.ServerError("WikiFilenameToName", err)
+				return
+			}
 		}
 		pages = append(pages, PageMeta{
 			Name:        wikiUnescapedName,
