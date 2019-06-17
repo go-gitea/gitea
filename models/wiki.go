@@ -52,7 +52,7 @@ func WikiNameToFilename(name string) string {
 
 // WikiNameToPathFilename converts a wiki name to its corresponding filename, keep directory paths.
 func WikiNameToPathFilename(name string) string {
-	var restore = [1][2] string{
+	var restore = [1][2]string{
 		{`(\.\.\/)`, ""}, // remove path up
 	}
 	for _, kv := range restore {
@@ -67,11 +67,11 @@ func WikiNameToPathFilename(name string) string {
 // FilenameToPathFilename converts a wiki filename to filename with filepath.
 func FilenameToPathFilename(name string) string {
 	// restore spaces and slashes
-	var restore = [4][2] string{
-		{`(?m)%2F`, "/"},  		//recover slashes /
-		{`(?m)(%20|\+)`, " "}, 	//restore spaces
-		{`(?m)(%25)`, "%"},   	//restore %
-		{`(?m)(%26)`, "&"},   	//restore %
+	var restore = [4][2]string{
+		{`(?m)%2F`, "/"},      //recover slashes /
+		{`(?m)(%20|\+)`, " "}, //restore spaces
+		{`(?m)(%25)`, "%"},    //restore %
+		{`(?m)(%26)`, "&"},    //restore &
 	}
 	for _, kv := range restore {
 		loopRe := regexp.MustCompile(kv[0])
@@ -90,7 +90,7 @@ func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
 func WikiFilenameToName(filename string) (string, string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "","", ErrWikiInvalidFileName{filename}
+		return "", "", ErrWikiInvalidFileName{filename}
 	}
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)
