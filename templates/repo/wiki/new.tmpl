@@ -11,7 +11,11 @@
 				</div>
 			{{end}}
 		</div>
+		{{if .PageIsWikiEdit}}
 		<form class="ui form" action="{{.Link}}" method="post">
+		{{else}}
+		<form class="ui form" action="{{.RepoLink}}/wiki/_new" method="post">
+		{{end}}
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
