@@ -76,9 +76,10 @@ type Label struct {
 // APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: strings.TrimLeft(label.Color, "#"),
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
 	}
 }
 

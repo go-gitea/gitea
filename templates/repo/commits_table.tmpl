@@ -47,9 +47,9 @@
 						<td class="author">
 							{{if .User}}
 							  {{if .User.FullName}}
-    							<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.User.FullName}}</a>
+								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.User.FullName}}</a>
 							  {{else}}
-		    					<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.Author.Name}}</a>
+								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.Author.Name}}</a>
 							  {{end}}
 							{{else}}
 								<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{.Author.Name}}
@@ -69,12 +69,14 @@
 								{{end}}
 							</a>
 						</td>
-						<td class="message collapsing">
-							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{.Summary}}</span>
-							{{if IsMultilineCommitMessage .Message}}
-							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
-							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
-							{{end}}
+						<td class="message">
+							<span class="message-wrapper">
+								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+								{{if IsMultilineCommitMessage .Message}}
+								<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+								<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+								{{end}}
+							</span>
 							{{template "repo/commit_status" .Status}}
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>

@@ -2219,6 +2219,19 @@ tbody.commit-list {
     vertical-align: baseline;
 }
 
+.commit-list .message-wrapper {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 24px);
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.commit-list .message-wrapper .commit-status-link {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .commit-body {
     white-space: pre-wrap;
 }

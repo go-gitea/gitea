@@ -225,6 +225,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
 
 	ctx.Data["SSH"] = setting.SSH
+	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = models.DbCfg

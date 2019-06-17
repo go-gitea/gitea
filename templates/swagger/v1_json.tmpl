@@ -7245,6 +7245,10 @@
           "x-go-name": "Color",
           "example": "#00aabb"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -7774,6 +7778,10 @@
         "color": {
           "type": "string",
           "x-go-name": "Color"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "name": {
           "type": "string",
@@ -8662,6 +8670,10 @@
           "type": "string",
           "x-go-name": "Color",
           "example": "00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "id": {
           "type": "integer",
@@ -9715,6 +9727,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -9740,6 +9757,11 @@
           "description": "User locale",
           "type": "string",
           "x-go-name": "Language"
+        },
+        "last_login": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastLogin"
         },
         "login": {
           "description": "the user's username",

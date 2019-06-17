@@ -395,7 +395,7 @@ css:
 	npx postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
-	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
+	if ([ -n "$$CI" ] && [ -n "$$diff" ]); then \
 		echo "Generated files in public/css have changed, please commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
