@@ -36,8 +36,7 @@ func WikiNameToSubURL(name string) string {
 	re1 := regexp.MustCompile(`(\.\.\/)`)
 	name = re1.ReplaceAllString(name, "")
 	// trim whitespace and /
-	re2 := regexp.MustCompile(`(?m)^([\s\/]*)(([^\/]+|[^\/]+\/[^\/]+)*)([\s\/]*)$`)
-	name = re2.ReplaceAllString(name, "$2")
+	name = strings.Trim(name, "\n\r\t /")
 	name = url.QueryEscape(name)
 	//restore spaces
 	re3 := regexp.MustCompile(`(?m)(%20|\+)`)
@@ -60,7 +59,6 @@ func WikiNameToPathFilename(name string) string {
 		name = loopRe.ReplaceAllString(name, kv[1])
 	}
 	name = strings.Trim(name, "\n\r\t ./") // trim whitespace and / .
-	name = strings.TrimPrefix(name, ".git") // trim  prefix .git
 	return name + ".md"
 }
 
