@@ -188,7 +188,10 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 		if pr != nil {
-			pr.LoadIssue()
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("pr.LoadIssue", err)
+				return nil
+			}
 		}
 
 		branches[i] = &Branch{
