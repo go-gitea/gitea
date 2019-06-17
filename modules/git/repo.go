@@ -58,21 +58,21 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // InitRepository initializes a new Git repository.
 func InitRepository(repoPath string, bare bool) error {
-	os.MkdirAll(repoPath, os.ModePerm)
+	err := os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	cmd := NewCommand("init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err := cmd.RunInDir(repoPath)
+	_, err = cmd.RunInDir(repoPath)
 	return err
 }
 

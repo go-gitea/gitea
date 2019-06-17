@@ -164,8 +164,7 @@ func Cell2Int64(val xorm.Cell) int64 {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
-	switch colName {
-	case "type":
+	if colName == "type" {
 		switch LoginType(Cell2Int64(val)) {
 		case LoginLDAP, LoginDLDAP:
 			source.Cfg = new(LDAPConfig)
@@ -282,10 +281,12 @@ func CreateLoginSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// remove the LoginSource in case of errors while registering OAuth2 providers
-			x.Delete(source)
+			if _, err := x.Delete(source); err != nil {
+				log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -325,10 +326,12 @@ func UpdateSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// restore original values since we cannot update the provider it self
-			x.ID(source.ID).AllCols().Update(originalLoginSource)
+			if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+				log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -385,7 +388,7 @@ func composeFullName(firstname, surname, username string) string {
 }
 
 var (
-	alphaDashDotPattern = regexp.MustCompile("[^\\w-\\.]")
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
@@ -401,7 +404,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-			RewriteAllPublicKeys()
+			return user, RewriteAllPublicKeys()
 		}
 
 		return user, nil
@@ -435,7 +438,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	err := CreateUser(user)
 
 	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-		RewriteAllPublicKeys()
+		err = RewriteAllPublicKeys()
 	}
 
 	return user, err

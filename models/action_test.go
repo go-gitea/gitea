@@ -166,6 +166,7 @@ func Test_getIssueFromRef(t *testing.T) {
 		{"reopen #2", 2},
 		{"user2/repo2#1", 4},
 		{"fixes user2/repo2#1", 4},
+		{"fixes: user2/repo2#1", 4},
 	} {
 		issue, err := getIssueFromRef(repo, test.Ref)
 		assert.NoError(t, err)
@@ -257,6 +258,31 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
 	AssertExistsAndLoadBean(t, commentBean)
 	AssertNotExistsBean(t, issueBean, "is_closed=1")
+	CheckConsistencyFor(t, &Action{})
+}
+
+func TestUpdateIssuesCommit_Colon(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	pushCommits := []*PushCommit{
+		{
+			Sha1:           "abcdef2",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "close: #2",
+		},
+	}
+
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo.Owner = user
+
+	issueBean := &Issue{RepoID: repo.ID, Index: 2}
+
+	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
+	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	CheckConsistencyFor(t, &Action{})
 }
 

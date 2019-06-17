@@ -225,6 +225,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
 
 	ctx.Data["SSH"] = setting.SSH
+	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = models.DbCfg
@@ -261,10 +262,6 @@ func Config(ctx *context.Context) {
 	}
 
 	ctx.Data["EnvVars"] = envVars
-
-	type logger struct {
-		Mode, Config string
-	}
 	ctx.Data["Loggers"] = setting.LogDescriptions
 	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog

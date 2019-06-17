@@ -118,26 +118,41 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func (issue *Issue) MailParticipants(opType ActionType) (err error) {
-	return issue.mailParticipants(x, opType)
+func (issue *Issue) MailParticipants(doer *User, opType ActionType) (err error) {
+	return issue.mailParticipants(x, doer, opType)
 }
 
-func (issue *Issue) mailParticipants(e Engine, opType ActionType) (err error) {
+func (issue *Issue) mailParticipants(e Engine, doer *User, opType ActionType) (err error) {
 	mentions := markup.FindAllMentions(issue.Content)
+
 	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	var content = issue.Content
-	switch opType {
-	case ActionCloseIssue, ActionClosePullRequest:
-		content = fmt.Sprintf("Closed #%d", issue.Index)
-	case ActionReopenIssue, ActionReopenPullRequest:
-		content = fmt.Sprintf("Reopened #%d", issue.Index)
+	if len(issue.Content) > 0 {
+		if err = mailIssueCommentToParticipants(e, issue, doer, issue.Content, nil, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	}
 
-	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, content, nil, mentions); err != nil {
-		log.Error("mailIssueCommentToParticipants: %v", err)
+	switch opType {
+	case ActionCreateIssue, ActionCreatePullRequest:
+		if len(issue.Content) == 0 {
+			ct := fmt.Sprintf("Created #%d.", issue.Index)
+			if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+				log.Error("mailIssueCommentToParticipants: %v", err)
+			}
+		}
+	case ActionCloseIssue, ActionClosePullRequest:
+		ct := fmt.Sprintf("Closed #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
+	case ActionReopenIssue, ActionReopenPullRequest:
+		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	}
 
 	return nil

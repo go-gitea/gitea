@@ -152,7 +152,7 @@ func getContentHandler(ctx *context.Context) {
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
 		regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
 		match := regex.FindStringSubmatch(rangeHdr)
-		if match != nil && len(match) > 1 {
+		if len(match) > 1 {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
 			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, meta.Size-fromByte))
@@ -178,8 +178,8 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(statusCode)
-	io.Copy(ctx.Resp, content)
-	content.Close()
+	_, _ = io.Copy(ctx.Resp, content)
+	_ = content.Close()
 	logRequest(ctx.Req, statusCode)
 }
 
@@ -196,7 +196,7 @@ func getMetaHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" {
 		enc := json.NewEncoder(ctx.Resp)
-		enc.Encode(Represent(rv, meta, true, false))
+		_ = enc.Encode(Represent(rv, meta, true, false))
 	}
 
 	logRequest(ctx.Req, 200)
@@ -249,7 +249,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.WriteHeader(sentStatus)
 
 	enc := json.NewEncoder(ctx.Resp)
-	enc.Encode(Represent(rv, meta, meta.Existing, true))
+	_ = enc.Encode(Represent(rv, meta, meta.Existing, true))
 	logRequest(ctx.Req, sentStatus)
 }
 
@@ -313,7 +313,7 @@ func BatchHandler(ctx *context.Context) {
 	respobj := &BatchResponse{Objects: responseObjects}
 
 	enc := json.NewEncoder(ctx.Resp)
-	enc.Encode(respobj)
+	_ = enc.Encode(respobj)
 	logRequest(ctx.Req, 200)
 }
 

@@ -2036,6 +2036,46 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/tags/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tag of a repository.",
+        "operationId": "GetTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the tag",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AnnotatedTag"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/trees/{sha}": {
       "get": {
         "produces": [
@@ -6762,6 +6802,57 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag represents an annotated tag",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "object": {
+          "$ref": "#/definitions/AnnotatedTagObject"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tag": {
+          "type": "string",
+          "x-go-name": "Tag"
+        },
+        "tagger": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "AnnotatedTagObject": {
+      "description": "AnnotatedTagObject contains meta information of the tag object",
+      "type": "object",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Attachment": {
       "description": "Attachment a generic attachment",
       "type": "object",
@@ -7153,6 +7244,10 @@
           "type": "string",
           "x-go-name": "Color",
           "example": "#00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "name": {
           "type": "string",
@@ -7683,6 +7778,10 @@
         "color": {
           "type": "string",
           "x-go-name": "Color"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "name": {
           "type": "string",
@@ -8572,6 +8671,10 @@
           "x-go-name": "Color",
           "example": "00aabb"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -9458,18 +9561,11 @@
       "type": "object",
       "properties": {
         "commit": {
-          "type": "object",
-          "properties": {
-            "sha": {
-              "type": "string",
-              "x-go-name": "SHA"
-            },
-            "url": {
-              "type": "string",
-              "x-go-name": "URL"
-            }
-          },
-          "x-go-name": "Commit"
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
         },
         "name": {
           "type": "string",
@@ -9631,6 +9727,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -9656,6 +9757,11 @@
           "description": "User locale",
           "type": "string",
           "x-go-name": "Language"
+        },
+        "last_login": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastLogin"
         },
         "login": {
           "description": "the user's username",
@@ -9734,6 +9840,12 @@
     },
     "AccessTokenList": {
       "description": "AccessTokenList represents a list of API access token."
+    },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag",
+      "schema": {
+        "$ref": "#/definitions/AnnotatedTag"
+      }
     },
     "Attachment": {
       "description": "Attachment",
@@ -10054,6 +10166,12 @@
         "items": {
           "$ref": "#/definitions/Status"
         }
+      }
+    },
+    "Tag": {
+      "description": "Tag",
+      "schema": {
+        "$ref": "#/definitions/Tag"
       }
     },
     "TagList": {
