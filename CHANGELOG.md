@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.8.3](https://github.com/go-gitea/gitea/releases/tag/v1.8.3) - 2019-06-17
 * BUGFIXES
-  * Always set userID on LFS authentication (#7224)
+  * Always set userID on LFS authentication (#7224) (Part of #6993)
   * Fix LFS Locks over SSH (#6999) (#7223)
   * Fix duplicated file on pull request conflicted files (#7211) (#7214)
   * Detect noreply email address as user (#7133) (#7195)
