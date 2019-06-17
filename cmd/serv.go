@@ -217,75 +217,77 @@ func runServ(c *cli.Context) error {
 
 	// Allow anonymous clone for public repositories.
 	var (
-		keyID int64
-		user  *models.User
+		keyID  int64
+		user   *models.User
+		userID int64
 	)
-	if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
-		keys := strings.Split(c.Args()[0], "-")
-		if len(keys) != 2 {
-			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
-		}
 
-		key, err := private.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
+	keys := strings.Split(c.Args()[0], "-")
+	if len(keys) != 2 {
+		fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
+	}
+
+	key, err := private.GetPublicKeyByID(com.StrTo(keys[1]).MustInt64())
+	if err != nil {
+		fail("Invalid key ID", "Invalid key ID[%s]: %v", c.Args()[0], err)
+	}
+	keyID = key.ID
+	userID = key.OwnerID
+
+	if key.Type == models.KeyTypeDeploy {
+		// Now we have to get the deploy key for this repo
+		deployKey, err := private.GetDeployKey(key.ID, repo.ID)
 		if err != nil {
-			fail("Invalid key ID", "Invalid key ID[%s]: %v", c.Args()[0], err)
+			fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
 		}
-		keyID = key.ID
 
+		if deployKey == nil {
+			fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
+		}
+
+		if deployKey.Mode < requestedMode {
+			fail("Key permission denied", "Cannot push with read-only deployment key: %d to repo_id: %d", key.ID, repo.ID)
+		}
+
+		// Update deploy key activity.
+		if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
+			fail("Internal error", "UpdateDeployKey: %v", err)
+		}
+
+		// FIXME: Deploy keys aren't really the owner of the repo pushing changes
+		// however we don't have good way of representing deploy keys in hook.go
+		// so for now use the owner
+		os.Setenv(models.EnvPusherName, username)
+		os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
+		userID = repo.OwnerID
+	} else if requestedMode == models.AccessModeWrite || repo.IsPrivate || setting.Service.RequireSignInView {
 		// Check deploy key or user key.
-		if key.Type == models.KeyTypeDeploy {
-			// Now we have to get the deploy key for this repo
-			deployKey, err := private.GetDeployKey(key.ID, repo.ID)
-			if err != nil {
-				fail("Key access denied", "Failed to access internal api: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
-			}
-
-			if deployKey == nil {
-				fail("Key access denied", "Deploy key access denied: [key_id: %d, repo_id: %d]", key.ID, repo.ID)
-			}
-
-			if deployKey.Mode < requestedMode {
-				fail("Key permission denied", "Cannot push with read-only deployment key: %d to repo_id: %d", key.ID, repo.ID)
-			}
-
-			// Update deploy key activity.
-			if err = private.UpdateDeployKeyUpdated(key.ID, repo.ID); err != nil {
-				fail("Internal error", "UpdateDeployKey: %v", err)
-			}
-
-			// FIXME: Deploy keys aren't really the owner of the repo pushing changes
-			// however we don't have good way of representing deploy keys in hook.go
-			// so for now use the owner
-			os.Setenv(models.EnvPusherName, username)
-			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", repo.OwnerID))
-		} else {
-			user, err = private.GetUserByKeyID(key.ID)
-			if err != nil {
-				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
-			}
-
-			if !user.IsActive || user.ProhibitLogin {
-				fail("Your account is not active or has been disabled by Administrator",
-					"User %s is disabled and have no access to repository %s",
-					user.Name, repoPath)
-			}
-
-			mode, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
-			if err != nil {
-				fail("Internal error", "Failed to check access: %v", err)
-			} else if *mode < requestedMode {
-				clientMessage := accessDenied
-				if *mode >= models.AccessModeRead {
-					clientMessage = "You do not have sufficient authorization for this action"
-				}
-				fail(clientMessage,
-					"User %s does not have level %v access to repository %s's "+unitName,
-					user.Name, requestedMode, repoPath)
-			}
-
-			os.Setenv(models.EnvPusherName, user.Name)
-			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
+		user, err = private.GetUserByKeyID(key.ID)
+		if err != nil {
+			fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 		}
+
+		if !user.IsActive || user.ProhibitLogin {
+			fail("Your account is not active or has been disabled by Administrator",
+				"User %s is disabled and have no access to repository %s",
+				user.Name, repoPath)
+		}
+
+		mode, err := private.CheckUnitUser(user.ID, repo.ID, user.IsAdmin, unitType)
+		if err != nil {
+			fail("Internal error", "Failed to check access: %v", err)
+		} else if *mode < requestedMode {
+			clientMessage := accessDenied
+			if *mode >= models.AccessModeRead {
+				clientMessage = "You do not have sufficient authorization for this action"
+			}
+			fail(clientMessage,
+				"User %s does not have level %v access to repository %s's "+unitName,
+				user.Name, requestedMode, repoPath)
+		}
+
+		os.Setenv(models.EnvPusherName, user.Name)
+		os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
 	}
 
 	//LFS token authentication
@@ -299,8 +301,8 @@ func runServ(c *cli.Context) error {
 			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
-		if user != nil {
-			claims["user"] = user.ID
+		if userID > 0 {
+			claims["user"] = userID
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
