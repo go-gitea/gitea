@@ -30,9 +30,18 @@ func NormalizeWikiName(name string) string {
 	return strings.Replace(name, "-", " ", -1)
 }
 
-// WikiNameToSubURL converts a wiki name to its corresponding sub-URL.
+// WikiNameToSubURL converts a wiki name to its corresponding sub-URL. This will escape dangerous letters.
 func WikiNameToSubURL(name string) string {
-	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
+	// remove path up
+	re1 := regexp.MustCompile(`(\.\.\/)`)
+	name = re1.ReplaceAllString(name, "")
+	// trim whitespace and /
+	re2 := regexp.MustCompile(`(?m)^([\s\/]*)(([^\/]+|[^\/]+\/[^\/]+)*)([\s\/]*)$`)
+	name = re2.ReplaceAllString(name, "$2")
+	name = url.QueryEscape(name)
+	//restore spaces
+	re3 := regexp.MustCompile(`(?m)(%20|\+)`)
+	return re3.ReplaceAllString(name, "%20")
 }
 
 // WikiNameToFilename converts a wiki name to its corresponding filename.
@@ -41,18 +50,37 @@ func WikiNameToFilename(name string) string {
 	return url.QueryEscape(name) + ".md"
 }
 
-// WikiNameToFilename converts a wiki name to its corresponding filename - keep direcory paths.
+// WikiNameToPathFilename converts a wiki name to its corresponding filename, keep directory paths.
 func WikiNameToPathFilename(name string) string {
-	// remove path up
-	re1 := regexp.MustCompile(`(\.\.\/)`)
-	name = re1.ReplaceAllString(name, "")
-	// trim whitespace and /
-	re2 := regexp.MustCompile(`(?m)^([\s\/]*)(([^\/]+|[^\/]+\/[^\/]+)*)([\s\/]*)$`)
-	return re2.ReplaceAllString(name, "$2") + ".md"
+	var restore = [1][2] string{
+		{`(\.\.\/)`, ""}, // remove path up
+	}
+	for _, kv := range restore {
+		loopRe := regexp.MustCompile(kv[0])
+		name = loopRe.ReplaceAllString(name, kv[1])
+	}
+	name = strings.Trim(name, "\n\r\t ./") // trim whitespace and / .
+	name = strings.TrimPrefix(name, ".git") // trim  prefix .git
+	return name + ".md"
 }
 
-// Get raw file path inside wiki
-// removes last path element and returns
+// FilenameToPathFilename converts a wiki filename to filename with filepath.
+func FilenameToPathFilename(name string) string {
+	// restore spaces and slashes
+	var restore = [4][2] string{
+		{`(?m)%2F`, "/"},  		//recover slashes /
+		{`(?m)(%20|\+)`, " "}, 	//restore spaces
+		{`(?m)(%25)`, "%"},   	//restore %
+		{`(?m)(%26)`, "&"},   	//restore %
+	}
+	for _, kv := range restore {
+		loopRe := regexp.MustCompile(kv[0])
+		name = loopRe.ReplaceAllString(name, kv[1])
+	}
+	return name
+}
+
+// WikiNameToRawPrefix Get raw file path inside wiki, removes last path element and returns
 func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
 	a := strings.Split(wikiPage, "/")
 	a = a[:len(a)-1]
@@ -60,16 +88,16 @@ func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
 }
 
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
-func WikiFilenameToName(filename string) (string, error) {
+func WikiFilenameToName(filename string) (string, string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", ErrWikiInvalidFileName{filename}
+		return "","", ErrWikiInvalidFileName{filename}
 	}
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)
 	if err != nil {
-		return "", err
+		return "","", err
 	}
-	return NormalizeWikiName(unescaped), nil
+	return unescaped, basename, nil
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.
@@ -192,6 +220,16 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 				return ErrWikiAlreadyExist{newWikiDirPath}
 			}
 		}
+		filesInIndex, err = gitRepo.LsFiles(FilenameToPathFilename(newWikiDirPath))
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+		for _, file := range filesInIndex {
+			if file == newWikiDirPath {
+				return ErrWikiAlreadyExist{newWikiDirPath}
+			}
+		}
 	} else {
 		oldWikiPath := WikiNameToFilename(oldWikiName)
 		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
@@ -234,6 +272,8 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 			}
 		}
 	}
+
+	newWikiDirPath = FilenameToPathFilename(newWikiDirPath)
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 

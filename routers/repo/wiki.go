@@ -138,25 +138,25 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 			if !entry.IsRegular() {
 				continue
 			}
-			wikiName, err := models.WikiFilenameToName(entry.Name())
+			wikiUnescapedName, wikiName, err := models.WikiFilenameToName(entry.Name())
 			if err != nil {
 				if models.IsErrWikiInvalidFileName(err) {
 					continue
 				}
 				ctx.ServerError("WikiFilenameToName", err)
 				return nil, nil
-			} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
+			} else if wikiUnescapedName == "_Sidebar" || wikiUnescapedName == "_Footer" {
 				continue
 			}
 			pages = append(pages, PageMeta{
-				Name:   wikiName,
+				Name:   wikiUnescapedName,
 				SubURL: models.WikiNameToSubURL(wikiName),
 			})
 		}
 		ctx.Data["Pages"] = pages
 	}
 
-	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	pageName := ctx.Params(":page")
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -167,15 +167,16 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	pageFilename := models.WikiNameToFilename(pageName)
+	// check new file structure with directories
+	pageFilename := models.WikiNameToPathFilename(pageName)
 	var entry *git.TreeEntry
 	// old wiki pages are all inside git base directory
 	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 		ctx.ServerError("findEntryForFile", err)
 		return nil, nil
 	} else if entry == nil {
-		// lookup file inside directory structure
-		pageFilename = models.WikiNameToPathFilename(pageName)
+		// check old file structure without directories
+		pageFilename = models.WikiNameToFilename(pageName)
 		if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 			ctx.ServerError("findEntryForFile", err)
 			return nil, nil
@@ -295,7 +296,7 @@ LoopPages:
 			ctx.ServerError("GetCommit", err)
 			return
 		}
-		wikiName, err := models.WikiFilenameToName(entry.Name())
+		wikiUnescapedName, wikiName, err := models.WikiFilenameToName(entry.Name())
 		if err != nil {
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
@@ -304,7 +305,7 @@ LoopPages:
 			return
 		}
 		pages = append(pages, PageMeta{
-			Name:        wikiName,
+			Name:        wikiUnescapedName,
 			SubURL:      models.WikiNameToSubURL(wikiName),
 			UpdatedUnix: util.TimeStamp(c.Author.When.Unix()),
 		})
@@ -369,7 +370,7 @@ func NewWiki(ctx *context.Context) {
 		ctx.Data["title"] = "Home"
 	} else if len(ctx.Params(":page")) != 0 {
 		// create files on same subdiretory like current file
-		wikiName := models.NormalizeWikiName(ctx.Params(":page"))
+		wikiName := ctx.Params(":page")
 		// remove current filename
 		a := strings.Split(wikiName, "/")
 		a[len(a)-1] = "New Page"
@@ -395,7 +396,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	wikiName := models.NormalizeWikiName(form.Title)
+	wikiName := form.Title
 	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
@@ -442,12 +443,18 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	oldWikiName := models.NormalizeWikiName(ctx.Params(":page"))
-	newWikiName := models.NormalizeWikiName(form.Title)
+	oldWikiName := ctx.Params(":page")
+	newWikiName := form.Title
 
 	if err := ctx.Repo.Repository.EditWikiPage(ctx.User, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)
 		return
+	}
+
+	// redirect to may changed filename
+	newWikiName = models.FilenameToPathFilename(models.WikiNameToPathFilename(newWikiName))
+	if strings.HasSuffix(newWikiName, ".md") {
+		newWikiName = newWikiName[:len(newWikiName)-3]
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToSubURL(newWikiName))
@@ -455,7 +462,7 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
-	wikiName := models.NormalizeWikiName(ctx.Params(":page"))
+	wikiName := ctx.Params(":page")
 	if len(wikiName) == 0 {
 		wikiName = "Home"
 	}
