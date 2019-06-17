@@ -41,7 +41,7 @@ func WikiNameToFilename(name string) string {
 	return url.QueryEscape(name) + ".md"
 }
 
-// WikiNameToFilename converts a wiki name to its corresponding filename - keep direcory paths.
+// WikiNameToPathFilename converts a wiki name to its corresponding filename, keep directory paths.
 func WikiNameToPathFilename(name string) string {
 	// remove path up
 	re1 := regexp.MustCompile(`(\.\.\/)`)
@@ -51,8 +51,7 @@ func WikiNameToPathFilename(name string) string {
 	return re2.ReplaceAllString(name, "$2") + ".md"
 }
 
-// Get raw file path inside wiki
-// removes last path element and returns
+// WikiNameToRawPrefix Get raw file path inside wiki, removes last path element and returns
 func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
 	a := strings.Split(wikiPage, "/")
 	a = a[:len(a)-1]
