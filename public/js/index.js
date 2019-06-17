@@ -3081,23 +3081,31 @@ function onOAuthLoginClick() {
     };
     // handle wiki page list element
     // create valid html list
-    const __page_list = function (line, level, link, selected) {
+    const __page_list = function (line, level, link, selected, error) {
         let out = '';
         let diff = level - openedLists.length;
         if(diff > 0) { //open new level
             out += _openList();
-            out += __page_list(line,level, link, selected);
+            out += __page_list(line,level, link, selected, error);
         }  else if(diff < 0 ) {
             out += _closeList(-diff);
-            out += __page_list(line, level, link, selected);
+            out += __page_list(line, level, link, selected, error);
         } else { // only add list element
-            if (link === null){
-                out += ((listEopen)?'</li>':'') + '<li><span>' + line + '</span>';
-            } else if (link === false) {
-                out += ((listEopen)?'</li>':'') + '<li><span class="error">' + line + '</span>';
-            } else {
-                out += ((listEopen)?'</li>':'') + '<li><a'+(selected?' class="selected"':'')+' href="' + link + '">' + line + '</a>';
+            let t = (link === null)? 'span' : 'a';
+            let ref = (link === null)? '':' href="' + link + '"';
+            let cl = '' + (error === true? ' error': '') + (selected?' selected':'');
+            let l = line;
+            try{
+                l = decodeURIComponent(l);
+                try {
+                    l = decodeURIComponent(l);
+                } catch (e) {
+                    l = decodeURIComponent(line);
+                }
+            } catch (e) {
+                l = line;
             }
+            out += ((listEopen)?'</li>':'') + '<li><'+t+' class="'+cl+'"'+ref+'>' + escapeHtml(l) + '</'+t+'>';
             listEopen = true;
         }
         return out;
@@ -3182,6 +3190,17 @@ function onOAuthLoginClick() {
             }
         }
     };
+    const escapeHtml = function (text) {
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    // wiki page toc
     // wiki page toc
     const wiki_page_toc = function(target, data) {
         let rm;
@@ -3197,12 +3216,12 @@ function onOAuthLoginClick() {
                 let ll = 0;
                 for(let i = 0; i < data.length; i++){
                     if (i == 0) {
-                        ll = data[i].dataset.url.indexOf('wiki', 0) + 5;
+                        ll = data[i].dataset.url.indexOf('/wiki/', 0) + 6;
                         l = data[i].dataset.url.substr(0, ll);
                     }
                     let o = {li: data[i].dataset.url.substr(ll), t: '', l: 0, s: false, p: '', al:true};
-                    o.l = (o.li.match(/(\/|%2F)/g) || []).length + 1;
-                    let lisplit = o.li.split(/%2F|\//g);
+                    o.l = (o.li.match(/(\/|%2F|%252F)/g) || []).length + 1;
+                    let lisplit = o.li.split(/%252F|%2F|\//g);
                     o.t = lisplit.pop();
                     o.p = lisplit.join('%2F');
                     tl.push(o.li);
@@ -3210,10 +3229,20 @@ function onOAuthLoginClick() {
                     //add missing objects without link
                     dl.push(o);
                 }
+                // compare paths
                 const sortArr = function(a, b){
-                    // Compare the 2 dates
-                    if(a.li < b.li) return -1;
-                    if(a.li > b.li) return 1;
+                    let _a = decodeURIComponent(a.li).toLowerCase().split('/');
+                    let _b = decodeURIComponent(b.li).toLowerCase().split('/');
+                    // split and compare path components
+                    for (let i = 0; i < Math.max(_a.length, _b.length); i++ ) {
+                        // end if one path is shorter
+                        if (i >= _a.length) return -1;
+                        if (i >= _b.length) return 1;
+                        // compare string components
+                        if(_a[i] < _b[i]) return -1;
+                        if(_a[i] > _b[i]) return 1;
+                    }
+                    // equals
                     return 0;
                 };
                 dl.sort(sortArr);
@@ -3224,8 +3253,8 @@ function onOAuthLoginClick() {
                         for(let j = 0; j < pathsplit.length; j++){
                             let p = pathsplit.slice(0, j + 1).join('%2F');
                             if (p != '' && tl.indexOf(p) == -1){
-                                let o = {li: p, t: '', l: (p.match(/(\/|%2F)/g) || []).length + 1, s: false, p: '', al:false};
-                                let lisplit = o.li.split(/%2F|\//g);
+                                let o = {li: p, t: '', l: (p.match(/(\/|%2F|%252F)/g) || []).length + 1, s: false, p: '', al:false};
+                                let lisplit = o.li.split(/%252F|%2F|\//g);
                                 o.t = lisplit.pop();
                                 tl.push(p);
                                 //add missing objects without link
@@ -3243,7 +3272,7 @@ function onOAuthLoginClick() {
                 for(let i = 0; i < dl.length; i++){
                     // create html
                     if(dl[i].t.length > 0 && dl[i].l >= 1) {
-                        html += __page_list( dl[i].t, dl[i].l, (last_link !== l+dl[i].li)?(dl[i].al? l+dl[i].li : null): false, dl[i].s);
+                        html += __page_list( dl[i].t, dl[i].l, (dl[i].al? l+dl[i].li : null), dl[i].s, (last_link !== l+dl[i].li && decodeURIComponent(last_link) !== l+dl[i].li && last_link !== decodeURIComponent(l+dl[i].li))? false : true );
                     } else {
                         html += _closeList(0);
                     }

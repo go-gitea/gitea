@@ -298,8 +298,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .page-toc-wrapper{z-index:1;background:#fff;position:relative;display:none}
 @media only screen and (min-width:1760px){.markdown:not(code) .page-toc-wrapper{display:block;float:left;left:-31%;width:26%;padding:0;margin-top:-3em!important;margin-right:-26%}
 }
-.markdown:not(code) .page-toc-wrapper a.selected{font-weight:700;font-style:italic}
-.markdown:not(code) .page-toc-wrapper span.error{color:#f22}
+.markdown:not(code) .page-toc-wrapper a.selected,.markdown:not(code) .page-toc-wrapper span.selected{font-weight:700;font-style:italic}
+.markdown:not(code) .page-toc-wrapper a.error,.markdown:not(code) .page-toc-wrapper span.error{color:#f22}
 .markdown:not(code) .page-toc-wrapper .page-toc-close{display:none}
 .markdown:not(code) #page-toc-wiki-cb{display:none}
 @media only screen and (max-width:1759px){.markdown:not(code) #page-toc-wiki-cb:checked+.page-toc-wrapper{display:block;position:absolute;width:100%;max-width:420px;border:1px solid #404552;border-radius:5px;padding:20px;background:#fff;margin:-3em -3em 3em!important;z-index:5}
