@@ -423,9 +423,17 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			headSHA      string
 		)
 		if pr.Head.Repo != nil {
-			headRepoName = *pr.Head.Repo.Name
-			cloneURL = *pr.Head.Repo.CloneURL
+			if pr.Head.Repo.Name != nil {
+				headRepoName = *pr.Head.Repo.Name
+			}
+			if pr.Head.Repo.CloneURL != nil {
+				cloneURL = *pr.Head.Repo.CloneURL
+			}
+		}
+		if pr.Head.Ref != nil {
 			headRef = *pr.Head.Ref
+		}
+		if pr.Head.SHA != nil {
 			headSHA = *pr.Head.SHA
 		}
 		var mergeCommitSHA string
@@ -434,7 +442,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		}
 
 		var headUserName string
-		if pr.Head.User != nil {
+		if pr.Head.User != nil && pr.Head.User.Login != nil {
 			headUserName = *pr.Head.User.Login
 		}
 
