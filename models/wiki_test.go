@@ -6,6 +6,7 @@ package models
 
 import (
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
@@ -30,6 +31,22 @@ func TestNormalizeWikiName(t *testing.T) {
 	}
 }
 
+func TestWikiNameToSubURL(t *testing.T) {
+	type test struct {
+		Expected string
+		WikiName string
+	}
+	for _, test := range []test{
+		{"wiki%2Fpath", "wiki/../path/../../"},
+		{"wiki%2Fpath", " wiki/path ////// "},
+		{"wiki-name", "wiki-name"},
+		{"name%20with%2Fslash", "name with/slash"},
+		{"name%20with%25percent", "name with%percent"},
+	} {
+		assert.Equal(t, test.Expected, WikiNameToSubURL(test.WikiName))
+	}
+}
+
 func TestWikiNameToFilename(t *testing.T) {
 	type test struct {
 		Expected string
@@ -40,48 +57,88 @@ func TestWikiNameToFilename(t *testing.T) {
 		{"wiki-name.md", "wiki-name"},
 		{"name-with%2Fslash.md", "name with/slash"},
 		{"name-with%25percent.md", "name with%percent"},
+		{"wiki-name-with%2Fslash.md", "wiki name with/slash"},
+		{"%24%24%24%25%25%25%5E%5E%26%26%21%40%23%24%28%29%2C.%3C%3E.md", "$$$%%%^^&&!@#$(),.<>"},
 	} {
 		assert.Equal(t, test.Expected, WikiNameToFilename(test.WikiName))
 	}
 }
 
-func TestWikiNameToSubURL(t *testing.T) {
+func TestWikiNameToPathFilename(t *testing.T) {
 	type test struct {
 		Expected string
 		WikiName string
 	}
 	for _, test := range []test{
-		{"wiki-name", "wiki name"},
-		{"wiki-name", "wiki-name"},
-		{"name-with%2Fslash", "name with/slash"},
-		{"name-with%25percent", "name with%percent"},
+		{"wiki name.md", "wiki name"},
+		{"wiki-name.md", "wiki-name"},
+		{"name with/slash.md", "name with/slash"},
+		{"name with/slash.md", "name with/../slash"},
+		{"name with%percent.md", "name with%percent"},
+		{"git/config.md", ".git/config   "},
 	} {
-		assert.Equal(t, test.Expected, WikiNameToSubURL(test.WikiName))
+		assert.Equal(t, test.Expected, WikiNameToPathFilename(test.WikiName))
 	}
 }
 
-func TestWikiFilenameToName(t *testing.T) {
+func TestFilenameToPathFilename(t *testing.T) {
 	type test struct {
 		Expected string
 		Filename string
 	}
 	for _, test := range []test{
-		{"hello world", "hello-world.md"},
-		{"symbols/?*", "symbols%2F%3F%2A.md"},
+		{"wiki/name.md", "wiki%2Fname.md"},
+		{"wiki name path", "wiki%20name+path"},
+		{"name with/slash", "name with/slash"},
+		{"name with&and", "name with%2526and"},
+		{"name with%percent", "name with%percent"},
+		{"&&&&", "%26%26%26%26"},
 	} {
-		name, err := WikiFilenameToName(test.Filename)
+		assert.Equal(t, test.Expected, FilenameToPathFilename(test.Filename))
+	}
+}
+
+func TestWikiNameToRawPrefix(t *testing.T) {
+	type test struct {
+		RepoName string
+		WikiPage string
+		Expected string
+	}
+	for _, test := range []test{
+		{"/repo1/name", "wiki/path", "/repo1/name/wiki/raw/wiki"},
+		{"/repo2/name", "wiki/path/subdir", "/repo2/name/wiki/raw/wiki/path"},
+	} {
+		assert.Equal(t, test.Expected, WikiNameToRawPrefix(test.RepoName, test.WikiPage))
+	}
+}
+
+func TestWikiFilenameToName(t *testing.T) {
+	type test struct {
+		Expected1 string
+		Expected2 string
+		Filename  string
+	}
+	for _, test := range []test{
+		{"hello world", "hello world", "hello world.md"},
+		{"hello-world", "hello-world", "hello-world.md"},
+		{"symbols/?*", "symbols%2F%3F%2A", "symbols%2F%3F%2A.md"},
+		{"wiki-name-with/slash", "wiki-name-with%2Fslash", "wiki-name-with%2Fslash.md"},
+		{"$$$%%%^^&&!@#$(),.<>", "%24%24%24%25%25%25%5E%5E%26%26%21%40%23%24%28%29%2C.%3C%3E", "%24%24%24%25%25%25%5E%5E%26%26%21%40%23%24%28%29%2C.%3C%3E.md"},
+	} {
+		unescaped, basename, err := WikiFilenameToName(test.Filename)
 		assert.NoError(t, err)
-		assert.Equal(t, test.Expected, name)
+		assert.Equal(t, test.Expected1, unescaped)
+		assert.Equal(t, test.Expected2, basename)
 	}
 	for _, badFilename := range []string{
 		"nofileextension",
 		"wrongfileextension.txt",
 	} {
-		_, err := WikiFilenameToName(badFilename)
+		_, _, err := WikiFilenameToName(badFilename)
 		assert.Error(t, err)
 		assert.True(t, IsErrWikiInvalidFileName(err))
 	}
-	_, err := WikiFilenameToName("badescaping%%.md")
+	_, _, err := WikiFilenameToName("badescaping%%.md")
 	assert.Error(t, err)
 	assert.False(t, IsErrWikiInvalidFileName(err))
 }
@@ -96,9 +153,9 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 		"$$$%%%^^&&!@#$(),.<>",
 	} {
 		filename := WikiNameToFilename(name)
-		resultName, err := WikiFilenameToName(filename)
+		resultName, _, err := WikiFilenameToName(filename)
 		assert.NoError(t, err)
-		assert.Equal(t, NormalizeWikiName(name), resultName)
+		assert.Equal(t, NormalizeWikiName(name), NormalizeWikiName(resultName))
 	}
 }
 
@@ -163,10 +220,12 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			assert.NoError(t, err)
 			masterTree, err := gitRepo.GetTree("master")
 			assert.NoError(t, err)
-			wikiPath := WikiNameToFilename(wikiName)
+			wikiPath := WikiNameToPathFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
+			re := regexp.MustCompile(`(?m)(.*)(\/)([^\/]*)$`)
+
 			assert.NoError(t, err)
-			assert.Equal(t, wikiPath, entry.Name(), "%s not addded correctly", wikiName)
+			assert.Equal(t, re.ReplaceAllString(wikiPath, "$3"), entry.Name(), "%s not addded correctly", wikiName)
 		})
 	}
 
@@ -205,10 +264,13 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
-		wikiPath := WikiNameToFilename(newWikiName)
+		re := regexp.MustCompile(`(?m)(.*)(\/)([^\/]*)$`)
+
+		wikiPath := WikiNameToPathFilename(newWikiName)
+
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 		assert.NoError(t, err)
-		assert.Equal(t, wikiPath, entry.Name(), "%s not editted correctly", newWikiName)
+		assert.Equal(t, re.ReplaceAllString(wikiPath, "$3"), entry.Name(), "%s not editted correctly", newWikiName)
 
 		if newWikiName != "Home" {
 			_, err := masterTree.GetTreeEntryByPath("Home.md")
