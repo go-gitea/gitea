@@ -195,6 +195,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
+- `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
+- `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 
 ## OpenID (`openid`)
 
@@ -292,6 +294,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    [http://www.libravatar.org](http://www.libravatar.org)).
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
+- `REPOSITORY_AVATAR_FALLBACK`: **none**: How Gitea deals with missing repository avatars
+  - none = no avatar will be displayed
+  - random = random avatar will be generated
+  - image = default image will be used (which is set in `REPOSITORY_AVATAR_DEFAULT_IMAGE`)
+- `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: Image used as default repository avatar (if `REPOSITORY_AVATAR_FALLBACK` is set to image and none was uploaded)
 - `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
 - `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
 - `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.

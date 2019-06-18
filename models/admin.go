@@ -63,7 +63,7 @@ func RemoveAllWithNotice(title, path string) {
 func removeAllWithNotice(e Engine, title, path string) {
 	if err := os.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
-		log.Warn(desc)
+		log.Warn(title+" [%s]: %v", path, err)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}

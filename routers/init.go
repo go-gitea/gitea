@@ -5,7 +5,6 @@
 package routers
 
 import (
-	"path"
 	"strings"
 	"time"
 
@@ -42,7 +41,7 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
-	cache.NewContext()
+	_ = cache.NewContext()
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
@@ -99,7 +98,6 @@ func GlobalInit() {
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
-		log.NewGitLogger(path.Join(setting.LogRootPath, "http.log"))
 	}
 	if models.EnableSQLite3 {
 		log.Info("SQLite3 Supported")

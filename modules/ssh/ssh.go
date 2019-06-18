@@ -37,7 +37,10 @@ func cleanCommand(cmd string) string {
 func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 	for newChan := range chans {
 		if newChan.ChannelType() != "session" {
-			newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
+			err := newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
+			if err != nil {
+				log.Error("Error rejecting channel: %v", err)
+			}
 			continue
 		}
 
@@ -48,7 +51,11 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 		}
 
 		go func(in <-chan *ssh.Request) {
-			defer ch.Close()
+			defer func() {
+				if err = ch.Close(); err != nil {
+					log.Error("Close: %v", err)
+				}
+			}()
 			for req := range in {
 				payload := cleanCommand(string(req.Payload))
 				switch req.Type {
@@ -87,17 +94,34 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 						return
 					}
 
-					req.Reply(true, nil)
-					go io.Copy(input, ch)
-					io.Copy(ch, stdout)
-					io.Copy(ch.Stderr(), stderr)
+					err = req.Reply(true, nil)
+					if err != nil {
+						log.Error("SSH: Reply: %v", err)
+					}
+					go func() {
+						_, err = io.Copy(input, ch)
+						if err != nil {
+							log.Error("SSH: Copy: %v", err)
+						}
+					}()
+					_, err = io.Copy(ch, stdout)
+					if err != nil {
+						log.Error("SSH: Copy: %v", err)
+					}
+					_, err = io.Copy(ch.Stderr(), stderr)
+					if err != nil {
+						log.Error("SSH: Copy: %v", err)
+					}
 
 					if err = cmd.Wait(); err != nil {
 						log.Error("SSH: Wait: %v", err)
 						return
 					}
 
-					ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+					_, err = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+					if err != nil {
+						log.Error("SSH: SendRequest: %v", err)
+					}
 					return
 				default:
 				}
@@ -203,7 +227,11 @@ func GenKeyPair(keyPath string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err = f.Close(); err != nil {
+			log.Error("Close: %v", err)
+		}
+	}()
 
 	if err := pem.Encode(f, privateKeyPEM); err != nil {
 		return err
@@ -220,7 +248,11 @@ func GenKeyPair(keyPath string) error {
 	if err != nil {
 		return err
 	}
-	defer p.Close()
+	defer func() {
+		if err = p.Close(); err != nil {
+			log.Error("Close: %v", err)
+		}
+	}()
 	_, err = p.Write(public)
 	return err
 }

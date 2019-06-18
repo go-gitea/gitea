@@ -1109,6 +1109,10 @@
     }
 
     &.compare.pull {
+        .show-form-container {
+            text-align: left;
+        }
+
         .choose.branch {
             .octicon {
                 padding-right: 10px;
@@ -2215,6 +2219,19 @@ tbody.commit-list {
     vertical-align: baseline;
 }
 
+.commit-list .message-wrapper {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 24px);
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.commit-list .message-wrapper .commit-status-link {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .commit-body {
     white-space: pre-wrap;
 }
@@ -2223,6 +2240,7 @@ tbody.commit-list {
     &.top {
         text-align: left;
     }
+
     .commit-body {
         margin: 0;
     }

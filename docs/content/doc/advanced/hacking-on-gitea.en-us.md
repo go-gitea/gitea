@@ -209,7 +209,7 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
 found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo

@@ -1,4 +1,4 @@
-<table id="repo-files-table" class="ui single line table">
+<table id="repo-files-table" class="ui single line table fixed">
 	<thead>
 		<tr class="commit-list">
 			<th colspan="2">
@@ -27,12 +27,13 @@
 							</div>
 						{{end}}
 				</a>
-				<span class="grey has-emoji">{{.LatestCommit.Summary}}
+				{{template "repo/commit_status" .LatestCommitStatus}}
+				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}">{{.LatestCommit.Summary}}
 				{{if IsMultilineCommitMessage .LatestCommit.Message}}
 					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 					<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 				{{end}}
-				{{template "repo/commit_status" .LatestCommitStatus}}</span>
+			    </span>
 			</th>
 			<th class="text grey right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
 		</tr>
@@ -82,7 +83,7 @@
 				{{end}}
 				<td class="message has-emoji">
 					<span class="truncate">
-						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}">{{$commit.Summary}}</a>
+						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary}}</a>
 					</span>
 				</td>
 				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>

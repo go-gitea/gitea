@@ -250,16 +250,18 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath           string
-	AvatarMaxWidth             int
-	AvatarMaxHeight            int
-	GravatarSource             string
-	GravatarSourceURL          *url.URL
-	DisableGravatar            bool
-	EnableFederatedAvatar      bool
-	LibravatarService          *libravatar.Libravatar
-	AvatarMaxFileSize          int64
-	RepositoryAvatarUploadPath string
+	AvatarUploadPath              string
+	AvatarMaxWidth                int
+	AvatarMaxHeight               int
+	GravatarSource                string
+	GravatarSourceURL             *url.URL
+	DisableGravatar               bool
+	EnableFederatedAvatar         bool
+	LibravatarService             *libravatar.Libravatar
+	AvatarMaxFileSize             int64
+	RepositoryAvatarUploadPath    string
+	RepositoryAvatarFallback      string
+	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -295,12 +297,14 @@ var (
 	// API settings
 	API = struct {
 		EnableSwagger          bool
+		SwaggerURL             string
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
 		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
+		SwaggerURL:             "",
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
@@ -434,7 +438,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -543,13 +547,14 @@ func NewContext() {
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Protocol = HTTP
-	if sec.Key("PROTOCOL").String() == "https" {
+	switch sec.Key("PROTOCOL").String() {
+	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
-	} else if sec.Key("PROTOCOL").String() == "fcgi" {
+	case "fcgi":
 		Protocol = FCGI
-	} else if sec.Key("PROTOCOL").String() == "unix" {
+	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
@@ -578,17 +583,17 @@ func NewContext() {
 	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
+	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}
@@ -842,6 +847,8 @@ func NewContext() {
 	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
 		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
 	}
+	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
+	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
@@ -894,6 +901,10 @@ func NewContext() {
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
+
+	u := *appURL
+	u.Path = path.Join(u.Path, "api", "swagger")
+	API.SwaggerURL = u.String()
 
 	newCron()
 	newGit()
