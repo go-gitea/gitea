@@ -7,14 +7,13 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/generate"
-
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"
+
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 )
 
 func hashAppToken(x *xorm.Engine) error {

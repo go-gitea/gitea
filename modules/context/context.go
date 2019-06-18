@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"
+
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/csrf"

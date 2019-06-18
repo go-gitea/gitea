@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/log"
+
 	macaron "gopkg.in/macaron.v1"
 )
 

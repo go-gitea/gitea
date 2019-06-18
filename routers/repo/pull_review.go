@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/log"
 )

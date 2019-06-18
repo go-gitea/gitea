@@ -18,13 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"golang.org/x/crypto/ssh"
-
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
+
+	"github.com/Unknwon/com"
+	"golang.org/x/crypto/ssh"
 )
 
 func cleanCommand(cmd string) string {

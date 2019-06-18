@@ -20,13 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
-
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"
 
 	"golang.org/x/net/html/charset"

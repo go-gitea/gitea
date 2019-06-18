@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/log"
 

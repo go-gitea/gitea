@@ -266,6 +266,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 
 	x.SetMapper(core.GonicMapper{})
 	x.SetLogger(bridge.NewGiteaLogger("xorm", !setting.ProdMode))
+	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
@@ -278,6 +279,7 @@ func SetEngine() (err error) {
 
 	x.SetMapper(core.GonicMapper{})
 	x.SetLogger(bridge.NewGiteaLogger("xorm", setting.LogSQL))
+	x.ShowSQL(setting.LogSQL)
 	if DbCfg.Type == "mysql" {
 		x.SetMaxIdleConns(0)
 		x.SetConnMaxLifetime(3 * time.Second)

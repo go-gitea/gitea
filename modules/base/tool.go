@@ -29,7 +29,6 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"

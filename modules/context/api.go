@@ -9,14 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-macaron/csrf"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 
+	"github.com/go-macaron/csrf"
 	"gopkg.in/macaron.v1"
 )
 

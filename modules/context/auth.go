@@ -8,9 +8,9 @@ package context
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
+
 	"github.com/go-macaron/csrf"
 	macaron "gopkg.in/macaron.v1"
 )

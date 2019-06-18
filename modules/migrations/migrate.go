@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/log"
 )

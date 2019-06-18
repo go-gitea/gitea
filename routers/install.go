@@ -11,19 +11,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"gopkg.in/ini.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/log"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"gopkg.in/ini.v1"
 )
 
 const (

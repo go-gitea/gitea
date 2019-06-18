@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 )

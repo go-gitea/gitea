@@ -7,7 +7,6 @@ package ui
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/log"
 )
