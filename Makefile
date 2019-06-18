@@ -383,7 +383,7 @@ npm: npm-check
 .PHONY: npm-update
 npm-update: npm-check
 	npx updates -cu
-	rm -rf node_modules
+	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
 .PHONY: js
