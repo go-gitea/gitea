@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 
