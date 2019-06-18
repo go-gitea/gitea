@@ -109,14 +109,23 @@ func OpenRepository(repoPath string) (*Repository, error) {
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
+	_, stderr, err := com.ExecCmdDir(repo.Path, GitExecutable, "log", "-1")
+	if err != nil {
+		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
+			return true, nil
+		} else {
+			return false, fmt.Errorf("check empty: %v - %s", err, stderr)
+		}
+	}
+
+	/*var errbuf strings.Builder
 	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
 			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
 			return true, nil
 		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
-	}
+	}*/
 
 	return false, nil
 }
