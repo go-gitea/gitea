@@ -69,13 +69,15 @@ func runMigrateTask(t *models.Task) error {
 					log.Error("DeleteRepository: %v", errDelete)
 				}
 			}
-		} else {
-			if err := models.FinishMigrateTask(t); err != nil {
-				log.Error("Task UpdateCols failed: %s", err.Error())
-			} else {
-				notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
-			}
+			return
 		}
+
+		if err := models.FinishMigrateTask(t); err != nil {
+			log.Error("Task UpdateCols failed: %s", err.Error())
+			return
+		}
+
+		notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
 	}()
 
 	if err := t.LoadRepo(); err != nil {

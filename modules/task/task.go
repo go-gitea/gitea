@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -45,7 +46,11 @@ func Init() error {
 		return fmt.Errorf("Unsupported task queue type: %v", setting.Task.QueueType)
 	}
 
-	go taskQueue.Run()
+	go func() {
+		if err := taskQueue.Run(); err != nil {
+			log.Error("taskQueue.Run end failed: %v", err)
+		}
+	}()
 
 	tasks, err := models.FindTasks(models.FindTaskOptions{
 		Status: int(structs.TaskStatusRunning),
