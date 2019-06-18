@@ -10,7 +10,6 @@ import (
 
 	"github.com/Unknwon/com"
 
-
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"

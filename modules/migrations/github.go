@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"strings"
 
-
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/log"
 

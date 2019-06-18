@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/log"
 	"github.com/go-xorm/xorm"

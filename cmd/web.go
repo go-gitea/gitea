@@ -13,7 +13,6 @@ import (
 	"os"
 	"strings"
 
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"

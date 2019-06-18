@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 
-
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"
 

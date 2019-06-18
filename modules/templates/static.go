@@ -15,7 +15,6 @@ import (
 	"path"
 	"strings"
 
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 	"github.com/Unknwon/com"

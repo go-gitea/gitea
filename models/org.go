@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/log"
 

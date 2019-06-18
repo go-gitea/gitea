@@ -5,7 +5,6 @@
 package markup
 
 import (
-
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/log"

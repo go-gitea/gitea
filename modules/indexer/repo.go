@@ -7,7 +7,6 @@ package indexer
 import (
 	"strings"
 
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 

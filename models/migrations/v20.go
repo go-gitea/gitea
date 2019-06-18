@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 

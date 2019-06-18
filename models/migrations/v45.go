@@ -5,7 +5,6 @@
 package migrations
 
 import (
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
 

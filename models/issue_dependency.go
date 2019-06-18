@@ -5,7 +5,6 @@
 package models
 
 import (
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/log"
