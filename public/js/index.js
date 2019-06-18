@@ -1170,6 +1170,7 @@ function initWikiForm() {
                             var cursorPos = cm.getCursor();
                             cm.setCursor(cursorPos.line, cursorPos.ch - 1);
                         }
+                        cm.focus();
                     },
                     className: "fa fa-angle-right",
                     title: "Add Inline Code",
@@ -1178,6 +1179,7 @@ function initWikiForm() {
                     action: function(e){
                         let cm = e.codemirror;
                         cm.replaceSelection("\n- [ ] " + cm.getSelection());
+                        cm.focus();
                     },
                     className: "fa fa-square-o",
                     title: "Add Checkbox (empty)",
@@ -1187,6 +1189,7 @@ function initWikiForm() {
                     action: function(e){
                         let cm = e.codemirror;
                         cm.replaceSelection("\n- [x] " + cm.getSelection());
+                        cm.focus();
                     },
                     className: "fa fa-check-square-o",
                     title: "Add Checkbox (checked)",
