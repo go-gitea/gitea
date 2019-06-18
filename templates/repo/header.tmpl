@@ -16,7 +16,7 @@
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{MirrorAddress $.Mirror}}">{{MirrorAddress $.Mirror}}</a></div>{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
-			{{if not .IsCreating}}
+			{{if not .IsBeingCreated}}
 				<div class="repo-buttons">
 					<div class="ui labeled button" tabindex="0">
 						<a class="ui compact basic button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
@@ -49,7 +49,7 @@
 		</div><!-- end grid -->
 	</div><!-- end container -->
 {{end}}
-{{if not .Repository.IsCreating}}
+{{if not .Repository.IsBeingCreated}}
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
 			{{if .Permission.CanRead $.UnitTypeCode}}
