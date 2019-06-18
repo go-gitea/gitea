@@ -1129,6 +1129,8 @@ function initTeamSettings() {
 
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
+    var sideBySideChanges = 0;
+    var sideBySideTimeout = null;
     if ($editArea.length > 0) {
         var simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
@@ -1137,20 +1139,45 @@ function initWikiForm() {
             previewRender: function (plainText, preview) { // Async method
                 setTimeout(function () {
                     // FIXME: still send render request when return back to edit mode
-                    $.post($editArea.data('url'), {
-                            "_csrf": csrf,
-                            "mode": "gfm",
-                            "context": $editArea.data('context'),
-                            "text": plainText
-                        },
-                        function (data) {
-                            preview.innerHTML = '<div class="markdown">' + data + '</div>';
-                            emojify.run($('.editor-preview')[0]);
+                    const render = function (){
+                        sideBySideChanges = 0;
+                        if (sideBySideTimeout != null){
+                            clearTimeout(sideBySideTimeout);
+                            sideBySideTimeout = null;
                         }
-                    );
+                        $.post($editArea.data('url'), {
+                                "_csrf": csrf,
+                                "mode": "gfm",
+                                "context": $editArea.data('context'),
+                                "text": plainText
+                            },
+                            function (data) {
+                                preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                                emojify.run($('.editor-preview')[0]);
+                            }
+                        );
+                    };
+                    if (!simplemde.isSideBySideActive()){
+                        render();
+                    } else {
+                        // delay preview by keystroke counting
+                        sideBySideChanges++;
+                        if (sideBySideChanges > 10){
+                            render();
+                        }
+                        // or delay preview by timeout
+                        if (sideBySideTimeout != null){
+                            clearTimeout(sideBySideTimeout);
+                            sideBySideTimeout = null;
+                        }
+                        sideBySideTimeout = setTimeout(render, 1000);
+                    }
                 }, 0);
-
-                return "Loading...";
+                if (!simplemde.isSideBySideActive()){
+                    return "Loading...";
+                } else {
+                    return preview.innerHTML;
+                }
             },
             renderingConfig: {
                 singleLineBreaks: false
@@ -1163,8 +1190,13 @@ function initWikiForm() {
                 "code", "quote", "|",
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
-                "clean-block", "preview", "fullscreen"]
-        })
+                "clean-block", "preview", "fullscreen", {
+                    name: "side-by-side",
+                    action: SimpleMDE.toggleSideBySide,
+                    className: "fa fa-columns no-disable no-mobile",
+                    title: "Toggle Side by Side (F9)",
+                }],
+        });
         $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
 }
