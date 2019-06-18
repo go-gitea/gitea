@@ -8,11 +8,11 @@ package models
 import (
 	"fmt"
 
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
+
+	"github.com/Unknwon/com"
 )
 
 func (issue *Issue) mailSubject() string {

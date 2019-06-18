@@ -7,12 +7,11 @@ package cron
 import (
 	"time"
 
-	"github.com/gogits/cron"
-
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/log"
+
+	"github.com/gogits/cron"
 )
 
 var c = cron.New()
