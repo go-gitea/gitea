@@ -1164,8 +1164,44 @@ function initWikiForm() {
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
-        })
+        });
         $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
+
+        setTimeout(function(){
+            let $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
+            let $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
+            let $toolbar = $('.editor-toolbar');
+            let $bPreview = $('.editor-toolbar a.fa-eye');
+            $bEdit.on('click', function () {
+                if ($toolbar.hasClass('disabled-for-preview')){
+                    $bPreview.click();
+                }
+            });
+            $bPrev.on('click', function () {
+                if (!$toolbar.hasClass('disabled-for-preview')){
+                    $bPreview.click();
+                }
+            });
+            $bPreview.on('click', function(){
+                setTimeout(function(){
+                    if ($toolbar.hasClass('disabled-for-preview')){
+                        if ($bEdit.hasClass('active')){
+                            $bEdit.removeClass('active');
+                        }
+                        if (!$bPrev.hasClass('active')){
+                            $bPrev.addClass('active');
+                        }
+                    } else {
+                        if (!$bEdit.hasClass('active')){
+                            $bEdit.addClass('active');
+                        }
+                        if ($bPrev.hasClass('active')){
+                            $bPrev.removeClass('active');
+                        }
+                    }
+                }, 5);
+            });
+        },5);
     }
 }
 
