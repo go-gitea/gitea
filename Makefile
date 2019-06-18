@@ -377,25 +377,21 @@ npm-check:
 	fi;
 
 .PHONY: npm
-npm:
-	$(MAKE) npm-check
+npm: npm-check
 	npm install --no-save
 
 .PHONY: npm-update
-npm-update:
-	$(MAKE) npm-check
+npm-update: npm-check
 	npx updates -cu
 	rm -rf node_modules
 	npm install --package-lock
 
 .PHONY: js
-js:
-	$(MAKE) npm
+js: npm
 	npx eslint public/js
 
 .PHONY: css
-css:
-	$(MAKE) npm
+css: npm
 	npx lesshint public/less/
 	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
