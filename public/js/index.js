@@ -1170,7 +1170,7 @@ function initWikiForm() {
                             clearTimeout(sideBySideTimeout);
                             sideBySideTimeout = null;
                         }
-                        sideBySideTimeout = setTimeout(render, 1000);
+                        sideBySideTimeout = setTimeout(render, 600);
                     }
                 }, 0);
                 if (!simplemde.isSideBySideActive()){
