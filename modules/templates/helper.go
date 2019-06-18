@@ -343,7 +343,7 @@ func ReplaceLeft(s, oldS, newS string) string {
 
 	// allocating space for the new string
 	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
+	replacement := make([]byte, curLen)
 
 	j := 0
 	for ; j < n*newLen; j += newLen {

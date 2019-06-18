@@ -100,8 +100,7 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 			Object: &api.GitObject{
 				SHA:  refs[i].Object.String(),
 				Type: refs[i].Type,
-				// TODO: Add commit/tag info URL
-				//URL:  ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Type + "s/" + refs[i].Object.String(),
+				URL:  ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Type + "s/" + refs[i].Object.String(),
 			},
 		}
 	}
