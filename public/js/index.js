@@ -1160,7 +1160,37 @@ function initWikiForm() {
             spellChecker: false,
             toolbar: ["bold", "italic", "strikethrough", "|",
                 "heading-1", "heading-2", "heading-3", "heading-bigger", "heading-smaller", "|",
-                "code", "quote", "|",
+                {
+                    name: "code-inline",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        var selection = cm.getSelection();
+                        cm.replaceSelection("`" + selection + "`");
+                        if (!selection) {
+                            var cursorPos = cm.getCursor();
+                            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
+                        }
+                    },
+                    className: "fa fa-angle-right",
+                    title: "Add Inline Code",
+                },"code", "quote", "|", {
+                    name: "checkbox-empty",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [ ] " + cm.getSelection());
+                    },
+                    className: "fa fa-square-o",
+                    title: "Add Checkbox (empty)",
+                },
+                {
+                    name: "checkbox-checked",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [x] " + cm.getSelection());
+                    },
+                    className: "fa fa-check-square-o",
+                    title: "Add Checkbox (checked)",
+                }, "|",
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
