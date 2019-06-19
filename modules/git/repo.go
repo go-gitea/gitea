@@ -113,9 +113,8 @@ func (repo *Repository) IsEmpty() (bool, error) {
 	if err != nil {
 		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
 			return true, nil
-		} else {
-			return false, fmt.Errorf("check empty: %v - %s", err, stderr)
 		}
+		return false, fmt.Errorf("check empty: %v - %s", err, stderr)
 	}
 
 	/*var errbuf strings.Builder
