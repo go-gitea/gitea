@@ -366,29 +366,32 @@ release-compress:
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
-.PHONY: js
-js:
-	@if ([ ! -d "$(PWD)/node_modules" ]); then \
-		echo "node_modules directory is absent, please run 'npm install' first"; \
+npm-check:
+	@hash npm > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install Node.js 8.x or greater with npm"; \
 		exit 1; \
 	fi;
 	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
+		echo "Please install Node.js 8.x or greater with npm"; \
 		exit 1; \
 	fi;
+
+.PHONY: npm
+npm: npm-check
+	npm install --no-save
+
+.PHONY: npm-update
+npm-update: npm-check
+	npx updates -cu
+	rm -rf node_modules package-lock.json
+	npm install --package-lock
+
+.PHONY: js
+js: npm
 	npx eslint public/js
 
 .PHONY: css
-css:
-	@if ([ ! -d "$(PWD)/node_modules" ]); then \
-		echo "node_modules directory is absent, please run 'npm install' first"; \
-		exit 1; \
-	fi;
-	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
-		exit 1; \
-	fi;
-
+css: npm
 	npx lesshint public/less/
 	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)

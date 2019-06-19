@@ -362,7 +362,21 @@ func Getdents(fd int, buf []byte) (n int, err error) {
 
 func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
 	if supportsABI(_ino64First) {
-		return getdirentries_freebsd12(fd, buf, basep)
+		if unsafe.Sizeof(*basep) == 8 {
+			return getdirentries_freebsd12(fd, buf, (*uint64)(unsafe.Pointer(basep)))
+		}
+		// The freebsd12 syscall needs a 64-bit base. On 32-bit machines
+		// we can't just use the basep passed in. See #32498.
+		var base uint64 = uint64(*basep)
+		n, err = getdirentries_freebsd12(fd, buf, &base)
+		*basep = uintptr(base)
+		if base>>32 != 0 {
+			// We can't stuff the base back into a uintptr, so any
+			// future calls would be suspect. Generate an error.
+			// EIO is allowed by getdirentries.
+			err = EIO
+		}
+		return
 	}
 
 	// The old syscall entries are smaller than the new. Use 1/4 of the original
@@ -404,22 +418,22 @@ func roundup(x, y int) int {
 
 func (s *Stat_t) convertFrom(old *stat_freebsd11_t) {
 	*s = Stat_t{
-		Dev:      uint64(old.Dev),
-		Ino:      uint64(old.Ino),
-		Nlink:    uint64(old.Nlink),
-		Mode:     old.Mode,
-		Uid:      old.Uid,
-		Gid:      old.Gid,
-		Rdev:     uint64(old.Rdev),
-		Atim:     old.Atim,
-		Mtim:     old.Mtim,
-		Ctim:     old.Ctim,
-		Birthtim: old.Birthtim,
-		Size:     old.Size,
-		Blocks:   old.Blocks,
-		Blksize:  old.Blksize,
-		Flags:    old.Flags,
-		Gen:      uint64(old.Gen),
+		Dev:     uint64(old.Dev),
+		Ino:     uint64(old.Ino),
+		Nlink:   uint64(old.Nlink),
+		Mode:    old.Mode,
+		Uid:     old.Uid,
+		Gid:     old.Gid,
+		Rdev:    uint64(old.Rdev),
+		Atim:    old.Atim,
+		Mtim:    old.Mtim,
+		Ctim:    old.Ctim,
+		Btim:    old.Btim,
+		Size:    old.Size,
+		Blocks:  old.Blocks,
+		Blksize: old.Blksize,
+		Flags:   old.Flags,
+		Gen:     uint64(old.Gen),
 	}
 }
 
@@ -555,7 +569,7 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Fsync(fd int) (err error)
 //sys	Ftruncate(fd int, length int64) (err error)
 //sys	getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error)
-//sys	getdirentries_freebsd12(fd int, buf []byte, basep *uintptr) (n int, err error)
+//sys	getdirentries_freebsd12(fd int, buf []byte, basep *uint64) (n int, err error)
 //sys	Getdtablesize() (size int)
 //sysnb	Getegid() (egid int)
 //sysnb	Geteuid() (uid int)
