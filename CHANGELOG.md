@@ -4,6 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.8.3](https://github.com/go-gitea/gitea/releases/tag/v1.8.3) - 2019-06-17
+* BUGFIXES
+  * Always set userID on LFS authentication (#7224) (Part of #6993)
+  * Fix LFS Locks over SSH (#6999) (#7223)
+  * Fix duplicated file on pull request conflicted files (#7211) (#7214)
+  * Detect noreply email address as user (#7133) (#7195)
+  * Don't get milestone from DB if ID is zero (#7169) (#7174)
+  * Allow archived repos to be (un)starred and (un)watched (#7163) (#7168)
+  * Fix GCArgs load from ini (#7156) (#7157)
+
 ## [1.8.2](https://github.com/go-gitea/gitea/releases/tag/v1.8.2) - 2019-05-29
 * BUGFIXES
   * Fix possbile mysql invalid connnection error (#7051) (#7071)

@@ -52,7 +52,6 @@ pipeline:
     image: webhippie/nodejs:latest
     pull: true
     commands:
-      - npm install
       - make css
       - make js
     when:

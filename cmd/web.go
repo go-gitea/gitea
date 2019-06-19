@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -82,11 +81,9 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		}
 	}()
 	server := &http.Server{
-		Addr:    listenAddr,
-		Handler: m,
-		TLSConfig: &tls.Config{
-			GetCertificate: certManager.GetCertificate,
-		},
+		Addr:      listenAddr,
+		Handler:   m,
+		TLSConfig: certManager.TLSConfig(),
 	}
 	return server.ListenAndServeTLS("", "")
 }
