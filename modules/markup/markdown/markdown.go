@@ -132,7 +132,8 @@ const (
 		blackfriday.EXTENSION_DEFINITION_LISTS |
 		blackfriday.EXTENSION_FOOTNOTES |
 		blackfriday.EXTENSION_HEADER_IDS |
-		blackfriday.EXTENSION_AUTO_HEADER_IDS
+		blackfriday.EXTENSION_AUTO_HEADER_IDS |
+		blackfriday.EXTENSION_AUTOLINK
 	blackfridayHTMLFlags = 0 |
 		blackfriday.HTML_SKIP_STYLE |
 		blackfriday.HTML_OMIT_CONTENTS |
