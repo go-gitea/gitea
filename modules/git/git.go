@@ -91,17 +91,20 @@ func init() {
 	if version.Compare(gitVersion, GitVersionRequired, "<") {
 		panic(fmt.Sprintf("Git version not supported. Requires version > %v", GitVersionRequired))
 	}
+}
 
+// Init initializes git module
+func Init() error {
 	// Git requires setting user.name and user.email in order to commit changes.
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if stdout, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
 			// ExitError indicates this config is not set
 			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
 				if _, stderr, gerr := process.GetManager().Exec("git.Init(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
-					panic(fmt.Sprintf("Failed to set git %s(%s): %s", configKey, gerr, stderr))
+					return fmt.Errorf("Failed to set git %s(%s): %s", configKey, gerr, stderr)
 				}
 			} else {
-				panic(fmt.Sprintf("Failed to get git %s(%s): %s", configKey, err, stderr))
+				return fmt.Errorf("Failed to get git %s(%s): %s", configKey, err, stderr)
 			}
 		}
 	}
@@ -109,8 +112,9 @@ func init() {
 	// Set git some configurations.
 	if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.quotepath false)",
 		GitExecutable, "config", "--global", "core.quotepath", "false"); err != nil {
-		panic(fmt.Sprintf("Failed to execute 'git config --global core.quotepath false': %s", stderr))
+		return fmt.Errorf("Failed to execute 'git config --global core.quotepath false': %s", stderr)
 	}
+	return nil
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
