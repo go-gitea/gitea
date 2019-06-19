@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
-	session_service "code.gitea.io/gitea/modules/session"
+	_ "code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
@@ -197,7 +197,6 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(captcha.Captchaer(captcha.Options{
 		SubURL: setting.AppSubURL,
 	}))
-	session.Register("VirtualSession", &session_service.VirtualSessionProvider{})
 	m.Use(session.Sessioner(setting.SessionConfig))
 	m.Use(csrf.Csrfer(csrf.Options{
 		Secret:         setting.SecretKey,

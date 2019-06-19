@@ -101,6 +101,10 @@ func (o *VirtualSessionProvider) GC() {
 	o.provider.GC()
 }
 
+func init() {
+	session.Register("VirtualSession", &VirtualSessionProvider{})
+}
+
 // VirtualStore represents a virtual session store implementation.
 type VirtualStore struct {
 	p    *VirtualSessionProvider
