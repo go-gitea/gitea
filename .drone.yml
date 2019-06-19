@@ -294,7 +294,7 @@ pipeline:
       branch: [ master ]
 
   docker-dryrun:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     repo: gitea/gitea
     cache_from: gitea/gitea
@@ -303,7 +303,7 @@ pipeline:
       event: [ pull_request ]
 
   release-docker:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
