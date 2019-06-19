@@ -138,14 +138,7 @@ make vet lint misspell-check
 
 ### Updating CSS
 
-To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
-
-```bash
-npm install
-```
-
-At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do
-**not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
+To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
 
 Edit files in `public/less`, run the linter, regenerate the CSS and commit all changed files:
 
@@ -155,13 +148,7 @@ make css
 
 ### Updating JS
 
-To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
-
-```bash
-npm install
-```
-
-Edit files in `public/js` and run the linter:
+To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js` and run the linter:
 
 ```bash
 make js
@@ -250,7 +237,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment. 
+are available but may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
