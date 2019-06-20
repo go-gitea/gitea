@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"unicode"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
