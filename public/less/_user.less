@@ -21,7 +21,10 @@
                         list-style: none;
 
                         overflow: scroll; // prevent contents from spilling over
-                        display: flex; // lay out contents horizontally
+                        display: flex; // force horizontal layout
+                        .user-orgs {
+                            flex-grow: 1;
+                        }
 
                         &:not(:last-child) {
                             border-bottom: 1px solid #eaeaea;
