@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
-	_ "code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
@@ -35,6 +34,9 @@ import (
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
+
+	// to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
