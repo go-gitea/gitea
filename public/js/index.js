@@ -1154,6 +1154,9 @@ function initWikiForm() {
                             function (data) {
                                 preview.innerHTML = '<div class="markdown">' + data + '</div>';
                                 emojify.run($('.editor-preview')[0]);
+                                $(preview).find('pre code').each(function(_,e){
+                                    hljs.highlightBlock(e);
+                                });
                             }
                         );
                     };
