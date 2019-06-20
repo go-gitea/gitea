@@ -1190,12 +1190,7 @@ function initWikiForm() {
                 "code", "quote", "|",
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
-                "clean-block", "preview", "fullscreen", {
-                    name: "side-by-side",
-                    action: SimpleMDE.toggleSideBySide,
-                    className: "fa fa-columns no-disable no-mobile",
-                    title: "Toggle Side by Side (F9)",
-                }],
+                "clean-block", "preview", "fullscreen", "side-by-side"],
         });
         $(simplemde.codemirror.getInputField()).addClass("js-quick-submit");
     }
