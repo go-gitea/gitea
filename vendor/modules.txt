@@ -113,7 +113,7 @@ github.com/facebookgo/grace/gracenet
 github.com/facebookgo/httpdown
 # github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
 github.com/facebookgo/stats
-# github.com/gliderlabs/ssh v0.1.4
+# github.com/gliderlabs/ssh v0.2.2
 github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 github.com/glycerine/go-unsnap-stream
@@ -362,7 +362,7 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/agent
-# golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+# golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -374,7 +374,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
+# golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/unix

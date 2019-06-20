@@ -23,7 +23,9 @@ type localForwardChannelData struct {
 	OriginPort uint32
 }
 
-func directTcpipHandler(srv *Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx Context) {
+// DirectTCPIPHandler can be enabled by adding it to the server's
+// ChannelHandlers under direct-tcpip.
+func DirectTCPIPHandler(srv *Server, conn *gossh.ServerConn, newChan gossh.NewChannel, ctx Context) {
 	d := localForwardChannelData{}
 	if err := gossh.Unmarshal(newChan.ExtraData(), &d); err != nil {
 		newChan.Reject(gossh.ConnectionFailed, "error parsing forward data: "+err.Error())
@@ -84,12 +86,15 @@ type remoteForwardChannelData struct {
 	OriginPort uint32
 }
 
-type forwardedTCPHandler struct {
+// ForwardedTCPHandler can be enabled by creating a ForwardedTCPHandler and
+// adding the HandleSSHRequest callback to the server's RequestHandlers under
+// tcpip-forward and cancel-tcpip-forward.
+type ForwardedTCPHandler struct {
 	forwards map[string]net.Listener
 	sync.Mutex
 }
 
-func (h forwardedTCPHandler) HandleRequest(ctx Context, srv *Server, req *gossh.Request) (bool, []byte) {
+func (h *ForwardedTCPHandler) HandleSSHRequest(ctx Context, srv *Server, req *gossh.Request) (bool, []byte) {
 	h.Lock()
 	if h.forwards == nil {
 		h.forwards = make(map[string]net.Listener)

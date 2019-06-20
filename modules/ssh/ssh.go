@@ -56,31 +56,10 @@ func getExitStatusFromError(err error) int {
 	return waitStatus.ExitStatus()
 }
 
-func shellEscape(args []string) string {
-	var data = make([]string, len(args))
-	for k, v := range args {
-		data[k] = v
-
-		// This is a borderline dirty hack. It's designed to only escape
-		// strings which *might* need to be escaped. It uses a very
-		// limited character set so everything that needs to be quoted
-		// will be but we can ignore some simple cases to make it easier
-		// to parse in the ssh hook. We allow alpha-numeric characters
-		// along with ., _, and -
-		idx := strings.IndexFunc(v, func(r rune) bool {
-			return !unicode.IsLetter(r) && !unicode.IsDigit(r) && !strings.ContainsRune(".-_", r)
-		})
-		if idx > -1 || v == "" {
-			data[k] = "'" + strings.Replace(data[k], "'", "'\"'\"'", -1) + "'"
-		}
-	}
-	return strings.Join(data, " ")
-}
-
 func sessionHandler(session ssh.Session) {
 	keyID := session.Context().Value(giteaKeyID).(int64)
 
-	command := shellEscape(session.Command())
+	command := session.RawCommand()
 
 	log.Trace("SSH: Payload: %v", command)
 

@@ -61,8 +61,8 @@ type LocalPortForwardingCallback func(ctx Context, destinationHost string, desti
 // ReversePortForwardingCallback is a hook for allowing reverse port forwarding
 type ReversePortForwardingCallback func(ctx Context, bindHost string, bindPort uint32) bool
 
-// DefaultServerConfigCallback is a hook for creating custom default server configs
-type DefaultServerConfigCallback func(ctx Context) *gossh.ServerConfig
+// ServerConfigCallback is a hook for creating custom default server configs
+type ServerConfigCallback func(ctx Context) *gossh.ServerConfig
 
 // Window represents the size of a PTY window.
 type Window struct {
