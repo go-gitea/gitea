@@ -517,6 +517,22 @@ a.ui.basic.green.label:hover {
     border-color: #4c505c !important;
 }
 
+.repository.file.editor.edit,
+.repository.wiki.new .CodeMirror {
+    border-right: 1px solid rgba(187,187,187, 0.6);
+    border-left: 1px solid rgba(187,187,187, 0.6);
+    border-bottom: 1px solid rgba(187,187,187, 0.6);
+
+    .editor-preview {
+        background: #353945;
+        scrollbar-color: #2a2a2a white;
+
+        .markdown:not(code).ui.segment {
+            border-width: 0;
+        }
+    }
+}
+
 .ui.dropdown .menu {
     background: #2c303a;
 }
