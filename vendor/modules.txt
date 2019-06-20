@@ -1,3 +1,5 @@
+# cloud.google.com/go v0.34.0
+cloud.google.com/go/civil
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
@@ -85,8 +87,9 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
+# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
 github.com/denisenkom/go-mssqldb
+github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 github.com/dgrijalva/jwt-go
 # github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712
@@ -147,7 +150,7 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
-# github.com/go-sql-driver/mysql v1.4.1 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
+# github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
 # github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
 github.com/go-xorm/xorm
