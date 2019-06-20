@@ -242,6 +242,11 @@ type CheckoutOptions struct {
 	// Force, if true when switching branches, proceed even if the index or the
 	// working tree differs from HEAD. This is used to throw away local changes
 	Force bool
+	// Keep, if true when switching branches, local changes (the index or the
+	// working tree changes) will be kept so that they can be committed to the
+	// target branch. Force and Keep are mutually exclusive, should not be both
+	// set to true.
+	Keep bool
 }
 
 // Validate validates the fields and sets the default values.
