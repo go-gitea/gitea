@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/go-xorm/xorm"
 )
 

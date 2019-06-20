@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 )
 

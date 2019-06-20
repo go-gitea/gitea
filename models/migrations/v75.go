@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 )
 

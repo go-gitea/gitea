@@ -37,7 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 	ini "gopkg.in/ini.v1"
 )

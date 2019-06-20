@@ -11,8 +11,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 	"github.com/go-xorm/xorm"
 )
 

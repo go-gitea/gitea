@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/go-xorm/xorm"
 )
 

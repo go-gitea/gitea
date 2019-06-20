@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 
 	api "code.gitea.io/gitea/modules/structs"

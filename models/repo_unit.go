@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 	"github.com/go-xorm/xorm"
 )
 

@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 )
 
@@ -1428,6 +1428,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
+	sess.Close()
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
