@@ -36,21 +36,15 @@ var (
 	DefaultWriteTimeOut time.Duration
 	// DefaultMaxHeaderBytes default max header bytes
 	DefaultMaxHeaderBytes int
-	// DefaultHammerTime default hammer time
-	DefaultHammerTime time.Duration
 
-	// We have been forked iff LISTEN_FDS is set and our parents PID is not 1
-	isChild = len(os.Getenv(listenFDs)) > 0 && os.Getppid() > 1
+	// IsChild reports if we are a fork iff LISTEN_FDS is set and our parent PID is not 1
+	IsChild = len(os.Getenv(listenFDs)) > 0 && os.Getppid() > 1
 )
 
 func init() {
 	runningServerReg = sync.RWMutex{}
 
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
-
-	// after a restart the parent will finish ongoing requests before
-	// shutting down. set to a negative value to disable
-	DefaultHammerTime = 60 * time.Second
 }
 
 // ServeFunction represents a listen.Accept loop
@@ -76,7 +70,11 @@ func NewServer(network, address string) *Server {
 	runningServerReg.Lock()
 	defer runningServerReg.Unlock()
 
-	log.Info("Beginning new server: %s:%s on PID: %d (%t)", network, address, os.Getpid(), isChild)
+	if IsChild {
+		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
+	} else {
+		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
+	}
 	srv := &Server{
 		wg:              sync.WaitGroup{},
 		sigChan:         make(chan os.Signal),
@@ -108,7 +106,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 
 	srv.listener = newWrappedListener(l, srv)
 
-	if isChild {
+	if IsChild {
 		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
 	}
 
@@ -154,7 +152,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	wl := newWrappedListener(l, srv)
 	srv.listener = tls.NewListener(wl, tlsConfig)
 
-	if isChild {
+	if IsChild {
 		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
 	}
 	srv.BeforeBegin(srv.network, srv.address)

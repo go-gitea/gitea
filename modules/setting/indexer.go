@@ -7,6 +7,7 @@ package setting
 import (
 	"path"
 	"path/filepath"
+	"time"
 )
 
 // enumerates all the indexer queue types
@@ -29,6 +30,7 @@ var (
 		IssueQueueDir         string
 		IssueQueueConnStr     string
 		IssueQueueBatchNumber int
+		StartupTimeout        time.Duration
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -57,4 +59,5 @@ func newIndexerService() {
 	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
+	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
 }

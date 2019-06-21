@@ -5,9 +5,10 @@
 package issues
 
 import (
-	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -50,13 +51,12 @@ var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue Queue
 	issueIndexer      Indexer
-	wg                sync.WaitGroup
+	waitChannel       = make(chan struct{})
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
-	wg.Add(1)
 	go func() {
 		var populate bool
 		var dummyQueue bool
@@ -133,10 +133,22 @@ func InitIssueIndexer(syncReindex bool) {
 				go populateIssueIndexer()
 			}
 		}
-		wg.Done()
+		close(waitChannel)
 	}()
 	if syncReindex {
-		wg.Wait()
+		<-waitChannel
+	} else if setting.Indexer.StartupTimeout > 0 {
+		go func() {
+			timeout := setting.Indexer.StartupTimeout
+			if graceful.IsChild && setting.GracefulHammerTime > 0 {
+				timeout += setting.GracefulHammerTime
+			}
+			select {
+			case <-waitChannel:
+			case <-time.After(timeout):
+				log.Fatal("Timedout starting Issue Indexer")
+			}
+		}()
 	}
 }
 
@@ -217,7 +229,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
-	wg.Wait()
+	<-waitChannel
 	var issueIDs []int64
 	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
 	if err != nil {

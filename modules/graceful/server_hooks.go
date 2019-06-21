@@ -12,19 +12,20 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
-// shutdown closes the listener so that no new connections are accepted. it also
-// starts a goroutine that will hammer (stop all running requests) the server
-// after DefaultHammerTime.
+// shutdown closes the listener so that no new connections are accepted
+// and starts a goroutine that will hammer (stop all running requests) the server
+// after setting.GracefulHammerTime.
 func (srv *Server) shutdown() {
 	if srv.getState() != stateRunning {
 		return
 	}
 
 	srv.setState(stateShuttingDown)
-	if DefaultHammerTime >= 0 {
-		go srv.hammerTime(DefaultHammerTime)
+	if setting.GracefulHammerTime >= 0 {
+		go srv.hammerTime(setting.GracefulHammerTime)
 	}
 
 	if srv.OnShutdown != nil {

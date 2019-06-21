@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var hookableSignals []os.Signal
@@ -42,10 +43,16 @@ func (srv *Server) handleSignals() {
 		srv.preSignalHooks(sig)
 		switch sig {
 		case syscall.SIGHUP:
-			log.Info("PID: %d. Received SIGHUP. Forking...", pid)
-			err := srv.fork()
-			if err != nil {
-				log.Error("Error whilst forking from PID: %d : %v", pid, err)
+			if setting.GracefulRestartable {
+				log.Info("PID: %d. Received SIGHUP. Forking...", pid)
+				err := srv.fork()
+				if err != nil {
+					log.Error("Error whilst forking from PID: %d : %v", pid, err)
+				}
+			} else {
+				log.Info("PID: %d. Received SIGHUP. Not set restartable. Shutting down...", pid)
+
+				srv.shutdown()
 			}
 		case syscall.SIGUSR1:
 			log.Info("PID %d. Received SIGUSR1.", pid)

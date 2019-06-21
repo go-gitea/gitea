@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -69,11 +71,27 @@ func InitRepoIndexer() {
 	if !setting.Indexer.RepoIndexerEnabled {
 		return
 	}
+	waitChannel := make(chan struct{})
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	go func() {
 		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 		go processRepoIndexerOperationQueue()
+		close(waitChannel)
 	}()
+	if setting.Indexer.StartupTimeout > 0 {
+		go func() {
+			timeout := setting.Indexer.StartupTimeout
+			if graceful.IsChild && setting.GracefulHammerTime > 0 {
+				timeout += setting.GracefulHammerTime
+			}
+			select {
+			case <-waitChannel:
+			case <-time.After(timeout):
+				log.Fatal("Timedout starting Repo Indexer")
+			}
+		}()
+
+	}
 }
 
 // populateRepoIndexerAsynchronously asynchronously populates the repo indexer
