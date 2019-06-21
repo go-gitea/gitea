@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -25,7 +24,6 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
-	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
 )
 
@@ -46,29 +44,9 @@ var CmdServ = cli.Command{
 	},
 }
 
-func checkLFSVersion() {
-	if setting.LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			fail("LFS server error", "Error retrieving git version: %v", err)
-		}
-
-		if !version.Compare(binVersion, "2.1.2", ">=") {
-			setting.LFS.StartServer = false
-			println("LFS server support needs at least Git v2.1.2, disabled")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-		}
-	}
-}
-
 func setup(logPath string) {
 	_ = log.DelLogger("console")
 	setting.NewContext()
-	checkLFSVersion()
 }
 
 func parseCmd(cmd string) (string, string) {

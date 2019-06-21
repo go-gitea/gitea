@@ -93,7 +93,9 @@ func (t *Tag) Decode(o plumbing.EncodedObject) (err error) {
 	}
 	defer ioutil.CheckClose(reader, &err)
 
-	r := bufio.NewReader(reader)
+	r := bufPool.Get().(*bufio.Reader)
+	defer bufPool.Put(r)
+	r.Reset(reader)
 	for {
 		var line []byte
 		line, err = r.ReadBytes('\n')
@@ -141,7 +143,7 @@ func (t *Tag) Decode(o plumbing.EncodedObject) (err error) {
 			if pgpsig {
 				if bytes.Contains(l, []byte(endpgp)) {
 					t.PGPSignature += endpgp + "\n"
-					pgpsig = false
+					break
 				} else {
 					t.PGPSignature += string(l) + "\n"
 				}
@@ -167,6 +169,11 @@ func (t *Tag) Decode(o plumbing.EncodedObject) (err error) {
 // Encode transforms a Tag into a plumbing.EncodedObject.
 func (t *Tag) Encode(o plumbing.EncodedObject) error {
 	return t.encode(o, true)
+}
+
+// EncodeWithoutSignature export a Tag into a plumbing.EncodedObject without the signature (correspond to the payload of the PGP signature).
+func (t *Tag) EncodeWithoutSignature(o plumbing.EncodedObject) error {
+	return t.encode(o, false)
 }
 
 func (t *Tag) encode(o plumbing.EncodedObject, includeSig bool) (err error) {
@@ -289,7 +296,7 @@ func (t *Tag) Verify(armoredKeyRing string) (*openpgp.Entity, error) {
 
 	encoded := &plumbing.MemoryObject{}
 	// Encode tag components, excluding signature and get a reader object.
-	if err := t.encode(encoded, false); err != nil {
+	if err := t.EncodeWithoutSignature(encoded); err != nil {
 		return nil, err
 	}
 	er, err := encoded.Reader()

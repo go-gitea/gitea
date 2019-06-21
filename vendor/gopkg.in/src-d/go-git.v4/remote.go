@@ -45,7 +45,10 @@ type Remote struct {
 	s storage.Storer
 }
 
-func newRemote(s storage.Storer, c *config.RemoteConfig) *Remote {
+// NewRemote creates a new Remote.
+// The intended purpose is to use the Remote for tasks such as listing remote references (like using git ls-remote).
+// Otherwise Remotes should be created via the use of a Repository.
+func NewRemote(s storage.Storer, c *config.RemoteConfig) *Remote {
 	return &Remote{s: s, c: c}
 }
 
