@@ -7,6 +7,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"net/http"
 )
 
@@ -16,4 +17,13 @@ func runHTTP(listenAddr string, m http.Handler) error {
 
 func runHTTPS(listenAddr, certFile, keyFile string, m http.Handler) error {
 	return http.ListenAndServeTLS(listenAddr, certFile, keyFile, m)
+}
+
+func runHTTPSWithTLSConfig(listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
+	server := &http.Server{
+		Addr:      listenAddr,
+		Handler:   m,
+		TLSConfig: tlsConfig,
+	}
+	return server.ListenAndServeTLS("", "")
 }

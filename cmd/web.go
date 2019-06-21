@@ -75,17 +75,13 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	}
 	go func() {
 		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		var err = http.ListenAndServe(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler))) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+		var err = runHTTP(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
 		if err != nil {
 			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 		}
 	}()
-	server := &http.Server{
-		Addr:      listenAddr,
-		Handler:   m,
-		TLSConfig: certManager.TLSConfig(),
-	}
-	return server.ListenAndServeTLS("", "")
+	return runHTTPSWithTLSConfig(listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,12 +97,21 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
+	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
+		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
+	} else {
+		log.Info("Starting Gitea on PID: %d", os.Getpid())
+	}
+
+	// Set pid file setting
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}
 
+	// Perform global initialization
 	routers.GlobalInit()
 
+	// Set up Macaron
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
 
@@ -207,8 +212,12 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		log.Fatal("Failed to start server: %v", err)
+		if strings.Contains(err.Error(), "use of closed") {
+			log.Info("HTTP Listener: %s Closed", listenAddr)
+			log.Close()
+		} else {
+			log.Fatal("Failed to start server: %v", err)
+		}
 	}
-
 	return nil
 }
