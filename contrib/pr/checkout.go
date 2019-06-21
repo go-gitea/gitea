@@ -30,6 +30,8 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	_ "gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph"
+	_ "gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph"
 	"gopkg.in/testfixtures.v2"
 
 	"code.gitea.io/gitea/models"
