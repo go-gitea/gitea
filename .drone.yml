@@ -2,13 +2,15 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-clone:
-  git:
-    image: plugins/git:next
-    depth: 50
-    tags: true
-
 pipeline:
+  fetch-tags:
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude: [ pull_request ]
+
   download_translations:
     image: jonasfranz/crowdin
     pull: true
@@ -22,7 +24,7 @@ pipeline:
       branch: [ master ]
 
   update-translations:
-    image: alpine:3.7
+    image: alpine:3.10
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
@@ -50,8 +52,8 @@ pipeline:
     image: webhippie/nodejs:latest
     pull: true
     commands:
-      - npm install
-      - make stylesheets-check
+      - make css
+      - make js
     when:
       event: [ push, tag, pull_request ]
 
@@ -71,12 +73,10 @@ pipeline:
     commands:
       - make clean
       - make generate
-      - make vet
-      - make lint
-      - make fmt-check
+      - make golangci-lint
+      - make revive
       - make swagger-check
       - make swagger-validate
-      - make misspell-check
       - make test-vendor
       - make build
     when:
@@ -126,9 +126,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.sqlite.test)' | sh)) &
-      - make test-sqlite-migration
-      - make test-sqlite
+      - timeout -s ABRT 20m make test-sqlite-migration
+      - timeout -s ABRT 20m make test-sqlite
     when:
       event: [ push, tag, pull_request ]
 
@@ -158,14 +157,13 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-mysql-migration
-      - make test-mysql
+      - timeout -s ABRT 20m make test-mysql-migration
+      - timeout -s ABRT 20m make test-mysql
     when:
       event: [ tag ]
 
   test-mysql8:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -174,9 +172,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-mysql8-migration
-      - make test-mysql8
+      - timeout -s ABRT 20m make test-mysql8-migration
+      - timeout -s ABRT 20m make test-mysql8
     when:
       event: [ push, tag, pull_request ]
 
@@ -190,9 +187,8 @@ pipeline:
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
-      - (sleep 1200 && (echo 'kill -ABRT $(pidof gitea) $(pidof integrations.test)' | sh)) &
-      - make test-pgsql-migration
-      - make test-pgsql
+      - timeout -s ABRT 20m make test-pgsql-migration
+      - timeout -s ABRT 20m make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
@@ -298,7 +294,7 @@ pipeline:
       branch: [ master ]
 
   docker-dryrun:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     repo: gitea/gitea
     cache_from: gitea/gitea
@@ -307,7 +303,7 @@ pipeline:
       event: [ pull_request ]
 
   release-docker:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
@@ -318,7 +314,7 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea

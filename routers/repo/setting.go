@@ -7,11 +7,14 @@ package repo
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/Unknwon/com"
 	"mvdan.cc/xurls/v2"
 
 	"code.gitea.io/gitea/models"
@@ -246,7 +249,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					ctx.Redirect(repo.Link() + "/settings")
 					return
 				}
-				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalURL(form.TrackerURLFormat) {
+				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return
@@ -416,7 +419,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		repo.DeleteWiki()
+		err := repo.DeleteWiki()
+		if err != nil {
+			log.Error("Delete Wiki: %v", err.Error())
+		}
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
@@ -726,4 +732,60 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// UpdateAvatarSetting update repo's avatar
+func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+	ctxRepo := ctx.Repo.Repository
+
+	if form.Avatar == nil {
+		// No avatar is uploaded and we not removing it here.
+		// No random avatar generated here.
+		// Just exit, no action.
+		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
+		}
+		return nil
+	}
+
+	r, err := form.Avatar.Open()
+	if err != nil {
+		return fmt.Errorf("Avatar.Open: %v", err)
+	}
+	defer r.Close()
+
+	if form.Avatar.Size > setting.AvatarMaxFileSize {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("ioutil.ReadAll: %v", err)
+	}
+	if !base.IsImageFile(data) {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+	}
+	if err = ctxRepo.UploadAvatar(data); err != nil {
+		return fmt.Errorf("UploadAvatar: %v", err)
+	}
+	return nil
+}
+
+// SettingsAvatar save new POSTed repository avatar
+func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+	form.Source = auth.AvatarLocal
+	if err := UpdateAvatarSetting(ctx, form); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+// SettingsDeleteAvatar delete repository avatar
+func SettingsDeleteAvatar(ctx *context.Context) {
+	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }

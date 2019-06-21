@@ -37,7 +37,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 			entryCommit := convertCommit(rev)
 			if entry.IsSubModule() {
 				subModuleURL := ""
-				if subModule, err := commit.GetSubModule(entry.Name()); err != nil {
+				var fullPath string
+				if len(treePath) > 0 {
+					fullPath = treePath + "/" + entry.Name()
+				} else {
+					fullPath = entry.Name()
+				}
+				if subModule, err := commit.GetSubModule(fullPath); err != nil {
 					return nil, nil, err
 				} else if subModule != nil {
 					subModuleURL = subModule.URL
@@ -87,16 +93,6 @@ func getCommitTree(c *object.Commit, treePath string) (*object.Tree, error) {
 	return tree, nil
 }
 
-func getFullPath(treePath, path string) string {
-	if treePath != "" {
-		if path != "" {
-			return treePath + "/" + path
-		}
-		return treePath
-	}
-	return path
-}
-
 func getFileHashes(c *object.Commit, treePath string, paths []string) (map[string]plumbing.Hash, error) {
 	tree, err := getCommitTree(c, treePath)
 	if err == object.ErrDirectoryNotFound {
@@ -124,7 +120,6 @@ func getFileHashes(c *object.Commit, treePath string, paths []string) (map[strin
 
 func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
-	seen := make(map[plumbing.Hash]bool)
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.Committer.When.Before(b.(*commitAndPaths).commit.Committer.When) {
 			return 1
@@ -202,15 +197,10 @@ func getLastCommitForPaths(c *object.Commit, treePath string, paths []string) (m
 			// Add the parent nodes along with remaining paths to the heap for further
 			// processing.
 			for j, parent := range parents {
-				if seen[parent.ID()] {
-					continue
-				}
-				seen[parent.ID()] = true
-
 				// Combine remainingPath with paths available on the parent branch
 				// and make union of them
-				var remainingPathsForParent []string
-				var newRemainingPaths []string
+				remainingPathsForParent := make([]string, 0, len(remainingPaths))
+				newRemainingPaths := make([]string, 0, len(remainingPaths))
 				for _, path := range remainingPaths {
 					if parentHashes[j][path] == current.hashes[path] {
 						remainingPathsForParent = append(remainingPathsForParent, path)

@@ -29,11 +29,6 @@ func numericIssueLink(baseURL string, index int) string {
 	return link(util.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
 }
 
-// urlContentsLink an HTML link whose contents is the target URL
-func urlContentsLink(href string) string {
-	return link(href, href)
-}
-
 // link an HTML link
 func link(href, contents string) string {
 	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)
@@ -202,13 +197,13 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24</code></a>")
+	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
 
 	// render other commit URLs
-	tmp = "https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\"><code>d8a994ef24 (diff-2)</code></a>")
+	tmp = "https://external-link.gitea.io/go-gitea/gitea/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
+	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {

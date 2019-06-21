@@ -63,7 +63,7 @@ var (
 	// well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
+	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
@@ -108,24 +108,6 @@ func FindAllMentions(content string) []string {
 	return ret
 }
 
-// cutoutVerbosePrefix cutouts URL prefix including sub-path to
-// return a clean unified string of request URL path.
-func cutoutVerbosePrefix(prefix string) string {
-	if len(prefix) == 0 || prefix[0] != '/' {
-		return prefix
-	}
-	count := 0
-	for i := 0; i < len(prefix); i++ {
-		if prefix[i] == '/' {
-			count++
-		}
-		if count >= 3+setting.AppSubURLDepth {
-			return prefix[:i]
-		}
-	}
-	return prefix
-}
-
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
 	if strings.HasPrefix(s, "/") {
@@ -146,7 +128,7 @@ type postProcessError struct {
 }
 
 func (p *postProcessError) Error() string {
-	return "PostProcess: " + p.context + ", " + p.Error()
+	return "PostProcess: " + p.context + ", " + p.err.Error()
 }
 
 type processor func(ctx *postProcessCtx, node *html.Node)
@@ -304,20 +286,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 	// ignore everything else
 }
 
-func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
-	switch node.Type {
-	case html.TextNode:
-		shortLinkProcessorFull(ctx, node, true)
-	case html.ElementNode:
-		if node.Data == "code" || node.Data == "pre" || node.Data == "a" {
-			return
-		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNodeForShortLinks(n)
-		}
-	}
-}
-
 // textNode runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
 func (ctx *postProcessCtx) textNode(node *html.Node) {
@@ -355,6 +323,7 @@ func createCodeLink(href, content string) *html.Node {
 	code := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Code.String(),
+		Attr: []html.Attribute{{Key: "class", Val: "nohighlight"}},
 	}
 
 	code.AppendChild(text)

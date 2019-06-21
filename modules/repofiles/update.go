@@ -5,15 +5,21 @@
 package repofiles
 
 import (
+	"bytes"
 	"fmt"
 	"path"
 	"strings"
 
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -37,8 +43,76 @@ type UpdateRepoFileOptions struct {
 	Committer    *IdentityOptions
 }
 
+func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
+	reader, err := entry.Blob().DataAsync()
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
+	defer reader.Close()
+	buf := make([]byte, 1024)
+	n, err := reader.Read(buf)
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
+	buf = buf[:n]
+
+	if setting.LFS.StartServer {
+		meta := lfs.IsPointerFile(&buf)
+		if meta != nil {
+			meta, err = repo.GetLFSMetaObjectByOid(meta.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				// return default
+				return "UTF-8", false
+			}
+		}
+		if meta != nil {
+			dataRc, err := lfs.ReadMetaObject(meta)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			defer dataRc.Close()
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				// return default
+				return "UTF-8", false
+			}
+			buf = buf[:n]
+		}
+
+	}
+
+	encoding, err := base.DetectEncoding(buf)
+	if err != nil {
+		// just default to utf-8 and no bom
+		return "UTF-8", false
+	}
+	if encoding == "UTF-8" {
+		return encoding, bytes.Equal(buf[0:3], base.UTF8BOM)
+	}
+	charsetEncoding, _ := charset.Lookup(encoding)
+	if charsetEncoding == nil {
+		return "UTF-8", false
+	}
+
+	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
+
+	if n > 2 {
+		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
+	}
+
+	return encoding, false
+}
+
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*gitea.FileResponse, error) {
+func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -65,10 +139,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
-		}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -96,10 +168,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
-		return nil, err
+		log.Error("%v", err)
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}
@@ -117,6 +189,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	}
+
+	encoding := "UTF-8"
+	bom := false
 
 	if !opts.IsNewFile {
 		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
@@ -151,6 +226,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			// haven't been made. We throw an error if one wasn't provided.
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
+		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -235,9 +311,28 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	content := opts.Content
+	if bom {
+		content = string(base.UTF8BOM) + content
+	}
+	if encoding != "UTF-8" {
+		charsetEncoding, _ := charset.Lookup(encoding)
+		if charsetEncoding != nil {
+			result, _, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			if err != nil {
+				// Look if we can't encode back in to the original we should just stick with utf-8
+				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.TreePath, opts.FromTreePath, encoding, err)
+				result = content
+			}
+			content = result
+		} else {
+			log.Error("Unknown encoding: %s", encoding)
+		}
+	}
+	// Reset the opts.Content to our adjusted content to ensure that LFS gets the correct content
+	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
 		// OK so we are supposed to LFS this data!
 		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
 		if err != nil {
@@ -301,7 +396,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err = repo.GetOwner(); err != nil {
 		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	err = PushUpdate(
+		repo,
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -316,7 +412,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err != nil {
 		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
-	models.UpdateRepoIndexer(repo)
 
 	commit, err = t.GetCommit(commitHash)
 	if err != nil {
@@ -328,4 +423,18 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 	return file, nil
+}
+
+// PushUpdate must be called for any push actions in order to
+// generates necessary push action history feeds and other operations
+func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
+	err := models.PushUpdate(branch, opts)
+	if err != nil {
+		return fmt.Errorf("PushUpdate: %v", err)
+	}
+
+	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+		models.UpdateRepoIndexer(repo)
+	}
+	return nil
 }

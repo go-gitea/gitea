@@ -23,6 +23,7 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
+	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
@@ -252,7 +253,7 @@ func (f UpdateThemeForm) IsThemeExists() bool {
 	var exists bool
 
 	for _, v := range setting.UI.Themes {
-		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+		if strings.EqualFold(v, f.Theme) {
 			exists = true
 			break
 		}

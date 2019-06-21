@@ -69,11 +69,7 @@ func (l *Logger) Log(skip int, level Level, format string, v ...interface{}) err
 	}
 	msg := format
 	if len(v) > 0 {
-		args := make([]interface{}, len(v))
-		for i := 0; i < len(args); i++ {
-			args[i] = NewColoredValuePointer(&v[i])
-		}
-		msg = fmt.Sprintf(format, args...)
+		msg = ColorSprintf(format, v...)
 	}
 	stack := ""
 	if l.GetStacktraceLevel() <= level {

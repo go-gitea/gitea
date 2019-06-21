@@ -23,9 +23,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -192,15 +192,19 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 	}
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
 		return nil
 	}
 	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		log.Error("baseBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
 		return nil
 	}
 	if headCommit, err = headBranch.GetCommit(); err != nil {
+		log.Error("headBranch.GetCommit[%d]: %v", pr.ID, err)
 		return nil
 	}
 	apiBaseBranchInfo := &api.PRBranchInfo{
@@ -218,7 +222,10 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
 	}
 
-	pr.Issue.loadRepo(e)
+	if err = pr.Issue.loadRepo(e); err != nil {
+		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
+		return nil
+	}
 
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
@@ -299,6 +306,10 @@ func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 		return nil, err
 	}
 
+	if pr.HeadRepo == nil {
+		return nil, ErrPullRequestHeadRepoMissing{pr.ID, pr.HeadRepoID}
+	}
+
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -359,16 +370,13 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 
 func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
-		var stdout, stderr string
+		var outbuf, errbuf strings.Builder
 		// Compute the diff-tree for sparse-checkout
 		// The branch argument must be enclosed with double-quotes ("") in case it contains slashes (e.g "feature/test")
-		stdout, stderr, err := process.GetManager().ExecDir(-1, repoPath,
-			fmt.Sprintf("PullRequest.Merge (git diff-tree): %s", repoPath),
-			"git", "diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch)
-		if err != nil {
-			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, stderr)
+		if err := git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch).RunInDirPipeline(repoPath, &outbuf, &errbuf); err != nil {
+			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, errbuf.String())
 		}
-		return stdout, nil
+		return outbuf.String(), nil
 	}
 
 	list, err := getDiffTreeFromBranch(repoPath, baseBranch, headBranch)
@@ -414,22 +422,25 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 
+	// Clone base repo.
+	tmpBasePath, err := CreateTemporaryPath("merge")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
+
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
-	// Clone base repo.
-	tmpBasePath := path.Join(LocalCopyPath(), "merge-"+com.ToStr(time.Now().Nanosecond())+".git")
-
-	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
-	}
-
-	defer os.RemoveAll(tmpBasePath)
-
-	var stderr string
-	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
-		fmt.Sprintf("PullRequest.Merge (git clone): %s", tmpBasePath),
-		"git", "clone", "-s", "--no-checkout", "-b", pr.BaseBranch, baseGitRepo.Path, tmpBasePath); err != nil {
-		return fmt.Errorf("git clone: %s", stderr)
+	if err := git.Clone(baseGitRepo.Path, tmpBasePath, git.CloneRepoOptions{
+		Shared:     true,
+		NoCheckout: true,
+		Branch:     pr.BaseBranch,
+	}); err != nil {
+		return fmt.Errorf("git clone: %v", err)
 	}
 
 	remoteRepoName := "head_repo"
@@ -452,17 +463,15 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
 		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
 	}
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git remote add): %s", tmpBasePath),
-		"git", "remote", "add", remoteRepoName, headRepoPath); err != nil {
-		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+
+	var errbuf strings.Builder
+	if err := git.NewCommand("remote", "add", remoteRepoName, headRepoPath).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
 	// Fetch head branch
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git fetch): %s", tmpBasePath),
-		"git", "fetch", remoteRepoName); err != nil {
-		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+	if err := git.NewCommand("fetch", remoteRepoName).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
 	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
@@ -483,118 +492,85 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
 
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git config): %s", tmpBasePath),
-		"git", "config", "--local", "core.sparseCheckout", "true"); err != nil {
-		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", stderr)
+	if err := git.NewCommand("config", "--local", "core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", errbuf.String())
 	}
 
 	// Read base branch index
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", tmpBasePath),
-		"git", "read-tree", "HEAD"); err != nil {
-		return fmt.Errorf("git read-tree HEAD: %s", stderr)
+	if err := git.NewCommand("read-tree", "HEAD").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git read-tree HEAD: %s", errbuf.String())
 	}
 
 	// Merge commits.
 	switch mergeStyle {
 	case MergeStyleMerge:
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git merge --no-ff --no-commit): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "--no-commit", trackingBranch); err != nil {
-			return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
 
 		sig := doer.NewGitSig()
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
-			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-			"-m", message); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
 	case MergeStyleRebase:
 		// Checkout head branch
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", "-b", stagingBranch, trackingBranch); err != nil {
-			return fmt.Errorf("git checkout: %s", stderr)
+		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "rebase", "-q", pr.BaseBranch); err != nil {
-			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", pr.BaseBranch); err != nil {
-			return fmt.Errorf("git checkout: %s", stderr)
+		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Merge fast forward
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "merge", "--ff-only", "-q", stagingBranch); err != nil {
-			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		if err := git.NewCommand("merge", "--ff-only", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 	case MergeStyleRebaseMerge:
 		// Checkout head branch
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", "-b", stagingBranch, trackingBranch); err != nil {
-			return fmt.Errorf("git checkout: %s", stderr)
+		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "rebase", "-q", pr.BaseBranch); err != nil {
-			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-			"git", "checkout", pr.BaseBranch); err != nil {
-			return fmt.Errorf("git checkout: %s", stderr)
+		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Prepare merge with commit
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
-			"git", "merge", "--no-ff", "--no-commit", "-q", stagingBranch); err != nil {
-			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		if err := git.NewCommand("merge", "--no-ff", "--no-commit", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 
 		// Set custom message and author and create merge commit
 		sig := doer.NewGitSig()
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git commit): %s", tmpBasePath),
-			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-			"-m", message); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
 
 	case MergeStyleSquash:
 		// Merge with squash
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git squash): %s", tmpBasePath),
-			"git", "merge", "-q", "--squash", trackingBranch); err != nil {
-			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		if err := git.NewCommand("merge", "-q", "--squash", trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		sig := pr.Issue.Poster.NewGitSig()
-		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git squash): %s", tmpBasePath),
-			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-			"-m", message); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
 	default:
 		return ErrInvalidMergeStyle{pr.BaseRepo.ID, mergeStyle}
 	}
 
+	env := PushingEnvironment(doer, pr.BaseRepo)
+
 	// Push back to upstream.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git push): %s", tmpBasePath),
-		"git", "push", baseGitRepo.Path, pr.BaseBranch); err != nil {
-		return fmt.Errorf("git push: %s", stderr)
+	if err := git.NewCommand("push", baseGitRepo.Path, pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git push: %s", errbuf.String())
 	}
 
 	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
@@ -887,7 +863,17 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 					line := scanner.Text()
 
 					if strings.HasPrefix(line, prefix) {
-						pr.ConflictedFiles = append(pr.ConflictedFiles, strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0]))
+						var found bool
+						var filepath = strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+						for _, f := range pr.ConflictedFiles {
+							if f == filepath {
+								found = true
+								break
+							}
+						}
+						if !found {
+							pr.ConflictedFiles = append(pr.ConflictedFiles, filepath)
+						}
 					}
 					// only list 10 conflicted files
 					if len(pr.ConflictedFiles) >= 10 {
@@ -1177,10 +1163,11 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 		return fmt.Errorf("AddRemote: %v", err)
 	}
 	defer func() {
-		headGitRepo.RemoveRemote(tmpRemote)
+		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("UpdatePatch: RemoveRemote: %s", err)
+		}
 	}()
-	remoteBranch := "remotes/" + tmpRemote + "/" + pr.BaseBranch
-	pr.MergeBase, err = headGitRepo.GetMergeBase(remoteBranch, pr.HeadBranch)
+	pr.MergeBase, _, err = headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
 	if err != nil {
 		return fmt.Errorf("GetMergeBase: %v", err)
 	} else if err = pr.Update(); err != nil {
@@ -1216,7 +1203,11 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
 	}
 	// Make sure to remove the remote even if the push fails
-	defer headGitRepo.RemoveRemote(tmpRemoteName)
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
+			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
+		}
+	}()
 
 	headFile := pr.GetGitRefName()
 

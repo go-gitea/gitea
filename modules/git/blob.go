@@ -50,12 +50,12 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 
 	go func() {
 		_, err := io.Copy(encoder, dataRc)
-		encoder.Close()
+		_ = encoder.Close()
 
 		if err != nil {
-			pw.CloseWithError(err)
+			_ = pw.CloseWithError(err)
 		} else {
-			pw.Close()
+			_ = pw.Close()
 		}
 	}()
 

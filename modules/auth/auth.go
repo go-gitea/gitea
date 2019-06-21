@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -54,7 +55,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 		// Let's see if token is valid.
 		if len(tokenSHA) > 0 {
 			if strings.Contains(tokenSHA, ".") {
-				uid := checkOAuthAccessToken(tokenSHA)
+				uid := CheckOAuthAccessToken(tokenSHA)
 				if uid != 0 {
 					ctx.Data["IsApiToken"] = true
 				}
@@ -85,7 +86,8 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	return 0
 }
 
-func checkOAuthAccessToken(accessToken string) int64 {
+// CheckOAuthAccessToken returns uid of user from oauth token token
+func CheckOAuthAccessToken(accessToken string) int64 {
 	// JWT tokens require a "."
 	if !strings.Contains(accessToken, ".") {
 		return 0
@@ -178,6 +180,18 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				// Assume password is token
 				authToken = passwd
 			}
+
+			uid := CheckOAuthAccessToken(authToken)
+			if uid != 0 {
+				var err error
+				ctx.Data["IsApiToken"] = true
+
+				u, err = models.GetUserByID(uid)
+				if err != nil {
+					log.Error("GetUserByID:  %v", err)
+					return nil, false
+				}
+			}
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
 				if isUsernameToken {
@@ -200,10 +214,8 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error("UpdateAccessToken:  %v", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySha: %v", err)
 			}
 
 			if u == nil {
@@ -285,12 +297,6 @@ func GetMaxSize(field reflect.StructField) string {
 // GetInclude get include in form tag
 func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
-}
-
-// FIXME: struct contains a struct
-func validateStruct(obj interface{}) binding.Errors {
-
-	return nil
 }
 
 func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaron.Locale) binding.Errors {

@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
+	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
@@ -175,6 +177,7 @@ var (
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
+		DefaultShowFullName bool
 		DefaultTheme        string
 		Themes              []string
 
@@ -247,14 +250,18 @@ var (
 	}
 
 	// Picture settings
-	AvatarUploadPath      string
-	AvatarMaxWidth        int
-	AvatarMaxHeight       int
-	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
+	AvatarUploadPath              string
+	AvatarMaxWidth                int
+	AvatarMaxHeight               int
+	GravatarSource                string
+	GravatarSourceURL             *url.URL
+	DisableGravatar               bool
+	EnableFederatedAvatar         bool
+	LibravatarService             *libravatar.Libravatar
+	AvatarMaxFileSize             int64
+	RepositoryAvatarUploadPath    string
+	RepositoryAvatarFallback      string
+	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -290,12 +297,14 @@ var (
 	// API settings
 	API = struct {
 		EnableSwagger          bool
+		SwaggerURL             string
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
 		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
+		SwaggerURL:             "",
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
@@ -390,12 +399,12 @@ func getAppPath() (string, error) {
 }
 
 func getWorkPath(appPath string) string {
-	workPath := ""
-	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+	workPath := AppWorkPath
 
-	if len(giteaWorkPath) > 0 {
+	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
 		workPath = giteaWorkPath
-	} else {
+	}
+	if len(workPath) == 0 {
 		i := strings.LastIndex(appPath, "/")
 		if i == -1 {
 			workPath = appPath
@@ -407,6 +416,7 @@ func getWorkPath(appPath string) string {
 }
 
 func init() {
+	IsWindows = runtime.GOOS == "windows"
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
@@ -428,7 +438,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -473,26 +483,42 @@ func CheckLFSVersion() {
 	}
 }
 
-// NewContext initializes configuration context.
-// NOTE: do not print any log except error.
-func NewContext() {
-	Cfg = ini.Empty()
-
-	CustomPath = os.Getenv("GITEA_CUSTOM")
+// SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
+// GITEA_CUSTOM environment variable and with provided overrides before stepping
+// back to the default
+func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
+	if len(providedWorkPath) != 0 {
+		AppWorkPath = filepath.ToSlash(providedWorkPath)
+	}
+	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
+		CustomPath = giteaCustom
+	}
+	if len(providedCustom) != 0 {
+		CustomPath = providedCustom
+	}
 	if len(CustomPath) == 0 {
 		CustomPath = path.Join(AppWorkPath, "custom")
 	} else if !filepath.IsAbs(CustomPath) {
 		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
-	if len(CustomPID) > 0 {
-		createPIDFile(CustomPID)
+	if len(providedConf) != 0 {
+		CustomConf = providedConf
 	}
-
 	if len(CustomConf) == 0 {
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+	}
+}
+
+// NewContext initializes configuration context.
+// NOTE: do not print any log except error.
+func NewContext() {
+	Cfg = ini.Empty()
+
+	if len(CustomPID) > 0 {
+		createPIDFile(CustomPID)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -521,13 +547,14 @@ func NewContext() {
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Protocol = HTTP
-	if sec.Key("PROTOCOL").String() == "https" {
+	switch sec.Key("PROTOCOL").String() {
+	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
-	} else if sec.Key("PROTOCOL").String() == "fcgi" {
+	case "fcgi":
 		Protocol = FCGI
-	} else if sec.Key("PROTOCOL").String() == "unix" {
+	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
@@ -556,17 +583,17 @@ func NewContext() {
 	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
+	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}
@@ -815,8 +842,16 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
+	forcePathSeparator(RepositoryAvatarUploadPath)
+	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
+		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
+	}
+	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
+	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
@@ -867,6 +902,10 @@ func NewContext() {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
 
+	u := *appURL
+	u.Path = path.Join(u.Path, "api", "swagger")
+	API.SwaggerURL = u.String()
+
 	newCron()
 	newGit()
 
@@ -903,6 +942,7 @@ func NewContext() {
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
+	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -911,6 +951,8 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+
+	zip.Verbose = false
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -989,6 +1031,7 @@ func NewServices() {
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()
+	newCORSService()
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()

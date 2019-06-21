@@ -11,17 +11,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"regexp"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/com"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -33,13 +31,9 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepository, error) {
-	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
-	basePath := path.Join(models.LocalCopyPath(), "upload-"+timeStr+".git")
-	if err := os.MkdirAll(path.Dir(basePath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create dir %s: %v", basePath, err)
-	}
-	if repo.RepoPath() == "" {
-		return nil, fmt.Errorf("no path to repository on system")
+	basePath, err := models.CreateTemporaryPath("upload")
+	if err != nil {
+		return nil, err
 	}
 	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
 	return t, nil
@@ -47,8 +41,8 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
-	if _, err := os.Stat(t.basePath); !os.IsNotExist(err) {
-		os.RemoveAll(t.basePath)
+	if err := models.RemoveTemporaryPath(t.basePath); err != nil {
+		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
 	}
 }
 
@@ -282,27 +276,8 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 
 // Push the provided commitHash to the repository branch by the provided user
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
-	isWiki := "false"
-	if strings.HasSuffix(t.repo.Name, ".wiki") {
-		isWiki = "true"
-	}
-
-	sig := doer.NewGitSig()
-
-	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because calls hooks we need to pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
-		models.EnvRepoName+"="+t.repo.Name,
-		models.EnvRepoUsername+"="+t.repo.OwnerName,
-		models.EnvRepoIsWiki+"="+isWiki,
-		models.EnvPusherName+"="+doer.Name,
-		models.EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
-		models.ProtectedBranchRepoID+"="+fmt.Sprintf("%d", t.repo.ID),
-	)
+	env := models.PushingEnvironment(doer, t.repo)
 
 	if _, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
 		t.basePath,

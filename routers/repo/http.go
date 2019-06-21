@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -89,9 +91,24 @@ func HTTP(ctx *context.Context) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
+	owner, err := models.GetUserByName(username)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
+		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		return
+	}
+
+	repo, err := models.GetRepositoryByName(owner.ID, reponame)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame)
+			if err == nil {
+				context.RedirectToRepo(ctx, redirectRepoID)
+			} else {
+				ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
+			}
+		} else {
+			ctx.ServerError("GetRepositoryByName", err)
+		}
 		return
 	}
 
@@ -151,6 +168,16 @@ func HTTP(ctx *context.Context) {
 				// Assume password is token
 				authToken = authPasswd
 			}
+			uid := auth.CheckOAuthAccessToken(authToken)
+			if uid != 0 {
+				ctx.Data["IsApiToken"] = true
+
+				authUser, err = models.GetUserByID(uid)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return
+				}
+			}
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
@@ -179,10 +206,8 @@ func HTTP(ctx *context.Context) {
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySha: %v", err)
 			}
 
 			if authUser == nil {
@@ -305,17 +330,17 @@ type route struct {
 }
 
 var routes = []route{
-	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
-	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
-	{regexp.MustCompile("(.*?)/info/refs$"), "GET", getInfoRefs},
-	{regexp.MustCompile("(.*?)/HEAD$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/http-alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/packs$"), "GET", getInfoPacks},
-	{regexp.MustCompile("(.*?)/objects/info/[^/]*$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$"), "GET", getLooseObject},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.pack$"), "GET", getPackFile},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
+	{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
+	{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
+	{regexp.MustCompile(`(.*?)/info/refs$`), "GET", getInfoRefs},
+	{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
+	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
 // FIXME: use process module
@@ -324,7 +349,7 @@ func gitCommand(dir string, args ...string) []byte {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, out))
+		log.Error("%v - %s", err, out)
 	}
 	return out
 }
@@ -366,7 +391,12 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 }
 
 func serviceRPC(h serviceHandler, service string) {
-	defer h.r.Body.Close()
+	defer func() {
+		if err := h.r.Body.Close(); err != nil {
+			log.Error("serviceRPC: Close: %v", err)
+		}
+
+	}()
 
 	if !hasAccess(service, h, true) {
 		h.w.WriteHeader(http.StatusUnauthorized)
@@ -382,7 +412,7 @@ func serviceRPC(h serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.GitLogger.Error("Fail to create gzip reader: %v", err)
+			log.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -401,7 +431,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
 		return
 	}
 }
@@ -442,9 +472,9 @@ func getInfoRefs(h serviceHandler) {
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
 		h.w.WriteHeader(http.StatusOK)
-		h.w.Write(packetWrite("# service=git-" + service + "\n"))
-		h.w.Write([]byte("0000"))
-		h.w.Write(refs)
+		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
+		_, _ = h.w.Write([]byte("0000"))
+		_, _ = h.w.Write(refs)
 	} else {
 		updateServerInfo(h.dir)
 		h.sendFile("text/plain; charset=utf-8")
@@ -497,16 +527,25 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 				if setting.Repository.DisableHTTPGit {
 					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					if err != nil {
+						log.Error(err.Error())
+					}
 					return
 				}
 				if route.method != r.Method {
 					if r.Proto == "HTTP/1.1" {
 						w.WriteHeader(http.StatusMethodNotAllowed)
-						w.Write([]byte("Method Not Allowed"))
+						_, err := w.Write([]byte("Method Not Allowed"))
+						if err != nil {
+							log.Error(err.Error())
+						}
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request"))
+						_, err := w.Write([]byte("Bad Request"))
+						if err != nil {
+							log.Error(err.Error())
+						}
 					}
 					return
 				}
@@ -514,7 +553,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
-					log.GitLogger.Error(err.Error())
+					log.Error(err.Error())
 					ctx.NotFound("HTTPBackend", err)
 					return
 				}
@@ -525,6 +564,5 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 		}
 
 		ctx.NotFound("HTTPBackend", nil)
-		return
 	}
 }

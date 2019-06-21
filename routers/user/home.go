@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -308,6 +309,14 @@ func Issues(ctx *context.Context) {
 			return
 		}
 		if !perm.CanRead(models.UnitTypeIssues) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
+					ctxUser,
+					models.UnitTypeIssues,
+					repo,
+					perm)
+			}
 			ctx.Status(404)
 			return
 		}
@@ -490,49 +499,20 @@ func showOrgProfile(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	if ctx.IsSigned && !ctx.User.IsAdmin {
-		env, err := org.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
-		}
-		if len(keyword) != 0 {
-			env.AddKeyword(keyword)
-		}
-		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.ServerError("env.Repos", err)
-			return
-		}
-		count, err = env.CountRepos()
-		if err != nil {
-			ctx.ServerError("env.CountRepos", err)
-			return
-		}
-	} else {
-		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		if len(keyword) == 0 {
-			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetRepositories", err)
-				return
-			}
-			count = models.CountUserRepositories(org.ID, showPrivate)
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:   keyword,
-				OwnerID:   org.ID,
-				OrderBy:   orderBy,
-				Private:   showPrivate,
-				Page:      page,
-				IsProfile: true,
-				PageSize:  setting.UI.User.RepoPagingNum,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
-		}
+	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+		Keyword:     keyword,
+		OwnerID:     org.ID,
+		OrderBy:     orderBy,
+		Private:     ctx.IsSigned,
+		UserIsAdmin: ctx.IsUserSiteAdmin(),
+		UserID:      ctx.Data["SignedUserID"].(int64),
+		Page:        page,
+		IsProfile:   true,
+		PageSize:    setting.UI.User.RepoPagingNum,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepositoryByName", err)
+		return
 	}
 
 	if err := org.GetMembers(); err != nil {

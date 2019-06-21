@@ -188,7 +188,10 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
+	/// setting.AppUrl is guaranteed to be parse as url
+	appURL, _ := url.Parse(setting.AppURL)
+
+	return path.Join(appURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -223,6 +226,9 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
 		1,
 	)
+	if ctx.Req.URL.RawQuery != "" {
+		redirectPath += "?" + ctx.Req.URL.RawQuery
+	}
 	ctx.Redirect(redirectPath)
 }
 
@@ -233,12 +239,6 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if repo.Owner.IsOrganization() {
-		if !models.HasOrgVisible(repo.Owner, ctx.User) {
-			ctx.NotFound("HasOrgVisible", nil)
-			return
-		}
-	}
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
@@ -455,15 +455,13 @@ func RepoAssignment() macaron.Handler {
 				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 				ctx.Repo.PullRequest.Allowed = true
 				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-			} else {
+			} else if repo.AllowsPulls() {
 				// Or, this is repository accepts pull requests between branches.
-				if repo.AllowsPulls() {
-					ctx.Data["BaseRepo"] = repo
-					ctx.Repo.PullRequest.BaseRepo = repo
-					ctx.Repo.PullRequest.Allowed = true
-					ctx.Repo.PullRequest.SameRepo = true
-					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
-				}
+				ctx.Data["BaseRepo"] = repo
+				ctx.Repo.PullRequest.BaseRepo = repo
+				ctx.Repo.PullRequest.Allowed = true
+				ctx.Repo.PullRequest.SameRepo = true
+				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 			}
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest

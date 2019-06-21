@@ -4,6 +4,57 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.8.3](https://github.com/go-gitea/gitea/releases/tag/v1.8.3) - 2019-06-17
+* BUGFIXES
+  * Always set userID on LFS authentication (#7224) (Part of #6993)
+  * Fix LFS Locks over SSH (#6999) (#7223)
+  * Fix duplicated file on pull request conflicted files (#7211) (#7214)
+  * Detect noreply email address as user (#7133) (#7195)
+  * Don't get milestone from DB if ID is zero (#7169) (#7174)
+  * Allow archived repos to be (un)starred and (un)watched (#7163) (#7168)
+  * Fix GCArgs load from ini (#7156) (#7157)
+
+## [1.8.2](https://github.com/go-gitea/gitea/releases/tag/v1.8.2) - 2019-05-29
+* BUGFIXES
+  * Fix possbile mysql invalid connnection error (#7051) (#7071)
+  * Handle invalid administrator username on install page (#7060) (#7063)
+  * Disable arm7 builds (#7037) (#7042)
+  * Fix default for allowing new organization creation for new users (#7017) (#7034)
+  * SearchRepositoryByName improvements and unification (#6897) (#7002)
+  * Fix u2f registrationlist ToRegistrations() method (#6980) (#6982)
+  * Allow collaborators to view repo owned by private org (#6965) (#6968)
+  * Use AppURL for Oauth user link (#6894) (#6925)
+  * Escape the commit message on issues update (#6901) (#6902)
+  * Fix regression for API users search (#6882) (#6885)
+  * Handle early git version's lack of get-url (#7065) (#7076)
+  * Fix wrong init dependency on markup extensions (#7038) (#7074)
+
+## [1.8.1](https://github.com/go-gitea/gitea/releases/tag/v1.8.1) - 2019-05-08
+* BUGFIXES
+  * Fix 404 when sending pull requests in some situations (#6871) (#6873)
+  * Enforce osusergo build tag for releases (#6862) (#6869)
+  * Don't post process commit summary in templates (#6842) (#6868)
+  * Fix 500 when reviewer is deleted (#6856) (#6860)
+  * Fix v78 migration for MSSQL (#6823) (#6854)
+  * Added tags pull step to drone config to show correct version hashes (#6836) (#6839)
+  * Fix double-generation of scratch token (#6833) (#6835)
+  * When mirroring we should set the remote to mirror (#6824) (#6834)
+  * Show scrollbar only when needed (#6802) (#6803)
+  * Service worker js is missing a comma (#6788) (#6795)
+  * Set user search base field optional in LDAP (simple auth) edit page (#6779) (#6789)
+  * Fix team edit API panic (#6780) (#6785)
+  * Minor CSS cleanup for the navbar (#6553) (#6781)
+  * Stricter domain name pattern in email regex (#6739) (#6768)
+  * Detect and restore encoding and BOM in content (#6727) (#6765)
+  * Fix org visibility bug when git cloning (#6743) (#6762)
+  * OAuth2 token can be used in basic auth (#6747) (#6761)
+  * Fix missing return (#6751) (#6756)
+  * Fix sorting repos on org home page with non-admin login (#6741) (#6746)
+  * Drop is_bare IDX only when it exists for MySQL and MariaDB (#6736) (#6744)
+  * Fix team members API (#6714) (#6729)
+  * Load issue attributes when editing an issue with API (#6723) (#6725)
+  * Fix config ui error about cache ttl (#6861) (#6865)
+
 ## [1.8.0](https://github.com/go-gitea/gitea/releases/tag/v1.8.0) - 2019-04-20
 * SECURITY
   * Prevent remote code execution vulnerability with mirror repo URL settings (#6593) (#6594)
