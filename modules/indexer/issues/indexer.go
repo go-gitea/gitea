@@ -5,7 +5,7 @@
 package issues
 
 import (
-	"fmt"
+	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -46,77 +46,98 @@ type Indexer interface {
 }
 
 var (
+	issueIndexerChannel = make(chan *IndexerData, setting.Indexer.UpdateQueueLength)
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue Queue
 	issueIndexer      Indexer
+	wg                sync.WaitGroup
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
-func InitIssueIndexer(syncReindex bool) error {
-	var populate bool
-	var dummyQueue bool
-	switch setting.Indexer.IssueType {
-	case "bleve":
-		issueIndexer = NewBleveIndexer(setting.Indexer.IssuePath)
-		exist, err := issueIndexer.Init()
-		if err != nil {
-			return err
-		}
-		populate = !exist
-	case "db":
-		issueIndexer = &DBIndexer{}
-		dummyQueue = true
-	default:
-		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
-	}
-
-	if dummyQueue {
-		issueIndexerQueue = &DummyQueue{}
-		return nil
-	}
-
-	var err error
-	switch setting.Indexer.IssueQueueType {
-	case setting.LevelQueueType:
-		issueIndexerQueue, err = NewLevelQueue(
-			issueIndexer,
-			setting.Indexer.IssueQueueDir,
-			setting.Indexer.IssueQueueBatchNumber)
-		if err != nil {
-			return err
-		}
-	case setting.ChannelQueueType:
-		issueIndexerQueue = NewChannelQueue(issueIndexer, setting.Indexer.IssueQueueBatchNumber)
-	case setting.RedisQueueType:
-		addrs, pass, idx, err := parseConnStr(setting.Indexer.IssueQueueConnStr)
-		if err != nil {
-			return err
-		}
-		issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, issueIndexer, setting.Indexer.IssueQueueBatchNumber)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueQueueType)
-	}
-
+func InitIssueIndexer(syncReindex bool) {
+	wg.Add(1)
 	go func() {
-		err = issueIndexerQueue.Run()
-		if err != nil {
-			log.Error("issueIndexerQueue.Run: %v", err)
+		var populate bool
+		var dummyQueue bool
+		switch setting.Indexer.IssueType {
+		case "bleve":
+			issueIndexer = NewBleveIndexer(setting.Indexer.IssuePath)
+			exist, err := issueIndexer.Init()
+			if err != nil {
+				log.Fatal("Unable to initialise issueIndexer: %v", err)
+			}
+			populate = !exist
+		case "db":
+			issueIndexer = &DBIndexer{}
+			dummyQueue = true
+		default:
+			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
 		}
-	}()
 
-	if populate {
-		if syncReindex {
-			populateIssueIndexer()
+		if dummyQueue {
+			issueIndexerQueue = &DummyQueue{}
 		} else {
-			go populateIssueIndexer()
-		}
-	}
+			var err error
+			switch setting.Indexer.IssueQueueType {
+			case setting.LevelQueueType:
+				issueIndexerQueue, err = NewLevelQueue(
+					issueIndexer,
+					setting.Indexer.IssueQueueDir,
+					setting.Indexer.IssueQueueBatchNumber)
+				if err != nil {
+					log.Fatal(
+						"Unable create level queue for issue queue dir: %s batch number: %d : %v",
+						setting.Indexer.IssueQueueDir,
+						setting.Indexer.IssueQueueBatchNumber,
+						err)
+				}
+			case setting.ChannelQueueType:
+				issueIndexerQueue = NewChannelQueue(issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+			case setting.RedisQueueType:
+				addrs, pass, idx, err := parseConnStr(setting.Indexer.IssueQueueConnStr)
+				if err != nil {
+					log.Fatal("Unable to parse connection string for RedisQueueType: %s : %v",
+						setting.Indexer.IssueQueueConnStr,
+						err)
+				}
+				issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+				if err != nil {
+					log.Fatal("Unable to create RedisQueue: %s : %v",
+						setting.Indexer.IssueQueueConnStr,
+						err)
+				}
+			default:
+				log.Fatal("Unsupported indexer queue type: %v",
+					setting.Indexer.IssueQueueType)
+			}
 
-	return nil
+			go func() {
+				err = issueIndexerQueue.Run()
+				if err != nil {
+					log.Error("issueIndexerQueue.Run: %v", err)
+				}
+			}()
+		}
+
+		go func() {
+			for data := range issueIndexerChannel {
+				_ = issueIndexerQueue.Push(data)
+			}
+		}()
+
+		if populate {
+			if syncReindex {
+				populateIssueIndexer()
+			} else {
+				go populateIssueIndexer()
+			}
+		}
+		wg.Done()
+	}()
+	if syncReindex {
+		wg.Wait()
+	}
 }
 
 // populateIssueIndexer populate the issue indexer with issue data
@@ -166,13 +187,13 @@ func UpdateIssueIndexer(issue *models.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	_ = issueIndexerQueue.Push(&IndexerData{
+	issueIndexerChannel <- &IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
 		Content:  issue.Content,
 		Comments: comments,
-	})
+	}
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
@@ -188,14 +209,15 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 		return
 	}
 
-	_ = issueIndexerQueue.Push(&IndexerData{
+	issueIndexerChannel <- &IndexerData{
 		IDs:      ids,
 		IsDelete: true,
-	})
+	}
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
+	wg.Wait()
 	var issueIDs []int64
 	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
 	if err != nil {

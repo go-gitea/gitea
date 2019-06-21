@@ -70,8 +70,10 @@ func InitRepoIndexer() {
 		return
 	}
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
-	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
-	go processRepoIndexerOperationQueue()
+	go func() {
+		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
+		go processRepoIndexerOperationQueue()
+	}()
 }
 
 // populateRepoIndexerAsynchronously asynchronously populates the repo indexer
