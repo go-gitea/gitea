@@ -300,6 +300,8 @@ MAX_FILE_SIZE = 1048576
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Enable the kanban board feature system wide.
+ENABLE_KANBAN_BOARD = true
 
 [security]
 ; Whether the installer is disabled
