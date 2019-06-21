@@ -531,6 +531,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoPullsReader := context.RequireRepoReader(models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
+	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
 
 	reqRepoIssueWriter := func(ctx *context.Context) {
 		if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
@@ -798,6 +799,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/topics", repo.TopicsPost)
 	}, context.RepoAssignment(), context.RepoMustNotBeArchived(), reqRepoAdmin)
 
+	m.Group("/:username/:reponame/projects", func() {
+	}, context.RepoAssignment(), repo.MustEnableProjects, reqRepoProjectsReader)
+
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
 			m.Get("/^:type(issues|pulls)$", repo.Issues)
@@ -805,6 +809,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
+
+		m.Group("/projects", func() {
+			m.Get("", repo.Projects)
+		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)

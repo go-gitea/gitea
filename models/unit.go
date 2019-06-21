@@ -23,6 +23,7 @@ const (
 	UnitTypeWiki                                // 5 Wiki
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
+	UnitTypeProjects
 )
 
 // Value returns integer value for unit type
@@ -46,6 +47,8 @@ func (u UnitType) String() string {
 		return "UnitTypeExternalWiki"
 	case UnitTypeExternalTracker:
 		return "UnitTypeExternalTracker"
+	case UnitTypeProjects:
+		return "UnitTypeProjects"
 	}
 	return fmt.Sprintf("Unknown UnitType %d", u)
 }
@@ -67,6 +70,7 @@ var (
 		UnitTypeWiki,
 		UnitTypeExternalWiki,
 		UnitTypeExternalTracker,
+		UnitTypeProjects,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -76,6 +80,7 @@ var (
 		UnitTypePullRequests,
 		UnitTypeReleases,
 		UnitTypeWiki,
+		UnitTypeProjects,
 	}
 
 	// MustRepoUnits contains the units could not be disabled currently
@@ -165,6 +170,14 @@ var (
 		4,
 	}
 
+	UnitProjects = Unit{
+		UnitTypeProjects,
+		"repo.projects",
+		"/projects",
+		"repo.projects.desc",
+		5,
+	}
+
 	// Units contains all the units
 	Units = map[UnitType]Unit{
 		UnitTypeCode:            UnitCode,
@@ -174,6 +187,7 @@ var (
 		UnitTypeReleases:        UnitReleases,
 		UnitTypeWiki:            UnitWiki,
 		UnitTypeExternalWiki:    UnitExternalWiki,
+		UnitTypeProjects:        UnitProjects,
 	}
 )
 

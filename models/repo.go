@@ -152,6 +152,9 @@ type Repository struct {
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
 	NumReleases         int `xorm:"-"`
+	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects     int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -207,6 +210,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
+	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
 // MustOwner always returns a valid *User object to avoid

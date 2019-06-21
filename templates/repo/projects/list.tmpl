@@ -1,0 +1,21 @@
+{{template "base/head" .}}
+<div class="repository">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui three column stackable grid">
+			<div class="column">
+				{{template "repo/issue/navbar" .}}
+			</div>
+			<div class="column center aligned">
+				{{template "repo/issue/search" .}}
+			</div>
+			{{if not .Repository.IsArchived}}
+				<div class="column right aligned">
+					<a class="ui green button" href="{{.RepoLink}}/projects/new">{{.i18n.Tr "repo.projects.new"}}</a>
+				</div>
+			{{end}}
+		</div>
+		<div class="ui divider"></div>
+		</div>
+	</div>
+</div>
