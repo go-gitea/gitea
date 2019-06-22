@@ -247,7 +247,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mcuadros/go-version
 # github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 github.com/microcosm-cc/bluemonday
-# github.com/mitchellh/go-homedir v1.0.0
+# github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
 # github.com/mrjones/oauth v0.0.0-20180629183705-f4e24b6d100c
 github.com/mrjones/oauth
@@ -331,11 +331,11 @@ github.com/tstranex/u2f
 github.com/urfave/cli
 # github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
 github.com/willf/bitset
-# github.com/xanzy/ssh-agent v0.2.0
+# github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
 # github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 github.com/yohcop/openid-go
-# golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
+# golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/pbkdf2
@@ -358,27 +358,32 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/agent
-# golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
+# golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
+golang.org/x/net/idna
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/proxy
 golang.org/x/net/context
+golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+# golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/unix
 golang.org/x/sys/cpu
-# golang.org/x/text v0.3.0
+# golang.org/x/text v0.3.2
 golang.org/x/text/transform
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
 golang.org/x/text/language
 golang.org/x/text/unicode/norm
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/japanese
@@ -386,9 +391,11 @@ golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
-golang.org/x/text/internal/tag
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+golang.org/x/text/internal/tag
 # google.golang.org/appengine v1.2.0
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
@@ -422,7 +429,7 @@ gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/util
 gopkg.in/src-d/go-billy.v4/helper/chroot
 gopkg.in/src-d/go-billy.v4/helper/polyfill
-# gopkg.in/src-d/go-git.v4 v4.11.0
+# gopkg.in/src-d/go-git.v4 v4.12.0
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing

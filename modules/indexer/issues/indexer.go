@@ -101,7 +101,12 @@ func InitIssueIndexer(syncReindex bool) error {
 		return fmt.Errorf("Unsupported indexer queue type: %v", setting.Indexer.IssueQueueType)
 	}
 
-	go issueIndexerQueue.Run()
+	go func() {
+		err = issueIndexerQueue.Run()
+		if err != nil {
+			log.Error("issueIndexerQueue.Run: %v", err)
+		}
+	}()
 
 	if populate {
 		if syncReindex {
@@ -161,7 +166,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	issueIndexerQueue.Push(&IndexerData{
+	_ = issueIndexerQueue.Push(&IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
@@ -179,11 +184,11 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 		return
 	}
 
-	if len(ids) <= 0 {
+	if len(ids) == 0 {
 		return
 	}
 
-	issueIndexerQueue.Push(&IndexerData{
+	_ = issueIndexerQueue.Push(&IndexerData{
 		IDs:      ids,
 		IsDelete: true,
 	})

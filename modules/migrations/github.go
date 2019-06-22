@@ -416,15 +416,34 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			merged = true
 		}
 
-		var headRepoName string
-		var cloneURL string
+		var (
+			headRepoName string
+			cloneURL     string
+			headRef      string
+			headSHA      string
+		)
 		if pr.Head.Repo != nil {
-			headRepoName = *pr.Head.Repo.Name
-			cloneURL = *pr.Head.Repo.CloneURL
+			if pr.Head.Repo.Name != nil {
+				headRepoName = *pr.Head.Repo.Name
+			}
+			if pr.Head.Repo.CloneURL != nil {
+				cloneURL = *pr.Head.Repo.CloneURL
+			}
+		}
+		if pr.Head.Ref != nil {
+			headRef = *pr.Head.Ref
+		}
+		if pr.Head.SHA != nil {
+			headSHA = *pr.Head.SHA
 		}
 		var mergeCommitSHA string
 		if pr.MergeCommitSHA != nil {
 			mergeCommitSHA = *pr.MergeCommitSHA
+		}
+
+		var headUserName string
+		if pr.Head.User != nil && pr.Head.User.Login != nil {
+			headUserName = *pr.Head.User.Login
 		}
 
 		allPRs = append(allPRs, &base.PullRequest{
@@ -443,10 +462,10 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			MergedTime:     pr.MergedAt,
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
-				Ref:       *pr.Head.Ref,
-				SHA:       *pr.Head.SHA,
+				Ref:       headRef,
+				SHA:       headSHA,
 				RepoName:  headRepoName,
-				OwnerName: *pr.Head.User.Login,
+				OwnerName: headUserName,
 				CloneURL:  cloneURL,
 			},
 			Base: base.PullRequestBranch{
