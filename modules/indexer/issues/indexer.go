@@ -51,12 +51,13 @@ var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue Queue
 	issueIndexer      Indexer
-	waitChannel       = make(chan struct{})
+	waitChannel       chan struct{}
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
+	waitChannel = make(chan struct{})
 	go func() {
 		var populate bool
 		var dummyQueue bool
