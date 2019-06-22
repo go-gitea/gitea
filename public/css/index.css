@@ -644,6 +644,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
+.repository .diff-file-box .code-diff tbody tr .line-type-marker{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#ffe0e0!important;border-color:#f1c0c0!important}
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td{background-color:#d6fcd6!important;border-color:#c1e9c1!important}
 .repository .diff-file-box .code-diff-split table,.repository .diff-file-box .code-diff-split tbody{width:100%}
