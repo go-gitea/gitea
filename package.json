@@ -1,12 +1,13 @@
 {
   "license": "MIT",
   "devDependencies": {
-    "autoprefixer": "9.5.1",
+    "autoprefixer": "9.6.0",
     "eslint": "5.16.0",
     "less": "3.9.0",
     "less-plugin-clean-css": "1.5.1",
     "lesshint": "6.3.6",
-    "postcss-cli": "6.1.2"
+    "postcss-cli": "6.1.2",
+    "updates": "8.1.0"
   },
   "browserslist": [
     "> 1%",

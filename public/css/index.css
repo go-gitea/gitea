@@ -874,7 +874,7 @@ tbody.commit-list{vertical-align:baseline}
 .user.profile .ui.card .extra.content ul{margin:0;padding:0}
 .user.profile .ui.card .extra.content ul li{padding:10px;list-style:none}
 .user.profile .ui.card .extra.content ul li:not(:last-child){border-bottom:1px solid #eaeaea}
-.user.profile .ui.card .extra.content ul li .octicon{margin-left:1px;margin-right:5px}
+.user.profile .ui.card .extra.content ul li .fa,.user.profile .ui.card .extra.content ul li .octicon{margin-left:1px;margin-right:5px}
 .user.profile .ui.card .extra.content ul li.follow .ui.button{width:100%}
 @media only screen and (max-width:768px){.user.profile .ui.card #profile-avatar{height:250px;overflow:hidden}
 .user.profile .ui.card #profile-avatar img{max-height:768px;max-width:768px}
