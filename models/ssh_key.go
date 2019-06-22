@@ -25,9 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 const (

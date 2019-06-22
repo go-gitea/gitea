@@ -32,11 +32,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"xorm.io/builder"
-	"xorm.io/core"
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // UserType defines the user type

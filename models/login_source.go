@@ -15,8 +15,8 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"xorm.io/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"

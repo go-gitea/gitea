@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/Unknwon/com"
-	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 var (

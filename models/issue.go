@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // Issue represents an issue or pull request of repository.

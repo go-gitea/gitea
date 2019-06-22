@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"xorm.io/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
