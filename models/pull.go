@@ -190,7 +190,7 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		}
 	}
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
-		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
+		log.Error("pr.BaseRepo.GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil
 	}
 	if baseCommit, err = baseBranch.GetCommit(); err != nil {
@@ -198,7 +198,7 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		return nil
 	}
 	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
-		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
+		log.Error("pr.HeadRepo.GetBranch[%s]: %v", pr.HeadBranch, err)
 		return nil
 	}
 	if headCommit, err = headBranch.GetCommit(); err != nil {
