@@ -99,11 +99,11 @@ func (s RefSpec) matchGlob(n plumbing.ReferenceName) bool {
 
 	var prefix, suffix string
 	prefix = src[0:wildcard]
-	if len(src) < wildcard {
-		suffix = src[wildcard+1 : len(suffix)]
+	if len(src) > wildcard+1 {
+		suffix = src[wildcard+1:]
 	}
 
-	return len(name) > len(prefix)+len(suffix) &&
+	return len(name) >= len(prefix)+len(suffix) &&
 		strings.HasPrefix(name, prefix) &&
 		strings.HasSuffix(name, suffix)
 }

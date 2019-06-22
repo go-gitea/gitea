@@ -171,7 +171,9 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 	}
 	defer ioutil.CheckClose(reader, &err)
 
-	r := bufio.NewReader(reader)
+	r := bufPool.Get().(*bufio.Reader)
+	defer bufPool.Put(r)
+	r.Reset(reader)
 
 	var message bool
 	var pgpsig bool
@@ -231,6 +233,11 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 // Encode transforms a Commit into a plumbing.EncodedObject.
 func (b *Commit) Encode(o plumbing.EncodedObject) error {
 	return b.encode(o, true)
+}
+
+// EncodeWithoutSignature export a Commit into a plumbing.EncodedObject without the signature (correspond to the payload of the PGP signature).
+func (b *Commit) EncodeWithoutSignature(o plumbing.EncodedObject) error {
+	return b.encode(o, false)
 }
 
 func (b *Commit) encode(o plumbing.EncodedObject, includeSig bool) (err error) {
@@ -347,7 +354,7 @@ func (c *Commit) Verify(armoredKeyRing string) (*openpgp.Entity, error) {
 
 	encoded := &plumbing.MemoryObject{}
 	// Encode commit components, excluding signature and get a reader object.
-	if err := c.encode(encoded, false); err != nil {
+	if err := c.EncodeWithoutSignature(encoded); err != nil {
 		return nil, err
 	}
 	er, err := encoded.Reader()

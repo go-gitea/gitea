@@ -37,7 +37,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 			entryCommit := convertCommit(rev)
 			if entry.IsSubModule() {
 				subModuleURL := ""
-				if subModule, err := commit.GetSubModule(entry.Name()); err != nil {
+				var fullPath string
+				if len(treePath) > 0 {
+					fullPath = treePath + "/" + entry.Name()
+				} else {
+					fullPath = entry.Name()
+				}
+				if subModule, err := commit.GetSubModule(fullPath); err != nil {
 					return nil, nil, err
 				} else if subModule != nil {
 					subModuleURL = subModule.URL
