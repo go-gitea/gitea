@@ -1152,7 +1152,7 @@ function initWikiForm() {
                                 "text": plainText
                             },
                             function (data) {
-                                preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                                preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                                 emojify.run($('.editor-preview')[0]);
                                 $(preview).find('pre code').each(function(_,e){
                                     hljs.highlightBlock(e);
@@ -1254,7 +1254,7 @@ function setSimpleMDE($editArea) {
                         "text": plainText
                     },
                     function (data) {
-                        preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                        preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                         emojify.run($('.editor-preview')[0]);
                     }
                 );

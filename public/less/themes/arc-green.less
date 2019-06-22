@@ -501,7 +501,36 @@ a.ui.basic.green.label:hover {
 }
 
 .markdown:not(code) table tr:nth-child(2n) {
-    background-color: #474d61;
+    background-color: #2a2e39;
+}
+
+.markdown:not(code) table tr:nth-child(2n-1) {
+    background-color: #383b44;
+}
+
+.markdown:not(code) table thead tr:nth-child(2n-1) {
+    background-color: #464c5d !important;
+}
+
+.markdown:not(code) table td,
+.markdown:not(code) table th {
+    border-color: #4c505c !important;
+}
+
+.repository.file.editor.edit,
+.repository.wiki.new .CodeMirror {
+    border-right: 1px solid rgba(187,187,187, 0.6);
+    border-left: 1px solid rgba(187,187,187, 0.6);
+    border-bottom: 1px solid rgba(187,187,187, 0.6);
+
+    .editor-preview,
+    .editor-preview-side {
+        background: #353945;
+
+        .markdown:not(code).ui.segment {
+            border-width: 0;
+        }
+    }
 }
 
 .ui.dropdown .menu {
