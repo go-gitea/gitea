@@ -431,6 +431,11 @@
                     }
                 }
 
+                .lines-num[data-line-num]::before {
+                    content: attr(data-line-num);
+                    display: inline-block;
+                  }
+
                 .lines-num,
                 .lines-code {
                     padding: 0;
@@ -1404,10 +1409,10 @@
                         background-color: #99ff99;
                     }
 
-                    .line-type-marker {
-                        user-select: none;
-                    }
-                }
+                    .line-type-marker[data-type-marker]::before {
+                        content: attr(data-type-marker);
+                        display: inline-block;
+                      }                }
             }
         }
 
