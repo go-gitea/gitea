@@ -18,6 +18,7 @@ menu:
 This page contains some common questions and answers.  
 Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 
+* [Difference between 1.x and 1.x.x downloads](#difference-between-1-x-and-1-x-x-downloads)
 * [How to migrate from Gogs/GitHub/etc. to Gitea](#how-to-migrate-from-gogs-github-etc-to-gitea)
 * [Where does Gitea store "x" file](#where-does-gitea-store-x-file)
 * [Not seeing a clone URL or the clone URL being incorrect](#not-seeing-a-clone-url-or-the-clone-url-being-incorrect)
@@ -41,6 +42,17 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
 * [LFS Issues](#lfs-issues)
 
+
+## Difference between 1.x and 1.x.x downloads
+Version 1.7.x will be used for this example.  
+**NOTE:** this example applies to Docker images as well!  
+
+On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.  
+The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
+The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.  
+
+This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
+On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
 To migrate from Gogs to Gitea:

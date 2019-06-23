@@ -42,7 +42,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
-	if err := issue.MailParticipants(models.ActionCreateIssue); err != nil {
+	if err := issue.MailParticipants(issue.Poster, models.ActionCreateIssue); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -63,13 +63,13 @@ func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.
 		}
 	}
 
-	if err := issue.MailParticipants(actionType); err != nil {
+	if err := issue.MailParticipants(doer, actionType); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
-	if err := pr.Issue.MailParticipants(models.ActionCreatePullRequest); err != nil {
+	if err := pr.Issue.MailParticipants(pr.Issue.Poster, models.ActionCreatePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }

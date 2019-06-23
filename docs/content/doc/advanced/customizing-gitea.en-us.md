@@ -15,19 +15,28 @@ menu:
 
 # Customizing Gitea
 
-Customizing Gitea is typically done using the `custom` folder. This is the central
-place to override configuration settings, templates, etc.
+Customizing Gitea is typically done using the `CustomPath` folder - by default this is
+the `custom` folder from the running directory, but may be different if your build has
+set this differently. This is the central place to override configuration settings,
+templates, etc. You can check the `CustomPath` using `gitea help`. You can override
+the `CustomPath` by setting either the `GITEA_CUSTOM` environment variable or by
+using the `--custom-path` option on the `gitea` binary. (The option will override the
+environment variable.)
 
 If Gitea is deployed from binary, all default paths will be relative to the Gitea
 binary. If installed from a distribution, these paths will likely be modified to
-the Linux Filesystem Standard. Gitea will create required folders, including `custom/`.
-Application settings are configured in `custom/conf/app.ini`. Distributions may
-provide a symlink for `custom` using `/etc/gitea/`.
+the Linux Filesystem Standard. Gitea will attempt to create required folders, including
+`custom/`. Distributions may provide a symlink for `custom` using `/etc/gitea/`.
+
+Application settings can be found in file `CustomConf` which is by default,
+`CustomPath/conf/app.ini` but may be different if your build has set this differently.
+Again `gitea help` will allow you review this variable and you can override it using the
+`--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
 - [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
 
-If the `custom` folder can't be found next to the binary, check the `GITEA_CUSTOM`
+If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
 `GITEA_CUSTOM` might, for example, be set by an init script.
 
@@ -38,7 +47,8 @@ environment variable; this can be used to override the default path to something
 ## Customizing /robots.txt
 
 To make Gitea serve a custom `/robots.txt` (default: empty 404), create a file called
-`robots.txt` in the `custom` folder with [expected contents](http://www.robotstxt.org/).
+`robots.txt` in the `custom` folder (or `CustomPath`) with
+[expected contents](http://www.robotstxt.org/).
 
 ## Serving custom public files
 

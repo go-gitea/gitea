@@ -5,17 +5,12 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
-
-func composePublicGPGKeysAPILink() string {
-	return setting.AppURL + "api/v1/user/gpg_keys/"
-}
 
 func listGPGKeys(ctx *context.APIContext, uid int64) {
 	keys, err := models.ListGPGKeys(uid)

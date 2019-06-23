@@ -129,7 +129,6 @@ func DeleteLabel(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/labels",
 	})
-	return
 }
 
 // UpdateIssueLabel change issue's labels

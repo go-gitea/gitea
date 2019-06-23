@@ -136,30 +136,23 @@ You should lint, vet and spell-check with:
 make vet lint misspell-check
 ```
 
-### Updating the stylesheets
+### Updating CSS
 
-To generate the stylsheets, you will need [Node.js](https://nodejs.org/) at version 8.0 or above.
+To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
 
-At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
-**not** edit the files in `public/css/` directly, as they are generated from
-`lessc` from the files in `public/less/`.
-
-If you wish to work on the stylesheets, you will need to install `lessc` the
-less compiler and `postcss`. The recommended way to do this is using `npm install`:
+Edit files in `public/less`, run the linter, regenerate the CSS and commit all changed files:
 
 ```bash
-cd "$GOPATH/src/code.gitea.io/gitea"
-npm install
+make css
 ```
 
-You can then edit the less stylesheets and regenerate the stylesheets using:
+### Updating JS
+
+To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js` and run the linter:
 
 ```bash
-make generate-stylesheets
+make js
 ```
-
-You should commit both the changes to the css and the less files when making
-PRs.
 
 ### Updating the API
 
@@ -203,7 +196,7 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
 found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo
@@ -244,7 +237,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment. 
+are available but may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)

@@ -49,7 +49,7 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Sha1)
+	ctx.Flash.Info(t.Token)
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
@@ -79,6 +79,11 @@ func loadApplicationsData(ctx *context.Context) {
 		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			return
+		}
+		ctx.Data["Grants"], err = models.GetOAuth2GrantsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return
 		}
 	}

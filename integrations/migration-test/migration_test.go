@@ -13,11 +13,13 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -28,7 +30,7 @@ var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) {
 	integrations.PrintCurrentTest(t, 2)
-	giteaRoot := os.Getenv("GITEA_ROOT")
+	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		integrations.Printf("Environment variable $GITEA_ROOT not set\n")
 		os.Exit(1)
@@ -53,21 +55,6 @@ func initMigrationTest(t *testing.T) {
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
 	setting.NewLogServices(true)
-}
-
-func getDialect() string {
-	dialect := "sqlite"
-	switch {
-	case setting.UseSQLite3:
-		dialect = "sqlite"
-	case setting.UseMySQL:
-		dialect = "mysql"
-	case setting.UsePostgreSQL:
-		dialect = "pgsql"
-	case setting.UseMSSQL:
-		dialect = "mssql"
-	}
-	return dialect
 }
 
 func availableVersions() ([]string, error) {
@@ -119,8 +106,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return string(bytes), nil
+	return string(base.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {
@@ -198,11 +184,11 @@ func restoreOldDB(t *testing.T, version string) bool {
 		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
 		assert.NoError(t, err)
 
-		_, err = db.Exec("CREATE DATABASE gitea")
-		assert.NoError(t, err)
-
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
+		statements := strings.Split(data, "\nGO\n")
+		for _, statement := range statements {
+			_, err = db.Exec(statement)
+			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
+		}
 		db.Close()
 	}
 	return true

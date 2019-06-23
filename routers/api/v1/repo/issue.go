@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListIssues list the issues of a repository
@@ -290,6 +290,12 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
+
+	err = issue.LoadAttributes()
+	if err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
 
 	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Status(403)

@@ -52,3 +52,15 @@
   tree_path: "README.md"
   created_unix: 946684812
   invalidated: true
+
+-
+  id: 7
+  type: 21 # code comment
+  poster_id: 100
+  issue_id: 3
+  content: "a review from a deleted user"
+  line: -4
+  review_id: 10
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: true

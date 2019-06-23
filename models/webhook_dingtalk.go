@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
