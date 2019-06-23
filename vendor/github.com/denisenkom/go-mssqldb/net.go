@@ -14,7 +14,7 @@ type timeoutConn struct {
 	continueRead  bool
 }
 
-func newTimeoutConn(conn net.Conn, timeout time.Duration) *timeoutConn {
+func NewTimeoutConn(conn net.Conn, timeout time.Duration) *timeoutConn {
 	return &timeoutConn{
 		c:       conn,
 		timeout: timeout,
@@ -33,7 +33,7 @@ func (c *timeoutConn) Read(b []byte) (n int, err error) {
 			c.continueRead = false
 		}
 		if !c.continueRead {
-			var packet packetType
+			var packet uint8
 			packet, err = c.buf.BeginRead()
 			if err != nil {
 				err = fmt.Errorf("Cannot read handshake packet: %s", err.Error())
@@ -48,11 +48,9 @@ func (c *timeoutConn) Read(b []byte) (n int, err error) {
 		n, err = c.buf.Read(b)
 		return
 	}
-	if c.timeout > 0 {
-		err = c.c.SetDeadline(time.Now().Add(c.timeout))
-		if err != nil {
-			return
-		}
+	err = c.c.SetDeadline(time.Now().Add(c.timeout))
+	if err != nil {
+		return
 	}
 	return c.c.Read(b)
 }
@@ -60,7 +58,7 @@ func (c *timeoutConn) Read(b []byte) (n int, err error) {
 func (c *timeoutConn) Write(b []byte) (n int, err error) {
 	if c.buf != nil {
 		if !c.packetPending {
-			c.buf.BeginPacket(packPrelogin, false)
+			c.buf.BeginPacket(packPrelogin)
 			c.packetPending = true
 		}
 		n, err = c.buf.Write(b)
@@ -69,11 +67,9 @@ func (c *timeoutConn) Write(b []byte) (n int, err error) {
 		}
 		return
 	}
-	if c.timeout > 0 {
-		err = c.c.SetDeadline(time.Now().Add(c.timeout))
-		if err != nil {
-			return
-		}
+	err = c.c.SetDeadline(time.Now().Add(c.timeout))
+	if err != nil {
+		return
 	}
 	return c.c.Write(b)
 }
