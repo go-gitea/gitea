@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/log"
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
