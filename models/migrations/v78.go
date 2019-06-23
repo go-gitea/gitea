@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 )
 
 func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
