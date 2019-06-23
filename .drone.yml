@@ -24,7 +24,7 @@ pipeline:
       branch: [ master ]
 
   update-translations:
-    image: alpine:3.7
+    image: alpine:3.10
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
@@ -163,7 +163,7 @@ pipeline:
       event: [ tag ]
 
   test-mysql8:
-    image: golang:1.11
+    image: golang:1.12
     pull: true
     group: test
     environment:
@@ -294,7 +294,7 @@ pipeline:
       branch: [ master ]
 
   docker-dryrun:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     repo: gitea/gitea
     cache_from: gitea/gitea
@@ -303,7 +303,7 @@ pipeline:
       event: [ pull_request ]
 
   release-docker:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
@@ -314,7 +314,7 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker:17.12
+    image: plugins/docker:18.09
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
