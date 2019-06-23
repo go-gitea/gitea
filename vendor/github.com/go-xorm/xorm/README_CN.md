@@ -153,20 +153,20 @@ has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
 
 var name string
-has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+has, err := engine.Table(&user).Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
 
 var id int64
-has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.Table(&user).Where("name = ?", name).Cols("id").Get(&id)
 has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
 
 var valuesMap = make(map[string]string)
-has, err := engine.Where("id = ?", id).Get(&valuesMap)
+has, err := engine.Table(&user).Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
 
 var valuesSlice = make([]interface{}, len(cols))
-has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+has, err := engine.Table(&user).Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
@@ -362,7 +362,7 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
-* 事物的简写方法
+* 事务的简写方法
 
 ```Go
 res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {
