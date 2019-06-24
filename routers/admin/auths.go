@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 const (

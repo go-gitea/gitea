@@ -59,8 +59,8 @@ pipeline:
     image: golang:${GO_VERSION}
     commands:
       - go get -t -d -v ./...
-      - go get -u github.com/go-xorm/core
-      - go get -u github.com/go-xorm/builder
+      - go get -u xorm.io/core
+      - go get -u xorm.io/builder
       - go build -v
     when:
       event: [ push, pull_request ]
