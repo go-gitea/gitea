@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // XORMLogBridge a logger bridge from Logger to xorm

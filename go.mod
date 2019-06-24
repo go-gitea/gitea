@@ -27,7 +27,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f
+	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
 	github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/emirpasic/gods v1.12.0
@@ -54,10 +54,9 @@ require (
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/go-sql-driver/mysql v1.4.0
-	github.com/go-xorm/builder v0.3.3
-	github.com/go-xorm/core v0.6.0
-	github.com/go-xorm/xorm v0.0.0-20190116032649-a6300f2a45e0
+	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-xorm/core v0.6.0 // indirect
+	github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
 	github.com/gogo/protobuf v1.2.1 // indirect
@@ -133,12 +132,12 @@ require (
 	gopkg.in/redis.v2 v2.3.2 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0
 	gopkg.in/src-d/go-git.v4 v4.12.0
+	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
+	xorm.io/builder v0.3.5
+	xorm.io/core v0.6.3
 )
 
-replace (
-	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
-	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
-)
+replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
