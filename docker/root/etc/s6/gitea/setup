@@ -41,7 +41,7 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"} \
     REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"} \
     SECRET_KEY=${SECRET_KEY:-""} \
-    envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
+    envsubst < /etc/templates/gitea.ini > ${GITEA_CUSTOM}/conf/app.ini
 
     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
