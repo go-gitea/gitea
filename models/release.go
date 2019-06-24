@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // Release represents a release of repository.
