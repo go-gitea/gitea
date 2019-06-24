@@ -638,14 +638,13 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #ddd}
 .repository .diff-file-box .code-diff{font-size:12px}
 .repository .diff-file-box .code-diff td{padding:0 0 0 10px;border-top:0}
-.repository .diff-file-box .code-diff pre{margin:0}
 .repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
 .repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr .lines-num[data-line-num]::before{content:attr(data-line-num);text-align:right}
-.repository .diff-file-box .code-diff tbody tr .lines-type-marker{width:10px;min-width:10px}
+.repository .diff-file-box .code-diff tbody tr .lines-type-marker{width:10px;min-width:10px;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .repository .diff-file-box .code-diff tbody tr .line-type-marker[data-type-marker]::before{content:attr(data-type-marker);text-align:right;display:inline-block}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#ffe0e0!important;border-color:#f1c0c0!important}
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td{background-color:#d6fcd6!important;border-color:#c1e9c1!important}
