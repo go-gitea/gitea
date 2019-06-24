@@ -23,7 +23,7 @@ const Separator = ":"
 
 // CmdEnvironmentToIni represents the command to use a provided environment to update the configuration ini
 var CmdEnvironmentToIni = cli.Command{
-	Name:   "enviroment-to-ini",
+	Name:   "environment-to-ini",
 	Usage:  "Use provided environment to update configuration ini",
 	Action: runEnvironmentToIni,
 	Flags: []cli.Flag{
