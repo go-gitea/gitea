@@ -80,6 +80,14 @@ func (d *DiffLine) GetCommentSide() string {
 	return d.Comments[0].DiffSide()
 }
 
+// GetLineTypeMarker returns the line type marker
+func (d *DiffLine) GetLineTypeMarker() string {
+	if strings.IndexByte(" +-", d.Content[0]) > -1 {
+		return d.Content[0:1]
+	}
+	return ""
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
@@ -190,7 +198,10 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
-		return template.HTML(html.EscapeString(diffLine.Content[1:]))
+		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
+			return template.HTML(html.EscapeString(diffLine.Content[1:]))
+		}
+		return template.HTML(html.EscapeString(diffLine.Content))
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
