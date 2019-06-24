@@ -43,6 +43,8 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     SECRET_KEY=${SECRET_KEY:-""} \
     envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
 
+    gitea environment-to-ini -c ${GITEA_CUSTOM}/conf/app.ini
+
     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
 
