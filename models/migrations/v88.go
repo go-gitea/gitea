@@ -5,20 +5,20 @@
 package migrations
 
 import (
-	"crypto/md5"
+	"crypto/sha1"
 	"fmt"
 
 	"github.com/go-xorm/xorm"
 )
 
 func hashContext(context string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(context)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
 func addCommitStatusContext(x *xorm.Engine) error {
 	type CommitStatus struct {
 		ID          int64  `xorm:"pk autoincr"`
-		ContextHash string `xorm:"varchar(40) index"`
+		ContextHash string `xorm:"char(40) index"`
 		Context     string `xorm:"TEXT"`
 	}
 

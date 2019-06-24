@@ -6,7 +6,7 @@ package models
 
 import (
 	"container/list"
-	"crypto/md5"
+	"crypto/sha1"
 	"fmt"
 	"strings"
 
@@ -59,7 +59,7 @@ type CommitStatus struct {
 	SHA         string            `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	TargetURL   string            `xorm:"TEXT"`
 	Description string            `xorm:"TEXT"`
-	ContextHash string            `xorm:"varchar(40) index"`
+	ContextHash string            `xorm:"char(40) index"`
 	Context     string            `xorm:"TEXT"`
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
@@ -255,5 +255,5 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 
 // HashCommitStatusContext hash context
 func HashCommitStatusContext(context string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(context)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
