@@ -1339,6 +1339,7 @@
                 color: #a6a6a6;
                 background: #fafafa;
                 width: 1%;
+                min-width: 50px;
                 user-select: none;
                 vertical-align: top;
 
@@ -1406,11 +1407,11 @@
 
                     .lines-num[data-line-num]::before {
                         content: attr(data-line-num);
-                        display: inline-block;
                     }
 
                     .line-type-marker[data-type-marker]::before {
                         content: attr(data-type-marker);
+                        text-align: right;
                         display: inline-block;
                     }
                 }
