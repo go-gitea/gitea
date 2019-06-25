@@ -136,7 +136,7 @@
 															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span>
 														</td>
 														<td class="lines-type-marker">
-															{{if $line.RightIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}^^^
+															{{if $line.RightIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}
 														</td>
 														<td class="lines-code lines-code-new halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
