@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models"
@@ -183,6 +184,8 @@ func restoreOldDB(t *testing.T, version string) bool {
 
 		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
 		assert.NoError(t, err)
+
+		time.Sleep(30 * time.Second)
 
 		statements := strings.Split(data, "\nGO\n")
 		for _, statement := range statements {
