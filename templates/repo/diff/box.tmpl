@@ -124,7 +124,7 @@
 															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span>
 														</td>
 														<td class="lines-type-marker">
-															<pre>{{if $line.LeftIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
+															{{if $line.LeftIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
@@ -136,7 +136,7 @@
 															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span>
 														</td>
 														<td class="lines-type-marker">
-															<pre>{{if $line.RightIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
+															{{if $line.RightIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}^^^
 														</td>
 														<td class="lines-code lines-code-new halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}

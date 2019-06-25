@@ -16,7 +16,7 @@
 			</td>
 			{{end}}
 			<td class="lines-type-marker">
-				<pre><span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span></pre>
+				<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>
 			</td>
 			<td class="lines-code {{if (not $line.RightIdx)}}lines-code-old{{end}}">
 				{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}
