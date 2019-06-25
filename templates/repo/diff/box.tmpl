@@ -120,8 +120,11 @@
 											{{range $j, $section := $file.Sections}}
 												{{range $k, $line := $section.Lines}}
 													<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
-														<td class="lines-num lines-num-old">
-															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}">{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}</span>
+														<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
+															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span>
+														</td>
+														<td class="lines-type-marker">
+															<pre>{{if $line.LeftIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
@@ -129,10 +132,12 @@
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
-														<td class="lines-num lines-num-new">
-															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}">{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}</span>
+														<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}">
+															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span>
 														</td>
-
+														<td class="lines-type-marker">
+															<pre>{{if $line.RightIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
+														</td>
 														<td class="lines-code lines-code-new halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
@@ -143,6 +148,7 @@
 													{{if gt (len $line.Comments) 0}}
 														<tr class="add-code-comment">
 															<td class="lines-num"></td>
+															<td class="lines-type-marker"></td>
 															<td class="add-comment-left">
 																{{if eq $line.GetCommentSide "previous"}}
 																	<div class="field comment-code-cloud">
@@ -156,6 +162,7 @@
 																{{end}}
 															</td>
 															<td class="lines-num"></td>
+															<td class="lines-type-marker"></td>
 															<td class="add-comment-right">
 																{{if eq $line.GetCommentSide "proposed"}}
 																	<div class="field comment-code-cloud">
