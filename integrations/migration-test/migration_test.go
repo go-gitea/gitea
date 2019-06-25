@@ -182,7 +182,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
+		_, err = db.Exec("DROP DATABASE gitea")
 		assert.NoError(t, err)
 
 		time.Sleep(30 * time.Second)
