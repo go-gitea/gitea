@@ -92,7 +92,13 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .markdown:not(code) h2{border-bottom:1px solid #304251}
 .hljs,.hljs-keyword,.hljs-selector-tag,.hljs-subst{color:#9daccc}
 .markdown:not(code) .highlight pre,.markdown:not(code) pre{background-color:#2a2e3a;border:1px solid #404552}
-.markdown:not(code) table tr:nth-child(2n){background-color:#474d61}
+.markdown:not(code) table tr:nth-child(2n){background-color:#2a2e39}
+.markdown:not(code) table tr:nth-child(2n-1){background-color:#383b44}
+.markdown:not(code) table thead tr:nth-child(2n-1){background-color:#464c5d!important}
+.markdown:not(code) table td,.markdown:not(code) table th{border-color:#4c505c!important}
+.repository.file.editor.edit,.repository.wiki.new .CodeMirror{border-right:1px solid rgba(187,187,187,.6);border-left:1px solid rgba(187,187,187,.6);border-bottom:1px solid rgba(187,187,187,.6)}
+.repository.file.editor.edit .editor-preview,.repository.file.editor.edit .editor-preview-side,.repository.wiki.new .CodeMirror .editor-preview,.repository.wiki.new .CodeMirror .editor-preview-side{background:#353945}
+.repository.file.editor.edit .editor-preview .markdown:not(code).ui.segment,.repository.file.editor.edit .editor-preview-side .markdown:not(code).ui.segment,.repository.wiki.new .CodeMirror .editor-preview .markdown:not(code).ui.segment,.repository.wiki.new .CodeMirror .editor-preview-side .markdown:not(code).ui.segment{border-width:0}
 .ui.dropdown .menu{background:#2c303a}
 .ui.dropdown .menu>.message:not(.ui){color:#636363}
 .ui.input{color:#dbdbdb}

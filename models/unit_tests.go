@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/core"
 )
 
 // NonexistentID an ID that will never exist
