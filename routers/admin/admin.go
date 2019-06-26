@@ -202,6 +202,17 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
+func shadowPassword(cfgItem string) string {
+	fields := strings.Split(cfgItem, ",")
+	for i := 0; i < len(fields); i++ {
+		if strings.HasPrefix(fields[i], "password=") {
+			fields[i] = "password=******"
+			break
+		}
+	}
+	return strings.Join(fields, ",")
+}
+
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
@@ -239,10 +250,14 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
-	ctx.Data["CacheConn"] = setting.CacheService.Conn
+
+	ctx.Data["CacheConn"] = shadowPassword(setting.CacheService.Conn)
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
-	ctx.Data["SessionConfig"] = setting.SessionConfig
+	sessionCfg := setting.SessionConfig
+	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.ProviderConfig)
+
+	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["DisableGravatar"] = setting.DisableGravatar
 	ctx.Data["EnableFederatedAvatar"] = setting.EnableFederatedAvatar
