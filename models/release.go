@@ -434,7 +434,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	if delTag {
 		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			"git", "tag", "-d", rel.TagName)
+			git.GitExecutable, "tag", "-d", rel.TagName)
 		if err != nil && !strings.Contains(stderr, "not found") {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}

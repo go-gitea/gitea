@@ -7,6 +7,7 @@ package context
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/go-macaron/csrf"
@@ -77,23 +78,49 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	})
 }
 
-// SetLinkHeader sets pagination link header by given total number and page size.
-func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
-	page := NewPagination(total, pageSize, ctx.QueryInt("page"), 0)
+func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
+	page := NewPagination(total, pageSize, curPage, 0)
 	paginater := page.Paginater
 	links := make([]string, 0, 4)
+
 	if paginater.HasNext() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Next()))
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.Next()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"next\"", setting.AppURL, u.RequestURI()[1:]))
 	}
 	if !paginater.IsLast() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.TotalPages()))
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.TotalPages()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"last\"", setting.AppURL, u.RequestURI()[1:]))
 	}
 	if !paginater.IsFirst() {
-		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppURL, ctx.Req.URL.Path[1:]))
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", "1")
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"first\"", setting.AppURL, u.RequestURI()[1:]))
 	}
 	if paginater.HasPrevious() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Previous()))
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.Previous()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"prev\"", setting.AppURL, u.RequestURI()[1:]))
 	}
+	return links
+}
+
+// SetLinkHeader sets pagination link header by given total number and page size.
+func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
+	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.QueryInt("page"))
 
 	if len(links) > 0 {
 		ctx.Header().Set("Link", strings.Join(links, ","))

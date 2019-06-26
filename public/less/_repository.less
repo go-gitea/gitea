@@ -1362,10 +1362,6 @@
                 border-top: 0;
             }
 
-            pre {
-                margin: 0;
-            }
-
             .lines-num {
                 border-color: #d4d4d5;
                 border-right-width: 1px;
@@ -1405,7 +1401,7 @@
                         background-color: #99ff99;
                     }
 
-                    .lines-num[data-line-num]::before {
+                    [data-line-num]::before {
                         content: attr(data-line-num);
                         text-align: right;
                     }
@@ -1413,9 +1409,10 @@
                     .lines-type-marker {
                         width: 10px;
                         min-width: 10px;
+                        user-select: none;
                     }
 
-                    .line-type-marker[data-type-marker]::before {
+                    [data-type-marker]::before {
                         content: attr(data-type-marker);
                         text-align: right;
                         display: inline-block;
@@ -1448,7 +1445,7 @@
                 // light gray for empty lines before / after commit
                 &.add-code td:nth-child(1),
                 &.add-code td:nth-child(2),
-                &.del-code td:nth-child(3),
+                &.add-code td:nth-child(3),
                 &.del-code td:nth-child(4),
                 &.del-code td:nth-child(5),
                 &.del-code td:nth-child(6) {
