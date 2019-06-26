@@ -94,7 +94,7 @@ func getLDAPServerHost() string {
 	return host
 }
 
-func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
+func addAuthSourceLDAP(t *testing.T) {
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
@@ -112,7 +112,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 		"attribute_name":           "givenName",
 		"attribute_surname":        "sn",
 		"attribute_mail":           "mail",
-		"attribute_ssh_public_key": sshKeyAttribute,
+		"attribute_ssh_public_key": "sshPublicKey",
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
 	})
@@ -125,7 +125,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t)
 
 	u := gitLDAPUsers[0]
 
@@ -146,7 +146,7 @@ func TestLDAPUserSync(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t)
 	models.SyncExternalUsers()
 
 	session := loginUser(t, "user1")
@@ -192,7 +192,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t)
 
 	u := otherLDAPUsers[0]
 
@@ -205,7 +205,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t, "sshPublicKey")
+	addAuthSourceLDAP(t)
 	models.SyncExternalUsers()
 
 	// Check if users has SSH keys synced
