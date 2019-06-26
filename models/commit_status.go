@@ -209,7 +209,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	opts.CommitStatus.Index = nextIndex + 1
 	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
 
-	opts.CommitStatus.ContextHash = HashCommitStatusContext(opts.CommitStatus.Context)
+	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
 	if _, err = sess.Insert(opts.CommitStatus); err != nil {
@@ -253,7 +253,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 	return newCommits
 }
 
-// HashCommitStatusContext hash context
-func HashCommitStatusContext(context string) string {
+// hashCommitStatusContext hash context
+func hashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
