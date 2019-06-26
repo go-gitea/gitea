@@ -87,8 +87,6 @@ body {
 
 /* firefox scroll bars */
 
-html,
-body,
 * {
     scrollbar-width: thin;
     scrollbar-color: #87ab63 rgba(255,255,255,0.1);
@@ -96,27 +94,21 @@ body,
 
 /* webkit scrollbars */
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-html ::-webkit-scrollbar,
-body ::-webkit-scrollbar {
+body ::-webkit-scrollbar,
+::-webkit-scrollbar {
     -webkit-appearance: none;
     width: 10px;
     height: 10px;
 }
 
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track,
-html ::-webkit-scrollbar-track,
-body ::-webkit-scrollbar-track {
+body ::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
     border-radius: 0;
     background: rgba(255,255,255,0.1);
 }
 
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb,
-html ::-webkit-scrollbar-thumb,
-body ::-webkit-scrollbar-thumb {
+body ::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
     cursor: pointer;
     border-radius: 5px;
     -webkit-transition: color 0.2s ease;
@@ -124,17 +116,13 @@ body ::-webkit-scrollbar-thumb {
     background: #87ab63;
 }
 
-html::-webkit-scrollbar-thumb:window-inactive,
-body::-webkit-scrollbar-thumb:window-inactive,
-html ::-webkit-scrollbar-thumb:window-inactive,
-body ::-webkit-scrollbar-thumb:window-inactive {
+body ::-webkit-scrollbar-thumb:window-inactive,
+::-webkit-scrollbar-thumb:window-inactive {
     background: #87ab63;
 }
 
-html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb:hover,
-html ::-webkit-scrollbar-thumb:hover,
-body ::-webkit-scrollbar-thumb:hover {
+body ::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
     background: #87ab63;
 }
 
