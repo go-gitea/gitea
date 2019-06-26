@@ -598,7 +598,7 @@ func (b *MssqlBulk) makeParam(val DataValue, col columnStruct) (res Param, err e
 			res.ti.Size = len(val)
 			res.buffer = val
 		default:
-			err = fmt.Errorf("mssql: invalid type for Guid column", val)
+			err = fmt.Errorf("mssql: invalid type for Guid column: %s", val)
 			return
 		}
 
