@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 )
 
 func addLoginSourceSyncEnabledColumn(x *xorm.Engine) error {

@@ -20,8 +20,8 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"

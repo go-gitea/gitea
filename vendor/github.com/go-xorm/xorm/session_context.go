@@ -1,18 +1,15 @@
-// Copyright 2017 The Xorm Authors. All rights reserved.
+// Copyright 2019 The Xorm Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-// +build go1.8
 
 package xorm
 
 import "context"
 
-// PingContext tests if database is alive
-func (engine *Engine) PingContext(ctx context.Context) error {
-	session := engine.NewSession()
-	defer session.Close()
-	return session.PingContext(ctx)
+// Context sets the context on this session
+func (session *Session) Context(ctx context.Context) *Session {
+	session.ctx = ctx
+	return session
 }
 
 // PingContext test if database is ok

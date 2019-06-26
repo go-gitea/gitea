@@ -39,17 +39,23 @@ func testGit(t *testing.T, u *url.URL) {
 
 	u.Path = baseAPITestContext.GitPath()
 
+	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
+
 	t.Run("HTTP", func(t *testing.T) {
 		PrintCurrentTest(t)
+		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
+		forkedUserCtx.Reponame = httpContext.Reponame
 
 		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
 
-		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
-		ensureAnonymousClone(t, u)
+		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, models.AccessModeRead))
+
+		t.Run("ForkFromDifferentUser", doAPIForkRepository(httpContext, forkedUserCtx.Username))
 
 		u.Path = httpContext.GitPath()
 		u.User = url.UserPassword(username, userPassword)
@@ -62,12 +68,23 @@ func testGit(t *testing.T, u *url.URL) {
 		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
 
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
+		t.Run("MergeFork", func(t *testing.T) {
+			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
+			t.Run("DeleteRepository", doAPIDeleteRepository(httpContext))
+			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+		})
 	})
 	t.Run("SSH", func(t *testing.T) {
 		PrintCurrentTest(t)
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
+		forkedUserCtx.Reponame = sshContext.Reponame
+		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, models.AccessModeRead))
+		t.Run("ForkFromDifferentUser", doAPIForkRepository(sshContext, forkedUserCtx.Username))
+
 		//Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
@@ -81,8 +98,6 @@ func testGit(t *testing.T, u *url.URL) {
 			assert.NoError(t, err)
 			defer os.RemoveAll(dstPath)
 
-			t.Run("CreateRepo", doAPICreateRepository(sshContext, false))
-
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
 			little, big := standardCommitAndPushTest(t, dstPath)
@@ -91,8 +106,13 @@ func testGit(t *testing.T, u *url.URL) {
 			mediaTest(t, &sshContext, little, big, littleLFS, bigLFS)
 
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
+			t.Run("MergeFork", func(t *testing.T) {
+				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
+				t.Run("DeleteRepository", doAPIDeleteRepository(sshContext))
+				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+			})
 		})
-
 	})
 }
 
@@ -339,5 +359,18 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
 		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+	}
+}
+
+func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
+	return func(t *testing.T) {
+		var pr api.PullRequest
+		var err error
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
 	}
 }

@@ -85,7 +85,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
+# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
 github.com/denisenkom/go-mssqldb
 # github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 github.com/dgrijalva/jwt-go
@@ -147,13 +147,9 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
-# github.com/go-sql-driver/mysql v1.4.0 => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
+# github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
-# github.com/go-xorm/builder v0.3.3
-github.com/go-xorm/builder
-# github.com/go-xorm/core v0.6.0
-github.com/go-xorm/core
-# github.com/go-xorm/xorm v0.0.0-20190116032649-a6300f2a45e0
+# github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
 github.com/go-xorm/xorm
 # github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 github.com/gogits/chardet
@@ -396,7 +392,7 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
 golang.org/x/text/internal/tag
-# google.golang.org/appengine v1.2.0
+# google.golang.org/appengine v1.4.0
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
@@ -481,3 +477,7 @@ gopkg.in/yaml.v2
 mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 strk.kbt.io/projects/go/libravatar
+# xorm.io/builder v0.3.5
+xorm.io/builder
+# xorm.io/core v0.6.3
+xorm.io/core

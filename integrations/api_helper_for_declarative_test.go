@@ -66,6 +66,44 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 	}
 }
 
+func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+	return func(t *testing.T) {
+		permission := "read"
+
+		if mode == models.AccessModeAdmin {
+			permission = "admin"
+		} else if mode > models.AccessModeRead {
+			permission = "write"
+		}
+		addCollaboratorOption := &api.AddCollaboratorOption{
+			Permission: &permission,
+		}
+		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s?token=%s", ctx.Username, ctx.Reponame, username, ctx.Token), addCollaboratorOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+	}
+}
+
+func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		createForkOption := &api.CreateForkOption{}
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks?token=%s", username, ctx.Reponame, ctx.Token), createForkOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusAccepted)
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
 func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
