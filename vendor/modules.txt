@@ -1,5 +1,3 @@
-# cloud.google.com/go v0.34.0
-cloud.google.com/go/civil
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
@@ -87,7 +85,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180823000000-827b05f9f2b4
+# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180316000000-270bc3860bb9
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
