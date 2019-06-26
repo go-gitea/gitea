@@ -124,25 +124,25 @@
 															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span>
 														</td>
 														<td class="lines-type-marker lines-type-marker-old">
-															{{if $line.LeftIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}
+															{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
 																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
 															{{end}}
-															<code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code>
+															<span class="mono wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span>
 														</td>
 														<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}">
 															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span>
 														</td>
 														<td class="lines-type-marker lines-type-marker-new">
-															{{if $line.RightIdx}}<code data-type-marker="{{$line.GetLineTypeMarker}}"></code>{{end}}
+															{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}
 														</td>
 														<td class="lines-code lines-code-new halfwidth">
 															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
-															<code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code>
+															<span class="mono wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span>
 														</td>
 													</tr>
 													{{if gt (len $line.Comments) 0}}
