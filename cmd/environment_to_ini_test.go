@@ -7,9 +7,6 @@ package cmd
 import "testing"
 
 func TestDecodeSectionKey(t *testing.T) {
-	type args struct {
-		encoded string
-	}
 	tests := []struct {
 		name    string
 		encoded string
