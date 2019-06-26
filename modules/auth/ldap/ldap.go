@@ -37,6 +37,9 @@ type Source struct {
 	BindPassword          string // Bind DN password
 	UserBase              string // Base search path for users
 	UserDN                string // Template for the DN of the user for simple auth
+	GroupSearchBase       string // Base search path for groups
+	MemberGroupFilter     string // Query group filter to check if user is allowed to log in
+	AdminGroupFilter      string // Query group filter to check if user is admin
 	AttributeUsername     string // Username attribute
 	AttributeName         string // First name attribute
 	AttributeSurname      string // Surname attribute

@@ -47,6 +47,18 @@
 		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
 	</div>
 	<div class="field">
+		<label for="group_search_base">{{.i18n.Tr "admin.auths.group_search_base"}}</label>
+		<input id="group_search_base" name="group_search_base" value="{{.group_search_base}}" placeholder="e.g. ou=Groups,dc=mydomain,dc=com">
+	</div>
+	<div class="field">
+		<label for="member_group_filter">{{.i18n.Tr "admin.auths.member_group_filter"}}</label>
+		<input id="member_group_filter" name="member_group_filter" value="{{.member_group_filter}}" placeholder="e.g. (&(objectClass=posixGroup)(member=%s)(cn=developer,ou=Groups,dc=mydomain,dc=com)">
+	</div>
+	<div class="field">
+		<label for="admin_group_filter">{{.i18n.Tr "admin.auths.admin_group_filter"}}</label>
+		<input id="admin_group_filter" name="admin_group_filter" value="{{.admin_group_filter}}" placeholder="e.g. (&(objectClass=posixGroup)(member=%s)(cn=admins,ou=Groups,dc=mydomain,dc=com)">
+	</div>
+	<div class="field">
 		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
 		<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.i18n.Tr "admin.auths.attribute_username_placeholder"}}">
 	</div>
