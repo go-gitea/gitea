@@ -20,6 +20,9 @@ type AuthenticationForm struct {
 	BindPassword                  string
 	UserBase                      string
 	UserDN                        string
+	GroupSearchBase               string
+	MemberGroupFilter             string
+	AdminGroupFilter              string
 	AttributeUsername             string
 	AttributeName                 string
 	AttributeSurname              string
