@@ -932,22 +932,18 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		}
 	}
 
-	// Check if repository is empty.
-	_, stderr, err := com.ExecCmdDir(repoPath, "git", "log", "-1")
+	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		if strings.Contains(stderr, "fatal: bad default revision 'HEAD'") {
-			repo.IsEmpty = true
-		} else {
-			return repo, fmt.Errorf("check empty: %v - %s", err, stderr)
-		}
+		return repo, fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	repo.IsEmpty, err = gitRepo.IsEmpty()
+	if err != nil {
+		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
 	if !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
-		gitRepo, err := git.OpenRepository(repoPath)
-		if err != nil {
-			return repo, fmt.Errorf("OpenRepository: %v", err)
-		}
 		headBranch, err := gitRepo.GetHEADBranch()
 		if err != nil {
 			return repo, fmt.Errorf("GetHEADBranch: %v", err)
@@ -1072,20 +1068,20 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git add): %s", tmpPath),
-		"git", "add", "--all"); err != nil {
+		git.GitExecutable, "add", "--all"); err != nil {
 		return fmt.Errorf("git add: %s", stderr)
 	}
 
 	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
-		"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+		git.GitExecutable, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
 		"-m", "Initial commit"); err != nil {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
 
 	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git push): %s", tmpPath),
-		"git", "push", "origin", "master"); err != nil {
+		git.GitExecutable, "push", "origin", "master"); err != nil {
 		return fmt.Errorf("git push: %s", stderr)
 	}
 	return nil
@@ -1131,7 +1127,7 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 	// Clone to temporary path and do the init commit.
 	_, stderr, err := process.GetManager().Exec(
 		fmt.Sprintf("initRepository(git clone): %s", repoPath),
-		"git", "clone", repoPath, tmpDir,
+		git.GitExecutable, "clone", repoPath, tmpDir,
 	)
 	if err != nil {
 		return fmt.Errorf("git clone: %v - %s", err, stderr)
@@ -1390,7 +1386,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 
 		_, stderr, err := process.GetManager().ExecDir(-1,
 			repoPath, fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath),
-			"git", "update-server-info")
+			git.GitExecutable, "update-server-info")
 		if err != nil {
 			return nil, errors.New("CreateRepository(git update-server-info): " + stderr)
 		}
@@ -2239,7 +2235,7 @@ func GitGcRepos() error {
 				_, stderr, err := process.GetManager().ExecDir(
 					time.Duration(setting.Git.Timeout.GC)*time.Second,
 					RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
-					"git", args...)
+					git.GitExecutable, args...)
 				if err != nil {
 					return fmt.Errorf("%v: %v", err, stderr)
 				}
@@ -2429,14 +2425,14 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	repoPath := RepoPath(u.Name, repo.Name)
 	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
 		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
-		"git", "clone", "--bare", oldRepo.repoPath(sess), repoPath)
+		git.GitExecutable, "clone", "--bare", oldRepo.repoPath(sess), repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %v", stderr)
 	}
 
 	_, stderr, err = process.GetManager().ExecDir(-1,
 		repoPath, fmt.Sprintf("ForkRepository(git update-server-info): %s", repoPath),
-		"git", "update-server-info")
+		git.GitExecutable, "update-server-info")
 	if err != nil {
 		return nil, fmt.Errorf("git update-server-info: %v", stderr)
 	}
