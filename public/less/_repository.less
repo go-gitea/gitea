@@ -1339,6 +1339,7 @@
                 color: #a6a6a6;
                 background: #fafafa;
                 width: 1%;
+                min-width: 50px;
                 user-select: none;
                 vertical-align: top;
 
@@ -1403,6 +1404,22 @@
                     .added-code {
                         background-color: #99ff99;
                     }
+
+                    .lines-num[data-line-num]::before {
+                        content: attr(data-line-num);
+                        text-align: right;
+                    }
+
+                    .lines-type-marker {
+                        width: 10px;
+                        min-width: 10px;
+                    }
+
+                    .line-type-marker[data-type-marker]::before {
+                        content: attr(data-type-marker);
+                        text-align: right;
+                        display: inline-block;
+                    }
                 }
             }
         }
@@ -1432,25 +1449,29 @@
                 &.add-code td:nth-child(1),
                 &.add-code td:nth-child(2),
                 &.del-code td:nth-child(3),
-                &.del-code td:nth-child(4) {
+                &.del-code td:nth-child(4),
+                &.del-code td:nth-child(5),
+                &.del-code td:nth-child(6) {
                     background-color: #fafafa;
                 }
 
                 &.del-code td:nth-child(1),
                 &.del-code td:nth-child(2),
+                &.del-code td:nth-child(3),
                 td.del-code {
                     background-color: #ffe0e0 !important;
                     border-color: #f1c0c0 !important;
                 }
 
-                &.add-code td:nth-child(3),
                 &.add-code td:nth-child(4),
+                &.add-code td:nth-child(5),
+                &.add-code td:nth-child(6),
                 td.add-code {
                     background-color: #d6fcd6 !important;
                     border-color: #c1e9c1 !important;
                 }
 
-                td:nth-child(3) {
+                td:nth-child(4) {
                     border-left-width: 1px;
                     border-left-style: solid;
                 }

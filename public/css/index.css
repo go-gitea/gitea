@@ -633,7 +633,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-box .header .file{flex:1;color:#888;word-break:break-all}
 .repository .diff-box .header .button{margin:-5px 0 -5px 12px;padding:8px 10px;flex:0 0 auto}
 .repository .diff-file-box .header{background-color:#f7f7f7}
-.repository .diff-file-box .file-body.file-code .lines-num{text-align:right;color:#a6a6a6;background:#fafafa;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;vertical-align:top}
+.repository .diff-file-box .file-body.file-code .lines-num{text-align:right;color:#a6a6a6;background:#fafafa;width:1%;min-width:50px;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;vertical-align:top}
 .repository .diff-file-box .file-body.file-code .lines-num span.fold{display:block;text-align:center}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #ddd}
 .repository .diff-file-box .code-diff{font-size:12px}
@@ -644,13 +644,16 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
+.repository .diff-file-box .code-diff tbody tr .lines-num[data-line-num]::before{content:attr(data-line-num);text-align:right}
+.repository .diff-file-box .code-diff tbody tr .lines-type-marker{width:10px;min-width:10px}
+.repository .diff-file-box .code-diff tbody tr .line-type-marker[data-type-marker]::before{content:attr(data-type-marker);text-align:right;display:inline-block}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#ffe0e0!important;border-color:#f1c0c0!important}
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td{background-color:#d6fcd6!important;border-color:#c1e9c1!important}
 .repository .diff-file-box .code-diff-split table,.repository .diff-file-box .code-diff-split tbody{width:100%}
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4){background-color:#fafafa}
-.repository .diff-file-box .code-diff-split tbody tr td.del-code,.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2){background-color:#ffe0e0!important;border-color:#f1c0c0!important}
-.repository .diff-file-box .code-diff-split tbody tr td.add-code,.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4){background-color:#d6fcd6!important;border-color:#c1e9c1!important}
-.repository .diff-file-box .code-diff-split tbody tr td:nth-child(3){border-left-width:1px;border-left-style:solid}
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6){background-color:#fafafa}
+.repository .diff-file-box .code-diff-split tbody tr td.del-code,.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3){background-color:#ffe0e0!important;border-color:#f1c0c0!important}
+.repository .diff-file-box .code-diff-split tbody tr td.add-code,.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6){background-color:#d6fcd6!important;border-color:#c1e9c1!important}
+.repository .diff-file-box .code-diff-split tbody tr td:nth-child(4){border-left-width:1px;border-left-style:solid}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
 .repository .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
