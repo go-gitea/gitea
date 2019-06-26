@@ -22,7 +22,7 @@ func init() {
 	sql.Register("mssql", driverInstance)
 	sql.Register("sqlserver", driverInstanceNoProcess)
 	createDialer = func(p *connectParams) dialer {
-		return tcpDialer{&net.Dialer{KeepAlive: p.keepAlive}}
+		return tcpDialer{&net.Dialer{Timeout: p.dial_timeout, KeepAlive: p.keepAlive}}
 	}
 }
 
@@ -63,6 +63,26 @@ func (d *Driver) Open(dsn string) (driver.Conn, error) {
 	return d.open(context.Background(), dsn)
 }
 
+// Connector holds the parsed DSN and is ready to make a new connection
+// at any time.
+//
+// In the future, settings that cannot be passed through a string DSN
+// may be set directly on the connector.
+type Connector struct {
+	params connectParams
+	driver *Driver
+}
+
+// Connect to the server and return a TDS connection.
+func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
+	return c.driver.connect(ctx, c.params)
+}
+
+// Driver underlying the Connector.
+func (c *Connector) Driver() driver.Driver {
+	return c.driver
+}
+
 func SetLogger(logger Logger) {
 	driverInstance.SetLogger(logger)
 	driverInstanceNoProcess.SetLogger(logger)
@@ -72,55 +92,7 @@ func (d *Driver) SetLogger(logger Logger) {
 	d.log = optionalLogger{logger}
 }
 
-// NewConnector creates a new connector from a DSN.
-// The returned connector may be used with sql.OpenDB.
-func NewConnector(dsn string) (*Connector, error) {
-	params, err := parseConnectParams(dsn)
-	if err != nil {
-		return nil, err
-	}
-	c := &Connector{
-		params: params,
-		driver: driverInstanceNoProcess,
-	}
-	return c, nil
-}
-
-// Connector holds the parsed DSN and is ready to make a new connection
-// at any time.
-//
-// In the future, settings that cannot be passed through a string DSN
-// may be set directly on the connector.
-type Connector struct {
-	params connectParams
-	driver *Driver
-
-	// SessionInitSQL is executed after marking a given session to be reset.
-	// When not present, the next query will still reset the session to the
-	// database defaults.
-	//
-	// When present the connection will immediately mark the session to
-	// be reset, then execute the SessionInitSQL text to setup the session
-	// that may be different from the base database defaults.
-	//
-	// For Example, the application relies on the following defaults
-	// but is not allowed to set them at the database system level.
-	//
-	//    SET XACT_ABORT ON;
-	//    SET TEXTSIZE -1;
-	//    SET ANSI_NULLS ON;
-	//    SET LOCK_TIMEOUT 10000;
-	//
-	// SessionInitSQL should not attempt to manually call sp_reset_connection.
-	// This will happen at the TDS layer.
-	//
-	// SessionInitSQL is optional. The session will be reset even if
-	// SessionInitSQL is empty.
-	SessionInitSQL string
-}
-
 type Conn struct {
-	connector      *Connector
 	sess           *tdsSession
 	transactionCtx context.Context
 	resetSession   bool
@@ -129,6 +101,15 @@ type Conn struct {
 	connectionGood   bool
 
 	outs map[string]interface{}
+}
+
+func (c *Conn) ResetSession(ctx context.Context) error {
+	if !c.connectionGood {
+		return driver.ErrBadConn
+	}
+	c.resetSession = true
+
+	return nil
 }
 
 func (c *Conn) checkBadConn(err error) error {
@@ -275,7 +256,7 @@ func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) erro
 			c.sess.log.Printf("Failed to send BeginXact with %v", err)
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Failed to send BeginXact: %v", err)
+		return fmt.Errorf("Failed to send BiginXant: %v", err)
 	}
 	return nil
 }
@@ -325,7 +306,6 @@ func (d *Driver) connect(ctx context.Context, params connectParams) (*Conn, erro
 		connectionGood:   true,
 	}
 	conn.sess.log = d.log
-
 	return conn, nil
 }
 
@@ -351,8 +331,9 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 		return nil, driver.ErrBadConn
 	}
 	if len(query) > 10 && strings.EqualFold(query[:10], "INSERTBULK") {
-		return c.prepareCopyIn(context.Background(), query)
+		return c.prepareCopyIn(query)
 	}
+
 	return c.prepareContext(context.Background(), query)
 }
 
@@ -425,8 +406,8 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 			return fmt.Errorf("failed to send SQL Batch: %v", err)
 		}
 	} else {
-		proc := sp_ExecuteSql
-		var params []param
+		proc := Sp_ExecuteSql
+		var params []Param
 		if isProc(s.query) {
 			proc.name = s.query
 			params, _, err = s.makeRPCParams(args, 0)
@@ -462,9 +443,9 @@ func isProc(s string) bool {
 	return !strings.ContainsAny(s, " \t\n\r;")
 }
 
-func (s *Stmt) makeRPCParams(args []namedValue, offset int) ([]param, []string, error) {
+func (s *Stmt) makeRPCParams(args []namedValue, offset int) ([]Param, []string, error) {
 	var err error
-	params := make([]param, len(args)+offset)
+	params := make([]Param, len(args)+offset)
 	decls := make([]string, len(args))
 	for i, val := range args {
 		params[i+offset], err = s.makeParam(val.Value)
@@ -706,17 +687,14 @@ func (r *Rows) ColumnTypeNullable(index int) (nullable, ok bool) {
 	return
 }
 
-func makeStrParam(val string) (res param) {
+func makeStrParam(val string) (res Param) {
 	res.ti.TypeId = typeNVarChar
 	res.buffer = str2ucs2(val)
 	res.ti.Size = len(res.buffer)
 	return
 }
 
-// VarChar parameter types.
-type VarChar string
-
-func (s *Stmt) makeParam(val driver.Value) (res param, err error) {
+func (s *Stmt) makeParam(val driver.Value) (res Param, err error) {
 	if val == nil {
 		res.ti.TypeId = typeNull
 		res.buffer = nil
@@ -740,10 +718,6 @@ func (s *Stmt) makeParam(val driver.Value) (res param, err error) {
 		res.buffer = val
 	case string:
 		res = makeStrParam(val)
-	case VarChar:
-		res.ti.TypeId = typeBigVarChar
-		res.buffer = []byte(val)
-		res.ti.Size = len(res.buffer)
 	case bool:
 		res.ti.TypeId = typeBitN
 		res.ti.Size = 1

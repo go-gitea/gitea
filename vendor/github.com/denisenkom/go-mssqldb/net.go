@@ -14,7 +14,7 @@ type timeoutConn struct {
 	continueRead  bool
 }
 
-func newTimeoutConn(conn net.Conn, timeout time.Duration) *timeoutConn {
+func NewTimeoutConn(conn net.Conn, timeout time.Duration) *timeoutConn {
 	return &timeoutConn{
 		c:       conn,
 		timeout: timeout,
@@ -48,11 +48,9 @@ func (c *timeoutConn) Read(b []byte) (n int, err error) {
 		n, err = c.buf.Read(b)
 		return
 	}
-	if c.timeout > 0 {
-		err = c.c.SetDeadline(time.Now().Add(c.timeout))
-		if err != nil {
-			return
-		}
+	err = c.c.SetDeadline(time.Now().Add(c.timeout))
+	if err != nil {
+		return
 	}
 	return c.c.Read(b)
 }
@@ -69,11 +67,9 @@ func (c *timeoutConn) Write(b []byte) (n int, err error) {
 		}
 		return
 	}
-	if c.timeout > 0 {
-		err = c.c.SetDeadline(time.Now().Add(c.timeout))
-		if err != nil {
-			return
-		}
+	err = c.c.SetDeadline(time.Now().Add(c.timeout))
+	if err != nil {
+		return
 	}
 	return c.c.Write(b)
 }

@@ -51,16 +51,15 @@ func parseInstances(msg []byte) map[string]map[string]string {
 }
 
 func getInstances(ctx context.Context, address string) (map[string]map[string]string, error) {
-	maxTime := 5 * time.Second
 	dialer := &net.Dialer{
-		Timeout: maxTime,
+		Timeout: 5 * time.Second,
 	}
 	conn, err := dialer.DialContext(ctx, "udp", address+":1434")
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
-	conn.SetDeadline(time.Now().Add(maxTime))
+	conn.SetDeadline(time.Now().Add(5 * time.Second))
 	_, err = conn.Write([]byte{3})
 	if err != nil {
 		return nil, err
@@ -153,11 +152,11 @@ type columnStruct struct {
 	ti       typeInfo
 }
 
-type keySlice []uint8
+type KeySlice []uint8
 
-func (p keySlice) Len() int           { return len(p) }
-func (p keySlice) Less(i, j int) bool { return p[i] < p[j] }
-func (p keySlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p KeySlice) Len() int           { return len(p) }
+func (p KeySlice) Less(i, j int) bool { return p[i] < p[j] }
+func (p KeySlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // http://msdn.microsoft.com/en-us/library/dd357559.aspx
 func writePrelogin(w *tdsBuffer, fields map[uint8][]byte) error {
@@ -165,7 +164,7 @@ func writePrelogin(w *tdsBuffer, fields map[uint8][]byte) error {
 
 	w.BeginPacket(packPrelogin, false)
 	offset := uint16(5*len(fields) + 1)
-	keys := make(keySlice, 0, len(fields))
+	keys := make(KeySlice, 0, len(fields))
 	for k, _ := range fields {
 		keys = append(keys, k)
 	}
@@ -939,13 +938,13 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	strlog, ok := params["log"]
 	if ok {
 		var err error
-		p.logFlags, err = strconv.ParseUint(strlog, 10, 64)
+		p.logFlags, err = strconv.ParseUint(strlog, 10, 0)
 		if err != nil {
 			return p, fmt.Errorf("Invalid log parameter '%s': %s", strlog, err.Error())
 		}
 	}
 	server := params["server"]
-	parts := strings.SplitN(server, `\`, 2)
+	parts := strings.SplitN(server, "\\", 2)
 	p.host = parts[0]
 	if p.host == "." || strings.ToUpper(p.host) == "(LOCAL)" || p.host == "" {
 		p.host = "localhost"
@@ -961,7 +960,7 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	strport, ok := params["port"]
 	if ok {
 		var err error
-		p.port, err = strconv.ParseUint(strport, 10, 16)
+		p.port, err = strconv.ParseUint(strport, 0, 16)
 		if err != nil {
 			f := "Invalid tcp port '%v': %v"
 			return p, fmt.Errorf(f, strport, err.Error())
@@ -993,20 +992,20 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	}
 
 	// https://msdn.microsoft.com/en-us/library/dd341108.aspx
-	//
-	// Do not set a connection timeout. Use Context to manage such things.
-	// Default to zero, but still allow it to be set.
-	if strconntimeout, ok := params["connection timeout"]; ok {
-		timeout, err := strconv.ParseUint(strconntimeout, 10, 64)
+	p.dial_timeout = 15 * time.Second
+	p.conn_timeout = 30 * time.Second
+	strconntimeout, ok := params["connection timeout"]
+	if ok {
+		timeout, err := strconv.ParseUint(strconntimeout, 0, 16)
 		if err != nil {
 			f := "Invalid connection timeout '%v': %v"
 			return p, fmt.Errorf(f, strconntimeout, err.Error())
 		}
 		p.conn_timeout = time.Duration(timeout) * time.Second
 	}
-	p.dial_timeout = 15 * time.Second
-	if strdialtimeout, ok := params["dial timeout"]; ok {
-		timeout, err := strconv.ParseUint(strdialtimeout, 10, 64)
+	strdialtimeout, ok := params["dial timeout"]
+	if ok {
+		timeout, err := strconv.ParseUint(strdialtimeout, 0, 16)
 		if err != nil {
 			f := "Invalid dial timeout '%v': %v"
 			return p, fmt.Errorf(f, strdialtimeout, err.Error())
@@ -1017,8 +1016,9 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	// default keep alive should be 30 seconds according to spec:
 	// https://msdn.microsoft.com/en-us/library/dd341108.aspx
 	p.keepAlive = 30 * time.Second
+
 	if keepAlive, ok := params["keepalive"]; ok {
-		timeout, err := strconv.ParseUint(keepAlive, 10, 64)
+		timeout, err := strconv.ParseUint(keepAlive, 0, 16)
 		if err != nil {
 			f := "Invalid keepAlive value '%s': %s"
 			return p, fmt.Errorf(f, keepAlive, err.Error())
@@ -1175,16 +1175,11 @@ func dialConnection(ctx context.Context, p connectParams) (conn net.Conn, err er
 }
 
 func connect(ctx context.Context, log optionalLogger, p connectParams) (res *tdsSession, err error) {
-	dialCtx := ctx
-	if p.dial_timeout > 0 {
-		var cancel func()
-		dialCtx, cancel = context.WithTimeout(ctx, p.dial_timeout)
-		defer cancel()
-	}
+	res = nil
 	// if instance is specified use instance resolution service
 	if p.instance != "" {
 		p.instance = strings.ToUpper(p.instance)
-		instances, err := getInstances(dialCtx, p.host)
+		instances, err := getInstances(ctx, p.host)
 		if err != nil {
 			f := "Unable to get instances from Sql Server Browser on host %v: %v"
 			return nil, fmt.Errorf(f, p.host, err.Error())
@@ -1202,12 +1197,12 @@ func connect(ctx context.Context, log optionalLogger, p connectParams) (res *tds
 	}
 
 initiate_connection:
-	conn, err := dialConnection(dialCtx, p)
+	conn, err := dialConnection(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	toconn := newTimeoutConn(conn, p.conn_timeout)
+	toconn := NewTimeoutConn(conn, p.conn_timeout)
 
 	outbuf := newTdsBuffer(p.packetSize, toconn)
 	sess := tdsSession{

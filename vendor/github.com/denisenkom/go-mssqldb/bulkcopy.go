@@ -13,12 +13,6 @@ import (
 )
 
 type Bulk struct {
-	// ctx is used only for AddRow and Done methods.
-	// This could be removed if AddRow and Done accepted
-	// a ctx field as well, which is available with the
-	// database/sql call.
-	ctx context.Context
-
 	cn          *Conn
 	metadata    []columnStruct
 	bulkColumns []columnStruct
@@ -43,20 +37,14 @@ type BulkOptions struct {
 type DataValue interface{}
 
 func (cn *Conn) CreateBulk(table string, columns []string) (_ *Bulk) {
-	b := Bulk{ctx: context.Background(), cn: cn, tablename: table, headerSent: false, columnsName: columns}
+	b := Bulk{cn: cn, tablename: table, headerSent: false, columnsName: columns}
 	b.Debug = false
 	return &b
 }
 
-func (cn *Conn) CreateBulkContext(ctx context.Context, table string, columns []string) (_ *Bulk) {
-	b := Bulk{ctx: ctx, cn: cn, tablename: table, headerSent: false, columnsName: columns}
-	b.Debug = false
-	return &b
-}
-
-func (b *Bulk) sendBulkCommand(ctx context.Context) (err error) {
+func (b *Bulk) sendBulkCommand() (err error) {
 	//get table columns info
-	err = b.getMetadata(ctx)
+	err = b.getMetadata()
 	if err != nil {
 		return err
 	}
@@ -126,13 +114,13 @@ func (b *Bulk) sendBulkCommand(ctx context.Context) (err error) {
 
 	query := fmt.Sprintf("INSERT BULK %s (%s) %s", b.tablename, col_defs.String(), with_part)
 
-	stmt, err := b.cn.PrepareContext(ctx, query)
+	stmt, err := b.cn.Prepare(query)
 	if err != nil {
 		return fmt.Errorf("Prepare failed: %s", err.Error())
 	}
 	b.dlogf(query)
 
-	_, err = stmt.(*Stmt).ExecContext(ctx, nil)
+	_, err = stmt.Exec(nil)
 	if err != nil {
 		return err
 	}
@@ -142,7 +130,7 @@ func (b *Bulk) sendBulkCommand(ctx context.Context) (err error) {
 	var buf = b.cn.sess.buf
 	buf.BeginPacket(packBulkLoadBCP, false)
 
-	// Send the columns metadata.
+	// send the columns metadata
 	columnMetadata := b.createColMetadata()
 	_, err = buf.Write(columnMetadata)
 
@@ -153,7 +141,7 @@ func (b *Bulk) sendBulkCommand(ctx context.Context) (err error) {
 // The arguments are the row values in the order they were specified.
 func (b *Bulk) AddRow(row []interface{}) (err error) {
 	if !b.headerSent {
-		err = b.sendBulkCommand(b.ctx)
+		err = b.sendBulkCommand()
 		if err != nil {
 			return
 		}
@@ -228,7 +216,7 @@ func (b *Bulk) Done() (rowcount int64, err error) {
 	buf.FinishPacket()
 
 	tokchan := make(chan tokenStruct, 5)
-	go processResponse(b.ctx, b.cn.sess, tokchan, nil)
+	go processResponse(context.Background(), b.cn.sess, tokchan, nil)
 
 	var rowCount int64
 	for token := range tokchan {
@@ -279,27 +267,28 @@ func (b *Bulk) createColMetadata() []byte {
 	return buf.Bytes()
 }
 
-func (b *Bulk) getMetadata(ctx context.Context) (err error) {
-	stmt, err := b.cn.prepareContext(ctx, "SET FMTONLY ON")
+func (b *Bulk) getMetadata() (err error) {
+	stmt, err := b.cn.Prepare("SET FMTONLY ON")
 	if err != nil {
 		return
 	}
 
-	_, err = stmt.ExecContext(ctx, nil)
+	_, err = stmt.Exec(nil)
 	if err != nil {
 		return
 	}
 
-	// Get columns info.
-	stmt, err = b.cn.prepareContext(ctx, fmt.Sprintf("select * from %s SET FMTONLY OFF", b.tablename))
+	//get columns info
+	stmt, err = b.cn.Prepare(fmt.Sprintf("select * from %s SET FMTONLY OFF", b.tablename))
 	if err != nil {
 		return
 	}
-	rows, err := stmt.QueryContext(ctx, nil)
+	stmt2 := stmt.(*Stmt)
+	cols, err := stmt2.QueryMeta()
 	if err != nil {
-		return fmt.Errorf("get columns info failed: %v", err)
+		return fmt.Errorf("get columns info failed: %v", err.Error())
 	}
-	b.metadata = rows.(*Rows).cols
+	b.metadata = cols
 
 	if b.Debug {
 		for _, col := range b.metadata {
@@ -309,10 +298,33 @@ func (b *Bulk) getMetadata(ctx context.Context) (err error) {
 		}
 	}
 
-	return rows.Close()
+	return nil
 }
 
-func (b *Bulk) makeParam(val DataValue, col columnStruct) (res param, err error) {
+// QueryMeta is almost the same as mssql.Stmt.Query, but returns all the columns info.
+func (s *Stmt) QueryMeta() (cols []columnStruct, err error) {
+	if err = s.sendQuery(nil); err != nil {
+		return
+	}
+	tokchan := make(chan tokenStruct, 5)
+	go processResponse(context.Background(), s.c.sess, tokchan, s.c.outs)
+	s.c.clearOuts()
+loop:
+	for tok := range tokchan {
+		switch token := tok.(type) {
+		case doneStruct:
+			break loop
+		case []columnStruct:
+			cols = token
+			break loop
+		case error:
+			return nil, s.c.checkBadConn(token)
+		}
+	}
+	return cols, nil
+}
+
+func (b *Bulk) makeParam(val DataValue, col columnStruct) (res Param, err error) {
 	res.ti.Size = col.ti.Size
 	res.ti.TypeId = col.ti.TypeId
 

@@ -62,7 +62,7 @@ func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 		return nil, driver.ErrBadConn
 	}
 	if len(query) > 10 && strings.EqualFold(query[:10], "INSERTBULK") {
-		return c.prepareCopyIn(ctx, query)
+		return c.prepareCopyIn(query)
 	}
 
 	return c.prepareContext(ctx, query)
