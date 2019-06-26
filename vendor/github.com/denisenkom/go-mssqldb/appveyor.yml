@@ -10,18 +10,14 @@ environment:
   SQLUSER: sa
   SQLPASSWORD: Password12!
   DATABASE: test  
-  GOVERSION: 18
+  GOVERSION: 110
   matrix:
     - GOVERSION: 18
       SQLINSTANCE: SQL2016
-    - GOVERSION: 17
+    - GOVERSION: 19
       SQLINSTANCE: SQL2016
-    #- GOVERSION: 16
-    #  SQLINSTANCE: SQL2016
-    #- GOVERSION: 15
-    #  SQLINSTANCE: SQL2016
-    #- GOVERSION: 14
-    #  SQLINSTANCE: SQL2016
+    - GOVERSION: 110
+      SQLINSTANCE: SQL2016
     - SQLINSTANCE: SQL2014
     - SQLINSTANCE: SQL2012SP1
     - SQLINSTANCE: SQL2008R2SP2
@@ -31,7 +27,7 @@ install:
   - set PATH=%GOPATH%\bin;%GOROOT%\bin;%PATH%
   - go version
   - go env
-  - go get -u golang.org/x/net/context
+  - go get -u cloud.google.com/go/civil
 
 build_script:
   - go build
@@ -48,5 +44,5 @@ before_test:
  
 
 test_script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
+  - go test -race -cpu 4 -coverprofile=coverage.txt -covermode=atomic
   - codecov -f coverage.txt
