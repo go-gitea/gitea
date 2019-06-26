@@ -91,10 +91,9 @@ func (d *DiffLine) GetLineTypeMarker() string {
 // escape a line's content or return <br> needed for copy/paste purposes
 func getLineContent(content string) string {
 	if len(content) > 0 {
-		return html.EscapeString(content);
-	} else {
-		return "<br>"
+		return html.EscapeString(content)
 	}
+	return "<br>"
 }
 
 // DiffSection represents a section of a DiffFile.
