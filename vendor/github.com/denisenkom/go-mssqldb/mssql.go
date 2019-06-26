@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-var driverInstance = &Driver{processQueryText: true}
-var driverInstanceNoProcess = &Driver{processQueryText: false}
+var driverInstance = &MssqlDriver{processQueryText: true}
+var driverInstanceNoProcess = &MssqlDriver{processQueryText: false}
 
 func init() {
 	sql.Register("mssql", driverInstance)
@@ -28,7 +28,7 @@ func init() {
 
 // Abstract the dialer for testing and for non-TCP based connections.
 type dialer interface {
-	Dial(ctx context.Context, addr string) (net.Conn, error)
+	Dial(addr string) (net.Conn, error)
 }
 
 var createDialer func(p *connectParams) dialer
@@ -37,50 +37,14 @@ type tcpDialer struct {
 	nd *net.Dialer
 }
 
-func (d tcpDialer) Dial(ctx context.Context, addr string) (net.Conn, error) {
-	return d.nd.DialContext(ctx, "tcp", addr)
+func (d tcpDialer) Dial(addr string) (net.Conn, error) {
+	return d.nd.Dial("tcp", addr)
 }
 
-type Driver struct {
+type MssqlDriver struct {
 	log optionalLogger
 
 	processQueryText bool
-}
-
-// OpenConnector opens a new connector. Useful to dial with a context.
-func (d *Driver) OpenConnector(dsn string) (*Connector, error) {
-	params, err := parseConnectParams(dsn)
-	if err != nil {
-		return nil, err
-	}
-	return &Connector{
-		params: params,
-		driver: d,
-	}, nil
-}
-
-func (d *Driver) Open(dsn string) (driver.Conn, error) {
-	return d.open(context.Background(), dsn)
-}
-
-// Connector holds the parsed DSN and is ready to make a new connection
-// at any time.
-//
-// In the future, settings that cannot be passed through a string DSN
-// may be set directly on the connector.
-type Connector struct {
-	params connectParams
-	driver *Driver
-}
-
-// Connect to the server and return a TDS connection.
-func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
-	return c.driver.connect(ctx, c.params)
-}
-
-// Driver underlying the Connector.
-func (c *Connector) Driver() driver.Driver {
-	return c.driver
 }
 
 func SetLogger(logger Logger) {
@@ -88,14 +52,13 @@ func SetLogger(logger Logger) {
 	driverInstanceNoProcess.SetLogger(logger)
 }
 
-func (d *Driver) SetLogger(logger Logger) {
+func (d *MssqlDriver) SetLogger(logger Logger) {
 	d.log = optionalLogger{logger}
 }
 
-type Conn struct {
+type MssqlConn struct {
 	sess           *tdsSession
 	transactionCtx context.Context
-	resetSession   bool
 
 	processQueryText bool
 	connectionGood   bool
@@ -103,16 +66,7 @@ type Conn struct {
 	outs map[string]interface{}
 }
 
-func (c *Conn) ResetSession(ctx context.Context) error {
-	if !c.connectionGood {
-		return driver.ErrBadConn
-	}
-	c.resetSession = true
-
-	return nil
-}
-
-func (c *Conn) checkBadConn(err error) error {
+func (c *MssqlConn) checkBadConn(err error) error {
 	// this is a hack to address Issue #275
 	// we set connectionGood flag to false if
 	// error indicates that connection is not usable
@@ -127,12 +81,11 @@ func (c *Conn) checkBadConn(err error) error {
 	case nil:
 		return nil
 	case io.EOF:
-		c.connectionGood = false
 		return driver.ErrBadConn
 	case driver.ErrBadConn:
 		// It is an internal programming error if driver.ErrBadConn
 		// is ever passed to this function. driver.ErrBadConn should
-		// only ever be returned in response to a *mssql.Conn.connectionGood == false
+		// only ever be returned in response to a *MssqlConn.connectionGood == false
 		// check in the external facing API.
 		panic("driver.ErrBadConn in checkBadConn. This should not happen.")
 	}
@@ -149,11 +102,11 @@ func (c *Conn) checkBadConn(err error) error {
 	}
 }
 
-func (c *Conn) clearOuts() {
+func (c *MssqlConn) clearOuts() {
 	c.outs = nil
 }
 
-func (c *Conn) simpleProcessResp(ctx context.Context) error {
+func (c *MssqlConn) simpleProcessResp(ctx context.Context) error {
 	tokchan := make(chan tokenStruct, 5)
 	go processResponse(ctx, c.sess, tokchan, c.outs)
 	c.clearOuts()
@@ -170,7 +123,7 @@ func (c *Conn) simpleProcessResp(ctx context.Context) error {
 	return nil
 }
 
-func (c *Conn) Commit() error {
+func (c *MssqlConn) Commit() error {
 	if !c.connectionGood {
 		return driver.ErrBadConn
 	}
@@ -180,14 +133,12 @@ func (c *Conn) Commit() error {
 	return c.simpleProcessResp(c.transactionCtx)
 }
 
-func (c *Conn) sendCommitRequest() error {
+func (c *MssqlConn) sendCommitRequest() error {
 	headers := []headerStruct{
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{c.sess.tranid, 1}.pack()},
 	}
-	reset := c.resetSession
-	c.resetSession = false
-	if err := sendCommitXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
+	if err := sendCommitXact(c.sess.buf, headers, "", 0, 0, ""); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send CommitXact with %v", err)
 		}
@@ -197,7 +148,7 @@ func (c *Conn) sendCommitRequest() error {
 	return nil
 }
 
-func (c *Conn) Rollback() error {
+func (c *MssqlConn) Rollback() error {
 	if !c.connectionGood {
 		return driver.ErrBadConn
 	}
@@ -207,14 +158,12 @@ func (c *Conn) Rollback() error {
 	return c.simpleProcessResp(c.transactionCtx)
 }
 
-func (c *Conn) sendRollbackRequest() error {
+func (c *MssqlConn) sendRollbackRequest() error {
 	headers := []headerStruct{
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{c.sess.tranid, 1}.pack()},
 	}
-	reset := c.resetSession
-	c.resetSession = false
-	if err := sendRollbackXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
+	if err := sendRollbackXact(c.sess.buf, headers, "", 0, 0, ""); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send RollbackXact with %v", err)
 		}
@@ -224,11 +173,11 @@ func (c *Conn) sendRollbackRequest() error {
 	return nil
 }
 
-func (c *Conn) Begin() (driver.Tx, error) {
+func (c *MssqlConn) Begin() (driver.Tx, error) {
 	return c.begin(context.Background(), isolationUseCurrent)
 }
 
-func (c *Conn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, err error) {
+func (c *MssqlConn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, err error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -243,15 +192,13 @@ func (c *Conn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, 
 	return
 }
 
-func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) error {
+func (c *MssqlConn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) error {
 	c.transactionCtx = ctx
 	headers := []headerStruct{
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{0, 1}.pack()},
 	}
-	reset := c.resetSession
-	c.resetSession = false
-	if err := sendBeginXact(c.sess.buf, headers, tdsIsolation, "", reset); err != nil {
+	if err := sendBeginXact(c.sess.buf, headers, tdsIsolation, ""); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send BeginXact with %v", err)
 		}
@@ -261,7 +208,7 @@ func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) erro
 	return nil
 }
 
-func (c *Conn) processBeginResponse(ctx context.Context) (driver.Tx, error) {
+func (c *MssqlConn) processBeginResponse(ctx context.Context) (driver.Tx, error) {
 	if err := c.simpleProcessResp(ctx); err != nil {
 		return nil, err
 	}
@@ -270,17 +217,17 @@ func (c *Conn) processBeginResponse(ctx context.Context) (driver.Tx, error) {
 	return c, nil
 }
 
-func (d *Driver) open(ctx context.Context, dsn string) (*Conn, error) {
+func (d *MssqlDriver) Open(dsn string) (driver.Conn, error) {
+	return d.open(dsn)
+}
+
+func (d *MssqlDriver) open(dsn string) (*MssqlConn, error) {
 	params, err := parseConnectParams(dsn)
 	if err != nil {
 		return nil, err
 	}
-	return d.connect(ctx, params)
-}
 
-// connect to the server, using the provided context for dialing only.
-func (d *Driver) connect(ctx context.Context, params connectParams) (*Conn, error) {
-	sess, err := connect(ctx, d.log, params)
+	sess, err := connect(d.log, params)
 	if err != nil {
 		// main server failed, try fail-over partner
 		if params.failOverPartner == "" {
@@ -292,14 +239,14 @@ func (d *Driver) connect(ctx context.Context, params connectParams) (*Conn, erro
 			params.port = params.failOverPort
 		}
 
-		sess, err = connect(ctx, d.log, params)
+		sess, err = connect(d.log, params)
 		if err != nil {
 			// fail-over partner also failed, now fail
 			return nil, err
 		}
 	}
 
-	conn := &Conn{
+	conn := &MssqlConn{
 		sess:             sess,
 		transactionCtx:   context.Background(),
 		processQueryText: d.processQueryText,
@@ -309,12 +256,12 @@ func (d *Driver) connect(ctx context.Context, params connectParams) (*Conn, erro
 	return conn, nil
 }
 
-func (c *Conn) Close() error {
+func (c *MssqlConn) Close() error {
 	return c.sess.buf.transport.Close()
 }
 
-type Stmt struct {
-	c          *Conn
+type MssqlStmt struct {
+	c          *MssqlConn
 	query      string
 	paramCount int
 	notifSub   *queryNotifSub
@@ -326,7 +273,7 @@ type queryNotifSub struct {
 	timeout uint32
 }
 
-func (c *Conn) Prepare(query string) (driver.Stmt, error) {
+func (c *MssqlConn) Prepare(query string) (driver.Stmt, error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -337,19 +284,19 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 	return c.prepareContext(context.Background(), query)
 }
 
-func (c *Conn) prepareContext(ctx context.Context, query string) (*Stmt, error) {
+func (c *MssqlConn) prepareContext(ctx context.Context, query string) (*MssqlStmt, error) {
 	paramCount := -1
 	if c.processQueryText {
 		query, paramCount = parseParams(query)
 	}
-	return &Stmt{c, query, paramCount, nil}, nil
+	return &MssqlStmt{c, query, paramCount, nil}, nil
 }
 
-func (s *Stmt) Close() error {
+func (s *MssqlStmt) Close() error {
 	return nil
 }
 
-func (s *Stmt) SetQueryNotification(id, options string, timeout time.Duration) {
+func (s *MssqlStmt) SetQueryNotification(id, options string, timeout time.Duration) {
 	to := uint32(timeout / time.Second)
 	if to < 1 {
 		to = 1
@@ -357,11 +304,11 @@ func (s *Stmt) SetQueryNotification(id, options string, timeout time.Duration) {
 	s.notifSub = &queryNotifSub{id, options, to}
 }
 
-func (s *Stmt) NumInput() int {
+func (s *MssqlStmt) NumInput() int {
 	return s.paramCount
 }
 
-func (s *Stmt) sendQuery(args []namedValue) (err error) {
+func (s *MssqlStmt) sendQuery(args []namedValue) (err error) {
 	headers := []headerStruct{
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{s.c.sess.tranid, 1}.pack()},
@@ -379,13 +326,11 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 			})
 	}
 
-	conn := s.c
-
 	// no need to check number of parameters here, it is checked by database/sql
-	if conn.sess.logFlags&logSQL != 0 {
-		conn.sess.log.Println(s.query)
+	if s.c.sess.logFlags&logSQL != 0 {
+		s.c.sess.log.Println(s.query)
 	}
-	if conn.sess.logFlags&logParams != 0 && len(args) > 0 {
+	if s.c.sess.logFlags&logParams != 0 && len(args) > 0 {
 		for i := 0; i < len(args); i++ {
 			if len(args[i].Name) > 0 {
 				s.c.sess.log.Printf("\t@%s\t%v\n", args[i].Name, args[i].Value)
@@ -393,16 +338,14 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 				s.c.sess.log.Printf("\t@p%d\t%v\n", i+1, args[i].Value)
 			}
 		}
-	}
 
-	reset := conn.resetSession
-	conn.resetSession = false
+	}
 	if len(args) == 0 {
-		if err = sendSqlBatch72(conn.sess.buf, s.query, headers, reset); err != nil {
-			if conn.sess.logFlags&logErrors != 0 {
-				conn.sess.log.Printf("Failed to send SqlBatch with %v", err)
+		if err = sendSqlBatch72(s.c.sess.buf, s.query, headers); err != nil {
+			if s.c.sess.logFlags&logErrors != 0 {
+				s.c.sess.log.Printf("Failed to send SqlBatch with %v", err)
 			}
-			conn.connectionGood = false
+			s.c.connectionGood = false
 			return fmt.Errorf("failed to send SQL Batch: %v", err)
 		}
 	} else {
@@ -420,11 +363,11 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 			params[0] = makeStrParam(s.query)
 			params[1] = makeStrParam(strings.Join(decls, ","))
 		}
-		if err = sendRpc(conn.sess.buf, headers, proc, 0, params, reset); err != nil {
-			if conn.sess.logFlags&logErrors != 0 {
-				conn.sess.log.Printf("Failed to send Rpc with %v", err)
+		if err = sendRpc(s.c.sess.buf, headers, proc, 0, params); err != nil {
+			if s.c.sess.logFlags&logErrors != 0 {
+				s.c.sess.log.Printf("Failed to send Rpc with %v", err)
 			}
-			conn.connectionGood = false
+			s.c.connectionGood = false
 			return fmt.Errorf("Failed to send RPC: %v", err)
 		}
 	}
@@ -443,7 +386,7 @@ func isProc(s string) bool {
 	return !strings.ContainsAny(s, " \t\n\r;")
 }
 
-func (s *Stmt) makeRPCParams(args []namedValue, offset int) ([]Param, []string, error) {
+func (s *MssqlStmt) makeRPCParams(args []namedValue, offset int) ([]Param, []string, error) {
 	var err error
 	params := make([]Param, len(args)+offset)
 	decls := make([]string, len(args))
@@ -481,11 +424,11 @@ func convertOldArgs(args []driver.Value) []namedValue {
 	return list
 }
 
-func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
+func (s *MssqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 	return s.queryContext(context.Background(), convertOldArgs(args))
 }
 
-func (s *Stmt) queryContext(ctx context.Context, args []namedValue) (rows driver.Rows, err error) {
+func (s *MssqlStmt) queryContext(ctx context.Context, args []namedValue) (rows driver.Rows, err error) {
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -495,7 +438,7 @@ func (s *Stmt) queryContext(ctx context.Context, args []namedValue) (rows driver
 	return s.processQueryResponse(ctx)
 }
 
-func (s *Stmt) processQueryResponse(ctx context.Context) (res driver.Rows, err error) {
+func (s *MssqlStmt) processQueryResponse(ctx context.Context) (res driver.Rows, err error) {
 	tokchan := make(chan tokenStruct, 5)
 	ctx, cancel := context.WithCancel(ctx)
 	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
@@ -523,15 +466,15 @@ loop:
 			return nil, s.c.checkBadConn(token)
 		}
 	}
-	res = &Rows{stmt: s, tokchan: tokchan, cols: cols, cancel: cancel}
+	res = &MssqlRows{stmt: s, tokchan: tokchan, cols: cols, cancel: cancel}
 	return
 }
 
-func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
+func (s *MssqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 	return s.exec(context.Background(), convertOldArgs(args))
 }
 
-func (s *Stmt) exec(ctx context.Context, args []namedValue) (res driver.Result, err error) {
+func (s *MssqlStmt) exec(ctx context.Context, args []namedValue) (res driver.Result, err error) {
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -544,7 +487,7 @@ func (s *Stmt) exec(ctx context.Context, args []namedValue) (res driver.Result, 
 	return
 }
 
-func (s *Stmt) processExec(ctx context.Context) (res driver.Result, err error) {
+func (s *MssqlStmt) processExec(ctx context.Context) (res driver.Result, err error) {
 	tokchan := make(chan tokenStruct, 5)
 	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
 	s.c.clearOuts()
@@ -566,11 +509,11 @@ func (s *Stmt) processExec(ctx context.Context) (res driver.Result, err error) {
 			return nil, token
 		}
 	}
-	return &Result{s.c, rowCount}, nil
+	return &MssqlResult{s.c, rowCount}, nil
 }
 
-type Rows struct {
-	stmt    *Stmt
+type MssqlRows struct {
+	stmt    *MssqlStmt
 	cols    []columnStruct
 	tokchan chan tokenStruct
 
@@ -579,7 +522,7 @@ type Rows struct {
 	cancel func()
 }
 
-func (rc *Rows) Close() error {
+func (rc *MssqlRows) Close() error {
 	rc.cancel()
 	for _ = range rc.tokchan {
 	}
@@ -587,7 +530,7 @@ func (rc *Rows) Close() error {
 	return nil
 }
 
-func (rc *Rows) Columns() (res []string) {
+func (rc *MssqlRows) Columns() (res []string) {
 	res = make([]string, len(rc.cols))
 	for i, col := range rc.cols {
 		res[i] = col.ColName
@@ -595,7 +538,7 @@ func (rc *Rows) Columns() (res []string) {
 	return
 }
 
-func (rc *Rows) Next(dest []driver.Value) error {
+func (rc *MssqlRows) Next(dest []driver.Value) error {
 	if !rc.stmt.c.connectionGood {
 		return driver.ErrBadConn
 	}
@@ -623,11 +566,11 @@ func (rc *Rows) Next(dest []driver.Value) error {
 	return io.EOF
 }
 
-func (rc *Rows) HasNextResultSet() bool {
+func (rc *MssqlRows) HasNextResultSet() bool {
 	return rc.nextCols != nil
 }
 
-func (rc *Rows) NextResultSet() error {
+func (rc *MssqlRows) NextResultSet() error {
 	rc.cols = rc.nextCols
 	rc.nextCols = nil
 	if rc.cols == nil {
@@ -639,7 +582,7 @@ func (rc *Rows) NextResultSet() error {
 // It should return
 // the value type that can be used to scan types into. For example, the database
 // column type "bigint" this should return "reflect.TypeOf(int64(0))".
-func (r *Rows) ColumnTypeScanType(index int) reflect.Type {
+func (r *MssqlRows) ColumnTypeScanType(index int) reflect.Type {
 	return makeGoLangScanType(r.cols[index].ti)
 }
 
@@ -648,7 +591,7 @@ func (r *Rows) ColumnTypeScanType(index int) reflect.Type {
 // Examples of returned types: "VARCHAR", "NVARCHAR", "VARCHAR2", "CHAR", "TEXT",
 // "DECIMAL", "SMALLINT", "INT", "BIGINT", "BOOL", "[]BIGINT", "JSONB", "XML",
 // "TIMESTAMP".
-func (r *Rows) ColumnTypeDatabaseTypeName(index int) string {
+func (r *MssqlRows) ColumnTypeDatabaseTypeName(index int) string {
 	return makeGoLangTypeName(r.cols[index].ti)
 }
 
@@ -663,7 +606,7 @@ func (r *Rows) ColumnTypeDatabaseTypeName(index int) string {
 //   decimal       (0, false)
 //   int           (0, false)
 //   bytea(30)     (30, true)
-func (r *Rows) ColumnTypeLength(index int) (int64, bool) {
+func (r *MssqlRows) ColumnTypeLength(index int) (int64, bool) {
 	return makeGoLangTypeLength(r.cols[index].ti)
 }
 
@@ -673,7 +616,7 @@ func (r *Rows) ColumnTypeLength(index int) (int64, bool) {
 //   decimal(38, 4)    (38, 4, true)
 //   int               (0, 0, false)
 //   decimal           (math.MaxInt64, math.MaxInt64, true)
-func (r *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+func (r *MssqlRows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 	return makeGoLangTypePrecisionScale(r.cols[index].ti)
 }
 
@@ -681,7 +624,7 @@ func (r *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 // be true if it is known the column may be null, or false if the column is known
 // to be not nullable.
 // If the column nullability is unknown, ok should be false.
-func (r *Rows) ColumnTypeNullable(index int) (nullable, ok bool) {
+func (r *MssqlRows) ColumnTypeNullable(index int) (nullable, ok bool) {
 	nullable = r.cols[index].Flags&colFlagNullable != 0
 	ok = true
 	return
@@ -694,7 +637,7 @@ func makeStrParam(val string) (res Param) {
 	return
 }
 
-func (s *Stmt) makeParam(val driver.Value) (res Param, err error) {
+func (s *MssqlStmt) makeParam(val driver.Value) (res Param, err error) {
 	if val == nil {
 		res.ti.TypeId = typeNull
 		res.buffer = nil
@@ -763,16 +706,16 @@ func (s *Stmt) makeParam(val driver.Value) (res Param, err error) {
 	return
 }
 
-type Result struct {
-	c            *Conn
+type MssqlResult struct {
+	c            *MssqlConn
 	rowsAffected int64
 }
 
-func (r *Result) RowsAffected() (int64, error) {
+func (r *MssqlResult) RowsAffected() (int64, error) {
 	return r.rowsAffected, nil
 }
 
-func (r *Result) LastInsertId() (int64, error) {
+func (r *MssqlResult) LastInsertId() (int64, error) {
 	s, err := r.c.Prepare("select cast(@@identity as bigint)")
 	if err != nil {
 		return 0, err

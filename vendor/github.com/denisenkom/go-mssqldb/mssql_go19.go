@@ -9,20 +9,9 @@ import (
 	// "github.com/cockroachdb/apd"
 )
 
-// Type alias provided for compibility.
-//
-// Deprecated: users should transition to the new names when possible.
-type MssqlDriver = Driver
-type MssqlBulk = Bulk
-type MssqlBulkOptions = BulkOptions
-type MssqlConn = Conn
-type MssqlResult = Result
-type MssqlRows = Rows
-type MssqlStmt = Stmt
+var _ driver.NamedValueChecker = &MssqlConn{}
 
-var _ driver.NamedValueChecker = &Conn{}
-
-func (c *Conn) CheckNamedValue(nv *driver.NamedValue) error {
+func (c *MssqlConn) CheckNamedValue(nv *driver.NamedValue) error {
 	switch v := nv.Value.(type) {
 	case sql.Out:
 		if c.outs == nil {
@@ -52,7 +41,7 @@ func (c *Conn) CheckNamedValue(nv *driver.NamedValue) error {
 	}
 }
 
-func (s *Stmt) makeParamExtra(val driver.Value) (res Param, err error) {
+func (s *MssqlStmt) makeParamExtra(val driver.Value) (res Param, err error) {
 	switch val := val.(type) {
 	case sql.Out:
 		res, err = s.makeParam(val.Dest)

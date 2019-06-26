@@ -10,22 +10,22 @@ import (
 	"strings"
 )
 
-var _ driver.Pinger = &Conn{}
+var _ driver.Pinger = &MssqlConn{}
 
 // Ping is used to check if the remote server is available and satisfies the Pinger interface.
-func (c *Conn) Ping(ctx context.Context) error {
+func (c *MssqlConn) Ping(ctx context.Context) error {
 	if !c.connectionGood {
 		return driver.ErrBadConn
 	}
-	stmt := &Stmt{c, `select 1;`, 0, nil}
+	stmt := &MssqlStmt{c, `select 1;`, 0, nil}
 	_, err := stmt.ExecContext(ctx, nil)
 	return err
 }
 
-var _ driver.ConnBeginTx = &Conn{}
+var _ driver.ConnBeginTx = &MssqlConn{}
 
 // BeginTx satisfies ConnBeginTx.
-func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+func (c *MssqlConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -57,7 +57,7 @@ func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, e
 	return c.begin(ctx, tdsIsolation)
 }
 
-func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+func (c *MssqlConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -68,7 +68,7 @@ func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 	return c.prepareContext(ctx, query)
 }
 
-func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+func (s *MssqlStmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -79,7 +79,7 @@ func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 	return s.queryContext(ctx, list)
 }
 
-func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+func (s *MssqlStmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}

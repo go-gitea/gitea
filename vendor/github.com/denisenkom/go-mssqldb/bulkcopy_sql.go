@@ -1,32 +1,31 @@
 package mssql
 
 import (
-	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 )
 
 type copyin struct {
-	cn       *Conn
-	bulkcopy *Bulk
+	cn       *MssqlConn
+	bulkcopy *MssqlBulk
 	closed   bool
 }
 
-type serializableBulkConfig struct {
+type SerializableBulkConfig struct {
 	TableName   string
 	ColumnsName []string
-	Options     BulkOptions
+	Options     MssqlBulkOptions
 }
 
-func (d *Driver) OpenConnection(dsn string) (*Conn, error) {
-	return d.open(context.Background(), dsn)
+func (d *MssqlDriver) OpenConnection(dsn string) (*MssqlConn, error) {
+	return d.open(dsn)
 }
 
-func (c *Conn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
+func (c *MssqlConn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 	config_json := query[11:]
 
-	bulkconfig := serializableBulkConfig{}
+	bulkconfig := SerializableBulkConfig{}
 	err = json.Unmarshal([]byte(config_json), &bulkconfig)
 	if err != nil {
 		return
@@ -43,8 +42,8 @@ func (c *Conn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 	return ci, nil
 }
 
-func CopyIn(table string, options BulkOptions, columns ...string) string {
-	bulkconfig := &serializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
+func CopyIn(table string, options MssqlBulkOptions, columns ...string) string {
+	bulkconfig := &SerializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
 
 	config_json, err := json.Marshal(bulkconfig)
 	if err != nil {
