@@ -1,38 +1,37 @@
 package mssql
 
 import (
-	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 )
 
 type copyin struct {
-	cn       *Conn
-	bulkcopy *Bulk
+	cn       *MssqlConn
+	bulkcopy *MssqlBulk
 	closed   bool
 }
 
-type serializableBulkConfig struct {
+type SerializableBulkConfig struct {
 	TableName   string
 	ColumnsName []string
-	Options     BulkOptions
+	Options     MssqlBulkOptions
 }
 
-func (d *Driver) OpenConnection(dsn string) (*Conn, error) {
-	return d.open(context.Background(), dsn)
+func (d *MssqlDriver) OpenConnection(dsn string) (*MssqlConn, error) {
+	return d.open(dsn)
 }
 
-func (c *Conn) prepareCopyIn(ctx context.Context, query string) (_ driver.Stmt, err error) {
+func (c *MssqlConn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 	config_json := query[11:]
 
-	bulkconfig := serializableBulkConfig{}
+	bulkconfig := SerializableBulkConfig{}
 	err = json.Unmarshal([]byte(config_json), &bulkconfig)
 	if err != nil {
 		return
 	}
 
-	bulkcopy := c.CreateBulkContext(ctx, bulkconfig.TableName, bulkconfig.ColumnsName)
+	bulkcopy := c.CreateBulk(bulkconfig.TableName, bulkconfig.ColumnsName)
 	bulkcopy.Options = bulkconfig.Options
 
 	ci := &copyin{
@@ -43,8 +42,8 @@ func (c *Conn) prepareCopyIn(ctx context.Context, query string) (_ driver.Stmt, 
 	return ci, nil
 }
 
-func CopyIn(table string, options BulkOptions, columns ...string) string {
-	bulkconfig := &serializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
+func CopyIn(table string, options MssqlBulkOptions, columns ...string) string {
+	bulkconfig := &SerializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
 
 	config_json, err := json.Marshal(bulkconfig)
 	if err != nil {
@@ -61,12 +60,12 @@ func (ci *copyin) NumInput() int {
 }
 
 func (ci *copyin) Query(v []driver.Value) (r driver.Rows, err error) {
-	panic("should never be called")
+	return nil, errors.New("ErrNotSupported")
 }
 
 func (ci *copyin) Exec(v []driver.Value) (r driver.Result, err error) {
 	if ci.closed {
-		return nil, errors.New("copyin query is closed")
+		return nil, errors.New("errCopyInClosed")
 	}
 
 	if len(v) == 0 {

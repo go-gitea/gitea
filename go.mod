@@ -139,3 +139,5 @@ require (
 	xorm.io/builder v0.3.5
 	xorm.io/core v0.6.3
 )
+
+replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-b2a6258bbf09
