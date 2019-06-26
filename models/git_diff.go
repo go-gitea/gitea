@@ -88,6 +88,15 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
+// escape a line's content or return <br> needed for copy/paste purposes
+func getLineContent(content string) string {
+	if len(content) > 0 {
+		return html.EscapeString(content);
+	} else {
+		return "<br>"
+	}
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
@@ -168,14 +177,6 @@ var diffMatchPatch = diffmatchpatch.New()
 
 func init() {
 	diffMatchPatch.DiffEditCost = 100
-}
-
-func getLineContent(content string) string {
-	if len(content) > 0 {
-		return html.EscapeString(content);
-	} else {
-		return "<br>"
-	}
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
