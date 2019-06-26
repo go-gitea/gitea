@@ -59,7 +59,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 type RepoRefType uint8
 
 const (
-	// RepoRefInvalid invalid ref
+	// RepoRefTypeInvalid invalid ref
 	RepoRefTypeInvalid RepoRefType = iota
 	// RepoRefTypeBranch branch
 	RepoRefTypeBranch
