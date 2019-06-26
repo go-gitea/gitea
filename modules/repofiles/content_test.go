@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -30,20 +30,22 @@ func TestGetFileContents(t *testing.T) {
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
-	expectedFileContentResponse := &structs.FileContentResponse{
+	expectedFileContentResponse := &api.FileContentResponse{
 		Name:        treePath,
 		Path:        treePath,
 		SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 		Size:        30,
-		URL:         "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
-		HTMLURL:     "https://try.gitea.io/user2/repo1/blob/master/README.md",
+		URL:         "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
+		HTMLURL:     "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
 		GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 		DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
 		Type:        "blob",
-		Links: &structs.FileLinksResponse{
-			Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
+		Encoding:    "base64",
+		Content:     "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x",
+		Links: &api.FileLinksResponse{
+			Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
 			GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-			HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/README.md",
+			HTMLURL: "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
 		},
 	}
 

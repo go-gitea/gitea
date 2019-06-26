@@ -65,6 +65,8 @@ type FileContentResponse struct {
 	GitURL      string             `json:"git_url"`
 	DownloadURL string             `json:"download_url"`
 	Type        string             `json:"type"`
+	Encoding    string             `json:"encoding"`
+	Content     string             `json:"content"`
 	Links       *FileLinksResponse `json:"_links"`
 }
 

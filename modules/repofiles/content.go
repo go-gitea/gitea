@@ -5,18 +5,21 @@
 package repofiles
 
 import (
+	"fmt"
 	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// GetFileContents gets the meta data on a file's contents
+// GetFileContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
 func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileContentResponse, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
+	origRef := ref
 
 	// Check that the path given in opts.treePath is valid (not a git path)
 	treePath = CleanUploadFileName(treePath)
@@ -36,21 +39,30 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 	if err != nil {
 		return nil, err
 	}
+	commitID := commit.ID.String()
+	if len(ref) >= 4 && strings.HasPrefix(commitID, ref) {
+		ref = commit.ID.String()
+	}
 
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
 
-	urlRef := ref
-	if _, err := gitRepo.GetBranchCommit(ref); err == nil {
-		urlRef = "branch/" + ref
+	blobResponse, err := GetBlobBySHA(repo, entry.ID.String())
+	if err != nil {
+		return nil, err
 	}
 
-	selfURL, _ := url.Parse(repo.APIURL() + "/contents/" + treePath)
-	gitURL, _ := url.Parse(repo.APIURL() + "/git/blobs/" + entry.ID.String())
-	downloadURL, _ := url.Parse(repo.HTMLURL() + "/raw/" + urlRef + "/" + treePath)
-	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treePath)
+	refType := gitRepo.GetRefType(ref)
+	if refType == git.RepoRefTypeInvalid {
+		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", ref)
+	}
+
+	selfURL, _ := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
+	gitURL, _ := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
+	downloadURL, _ := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType.String(), ref, treePath))
+	htmlURL, _ := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType.String(), ref, treePath))
 
 	fileContent := &api.FileContentResponse{
 		Name:        entry.Name(),
@@ -62,6 +74,8 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 		GitURL:      gitURL.String(),
 		DownloadURL: downloadURL.String(),
 		Type:        entry.Type(),
+		Encoding:    blobResponse.Encoding,
+		Content:     blobResponse.Content,
 		Links: &api.FileLinksResponse{
 			Self:    selfURL.String(),
 			GitURL:  gitURL.String(),

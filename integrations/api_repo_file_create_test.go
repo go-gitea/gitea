@@ -50,15 +50,17 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			Path:        treePath,
 			SHA:         sha,
 			Size:        16,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/" + treePath,
+			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
+			HTMLURL:     setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
 			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
 			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
 			Type:        "blob",
+			Encoding:    "base64",
+			Content:     "VGhpcyBpcyBuZXcgdGV4dA==",
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/" + treePath,
+				HTMLURL: setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -145,7 +147,7 @@ func TestAPICreateFile(t *testing.T) {
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
-		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/blob/new_branch/new/file%d.txt", fileID)
+		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)

@@ -38,15 +38,17 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 			Path:        treePath,
 			SHA:         sha,
 			Size:        20,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/" + treePath,
+			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
+			HTMLURL:     setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
 			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
 			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
 			Type:        "blob",
+			Encoding:    "base64",
+			Content:     "VGhpcyBpcyB1cGRhdGVkIHRleHQ=",
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
+				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/" + treePath,
+				HTMLURL: setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -135,7 +137,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/blob/new_branch/update/file%d.txt", fileID)
+		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
@@ -154,7 +156,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
-		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/blob/master/rename/update/file%d.txt", fileID)
+		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
