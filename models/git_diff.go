@@ -80,6 +80,14 @@ func (d *DiffLine) GetCommentSide() string {
 	return d.Comments[0].DiffSide()
 }
 
+// GetLineTypeMarker returns the line type marker
+func (d *DiffLine) GetLineTypeMarker() string {
+	if strings.IndexByte(" +-", d.Content[0]) > -1 {
+		return d.Content[0:1]
+	}
+	return ""
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
@@ -87,21 +95,13 @@ type DiffSection struct {
 }
 
 var (
-	addedCodePrefix   = []byte("<span class=\"added-code\">")
-	removedCodePrefix = []byte("<span class=\"removed-code\">")
-	codeTagSuffix     = []byte("</span>")
+	addedCodePrefix   = []byte(`<span class="added-code">`)
+	removedCodePrefix = []byte(`<span class="removed-code">`)
+	codeTagSuffix     = []byte(`</span>`)
 )
 
 func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-
-	// Reproduce signs which are cut for inline diff before.
-	switch lineType {
-	case DiffLineAdd:
-		buf.WriteByte('+')
-	case DiffLineDel:
-		buf.WriteByte('-')
-	}
 
 	for i := range diffs {
 		switch {
@@ -186,18 +186,21 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content))
+			return template.HTML(html.EscapeString(diffLine.Content[1:]))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content))
+			return template.HTML(html.EscapeString(diffLine.Content[1:]))
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
+		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
+			return template.HTML(html.EscapeString(diffLine.Content[1:]))
+		}
 		return template.HTML(html.EscapeString(diffLine.Content))
 	}
 

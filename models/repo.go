@@ -37,9 +37,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	ini "gopkg.in/ini.v1"
+	"xorm.io/builder"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
