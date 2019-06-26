@@ -95,11 +95,21 @@ func (d *Driver) SetLogger(logger Logger) {
 type Conn struct {
 	sess           *tdsSession
 	transactionCtx context.Context
+	resetSession   bool
 
 	processQueryText bool
 	connectionGood   bool
 
 	outs map[string]interface{}
+}
+
+func (c *Conn) ResetSession(ctx context.Context) error {
+	if !c.connectionGood {
+		return driver.ErrBadConn
+	}
+	c.resetSession = true
+
+	return nil
 }
 
 func (c *Conn) checkBadConn(err error) error {
@@ -117,6 +127,7 @@ func (c *Conn) checkBadConn(err error) error {
 	case nil:
 		return nil
 	case io.EOF:
+		c.connectionGood = false
 		return driver.ErrBadConn
 	case driver.ErrBadConn:
 		// It is an internal programming error if driver.ErrBadConn
@@ -174,7 +185,9 @@ func (c *Conn) sendCommitRequest() error {
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{c.sess.tranid, 1}.pack()},
 	}
-	if err := sendCommitXact(c.sess.buf, headers, "", 0, 0, ""); err != nil {
+	reset := c.resetSession
+	c.resetSession = false
+	if err := sendCommitXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send CommitXact with %v", err)
 		}
@@ -199,7 +212,9 @@ func (c *Conn) sendRollbackRequest() error {
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{c.sess.tranid, 1}.pack()},
 	}
-	if err := sendRollbackXact(c.sess.buf, headers, "", 0, 0, ""); err != nil {
+	reset := c.resetSession
+	c.resetSession = false
+	if err := sendRollbackXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send RollbackXact with %v", err)
 		}
@@ -234,7 +249,9 @@ func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) erro
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{0, 1}.pack()},
 	}
-	if err := sendBeginXact(c.sess.buf, headers, tdsIsolation, ""); err != nil {
+	reset := c.resetSession
+	c.resetSession = false
+	if err := sendBeginXact(c.sess.buf, headers, tdsIsolation, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
 			c.sess.log.Printf("Failed to send BeginXact with %v", err)
 		}
@@ -362,11 +379,13 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 			})
 	}
 
+	conn := s.c
+
 	// no need to check number of parameters here, it is checked by database/sql
-	if s.c.sess.logFlags&logSQL != 0 {
-		s.c.sess.log.Println(s.query)
+	if conn.sess.logFlags&logSQL != 0 {
+		conn.sess.log.Println(s.query)
 	}
-	if s.c.sess.logFlags&logParams != 0 && len(args) > 0 {
+	if conn.sess.logFlags&logParams != 0 && len(args) > 0 {
 		for i := 0; i < len(args); i++ {
 			if len(args[i].Name) > 0 {
 				s.c.sess.log.Printf("\t@%s\t%v\n", args[i].Name, args[i].Value)
@@ -374,14 +393,16 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 				s.c.sess.log.Printf("\t@p%d\t%v\n", i+1, args[i].Value)
 			}
 		}
-
 	}
+
+	reset := conn.resetSession
+	conn.resetSession = false
 	if len(args) == 0 {
-		if err = sendSqlBatch72(s.c.sess.buf, s.query, headers); err != nil {
-			if s.c.sess.logFlags&logErrors != 0 {
-				s.c.sess.log.Printf("Failed to send SqlBatch with %v", err)
+		if err = sendSqlBatch72(conn.sess.buf, s.query, headers, reset); err != nil {
+			if conn.sess.logFlags&logErrors != 0 {
+				conn.sess.log.Printf("Failed to send SqlBatch with %v", err)
 			}
-			s.c.connectionGood = false
+			conn.connectionGood = false
 			return fmt.Errorf("failed to send SQL Batch: %v", err)
 		}
 	} else {
@@ -399,11 +420,11 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 			params[0] = makeStrParam(s.query)
 			params[1] = makeStrParam(strings.Join(decls, ","))
 		}
-		if err = sendRpc(s.c.sess.buf, headers, proc, 0, params); err != nil {
-			if s.c.sess.logFlags&logErrors != 0 {
-				s.c.sess.log.Printf("Failed to send Rpc with %v", err)
+		if err = sendRpc(conn.sess.buf, headers, proc, 0, params, reset); err != nil {
+			if conn.sess.logFlags&logErrors != 0 {
+				conn.sess.log.Printf("Failed to send Rpc with %v", err)
 			}
-			s.c.connectionGood = false
+			conn.connectionGood = false
 			return fmt.Errorf("Failed to send RPC: %v", err)
 		}
 	}

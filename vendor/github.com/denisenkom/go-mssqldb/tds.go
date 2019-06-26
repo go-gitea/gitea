@@ -162,7 +162,7 @@ func (p KeySlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func writePrelogin(w *tdsBuffer, fields map[uint8][]byte) error {
 	var err error
 
-	w.BeginPacket(packPrelogin)
+	w.BeginPacket(packPrelogin, false)
 	offset := uint16(5*len(fields) + 1)
 	keys := make(KeySlice, 0, len(fields))
 	for k, _ := range fields {
@@ -352,7 +352,7 @@ func manglePassword(password string) []byte {
 
 // http://msdn.microsoft.com/en-us/library/dd304019.aspx
 func sendLogin(w *tdsBuffer, login login) error {
-	w.BeginPacket(packLogin7)
+	w.BeginPacket(packLogin7, false)
 	hostname := str2ucs2(login.HostName)
 	username := str2ucs2(login.UserName)
 	password := manglePassword(login.Password)
@@ -633,8 +633,8 @@ func writeAllHeaders(w io.Writer, headers []headerStruct) (err error) {
 	return nil
 }
 
-func sendSqlBatch72(buf *tdsBuffer, sqltext string, headers []headerStruct) (err error) {
-	buf.BeginPacket(packSQLBatch)
+func sendSqlBatch72(buf *tdsBuffer, sqltext string, headers []headerStruct, resetSession bool) (err error) {
+	buf.BeginPacket(packSQLBatch, resetSession)
 
 	if err = writeAllHeaders(buf, headers); err != nil {
 		return
@@ -650,7 +650,7 @@ func sendSqlBatch72(buf *tdsBuffer, sqltext string, headers []headerStruct) (err
 // 2.2.1.7 Attention: https://msdn.microsoft.com/en-us/library/dd341449.aspx
 // 4.19.2 Out-of-Band Attention Signal: https://msdn.microsoft.com/en-us/library/dd305167.aspx
 func sendAttention(buf *tdsBuffer) error {
-	buf.BeginPacket(packAttention)
+	buf.BeginPacket(packAttention, false)
 	return buf.FinishPacket()
 }
 
@@ -1337,7 +1337,7 @@ continue_login:
 		}
 	}
 	if sspi_msg != nil {
-		outbuf.BeginPacket(packSSPIMessage)
+		outbuf.BeginPacket(packSSPIMessage, false)
 		_, err = outbuf.Write(sspi_msg)
 		if err != nil {
 			return nil, err

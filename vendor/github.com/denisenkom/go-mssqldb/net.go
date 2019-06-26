@@ -58,7 +58,7 @@ func (c *timeoutConn) Read(b []byte) (n int, err error) {
 func (c *timeoutConn) Write(b []byte) (n int, err error) {
 	if c.buf != nil {
 		if !c.packetPending {
-			c.buf.BeginPacket(packPrelogin)
+			c.buf.BeginPacket(packPrelogin, false)
 			c.packetPending = true
 		}
 		n, err = c.buf.Write(b)

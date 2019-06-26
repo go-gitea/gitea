@@ -128,7 +128,7 @@ func (b *Bulk) sendBulkCommand() (err error) {
 	b.headerSent = true
 
 	var buf = b.cn.sess.buf
-	buf.BeginPacket(packBulkLoadBCP)
+	buf.BeginPacket(packBulkLoadBCP, false)
 
 	// send the columns metadata
 	columnMetadata := b.createColMetadata()
