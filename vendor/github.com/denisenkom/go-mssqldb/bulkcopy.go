@@ -312,7 +312,7 @@ func (b *Bulk) getMetadata(ctx context.Context) (err error) {
 	return rows.Close()
 }
 
-func (b *Bulk) makeParam(val DataValue, col columnStruct) (res Param, err error) {
+func (b *Bulk) makeParam(val DataValue, col columnStruct) (res param, err error) {
 	res.ti.Size = col.ti.Size
 	res.ti.TypeId = col.ti.TypeId
 

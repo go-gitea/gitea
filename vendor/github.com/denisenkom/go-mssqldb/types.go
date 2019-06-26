@@ -69,9 +69,9 @@ const (
 	typeNText   = 0x63
 	typeVariant = 0x62
 )
-const PLP_NULL = 0xFFFFFFFFFFFFFFFF
-const UNKNOWN_PLP_LEN = 0xFFFFFFFFFFFFFFFE
-const PLP_TERMINATOR = 0x00000000
+const _PLP_NULL = 0xFFFFFFFFFFFFFFFF
+const _UNKNOWN_PLP_LEN = 0xFFFFFFFFFFFFFFFE
+const _PLP_TERMINATOR = 0x00000000
 
 // TYPE_INFO rule
 // http://msdn.microsoft.com/en-us/library/dd358284.aspx
@@ -601,10 +601,10 @@ func readPLPType(ti *typeInfo, r *tdsBuffer) interface{} {
 	size := r.uint64()
 	var buf *bytes.Buffer
 	switch size {
-	case PLP_NULL:
+	case _PLP_NULL:
 		// null
 		return nil
-	case UNKNOWN_PLP_LEN:
+	case _UNKNOWN_PLP_LEN:
 		// size unknown
 		buf = bytes.NewBuffer(make([]byte, 0, 1000))
 	default:
@@ -635,13 +635,13 @@ func readPLPType(ti *typeInfo, r *tdsBuffer) interface{} {
 }
 
 func writePLPType(w io.Writer, ti typeInfo, buf []byte) (err error) {
-	if err = binary.Write(w, binary.LittleEndian, uint64(UNKNOWN_PLP_LEN)); err != nil {
+	if err = binary.Write(w, binary.LittleEndian, uint64(_UNKNOWN_PLP_LEN)); err != nil {
 		return
 	}
 	for {
 		chunksize := uint32(len(buf))
 		if chunksize == 0 {
-			err = binary.Write(w, binary.LittleEndian, uint32(PLP_TERMINATOR))
+			err = binary.Write(w, binary.LittleEndian, uint32(_PLP_TERMINATOR))
 			return
 		}
 		if err = binary.Write(w, binary.LittleEndian, chunksize); err != nil {
