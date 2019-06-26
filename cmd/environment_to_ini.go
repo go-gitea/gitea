@@ -20,9 +20,6 @@ import (
 // EnvironmentPrefix environment variables prefixed with this represent ini values to write
 const EnvironmentPrefix = "GITEA__"
 
-// Separator is the character that will separate section from key name
-const Separator = "__"
-
 // CmdEnvironmentToIni represents the command to use a provided environment to update the configuration ini
 var CmdEnvironmentToIni = cli.Command{
 	Name:   "environment-to-ini",
