@@ -59,8 +59,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 type RepoRefType uint8
 
 const (
-	// RepoRefLegacy unknown type, make educated guess and redirect.
-	// for backward compatibility with previous URL scheme
+	// RepoRefInvalid invalid ref
 	RepoRefTypeInvalid RepoRefType = iota
 	// RepoRefTypeBranch branch
 	RepoRefTypeBranch
@@ -72,7 +71,7 @@ const (
 	RepoRefTypeBlob
 )
 
-// String the string representation of the ref type
+// String converts RepoRefType to a the string representation
 func (t RepoRefType) String() string {
 	switch t {
 	case RepoRefTypeBlob:
@@ -90,14 +89,15 @@ func (t RepoRefType) String() string {
 	}
 }
 
-func (r *Repository) GetRefType(ref string) RepoRefType {
-	if r.IsTagExist(ref) {
+// GetRefType gets the type of the ref based on the string
+func (repo *Repository) GetRefType(ref string) RepoRefType {
+	if repo.IsTagExist(ref) {
 		return RepoRefTypeTag
-	} else if r.IsBranchExist(ref) {
+	} else if repo.IsBranchExist(ref) {
 		return RepoRefTypeBranch
-	} else if r.IsCommitExist(ref) {
+	} else if repo.IsCommitExist(ref) {
 		return RepoRefTypeCommit
-	} else if _, err := r.GetBlob(ref); err == nil {
+	} else if _, err := repo.GetBlob(ref); err == nil {
 		return RepoRefTypeBlob
 	}
 	return RepoRefTypeInvalid
