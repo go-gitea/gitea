@@ -261,6 +261,10 @@ You can configure some of Gitea's settings via environment variables:
 * `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 * `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
+Any other configuration value can be set using environment variables
+of the form: `GITEA__SECTION_NAME__KEY_NAME`. See the
+`environment-to-ini` command for more information.
+
 # Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should

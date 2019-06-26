@@ -281,3 +281,22 @@ provided key. You should also set the value
 NB: opensshd requires the gitea program to be owned by root and not
 writable by group or others. The program must be specified by an absolute
 path.
+
+#### environment-to-ini
+
+As a helper to allow docker users to update the gitea configuration
+through the environment, this command allows environment variables to
+be mapped to values in the ini.
+
+Environment variables of the form `GITEA__SECTION_NAME__KEY_NAME`
+will be mapped to the ini section `[section_name]` and the key 
+`KEY_NAME` with the value as provided.
+
+Environment variables are usually restricted to a reduced character
+set `0-9A-Z_` - in order to allow the setting of sections with
+characters outside of that set, they should be escaped as following:
+`_0X2E_` for `.`. The entire section and key names can be escaped as
+a UTF8 byte string if necessary.
+
+- Options:
+    - `--out name`, `-o name`: Name of the adjusted ini file to be created. Optional. (default: The gitea conf file will be changed in place).
