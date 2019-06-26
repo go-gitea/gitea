@@ -22,17 +22,6 @@ type param struct {
 	buffer []byte
 }
 
-func makeProcId(name string) (res procId) {
-	res.name = name
-	if len(name) == 0 {
-		panic("Proc name shouln't be empty")
-	}
-	if len(name) >= 0xffff {
-		panic("Invalid length of procedure name, should be less than 0xffff")
-	}
-	return res
-}
-
 const (
 	fWithRecomp    = 1
 	fNoMetaData    = 2

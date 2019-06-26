@@ -29,11 +29,39 @@ var _ driver.NamedValueChecker = &Conn{}
 // VarChar parameter types.
 type VarChar string
 
+type NVarCharMax string
+type VarCharMax string
+
 // DateTime1 encodes parameters to original DateTime SQL types.
 type DateTime1 time.Time
 
 // DateTimeOffset encodes parameters to DateTimeOffset, preserving the UTC offset.
 type DateTimeOffset time.Time
+
+func convertInputParameter(val interface{}) (interface{}, error) {
+	switch v := val.(type) {
+	case VarChar:
+		return val, nil
+	case NVarCharMax:
+		return val, nil
+	case VarCharMax:
+		return val, nil
+	case DateTime1:
+		return val, nil
+	case DateTimeOffset:
+		return val, nil
+	case civil.Date:
+		return val, nil
+	case civil.DateTime:
+		return val, nil
+	case civil.Time:
+		return val, nil
+		// case *apd.Decimal:
+		// 	return nil
+	default:
+		return driver.DefaultParameterConverter.ConvertValue(v)
+	}
+}
 
 func (c *Conn) CheckNamedValue(nv *driver.NamedValue) error {
 	switch v := nv.Value.(type) {
@@ -52,34 +80,37 @@ func (c *Conn) CheckNamedValue(nv *driver.NamedValue) error {
 			return errors.New("destination not a pointer")
 		}
 
+		if dest_info.IsNil() {
+			return errors.New("destination is a nil pointer")
+		}
+
 		pointed_value := reflect.Indirect(dest_info)
 
+		// don't allow pointer to a pointer, only pointer to a value can be handled
+		// correctly
+		if pointed_value.Kind() == reflect.Ptr {
+			return errors.New("destination is a pointer to a pointer")
+		}
+
 		// Unwrap the Out value and check the inner value.
-		lnv := *nv
-		lnv.Value = pointed_value.Interface()
-		err := c.CheckNamedValue(&lnv)
+		val := pointed_value.Interface()
+		if val == nil {
+			return errors.New("MSSQL does not allow NULL value without type for OUTPUT parameters")
+		}
+		conv, err := convertInputParameter(val)
 		if err != nil {
 			return err
 		}
-		nv.Value = sql.Out{Dest: lnv.Value}
+		if conv == nil {
+			// if we replace with nil we would lose type information
+			nv.Value = sql.Out{Dest: val}
+		} else {
+			nv.Value = sql.Out{Dest: conv}
+		}
 		return nil
-	case VarChar:
-		return nil
-	case DateTime1:
-		return nil
-	case DateTimeOffset:
-		return nil
-	case civil.Date:
-		return nil
-	case civil.DateTime:
-		return nil
-	case civil.Time:
-		return nil
-	// case *apd.Decimal:
-	// 	return nil
 	default:
-		conv_val, err := driver.DefaultParameterConverter.ConvertValue(v)
-		nv.Value = conv_val
+		var err error
+		nv.Value, err = convertInputParameter(nv.Value)
 		return err
 	}
 }
@@ -90,6 +121,14 @@ func (s *Stmt) makeParamExtra(val driver.Value) (res param, err error) {
 		res.ti.TypeId = typeBigVarChar
 		res.buffer = []byte(val)
 		res.ti.Size = len(res.buffer)
+	case VarCharMax:
+		res.ti.TypeId = typeBigVarChar
+		res.buffer = []byte(val)
+		res.ti.Size = 0  // currently zero forces varchar(max)
+	case NVarCharMax:
+		res.ti.TypeId = typeNVarChar
+		res.buffer = str2ucs2(string(val))
+		res.ti.Size = 0  // currently zero forces nvarchar(max)
 	case DateTime1:
 		t := time.Time(val)
 		res.ti.TypeId = typeDateTimeN
@@ -124,42 +163,5 @@ func (s *Stmt) makeParamExtra(val driver.Value) (res param, err error) {
 }
 
 func scanIntoOut(name string, fromServer, scanInto interface{}) error {
-	switch fs := fromServer.(type) {
-	case int64:
-		switch si := scanInto.(type) {
-		case *int64:
-			*si = fs
-			return nil
-		}
-	case string:
-		switch si := scanInto.(type) {
-		case *string:
-			*si = fs
-			return nil
-		case *VarChar:
-			*si = VarChar(fs)
-			return nil
-		}
-	}
-
-	dpv := reflect.ValueOf(scanInto)
-	if dpv.Kind() != reflect.Ptr {
-		return errors.New("destination not a pointer")
-	}
-	if dpv.IsNil() {
-		return errors.New("destination is a nil pointer")
-	}
-	sv := reflect.ValueOf(fromServer)
-
-	dv := reflect.Indirect(dpv)
-	if sv.IsValid() && sv.Type().AssignableTo(dv.Type()) {
-		dv.Set(sv)
-		return nil
-	}
-
-	if sv.Type().ConvertibleTo(dv.Type()) {
-		dv.Set(sv.Convert(dv.Type()))
-		return nil
-	}
-	return fmt.Errorf("unsupported type for parameter %[3]q from server %[1]T=%[1]v into %[2]T=%[2]v ", fromServer, scanInto, name)
+	return convertAssign(scanInto, fromServer)
 }

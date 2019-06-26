@@ -133,6 +133,7 @@ func readTypeInfo(r *tdsBuffer) (res typeInfo) {
 	return
 }
 
+// https://msdn.microsoft.com/en-us/library/dd358284.aspx
 func writeTypeInfo(w io.Writer, ti *typeInfo) (err error) {
 	err = binary.Write(w, binary.LittleEndian, ti.TypeId)
 	if err != nil {
@@ -142,6 +143,7 @@ func writeTypeInfo(w io.Writer, ti *typeInfo) (err error) {
 	case typeNull, typeInt1, typeBit, typeInt2, typeInt4, typeDateTim4,
 		typeFlt4, typeMoney, typeDateTime, typeFlt8, typeMoney4, typeInt8:
 		// those are fixed length
+		// https://msdn.microsoft.com/en-us/library/dd341171.aspx
 		ti.Writer = writeFixedType
 	default: // all others are VARLENTYPE
 		err = writeVarLen(w, ti)
@@ -157,6 +159,7 @@ func writeFixedType(w io.Writer, ti typeInfo, buf []byte) (err error) {
 	return
 }
 
+// https://msdn.microsoft.com/en-us/library/dd358341.aspx
 func writeVarLen(w io.Writer, ti *typeInfo) (err error) {
 	switch ti.TypeId {
 	case typeDateN:
@@ -269,7 +272,7 @@ func encodeDateTime(t time.Time) (res []byte) {
 	basedays := gregorianDays(1900, 1)
 	// days since Jan 1st 1900 (same TZ as t)
 	days := gregorianDays(t.Year(), t.YearDay()) - basedays
-	tm := 300*(t.Second() + t.Minute()*60 + t.Hour()*60*60) + t.Nanosecond()*300/1e9
+	tm := 300*(t.Second()+t.Minute()*60+t.Hour()*60*60) + t.Nanosecond()*300/1e9
 	// minimum and maximum possible
 	mindays := gregorianDays(1753, 1) - basedays
 	maxdays := gregorianDays(9999, 365) - basedays
@@ -279,7 +282,7 @@ func encodeDateTime(t time.Time) (res []byte) {
 	}
 	if days > maxdays {
 		days = maxdays
-		tm = (23*60*60 + 59*60 + 59)*300 + 299
+		tm = (23*60*60+59*60+59)*300 + 299
 	}
 	res = make([]byte, 8)
 	binary.LittleEndian.PutUint32(res[0:4], uint32(days))
@@ -362,7 +365,7 @@ func readByteLenType(ti *typeInfo, r *tdsBuffer) interface{} {
 		case 8:
 			return int64(binary.LittleEndian.Uint64(buf))
 		default:
-			badStreamPanicf("Invalid size for INTNTYPE")
+			badStreamPanicf("Invalid size for INTNTYPE: %d", len(buf))
 		}
 	case typeDecimal, typeNumeric, typeDecimalN, typeNumericN:
 		return decodeDecimal(ti.Prec, ti.Scale, buf)
@@ -421,7 +424,7 @@ func writeByteLenType(w io.Writer, ti typeInfo, buf []byte) (err error) {
 	if ti.Size > 0xff {
 		panic("Invalid size for BYTELEN_TYPE")
 	}
-	err = binary.Write(w, binary.LittleEndian, uint8(ti.Size))
+	err = binary.Write(w, binary.LittleEndian, uint8(len(buf)))
 	if err != nil {
 		return
 	}
@@ -885,8 +888,8 @@ func calcTimeSize(scale int) int {
 // writes time value into a field buffer
 // buffer should be at least calcTimeSize long
 func encodeTimeInt(seconds, ns, scale int, buf []byte) {
-	ns_total := int64(seconds) * 1000 * 1000 * 1000 + int64(ns)
-	t := ns_total / int64(math.Pow10(int(scale)*-1) * 1e9)
+	ns_total := int64(seconds)*1000*1000*1000 + int64(ns)
+	t := ns_total / int64(math.Pow10(int(scale)*-1)*1e9)
 	buf[0] = byte(t)
 	buf[1] = byte(t >> 8)
 	buf[2] = byte(t >> 16)
@@ -900,7 +903,7 @@ func decodeTime(scale uint8, buf []byte) time.Time {
 }
 
 func encodeTime(hour, minute, second, ns, scale int) (buf []byte) {
-	seconds := hour * 3600 + minute * 60 + second
+	seconds := hour*3600 + minute*60 + second
 	buf = make([]byte, calcTimeSize(scale))
 	encodeTimeInt(seconds, ns, scale, buf)
 	return
@@ -916,11 +919,11 @@ func decodeDateTime2(scale uint8, buf []byte) time.Time {
 func encodeDateTime2(val time.Time, scale int) (buf []byte) {
 	days, seconds, ns := dateTime2(val)
 	timesize := calcTimeSize(scale)
-	buf = make([]byte, 3 + timesize)
+	buf = make([]byte, 3+timesize)
 	encodeTimeInt(seconds, ns, scale, buf)
 	buf[timesize] = byte(days)
-	buf[timesize + 1] = byte(days >> 8)
-	buf[timesize + 2] = byte(days >> 16)
+	buf[timesize+1] = byte(days >> 8)
+	buf[timesize+2] = byte(days >> 16)
 	return
 }
 
@@ -937,16 +940,16 @@ func decodeDateTimeOffset(scale uint8, buf []byte) time.Time {
 
 func encodeDateTimeOffset(val time.Time, scale int) (buf []byte) {
 	timesize := calcTimeSize(scale)
-	buf = make([]byte, timesize + 2 + 3)
+	buf = make([]byte, timesize+2+3)
 	days, seconds, ns := dateTime2(val.In(time.UTC))
 	encodeTimeInt(seconds, ns, scale, buf)
 	buf[timesize] = byte(days)
-	buf[timesize + 1] = byte(days >> 8)
-	buf[timesize + 2] = byte(days >> 16)
+	buf[timesize+1] = byte(days >> 8)
+	buf[timesize+2] = byte(days >> 16)
 	_, offset := val.Zone()
 	offset /= 60
-	buf[timesize + 3] = byte(offset)
-	buf[timesize + 4] = byte(offset >> 8)
+	buf[timesize+3] = byte(offset)
+	buf[timesize+4] = byte(offset >> 8)
 	return
 }
 
@@ -959,7 +962,7 @@ func gregorianDays(year, yearday int) int {
 func dateTime2(t time.Time) (days int, seconds int, ns int) {
 	// days since Jan 1 1 (in same TZ as t)
 	days = gregorianDays(t.Year(), t.YearDay())
-	seconds = t.Second() + t.Minute() * 60 + t.Hour() * 60 * 60
+	seconds = t.Second() + t.Minute()*60 + t.Hour()*60*60
 	ns = t.Nanosecond()
 	if days < 0 {
 		days = 0

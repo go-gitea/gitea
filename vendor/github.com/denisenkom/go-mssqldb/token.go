@@ -213,7 +213,7 @@ func processEnvChg(sess *tdsSession) {
 
 			// SQL Collation data should contain 5 bytes in length
 			if collationSize != 5 {
-				badStreamPanicf("Invalid SQL Collation size value returned from server: %s", collationSize)
+				badStreamPanicf("Invalid SQL Collation size value returned from server: %d", collationSize)
 			}
 
 			// 4 bytes, contains: LCID ColFlags Version
