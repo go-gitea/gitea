@@ -1,6 +1,7 @@
 package mssql
 
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -12,20 +13,20 @@ type copyin struct {
 	closed   bool
 }
 
-type SerializableBulkConfig struct {
+type serializableBulkConfig struct {
 	TableName   string
 	ColumnsName []string
 	Options     MssqlBulkOptions
 }
 
 func (d *MssqlDriver) OpenConnection(dsn string) (*MssqlConn, error) {
-	return d.open(dsn)
+	return d.open(context.Background(), dsn)
 }
 
 func (c *MssqlConn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 	config_json := query[11:]
 
-	bulkconfig := SerializableBulkConfig{}
+	bulkconfig := serializableBulkConfig{}
 	err = json.Unmarshal([]byte(config_json), &bulkconfig)
 	if err != nil {
 		return
@@ -43,7 +44,7 @@ func (c *MssqlConn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 }
 
 func CopyIn(table string, options MssqlBulkOptions, columns ...string) string {
-	bulkconfig := &SerializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
+	bulkconfig := &serializableBulkConfig{TableName: table, Options: options, ColumnsName: columns}
 
 	config_json, err := json.Marshal(bulkconfig)
 	if err != nil {

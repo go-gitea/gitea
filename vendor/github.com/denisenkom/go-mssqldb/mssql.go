@@ -28,7 +28,7 @@ func init() {
 
 // Abstract the dialer for testing and for non-TCP based connections.
 type dialer interface {
-	Dial(addr string) (net.Conn, error)
+	Dial(ctx context.Context, addr string) (net.Conn, error)
 }
 
 var createDialer func(p *connectParams) dialer
@@ -37,14 +37,50 @@ type tcpDialer struct {
 	nd *net.Dialer
 }
 
-func (d tcpDialer) Dial(addr string) (net.Conn, error) {
-	return d.nd.Dial("tcp", addr)
+func (d tcpDialer) Dial(ctx context.Context, addr string) (net.Conn, error) {
+	return d.nd.DialContext(ctx, "tcp", addr)
 }
 
 type MssqlDriver struct {
 	log optionalLogger
 
 	processQueryText bool
+}
+
+// OpenConnector opens a new connector. Useful to dial with a context.
+func (d *MssqlDriver) OpenConnector(dsn string) (*Connector, error) {
+	params, err := parseConnectParams(dsn)
+	if err != nil {
+		return nil, err
+	}
+	return &Connector{
+		params: params,
+		driver: d,
+	}, nil
+}
+
+func (d *MssqlDriver) Open(dsn string) (driver.Conn, error) {
+	return d.open(context.Background(), dsn)
+}
+
+// Connector holds the parsed DSN and is ready to make a new connection
+// at any time.
+//
+// In the future, settings that cannot be passed through a string DSN
+// may be set directly on the connector.
+type Connector struct {
+	params connectParams
+	driver *MssqlDriver
+}
+
+// Connect to the server and return a TDS connection.
+func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
+	return c.driver.connect(ctx, c.params)
+}
+
+// Driver underlying the Connector.
+func (c *Connector) Driver() driver.Driver {
+	return c.driver
 }
 
 func SetLogger(logger Logger) {
@@ -217,17 +253,17 @@ func (c *MssqlConn) processBeginResponse(ctx context.Context) (driver.Tx, error)
 	return c, nil
 }
 
-func (d *MssqlDriver) Open(dsn string) (driver.Conn, error) {
-	return d.open(dsn)
-}
-
-func (d *MssqlDriver) open(dsn string) (*MssqlConn, error) {
+func (d *MssqlDriver) open(ctx context.Context, dsn string) (*MssqlConn, error) {
 	params, err := parseConnectParams(dsn)
 	if err != nil {
 		return nil, err
 	}
+	return d.connect(ctx, params)
+}
 
-	sess, err := connect(d.log, params)
+// connect to the server, using the provided context for dialing only.
+func (d *MssqlDriver) connect(ctx context.Context, params connectParams) (*MssqlConn, error) {
+	sess, err := connect(ctx, d.log, params)
 	if err != nil {
 		// main server failed, try fail-over partner
 		if params.failOverPartner == "" {
@@ -239,7 +275,7 @@ func (d *MssqlDriver) open(dsn string) (*MssqlConn, error) {
 			params.port = params.failOverPort
 		}
 
-		sess, err = connect(d.log, params)
+		sess, err = connect(ctx, d.log, params)
 		if err != nil {
 			// fail-over partner also failed, now fail
 			return nil, err
