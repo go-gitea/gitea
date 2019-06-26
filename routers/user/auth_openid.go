@@ -152,8 +152,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	log.Trace("Verified ID: " + id)
 
-	/* Now we should seek for the user and log him in, or prompt
-	 * to register if not found */
+	/* Now we should seek for the user and log him in, or prompt to register if not found */
 
 	u, err := models.GetUserByOpenID(id)
 	if err != nil {

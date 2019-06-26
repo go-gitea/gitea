@@ -26,7 +26,7 @@ make test-sqlite
 ## 如何使用 mysql 数据库进行集成测试
 首先在docker容器里部署一个 mysql 数据库
 ```
-docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" --rm --name mysql mysql:5.7 #(just ctrl-c to stop db and clean the container) 
+docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" --rm --name mysql mysql:5.7 #(just ctrl-c to stop db and clean the container)
 ```
 之后便可以基于这个数据库进行集成测试
 ```
@@ -36,7 +36,7 @@ TEST_MYSQL_HOST="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAd
 ## 如何使用 pgsql 数据库进行集成测试
 同上，首先在 docker 容器里部署一个 pgsql 数据库
 ```
-docker run -e "POSTGRES_DB=test" --rm --name pgsql postgres:9.5 #(just ctrl-c to stop db and clean the container) 
+docker run -e "POSTGRES_DB=test" --rm --name pgsql postgres:9.5 #(just ctrl-c to stop db and clean the container)
 ```
 之后便可以基于这个数据库进行集成测试
 ```
