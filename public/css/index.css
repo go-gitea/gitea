@@ -235,7 +235,6 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) h6{font-size:1em;color:#777}
 .markdown:not(code) h6 .anchor{line-height:1.1}
 .markdown:not(code) blockquote,.markdown:not(code) dl,.markdown:not(code) ol,.markdown:not(code) p,.markdown:not(code) pre,.markdown:not(code) table,.markdown:not(code) ul{margin-top:0;margin-bottom:16px}
-.markdown:not(code) blockquote{margin-left:0}
 .markdown:not(code) hr{height:4px;padding:0;margin:16px 0;background-color:#e7e7e7;border:0}
 .markdown:not(code) ol,.markdown:not(code) ul{padding-left:2em}
 .markdown:not(code) ol.no-list,.markdown:not(code) ul.no-list{padding:0;list-style-type:none}
@@ -245,7 +244,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) dl{padding:0}
 .markdown:not(code) dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}
 .markdown:not(code) dl dd{padding:0 16px;margin-bottom:16px}
-.markdown:not(code) blockquote{padding:0 15px;color:#777;border-left:4px solid #ddd}
+.markdown:not(code) blockquote{margin-left:0;padding:0 15px;color:#777;border-left:4px solid #ddd}
 .markdown:not(code) blockquote>:first-child{margin-top:0}
 .markdown:not(code) blockquote>:last-child{margin-bottom:0}
 .markdown:not(code) table{width:auto;overflow:auto;word-break:keep-all;display:block}
@@ -888,14 +887,14 @@ tbody.commit-list{vertical-align:baseline}
 .user.followers .header.name{font-size:20px;line-height:24px;vertical-align:middle}
 .user.followers .follow .ui.button{padding:8px 15px}
 .user.notification .octicon{float:left;font-size:2em}
-.user.notification .content{float:left;margin-left:7px}
-.user.notification table form{display:inline-block}
-.user.notification table button{padding:3px 3px 3px 5px}
-.user.notification table tr{cursor:pointer}
 .user.notification .octicon.green{color:#21ba45}
 .user.notification .octicon.red{color:#d01919}
 .user.notification .octicon.purple{color:#a333c8}
 .user.notification .octicon.blue{color:#2185d0}
+.user.notification .content{float:left;margin-left:7px}
+.user.notification table form{display:inline-block}
+.user.notification table button{padding:3px 3px 3px 5px}
+.user.notification table tr{cursor:pointer}
 .user.link-account:not(.icon){padding-top:15px;padding-bottom:5px}
 .user.settings .iconFloat{float:left}
 .user-orgs{display:flex;flex-flow:row wrap;padding:0;margin:-3px!important}
