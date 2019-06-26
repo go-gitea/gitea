@@ -231,7 +231,7 @@
 				$('tr.add-code').each(function() {
 					var prev = $(this).prev();
 					if(prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
-						while(prev.prev().is('.del-code') && prev.prev().children().eq(4).text().trim() === '') {
+						while(prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
 							prev = prev.prev();
 						}
 						prev.children().eq(3).attr("data-line-num", $(this).children().eq(3).attr("data-line-num"));
