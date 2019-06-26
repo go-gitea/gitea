@@ -88,6 +88,14 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
+// escape a line's content or return <br> needed for copy/paste purposes
+func getLineContent(content string) string {
+	if len(content) > 0 {
+		return html.EscapeString(content)
+	}
+	return "<br>"
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
@@ -107,14 +115,14 @@ func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTM
 		switch {
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 		}
 	}
 
@@ -173,7 +181,7 @@ func init() {
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
-		return template.HTML(html.EscapeString(diffLine.Content[1:]))
+		return template.HTML(getLineContent(diffLine.Content[1:]))
 	}
 	var (
 		compareDiffLine *DiffLine
@@ -186,22 +194,22 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content[1:]))
+			return template.HTML(getLineContent(diffLine.Content[1:]))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content[1:]))
+			return template.HTML(getLineContent(diffLine.Content[1:]))
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(html.EscapeString(diffLine.Content[1:]))
+			return template.HTML(getLineContent(diffLine.Content[1:]))
 		}
-		return template.HTML(html.EscapeString(diffLine.Content))
+		return template.HTML(getLineContent(diffLine.Content))
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
