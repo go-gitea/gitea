@@ -5,6 +5,7 @@
 package git
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,4 +24,13 @@ func TestGetLatestCommitTime(t *testing.T) {
 	refTime, err := time.Parse("Mon Jan 02 15:04:05 2006 -0700", "Mon Oct 23 03:52:09 2017 +0300")
 	assert.NoError(t, err)
 	assert.True(t, lct.Unix() > refTime.Unix(), "%d not greater than %d", lct, refTime)
+}
+
+func TestRepoIsEmpty(t *testing.T) {
+	emptyRepo2Path := filepath.Join(testReposDir, "repo2_empty")
+	repo, err := OpenRepository(emptyRepo2Path)
+	assert.NoError(t, err)
+	isEmpty, err := repo.IsEmpty()
+	assert.NoError(t, err)
+	assert.True(t, isEmpty)
 }
