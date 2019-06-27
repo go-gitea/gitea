@@ -120,34 +120,6 @@ func init() {
 	}
 }
 
-// DBContext represents a db context
-type DBContext struct {
-	e Engine
-}
-
-// WithContext represents executing database operations
-func WithContext(f func(ctx DBContext) error) error {
-	return f(DBContext{x})
-}
-
-// WithTransaction represents executing database operations on a trasaction
-func WithTransaction(f func(ctx DBContext) error) error {
-	sess := x.NewSession()
-	if err := sess.Begin(); err != nil {
-		sess.Close()
-		return err
-	}
-
-	if err := f(DBContext{sess}); err != nil {
-		sess.Close()
-		return err
-	}
-
-	err := sess.Commit()
-	sess.Close()
-	return err
-}
-
 func getEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
