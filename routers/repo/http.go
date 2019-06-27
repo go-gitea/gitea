@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -343,19 +344,11 @@ var routes = []route{
 	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
-// FIXME: use process module
-func gitCommand(dir string, args ...string) []byte {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	out, err := cmd.Output()
+func getGitConfig(option, dir string) string {
+	out, err := git.NewCommand("config", option).RunInDir(dir)
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
-	return out
-}
-
-func getGitConfig(option, dir string) string {
-	out := string(gitCommand(dir, "config", option))
 	return out[0 : len(out)-1]
 }
 
@@ -422,7 +415,7 @@ func serviceRPC(h serviceHandler, service string) {
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)
+	cmd := exec.Command(git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
 		cmd.Env = append(os.Environ(), h.environ...)
@@ -453,7 +446,11 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(dir string) []byte {
-	return gitCommand(dir, "update-server-info")
+	out, err := git.NewCommand("update-server-info").RunInDirBytes(dir)
+	if err != nil {
+		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
+	}
+	return out
 }
 
 func packetWrite(str string) []byte {
@@ -468,7 +465,10 @@ func getInfoRefs(h serviceHandler) {
 	h.setHeaderNoCache()
 	if hasAccess(getServiceType(h.r), h, false) {
 		service := getServiceType(h.r)
-		refs := gitCommand(h.dir, service, "--stateless-rpc", "--advertise-refs", ".")
+		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
+		if err != nil {
+			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+		}
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
 		h.w.WriteHeader(http.StatusOK)

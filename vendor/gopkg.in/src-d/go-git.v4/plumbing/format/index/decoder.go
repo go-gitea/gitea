@@ -1,6 +1,7 @@
 package index
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha1"
 	"errors"
@@ -42,14 +43,17 @@ type Decoder struct {
 	r         io.Reader
 	hash      hash.Hash
 	lastEntry *Entry
+
+	extReader *bufio.Reader
 }
 
 // NewDecoder returns a new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
 	h := sha1.New()
 	return &Decoder{
-		r:    io.TeeReader(r, h),
-		hash: h,
+		r:         io.TeeReader(r, h),
+		hash:      h,
+		extReader: bufio.NewReader(nil),
 	}
 }
 
@@ -184,11 +188,9 @@ func (d *Decoder) doReadEntryNameV4() (string, error) {
 
 func (d *Decoder) doReadEntryName(len uint16) (string, error) {
 	name := make([]byte, len)
-	if err := binary.Read(d.r, &name); err != nil {
-		return "", err
-	}
+	_, err := io.ReadFull(d.r, name[:])
 
-	return string(name), nil
+	return string(name), err
 }
 
 // Index entries are padded out to the next 8 byte alignment
@@ -279,20 +281,21 @@ func (d *Decoder) readExtension(idx *Index, header []byte) error {
 	return nil
 }
 
-func (d *Decoder) getExtensionReader() (io.Reader, error) {
+func (d *Decoder) getExtensionReader() (*bufio.Reader, error) {
 	len, err := binary.ReadUint32(d.r)
 	if err != nil {
 		return nil, err
 	}
 
-	return &io.LimitedReader{R: d.r, N: int64(len)}, nil
+	d.extReader.Reset(&io.LimitedReader{R: d.r, N: int64(len)})
+	return d.extReader, nil
 }
 
 func (d *Decoder) readChecksum(expected []byte, alreadyRead [4]byte) error {
 	var h plumbing.Hash
 	copy(h[:4], alreadyRead[:])
 
-	if err := binary.Read(d.r, h[4:]); err != nil {
+	if _, err := io.ReadFull(d.r, h[4:]); err != nil {
 		return err
 	}
 
@@ -326,7 +329,7 @@ func validateHeader(r io.Reader) (version uint32, err error) {
 }
 
 type treeExtensionDecoder struct {
-	r io.Reader
+	r *bufio.Reader
 }
 
 func (d *treeExtensionDecoder) Decode(t *Tree) error {
@@ -386,16 +389,13 @@ func (d *treeExtensionDecoder) readEntry() (*TreeEntry, error) {
 	}
 
 	e.Trees = i
-
-	if err := binary.Read(d.r, &e.Hash); err != nil {
-		return nil, err
-	}
+	_, err = io.ReadFull(d.r, e.Hash[:])
 
 	return e, nil
 }
 
 type resolveUndoDecoder struct {
-	r io.Reader
+	r *bufio.Reader
 }
 
 func (d *resolveUndoDecoder) Decode(ru *ResolveUndo) error {
@@ -433,7 +433,7 @@ func (d *resolveUndoDecoder) readEntry() (*ResolveUndoEntry, error) {
 
 	for s := range e.Stages {
 		var hash plumbing.Hash
-		if err := binary.Read(d.r, hash[:]); err != nil {
+		if _, err := io.ReadFull(d.r, hash[:]); err != nil {
 			return nil, err
 		}
 
@@ -462,7 +462,7 @@ func (d *resolveUndoDecoder) readStage(e *ResolveUndoEntry, s Stage) error {
 }
 
 type endOfIndexEntryDecoder struct {
-	r io.Reader
+	r *bufio.Reader
 }
 
 func (d *endOfIndexEntryDecoder) Decode(e *EndOfIndexEntry) error {
@@ -472,5 +472,6 @@ func (d *endOfIndexEntryDecoder) Decode(e *EndOfIndexEntry) error {
 		return err
 	}
 
-	return binary.Read(d.r, &e.Hash)
+	_, err = io.ReadFull(d.r, e.Hash[:])
+	return err
 }
