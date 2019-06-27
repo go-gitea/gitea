@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -190,7 +189,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	if !allowed {
-		ctx.Error(400, "DetectContentType", errors.New("File type is not allowed"))
+		ctx.Error(400, "DetectContentType", models.ErrFileTypeForbidden{Type: fileType})
 		return
 	}
 

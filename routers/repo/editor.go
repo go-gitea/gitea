@@ -607,7 +607,7 @@ func UploadFileToServer(ctx *context.Context) {
 		}
 
 		if !allowed {
-			ctx.Error(400, ErrFileTypeForbidden.Error())
+			ctx.Error(400, models.ErrFileTypeForbidden{Type: fileType}.Error())
 			return
 		}
 	}
