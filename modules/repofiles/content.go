@@ -156,6 +156,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string, forList bool
 		}
 	} else if entry.IsDir() {
 		contentType = ContentTypeDir
+		downloadURL, _ = url.Parse("") // no download URL for dirs
 	} else if entry.IsLink() {
 		contentType = ContentTypeLink
 		// The target of a symlink file is the content of the file
@@ -171,6 +172,7 @@ func GetFileContents(repo *models.Repository, treePath, ref string, forList bool
 			return nil, err
 		}
 		submoduleURL = submodule.URL
+		downloadURL, _ = url.Parse("") // no download URL for submodules
 	}
 
 	fileContent := &api.FileContentsResponse{
