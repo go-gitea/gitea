@@ -375,12 +375,12 @@ func GetFileContents(ctx *context.APIContext) {
 	//   in: path
 	//   description: path of the dir, file, symlink or submodule in the repo
 	//   type: string
-	//   required: false
+	//   required: true
 	// - name: ref
 	//   in: query
 	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
-	//   required: false
 	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileContentsResponse"
