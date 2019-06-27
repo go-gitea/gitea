@@ -54,20 +54,27 @@ type FileLinksResponse struct {
 	HTMLURL string `json:"html_url"`
 }
 
-// FileContentResponse contains information about a repo's file stats and content
-type FileContentResponse struct {
-	Name        string             `json:"name"`
-	Path        string             `json:"path"`
-	SHA         string             `json:"sha"`
-	Size        int64              `json:"size"`
-	URL         string             `json:"url"`
-	HTMLURL     string             `json:"html_url"`
-	GitURL      string             `json:"git_url"`
-	DownloadURL string             `json:"download_url"`
-	Type        string             `json:"type"`
-	Encoding    string             `json:"encoding"`
-	Content     string             `json:"content"`
-	Links       *FileLinksResponse `json:"_links"`
+// FileContentsResponse contains information about a repo's entry stats and content
+type FileContentsResponse struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	SHA  string `json:"sha"`
+	// `type` will be `file`, `dir`, `symlink`, or `submodule`
+	Type string `json:"type"`
+	Size int64  `json:"size"`
+	// `encoding` is populated when `type` is `file`, otherwise empty
+	Encoding string `json:"encoding"`
+	// `content` is populated when `type` is `file`, otherwise empty
+	Content string `json:"content"`
+	// `target` is populated when `type` is `symlink`, otherwise empty
+	Target      string `json:"target"`
+	URL         string `json:"url"`
+	HTMLURL     string `json:"html_url"`
+	GitURL      string `json:"git_url"`
+	DownloadURL string `json:"download_url"`
+	// `submodule_git_url` is populated when `type` is `submodule`, otherwise empty
+	SubmoduleGitURL string             `json:"submodule_git_url"`
+	Links           *FileLinksResponse `json:"_links"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.
@@ -83,7 +90,7 @@ type FileCommitResponse struct {
 
 // FileResponse contains information about a repo's file
 type FileResponse struct {
-	Content      *FileContentResponse       `json:"content"`
+	Content      *FileContentsResponse      `json:"content"`
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }

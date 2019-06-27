@@ -353,11 +353,11 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 }
 
-// GetFileContents Get the contents of a fle in a repository
+// GetFileContents Get the metadata and contents (if a file) of an entry in a repository
 func GetFileContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
 	// ---
-	// summary: Gets the contents of a file or directory in a repository
+	// summary: Gets the metadata and contents (if a file) of an entry in a repository
 	// produces:
 	// - application/json
 	// parameters:
@@ -373,8 +373,7 @@ func GetFileContents(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: path of the file to delete
-	//   type: string
+	//   description: path of the file, symlink or submodule in the repo
 	//   required: true
 	// - name: ref
 	//   in: query
@@ -383,7 +382,7 @@ func GetFileContents(ctx *context.APIContext) {
 	//   type: string
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/FileContentResponse"
+	//     "$ref": "#/responses/FileContentsResponse"
 
 	if !CanReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
@@ -396,9 +395,45 @@ func GetFileContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.QueryTrim("ref")
 
-	if fileContents, err := repofiles.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := repofiles.GetFileContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFileContents", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileContents)
+		ctx.JSON(http.StatusOK, fileList)
 	}
+}
+
+// GetFileContentsList Get a list of metadata for the entries in a directory of a repository
+func GetFileContentsList(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{dirpath} repository repoGetFileContentsList
+	// ---
+	// summary: Gets a list of metadata for the entries in a directory of a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: dirpath
+	//   in: path
+	//   description: path of a directory in the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   required: false
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/FileContentsListResponse"
+
+	// Intentionally left empty as the call goes through GetFileContents() above; purpose is to give the
+	// proper response for swagger if the path is a directory
 }

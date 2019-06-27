@@ -48,18 +48,19 @@ func getUpdateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFile
 
 func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileResponse {
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "file.txt",
-			Path:        "new/file.txt",
-			SHA:         "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			Size:        18,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt?ref=master",
-			HTMLURL:     setting.AppURL + "user2/repo1/src/branch/master/new/file.txt",
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/new/file.txt",
-			Type:        "blob",
-			Encoding:    "base64",
-			Content:     "VGhpcyBpcyBhIE5FVyBmaWxl",
+		Content: &api.FileContentsResponse{
+			Name:            "file.txt",
+			Path:            "new/file.txt",
+			SHA:             "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			Type:            "file",
+			Size:            18,
+			Encoding:        "base64",
+			Content:         "VGhpcyBpcyBhIE5FVyBmaWxl",
+			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt?ref=master",
+			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/new/file.txt",
+			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
+			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/new/file.txt",
+			SubmoduleGitURL: "",
 			Links: &api.FileLinksResponse{
 				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
@@ -107,22 +108,25 @@ func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileRespons
 	}
 }
 
-func getExpectedFileResponseForRepofilesUpdate(commitID string) *api.FileResponse {
+func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.FileResponse {
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "README.md",
-			Path:        "README.md",
-			SHA:         "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			Size:        43,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md",
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/README.md",
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/README.md",
-			Type:        "blob",
+		Content: &api.FileContentsResponse{
+			Name:            filename,
+			Path:            filename,
+			SHA:             "dbf8d00e022e05b7e5cf7e535de857de57925647",
+			Type:            "file",
+			Size:            43,
+			Encoding:        "base64",
+			Content:         "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ==",
+			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master",
+			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/" + filename,
+			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
+			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/" + filename,
+			SubmoduleGitURL: "",
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md",
+				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/README.md",
+				HTMLURL: setting.AppURL + "user2/repo1/src/branch/master/" + filename,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -215,7 +219,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID)
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
@@ -236,9 +240,8 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
-		suffix := "_new"
 		opts.FromTreePath = "README.md"
-		opts.TreePath = "README.md" + suffix // new file name, README.md_new
+		opts.TreePath = "README_new.md" // new file name, README_new.md
 
 		// test
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
@@ -247,7 +250,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.TreePath)
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
@@ -255,9 +258,9 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
 		assert.EqualValues(t, expectedFileResponse.Content.SHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedFileResponse.Content.Name+suffix, fileResponse.Content.Name)
-		assert.EqualValues(t, expectedFileResponse.Content.Path+suffix, fileResponse.Content.Path)
-		assert.EqualValues(t, expectedFileResponse.Content.URL+suffix, fileResponse.Content.URL)
+		assert.EqualValues(t, expectedFileResponse.Content.Name, fileResponse.Content.Name)
+		assert.EqualValues(t, expectedFileResponse.Content.Path, fileResponse.Content.Path)
+		assert.EqualValues(t, expectedFileResponse.Content.URL, fileResponse.Content.URL)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 	})
@@ -286,7 +289,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID)
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 	})
 }

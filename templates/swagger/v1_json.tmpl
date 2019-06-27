@@ -1570,7 +1570,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{filepath}": {
+    "/repos/{owner}/{repo}/contents/{dirpath}": {
       "get": {
         "produces": [
           "application/json"
@@ -1578,8 +1578,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the contents of a file or directory in a repository",
-        "operationId": "repoGetFileContents",
+        "summary": "Gets a list of metadata for the entries in a directory of a repository",
+        "operationId": "repoGetFileContentsList",
         "parameters": [
           {
             "type": "string",
@@ -1597,7 +1597,52 @@
           },
           {
             "type": "string",
-            "description": "path of the file to delete",
+            "description": "path of a directory in the repo",
+            "name": "dirpath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileContentsListResponse"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "path of the file, symlink or submodule in the repo",
             "name": "filepath",
             "in": "path",
             "required": true
@@ -1611,7 +1656,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/FileContentResponse"
+            "$ref": "#/responses/FileContentsResponse"
           }
         }
       },
@@ -8179,14 +8224,15 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "FileContentResponse": {
-      "description": "FileContentResponse contains information about a repo's file stats and content",
+    "FileContentsResponse": {
+      "description": "FileContentsResponse contains information about a repo's entry stats and content",
       "type": "object",
       "properties": {
         "_links": {
           "$ref": "#/definitions/FileLinksResponse"
         },
         "content": {
+          "description": "`content` is populated when `type` is `file`, otherwise empty",
           "type": "string",
           "x-go-name": "Content"
         },
@@ -8195,6 +8241,7 @@
           "x-go-name": "DownloadURL"
         },
         "encoding": {
+          "description": "`encoding` is used when `type` is `file`, otherwise empty",
           "type": "string",
           "x-go-name": "Encoding"
         },
@@ -8223,7 +8270,18 @@
           "format": "int64",
           "x-go-name": "Size"
         },
+        "submodule_git_url": {
+          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise empty",
+          "type": "string",
+          "x-go-name": "SubmoduleGitUrl"
+        },
+        "target": {
+          "description": "`target` is populated when `type` is `symlink`, otherwise empty",
+          "type": "string",
+          "x-go-name": "Target"
+        },
         "type": {
+          "description": "`type` will be `file`, `dir`, `symlink`, or `submodule`",
           "type": "string",
           "x-go-name": "Type"
         },
@@ -8278,7 +8336,7 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "$ref": "#/definitions/FileContentResponse"
+          "$ref": "#/definitions/FileContentsResponse"
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
@@ -9930,10 +9988,19 @@
         }
       }
     },
-    "FileContentResponse": {
-      "description": "FileContentResponse",
+    "FileContentsListResponse": {
+      "description": "FileContentsListResponse",
       "schema": {
-        "$ref": "#/definitions/FileContentResponse"
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/FileContentsResponse"
+        }
+      }
+    },
+    "FileContentsResponse": {
+      "description": "FileContentsResponse",
+      "schema": {
+        "$ref": "#/definitions/FileContentsResponse"
       }
     },
     "FileDeleteResponse": {

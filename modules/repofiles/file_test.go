@@ -17,18 +17,19 @@ import (
 
 func getExpectedFileResponse() *api.FileResponse {
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "README.md",
-			Path:        "README.md",
-			SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-			Size:        30,
-			URL:         "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
-			HTMLURL:     "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
-			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-			DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
-			Type:        "blob",
-			Encoding:    "base64",
-			Content:     "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x",
+		Content: &api.FileContentsResponse{
+			Name:            "README.md",
+			Path:            "README.md",
+			SHA:             "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+			Type:            "file",
+			Size:            30,
+			Encoding:        "base64",
+			Content:         "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x",
+			URL:             "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
+			HTMLURL:         "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
+			GitURL:          "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+			DownloadURL:     "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
+			SubmoduleGitURL: "",
 			Links: &api.FileLinksResponse{
 				Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
 				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",

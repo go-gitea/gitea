@@ -33,18 +33,19 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        filepath.Base(treePath),
-			Path:        treePath,
-			SHA:         sha,
-			Size:        20,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
-			HTMLURL:     setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
-			Type:        "blob",
-			Encoding:    "base64",
-			Content:     "VGhpcyBpcyB1cGRhdGVkIHRleHQ=",
+		Content: &api.FileContentsResponse{
+			Name:            filepath.Base(treePath),
+			Path:            treePath,
+			SHA:             sha,
+			Type:            "file",
+			Size:            20,
+			Encoding:        "base64",
+			Content:         "VGhpcyBpcyB1cGRhdGVkIHRleHQ=",
+			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
+			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
+			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
+			SubmoduleGitURL: "",
 			Links: &api.FileLinksResponse{
 				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,

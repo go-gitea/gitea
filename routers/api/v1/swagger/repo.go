@@ -150,7 +150,7 @@ type swaggerResponseWatchInfo struct {
 
 // SearchResults
 // swagger:response SearchResults
-type swaggerResponseSearchResults struct {
+type swaggerResponseSearchResults struct {q
 	// in:body
 	Body api.SearchResults `json:"body"`
 }
@@ -197,11 +197,18 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
-// FileContentResponse
-// swagger:response FileContentResponse
-type swaggerFileContentResponse struct {
+// FileContentsResponse
+// swagger:response FileContentsResponse
+type swaggerFileContentsResponse struct {
 	//in: body
-	Body api.FileContentResponse `json:"body"`
+	Body api.FileContentsResponse `json:"body"`
+}
+
+// FileContentsListResponse
+// swagger:response FileContentsListResponse
+type swaggerFileContentsListResponse struct {
+	// in:body
+	Body []api.FileContentsResponse `json:"body"`
 }
 
 // FileDeleteResponse

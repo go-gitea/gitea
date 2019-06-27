@@ -45,18 +45,19 @@ func getCreateFileOptions() api.CreateFileOptions {
 func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        filepath.Base(treePath),
-			Path:        treePath,
-			SHA:         sha,
-			Size:        16,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
-			HTMLURL:     setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
-			Type:        "blob",
-			Encoding:    "base64",
-			Content:     "VGhpcyBpcyBuZXcgdGV4dA==",
+		Content: &api.FileContentsResponse{
+			Name:            filepath.Base(treePath),
+			Path:            treePath,
+			SHA:             sha,
+			Size:            16,
+			Type:            "file",
+			Encoding:        "base64",
+			Content:         "VGhpcyBpcyBuZXcgdGV4dA==",
+			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
+			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/" + treePath,
+			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
+			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
+			SubmoduleGitURL: "",
 			Links: &api.FileLinksResponse{
 				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master",
 				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,

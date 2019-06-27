@@ -55,54 +55,6 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 	return l, nil
 }
 
-// RepoRefType type of repo reference
-type RepoRefType uint8
-
-const (
-	// RepoRefTypeInvalid invalid ref
-	RepoRefTypeInvalid RepoRefType = iota
-	// RepoRefTypeBranch branch
-	RepoRefTypeBranch
-	// RepoRefTypeTag tag
-	RepoRefTypeTag
-	// RepoRefTypeCommit commit
-	RepoRefTypeCommit
-	// RepoRefTypeBlob blob
-	RepoRefTypeBlob
-)
-
-// String converts RepoRefType to a the string representation
-func (t RepoRefType) String() string {
-	switch t {
-	case RepoRefTypeBlob:
-		return "blob"
-	case RepoRefTypeBranch:
-		return "branch"
-	case RepoRefTypeCommit:
-		return "commit"
-	case RepoRefTypeTag:
-		return "tag"
-	case RepoRefTypeInvalid:
-		return ""
-	default:
-		return ""
-	}
-}
-
-// GetRefType gets the type of the ref based on the string
-func (repo *Repository) GetRefType(ref string) RepoRefType {
-	if repo.IsTagExist(ref) {
-		return RepoRefTypeTag
-	} else if repo.IsBranchExist(ref) {
-		return RepoRefTypeBranch
-	} else if repo.IsCommitExist(ref) {
-		return RepoRefTypeCommit
-	} else if _, err := repo.GetBlob(ref); err == nil {
-		return RepoRefTypeBlob
-	}
-	return RepoRefTypeInvalid
-}
-
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
