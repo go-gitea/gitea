@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// VerifyAllowedContentType validates a file is allwoed to be uploaded.
+// VerifyAllowedContentType validates a file is allowed to be uploaded.
 func VerifyAllowedContentType(buf []byte, allowedTypes []string) error {
 	fileType := http.DetectContentType(buf)
 
