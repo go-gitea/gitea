@@ -62,10 +62,6 @@ func GetFileContentsOrList(repo *models.Repository, treePath, ref string) (inter
 	if err != nil {
 		return nil, err
 	}
-	commitID := commit.ID.String()
-	if len(ref) >= 4 && strings.HasPrefix(commitID, ref) {
-		ref = commit.ID.String()
-	}
 
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {

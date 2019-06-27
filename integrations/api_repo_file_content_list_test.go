@@ -57,7 +57,7 @@ func testAPIGetFileContentsList(t *testing.T, u *url.URL) {
 	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
 	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
 	repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
-	treePath := "" // root dir
+	treePath := ""                                                                               // root dir
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
