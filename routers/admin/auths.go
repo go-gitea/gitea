@@ -107,6 +107,8 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			BindPassword:          form.BindPassword,
 			UserBase:              form.UserBase,
 			GroupSearchBase:       form.GroupSearchBase,
+			GroupSearchFilter:     form.GroupSearchFilter,
+			UserAttributeInGroup:  form.UserAttributeInGroup,
 			MemberGroupFilter:     form.MemberGroupFilter,
 			AdminGroupFilter:      form.AdminGroupFilter,
 			AttributeUsername:     form.AttributeUsername,

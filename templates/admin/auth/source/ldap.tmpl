@@ -51,12 +51,20 @@
 		<input id="group_search_base" name="group_search_base" value="{{.group_search_base}}" placeholder="e.g. ou=Groups,dc=mydomain,dc=com">
 	</div>
 	<div class="field">
+		<label for="group_search_filter">{{.i18n.Tr "admin.auths.group_search_filter"}}</label>
+		<input id="group_search_filter" name="group_search_filter" value="{{.group_search_filter}}" placeholder="e.g. (&(objectClass=posixGroup)(member=%s))">
+	</div>
+	<div class="field">
+		<label for="user_attribute_in_group">{{.i18n.Tr "admin.auths.user_attribute_in_group"}}</label>
+		<input id="user_attribute_in_group" name="user_attribute_in_group" value="{{.user_attribute_in_group}}" placeholder="e.g. cn">
+	</div>
+	<div class="field">
 		<label for="member_group_filter">{{.i18n.Tr "admin.auths.member_group_filter"}}</label>
-		<input id="member_group_filter" name="member_group_filter" value="{{.member_group_filter}}" placeholder="e.g. (&(objectClass=posixGroup)(member=%s)(cn=developer,ou=Groups,dc=mydomain,dc=com)">
+		<input id="member_group_filter" name="member_group_filter" value="{{.member_group_filter}}" placeholder="e.g. (cn=developer)">
 	</div>
 	<div class="field">
 		<label for="admin_group_filter">{{.i18n.Tr "admin.auths.admin_group_filter"}}</label>
-		<input id="admin_group_filter" name="admin_group_filter" value="{{.admin_group_filter}}" placeholder="e.g. (&(objectClass=posixGroup)(member=%s)(cn=admins,ou=Groups,dc=mydomain,dc=com)">
+		<input id="admin_group_filter" name="admin_group_filter" value="{{.admin_group_filter}}" placeholder="e.g. (cn=admins)">
 	</div>
 	<div class="field">
 		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>

@@ -21,6 +21,8 @@ type AuthenticationForm struct {
 	UserBase                      string
 	UserDN                        string
 	GroupSearchBase               string
+	GroupSearchFilter             string
+	UserAttributeInGroup          string
 	MemberGroupFilter             string
 	AdminGroupFilter              string
 	AttributeUsername             string
