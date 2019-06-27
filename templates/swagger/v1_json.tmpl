@@ -1745,10 +1745,10 @@
             "required": true
           },
           {
+            "type": "string",
             "description": "path of the dir, file, symlink or submodule in the repo",
             "name": "path",
-            "in": "path",
-            "required": true
+            "in": "path"
           },
           {
             "type": "string",
@@ -1759,7 +1759,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/FileContentsListResponse"
+            "$ref": "#/responses/FileContentsResponse"
           }
         }
       }

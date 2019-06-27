@@ -374,7 +374,8 @@ func GetFileContents(ctx *context.APIContext) {
 	// - name: path
 	//   in: path
 	//   description: path of the dir, file, symlink or submodule in the repo
-	//   required: true
+	//   type: string
+	//   required: false
 	// - name: ref
 	//   in: query
 	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
@@ -383,7 +384,6 @@ func GetFileContents(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileContentsResponse"
-	//     "$ref": "#/responses/FileContentsListResponse"
 
 	if !CanReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
