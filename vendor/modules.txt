@@ -429,11 +429,11 @@ gopkg.in/src-d/go-billy.v4/helper/polyfill
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing
-gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph
-gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph
 gopkg.in/src-d/go-git.v4/plumbing/cache
 gopkg.in/src-d/go-git.v4/plumbing/filemode
+gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph
 gopkg.in/src-d/go-git.v4/plumbing/object
+gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph
 gopkg.in/src-d/go-git.v4/storage/filesystem
 gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/format/gitignore
