@@ -26,7 +26,8 @@
 				<table class="ui very basic striped fixed table single line">
 					<thead>
 						<tr>
-							<th class="seven wide">{{.i18n.Tr "repo.branch.name"}}</th>
+							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
+							<th class="two wide"></th>
 							<th class="two wide"></th>
 							{{if and $.IsWriter (not $.IsMirror)}}
 								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
@@ -44,9 +45,10 @@
 									{{else}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
-									</td>
 									{{end}}
+									</td>
 									<td class="ui">
+										{{if not .IsDeleted}}
 										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
@@ -57,6 +59,25 @@
                                             	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
 											</div>
 										</div>
+										{{end}}
+									</td>
+									<td class="right aligned">
+										{{if not .LatestPullRequest}}
+											{{if not .IsDeleted}}
+											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
+												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
+											</a>
+											{{end}}
+										{{else}}
+											<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}">#{{.LatestPullRequest.Issue.Index}}</a>
+											{{if .LatestPullRequest.HasMerged}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui purple small label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
+											{{else if .LatestPullRequest.Issue.IsClosed}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui red small label"><i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.closed_title"}}</a>
+											{{else}}
+												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui green small label"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_title"}}</a>
+											{{end}}
+										{{end}}
 									</td>
 									{{if and $.IsWriter (not $.IsMirror)}}
 										<td class="right aligned">

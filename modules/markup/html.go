@@ -323,6 +323,7 @@ func createCodeLink(href, content string) *html.Node {
 	code := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Code.String(),
+		Attr: []html.Attribute{{Key: "class", Val: "nohighlight"}},
 	}
 
 	code.AppendChild(text)

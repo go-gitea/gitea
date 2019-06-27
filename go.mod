@@ -27,7 +27,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f
+	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
 	github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/emirpasic/gods v1.12.0
@@ -41,6 +41,7 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4 // indirect
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
+	github.com/gliderlabs/ssh v0.1.4 // indirect
 	github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd // indirect
 	github.com/glycerine/goconvey v0.0.0-20190315024820-982ee783a72e // indirect
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
@@ -53,13 +54,13 @@ require (
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/go-sql-driver/mysql v1.4.0
-	github.com/go-xorm/builder v0.3.3
-	github.com/go-xorm/core v0.6.0
-	github.com/go-xorm/xorm v0.0.0-20190116032649-a6300f2a45e0
+	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-xorm/core v0.6.0 // indirect
+	github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
 	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/issue9/assert v1.3.2 // indirect
@@ -90,7 +91,6 @@ require (
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/oliamb/cutter v0.2.2
 	github.com/philhofer/fwd v1.0.0 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v0.9.0
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
@@ -115,11 +115,12 @@ require (
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.2 // indirect
-	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
-	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519
+	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
-	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
-	golang.org/x/text v0.3.0
+	golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
+	golang.org/x/text v0.3.2
+	golang.org/x/tools v0.0.0-20190618163018-fdf1049a943a // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e // indirect
@@ -130,13 +131,13 @@ require (
 	gopkg.in/macaron.v1 v1.3.2
 	gopkg.in/redis.v2 v2.3.2 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0
-	gopkg.in/src-d/go-git.v4 v4.11.0
+	gopkg.in/src-d/go-git.v4 v4.12.0
+	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
+	xorm.io/builder v0.3.5
+	xorm.io/core v0.6.3
 )
 
-replace (
-	github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
-	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v0.0.0-20181218123637-c45f530f8e7f
-)
+replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
