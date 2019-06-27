@@ -2206,14 +2206,6 @@ func GitFsck() {
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
-				// TODO: Move this elsewhere
-				if gitRepo, err := git.OpenRepository(repoPath); err == nil {
-					log.Trace("Building commit graph index")
-					if err := gitRepo.BuildCommitGraph(false); err != nil {
-						desc := fmt.Sprintf("Failed to build commit graph (%s): %v", repoPath, err)
-						log.Warn(desc)
-					}
-				}
 				log.Trace("Running health check on repository %s", repoPath)
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
 					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
