@@ -172,6 +172,8 @@ func GetFileContents(repo *models.Repository, treePath, ref string, forList bool
 			return nil, err
 		}
 		submoduleURL = submodule.URL
+		htmlURL, _ = url.Parse("")     // TODO: if submodule is local, link to its trees HTML page
+		gitURL, _ = url.Parse("")      // TODO: if submodule is local, link to its trees API endpoint
 		downloadURL, _ = url.Parse("") // no download URL for submodules
 	}
 

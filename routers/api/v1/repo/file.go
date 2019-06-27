@@ -353,11 +353,11 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 }
 
-// GetFileContents Get the metadata and contents (if a file) of an entry in a repository
+// GetFileContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetFileContents(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{path} repository repoGetFileContents
 	// ---
-	// summary: Gets the metadata and contents (if a file) of an entry in a repository
+	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 	// produces:
 	// - application/json
 	// parameters:
@@ -371,9 +371,9 @@ func GetFileContents(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: filepath
+	// - name: path
 	//   in: path
-	//   description: path of the file, symlink or submodule in the repo
+	//   description: path of the dir, file, symlink or submodule in the repo
 	//   required: true
 	// - name: ref
 	//   in: query
@@ -383,6 +383,7 @@ func GetFileContents(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileContentsResponse"
+	//     "$ref": "#/responses/FileContentsListResponse"
 
 	if !CanReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
@@ -400,40 +401,4 @@ func GetFileContents(ctx *context.APIContext) {
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}
-}
-
-// GetFileContentsList Get a list of metadata for the entries in a directory of a repository
-func GetFileContentsList(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{dirpath} repository repoGetFileContentsList
-	// ---
-	// summary: Gets a list of metadata for the entries in a directory of a repository
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: dirpath
-	//   in: path
-	//   description: path of a directory in the repo
-	//   type: string
-	//   required: true
-	// - name: ref
-	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
-	//   required: false
-	//   type: string
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/FileContentsListResponse"
-
-	// Intentionally left empty as the call goes through GetFileContents() above; purpose is to give the
-	// proper response for swagger if the path is a directory
 }

@@ -1570,96 +1570,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{dirpath}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Gets a list of metadata for the entries in a directory of a repository",
-        "operationId": "repoGetFileContentsList",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "path of a directory in the repo",
-            "name": "dirpath",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
-            "name": "ref",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/FileContentsListResponse"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/contents/{filepath}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Gets the metadata and contents (if a file) of an entry in a repository",
-        "operationId": "repoGetFileContents",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "path of the file, symlink or submodule in the repo",
-            "name": "filepath",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
-            "name": "ref",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/FileContentsResponse"
-          }
-        }
-      },
       "put": {
         "consumes": [
           "application/json"
@@ -1804,6 +1715,51 @@
         "responses": {
           "200": {
             "$ref": "#/responses/FileDeleteResponse"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{path}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "path of the dir, file, symlink or submodule in the repo",
+            "name": "path",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileContentsListResponse"
           }
         }
       }
