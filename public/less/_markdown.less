@@ -172,10 +172,6 @@
         margin-bottom: 16px;
     }
 
-    blockquote {
-        margin-left: 0;
-    }
-
     hr {
         height: 4px;
         padding: 0;
@@ -230,6 +226,7 @@
     }
 
     blockquote {
+        margin-left: 0;
         padding: 0 15px;
         color: #777777;
         border-left: 4px solid #dddddd;
@@ -502,7 +499,8 @@
         float: right;
         background: #ffffff;
         z-index: 1;
-        @media only screen and (min-width:1760px) {
+
+        @media only screen and (min-width: 1760px) {
             right: -31%;
             width: 26%;
             padding: 0;
@@ -510,7 +508,7 @@
             margin-left: -26%;
         }
 
-        @media only screen and (max-width:479px) {
+        @media only screen and (max-width: 479px) {
             float: none;
             width: 100%;
             padding: 0;
@@ -541,7 +539,7 @@
         position: relative;
         display: none;
 
-        @media only screen and (min-width:1760px) {
+        @media only screen and (min-width: 1760px) {
             display: block;
             float: left;
             left: -31%;
@@ -563,15 +561,15 @@
         }
 
         .page-toc-close {
-        	display: none;
+            display: none;
         }
     }
 
     #page-toc-wiki-cb {
-    	display: none;
+        display: none;
     }
 
-    @media only screen and (max-width:1759px) {
+    @media only screen and (max-width: 1759px) {
         #page-toc-wiki-cb:checked + .page-toc-wrapper {
             display: block;
             position: absolute;
@@ -595,21 +593,21 @@
 }
 
 label.ui.basic.button.page-toc-wiki-label {
-	display: none;
-	float: left;
-	padding: 11px !important;
-	margin-right: 10px !important;
+    display: none;
+    float: left;
+    padding: 11px !important;
+    margin-right: 10px !important;
 
-    @media only screen and (max-width:1759px) {
-	    display: block;
-	}
+    @media only screen and (max-width: 1759px) {
+        display: block;
+    }
 
-	i {
-	    -webkit-touch-callout: none;
-        	-webkit-user-select: none;
-        	 -khtml-user-select: none;
-        	   -moz-user-select: none;
-        		-ms-user-select: none;
-        			user-select: none;
-	}
+    i {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
 }
