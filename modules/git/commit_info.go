@@ -5,9 +5,6 @@
 package git
 
 import (
-	"fmt"
-
-	"code.gitea.io/gitea/modules/gitbloom"
 	"github.com/emirpasic/gods/trees/binaryheap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -27,17 +24,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	if commitGraphFile != nil {
 		defer commitGraphFile.Close()
 	}
-	bloomIndex, bloomFile := commit.repo.BloomIndex()
-	if bloomFile != nil {
-		defer bloomFile.Close()
-	}
 
 	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	revs, err := getLastCommitForPaths(bloomIndex, c, treePath, entryPaths)
+	revs, err := getLastCommitForPaths(c, treePath, entryPaths)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,23 +134,7 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func canSkipCommit(bloomIndex gitbloom.Index, commit cgobject.CommitNode, treePath string, paths []string) bool {
-	if bloom, err := bloomIndex.GetBloomByHash(commit.ID()); err == nil {
-		for _, path := range paths {
-			if bloom.Test(getFullPath(treePath, path)) {
-				return false
-			}
-		}
-		return true
-	}
-	return false
-}
-
-func getLastCommitForPaths(bloomIndex gitbloom.Index, c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
-	walkedCommits := 0
-	testedCommits := 0
-	skippedCommits := 0
-
+func getLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
@@ -182,8 +159,6 @@ func getLastCommitForPaths(bloomIndex gitbloom.Index, c cgobject.CommitNode, tre
 		}
 		current := cIn.(*commitAndPaths)
 
-		walkedCommits++
-
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
 		var parents []cgobject.CommitNode
@@ -193,17 +168,6 @@ func getLastCommitForPaths(bloomIndex gitbloom.Index, c cgobject.CommitNode, tre
 				break
 			}
 			parents = append(parents, parent)
-		}
-
-		// Optimization: If there is only one parent and a bloom filter can tell us
-		// that none of our paths has changed then skip all the change checking
-		if bloomIndex != nil && len(parents) >= 1 {
-			testedCommits++
-			if canSkipCommit(bloomIndex, current.commit, treePath, current.paths) {
-				skippedCommits++
-				heap.Push(&commitAndPaths{parents[0], current.paths, current.hashes})
-				continue
-			}
 		}
 
 		// Examine the current commit and set of interesting paths
@@ -283,8 +247,6 @@ func getLastCommitForPaths(bloomIndex gitbloom.Index, c cgobject.CommitNode, tre
 			return nil, err
 		}
 	}
-
-	fmt.Printf("walked %d tested %d skipped %d\n", walkedCommits, testedCommits, skippedCommits)
 
 	return result, nil
 }

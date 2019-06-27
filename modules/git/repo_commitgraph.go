@@ -1,12 +1,10 @@
 package git
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/modules/gitbloom"
 	"golang.org/x/exp/mmap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph"
@@ -27,23 +25,6 @@ func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *mmap.ReaderAt
 	}
 
 	return cgobject.NewObjectCommitNodeIndex(r.gogitRepo.Storer), nil
-}
-
-// CommitNodeIndex returns the index for walking commit graph
-func (r *Repository) BloomIndex() (gitbloom.Index, *mmap.ReaderAt) {
-	indexPath := path.Join(r.Path, "bloom")
-
-	file, err := mmap.Open(indexPath)
-	if err == nil {
-		fmt.Println("BLOOM1")
-		index, err := gitbloom.OpenFileIndex(file)
-		if err == nil {
-			fmt.Println("BLOOM2")
-			return index, file
-		}
-	}
-
-	return nil, nil
 }
 
 // BuildCommitGraph builds the commit-graph index file
