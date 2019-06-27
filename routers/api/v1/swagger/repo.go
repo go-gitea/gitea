@@ -150,7 +150,7 @@ type swaggerResponseWatchInfo struct {
 
 // SearchResults
 // swagger:response SearchResults
-type swaggerResponseSearchResults struct {q
+type swaggerResponseSearchResults struct {
 	// in:body
 	Body api.SearchResults `json:"body"`
 }
