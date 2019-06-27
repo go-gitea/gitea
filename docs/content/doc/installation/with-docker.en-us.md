@@ -248,6 +248,7 @@ You can configure some of Gitea's settings via environment variables:
 * `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 * `HTTP_PORT`: **3000**: HTTP listen port.
 * `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
+* `LFS_START_SERVER`: **false**: Enables git-lfs support.
 * `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
 * `DB_HOST`: **localhost:3306**: Database host address and port.
 * `DB_NAME`: **gitea**: Database name.

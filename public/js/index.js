@@ -1069,8 +1069,8 @@ function initPullRequestReview() {
         var ntr = tr.next();
         if (!ntr.hasClass('add-comment')) {
             ntr = $('<tr class="add-comment">'
-                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
-                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + (isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>')
                     + '</tr>');
             tr.after(ntr);
         }
@@ -1144,7 +1144,7 @@ function initWikiForm() {
                             "text": plainText
                         },
                         function (data) {
-                            preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                            preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
                         }
                     );
@@ -1224,7 +1224,7 @@ function setSimpleMDE($editArea) {
                         "text": plainText
                     },
                     function (data) {
-                        preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                        preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                         emojify.run($('.editor-preview')[0]);
                     }
                 );

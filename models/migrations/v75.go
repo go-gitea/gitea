@@ -5,8 +5,8 @@
 package migrations
 
 import (
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 func clearNonusedData(x *xorm.Engine) error {

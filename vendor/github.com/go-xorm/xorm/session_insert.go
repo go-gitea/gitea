@@ -8,10 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // Insert insert one or more beans
@@ -24,32 +25,67 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	}
 
 	for _, bean := range beans {
-		sliceValue := reflect.Indirect(reflect.ValueOf(bean))
-		if sliceValue.Kind() == reflect.Slice {
-			size := sliceValue.Len()
-			if size > 0 {
-				if session.engine.SupportInsertMany() {
-					cnt, err := session.innerInsertMulti(bean)
-					if err != nil {
-						return affected, err
-					}
-					affected += cnt
-				} else {
-					for i := 0; i < size; i++ {
-						cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
-						if err != nil {
-							return affected, err
-						}
-						affected += cnt
-					}
-				}
-			}
-		} else {
-			cnt, err := session.innerInsert(bean)
+		switch bean.(type) {
+		case map[string]interface{}:
+			cnt, err := session.insertMapInterface(bean.(map[string]interface{}))
 			if err != nil {
 				return affected, err
 			}
 			affected += cnt
+		case []map[string]interface{}:
+			s := bean.([]map[string]interface{})
+			session.autoResetStatement = false
+			for i := 0; i < len(s); i++ {
+				cnt, err := session.insertMapInterface(s[i])
+				if err != nil {
+					return affected, err
+				}
+				affected += cnt
+			}
+		case map[string]string:
+			cnt, err := session.insertMapString(bean.(map[string]string))
+			if err != nil {
+				return affected, err
+			}
+			affected += cnt
+		case []map[string]string:
+			s := bean.([]map[string]string)
+			session.autoResetStatement = false
+			for i := 0; i < len(s); i++ {
+				cnt, err := session.insertMapString(s[i])
+				if err != nil {
+					return affected, err
+				}
+				affected += cnt
+			}
+		default:
+			sliceValue := reflect.Indirect(reflect.ValueOf(bean))
+			if sliceValue.Kind() == reflect.Slice {
+				size := sliceValue.Len()
+				if size > 0 {
+					if session.engine.SupportInsertMany() {
+						cnt, err := session.innerInsertMulti(bean)
+						if err != nil {
+							return affected, err
+						}
+						affected += cnt
+					} else {
+						for i := 0; i < size; i++ {
+							cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
+							if err != nil {
+								return affected, err
+							}
+							affected += cnt
+						}
+					}
+				}
+			} else {
+				cnt, err := session.innerInsert(bean)
+				if err != nil {
+					return affected, err
+				}
+				affected += cnt
+			}
 		}
 	}
 
@@ -337,19 +373,28 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 
 	var sqlStr string
 	var tableName = session.statement.TableName()
+	var output string
+	if session.engine.dialect.DBType() == core.MSSQL && len(table.AutoIncrement) > 0 {
+		output = fmt.Sprintf(" OUTPUT Inserted.%s", table.AutoIncrement)
+	}
 	if len(colPlaces) > 0 {
-		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v) VALUES (%v)",
+		sqlStr = fmt.Sprintf("INSERT INTO %s (%v%v%v)%s VALUES (%v)",
 			session.engine.Quote(tableName),
 			session.engine.QuoteStr(),
 			strings.Join(colNames, session.engine.Quote(", ")),
 			session.engine.QuoteStr(),
+			output,
 			colPlaces)
 	} else {
 		if session.engine.dialect.DBType() == core.MYSQL {
 			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.engine.Quote(tableName))
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s DEFAULT VALUES", session.engine.Quote(tableName))
+			sqlStr = fmt.Sprintf("INSERT INTO %s%s DEFAULT VALUES", session.engine.Quote(tableName), output)
 		}
+	}
+
+	if len(table.AutoIncrement) > 0 && session.engine.dialect.DBType() == core.POSTGRES {
+		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
 	}
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
@@ -423,9 +468,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		aiValue.Set(int64ToIntValue(id, aiValue.Type()))
 
 		return 1, nil
-	} else if session.engine.dialect.DBType() == core.POSTGRES && len(table.AutoIncrement) > 0 {
-		//assert table.AutoIncrement != ""
-		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
+	} else if len(table.AutoIncrement) > 0 && (session.engine.dialect.DBType() == core.POSTGRES || session.engine.dialect.DBType() == core.MSSQL) {
 		res, err := session.queryBytes(sqlStr, args...)
 
 		if err != nil {
@@ -445,7 +488,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		}
 
 		if len(res) < 1 {
-			return 0, errors.New("insert no error but not returned id")
+			return 0, errors.New("insert successfully but not returned id")
 		}
 
 		idByte := res[0][table.AutoIncrement]
@@ -621,4 +664,84 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 		colNames = append(colNames, col.Name)
 	}
 	return colNames, args, nil
+}
+
+func (session *Session) insertMapInterface(m map[string]interface{}) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
+	var columns = make([]string, 0, len(m))
+	for k := range m {
+		columns = append(columns, k)
+	}
+	sort.Strings(columns)
+
+	qm := strings.Repeat("?,", len(columns))
+	qm = "(" + qm[:len(qm)-1] + ")"
+
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
+	var args = make([]interface{}, 0, len(m))
+	for _, colName := range columns {
+		args = append(args, m[colName])
+	}
+
+	if err := session.cacheInsert(tableName); err != nil {
+		return 0, err
+	}
+
+	res, err := session.exec(sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return affected, nil
+}
+
+func (session *Session) insertMapString(m map[string]string) (int64, error) {
+	if len(m) == 0 {
+		return 0, ErrParamsType
+	}
+
+	var columns = make([]string, 0, len(m))
+	for k := range m {
+		columns = append(columns, k)
+	}
+	sort.Strings(columns)
+
+	qm := strings.Repeat("?,", len(columns))
+	qm = "(" + qm[:len(qm)-1] + ")"
+
+	tableName := session.statement.TableName()
+	if len(tableName) <= 0 {
+		return 0, ErrTableNotFound
+	}
+
+	var sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES %s", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
+	var args = make([]interface{}, 0, len(m))
+	for _, colName := range columns {
+		args = append(args, m[colName])
+	}
+
+	if err := session.cacheInsert(tableName); err != nil {
+		return 0, err
+	}
+
+	res, err := session.exec(sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return affected, nil
 }

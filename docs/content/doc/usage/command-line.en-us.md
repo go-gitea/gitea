@@ -123,6 +123,94 @@ Admin operations:
                 - `--custom-email-url`: Use a custom Email URL (option for GitHub).
             - Examples:
                 - `gitea admin auth update-oauth --id 1 --name external-github-updated`
+        - `add-ldap`: Add new LDAP (via Bind DN) authentication source
+            - Options:
+                - `--name value`: Authentication name. Required.
+                - `--not-active`: Deactivate the authentication source.
+                - `--security-protocol value`: Security protocol name. Required.
+                - `--skip-tls-verify`: Disable TLS verification.
+                - `--host value`: The address where the LDAP server can be reached. Required.
+                - `--port value`: The port to use when connecting to the LDAP server. Required.
+                - `--user-search-base value`: The LDAP base at which user accounts will be searched for. Required.
+                - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
+                - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
+                - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
+                - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
+                - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
+                - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+                - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
+                - `--bind-password value`: The password for the Bind DN, if any.
+                - `--attributes-in-bind`: Fetch attributes in bind DN context.
+                - `--synchronize-users`: Enable user synchronization.
+                - `--page-size value`: Search page size.
+            - Examples:
+                - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(uid=%s))" --email-attribute mail`
+        - `update-ldap`: Update existing LDAP (via Bind DN) authentication source
+            - Options:
+                - `--id value`: ID of authentication source. Required.
+                - `--name value`: Authentication name.
+                - `--not-active`: Deactivate the authentication source.
+                - `--security-protocol value`: Security protocol name.
+                - `--skip-tls-verify`: Disable TLS verification.
+                - `--host value`: The address where the LDAP server can be reached.
+                - `--port value`: The port to use when connecting to the LDAP server.
+                - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
+                - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
+                - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
+                - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
+                - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
+                - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
+                - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+                - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
+                - `--bind-password value`: The password for the Bind DN, if any.
+                - `--attributes-in-bind`: Fetch attributes in bind DN context.
+                - `--synchronize-users`: Enable user synchronization.
+                - `--page-size value`: Search page size.
+            - Examples:
+                - `gitea admin auth update-ldap --id 1 --name "my ldap auth source"`
+                - `gitea admin auth update-ldap --id 1 --username-attribute uid --firstname-attribute givenName --surname-attribute sn`
+        - `add-ldap-simple`: Add new LDAP (simple auth) authentication source
+            - Options:
+                - `--name value`: Authentication name. Required.
+                - `--not-active`: Deactivate the authentication source.
+                - `--security-protocol value`: Security protocol name. Required.
+                - `--skip-tls-verify`: Disable TLS verification.
+                - `--host value`: The address where the LDAP server can be reached. Required.
+                - `--port value`: The port to use when connecting to the LDAP server. Required.
+                - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
+                - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
+                - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
+                - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
+                - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
+                - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
+                - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+                - `--user-dn value`: The user’s DN. Required.
+            - Examples:
+                - `gitea admin auth add-ldap-simple --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-dn "cn=%s,ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(cn=%s))" --email-attribute mail`
+        - `update-ldap-simple`: Update existing LDAP (simple auth) authentication source
+            - Options:
+                - `--id value`: ID of authentication source. Required.
+                - `--name value`: Authentication name.
+                - `--not-active`: Deactivate the authentication source.
+                - `--security-protocol value`: Security protocol name.
+                - `--skip-tls-verify`: Disable TLS verification.
+                - `--host value`: The address where the LDAP server can be reached.
+                - `--port value`: The port to use when connecting to the LDAP server.
+                - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
+                - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
+                - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
+                - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
+                - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
+                - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
+                - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+                - `--user-dn value`: The user’s DN.
+            - Examples:
+                - `gitea admin auth update-ldap-simple --id 1 --name "my ldap auth source"`
+                - `gitea admin auth update-ldap-simple --id 1 --username-attribute uid --firstname-attribute givenName --surname-attribute sn`
 
 #### cert
 

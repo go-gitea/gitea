@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 const (
@@ -63,6 +63,10 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 }
 
 func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+	if session.statement.lastError != nil {
+		return session.statement.lastError
+	}
+
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
 		return errors.New("needs a pointer to a slice or a map")

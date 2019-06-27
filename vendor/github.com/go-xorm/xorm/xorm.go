@@ -7,6 +7,7 @@
 package xorm
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -14,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 const (
@@ -85,14 +86,15 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	}
 
 	engine := &Engine{
-		db:            db,
-		dialect:       dialect,
-		Tables:        make(map[reflect.Type]*core.Table),
-		mutex:         &sync.RWMutex{},
-		TagIdentifier: "xorm",
-		TZLocation:    time.Local,
-		tagHandlers:   defaultTagHandlers,
-		cachers:       make(map[string]core.Cacher),
+		db:             db,
+		dialect:        dialect,
+		Tables:         make(map[reflect.Type]*core.Table),
+		mutex:          &sync.RWMutex{},
+		TagIdentifier:  "xorm",
+		TZLocation:     time.Local,
+		tagHandlers:    defaultTagHandlers,
+		cachers:        make(map[string]core.Cacher),
+		defaultContext: context.Background(),
 	}
 
 	if uri.DbType == core.SQLITE {
