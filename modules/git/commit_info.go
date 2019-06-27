@@ -99,16 +99,6 @@ func getCommitTree(c cgobject.CommitNode, treePath string) (*object.Tree, error)
 	return tree, nil
 }
 
-func getFullPath(treePath, path string) string {
-	if treePath != "" {
-		if path != "" {
-			return treePath + "/" + path
-		}
-		return treePath
-	}
-	return path
-}
-
 func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[string]plumbing.Hash, error) {
 	tree, err := getCommitTree(c, treePath)
 	if err == object.ErrDirectoryNotFound {
