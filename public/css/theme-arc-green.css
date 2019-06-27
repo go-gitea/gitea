@@ -28,12 +28,11 @@ a:hover{color:#a0cc75}
 .repository .milestone.list>.item .operate>a:hover{color:#a0cc75}
 .ui.green.progress .bar{background-color:#684}
 .ui.progress.success .bar{background-color:#7b9e57!important}
-.following.bar.light{background:#2e323e}
+.following.bar.light{background:#2e323e;border-bottom:1px solid #313131}
 .ui.secondary.menu .active.item{color:#dbdbdb}
 .ui.secondary.menu .item{color:#9e9e9e}
 .following.bar .top.menu a.item:hover{color:#fff}
 .repository.view.issue .comment-list .comment .content>.bottom.segment a{border:solid 1px #353945;background-color:#353945}
-.following.bar.light{border-bottom:1px solid #313131}
 .ui.attached.header{background:#404552;border:1px solid #404552;color:#dbdbdb}
 .ui.attached.table{border:1px solid #304251;background:#304251}
 .feeds .list ul li:not(:last-child){border-bottom:1px solid #333640}
@@ -112,7 +111,7 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .ui.attached.segment{border:1px solid #404552}
 .repository.view.issue .comment-list .comment .content>.bottom.segment{background:#353945}
 .repository.view.issue .comment-list .comment .content .header{color:#dbdbdb;background-color:#404552;border-bottom:1px solid #353944}
-.ui .text.grey a{color:#b3b3b3!important}
+.ui .text.grey a{color:#dbdbdb!important}
 .ui.comments .comment .actions a{color:#dbdbdb}
 .repository.view.issue .comment-list .comment .content .header:after{border-right-color:#404552}
 .repository.new.issue .comment.form .content:after{border-right-color:#353945}
@@ -121,10 +120,9 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .repository.view.issue .comment-list:before{background-color:#313c47}
 .repository .comment.form .content .form:after{border-right-color:#313c47}
 .repository .comment.form .content .form:before{border-right-color:#313c47}
-.ui .text.grey a{color:#dbdbdb!important}
 .ui .text.grey a:hover{color:#dbdbdb!important}
 .ui.basic.green.active.button,.ui.basic.green.buttons .active.button{color:#13ae38!important}
-.ui.form textarea,.ui.form textarea:focus{background:#1a2632;border:1px solid #313c47;color:#dbdbdb}
+.ui.form textarea,.ui.form textarea:focus{color:#dbdbdb;background:#404552;border:2px solid #353945}
 .ui.form textarea:focus{border:1px solid #456580}
 .ui .info.segment.top{background-color:#404552!important}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#3c2626!important;border-color:#634343!important}
@@ -134,7 +132,7 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .repository .diff-file-box .file-body.file-code .lines-num{color:#9e9e9e;background:#2e323e}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #2d2d2d}
 .hljs-section,.hljs-selector-id,.hljs-title{color:#986c88}
-.hljs-doctag,.hljs-string{color:#949494}
+.hljs-doctag,.hljs-string{color:#8ab398}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#5f3737}
 .repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#292727!important}
 .ui.vertical.menu .active.item{background:#4b5162}
@@ -154,7 +152,7 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .ui .text.black{color:#9e9e9e}
 .ui .text.black:hover{color:#dbdbdb}
 .ui.secondary.segment{background:#353945}
-.ui.secondary.pointing.menu .active.item{border-color:#87ab63;color:#dbdbdb;background:#404552}
+.ui.secondary.pointing.menu .active.item{color:#dbdbdb;border:0;background:#383c4a}
 .ui.user.list .item:not(:first-child){border-top:1px solid #4c505c}
 .ui.secondary.pointing.menu .active.item:hover{border-color:#af8b4c;color:#dbdbdb;background:#4b5162}
 .ui.secondary.pointing.menu .dropdown.item:hover,.ui.secondary.pointing.menu .link.item:hover,.ui.secondary.pointing.menu a.item:hover{color:#dbdbdb}
@@ -166,7 +164,6 @@ footer{background:#2e323e;border-top:1px solid #313131}
 @media only screen and (max-width:1200px){.ui.menu.new-menu:after{background-image:linear-gradient(to right,rgba(42,46,42,0),#2a2e2a 100%)}
 }
 input{background:#2e323e}
-.ui.secondary.pointing.menu .active.item{border:0;background:#383c4a}
 .settings .key.list .item:not(:first-child){border-top:1px solid #404552}
 .ui.attached.info.message,.ui.info.message{box-shadow:0 0 0 1px #4b5e71 inset,0 0 0 0 transparent}
 .ui.bottom.attached.message{background-color:#2c662d;color:#87ab63}
@@ -179,14 +176,12 @@ input{background:#2e323e}
 .ui.red.button:hover,.ui.red.buttons .button:hover{background-color:#984646}
 .ui.checkbox label:hover,.ui.checkbox+label:hover{color:#dbdbdb!important}
 .ui.checkbox input:checked~.box:after,.ui.checkbox input:checked~label:after{color:#7f98ad}
-.ui.checkbox input:checked~.box:before,.ui.checkbox input:checked~label:before{background:#304251}
+.ui.checkbox input:checked~.box:before,.ui.checkbox input:checked~label:before{background:#304251;opacity:1;color:#7f98ad;border-color:#304251}
 .ui.checkbox .box:hover::before,.ui.checkbox label:hover::before{background:#304251}
 .ui.checkbox .box:before,.ui.checkbox label:before{background:#304251;border:1px solid #304251}
 .ui.checkbox .box:active::before,.ui.checkbox label:active::before{background:#304251;border-color:rgba(34,36,38,.35)}
-.ui.checkbox input:checked~.box:before,.ui.checkbox input:checked~label:before{border-color:#304251;background:#304251}
 .ui.checkbox input:focus~.box:before,.ui.checkbox input:focus~label:before{border-color:#304251;background:#304251}
 .ui.checkbox input:checked:focus~.box:before,.ui.checkbox input:checked:focus~label:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~.box:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~label:before{border-color:#304251;background:#304251}
-.ui.checkbox input:checked~.box:after,.ui.checkbox input:checked~label:after{opacity:1;color:#7f98ad}
 .ui.checkbox input:checked:focus~.box:after,.ui.checkbox input:checked:focus~label:after,.ui.checkbox input:not([type=radio]):indeterminate:focus~.box:after,.ui.checkbox input:not([type=radio]):indeterminate:focus~label:after{color:#7f98ad}
 .ui.checkbox input:focus~.box:after,.ui.checkbox input:focus~label,.ui.checkbox input:focus~label:after{color:#9a9a9a}
 .ui.selection.dropdown:hover{border:1px solid #456580}
@@ -195,9 +190,7 @@ input{background:#2e323e}
 .ui.negative.message{background-color:rgba(80,23,17,.6);color:#f9cbcb;box-shadow:0 0 0 1px rgba(121,71,66,.5) inset,0 0 0 0 transparent}
 .hljs-attribute,.hljs-name,.hljs-tag{color:#ef5e77}
 .user.profile .ui.card .extra.content ul li:not(:last-child){border-bottom:1px solid #4c505c}
-.ui.form textarea,.ui.form textarea:focus{background:#404552;border:2px solid #353945}
 .hljs-literal,.hljs-number,.hljs-tag .hljs-attr,.hljs-template-variable,.hljs-variable{color:#bd84bf}
-.hljs-doctag,.hljs-string{color:#8ab398}
 .ui.form .dropzone{border:2px dashed #4c505c}
 .ui.basic.red.button,.ui.basic.red.buttons .button{box-shadow:0 0 0 1px #a04141 inset!important;color:#a04141!important}
 .ui.list .list>.item .header,.ui.list>.item .header{color:#dedede}
@@ -205,21 +198,17 @@ input{background:#2e323e}
 .ui.user.list .item .description a{color:#668cb1}
 .repository.file.list #file-content .code-view .lines-num{background:#2e323e}
 .repository.file.list #repo-files-table tbody .octicon.octicon-file-directory,.repository.file.list #repo-files-table tbody .octicon.octicon-file-submodule{color:#7c9b5e}
-.ui.blue.button:focus,.ui.blue.buttons .button:focus{background-color:#87ab63}
+.ui.blue.button:focus,.ui.blue.buttons .button:focus{background-color:#a27558}
 .ui.basic.blue.button:hover,.ui.basic.blue.buttons .button:hover{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .ui.basic.blue.button:focus,.ui.basic.blue.buttons .button:focus{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .repository.file.list #file-content .code-view .lines-code .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
 a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb}
 .repository .label.list .item{border-bottom:1px dashed #4c505c}
-.repository.file.list #file-content .code-view .lines-num{background:#2e323e}
-.repository.file.list #repo-files-table tbody .octicon.octicon-file-directory,.repository.file.list #repo-files-table tbody .octicon.octicon-file-submodule{color:#7c9b5e}
-.ui.basic.blue.button,.ui.basic.blue.buttons .button{box-shadow:0 0 0 1px #a27558 inset!important;color:#a27558!important}
+.ui.basic.blue.button,.ui.basic.blue.buttons .button{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .repository.file.list #file-content .code-view .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
-a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb}
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6){background-color:#2a2e3a}
 .repository .diff-file-box .code-diff-split tbody tr td.add-code,.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6){background-color:#283e2d!important;border-color:#314a37!important}
 .repository .diff-file-box .code-diff-split tbody tr td.del-code,.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3){background-color:#3c2626!important;border-color:#634343!important}
-.ui.blue.button:focus,.ui.blue.buttons .button:focus{background-color:#a27558}
 .ui.blue.button:active,.ui.blue.buttons .button:active{background-color:#a27558}
 #git-graph-container li a{color:#c79575}
 #git-graph-container li .author{color:#c79575}
@@ -228,7 +217,6 @@ a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb
 .ui.modal>.header{background:#404552;color:#dbdbdb}
 .ui.modal>.actions{background:#404552;border-top:1px solid #404552}
 .ui.modal>.content{background:#383c4a}
-.ui.basic.blue.button,.ui.basic.blue.buttons .button{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .editor-toolbar{background-color:#404552}
 .editor-toolbar a{color:#87ab63!important}
 .CodeMirror{color:#9daccc;background-color:#2b2b2b;border-top:0}
