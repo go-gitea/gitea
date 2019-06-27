@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -176,20 +177,9 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if the filetype is allowed by the settings
-	fileType := http.DetectContentType(buf)
-
-	allowedTypes := strings.Split(setting.AttachmentAllowedTypes, ",")
-	allowed := false
-	for _, t := range allowedTypes {
-		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		ctx.Error(400, "DetectContentType", models.ErrFileTypeForbidden{Type: fileType})
+	err = util.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	if err != nil {
+		ctx.Error(400, "DetectContentType", err)
 		return
 	}
 

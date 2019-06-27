@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
@@ -42,21 +43,10 @@ func UploadAttachment(ctx *context.Context) {
 	if n > 0 {
 		buf = buf[:n]
 	}
-	fileType := http.DetectContentType(buf)
 
-	allowedTypes := strings.Split(setting.AttachmentAllowedTypes, ",")
-	allowed := false
-	for _, t := range allowedTypes {
-		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		log.Info("Attachment with type %s blocked from upload", fileType)
-		ctx.Error(400, models.ErrFileTypeForbidden{Type: fileType}.Error())
+	err = util.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	if err != nil {
+		ctx.Error(400, err.Error())
 		return
 	}
 
