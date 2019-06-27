@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,7 @@ package admin
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -202,6 +205,63 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
+func shadownPasswordKV(cfgItem, splitter string) string {
+	fields := strings.Split(cfgItem, splitter)
+	for i := 0; i < len(fields); i++ {
+		if strings.HasPrefix(fields[i], "password=") {
+			fields[i] = "password=******"
+			break
+		}
+	}
+	return strings.Join(fields, splitter)
+}
+
+func shadownURL(provider, cfgItem string) string {
+	u, err := url.Parse(cfgItem)
+	if err != nil {
+		log.Error("shodowPassword %v failed: %v", provider, err)
+		return cfgItem
+	}
+	if u.User != nil {
+		atIdx := strings.Index(cfgItem, "@")
+		if atIdx > 0 {
+			colonIdx := strings.LastIndex(cfgItem[:atIdx], ":")
+			if colonIdx > 0 {
+				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
+			}
+		}
+	}
+	return cfgItem
+}
+
+func shadowPassword(provider, cfgItem string) string {
+	switch provider {
+	case "redis":
+		return shadownPasswordKV(cfgItem, ",")
+	case "mysql":
+		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		atIdx := strings.Index(cfgItem, "@")
+		if atIdx > 0 {
+			colonIdx := strings.Index(cfgItem[:atIdx], ":")
+			if colonIdx > 0 {
+				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
+			}
+		}
+		return cfgItem
+	case "postgres":
+		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
+		if !strings.HasPrefix(cfgItem, "postgres://") {
+			return shadownPasswordKV(cfgItem, " ")
+		}
+
+		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
+		// Notice: use shadwonURL
+	}
+
+	// "couchbase"
+	return shadownURL(provider, cfgItem)
+}
+
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
@@ -239,10 +299,14 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
-	ctx.Data["CacheConn"] = setting.CacheService.Conn
+
+	ctx.Data["CacheConn"] = shadowPassword(setting.CacheService.Adapter, setting.CacheService.Conn)
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
-	ctx.Data["SessionConfig"] = setting.SessionConfig
+	sessionCfg := setting.SessionConfig
+	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
+
+	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["DisableGravatar"] = setting.DisableGravatar
 	ctx.Data["EnableFederatedAvatar"] = setting.EnableFederatedAvatar

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -596,7 +597,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err = pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))

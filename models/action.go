@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // ActionType represents the type of an action.
