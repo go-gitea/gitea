@@ -1570,7 +1570,90 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contents": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata of all the entries of the root dir",
+        "operationId": "repoGetFileContentsList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileContentsListResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileContentsResponse"
+          }
+        }
+      },
       "put": {
         "consumes": [
           "application/json"
@@ -1715,52 +1798,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/FileDeleteResponse"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/contents/{path}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
-        "operationId": "repoGetFileContents",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "path of the dir, file, symlink or submodule in the repo",
-            "name": "path",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
-            "name": "ref",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/FileContentsResponse"
           }
         }
       }

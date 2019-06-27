@@ -355,7 +355,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 
 // GetFileContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetFileContents(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{path} repository repoGetFileContents
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
 	// ---
 	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 	// produces:
@@ -371,7 +371,7 @@ func GetFileContents(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: path
+	// - name: filepath
 	//   in: path
 	//   description: path of the dir, file, symlink or submodule in the repo
 	//   type: string
@@ -401,4 +401,34 @@ func GetFileContents(ctx *context.APIContext) {
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}
+}
+
+// GetFileContentsList Get the metadata of all the entries of the root dir
+func GetFileContentsList(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents repository repoGetFileContentsList
+	// ---
+	// summary: Gets the metadata of all the entries of the root dir
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/FileContentsListResponse"
+
+	GetFileContents(ctx)
 }

@@ -766,7 +766,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/tags/:sha", context.RepoRef(), repo.GetTag)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
-					m.Get("", repo.GetFileContents)
+					m.Get("", repo.GetFileContentsList)
 					m.Get("/*", repo.GetFileContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
