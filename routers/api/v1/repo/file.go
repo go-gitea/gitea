@@ -430,5 +430,6 @@ func GetContentsList(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ContentsListResponse"
 
-	GetContents(ctx) // same as just contents, here because swagger fails if path is empty in GetContents() interface
+	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
+	GetContents(ctx)
 }
