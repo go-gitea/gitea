@@ -47,24 +47,30 @@ func getUpdateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFile
 }
 
 func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileResponse {
+	treePath := "file.txt"
+	encoding := "base64"
+	content := "VGhpcyBpcyBuZXcgdGV4dA=="
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885"
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
-		Content: &api.FileContentsResponse{
-			Name:            "file.txt",
-			Path:            "new/file.txt",
-			SHA:             "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			Type:            "file",
-			Size:            18,
-			Encoding:        "base64",
-			Content:         "VGhpcyBpcyBhIE5FVyBmaWxl",
-			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt?ref=master",
-			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/new/file.txt",
-			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
-			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/new/file.txt",
-			SubmoduleGitURL: "",
+		Content: &api.ContentsResponse{
+			Name:        treePath,
+			Path:        "new/" + treePath,
+			SHA:         "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			Type:        "file",
+			Size:        18,
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt?ref=master",
-				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
-				HTMLURL: setting.AppURL + "user2/repo1/src/branch/master/new/file.txt",
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -109,24 +115,29 @@ func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileRespons
 }
 
 func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.FileResponse {
+	encoding := "base64"
+	content := "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ=="
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + filename
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647"
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + filename
 	return &api.FileResponse{
-		Content: &api.FileContentsResponse{
-			Name:            filename,
-			Path:            filename,
-			SHA:             "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			Type:            "file",
-			Size:            43,
-			Encoding:        "base64",
-			Content:         "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ==",
-			URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master",
-			HTMLURL:         setting.AppURL + "user2/repo1/src/branch/master/" + filename,
-			GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-			DownloadURL:     setting.AppURL + "user2/repo1/raw/branch/master/" + filename,
-			SubmoduleGitURL: "",
+		Content: &api.ContentsResponse{
+			Name:        filename,
+			Path:        filename,
+			SHA:         "dbf8d00e022e05b7e5cf7e535de857de57925647",
+			Type:        "file",
+			Size:        43,
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master",
-				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-				HTMLURL: setting.AppURL + "user2/repo1/src/branch/master/" + filename,
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{

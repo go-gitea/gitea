@@ -35,9 +35,9 @@ func (ct *ContentType) String() string {
 	return string(*ct)
 }
 
-// GetFileContentsOrList gets the meta data of a file's contents (*FileContentsResponse) if treePath not a tree
-// directory, otherwise a listing of file contents ([]*FileContentsResponse). Ref can be a branch, commit or tag
-func GetFileContentsOrList(repo *models.Repository, treePath, ref string) (interface{}, error) {
+// GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
+// directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
+func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface{}, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -69,11 +69,11 @@ func GetFileContentsOrList(repo *models.Repository, treePath, ref string) (inter
 	}
 
 	if entry.Type() != "tree" {
-		return GetFileContents(repo, treePath, origRef, false)
+		return GetContents(repo, treePath, origRef, false)
 	}
 
 	// We are in a directory, so we return a list of FileContentResponse objects
-	var fileList []*api.FileContentsResponse
+	var fileList []*api.ContentsResponse
 
 	gitTree, err := commit.SubTree(treePath)
 	if err != nil {
@@ -85,7 +85,7 @@ func GetFileContentsOrList(repo *models.Repository, treePath, ref string) (inter
 	}
 	for _, e := range entries {
 		subTreePath := path.Join(treePath, e.Name())
-		fileContentResponse, err := GetFileContents(repo, subTreePath, origRef, true)
+		fileContentResponse, err := GetContents(repo, subTreePath, origRef, true)
 		if err != nil {
 			return nil, err
 		}
@@ -94,8 +94,8 @@ func GetFileContentsOrList(repo *models.Repository, treePath, ref string) (inter
 	return fileList, nil
 }
 
-// GetFileContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
-func GetFileContents(repo *models.Repository, treePath, ref string, forList bool) (*api.FileContentsResponse, error) {
+// GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
+func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -135,68 +135,78 @@ func GetFileContents(repo *models.Repository, treePath, ref string, forList bool
 		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", ref)
 	}
 
-	selfURL, _ := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
-	gitURL, _ := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
-	downloadURL, _ := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
-	htmlURL, _ := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+	selfURL, err := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
+	if err != nil {
+		return nil, err
+	}
+	selfURLString := selfURL.String()
 
-	contentType := ContentType("")
-	target := ""
-	content := ""
-	encoding := ""
-	submoduleURL := ""
+	// All content types have these fields in populated
+	contentsResponse := &api.ContentsResponse{
+		Name: entry.Name(),
+		Path: treePath,
+		SHA:  entry.ID.String(),
+		Size: entry.Size(),
+		URL:  &selfURLString,
+		Links: &api.FileLinksResponse{
+			Self: &selfURLString,
+		},
+	}
+
+	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() {
-		contentType = ContentTypeRegular
+		contentsResponse.Type = string(ContentTypeRegular)
 		if blobResponse, err := GetBlobBySHA(repo, entry.ID.String()); err != nil {
 			return nil, err
 		} else if !forList {
 			// We don't show the content if we are getting a list of FileContentResponses
-			encoding = blobResponse.Encoding
-			content = blobResponse.Content
+			contentsResponse.Encoding = &blobResponse.Encoding
+			contentsResponse.Content = &blobResponse.Content
 		}
 	} else if entry.IsDir() {
-		contentType = ContentTypeDir
-		downloadURL, _ = url.Parse("") // no download URL for dirs
+		contentsResponse.Type = string(ContentTypeDir)
 	} else if entry.IsLink() {
-		contentType = ContentTypeLink
+		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
 		targetFromContent, err := entry.Blob().GetBlobContent()
 		if err != nil {
 			return nil, err
 		}
-		target = targetFromContent
+		contentsResponse.Target = &targetFromContent
 	} else if entry.IsSubModule() {
-		contentType = ContentTypeSubmodule
+		contentsResponse.Type = string(ContentTypeSubmodule)
 		submodule, err := commit.GetSubModule(treePath)
 		if err != nil {
 			return nil, err
 		}
-		submoduleURL = submodule.URL
-		htmlURL, _ = url.Parse("")     // TODO: if submodule is local, link to its trees HTML page
-		gitURL, _ = url.Parse("")      // TODO: if submodule is local, link to its trees API endpoint
-		downloadURL, _ = url.Parse("") // no download URL for submodules
+		contentsResponse.SubmoduleGitURL = &submodule.URL
+	}
+	// Handle links
+	if entry.IsRegular() || entry.IsLink() {
+		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		if err != nil {
+			return nil, err
+		}
+		downloadURLString := downloadURL.String()
+		contentsResponse.DownloadURL = &downloadURLString
+	}
+	if !entry.IsSubModule() {
+		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		if err != nil {
+			return nil, err
+		}
+		htmlURLString := htmlURL.String()
+		contentsResponse.HTMLURL = &htmlURLString
+		contentsResponse.Links.HTMLURL = &htmlURLString
+
+		gitURL, err := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
+		if err != nil {
+			return nil, err
+		}
+		gitURLString := gitURL.String()
+		contentsResponse.GitURL = &gitURLString
+		contentsResponse.Links.GitURL = &gitURLString
 	}
 
-	fileContent := &api.FileContentsResponse{
-		Name:            entry.Name(),
-		Path:            treePath,
-		Type:            contentType.String(),
-		SHA:             entry.ID.String(),
-		Size:            entry.Size(),
-		Encoding:        encoding,
-		Content:         content,
-		Target:          target,
-		URL:             selfURL.String(),
-		HTMLURL:         htmlURL.String(),
-		GitURL:          gitURL.String(),
-		DownloadURL:     downloadURL.String(),
-		SubmoduleGitURL: submoduleURL,
-		Links: &api.FileLinksResponse{
-			Self:    selfURL.String(),
-			GitURL:  gitURL.String(),
-			HTMLURL: htmlURL.String(),
-		},
-	}
-
-	return fileContent, nil
+	return contentsResponse, nil
 }

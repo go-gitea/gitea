@@ -197,18 +197,18 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
-// FileContentsResponse
-// swagger:response FileContentsResponse
-type swaggerFileContentsResponse struct {
+// ContentsResponse
+// swagger:response ContentsResponse
+type swaggerContentsResponse struct {
 	//in: body
-	Body api.FileContentsResponse `json:"body"`
+	Body api.ContentsResponse `json:"body"`
 }
 
-// FileContentsListResponse
-// swagger:response FileContentsListResponse
-type swaggerFileContentsListResponse struct {
+// ContentsListResponse
+// swagger:response ContentsListResponse
+type swaggerContentsListResponse struct {
 	// in:body
-	Body []api.FileContentsResponse `json:"body"`
+	Body []api.ContentsResponse `json:"body"`
 }
 
 // FileDeleteResponse

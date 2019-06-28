@@ -1579,7 +1579,7 @@
           "repository"
         ],
         "summary": "Gets the metadata of all the entries of the root dir",
-        "operationId": "repoGetFileContentsList",
+        "operationId": "repoGetContentsList",
         "parameters": [
           {
             "type": "string",
@@ -1604,7 +1604,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/FileContentsListResponse"
+            "$ref": "#/responses/ContentsListResponse"
           }
         }
       }
@@ -1618,7 +1618,7 @@
           "repository"
         ],
         "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
-        "operationId": "repoGetFileContents",
+        "operationId": "repoGetContents",
         "parameters": [
           {
             "type": "string",
@@ -1650,7 +1650,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/FileContentsResponse"
+            "$ref": "#/responses/ContentsResponse"
           }
         }
       },
@@ -7056,6 +7056,74 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContentsResponse": {
+      "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
+      "type": "object",
+      "properties": {
+        "_links": {
+          "$ref": "#/definitions/FileLinksResponse"
+        },
+        "content": {
+          "description": "`content` is populated when `type` is `file`, otherwise empty",
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "download_url": {
+          "type": "string",
+          "x-go-name": "DownloadURL"
+        },
+        "encoding": {
+          "description": "`encoding` is populated when `type` is `file`, otherwise empty",
+          "type": "string",
+          "x-go-name": "Encoding"
+        },
+        "git_url": {
+          "type": "string",
+          "x-go-name": "GitURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "submodule_git_url": {
+          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise empty",
+          "type": "string",
+          "x-go-name": "SubmoduleGitURL"
+        },
+        "target": {
+          "description": "`target` is populated when `type` is `symlink`, otherwise empty",
+          "type": "string",
+          "x-go-name": "Target"
+        },
+        "type": {
+          "description": "`type` will be `file`, `dir`, `symlink`, or `submodule`",
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -8218,74 +8286,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "FileContentsResponse": {
-      "description": "FileContentsResponse contains information about a repo's entry stats and content",
-      "type": "object",
-      "properties": {
-        "_links": {
-          "$ref": "#/definitions/FileLinksResponse"
-        },
-        "content": {
-          "description": "`content` is populated when `type` is `file`, otherwise empty",
-          "type": "string",
-          "x-go-name": "Content"
-        },
-        "download_url": {
-          "type": "string",
-          "x-go-name": "DownloadURL"
-        },
-        "encoding": {
-          "description": "`encoding` is populated when `type` is `file`, otherwise empty",
-          "type": "string",
-          "x-go-name": "Encoding"
-        },
-        "git_url": {
-          "type": "string",
-          "x-go-name": "GitURL"
-        },
-        "html_url": {
-          "type": "string",
-          "x-go-name": "HTMLURL"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "path": {
-          "type": "string",
-          "x-go-name": "Path"
-        },
-        "sha": {
-          "type": "string",
-          "x-go-name": "SHA"
-        },
-        "size": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Size"
-        },
-        "submodule_git_url": {
-          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise empty",
-          "type": "string",
-          "x-go-name": "SubmoduleGitURL"
-        },
-        "target": {
-          "description": "`target` is populated when `type` is `symlink`, otherwise empty",
-          "type": "string",
-          "x-go-name": "Target"
-        },
-        "type": {
-          "description": "`type` will be `file`, `dir`, `symlink`, or `submodule`",
-          "type": "string",
-          "x-go-name": "Type"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "FileDeleteResponse": {
       "description": "FileDeleteResponse contains information about a repo's file that was deleted",
       "type": "object",
@@ -8307,15 +8307,15 @@
       "description": "FileLinksResponse contains the links for a repo's file",
       "type": "object",
       "properties": {
-        "git_url": {
+        "git": {
           "type": "string",
           "x-go-name": "GitURL"
         },
-        "html_url": {
+        "html": {
           "type": "string",
           "x-go-name": "HTMLURL"
         },
-        "url": {
+        "self": {
           "type": "string",
           "x-go-name": "Self"
         }
@@ -8330,7 +8330,7 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "$ref": "#/definitions/FileContentsResponse"
+          "$ref": "#/definitions/ContentsResponse"
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
@@ -9958,6 +9958,21 @@
         "$ref": "#/definitions/Commit"
       }
     },
+    "ContentsListResponse": {
+      "description": "ContentsListResponse",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      }
+    },
+    "ContentsResponse": {
+      "description": "ContentsResponse",
+      "schema": {
+        "$ref": "#/definitions/ContentsResponse"
+      }
+    },
     "DeployKey": {
       "description": "DeployKey",
       "schema": {
@@ -9980,21 +9995,6 @@
         "items": {
           "$ref": "#/definitions/Email"
         }
-      }
-    },
-    "FileContentsListResponse": {
-      "description": "FileContentsListResponse",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/FileContentsResponse"
-        }
-      }
-    },
-    "FileContentsResponse": {
-      "description": "FileContentsResponse",
-      "schema": {
-        "$ref": "#/definitions/FileContentsResponse"
       }
     },
     "FileDeleteResponse": {

@@ -19,29 +19,36 @@ func TestMain(m *testing.M) {
 	models.MainTest(m, filepath.Join("..", ".."))
 }
 
-func getExpectedReadmeFileContentsResponse() *api.FileContentsResponse {
-	return &api.FileContentsResponse{
-		Name:            "README.md",
-		Path:            "README.md",
-		SHA:             "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		Type:            "file",
-		Size:            30,
-		Encoding:        "base64",
-		Content:         "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x",
-		URL:             "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
-		HTMLURL:         "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
-		GitURL:          "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		DownloadURL:     "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
-		SubmoduleGitURL: "",
+func getExpectedReadmeContentsResponse() *api.ContentsResponse {
+	treePath := "README.md"
+	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
+	encoding := "base64"
+	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
+	selfURL := "https://try.gitea.io/api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
+	htmlURL := "https://try.gitea.io/user2/repo1/src/branch/master/" + treePath
+	gitURL := "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/" + sha
+	downloadURL := "https://try.gitea.io/user2/repo1/raw/branch/master/" + treePath
+	return &api.ContentsResponse{
+		Name:        treePath,
+		Path:        treePath,
+		SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		Type:        "file",
+		Size:        30,
+		Encoding:    &encoding,
+		Content:     &content,
+		URL:         &selfURL,
+		HTMLURL:     &htmlURL,
+		GitURL:      &gitURL,
+		DownloadURL: &downloadURL,
 		Links: &api.FileLinksResponse{
-			Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md?ref=master",
-			GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-			HTMLURL: "https://try.gitea.io/user2/repo1/src/branch/master/README.md",
+			Self:    &selfURL,
+			GitURL:  &htmlURL,
+			HTMLURL: &htmlURL,
 		},
 	}
 }
 
-func TestGetFileContents(t *testing.T) {
+func TestGetContents(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -52,22 +59,22 @@ func TestGetFileContents(t *testing.T) {
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
-	expectedFileContentsResponse := getExpectedReadmeFileContentsResponse()
+	expectedContentsResponse := getExpectedReadmeContentsResponse()
 
-	t.Run("Get README.md contents with GetFileContents()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, ref, false)
-		assert.EqualValues(t, expectedFileContentsResponse, fileContentResponse)
+	t.Run("Get README.md contents with GetContents()", func(t *testing.T) {
+		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, ref, false)
+		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 
-	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetFileContents()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContents(ctx.Repo.Repository, treePath, "", false)
-		assert.EqualValues(t, expectedFileContentsResponse, fileContentResponse)
+	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContents()", func(t *testing.T) {
+		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, "", false)
+		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 }
 
-func TestGetFileContentsOrListForDir(t *testing.T) {
+func TestGetContentsOrListForDir(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -78,29 +85,29 @@ func TestGetFileContentsOrListForDir(t *testing.T) {
 	treePath := "" // root dir
 	ref := ctx.Repo.Repository.DefaultBranch
 
-	readmeFileContentsResponse := getExpectedReadmeFileContentsResponse()
+	readmeContentsResponse := getExpectedReadmeContentsResponse()
 	// because will be in a list, doesn't have encoding and content
-	readmeFileContentsResponse.Encoding = ""
-	readmeFileContentsResponse.Content = ""
+	readmeContentsResponse.Encoding = nil
+	readmeContentsResponse.Content = nil
 
-	expectedFileContentsListResponse := []*api.FileContentsResponse{
-		readmeFileContentsResponse,
+	expectedContentsListResponse := []*api.ContentsResponse{
+		readmeContentsResponse,
 	}
 
-	t.Run("Get root dir contents with GetFileContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContentsOrList(ctx.Repo.Repository, treePath, ref)
-		assert.EqualValues(t, expectedFileContentsListResponse, fileContentResponse)
+	t.Run("Get root dir contents with GetContentsOrList()", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
+		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 
-	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetFileContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContentsOrList(ctx.Repo.Repository, treePath, "")
-		assert.EqualValues(t, expectedFileContentsListResponse, fileContentResponse)
+	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
+		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 }
 
-func TestGetFileContentsOrListForFile(t *testing.T) {
+func TestGetContentsOrListForFile(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -111,22 +118,22 @@ func TestGetFileContentsOrListForFile(t *testing.T) {
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
-	expectedFileContentsResponse := getExpectedReadmeFileContentsResponse()
+	expectedContentsResponse := getExpectedReadmeContentsResponse()
 
-	t.Run("Get README.md contents with GetFileContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContentsOrList(ctx.Repo.Repository, treePath, ref)
-		assert.EqualValues(t, expectedFileContentsResponse, fileContentResponse)
+	t.Run("Get README.md contents with GetContentsOrList()", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
+		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 
-	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetFileContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetFileContentsOrList(ctx.Repo.Repository, treePath, "")
-		assert.EqualValues(t, expectedFileContentsResponse, fileContentResponse)
+	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
+		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.Nil(t, err)
 	})
 }
 
-func TestGetFileContentsErrors(t *testing.T) {
+func TestGetContentsErrors(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -140,7 +147,7 @@ func TestGetFileContentsErrors(t *testing.T) {
 
 	t.Run("bad treePath", func(t *testing.T) {
 		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetFileContents(repo, badTreePath, ref, false)
+		fileContentResponse, err := GetContents(repo, badTreePath, ref, false)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
 		assert.Nil(t, fileContentResponse)
@@ -148,14 +155,14 @@ func TestGetFileContentsErrors(t *testing.T) {
 
 	t.Run("bad ref", func(t *testing.T) {
 		badRef := "bad_ref"
-		fileContentResponse, err := GetFileContents(repo, treePath, badRef, false)
+		fileContentResponse, err := GetContents(repo, treePath, badRef, false)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 		assert.Nil(t, fileContentResponse)
 	})
 }
 
-func TestGetFileContentsOrListErrors(t *testing.T) {
+func TestGetContentsOrListErrors(t *testing.T) {
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
@@ -169,7 +176,7 @@ func TestGetFileContentsOrListErrors(t *testing.T) {
 
 	t.Run("bad treePath", func(t *testing.T) {
 		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetFileContentsOrList(repo, badTreePath, ref)
+		fileContentResponse, err := GetContentsOrList(repo, badTreePath, ref)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
 		assert.Nil(t, fileContentResponse)
@@ -177,7 +184,7 @@ func TestGetFileContentsOrListErrors(t *testing.T) {
 
 	t.Run("bad ref", func(t *testing.T) {
 		badRef := "bad_ref"
-		fileContentResponse, err := GetFileContentsOrList(repo, treePath, badRef)
+		fileContentResponse, err := GetContentsOrList(repo, treePath, badRef)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 		assert.Nil(t, fileContentResponse)

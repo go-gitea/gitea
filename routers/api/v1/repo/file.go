@@ -353,9 +353,9 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 }
 
-// GetFileContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
-func GetFileContents(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
+// GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
+func GetContents(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
 	// ---
 	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 	// produces:
@@ -383,10 +383,10 @@ func GetFileContents(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/FileContentsResponse"
+	//     "$ref": "#/responses/ContentsResponse"
 
 	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -396,16 +396,16 @@ func GetFileContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.QueryTrim("ref")
 
-	if fileList, err := repofiles.GetFileContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFileContents", err)
+	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}
 }
 
-// GetFileContentsList Get the metadata of all the entries of the root dir
-func GetFileContentsList(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents repository repoGetFileContentsList
+// GetContentsList Get the metadata of all the entries of the root dir
+func GetContentsList(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents repository repoGetContentsList
 	// ---
 	// summary: Gets the metadata of all the entries of the root dir
 	// produces:
@@ -428,7 +428,7 @@ func GetFileContentsList(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/FileContentsListResponse"
+	//     "$ref": "#/responses/ContentsListResponse"
 
-	GetFileContents(ctx)
+	GetContents(ctx)
 }

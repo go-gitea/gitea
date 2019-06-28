@@ -7,7 +7,6 @@ package integrations
 import (
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -19,35 +18,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getExpectedFileContentsResponseForFileContents(ref, refType string) *api.FileContentsResponse {
+func getExpectedContentsResponseForContents(ref, refType string) *api.ContentsResponse {
 	treePath := "README.md"
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
-	return &api.FileContentsResponse{
-		Name:            filepath.Base(treePath),
-		Path:            treePath,
-		SHA:             sha,
-		Type:            "file",
-		Size:            30,
-		Encoding:        "base64",
-		Content:         "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x",
-		URL:             setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref,
-		HTMLURL:         setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath,
-		GitURL:          setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-		DownloadURL:     setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath,
-		SubmoduleGitURL: "",
+	encoding := "base64"
+	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref
+	htmlURL := setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
+	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
+	return &api.ContentsResponse{
+		Name:        treePath,
+		Path:        treePath,
+		SHA:         sha,
+		Type:        "file",
+		Size:        30,
+		Encoding:    &encoding,
+		Content:     &content,
+		URL:         &selfURL,
+		HTMLURL:     &htmlURL,
+		GitURL:      &gitURL,
+		DownloadURL: &downloadURL,
 		Links: &api.FileLinksResponse{
-			Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref,
-			GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-			HTMLURL: setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath,
+			Self:    &selfURL,
+			GitURL:  &gitURL,
+			HTMLURL: &htmlURL,
 		},
 	}
 }
 
-func TestAPIGetFileContents(t *testing.T) {
-	onGiteaRun(t, testAPIGetFileContents)
+func TestAPIGetContents(t *testing.T) {
+	onGiteaRun(t, testAPIGetContents)
 }
 
-func testAPIGetFileContents(t *testing.T, u *url.URL) {
+func testAPIGetContents(t *testing.T, u *url.URL) {
 	/*** SETUP ***/
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
@@ -82,50 +86,50 @@ func testAPIGetFileContents(t *testing.T, u *url.URL) {
 	refType := "branch"
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	var fileContentsResponse api.FileContentsResponse
-	DecodeJSON(t, resp, &fileContentsResponse)
-	assert.NotNil(t, fileContentsResponse)
-	expectedFileContentsResponse := getExpectedFileContentsResponseForFileContents(ref, refType)
-	assert.EqualValues(t, *expectedFileContentsResponse, fileContentsResponse)
+	var contentsResponse api.ContentsResponse
+	DecodeJSON(t, resp, &contentsResponse)
+	assert.NotNil(t, contentsResponse)
+	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType)
+	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// No ref
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &fileContentsResponse)
-	assert.NotNil(t, fileContentsResponse)
-	expectedFileContentsResponse = getExpectedFileContentsResponseForFileContents(repo1.DefaultBranch, refType)
-	assert.EqualValues(t, *expectedFileContentsResponse, fileContentsResponse)
+	DecodeJSON(t, resp, &contentsResponse)
+	assert.NotNil(t, contentsResponse)
+	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType)
+	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the branch we created above  in setup
 	ref = newBranch
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &fileContentsResponse)
-	assert.NotNil(t, fileContentsResponse)
-	expectedFileContentsResponse = getExpectedFileContentsResponseForFileContents(ref, refType)
-	assert.EqualValues(t, *expectedFileContentsResponse, fileContentsResponse)
+	DecodeJSON(t, resp, &contentsResponse)
+	assert.NotNil(t, contentsResponse)
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the new tag we created above in setup
 	ref = newTag
 	refType = "tag"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &fileContentsResponse)
-	assert.NotNil(t, fileContentsResponse)
-	expectedFileContentsResponse = getExpectedFileContentsResponseForFileContents(ref, refType)
-	assert.EqualValues(t, *expectedFileContentsResponse, fileContentsResponse)
+	DecodeJSON(t, resp, &contentsResponse)
+	assert.NotNil(t, contentsResponse)
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is a commit
 	ref = commitID
 	refType = "commit"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &fileContentsResponse)
-	assert.NotNil(t, fileContentsResponse)
-	expectedFileContentsResponse = getExpectedFileContentsResponseForFileContents(ref, refType)
-	assert.EqualValues(t, *expectedFileContentsResponse, fileContentsResponse)
+	DecodeJSON(t, resp, &contentsResponse)
+	assert.NotNil(t, contentsResponse)
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// Test file contents a file with a bad ref
 	ref = "badref"

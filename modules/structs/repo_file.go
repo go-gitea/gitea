@@ -49,13 +49,13 @@ type UpdateFileOptions struct {
 
 // FileLinksResponse contains the links for a repo's file
 type FileLinksResponse struct {
-	Self    string `json:"url"`
-	GitURL  string `json:"git_url"`
-	HTMLURL string `json:"html_url"`
+	Self    *string `json:"self"`
+	GitURL  *string `json:"git"`
+	HTMLURL *string `json:"html"`
 }
 
-// FileContentsResponse contains information about a repo's entry stats and content
-type FileContentsResponse struct {
+// ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
+type ContentsResponse struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
 	SHA  string `json:"sha"`
@@ -63,17 +63,17 @@ type FileContentsResponse struct {
 	Type string `json:"type"`
 	Size int64  `json:"size"`
 	// `encoding` is populated when `type` is `file`, otherwise empty
-	Encoding string `json:"encoding"`
+	Encoding *string `json:"encoding"`
 	// `content` is populated when `type` is `file`, otherwise empty
-	Content string `json:"content"`
+	Content *string `json:"content"`
 	// `target` is populated when `type` is `symlink`, otherwise empty
-	Target      string `json:"target"`
-	URL         string `json:"url"`
-	HTMLURL     string `json:"html_url"`
-	GitURL      string `json:"git_url"`
-	DownloadURL string `json:"download_url"`
+	Target      *string `json:"target"`
+	URL         *string `json:"url"`
+	HTMLURL     *string `json:"html_url"`
+	GitURL      *string `json:"git_url"`
+	DownloadURL *string `json:"download_url"`
 	// `submodule_git_url` is populated when `type` is `submodule`, otherwise empty
-	SubmoduleGitURL string             `json:"submodule_git_url"`
+	SubmoduleGitURL *string            `json:"submodule_git_url"`
 	Links           *FileLinksResponse `json:"_links"`
 }
 
@@ -90,7 +90,7 @@ type FileCommitResponse struct {
 
 // FileResponse contains information about a repo's file
 type FileResponse struct {
-	Content      *FileContentsResponse      `json:"content"`
+	Content      *ContentsResponse          `json:"content"`
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }
