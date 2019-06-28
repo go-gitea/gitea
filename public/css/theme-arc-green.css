@@ -230,6 +230,7 @@ a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb
 .CodeMirror{color:#9daccc;background-color:#2b2b2b;border-top:0}
 .CodeMirror div.CodeMirror-cursor{border-left:1px solid #9e9e9e}
 .CodeMirror .CodeMirror-gutters{background-color:#2b2b2b}
+.CodeMirror .CodeMirror-selected,.CodeMirror ::-moz-selection,.CodeMirror ::selection{background:#42402f!important}
 .CodeMirror.cm-s-default .cm-property,.CodeMirror.cm-s-paper .cm-property{color:#a0cc75}
 .CodeMirror.cm-s-default .cm-header,.CodeMirror.cm-s-paper .cm-header{color:#9daccc}
 .CodeMirror.cm-s-default .cm-quote,.CodeMirror.cm-s-paper .cm-quote{color:#090}
