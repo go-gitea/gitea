@@ -156,8 +156,8 @@ func TestAPICreateFile(t *testing.T) {
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 
 		// Test trying to create a file that already exists, should fail
 		createFileOptions = getCreateFileOptions()

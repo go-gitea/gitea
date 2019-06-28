@@ -33,7 +33,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	encoding := "base64"
-	content := "VGhpcyBpcyBuZXcgdGV4dA=="
+	content := "VGhpcyBpcyB1cGRhdGVkIHRleHQ="
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
 	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
@@ -146,8 +146,8 @@ func TestAPIUpdateFile(t *testing.T) {
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
@@ -165,8 +165,8 @@ func TestAPIUpdateFile(t *testing.T) {
 		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 
 		// Test updating a file with the wrong SHA
 		fileID++
