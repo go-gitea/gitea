@@ -7064,7 +7064,7 @@
           "$ref": "#/definitions/FileLinksResponse"
         },
         "content": {
-          "description": "`content` is populated when `type` is `file`, otherwise empty",
+          "description": "`content` is populated when `type` is `file`, otherwise null",
           "type": "string",
           "x-go-name": "Content"
         },
@@ -7073,7 +7073,7 @@
           "x-go-name": "DownloadURL"
         },
         "encoding": {
-          "description": "`encoding` is populated when `type` is `file`, otherwise empty",
+          "description": "`encoding` is populated when `type` is `file`, otherwise null",
           "type": "string",
           "x-go-name": "Encoding"
         },
@@ -7103,12 +7103,12 @@
           "x-go-name": "Size"
         },
         "submodule_git_url": {
-          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise empty",
+          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise null",
           "type": "string",
           "x-go-name": "SubmoduleGitURL"
         },
         "target": {
-          "description": "`target` is populated when `type` is `symlink`, otherwise empty",
+          "description": "`target` is populated when `type` is `symlink`, otherwise null",
           "type": "string",
           "x-go-name": "Target"
         },
