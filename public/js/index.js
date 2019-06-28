@@ -2847,6 +2847,7 @@ function initTopicbar() {
 
     topicDropdown.dropdown({
         allowAdditions: true,
+        forceSelection: false,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
         label: {
@@ -2864,16 +2865,32 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                var formattedResponse = {
+                let formattedResponse = {
                     success: false,
                     results: [],
                 };
+                const escapeHtml = function (text) {
+                    let esc = document.createElement('div');
+                    esc.innerHTML = text;
+                    return esc.innerText;
+                };
+
+                let query = escapeHtml(this.urlData.query.trim());
+                let found_query = false;
 
                 if (res.topics) {
                     formattedResponse.success = true;
-                    for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
+                    for (let i=0;i < res.topics.length;i++) {
+                        if (res.topics[i].Name.toLowerCase() == query.toLowerCase()){
+                            found_query = true;
+                        }
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
                     }
+                }
+
+                if (query.length > 0 && !found_query){
+                    formattedResponse.success = true;
+                    formattedResponse.results.unshift({"description": query, "data-value": query});
                 }
 
                 return formattedResponse;
