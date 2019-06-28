@@ -857,10 +857,6 @@ input {
     color: #9ebcc5;
 }
 
-.CodeMirror div.CodeMirror-cursor {
-    border-left: 1px solid #9e9e9e;
-}
-
 .ui .warning.header {
     background-color: #5d3a22 !important;
     border-color: #794f31;
@@ -1134,16 +1130,6 @@ a.ui.labels .label:hover {
     }
 }
 
-.CodeMirror {
-    color: #9daccc;
-    background-color: #2b2b2b;
-    border-top: 0;
-}
-
-.CodeMirror-gutters {
-    background-color: #2b2b2b;
-}
-
 .repository .diff-detail-box {
     background-color: #383c4a;
 
@@ -1183,4 +1169,115 @@ a.ui.labels .label:hover {
 
 .heatmap-color-0 {
     background-color: #2d303b;
+}
+
+/* code mirror dark theme */
+
+.CodeMirror {
+    color: #9daccc;
+    background-color: #2b2b2b;
+    border-top: 0;
+
+    div.CodeMirror-cursor {
+        border-left: 1px solid #9e9e9e;
+    }
+
+    .CodeMirror-gutters {
+        background-color: #2b2b2b;
+    }
+
+    ::selection,
+    ::-moz-selection,
+    .CodeMirror-selected {
+        background: #42402f !important;
+    }
+
+    &.cm-s-default,
+    &.cm-s-paper {
+        .cm-property {
+            color: #a0cc75;
+        }
+
+        .cm-header {
+            color: #9daccc;
+        }
+
+        .cm-quote {
+            color: #009900;
+        }
+
+        .cm-keyword {
+            color: #cc8a61;
+        }
+
+        .cm-atom {
+            color: #ef5e77;
+        }
+
+        .cm-number {
+            color: #ff5656;
+        }
+
+        .cm-def {
+            color: #e4e4e4;
+        }
+
+        .cm-variable-2 {
+            color: #00bdbf;
+        }
+
+        .cm-variable-3 {
+            color: #008855;
+        }
+
+        .cm-comment {
+            color: #8e9ab3;
+        }
+
+        .cm-string {
+            color: #a77272;
+        }
+
+        .cm-string-2 {
+            color: #ff5500;
+        }
+
+        .cm-meta,
+        .cm-qualifier {
+            color: #ffb176;
+        }
+
+        .cm-builtin {
+            color: #b7c951;
+        }
+
+        .cm-bracket {
+            color: #999977;
+        }
+
+        .cm-tag {
+            color: #f1d273;
+        }
+
+        .cm-attribute {
+            color: #bfcc70;
+        }
+
+        .cm-hr {
+            color: #999999;
+        }
+
+        .cm-url {
+            color: #c5cfd0;
+        }
+
+        .cm-link {
+            color: #d8c792;
+        }
+
+        .cm-error {
+            /* color: #ff6e00; */
+            color: #dbdbeb;
+        }
+    }
 }
