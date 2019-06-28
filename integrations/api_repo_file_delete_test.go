@@ -89,7 +89,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		DecodeJSON(t, resp, &fileResponse)
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
-		assert.EqualValues(t, deleteFileOptions.Message + "\n", fileResponse.Commit.Message)
+		assert.EqualValues(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test deleting file without a message
 		fileID++

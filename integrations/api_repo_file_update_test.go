@@ -41,7 +41,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 			},
 			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
 		},
-		Content:           contentEncoded,
+		Content: contentEncoded,
 	}
 }
 
@@ -155,7 +155,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, updateFileOptions.Message + "\n", fileResponse.Commit.Message)
+		assert.EqualValues(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()

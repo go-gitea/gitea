@@ -150,7 +150,7 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, createFileOptions.Message + "\n", fileResponse.Commit.Message)
+		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test creating a file without a message
 		createFileOptions = getCreateFileOptions()
