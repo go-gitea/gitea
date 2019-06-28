@@ -24,7 +24,8 @@
                             border-bottom: 1px solid #eaeaea;
                         }
 
-                        .octicon, .fa {
+                        .octicon,
+                        .fa {
                             margin-left: 1px;
                             margin-right: 5px;
                         }
@@ -82,6 +83,22 @@
         .octicon {
             float: left;
             font-size: 2em;
+
+            &.green {
+                color: #21ba45;
+            }
+
+            &.red {
+                color: #d01919;
+            }
+
+            &.purple {
+                color: #a333c8;
+            }
+
+            &.blue {
+                color: #2185d0;
+            }
         }
 
         .content {
@@ -100,24 +117,6 @@
 
             tr {
                 cursor: pointer;
-            }
-        }
-
-        .octicon {
-            &.green {
-                color: #21ba45;
-            }
-
-            &.red {
-                color: #d01919;
-            }
-
-            &.purple {
-                color: #a333c8;
-            }
-
-            &.blue {
-                color: #2185d0;
             }
         }
     }
