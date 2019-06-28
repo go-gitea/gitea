@@ -178,6 +178,7 @@ input{background:#2e323e}
 .ui.checkbox input:checked~.box:before,.ui.checkbox input:checked~label:before{background:#304251;opacity:1;color:#7f98ad;border-color:#304251}
 .ui.checkbox .box:hover::before,.ui.checkbox label:hover::before{background:#304251}
 .ui.checkbox .box:before,.ui.checkbox label:before{background:#304251;border:1px solid #304251}
+.ui.checkbox label:before{border-color:#476075}
 .ui.checkbox .box:active::before,.ui.checkbox label:active::before{background:#304251;border-color:rgba(34,36,38,.35)}
 .ui.checkbox input:focus~.box:before,.ui.checkbox input:focus~label:before{border-color:#304251;background:#304251}
 .ui.checkbox input:checked:focus~.box:before,.ui.checkbox input:checked:focus~label:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~.box:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~label:before{border-color:#304251;background:#304251}
