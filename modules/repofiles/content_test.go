@@ -42,7 +42,7 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 		DownloadURL: &downloadURL,
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
-			GitURL:  &htmlURL,
+			GitURL:  &gitURL,
 			HTMLURL: &htmlURL,
 		},
 	}
