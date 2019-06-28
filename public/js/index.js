@@ -2117,16 +2117,14 @@ $(document).ready(function () {
                 //uncheck all checkboxes
                 $('.issue-checkbox input[type="checkbox"]').each(function(_,e){ e.checked = false; });
             }
-            setTimeout(reload, 5);
+            reload();
         });
     });
 
     // trigger ckecked event, if checkboxes are checked on load
     $('.issue-checkbox input[type="checkbox"]:checked').first().each(function(_,e) {
         e.checked = false;
-        setTimeout(function(){
-            $(e).click();
-        }, 5);
+        $(e).click();
     });
 
     buttonsClickOnEnter();
