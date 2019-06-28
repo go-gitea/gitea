@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/url"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -47,17 +48,17 @@ func getUpdateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFile
 }
 
 func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileResponse {
-	treePath := "file.txt"
+	treePath := "new/file.txt"
 	encoding := "base64"
-	content := "VGhpcyBpcyBuZXcgdGV4dA=="
+	content := "VGhpcyBpcyBhIE5FVyBmaWxl"
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
 	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885"
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:        treePath,
-			Path:        "new/" + treePath,
+			Name:        filepath.Base(treePath),
+			Path:        treePath,
 			SHA:         "103ff9234cefeee5ec5361d22b49fbb04d385885",
 			Type:        "file",
 			Size:        18,
