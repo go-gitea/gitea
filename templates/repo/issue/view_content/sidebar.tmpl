@@ -336,7 +336,7 @@
 				{{end}}
 			</div>
 
-			{{ if .IsRepoAdmin }}
+			{{ if and .IsRepoAdmin (not .Repository.IsArchived) }}
 			<div class="ui divider"></div>
 			<div class="ui watching">
 				<div>
