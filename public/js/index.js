@@ -2877,15 +2877,24 @@ function initTopicbar() {
 
                 let query = escapeHtml(this.urlData.query.trim());
                 let found_query = false;
+                let current_topics = [];
+                topicDropdown.find('div.label.visible.topic,a.label.visible').each(function(_,e){ current_topics.push(e.dataset.value); });
 
                 if (res.topics) {
-                    formattedResponse.success = true;
+                    let found = false;
                     for (let i=0;i < res.topics.length;i++) {
+                        // skip currently added tags
+                        if (current_topics.indexOf(res.topics[i].Name) != -1){
+                            continue;
+                        }
+
                         if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
                             found_query = true;
                         }
                         formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
+                        found = true;
                     }
+                    formattedResponse.success = found;
                 }
 
                 if (query.length > 0 && !found_query){
