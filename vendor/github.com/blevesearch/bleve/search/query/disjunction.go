@@ -58,7 +58,8 @@ func (q *DisjunctionQuery) SetMin(m float64) {
 	q.Min = m
 }
 
-func (q *DisjunctionQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
+func (q *DisjunctionQuery) Searcher(i index.IndexReader, m mapping.IndexMapping,
+	options search.SearcherOptions) (search.Searcher, error) {
 	ss := make([]search.Searcher, 0, len(q.Disjuncts))
 	for _, disjunct := range q.Disjuncts {
 		sr, err := disjunct.Searcher(i, m, options)
@@ -76,9 +77,17 @@ func (q *DisjunctionQuery) Searcher(i index.IndexReader, m mapping.IndexMapping,
 		}
 		ss = append(ss, sr)
 	}
+
 	if len(ss) < 1 {
 		return searcher.NewMatchNoneSearcher(i)
+	} else if len(ss) == 1 && int(q.Min) == ss[0].Min() {
+		// apply optimization only if both conditions below are satisfied:
+		// - disjunction searcher has only 1 child searcher
+		// - parent searcher's min setting is equal to child searcher's min
+
+		return ss[0], nil
 	}
+
 	return searcher.NewDisjunctionSearcher(i, ss, q.Min, options)
 }
 

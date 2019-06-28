@@ -30,7 +30,7 @@ File(s): /vendor/plugins/dropzone/dropzone.js
 Version: 4.2.0
 
 File(s): /vendor/plugins/highlight/highlight.pack.js
-Version: 9.6.0
+Version: 2b46620c9d62e9becf5f25969b5ccc41fa1da470
 
 File(s): /vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.js
 Version: 2.4.5
@@ -58,3 +58,12 @@ Version: 4.3.0
 
 File(s): /vendor/assets/swagger-ui/
 Version: 3.0.4
+
+File(s): /vendor/plugins/d3/
+Version: 4.13.0
+
+File(s): /vendor/plugins/calendar-heatmap/
+Version: 337b431
+
+File(s): /vendor/plugins/moment/
+Version: 2.22.2

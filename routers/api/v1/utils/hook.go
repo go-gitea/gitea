@@ -11,9 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/utils"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 )
@@ -24,7 +24,7 @@ func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*models.Webhook, 
 	w, err := models.GetWebhookByOrgID(orgID, hookID)
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetWebhookByOrgID", err)
 		}
@@ -39,7 +39,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 	w, err := models.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetWebhookByID", err)
 		}
@@ -98,6 +98,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		URL:         form.Config["url"],
 		ContentType: models.ToHookContentType(form.Config["content_type"]),
 		Secret:      form.Config["secret"],
+		HTTPMethod:  "POST",
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{

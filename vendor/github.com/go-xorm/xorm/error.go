@@ -26,6 +26,8 @@ var (
 	ErrNotImplemented = errors.New("Not implemented")
 	// ErrConditionType condition type unsupported
 	ErrConditionType = errors.New("Unsupported condition type")
+	// ErrUnSupportedSQLType parameter of SQL is not supported
+	ErrUnSupportedSQLType = errors.New("unsupported sql type")
 )
 
 // ErrFieldIsNotExist columns does not exist

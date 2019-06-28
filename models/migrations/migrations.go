@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,7 +19,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
@@ -200,6 +201,34 @@ var migrations = []Migration{
 	NewMigration("add review", addReview),
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
+	// v74 -> v75
+	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	// v75 -> v76
+	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+	// v76 -> v77
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
+	// v77 -> v78
+	NewMigration("add theme to users", addUserDefaultTheme),
+	// v78 -> v79
+	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
+	// v79 -> v80
+	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	// v80 -> v81
+	NewMigration("add is locked to issues", addIsLockedToIssues),
+	// v81 -> v82
+	NewMigration("update U2F counter type", changeU2FCounterType),
+	// v82 -> v83
+	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
+	// v83 -> v84
+	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
+	// v84 -> v85
+	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
+	// v85 -> v86
+	NewMigration("hash application token", hashAppToken),
+	// v86 -> v87
+	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	// v87 -> v88
+	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
 }
 
 // Migrate database to current version
@@ -225,7 +254,7 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if minDBVersion > v {
-		log.Fatal(4, `Gitea no longer supports auto-migration from your previously installed version.
+		log.Fatal(`Gitea no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}
@@ -237,7 +266,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration: %s", m.Description())
+		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
@@ -296,7 +325,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 
 		return sess.Commit()
 	default:
-		log.Fatal(4, "Unrecognized DB")
+		log.Fatal("Unrecognized DB")
 	}
 
 	return nil
@@ -370,7 +399,7 @@ func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 			return fmt.Errorf("marshal action content[%d]: %v", actID, err)
 		}
 
-		if _, err = sess.Id(actID).Update(&Action{
+		if _, err = sess.ID(actID).Update(&Action{
 			Content: string(p),
 		}); err != nil {
 			return fmt.Errorf("update action[%d]: %v", actID, err)
@@ -474,7 +503,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 
 	// Update database first because this is where error happens the most often.
 	for _, attach := range attachments {
-		if _, err = sess.Id(attach.ID).Update(attach); err != nil {
+		if _, err = sess.ID(attach.ID).Update(attach); err != nil {
 			return err
 		}
 
@@ -552,7 +581,7 @@ func renamePullRequestFields(x *xorm.Engine) (err error) {
 		if pull.Index == 0 {
 			continue
 		}
-		if _, err = sess.Id(pull.ID).Update(pull); err != nil {
+		if _, err = sess.ID(pull.ID).Update(pull); err != nil {
 			return err
 		}
 	}
@@ -632,7 +661,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if _, err = sess.Id(org.ID).Update(org); err != nil {
+		if _, err = sess.ID(org.ID).Update(org); err != nil {
 			return err
 		}
 	}

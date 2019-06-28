@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,12 +12,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -38,6 +38,15 @@ func Home(ctx *context.Context) {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 			ctx.HTML(200, user.TplActivate)
+		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(200, "user/auth/prohibit_login")
+		} else if ctx.User.MustChangePassword {
+			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
+			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
+			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.RequestURI, 0, setting.AppSubURL)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
 		}
@@ -140,9 +149,12 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
 	ctx.Data["Repos"] = repos
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, opts.TplName)
 }
@@ -211,10 +223,13 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	}
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Users"] = users
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplName)
 }
@@ -230,6 +245,7 @@ func ExploreUsers(ctx *context.Context) {
 		Type:     models.UserTypeIndividual,
 		PageSize: setting.UI.ExplorePagingNum,
 		IsActive: util.OptionalBoolTrue,
+		Private:  true,
 	}, tplExploreUsers)
 }
 
@@ -240,9 +256,16 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
+	var ownerID int64
+	if ctx.User != nil && !ctx.User.IsAdmin {
+		ownerID = ctx.User.ID
+	}
+
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.ExplorePagingNum,
+		Private:  ctx.User != nil,
+		OwnerID:  ownerID,
 	}, tplExploreOrganizations)
 }
 
@@ -345,11 +368,14 @@ func ExploreCode(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = keyword
-	pager := paginater.New(total, setting.UI.RepoSearchPagingNum, page, 5)
-	ctx.Data["Page"] = pager
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
+
+	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplExploreCode)
 }
 

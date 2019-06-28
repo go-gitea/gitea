@@ -19,6 +19,7 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 		"README",
 		"readME.mdown",
 		"README.md",
+		"readme.i18n.md",
 	}
 	falseTestCases := []string{
 		"test.md",
@@ -36,5 +37,26 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 	}
 	for _, testCase := range falseTestCases {
 		assert.False(t, IsReadmeFile(testCase))
+	}
+
+	trueTestCasesStrict := [][]string{
+		{"readme", ""},
+		{"readme.md", ".md"},
+		{"readme.txt", ".txt"},
+	}
+	falseTestCasesStrict := [][]string{
+		{"readme", ".md"},
+		{"readme.md", ""},
+		{"readme.md", ".txt"},
+		{"readme.md", "md"},
+		{"readmee.md", ".md"},
+		{"readme.i18n.md", ".md"},
+	}
+
+	for _, testCase := range trueTestCasesStrict {
+		assert.True(t, IsReadmeFile(testCase[0], testCase[1]))
+	}
+	for _, testCase := range falseTestCasesStrict {
+		assert.False(t, IsReadmeFile(testCase[0], testCase[1]))
 	}
 }

@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,12 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/util"
@@ -30,8 +31,17 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeWiki) &&
-		!ctx.Repo.Repository.UnitEnabled(models.UnitTypeExternalWiki) {
+	if !ctx.Repo.CanRead(models.UnitTypeWiki) &&
+		!ctx.Repo.CanRead(models.UnitTypeExternalWiki) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User %-v cannot read %-v or %-v of repo %-v\n"+
+				"User in repo has Permissions: %-+v",
+				ctx.User,
+				models.UnitTypeWiki,
+				models.UnitTypeExternalWiki,
+				ctx.Repo.Repository,
+				ctx.Repo.Permission)
+		}
 		ctx.NotFound("MustEnableWiki", nil)
 		return
 	}
@@ -57,7 +67,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 		return nil, err
 	}
 	for _, entry := range entries {
-		if entry.Type == git.ObjectBlob && entry.Name() == target {
+		if entry.IsRegular() && entry.Name() == target {
 			return entry, nil
 		}
 	}
@@ -73,7 +83,6 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
 		return wikiRepo, nil, err
 	}
 	return wikiRepo, commit, nil
@@ -82,11 +91,12 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
 // given tree entry. Writes to ctx if an error occurs.
 func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
-	reader, err := entry.Blob().Data()
+	reader, err := entry.Blob().DataAsync()
 	if err != nil {
 		ctx.ServerError("Blob.Data", err)
 		return nil
 	}
+	defer reader.Close()
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
@@ -111,6 +121,9 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
+		if !git.IsErrNotExist(err) {
+			ctx.ServerError("GetBranchCommit", err)
+		}
 		return nil, nil
 	}
 
@@ -123,7 +136,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		}
 		pages := make([]PageMeta, 0, len(entries))
 		for _, entry := range entries {
-			if entry.Type != git.ObjectBlob {
+			if !entry.IsRegular() {
 				continue
 			}
 			wikiName, err := models.WikiFilenameToName(entry.Name())
@@ -200,6 +213,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -235,13 +249,14 @@ func Wiki(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["PageIsWiki"] = true
-
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
+
+	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -255,7 +270,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if entry.Type != git.ObjectBlob {
+		if !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
@@ -290,26 +305,41 @@ func WikiRaw(ctx *context.Context) {
 			return
 		}
 	}
+
 	providedPath := ctx.Params("*")
-	if strings.HasSuffix(providedPath, ".md") {
-		providedPath = providedPath[:len(providedPath)-3]
-	}
-	wikiPath := models.WikiNameToFilename(providedPath)
+
 	var entry *git.TreeEntry
 	if commit != nil {
-		entry, err = findEntryForFile(commit, wikiPath)
+		// Try to find a file with that name
+		entry, err = findEntryForFile(commit, providedPath)
+		if err != nil {
+			ctx.ServerError("findFile", err)
+			return
+		}
+
+		if entry == nil {
+			// Try to find a wiki page with that name
+			if strings.HasSuffix(providedPath, ".md") {
+				providedPath = providedPath[:len(providedPath)-3]
+			}
+
+			wikiPath := models.WikiNameToFilename(providedPath)
+			entry, err = findEntryForFile(commit, wikiPath)
+			if err != nil {
+				ctx.ServerError("findFile", err)
+				return
+			}
+		}
 	}
-	if err != nil {
-		ctx.ServerError("findFile", err)
-		return
-	} else if entry == nil {
-		ctx.NotFound("findEntryForFile", nil)
+
+	if entry != nil {
+		if err = ServeBlob(ctx, entry.Blob()); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
 		return
 	}
 
-	if err = ServeBlob(ctx, entry.Blob()); err != nil {
-		ctx.ServerError("ServeBlob", err)
-	}
+	ctx.NotFound("findEntryForFile", nil)
 }
 
 // NewWiki render wiki create page
@@ -333,6 +363,11 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplWikiNew)
+		return
+	}
+
+	if util.IsEmptyString(form.Title) {
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
 		return
 	}
 

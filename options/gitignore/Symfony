@@ -15,6 +15,10 @@
 !var/logs/.gitkeep
 !var/sessions/.gitkeep
 
+# Logs (Symfony4)
+/var/log/*
+!var/log/.gitkeep
+
 # Parameters
 /app/config/parameters.yml
 /app/config/parameters.ini
@@ -25,6 +29,7 @@
 /bin/*
 !bin/console
 !bin/symfony_requirements
+/vendor/
 
 # Assets and user uploads
 /web/bundles/
@@ -37,5 +42,11 @@
 # Build data
 /build/
 
+# Composer PHAR
+/composer.phar
+
 # Backup entities generated with doctrine:generate:entities command
 **/Entity/*~
+
+# Embedded web-server pid file
+/.web-server-pid

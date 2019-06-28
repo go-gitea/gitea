@@ -15,9 +15,19 @@
 package searcher
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeMatchNoneSearcher int
+
+func init() {
+	var mns MatchNoneSearcher
+	reflectStaticSizeMatchNoneSearcher = int(reflect.TypeOf(mns).Size())
+}
 
 type MatchNoneSearcher struct {
 	indexReader index.IndexReader
@@ -27,6 +37,10 @@ func NewMatchNoneSearcher(indexReader index.IndexReader) (*MatchNoneSearcher, er
 	return &MatchNoneSearcher{
 		indexReader: indexReader,
 	}, nil
+}
+
+func (s *MatchNoneSearcher) Size() int {
+	return reflectStaticSizeMatchNoneSearcher + size.SizeOfPtr
 }
 
 func (s *MatchNoneSearcher) Count() uint64 {

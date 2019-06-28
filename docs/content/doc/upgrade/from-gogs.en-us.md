@@ -31,6 +31,7 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 * Copy `gogs/data/` to `gitea/data/`. It contains issue attachments and avatars.
 * Verify by starting Gitea with `gitea web`.
 * Enter Gitea admin panel on the UI, run `Rewrite '.ssh/authorized_keys' file`.
+* Launch every major version of the binary ( `1.1.4` → `1.2.3` → `1.3.4` → `1.4.2` →  etc ) to migrate database.
 * If custom or config path was changed, run `Rewrite all update hook of repositories`.
 
 ## Change gogs specific information
@@ -69,7 +70,7 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 
 ## Upgrading to most recent `gitea` version
 
-After successful migration from `gogs` to `gitea 1.0.x` it is possible to upgrade to the recent `gitea` version.
+After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgrade to the recent `gitea` version.
 Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
 and replace the binary.
 

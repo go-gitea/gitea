@@ -5,12 +5,12 @@
 package repo
 
 import (
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	api "code.gitea.io/sdk/gitea"
 )
 
 // ListHooks list all hooks of a repository
@@ -69,6 +69,7 @@ func GetHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -104,6 +105,7 @@ func TestHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to test
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -193,6 +195,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//   in: path
 	//   description: index of the hook
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -227,6 +230,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the hook to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -235,7 +239,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteWebhookByRepoID", err)
 		}

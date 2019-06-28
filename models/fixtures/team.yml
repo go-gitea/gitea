@@ -51,3 +51,30 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 1
+
+-
+  id: 7
+  org_id: 3
+  lower_name: test_team
+  name: test_team
+  authorize: 2 # write
+  num_repos: 1
+  num_members: 1
+
+-
+  id: 8
+  org_id: 17
+  lower_name: test_team
+  name: test_team
+  authorize: 2 # write
+  num_repos: 1
+  num_members: 1
+
+-
+  id: 9
+  org_id: 17
+  lower_name: review_team
+  name: review_team
+  authorize: 1 # read
+  num_repos: 1
+  num_members: 1

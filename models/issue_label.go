@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-xorm/xorm"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -69,20 +69,42 @@ type Label struct {
 	NumClosedIssues int
 	NumOpenIssues   int  `xorm:"-"`
 	IsChecked       bool `xorm:"-"`
+	QueryString     string
+	IsSelected      bool
 }
 
 // APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: strings.TrimLeft(label.Color, "#"),
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
 	}
 }
 
 // CalOpenIssues calculates the open issues of label.
 func (label *Label) CalOpenIssues() {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
+}
+
+// LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
+func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) {
+	var labelQuerySlice []string
+	labelSelected := false
+	labelID := strconv.FormatInt(label.ID, 10)
+	for _, s := range currentSelectedLabels {
+		if s == label.ID {
+			labelSelected = true
+		} else if s > 0 {
+			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+		}
+	}
+	if !labelSelected {
+		labelQuerySlice = append(labelQuerySlice, labelID)
+	}
+	label.IsSelected = labelSelected
+	label.QueryString = strings.Join(labelQuerySlice, ",")
 }
 
 // ForegroundColor calculates the text color for labels based
@@ -134,7 +156,7 @@ func NewLabels(labels ...*Label) error {
 // If pass repoID as 0, then ORM will ignore limitation of repository
 // and can return arbitrary label with any valid ID.
 func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, error) {
-	if len(labelName) <= 0 {
+	if len(labelName) == 0 {
 		return nil, ErrLabelNotExist{0, repoID}
 	}
 
@@ -182,13 +204,26 @@ func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
 	return getLabelInRepoByName(x, repoID, labelName)
 }
 
+// GetLabelIDsInRepoByNames returns a list of labelIDs by names in a given
+// repository.
+// it silently ignores label names that do not belong to the repository.
+func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, x.Table("label").
+		Where("repo_id = ?", repoID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(x, repoID, labelID)
 }
 
 // GetLabelsInRepoByIDs returns a list of labels by IDs in given repository,
-// it silently ignores label IDs that are not belong to the repository.
+// it silently ignores label IDs that do not belong to the repository.
 func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, x.
@@ -365,14 +400,6 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
-	issueLabels := make([]*IssueLabel, 0, 10)
-	return issueLabels, e.
-		Where("issue_id=?", issueID).
-		Asc("label_id").
-		Find(&issueLabels)
 }
 
 func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {

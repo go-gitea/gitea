@@ -54,7 +54,7 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
 
 	// Check if the user exists
-	assignee, err := GetUserByID(assigneeID)
+	assignee, err := getUserByID(e, assigneeID)
 	if err != nil {
 		return false, err
 	}

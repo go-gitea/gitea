@@ -44,7 +44,7 @@ func addScratchHash(x *xorm.Engine) error {
 	const batchSize = 100
 	for start := 0; ; start += batchSize {
 		tfas := make([]*TwoFactor, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&tfas); err != nil {
+		if err := sess.Limit(batchSize, start).Find(&tfas); err != nil {
 			return err
 		}
 		if len(tfas) == 0 {

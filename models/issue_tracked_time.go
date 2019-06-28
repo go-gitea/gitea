@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -88,6 +88,9 @@ func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 		Time:    time,
 	}
 	if _, err := x.Insert(tt); err != nil {
+		return nil, err
+	}
+	if err := issue.loadRepo(x); err != nil {
 		return nil, err
 	}
 	if _, err := CreateComment(&CreateCommentOptions{

@@ -7,7 +7,6 @@ package xorm
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -15,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 func (session *Session) str2Time(col *core.Column, data string) (outTime time.Time, outErr error) {
@@ -103,7 +102,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 	case reflect.Complex64, reflect.Complex128:
 		x := reflect.New(fieldType)
 		if len(data) > 0 {
-			err := json.Unmarshal(data, x.Interface())
+			err := DefaultJSONHandler.Unmarshal(data, x.Interface())
 			if err != nil {
 				session.engine.logger.Error(err)
 				return err
@@ -117,7 +116,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		if col.SQLType.IsText() {
 			x := reflect.New(fieldType)
 			if len(data) > 0 {
-				err := json.Unmarshal(data, x.Interface())
+				err := DefaultJSONHandler.Unmarshal(data, x.Interface())
 				if err != nil {
 					session.engine.logger.Error(err)
 					return err
@@ -130,7 +129,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			} else {
 				x := reflect.New(fieldType)
 				if len(data) > 0 {
-					err := json.Unmarshal(data, x.Interface())
+					err := DefaultJSONHandler.Unmarshal(data, x.Interface())
 					if err != nil {
 						session.engine.logger.Error(err)
 						return err
@@ -259,7 +258,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		case core.Complex64Type.Kind():
 			var x complex64
 			if len(data) > 0 {
-				err := json.Unmarshal(data, &x)
+				err := DefaultJSONHandler.Unmarshal(data, &x)
 				if err != nil {
 					session.engine.logger.Error(err)
 					return err
@@ -270,7 +269,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		case core.Complex128Type.Kind():
 			var x complex128
 			if len(data) > 0 {
-				err := json.Unmarshal(data, &x)
+				err := DefaultJSONHandler.Unmarshal(data, &x)
 				if err != nil {
 					session.engine.logger.Error(err)
 					return err
@@ -604,14 +603,14 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 
 		if col.SQLType.IsText() {
-			bytes, err := json.Marshal(fieldValue.Interface())
+			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
 				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
 		} else if col.SQLType.IsBlob() {
-			bytes, err := json.Marshal(fieldValue.Interface())
+			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
 				session.engine.logger.Error(err)
 				return 0, err
@@ -620,7 +619,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 	case reflect.Complex64, reflect.Complex128:
-		bytes, err := json.Marshal(fieldValue.Interface())
+		bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 		if err != nil {
 			session.engine.logger.Error(err)
 			return 0, err
@@ -632,7 +631,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 
 		if col.SQLType.IsText() {
-			bytes, err := json.Marshal(fieldValue.Interface())
+			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
 				session.engine.logger.Error(err)
 				return 0, err
@@ -645,7 +644,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				(fieldValue.Type().Elem().Kind() == reflect.Uint8) {
 				bytes = fieldValue.Bytes()
 			} else {
-				bytes, err = json.Marshal(fieldValue.Interface())
+				bytes, err = DefaultJSONHandler.Marshal(fieldValue.Interface())
 				if err != nil {
 					session.engine.logger.Error(err)
 					return 0, err

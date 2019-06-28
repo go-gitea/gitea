@@ -7,7 +7,7 @@ package org
 import (
 	"fmt"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -117,12 +117,8 @@ func IsMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: user is not a member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -139,11 +135,11 @@ func IsMember(ctx *context.APIContext) {
 			} else if userToCheckIsMember {
 				ctx.Status(204)
 			} else {
-				ctx.Status(404)
+				ctx.NotFound()
 			}
 			return
 		} else if ctx.User.ID == userToCheck.ID {
-			ctx.Status(404)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -172,12 +168,8 @@ func IsPublicMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a public member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	//   "404":
 	//     description: user is not a public member
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -185,7 +177,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 
@@ -210,8 +202,6 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -286,8 +276,6 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
-	//     schema:
-	//       "$ref": "#/responses/empty"
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

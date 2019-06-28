@@ -45,6 +45,18 @@ func JSONRenderer() macaron.Handler {
 	})
 }
 
+// JSRenderer implements the macaron handler for serving JS templates.
+func JSRenderer() macaron.Handler {
+	return macaron.Renderer(macaron.RenderOptions{
+		Funcs:     NewFuncMap(),
+		Directory: path.Join(setting.StaticRootPath, "templates"),
+		AppendDirectories: []string{
+			path.Join(setting.CustomPath, "templates"),
+		},
+		HTMLContentType: "application/javascript",
+	})
+}
+
 // Mailer provides the templates required for sending notification mails.
 func Mailer() *template.Template {
 	for _, funcs := range NewFuncMap() {
@@ -71,12 +83,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}
@@ -101,12 +116,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}

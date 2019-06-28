@@ -1,0 +1,76 @@
+var STATIC_CACHE = 'static-cache-v1';
+var urlsToCache = [
+  // js
+  '{{AppSubUrl}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js',
+  '{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js',
+  '{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.js',
+  '{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}',
+  '{{AppSubUrl}}/js/draw.js',
+  '{{AppSubUrl}}/vendor/plugins/clipboard/clipboard.min.js',
+  '{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.js',
+  '{{AppSubUrl}}/vendor/plugins/vue/vue.min.js',
+  '{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js',
+  '{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js',
+  '{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js',
+  '{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js',
+  '{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js',
+  '{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.js',
+  '{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js',
+  '{{AppSubUrl}}/vendor/plugins/codemirror/addon/mode/loadmode.js',
+  '{{AppSubUrl}}/vendor/plugins/codemirror/mode/meta.js',
+  '{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.js',
+
+  // css
+  '{{AppSubUrl}}/vendor/assets/font-awesome/css/font-awesome.min.css',
+  '{{AppSubUrl}}/vendor/assets/octicons/octicons.min.css',
+  '{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.css',
+  '{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.css',
+  '{{AppSubUrl}}/vendor/plugins/tribute/tribute.css',
+  '{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.css',
+  '{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}',
+  '{{AppSubUrl}}/vendor/plugins/highlight/github.css',
+  '{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css',
+  '{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css',
+  '{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css',
+{{if .IsSigned }}
+	{{ if ne .SignedUser.Theme "gitea" }}
+		'{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css',
+	{{end}}
+{{else if ne DefaultTheme "gitea"}}
+	'{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css',
+{{end}}
+
+  // img
+  '{{AppSubUrl}}/img/gitea-sm.png',
+  '{{AppSubUrl}}/img/gitea-lg.png',
+
+  // fonts
+  '{{AppSubUrl}}/vendor/plugins/semantic/themes/default/assets/fonts/icons.woff2',
+  '{{AppSubUrl}}/vendor/assets/octicons/octicons.woff2?ef21c39f0ca9b1b5116e5eb7ac5eabe6',
+  '{{AppSubUrl}}/vendor/assets/lato-fonts/lato-v14-latin-regular.woff2',
+  '{{AppSubUrl}}/vendor/assets/lato-fonts/lato-v14-latin-700.woff2'
+];
+
+self.addEventListener('install', function (event) {
+  // Perform install steps
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then(function (cache) {
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+self.addEventListener('fetch', function (event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(function (response) {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      }
+      )
+  );
+});

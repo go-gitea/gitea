@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListLabels list all the labels of a repository
@@ -69,6 +70,7 @@ func GetLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the label to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -85,7 +87,7 @@ func GetLabel(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetLabelByRepoID", err)
 		}
@@ -122,15 +124,11 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	label := &models.Label{
-		Name:   form.Name,
-		Color:  form.Color,
-		RepoID: ctx.Repo.Repository.ID,
+		Name:        form.Name,
+		Color:       form.Color,
+		RepoID:      ctx.Repo.Repository.ID,
+		Description: form.Description,
 	}
 	if err := models.NewLabel(label); err != nil {
 		ctx.Error(500, "NewLabel", err)
@@ -163,6 +161,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	//   in: path
 	//   description: id of the label to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -171,15 +170,10 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetLabelByRepoID", err)
 		}
@@ -191,6 +185,9 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	}
 	if form.Color != nil {
 		label.Color = *form.Color
+	}
+	if form.Description != nil {
+		label.Description = *form.Description
 	}
 	if err := models.UpdateLabel(label); err != nil {
 		ctx.ServerError("UpdateLabel", err)
@@ -219,15 +216,11 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the label to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	if !ctx.Repo.IsWriter() {
-		ctx.Status(403)
-		return
-	}
-
 	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(500, "DeleteLabel", err)
 		return

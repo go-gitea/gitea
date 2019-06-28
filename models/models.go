@@ -14,14 +14,14 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -36,7 +36,7 @@ type Engine interface {
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
@@ -48,19 +48,21 @@ type Engine interface {
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
+	Asc(colNames ...string) *xorm.Session
 }
 
 var (
-	x      *xorm.Engine
-	tables []interface{}
+	x                  *xorm.Engine
+	supportedDatabases = []string{"mysql", "postgres", "mssql"}
+	tables             []interface{}
 
 	// HasEngine specifies if we have a xorm.Engine
 	HasEngine bool
 
 	// DbCfg holds the database settings
 	DbCfg struct {
-		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout                                       int
+		Type, Host, Name, User, Passwd, Path, SSLMode, Charset string
+		Timeout                                                int
 	}
 
 	// EnableSQLite3 use SQLite3
@@ -107,6 +109,7 @@ func init() {
 		new(LFSMetaObject),
 		new(TwoFactor),
 		new(GPGKey),
+		new(GPGKeyImport),
 		new(RepoUnit),
 		new(RepoRedirect),
 		new(ExternalLoginUser),
@@ -125,6 +128,9 @@ func init() {
 		new(U2FRegistration),
 		new(TeamUnit),
 		new(Review),
+		new(OAuth2Application),
+		new(OAuth2AuthorizationCode),
+		new(OAuth2Grant),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -156,21 +162,9 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+	DbCfg.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
+	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
-	if !filepath.IsAbs(setting.Indexer.IssuePath) {
-		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
-	}
-	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
-	if !filepath.IsAbs(setting.Indexer.RepoPath) {
-		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
-	}
-	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
-	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
@@ -188,19 +182,20 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DBSSLMode string) (connStr string) {
-	host, port := parsePostgreSQLHostPort(DBHost)
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+	host, port := parsePostgreSQLHostPort(dbHost)
 	if host[0] == '/' { // looks like a unix socket
 		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), port, DBName, DBParam, DBSSLMode, host)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
 	} else {
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), host, port, DBName, DBParam, DBSSLMode)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
 	return
 }
 
-func parseMSSQLHostPort(info string) (string, string) {
+// ParseMSSQLHostPort splits the host into host and port
+func ParseMSSQLHostPort(info string) (string, string) {
 	host, port := "127.0.0.1", "1433"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -230,12 +225,12 @@ func getEngine() (*xorm.Engine, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=utf8&parseTime=true&tls=%s",
-			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
+			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, DbCfg.Charset, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
-		host, port := parseMSSQLHostPort(DbCfg.Host)
+		host, port := ParseMSSQLHostPort(DbCfg.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, DbCfg.Name, DbCfg.User, DbCfg.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {
@@ -268,7 +263,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 	}
 
 	x.SetMapper(core.GonicMapper{})
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
@@ -283,8 +278,13 @@ func SetEngine() (err error) {
 	x.SetMapper(core.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(setting.LogSQL))
 	x.ShowSQL(setting.LogSQL)
+	if DbCfg.Type == "mysql" {
+		x.SetMaxIdleConns(0)
+		x.SetConnMaxLifetime(3 * time.Second)
+	}
+
 	return nil
 }
 
@@ -359,7 +359,9 @@ func Ping() error {
 func DumpDatabase(filePath string, dbType string) error {
 	var tbs []*core.Table
 	for _, t := range tables {
-		tbs = append(tbs, x.TableInfo(t).Table)
+		t := x.TableInfo(t)
+		t.Table.Name = t.Name
+		tbs = append(tbs, t.Table)
 	}
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))

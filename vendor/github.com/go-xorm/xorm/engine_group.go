@@ -5,7 +5,10 @@
 package xorm
 
 import (
-	"github.com/go-xorm/core"
+	"context"
+	"time"
+
+	"xorm.io/core"
 )
 
 // EngineGroup defines an engine group
@@ -72,6 +75,20 @@ func (eg *EngineGroup) Close() error {
 	return nil
 }
 
+// Context returned a group session
+func (eg *EngineGroup) Context(ctx context.Context) *Session {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.Context(ctx)
+}
+
+// NewSession returned a group session
+func (eg *EngineGroup) NewSession() *Session {
+	sess := eg.Engine.NewSession()
+	sess.sessionType = groupSession
+	return sess
+}
+
 // Master returns the master engine
 func (eg *EngineGroup) Master() *Engine {
 	return eg.Engine
@@ -96,6 +113,14 @@ func (eg *EngineGroup) SetColumnMapper(mapper core.IMapper) {
 	eg.Engine.ColumnMapper = mapper
 	for i := 0; i < len(eg.slaves); i++ {
 		eg.slaves[i].ColumnMapper = mapper
+	}
+}
+
+// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+func (eg *EngineGroup) SetConnMaxLifetime(d time.Duration) {
+	eg.Engine.SetConnMaxLifetime(d)
+	for i := 0; i < len(eg.slaves); i++ {
+		eg.slaves[i].SetConnMaxLifetime(d)
 	}
 }
 

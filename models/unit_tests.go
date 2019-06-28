@@ -14,13 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/core"
 )
 
 // NonexistentID an ID that will never exist
@@ -48,6 +49,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
+	setting.UseSQLite3 = true
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
@@ -115,6 +117,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, removeAllWithRetry(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
+	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }
 
 type testCond struct {

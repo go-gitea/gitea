@@ -5,6 +5,9 @@
 package models
 
 import (
+	"fmt"
+	"time"
+
 	"gopkg.in/testfixtures.v2"
 )
 
@@ -19,5 +22,18 @@ func InitFixtures(helper testfixtures.Helper, dir string) (err error) {
 
 // LoadFixtures load fixtures for a test database
 func LoadFixtures() error {
-	return fixtures.Load()
+	var err error
+	// Database transaction conflicts could occur and result in ROLLBACK
+	// As a simple workaround, we just retry 20 times.
+	for i := 0; i < 20; i++ {
+		err = fixtures.Load()
+		if err == nil {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	if err != nil {
+		fmt.Printf("LoadFixtures failed after retries: %v\n", err)
+	}
+	return err
 }

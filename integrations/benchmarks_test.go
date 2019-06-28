@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func BenchmarkRepo(b *testing.B) {
@@ -102,7 +102,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 				branchCount := len(branches)
 				b.ResetTimer() //We measure from here
 				for i := 0; i < b.N; i++ {
-					req := NewRequestf(b, "GET", "/%s/%s/commits/%s", owner.Name, repo.Name, branches[i%branchCount])
+					req := NewRequestf(b, "GET", "/%s/%s/commits/%s", owner.Name, repo.Name, branches[i%branchCount].Name)
 					session.MakeRequest(b, req, http.StatusOK)
 				}
 			})

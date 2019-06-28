@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
+	"regexp"
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
@@ -164,8 +164,7 @@ func Cell2Int64(val xorm.Cell) int64 {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
-	switch colName {
-	case "type":
+	if colName == "type" {
 		switch LoginType(Cell2Int64(val)) {
 		case LoginLDAP, LoginDLDAP:
 			source.Cfg = new(LDAPConfig)
@@ -282,10 +281,12 @@ func CreateLoginSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// remove the LoginSource in case of errors while registering OAuth2 providers
-			x.Delete(source)
+			if _, err := x.Delete(source); err != nil {
+				log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -325,10 +326,12 @@ func UpdateSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// restore original values since we cannot update the provider it self
-			x.ID(source.ID).AllCols().Update(originalLoginSource)
+			if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+				log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -384,6 +387,10 @@ func composeFullName(firstname, surname, username string) string {
 	}
 }
 
+var (
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
+)
+
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
@@ -393,7 +400,13 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		return nil, ErrUserNotExist{0, login, 0}
 	}
 
+	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+
 	if !autoRegister {
+		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+			return user, RewriteAllPublicKeys()
+		}
+
 		return user, nil
 	}
 
@@ -402,7 +415,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		sr.Username = login
 	}
 	// Validate username make sure it satisfies requirement.
-	if binding.AlphaDashDotPattern.MatchString(sr.Username) {
+	if alphaDashDotPattern.MatchString(sr.Username) {
 		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
 	}
 
@@ -421,7 +434,14 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		IsActive:    true,
 		IsAdmin:     sr.IsAdmin,
 	}
-	return user, CreateUser(user)
+
+	err := CreateUser(user)
+
+	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+		err = RewriteAllPublicKeys()
+	}
+
+	return user, err
 }
 
 //   _________   __________________________
@@ -587,16 +607,29 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return nil, ErrLoginSourceNotActived
 	}
 
+	var err error
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
-		return LoginViaLDAP(user, login, password, source, autoRegister)
+		user, err = LoginViaLDAP(user, login, password, source, autoRegister)
 	case LoginSMTP:
-		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
+		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
-		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+	default:
+		return nil, ErrUnsupportedLoginType
 	}
 
-	return nil, ErrUnsupportedLoginType
+	if err != nil {
+		return nil, err
+	}
+
+	// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+	// user could be hint to resend confirm email.
+	if user.ProhibitLogin {
+		return nil, ErrUserProhibitLogin{user.ID, user.Name}
+	}
+
+	return user, nil
 }
 
 // UserSignIn validates user name and password.
@@ -631,7 +664,13 @@ func UserSignIn(username, password string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.ValidatePassword(password) {
+			if user.IsPasswordSet() && user.ValidatePassword(password) {
+				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+				// user could be hint to resend confirm email.
+				if user.ProhibitLogin {
+					return nil, ErrUserProhibitLogin{user.ID, user.Name}
+				}
+
 				return user, nil
 			}
 

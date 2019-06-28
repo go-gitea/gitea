@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if and .IsRepositoryWriter .PageIsEditMilestone}}
+			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
 				<div class="ui right floated secondary menu">
 					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.i18n.Tr "repo.milestones.new"}}</a>
 				</div>

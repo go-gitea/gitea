@@ -9,7 +9,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
@@ -48,7 +49,7 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 
 	if session.isAutoCommit {
 		var db *core.DB
-		if session.engine.engineGroup != nil {
+		if session.sessionType == groupSession {
 			db = session.engine.engineGroup.Slave().DB()
 		} else {
 			db = session.DB()
@@ -61,21 +62,21 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 				return nil, err
 			}
 
-			rows, err := stmt.Query(args...)
+			rows, err := stmt.QueryContext(session.ctx, args...)
 			if err != nil {
 				return nil, err
 			}
 			return rows, nil
 		}
 
-		rows, err := db.Query(sqlStr, args...)
+		rows, err := db.QueryContext(session.ctx, sqlStr, args...)
 		if err != nil {
 			return nil, err
 		}
 		return rows, nil
 	}
 
-	rows, err := session.tx.Query(sqlStr, args...)
+	rows, err := session.tx.QueryContext(session.ctx, sqlStr, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 	}
 
 	if !session.isAutoCommit {
-		return session.tx.Exec(sqlStr, args...)
+		return session.tx.ExecContext(session.ctx, sqlStr, args...)
 	}
 
 	if session.prepareStmt {
@@ -183,20 +184,43 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 			return nil, err
 		}
 
-		res, err := stmt.Exec(args...)
+		res, err := stmt.ExecContext(session.ctx, args...)
 		if err != nil {
 			return nil, err
 		}
 		return res, nil
 	}
 
-	return session.DB().Exec(sqlStr, args...)
+	return session.DB().ExecContext(session.ctx, sqlStr, args...)
+}
+
+func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
+	switch sqlOrArgs[0].(type) {
+	case string:
+		return sqlOrArgs[0].(string), sqlOrArgs[1:], nil
+	case *builder.Builder:
+		return sqlOrArgs[0].(*builder.Builder).ToSQL()
+	case builder.Builder:
+		bd := sqlOrArgs[0].(builder.Builder)
+		return bd.ToSQL()
+	}
+
+	return "", nil, ErrUnSupportedType
 }
 
 // Exec raw sql
-func (session *Session) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
+func (session *Session) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 	if session.isAutoClose {
 		defer session.Close()
+	}
+
+	if len(sqlOrArgs) == 0 {
+		return nil, ErrUnSupportedType
+	}
+
+	sqlStr, args, err := convertSQLOrArgs(sqlOrArgs...)
+	if err != nil {
+		return nil, err
 	}
 
 	return session.exec(sqlStr, args...)

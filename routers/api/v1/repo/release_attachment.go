@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -38,11 +38,13 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to get
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -55,7 +57,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
@@ -84,6 +86,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
@@ -95,7 +98,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	if err := release.LoadAttributes(); err != nil {
@@ -129,6 +132,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: name
 	//   in: query
@@ -146,7 +150,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if attachments are enabled
 	if !setting.AttachmentEnabled {
-		ctx.Error(404, "AttachmentEnabled", errors.New("attachment is not enabled"))
+		ctx.NotFound("Attachment is not enabled")
 		return
 	}
 
@@ -196,16 +200,16 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := models.NewAttachment(filename, buf, file)
+	attach, err := models.NewAttachment(&models.Attachment{
+		UploaderID: ctx.User.ID,
+		Name:       filename,
+		ReleaseID:  release.ID,
+	}, buf, file)
 	if err != nil {
 		ctx.Error(500, "NewAttachment", err)
 		return
 	}
-	attach.ReleaseID = release.ID
-	if err := models.UpdateAttachment(attach); err != nil {
-		ctx.Error(500, "UpdateAttachment", err)
-		return
-	}
+
 	ctx.JSON(201, attach.APIFormat())
 }
 
@@ -233,11 +237,13 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to edit
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -256,7 +262,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
@@ -292,11 +298,13 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//   in: path
 	//   description: id of the release
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to delete
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -311,7 +319,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests

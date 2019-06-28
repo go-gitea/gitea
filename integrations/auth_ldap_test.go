@@ -43,6 +43,7 @@ var gitLDAPUsers = []ldapUser{
 		SSHKeys: []string{
 			"SHA256:qLY06smKfHoW/92yXySpnxFR10QFrLdRjf/GNPvwcW8",
 			"SHA256:QlVTuM5OssDatqidn2ffY+Lc4YA5Fs78U+0KOHI51jQ",
+			"SHA256:DXdeUKYOJCSSmClZuwrb60hUq7367j4fA+udNC3FdRI",
 		},
 		IsAdmin: true,
 	},

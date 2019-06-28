@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 // from http://www.postgresql.org/docs/current/static/sql-keywords-appendix.html
@@ -822,7 +822,7 @@ func (db *postgres) SqlType(c *core.Column) string {
 	case core.NVarchar:
 		res = core.Varchar
 	case core.Uuid:
-		res = core.Uuid
+		return core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
 	case core.Double:
@@ -834,6 +834,10 @@ func (db *postgres) SqlType(c *core.Column) string {
 		res = t
 	}
 
+	if strings.EqualFold(res, "bool") {
+		// for bool, we don't need length information
+		return res
+	}
 	hasLen1 := (c.Length > 0)
 	hasLen2 := (c.Length2 > 0)
 
@@ -1089,6 +1093,19 @@ func (db *postgres) GetTables() ([]*core.Table, error) {
 	return tables, nil
 }
 
+
+func getIndexColName(indexdef string) []string {
+	var colNames []string
+
+	cs := strings.Split(indexdef, "(")
+	for _, v := range strings.Split(strings.Split(cs[1], ")")[0], ",") {
+		colNames = append(colNames, strings.Split(strings.TrimLeft(v, " "), " ")[0])
+	}
+
+	return colNames
+}
+
+
 func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error) {
 	args := []interface{}{tableName}
 	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE tablename=$1")
@@ -1122,8 +1139,7 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 		} else {
 			indexType = core.IndexType
 		}
-		cs := strings.Split(indexdef, "(")
-		colNames = strings.Split(cs[1][0:len(cs[1])-1], ",")
+		colNames = getIndexColName(indexdef)
 		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			newIdxName := indexName[5+len(tableName):]

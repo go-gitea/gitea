@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -65,8 +64,11 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+
 	opts := models.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.IsWriter(),
+		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
 	}
 
@@ -116,9 +118,12 @@ func Releases(ctx *context.Context) {
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
 	}
 
-	pager := paginater.New(int(count), limit, page, 5)
-	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releases
+
+	pager := context.NewPagination(int(count), limit, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplReleases)
 }
 

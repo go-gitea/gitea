@@ -5,7 +5,7 @@
 package admin
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/repo"
@@ -27,6 +27,10 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//   description: username of the user. This user will own the created repository
 	//   type: string
 	//   required: true
+	// - name: repository
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/CreateRepoOption" }
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"

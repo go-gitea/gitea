@@ -5,9 +5,11 @@
 package base
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -16,33 +18,47 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
 )
 
+// UTF8BOM is the utf-8 byte-order marker
+var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
+
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
 	m := md5.New()
-	m.Write([]byte(str))
+	_, _ = m.Write([]byte(str))
 	return hex.EncodeToString(m.Sum(nil))
 }
 
 // EncodeSha1 string to sha1 hex value.
 func EncodeSha1(str string) string {
 	h := sha1.New()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// EncodeSha256 string to sha1 hex value.
+func EncodeSha256(str string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -87,6 +103,14 @@ func DetectEncoding(content []byte) (string, error) {
 	return result.Charset, err
 }
 
+// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
+func RemoveBOMIfPresent(content []byte) []byte {
+	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
+		return content[3:]
+	}
+	return content
+}
+
 // BasicAuthDecode decode basic auth string
 func BasicAuthDecode(encoded string) (string, string, error) {
 	s, err := base64.StdEncoding.DecodeString(encoded)
@@ -109,7 +133,7 @@ func GetRandomBytesAsBase64(n int) string {
 	_, err := io.ReadFull(rand.Reader, bytes)
 
 	if err != nil {
-		log.Fatal(4, "Error reading random bytes: %v", err)
+		log.Fatal("Error reading random bytes: %v", err)
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
@@ -169,7 +193,7 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
@@ -196,12 +220,12 @@ const DefaultAvatarSize = -1
 func libravatarURL(email string) (*url.URL, error) {
 	urlStr, err := setting.LibravatarService.FromEmail(email)
 	if err != nil {
-		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
 		return nil, err
 	}
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
 		return nil, err
 	}
 	return u, nil
@@ -401,16 +425,6 @@ const (
 	EByte = PByte * 1024
 )
 
-var bytesSizeTable = map[string]uint64{
-	"b":  Byte,
-	"kb": KByte,
-	"mb": MByte,
-	"gb": GByte,
-	"tb": TByte,
-	"pb": PByte,
-	"eb": EByte,
-}
-
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
@@ -441,41 +455,41 @@ func Subtract(left interface{}, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
 	var isInt = true
-	switch left.(type) {
+	switch v := left.(type) {
 	case int:
-		rleft = int64(left.(int))
+		rleft = int64(v)
 	case int8:
-		rleft = int64(left.(int8))
+		rleft = int64(v)
 	case int16:
-		rleft = int64(left.(int16))
+		rleft = int64(v)
 	case int32:
-		rleft = int64(left.(int32))
+		rleft = int64(v)
 	case int64:
-		rleft = left.(int64)
+		rleft = v
 	case float32:
-		fleft = float64(left.(float32))
+		fleft = float64(v)
 		isInt = false
 	case float64:
-		fleft = left.(float64)
+		fleft = v
 		isInt = false
 	}
 
-	switch right.(type) {
+	switch v := right.(type) {
 	case int:
-		rright = int64(right.(int))
+		rright = int64(v)
 	case int8:
-		rright = int64(right.(int8))
+		rright = int64(v)
 	case int16:
-		rright = int64(right.(int16))
+		rright = int64(v)
 	case int32:
-		rright = int64(right.(int32))
+		rright = int64(v)
 	case int64:
-		rright = right.(int64)
+		rright = v
 	case float32:
-		fright = float64(right.(float32))
+		fright = float64(v)
 		isInt = false
 	case float64:
-		fright = right.(float64)
+		fright = v
 		isInt = false
 	}
 
@@ -558,22 +572,27 @@ func IsTextFile(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	return strings.Index(http.DetectContentType(data), "text/") != -1
+	return strings.Contains(http.DetectContentType(data), "text/")
 }
 
 // IsImageFile detects if data is an image format
 func IsImageFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "image/") != -1
+	return strings.Contains(http.DetectContentType(data), "image/")
 }
 
 // IsPDFFile detects if data is a pdf format
 func IsPDFFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
+	return strings.Contains(http.DetectContentType(data), "application/pdf")
 }
 
 // IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
-	return strings.Index(http.DetectContentType(data), "video/") != -1
+	return strings.Contains(http.DetectContentType(data), "video/")
+}
+
+// IsAudioFile detects if data is an video format
+func IsAudioFile(data []byte) bool {
+	return strings.Contains(http.DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories
@@ -596,4 +615,26 @@ func EntryIcon(entry *git.TreeEntry) string {
 	}
 
 	return "file-text"
+}
+
+// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
+func SetupGiteaRoot() string {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
+		_, filename, _, _ := runtime.Caller(0)
+		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
+		wd, err := os.Getwd()
+		if err != nil {
+			rel, err := filepath.Rel(giteaRoot, wd)
+			if err != nil && strings.HasPrefix(filepath.ToSlash(rel), "../") {
+				giteaRoot = wd
+			}
+		}
+		if _, err := os.Stat(filepath.Join(giteaRoot, "gitea")); os.IsNotExist(err) {
+			giteaRoot = ""
+		} else if err := os.Setenv("GITEA_ROOT", giteaRoot); err != nil {
+			giteaRoot = ""
+		}
+	}
+	return giteaRoot
 }

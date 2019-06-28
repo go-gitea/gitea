@@ -14,7 +14,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := GetIssueByID(1)
+	issue, err := GetIssueWithAttrsByID(1)
 	assert.NoError(t, err)
 
 	// Assign multiple users
@@ -43,8 +43,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	var expectedAssignees []*User
-	expectedAssignees = append(expectedAssignees, user2)
-	expectedAssignees = append(expectedAssignees, user3)
+	expectedAssignees = append(expectedAssignees, user2, user3)
 
 	for in, assignee := range assignees {
 		assert.Equal(t, assignee.ID, expectedAssignees[in].ID)

@@ -17,10 +17,7 @@
 				<span class="text grey italic">{{.i18n.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
-		<div class="item">
-			<a href="{{.OrgLink}}/teams/{{.Team.LowerName}}"><span class="octicon octicon-person"></span> <strong>{{.Team.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
-			<a href="{{.OrgLink}}/teams/{{.Team.LowerName}}/repositories"><span class="octicon octicon-repo"></span> <strong>{{.Team.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
-		</div>
+
 		<div class="item">
 			{{if eq .Team.LowerName "owners"}}
 				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}

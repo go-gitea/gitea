@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -43,6 +43,12 @@ type GPGKey struct {
 	CanCertify        bool
 }
 
+//GPGKeyImport the original import of key
+type GPGKeyImport struct {
+	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
+	Content string `xorm:"TEXT NOT NULL"`
+}
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (key *GPGKey) BeforeInsert() {
 	key.AddedUnix = util.TimeStampNow()
@@ -52,7 +58,7 @@ func (key *GPGKey) BeforeInsert() {
 func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
 	if err != nil {
-		log.Error(3, "Find Sub GPGkeys[%d]: %v", key.KeyID, err)
+		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
 	}
 }
 
@@ -74,6 +80,18 @@ func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	return key, nil
 }
 
+// GetGPGImportByKeyID returns the import public armored key by given KeyID.
+func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
+	key := new(GPGKeyImport)
+	has, err := x.ID(keyID).Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrGPGKeyImportNotExist{keyID}
+	}
+	return key, nil
+}
+
 // checkArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
 // The function returns the actual public key on success
 func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
@@ -84,15 +102,37 @@ func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
 	return list[0], nil
 }
 
-//addGPGKey add key and subkeys to database
-func addGPGKey(e Engine, key *GPGKey) (err error) {
+//addGPGKey add key, import and subkeys to database
+func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
+	//Add GPGKeyImport
+	if _, err = e.Insert(GPGKeyImport{
+		KeyID:   key.KeyID,
+		Content: content,
+	}); err != nil {
+		return err
+	}
 	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
 		return err
 	}
 	// Save GPG subs key.
 	for _, subkey := range key.SubsKey {
-		if err := addGPGKey(e, subkey); err != nil {
+		if err := addGPGSubKey(e, subkey); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//addGPGSubKey add subkeys to database
+func addGPGSubKey(e Engine, key *GPGKey) (err error) {
+	// Save GPG primary key.
+	if _, err = e.Insert(key); err != nil {
+		return err
+	}
+	// Save GPG subs key.
+	for _, subkey := range key.SubsKey {
+		if err := addGPGSubKey(e, subkey); err != nil {
 			return err
 		}
 	}
@@ -127,14 +167,14 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 		return nil, err
 	}
 
-	if err = addGPGKey(sess, key); err != nil {
+	if err = addGPGKey(sess, key, content); err != nil {
 		return nil, err
 	}
 
 	return key, sess.Commit()
 }
 
-//base64EncPubKey encode public kay content to base 64
+//base64EncPubKey encode public key content to base 64
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
@@ -142,6 +182,34 @@ func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
+}
+
+//base64DecPubKey decode public key content from base 64
+func base64DecPubKey(content string) (*packet.PublicKey, error) {
+	b, err := readerFromBase64(content)
+	if err != nil {
+		return nil, err
+	}
+	//Read key
+	p, err := packet.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	//Check type
+	pkey, ok := p.(*packet.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("key is not a public key")
+	}
+	return pkey, nil
+}
+
+//GPGKeyToEntity retrieve the imported key and the traducted entity
+func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
+	impKey, err := GetGPGImportByKeyID(k.KeyID)
+	if err != nil {
+		return nil, err
+	}
+	return checkArmoredGPGKeyString(impKey.Content)
 }
 
 //parseSubGPGKey parse a sub Key
@@ -164,10 +232,9 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 	}, nil
 }
 
-//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
-func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
-	pubkey := e.PrimaryKey
-
+//getExpiryTime extract the expire time of primary key based on sig
+func getExpiryTime(e *openpgp.Entity) time.Time {
+	expiry := time.Time{}
 	//Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
 	var selfSig *packet.Signature
 	for _, ident := range e.Identities {
@@ -178,10 +245,16 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 			break
 		}
 	}
-	expiry := time.Time{}
 	if selfSig.KeyLifetimeSecs != nil {
-		expiry = selfSig.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
+		expiry = e.PrimaryKey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
+	return expiry
+}
+
+//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
+func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
+	pubkey := e.PrimaryKey
+	expiry := getExpiryTime(e)
 
 	//Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
@@ -243,6 +316,11 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 func deleteGPGKey(e *xorm.Session, keyID string) (int64, error) {
 	if keyID == "" {
 		return 0, fmt.Errorf("empty KeyId forbidden") //Should never happen but just to be sure
+	}
+	//Delete imported key
+	n, err := e.Where("key_id=?", keyID).Delete(new(GPGKeyImport))
+	if err != nil {
+		return n, err
 	}
 	return e.Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
 }
@@ -339,22 +417,10 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 		return fmt.Errorf("key can not sign")
 	}
 	//Decode key
-	b, err := readerFromBase64(k.Content)
+	pkey, err := base64DecPubKey(k.Content)
 	if err != nil {
 		return err
 	}
-	//Read key
-	p, err := packet.Read(b)
-	if err != nil {
-		return err
-	}
-
-	//Check type
-	pkey, ok := p.(*packet.PublicKey)
-	if !ok {
-		return fmt.Errorf("key is not a public key")
-	}
-
 	return pkey.VerifySignature(h, s)
 }
 
@@ -364,7 +430,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		//Parsing signature
 		sig, err := extractSignature(c.Signature.Signature)
 		if err != nil { //Skipping failed to extract sign
-			log.Error(3, "SignatureRead err: %v", err)
+			log.Error("SignatureRead err: %v", err)
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.extract_sign",
@@ -377,7 +443,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
 			if !IsErrUserNotExist(err) {
-				log.Error(3, "GetUserByEmail: %v", err)
+				log.Error("GetUserByEmail: %v", err)
 			}
 			return &CommitVerification{
 				Verified: false,
@@ -387,7 +453,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 		keys, err := ListGPGKeys(committer.ID)
 		if err != nil { //Skipping failed to get gpg keys of user
-			log.Error(3, "ListGPGKeys: %v", err)
+			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.failed_retrieval_gpg_keys",
@@ -411,7 +477,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			//Generating hash of commit
 			hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 			if err != nil { //Skipping ailed to generate hash
-				log.Error(3, "PopulateHash: %v", err)
+				log.Error("PopulateHash: %v", err)
 				return &CommitVerification{
 					Verified: false,
 					Reason:   "gpg.error.generate_hash",
@@ -432,7 +498,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				//Generating hash of commit
 				hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 				if err != nil { //Skipping ailed to generate hash
-					log.Error(3, "PopulateHash: %v", err)
+					log.Error("PopulateHash: %v", err)
 					return &CommitVerification{
 						Verified: false,
 						Reason:   "gpg.error.generate_hash",

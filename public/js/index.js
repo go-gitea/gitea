@@ -1,7 +1,123 @@
+/* globals wipPrefixes, issuesTribute, emojiTribute */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 'use strict';
+
+function htmlEncode(text) {
+   return jQuery('<div />').text(text).html()
+}
 
 var csrf;
 var suburl;
+
+// Polyfill for IE9+ support (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from)
+if (!Array.from) {
+    Array.from = (function () {
+        var toStr = Object.prototype.toString;
+        var isCallable = function (fn) {
+            return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+        };
+        var toInteger = function (value) {
+            var number = Number(value);
+            if (isNaN(number)) { return 0; }
+            if (number === 0 || !isFinite(number)) { return number; }
+            return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+        };
+        var maxSafeInteger = Math.pow(2, 53) - 1;
+        var toLength = function (value) {
+            var len = toInteger(value);
+            return Math.min(Math.max(len, 0), maxSafeInteger);
+        };
+
+        // The length property of the from method is 1.
+        return function from(arrayLike/*, mapFn, thisArg */) {
+            // 1. Let C be the this value.
+            var C = this;
+
+            // 2. Let items be ToObject(arrayLike).
+            var items = Object(arrayLike);
+
+            // 3. ReturnIfAbrupt(items).
+            if (arrayLike == null) {
+                throw new TypeError("Array.from requires an array-like object - not null or undefined");
+            }
+
+            // 4. If mapfn is undefined, then let mapping be false.
+            var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            var T;
+            if (typeof mapFn !== 'undefined') {
+                // 5. else
+                // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
+                if (!isCallable(mapFn)) {
+                    throw new TypeError('Array.from: when provided, the second argument must be a function');
+                }
+
+                // 5. b. If thisArg was supplied, let T be thisArg; else let T be undefined.
+                if (arguments.length > 2) {
+                    T = arguments[2];
+                }
+            }
+
+            // 10. Let lenValue be Get(items, "length").
+            // 11. Let len be ToLength(lenValue).
+            var len = toLength(items.length);
+
+            // 13. If IsConstructor(C) is true, then
+            // 13. a. Let A be the result of calling the [[Construct]] internal method of C with an argument list containing the single item len.
+            // 14. a. Else, Let A be ArrayCreate(len).
+            var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+
+            // 16. Let k be 0.
+            var k = 0;
+            // 17. Repeat, while k < len… (also steps a - h)
+            var kValue;
+            while (k < len) {
+                kValue = items[k];
+                if (mapFn) {
+                    A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+                } else {
+                    A[k] = kValue;
+                }
+                k += 1;
+            }
+            // 18. Let putStatus be Put(A, "length", len, true).
+            A.length = len;
+            // 20. Return A.
+            return A;
+        };
+    }());
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+if (typeof Object.assign != 'function') {
+    // Must be writable: true, enumerable: false, configurable: true
+    Object.defineProperty(Object, "assign", {
+        value: function assign(target, _varArgs) { // .length of function is 2
+            'use strict';
+            if (target == null) { // TypeError if undefined or null
+                throw new TypeError('Cannot convert undefined or null to object');
+            }
+
+            var to = Object(target);
+
+            for (var index = 1; index < arguments.length; index++) {
+                var nextSource = arguments[index];
+
+                if (nextSource != null) { // Skip over if undefined or null
+                    for (var nextKey in nextSource) {
+                        // Avoid bugs when hasOwnProperty is shadowed
+                        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                            to[nextKey] = nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return to;
+        },
+        writable: true,
+        configurable: true
+    });
+}
 
 function initCommentPreviewTab($form) {
     var $tabMenu = $form.find('.tabular.menu');
@@ -18,8 +134,8 @@ function initCommentPreviewTab($form) {
                 var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                 $previewPanel.html(data);
                 emojify.run($previewPanel[0]);
-                $('pre code', $previewPanel[0]).each(function (i, block) {
-                    hljs.highlightBlock(block);
+                $('pre code', $previewPanel[0]).each(function () {
+                    hljs.highlightBlock(this);
                 });
             }
         );
@@ -48,8 +164,8 @@ function initEditPreviewTab($form) {
                     var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                     $previewPanel.html(data);
                     emojify.run($previewPanel[0]);
-                    $('pre code', $previewPanel[0]).each(function (i, block) {
-                        hljs.highlightBlock(block);
+                    $('pre code', $previewPanel[0]).each(function () {
+                        hljs.highlightBlock(this);
                     });
                 }
             );
@@ -103,17 +219,19 @@ function initBranchSelector() {
     });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
-    $.ajax({
-        type: "POST",
-        url: url,
-        data: {
-            "_csrf": csrf,
-            "action": action,
-            "issue_ids": issueIds,
-            "id": elementId
-        },
-        success: afterSuccess
+function updateIssuesMeta(url, action, issueIds, elementId) {
+    return new Promise(function(resolve) {
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                "_csrf": csrf,
+                "action": action,
+                "issue_ids": issueIds,
+                "id": elementId
+            },
+            success: resolve
+        })
     })
 }
 
@@ -171,6 +289,92 @@ function initReactionSelector(parent) {
     });
 }
 
+function insertAtCursor(field, value) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.substring(0, startPos)
+            + value
+            + field.value.substring(endPos, field.value.length);
+        field.selectionStart = startPos + value.length;
+        field.selectionEnd = startPos + value.length;
+    } else {
+        field.value += value;
+    }
+}
+
+function replaceAndKeepCursor(field, oldval, newval) {
+    if (field.selectionStart || field.selectionStart === 0) {
+        var startPos = field.selectionStart;
+        var endPos = field.selectionEnd;
+        field.value = field.value.replace(oldval, newval);
+        field.selectionStart = startPos + newval.length - oldval.length;
+        field.selectionEnd = endPos + newval.length - oldval.length;
+    } else {
+        field.value = field.value.replace(oldval, newval);
+    }
+}
+
+function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
+    if (!pasteEvent.clipboardData) {
+        return;
+    }
+
+    var items = pasteEvent.clipboardData.items;
+    if (typeof(items) === "undefined") {
+        return;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") === -1) continue;
+        var blob = items[i].getAsFile();
+
+        if (typeof(callback) === "function") {
+            pasteEvent.preventDefault();
+            pasteEvent.stopPropagation();
+            callback(blob);
+        }
+    }
+}
+
+function uploadFile(file, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            callback(xhr.responseText);
+        }
+    };
+
+    xhr.open("post", suburl + "/attachments", true);
+    xhr.setRequestHeader("X-Csrf-Token", csrf);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    xhr.send(formData);
+}
+
+function reload() {
+    window.location.reload();
+}
+
+function initImagePaste(target) {
+    target.each(function() {
+        var field = this;
+        field.addEventListener('paste', function(event){
+            retrieveImageFromClipboardAsBlob(event, function(img) {
+                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                insertAtCursor(field, '![' + name + ']()');
+                uploadFile(img, function(res) {
+                    var data = JSON.parse(res);
+                    replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
+                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    $('.files').append(input);
+                });
+            });
+        }, false);
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -178,6 +382,7 @@ function initCommentForm() {
 
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
@@ -185,11 +390,25 @@ function initCommentForm() {
         var $noSelect = $list.find('.no-select');
         var $listMenu = $('.' + selector + ' .menu');
         var hasLabelUpdateAction = $listMenu.data('action') == 'update';
+        var labels = {};
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
-                location.reload();
+                var promises = [];
+                for (var elementId in labels) {
+                    if (labels.hasOwnProperty(elementId)) {
+                        var label = labels[elementId];
+                        var promise = updateIssuesMeta(
+                            label["update-url"],
+                            label["action"],
+                            label["issue-id"],
+                            elementId
+                        );
+                        promises.push(promise);
+                    }
+                }
+                Promise.all(promises).then(reload);
             }
         });
 
@@ -222,23 +441,29 @@ function initCommentForm() {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "detach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "detach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             } else {
                 $(this).addClass('checked');
                 $(this).find('.octicon').addClass('octicon-check');
                 if (hasLabelUpdateAction) {
-                    updateIssuesMeta(
-                        $listMenu.data('update-url'),
-                        "attach",
-                        $listMenu.data('issue-id'),
-                        $(this).data('id')
-                    );
+                    if (!($(this).data('id') in labels)) {
+                        labels[$(this).data('id')] = {
+                            "update-url": $listMenu.data('update-url'),
+                            "action": "attach",
+                            "issue-id": $listMenu.data('issue-id'),
+                        };
+                    } else {
+                        delete labels[$(this).data('id')];
+                    }
                 }
             }
 
@@ -266,8 +491,7 @@ function initCommentForm() {
                     "clear",
                     $listMenu.data('issue-id'),
                     ""
-                );
-                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                ).then(reload);
             }
 
             $(this).parent().find('.item').each(function () {
@@ -305,19 +529,18 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
             switch (input_id) {
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
                     break;
                 case '#assignee_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         '<img class="ui avatar image" src=' + $(this).data('avatar') + '>' +
-                        $(this).text() + '</a>');
+                        htmlEncode($(this).text()) + '</a>');
             }
             $('.ui' + select_id + '.list .no-select').addClass('hide');
             $(input_id).val($(this).data('id'));
@@ -332,9 +555,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id'),
-                    function() { location.reload(); }
-                );
+                    $(this).data('id')
+                ).then(reload);
             }
 
             $list.find('.selected').html('');
@@ -365,15 +587,14 @@ function initInstall() {
         var tidbDefault = 'data/gitea_tidb';
 
         var dbType = $(this).val();
-        if (dbType === "SQLite3" || dbType === "TiDB") {
+        if (dbType === "SQLite3") {
             $('#sql_settings').hide();
             $('#pgsql_settings').hide();
+            $('#mysql_settings').hide();
             $('#sqlite_settings').show();
 
             if (dbType === "SQLite3" && $('#db_path').val() == tidbDefault) {
                 $('#db_path').val(sqliteDefault);
-            } else if (dbType === "TiDB" && $('#db_path').val() == sqliteDefault) {
-                $('#db_path').val(tidbDefault);
             }
             return;
         }
@@ -388,7 +609,8 @@ function initInstall() {
         $('#sql_settings').show();
 
         $('#pgsql_settings').toggle(dbType === "PostgreSQL");
-        $.each(dbDefaults, function(type, defaultHost) {
+        $('#mysql_settings').toggle(dbType === "MySQL");
+        $.each(dbDefaults, function(_type, defaultHost) {
             if ($('#db_host').val() == defaultHost) {
                 $('#db_host').val(dbDefaults[dbType]);
                 return false;
@@ -418,8 +640,7 @@ function initInstall() {
     });
     $('#enable-openid-signin input').change(function () {
         if ($(this).is(':checked')) {
-            if ( $('#disable-registration input').is(':checked') ) {
-            } else {
+            if (!$('#disable-registration input').is(':checked')) {
                 $('#enable-openid-signup').checkbox('check');
             }
         } else {
@@ -451,7 +672,7 @@ function initRepository() {
         $dropdown.dropdown({
             fullTextSearch: true,
             selectOnKeydown: false,
-            onChange: function (text, value, $choice) {
+            onChange: function (_text, _value, $choice) {
                 if ($choice.data('url')) {
                     window.location.href = $choice.data('url');
                 }
@@ -475,7 +696,7 @@ function initRepository() {
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
             var $prompt = $('#repo-name-change-prompt');
-            if ($(this).val().toString().toLowerCase() != $(this).data('repo-name').toString().toLowerCase()) {
+            if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
                 $prompt.hide();
@@ -538,9 +759,6 @@ function initRepository() {
     }
 
     // Milestones
-    if ($('.repository.milestones').length > 0) {
-
-    }
     if ($('.repository.new.milestone').length > 0) {
         var $datepicker = $('.milestone.datepicker');
         $datepicker.datetimepicker({
@@ -588,7 +806,7 @@ function initRepository() {
                 function (data) {
                     $editInput.val(data.title);
                     $issueTitle.text(data.title);
-                    location.reload();
+                    reload();
                 });
             return false;
         });
@@ -604,7 +822,7 @@ function initRepository() {
             // Setup new form
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
-                $textarea = $('#content');
+                $textarea = $editContentZone.find('textarea');
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
@@ -639,8 +857,8 @@ function initRepository() {
                             } else {
                                 $renderContent.html(data.content);
                                 emojify.run($renderContent[0]);
-                                $('pre code', $renderContent[0]).each(function (i, block) {
-                                    hljs.highlightBlock(block);
+                                $('pre code', $renderContent[0]).each(function () {
+                                    hljs.highlightBlock(this);
                                 });
                             }
                         });
@@ -694,7 +912,7 @@ function initRepository() {
             $(this).parent().hide();
         });
         $('.merge-button > .dropdown').dropdown({
-            onChange: function (text, value, $choice) {
+            onChange: function (_text, _value, $choice) {
                 if ($choice.data('do')) {
                     $mergeButton.find('.button-text').text($choice.text());
                     $mergeButton.data('do', $choice.data('do'));
@@ -712,16 +930,13 @@ function initRepository() {
 
     // Diff
     if ($('.repository.diff').length > 0) {
-        var $counter = $('.diff-counter');
-        if ($counter.length >= 1) {
-            $counter.each(function (i, item) {
-                var $item = $(item);
-                var addLine = $item.find('span[data-line].add').data("line");
-                var delLine = $item.find('span[data-line].del').data("line");
-                var addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
-                $item.find(".bar .add").css("width", addPercent + "%");
-            });
-        }
+        $('.diff-counter').each(function () {
+            var $item = $(this);
+            var addLine = $item.find('span[data-line].add').data("line");
+            var delLine = $item.find('span[data-line].del').data("line");
+            var addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
+            $item.find(".bar .add").css("width", addPercent + "%");
+        });
     }
 
     // Quick start and repository home
@@ -744,8 +959,15 @@ function initRepository() {
     });
 
     // Pull request
-    if ($('.repository.compare.pull').length > 0) {
+    var $repoComparePull = $('.repository.compare.pull');
+    if ($repoComparePull.length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
+        // show pull request form
+        $repoComparePull.find('button.show-form').on('click', function(e) {
+            e.preventDefault();
+            $repoComparePull.find('.pullrequest-form').show();
+            $(this).parent().hide();
+        });
     }
 
     // Branches
@@ -759,6 +981,25 @@ function initRepository() {
             }
         });
     }
+}
+
+var toggleMigrations = function(){
+    var authUserName = $('#auth_username').val();
+    var cloneAddr = $('#clone_addr').val();
+    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0)
+    && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
+        $('#migrate_items').show();
+    } else {
+        $('#migrate_items').hide();
+    }
+}
+
+function initMigration() {
+    toggleMigrations();
+
+    $('#clone_addr').on('input', toggleMigrations)
+    $('#auth_username').on('input', toggleMigrations)
+    $('#mirror').on('change', toggleMigrations)
 }
 
 function initPullRequestReview() {
@@ -814,6 +1055,10 @@ function initPullRequestReview() {
             $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
         });
     $('.add-code-comment').on('click', function(e) {
+        // https://github.com/go-gitea/gitea/issues/4745
+        if ($(e.target).hasClass('btn-add-single')) {
+          return;
+        }
         e.preventDefault();
         var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
         var side = $(this).data('side');
@@ -824,8 +1069,8 @@ function initPullRequestReview() {
         var ntr = tr.next();
         if (!ntr.hasClass('add-comment')) {
             ntr = $('<tr class="add-comment">'
-                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
-                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + (isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>')
                     + '</tr>');
             tr.after(ntr);
         }
@@ -848,8 +1093,9 @@ function assingMenuAttributes(menu) {
     var id = Math.floor(Math.random() * Math.floor(1000000));
     menu.attr('data-write', menu.attr('data-write') + id);
     menu.attr('data-preview', menu.attr('data-preview') + id);
-    menu.find('.item').each(function(i, item) {
-        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    menu.find('.item').each(function() {
+        var tab = $(this).attr('data-tab') + id;
+        $(this).attr('data-tab', tab);
     });
     menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
     menu.parent().find("*[data-tab='preview']").attr('data-tab', 'preview' + id);
@@ -898,7 +1144,7 @@ function initWikiForm() {
                             "text": plainText
                         },
                         function (data) {
-                            preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                            preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
                         }
                     );
@@ -933,22 +1179,20 @@ String.prototype.endsWith = function (pattern) {
 };
 
 // Adding function to get the cursor position in a text field to jQuery object.
-(function ($, undefined) {
-    $.fn.getCursorPosition = function () {
-        var el = $(this).get(0);
-        var pos = 0;
-        if ('selectionStart' in el) {
-            pos = el.selectionStart;
-        } else if ('selection' in document) {
-            el.focus();
-            var Sel = document.selection.createRange();
-            var SelLength = document.selection.createRange().text.length;
-            Sel.moveStart('character', -el.value.length);
-            pos = Sel.text.length - SelLength;
-        }
-        return pos;
+$.fn.getCursorPosition = function () {
+    var el = $(this).get(0);
+    var pos = 0;
+    if ('selectionStart' in el) {
+        pos = el.selectionStart;
+    } else if ('selection' in document) {
+        el.focus();
+        var Sel = document.selection.createRange();
+        var SelLength = document.selection.createRange().text.length;
+        Sel.moveStart('character', -el.value.length);
+        pos = Sel.text.length - SelLength;
     }
-})(jQuery);
+    return pos;
+}
 
 function setSimpleMDE($editArea) {
     if (codeMirrorEditor) {
@@ -980,7 +1224,7 @@ function setSimpleMDE($editArea) {
                         "text": plainText
                     },
                     function (data) {
-                        preview.innerHTML = '<div class="markdown">' + data + '</div>';
+                        preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
                         emojify.run($('.editor-preview')[0]);
                     }
                 );
@@ -1012,7 +1256,7 @@ function setCodeMirror($editArea) {
     codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
         lineNumbers: true
     });
-    codeMirrorEditor.on("change", function (cm, change) {
+    codeMirrorEditor.on("change", function (cm, _change) {
         $editArea.val(cm.getValue());
     });
 
@@ -1034,10 +1278,13 @@ function initEditor() {
     $editFilename.keyup(function (e) {
         var $section = $('.breadcrumb span.section');
         var $divider = $('.breadcrumb div.divider');
+        var value;
+        var parts;
+
         if (e.keyCode == 8) {
             if ($(this).getCursorPosition() == 0) {
                 if ($section.length > 0) {
-                    var value = $section.last().find('a').text();
+                    value = $section.last().find('a').text();
                     $(this).val(value + $(this).val());
                     $(this)[0].setSelectionRange(value.length, value.length);
                     $section.last().remove();
@@ -1046,9 +1293,9 @@ function initEditor() {
             }
         }
         if (e.keyCode == 191) {
-            var parts = $(this).val().split('/');
+            parts = $(this).val().split('/');
             for (var i = 0; i < parts.length; ++i) {
-                var value = parts[i];
+                value = parts[i];
                 if (i < parts.length - 1) {
                     if (value.length) {
                         $('<span class="section"><a href="#">' + value + '</a></span>').insertBefore($(this));
@@ -1061,9 +1308,9 @@ function initEditor() {
                 $(this)[0].setSelectionRange(0, 0);
             }
         }
-        var parts = [];
-        $('.breadcrumb span.section').each(function (i, element) {
-            element = $(element);
+        parts = [];
+        $('.breadcrumb span.section').each(function () {
+            var element = $(this);
             if (element.find('a').length) {
                 parts.push(element.find('a').text());
             } else {
@@ -1082,10 +1329,11 @@ function initEditor() {
     var markdownFileExts = $editArea.data("markdown-file-exts").split(",");
     var lineWrapExtensions = $editArea.data("line-wrap-extensions").split(",");
 
-    $editFilename.on("keyup", function (e) {
+    $editFilename.on("keyup", function () {
         var val = $editFilename.val(), m, mode, spec, extension, extWithDot, previewLink, dataUrl, apiCall;
         extension = extWithDot = "";
-        if (m = /.+\.([^.]+)$/.exec(val)) {
+        m = /.+\.([^.]+)$/.exec(val);
+        if (m) {
             extension = m[1];
             extWithDot = "." + extension;
         }
@@ -1212,6 +1460,15 @@ function initWebhook() {
         }
     });
 
+    var updateContentType = function () {
+        var visible = $('#http_method').val() === 'POST';
+        $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
+    };
+    updateContentType();
+    $('#http_method').change(function () {
+        updateContentType();
+    });
+
     // Test delivery
     $('#test-delivery').click(function () {
         var $this = $(this);
@@ -1329,13 +1586,15 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+            $('.binddnrequired').removeClass("required");
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
+                    $('.binddnrequired').addClass("required");
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1436,15 +1695,6 @@ function buttonsClickOnEnter() {
     });
 }
 
-function hideWhenLostFocus(body, parent) {
-    $(document).click(function (e) {
-        var target = e.target;
-        if (!$(target).is(body) && !$(target).parents().is(parent)) {
-            $(body).hide();
-        }
-    });
-}
-
 function searchUsers() {
     var $searchUserBox = $('#search-user-box');
     $searchUserBox.search({
@@ -1453,10 +1703,10 @@ function searchUsers() {
             url: suburl + '/api/v1/users/search?q={query}',
             onResponse: function(response) {
                 var items = [];
-                $.each(response.data, function (i, item) {
+                $.each(response.data, function (_i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title += ' (' + item.full_name + ')';
+                        title += ' (' + htmlEncode(item.full_name) + ')';
                     }
                     items.push({
                         title: title,
@@ -1480,7 +1730,7 @@ function searchRepositories() {
             url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
             onResponse: function(response) {
                 var items = [];
-                $.each(response.data, function (i, item) {
+                $.each(response.data, function (_i, item) {
                     items.push({
                         title: item.full_name.split("/")[1],
                         description: item.full_name
@@ -1504,8 +1754,8 @@ function initCodeView() {
             deSelect();
         });
 
-        $(window).on('hashchange', function (e) {
-            var m = window.location.hash.match(/^#(L\d+)\-(L\d+)$/);
+        $(window).on('hashchange', function () {
+            var m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
             var $list = $('.code-view ol.linenums > li');
             var $first;
             if (m) {
@@ -1514,9 +1764,9 @@ function initCodeView() {
                 $("html, body").scrollTop($first.offset().top - 200);
                 return;
             }
-            m = window.location.hash.match(/^#(L\d+)$/);
+            m = window.location.hash.match(/^#(L|n)(\d+)$/);
             if (m) {
-                $first = $list.filter('.' + m[1]);
+                $first = $list.filter('.L' + m[2]);
                 selectRange($list, $first);
                 $("html, body").scrollTop($first.offset().top - 200);
             }
@@ -1530,7 +1780,7 @@ function initU2FAuth() {
     }
     u2fApi.ensureSupport()
         .then(function () {
-            $.getJSON('/user/u2f/challenge').success(function(req) {
+            $.getJSON(suburl + '/user/u2f/challenge').success(function(req) {
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1543,19 +1793,19 @@ function initU2FAuth() {
             });
         }).catch(function () {
             // Fallback in case browser do not support U2F
-            window.location.href = "/user/two_factor"
+            window.location.href = suburl + "/user/two_factor"
         })
 }
 function u2fSigned(resp) {
     $.ajax({
-        url:'/user/u2f/sign',
-        type:"POST",
+        url: suburl + '/user/u2f/sign',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
     }).done(function(res){
         window.location.replace(res);
-    }).fail(function (xhr, textStatus) {
+    }).fail(function () {
         u2fError(1);
     });
 }
@@ -1565,15 +1815,15 @@ function u2fRegistered(resp) {
         return;
     }
     $.ajax({
-        url:'/user/settings/security/u2f/register',
-        type:"POST",
+        url: suburl + '/user/settings/security/u2f/register',
+        type: "POST",
         headers: {"X-Csrf-Token": csrf},
         data: JSON.stringify(resp),
-        contentType:"application/json; charset=utf-8",
+        contentType: "application/json; charset=utf-8",
         success: function(){
-            window.location.reload();
+            reload();
         },
-        fail: function (xhr, textStatus) {
+        fail: function () {
             u2fError(1);
         }
     });
@@ -1623,7 +1873,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-    $.post("/user/settings/security/u2f/request_register", {
+    $.post(suburl + "/user/settings/security/u2f/request_register", {
         "_csrf": csrf,
         "name": $('#nickname').val()
     }).success(function(req) {
@@ -1641,7 +1891,7 @@ function u2fRegisterRequest() {
                 }
                 u2fError(reason.metaData.code);
             });
-    }).fail(function(xhr, status, error) {
+    }).fail(function(xhr) {
         if(xhr.status === 409) {
             $("#nickname").closest("div.field").addClass("error");
         }
@@ -1672,6 +1922,10 @@ $(document).ready(function () {
 
     // Show exact time
     $('.time-since').each(function () {
+        var time = new Date($(this).attr('title'))
+        if (!isNaN(time)){
+            $(this).attr('title', time.toLocaleString())
+        }
         $(this).addClass('poping up').attr('data-content', $(this).attr('title')).attr('data-variation', 'inverted tiny').attr('title', '');
     });
 
@@ -1710,7 +1964,7 @@ $(document).ready(function () {
     });
 
     // make table <tr> element clickable like a link
-    $('tr[data-href]').click(function(event) {
+    $('tr[data-href]').click(function() {
         window.location = $(this).data('href');
     });
 
@@ -1766,6 +2020,11 @@ $(document).ready(function () {
     var hasEmoji = document.getElementsByClassName('has-emoji');
     for (var i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
+        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+            if (hasEmoji[i].childNodes[j].nodeName === "A") {
+                emojify.run(hasEmoji[i].childNodes[j])
+            }
+        }
     }
 
     // Clipboard JS
@@ -1838,11 +2097,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('#issue-filters').hide();
-            $('#issue-actions').show();
+            $('#issue-filters').addClass("hide");
+            $('#issue-actions').removeClass("hide");
         } else {
-            $('#issue-filters').show();
-            $('#issue-actions').hide();
+            $('#issue-filters').removeClass("hide");
+            $('#issue-actions').addClass("hide");
         }
     });
 
@@ -1853,9 +2112,7 @@ $(document).ready(function () {
             return this.dataset.issueId;
         }).get().join();
         var url = this.dataset.url
-        updateIssuesMeta(url, action, issueIDs, elementId, function() {
-            location.reload();
-        });
+        updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
     });
 
     buttonsClickOnEnter();
@@ -1865,6 +2122,7 @@ $(document).ready(function () {
     initCommentForm();
     initInstall();
     initRepository();
+    initMigration();
     initWikiForm();
     initEditForm();
     initEditor();
@@ -1909,6 +2167,14 @@ $(document).ready(function () {
             break;
         }
     }
+
+    var $cloneAddr = $('#clone_addr');
+    $cloneAddr.change(function() {
+        var $repoName = $('#repo_name');
+        if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
+            $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+        }
+    });
 });
 
 function changeHash(hash) {
@@ -1978,7 +2244,7 @@ function showDeletePopup() {
     }
 
     var dialog = $('.delete.modal' + filter);
-    dialog.find('.repo-name').text($this.data('repo-name'));
+    dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
         closable: false,
@@ -2078,7 +2344,9 @@ function initVueComponents(){
                 return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
             },
             searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
+                return this.suburl + '/api/v1/repos/search?sort=updated&order=desc&uid=' + this.uid + '&q=' + this.searchQuery
+                                   + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode
+                                   + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
             },
             repoTypeCount: function() {
                 return this.repoTypes[this.reposFilter].count;
@@ -2130,7 +2398,7 @@ function initVueComponents(){
                 var searchedURL = this.searchURL;
                 var searchedQuery = this.searchQuery;
 
-                $.getJSON(searchedURL, function(result, textStatus, request) {
+                $.getJSON(searchedURL, function(result, _textStatus, request) {
                     if (searchedURL == self.searchURL) {
                         self.repos = result.data;
                         var count = request.getResponseHeader('X-Total-Count');
@@ -2188,6 +2456,7 @@ function initVueApp() {
         },
     });
 }
+
 function timeAddManual() {
     $('.mini.modal')
         .modal({
@@ -2204,6 +2473,100 @@ function toggleStopwatch() {
 }
 function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
+}
+
+function initHeatmap(appElementId, heatmapUser, locale) {
+    var el = document.getElementById(appElementId);
+    if (!el) {
+        return;
+    }
+
+    locale = locale || {};
+
+    locale.contributions = locale.contributions || 'contributions';
+    locale.no_contributions = locale.no_contributions || 'No contributions';
+
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('activity-heatmap', {
+        delimiters: vueDelimeters,
+
+        props: {
+            user: {
+                type: String,
+                required: true
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            locale: {
+                type: Object,
+                required: true
+            }
+        },
+
+        data: function () {
+            return {
+                isLoading: true,
+                colorRange: [],
+                endDate: null,
+                values: []
+            };
+        },
+
+        mounted: function() {
+            this.colorRange = [
+                this.getColor(0),
+                this.getColor(1),
+                this.getColor(2),
+                this.getColor(3),
+                this.getColor(4),
+                this.getColor(5)
+            ];
+            this.endDate = new Date();
+            this.loadHeatmap(this.user);
+        },
+
+        methods: {
+            loadHeatmap: function(userName) {
+                var self = this;
+                $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
+                    var chartData = [];
+                    for (var i = 0; i < chartRawData.length; i++) {
+                        chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+                    }
+                    self.values = chartData;
+                    self.isLoading = false;
+                });
+            },
+
+            getColor: function(idx) {
+                var el = document.createElement('div');
+                el.className = 'heatmap-color-' + idx;
+                document.body.appendChild(el);
+
+                var color = getComputedStyle(el).backgroundColor;
+
+                document.body.removeChild(el);
+
+                return color;
+            }
+        },
+
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+    });
+
+    new Vue({
+        delimiters: vueDelimeters,
+        el: el,
+
+        data: {
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            heatmapUser: heatmapUser,
+            locale: locale
+        },
+    });
 }
 
 function initFilterBranchTagDropdown(selector) {
@@ -2417,7 +2780,7 @@ function initNavbarContentToggle() {
 function initTopicbar() {
     var mgrBtn = $("#manage_topic"),
         editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topic"),
+        viewDiv = $("#repo-topics"),
         saveBtn = $("#save_topic"),
         topicDropdown = $('#topic_edit .dropdown'),
         topicForm = $('#topic_edit.ui.form'),
@@ -2444,19 +2807,18 @@ function initTopicbar() {
         $.post(saveBtn.data('link'), {
             "_csrf": csrf,
             "topics": topics
-        }, function(data, textStatus, xhr){
+        }, function(_data, _textStatus, xhr){
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
-                if (topics.length === 0) {
-                    return
-                }
-                var topicArray = topics.split(",");
+                if (topics.length) {
+                    var topicArray = topics.split(",");
 
-                var last = viewDiv.children("a").last();
-                for (var i=0; i < topicArray.length; i++) {
-                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    var last = viewDiv.children("a").last();
+                    for (var i=0; i < topicArray.length; i++) {
+                        $('<div class="ui small label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    }
                 }
-                editDiv.css('display', 'none'); // hide Semantic UI Grid
+                editDiv.css('display', 'none');
                 viewDiv.show();
             }
         }).fail(function(xhr){
@@ -2495,7 +2857,7 @@ function initTopicbar() {
             basic: true,
         },
         className: {
-            label: 'ui green basic label'
+            label: 'ui small label'
         },
         apiSettings: {
             url: suburl + '/api/v1/topics/search?q={query}',
@@ -2510,7 +2872,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
                     }
                 }
 
@@ -2522,14 +2884,14 @@ function initTopicbar() {
             this.attr("data-value", value).contents().first().replaceWith(value);
             return $(this);
         },
-        onAdd: function(addedValue, addedText, $addedChoice) {
+        onAdd: function(addedValue, _addedText, $addedChoice) {
             addedValue = addedValue.toLowerCase().trim();
             $($addedChoice).attr('data-value', addedValue);
             $($addedChoice).attr('data-text', addedValue);
         }
     });
 
-    $.fn.form.settings.rules.validateTopic = function(values, regExp) {
+    $.fn.form.settings.rules.validateTopic = function(_values, regExp) {
         var topics = topicDropdown.children('a.ui.label'),
             status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
         if (!status) {
@@ -2590,10 +2952,14 @@ function updateDeadline(deadlineString) {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
         contentType: 'application/json',
         type: 'POST',
         success: function () {
-            window.location.reload();
+            reload();
         },
         error: function () {
             $('#deadline-loader').removeClass('loading');
@@ -2618,21 +2984,27 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     var repolink = $('#repolink').val();
-    $('.new-dependency-drop-list')
+    $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
                 onResponse: function(response) {
                     var filteredResponse = {'success': true, 'results': []};
+                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
-                    $.each(response, function(index, issue) {
+                    $.each(response, function(_i, issue) {
+                        // Don't list current issue in the dependency list.
+                        if(issue.id === currIssueId) {
+                            return;
+                        }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
                             'value' : issue.id
                         });
                     });
                     return filteredResponse;
                 },
+                cache: false,
             },
 
             fullTextSearch: true
@@ -2647,4 +3019,18 @@ function cancelCodeComment(btn) {
     } else {
         form.closest('.comment-code-cloud').remove()
     }
+}
+function onOAuthLoginClick() {
+    var oauthLoader = $('#oauth2-login-loader');
+    var oauthNav = $('#oauth2-login-navigator');
+
+    oauthNav.hide();
+    oauthLoader.removeClass('disabled');
+
+    setTimeout(function(){
+        // recover previous content to let user try again
+        // usually redirection will be performed before this action
+        oauthLoader.addClass('disabled');
+        oauthNav.show();
+    },5000);
 }

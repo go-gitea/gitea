@@ -110,7 +110,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		models.SendActivateEmailMail(ctx.Context, ctx.User, email)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
@@ -166,6 +166,34 @@ func DeleteAccount(ctx *context.Context) {
 		log.Trace("Account deleted: %s", ctx.User.Name)
 		ctx.Redirect(setting.AppSubURL + "/")
 	}
+}
+
+// UpdateUIThemePost is used to update users' specific theme
+func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
+
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccount"] = true
+
+	if ctx.HasError() {
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	if !form.IsThemeExists() {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	log.Trace("Update user theme: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 func loadAccountData(ctx *context.Context) {

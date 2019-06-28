@@ -5,7 +5,7 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -14,15 +14,15 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is
 // watching
-func getWatchedRepos(userID int64, private bool) ([]*api.Repository, error) {
-	watchedRepos, err := models.GetWatchedRepos(userID, private)
+func getWatchedRepos(user *models.User, private bool) ([]*api.Repository, error) {
+	watchedRepos, err := models.GetWatchedRepos(user.ID, private)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := models.AccessLevel(userID, watched)
+		access, err := models.AccessLevel(user, watched)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +49,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getWatchedRepos(user.ID, private)
+	repos, err := getWatchedRepos(user, private)
 	if err != nil {
 		ctx.Error(500, "getWatchedRepos", err)
 	}
@@ -66,7 +66,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	repos, err := getWatchedRepos(ctx.User.ID, true)
+	repos, err := getWatchedRepos(ctx.User, true)
 	if err != nil {
 		ctx.Error(500, "getWatchedRepos", err)
 	}
@@ -103,7 +103,7 @@ func IsWatching(ctx *context.APIContext) {
 			RepositoryURL: repositoryURL(ctx.Repo.Repository),
 		})
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

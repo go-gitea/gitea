@@ -40,6 +40,11 @@ func NewGeoBoundingBoxSearcher(indexReader index.IndexReader, minLon, minLat,
 		minLon, minLat, maxLon, maxLat, checkBoundaries)
 
 	var onBoundarySearcher search.Searcher
+	dvReader, err := indexReader.DocValueReader([]string{field})
+	if err != nil {
+		return nil, err
+	}
+
 	if len(onBoundaryTerms) > 0 {
 		rawOnBoundarySearcher, err := NewMultiTermSearcherBytes(indexReader,
 			onBoundaryTerms, field, boost, options, false)
@@ -48,7 +53,7 @@ func NewGeoBoundingBoxSearcher(indexReader index.IndexReader, minLon, minLat,
 		}
 		// add filter to check points near the boundary
 		onBoundarySearcher = NewFilteringSearcher(rawOnBoundarySearcher,
-			buildRectFilter(indexReader, field, minLon, minLat, maxLon, maxLat))
+			buildRectFilter(dvReader, field, minLon, minLat, maxLon, maxLat))
 		openedSearchers = append(openedSearchers, onBoundarySearcher)
 	}
 
@@ -144,26 +149,25 @@ func relateAndRecurse(start, end uint64, res uint,
 	return nil, nil
 }
 
-func buildRectFilter(indexReader index.IndexReader, field string,
+func buildRectFilter(dvReader index.DocValueReader, field string,
 	minLon, minLat, maxLon, maxLat float64) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
 		var lon, lat float64
 		var found bool
-		err := indexReader.DocumentVisitFieldTerms(d.IndexInternalID,
-			[]string{field}, func(field string, term []byte) {
-				// only consider the values which are shifted 0
-				prefixCoded := numeric.PrefixCoded(term)
-				shift, err := prefixCoded.Shift()
-				if err == nil && shift == 0 {
-					var i64 int64
-					i64, err = prefixCoded.Int64()
-					if err == nil {
-						lon = geo.MortonUnhashLon(uint64(i64))
-						lat = geo.MortonUnhashLat(uint64(i64))
-						found = true
-					}
+		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
+			// only consider the values which are shifted 0
+			prefixCoded := numeric.PrefixCoded(term)
+			shift, err := prefixCoded.Shift()
+			if err == nil && shift == 0 {
+				var i64 int64
+				i64, err = prefixCoded.Int64()
+				if err == nil {
+					lon = geo.MortonUnhashLon(uint64(i64))
+					lat = geo.MortonUnhashLat(uint64(i64))
+					found = true
 				}
-			})
+			}
+		})
 		if err == nil && found {
 			return geo.BoundingBoxContains(lon, lat,
 				minLon, minLat, maxLon, maxLat)

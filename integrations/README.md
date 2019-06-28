@@ -2,14 +2,16 @@
 
 Integration tests can be run with make commands for the
 appropriate backends, namely:
-
-  make test-mysql
-  make test-pgsql
-  make test-sqlite
+```shell
+make test-mysql
+make test-pgsql
+make test-sqlite
+```
 
 Make sure to perform a clean build before running tests:
-
-    make clean build
+```
+make clean build
+```
 
 ## Run all tests via local drone
 ```
@@ -45,7 +47,6 @@ TEST_PGSQL_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAdd
 ## Running individual tests
 
 Example command to run GPG test with sqlite backend:
-
 ```
 go test -c code.gitea.io/gitea/integrations \
   -o integrations.sqlite.test -tags 'sqlite' &&

@@ -8,7 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
@@ -41,18 +41,19 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.Error(404, "IsTimetrackerEnabled", "Timetracker is diabled")
+		ctx.NotFound("Timetracker is disabled")
 		return
 	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Error(404, "GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -92,6 +93,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//   in: path
 	//   description: index of the issue to add tracked time to
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
@@ -107,7 +109,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Error(404, "GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -163,14 +165,14 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404, "GetUserByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetUserByName", err)
 		}
 		return
 	}
 	if user == nil {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{

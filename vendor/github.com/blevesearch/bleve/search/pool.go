@@ -14,6 +14,17 @@
 
 package search
 
+import (
+	"reflect"
+)
+
+var reflectStaticSizeDocumentMatchPool int
+
+func init() {
+	var dmp DocumentMatchPool
+	reflectStaticSizeDocumentMatchPool = int(reflect.TypeOf(dmp).Size())
+}
+
 // DocumentMatchPoolTooSmall is a callback function that can be executed
 // when the DocumentMatchPool does not have sufficient capacity
 // By default we just perform just-in-time allocation, but you could log

@@ -1,7 +1,11 @@
 package models
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"io"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -14,6 +18,11 @@ type LFSMetaObject struct {
 	RepositoryID int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool           `xorm:"-"`
 	CreatedUnix  util.TimeStamp `xorm:"created"`
+}
+
+// Pointer returns the string representation of an LFS pointer file
+func (m *LFSMetaObject) Pointer() string {
+	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
@@ -44,20 +53,20 @@ const (
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	has, err := x.Get(m)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	has, err := sess.Get(m)
 	if err != nil {
 		return nil, err
 	}
 
 	if has {
 		m.Existing = true
-		return m, nil
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
+		return m, sess.Commit()
 	}
 
 	if _, err = sess.Insert(m); err != nil {
@@ -65,6 +74,16 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	}
 
 	return m, sess.Commit()
+}
+
+// GenerateLFSOid generates a Sha256Sum to represent an oid for arbitrary content
+func GenerateLFSOid(content io.Reader) (string, error) {
+	h := sha256.New()
+	if _, err := io.Copy(h, content); err != nil {
+		return "", err
+	}
+	sum := h.Sum(nil)
+	return hex.EncodeToString(sum), nil
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.

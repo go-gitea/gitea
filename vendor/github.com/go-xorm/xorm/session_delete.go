@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
@@ -77,6 +77,10 @@ func (session *Session) cacheDelete(table *core.Table, tableName, sqlStr string,
 func (session *Session) Delete(bean interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
+	}
+
+	if session.statement.lastError != nil {
+		return 0, session.statement.lastError
 	}
 
 	if err := session.statement.setRefBean(bean); err != nil {
@@ -199,7 +203,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		})
 	}
 
-	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
+	if cacher := session.engine.getCacher(tableNameNoQuote); cacher != nil && session.statement.UseCache {
 		session.cacheDelete(table, tableNameNoQuote, deleteSQL, argsForCache...)
 	}
 

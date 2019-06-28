@@ -30,7 +30,7 @@ import (
 
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/registry"
-	"github.com/boltdb/bolt"
+	bolt "github.com/etcd-io/bbolt"
 )
 
 const (
@@ -72,6 +72,12 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 	ro, ok := config["read_only"].(bool)
 	if ok {
 		bo.ReadOnly = ro
+	}
+
+	if initialMmapSize, ok := config["initialMmapSize"].(int); ok {
+		bo.InitialMmapSize = initialMmapSize
+	} else if initialMmapSize, ok := config["initialMmapSize"].(float64); ok {
+		bo.InitialMmapSize = int(initialMmapSize)
 	}
 
 	db, err := bolt.Open(path, 0600, bo)

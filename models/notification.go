@@ -119,14 +119,17 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		}
 	}
 
-	issue.loadRepo(e)
+	err = issue.loadRepo(e)
+	if err != nil {
+		return err
+	}
 
 	for _, watch := range watches {
 		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.CheckUnitUser(watch.UserID, false, UnitTypePullRequests) {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.CheckUnitUser(watch.UserID, false, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypeIssues) {
 			continue
 		}
 

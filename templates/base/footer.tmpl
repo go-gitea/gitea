@@ -46,13 +46,11 @@
 {{end}}
 {{if .EnableCaptcha}}
 	{{if eq .CaptchaType "recaptcha"}}
-		<script src="https://www.google.com/recaptcha/api.js" async></script>
+		<script src='{{ URLJoin .RecaptchaURL "api.js"}}' async></script>
 	{{end}}
 {{end}}
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
-
-	{{if .Assignees}}
 	<script>
 		var issuesTribute = new Tribute({
 			values: [
@@ -70,10 +68,12 @@
 				}
 				return itemStr;
 			}
-		})
-		issuesTribute.attach(document.getElementById('content'))
+		});
+		var content = document.getElementById('content');
+		if (content != null) {
+			issuesTribute.attach(content);
+		}
 	</script>
-	{{end}}
 	<script>
 		var emojiTribute = new Tribute({
 			collection: [{
@@ -96,7 +96,7 @@
 					return item;
 				},
 				selectTemplate: function (item) {
-					if (typeof item === 'undefinied') return null;
+					if (typeof item === 'undefined') return null;
 					return ':' + item.original + ':';
 				},
 				menuItemTemplate: function (item) {
@@ -104,7 +104,14 @@
 				}
 			}]
 		});
-		emojiTribute.attach(document.getElementById('content'))
+		var emojiInputs = document.querySelectorAll('.emoji-input');
+		if (emojiInputs.length > 0) {
+			emojiTribute.attach(emojiInputs);
+		}
+		var content = document.getElementById('content');
+		if (content != null) {
+			emojiTribute.attach(document.getElementById('content'));
+		}
 	</script>
 {{end}}
 	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>
@@ -114,6 +121,13 @@
 	<!-- JavaScript -->
 	<script src="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.js"></script>
 	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
+{{if .EnableHeatmap}}
+	<script src="{{AppSubUrl}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
+	<script type="text/javascript">
+		initHeatmap('user-heatmap', '{{.HeatmapUser}}');
+	</script>
+{{end}}
 {{template "custom/footer" .}}
 </body>
 </html>

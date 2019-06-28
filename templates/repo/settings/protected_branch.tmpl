@@ -103,6 +103,47 @@
 						</div>
 					{{end}}
 					</div>
+
+					<div class="field">
+						<label for="required-approvals">{{.i18n.Tr "repo.settings.protect_required_approvals"}}</label>
+						<input name="required_approvals" id="required-approvals" type="number" value="{{.Branch.RequiredApprovals}}">
+						<p class="help">{{.i18n.Tr "repo.settings.protect_required_approvals_desc"}}</p>
+					</div>
+					<div class="fields">
+						<div class="whitelist field">
+							<label>{{.i18n.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
+								<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="menu">
+								{{range .Users}}
+									<div class="item" data-value="{{.ID}}">
+										<img class="ui mini image" src="{{.RelAvatarLink}}">
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{if .Owner.IsOrganization}}
+						<br>
+						<div class="whitelist field">
+							<label>{{.i18n.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
+								<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="menu">
+								{{range .Teams}}
+									<div class="item" data-value="{{.ID}}">
+										<i class="octicon octicon-jersey"></i>
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+					</div>
 				</div>
 
 				<div class="ui divider"></div>

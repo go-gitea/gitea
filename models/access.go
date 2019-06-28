@@ -1,10 +1,15 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
+)
 
 // AccessMode specifies the users access mode
 type AccessMode int
@@ -35,6 +40,13 @@ func (mode AccessMode) String() string {
 	default:
 		return "none"
 	}
+}
+
+// ColorFormat provides a ColorFormatted version of this AccessMode
+func (mode AccessMode) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(mode),
+		mode)
 }
 
 // ParseAccessMode returns corresponding access mode to given permission string.
@@ -78,22 +90,6 @@ func accessLevel(e Engine, userID int64, repo *Repository) (AccessMode, error) {
 		return mode, err
 	}
 	return a.Mode, nil
-}
-
-// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
-// user does not have access.
-func AccessLevel(userID int64, repo *Repository) (AccessMode, error) {
-	return accessLevel(x, userID, repo)
-}
-
-func hasAccess(e Engine, userID int64, repo *Repository, testMode AccessMode) (bool, error) {
-	mode, err := accessLevel(e, userID, repo)
-	return testMode <= mode, err
-}
-
-// HasAccess returns true if user has access to repo
-func HasAccess(userID int64, repo *Repository, testMode AccessMode) (bool, error) {
-	return hasAccess(x, userID, repo, testMode)
 }
 
 type repoAccess struct {

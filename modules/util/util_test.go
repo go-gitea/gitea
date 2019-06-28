@@ -46,7 +46,7 @@ func TestURLJoin(t *testing.T) {
 }
 
 func TestIsExternalURL(t *testing.T) {
-	setting.Domain = "try.gitea.io"
+	setting.AppURL = "https://try.gitea.io"
 	type test struct {
 		Expected bool
 		RawURL   string
@@ -75,5 +75,22 @@ func TestIsExternalURL(t *testing.T) {
 			"/hey/hey/hey#3244"),
 	} {
 		assert.Equal(t, test.Expected, IsExternalURL(test.RawURL))
+	}
+}
+
+func TestIsEmptyString(t *testing.T) {
+
+	cases := []struct {
+		s        string
+		expected bool
+	}{
+		{"", true},
+		{" ", true},
+		{"   ", true},
+		{"  a", false},
+	}
+
+	for _, v := range cases {
+		assert.Equal(t, v.expected, IsEmptyString(v.s))
 	}
 }

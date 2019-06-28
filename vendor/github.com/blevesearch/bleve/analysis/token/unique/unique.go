@@ -21,7 +21,7 @@ import (
 
 const Name = "unique"
 
-// UniqueTermFilter retains only the tokens which mark the first occurence of
+// UniqueTermFilter retains only the tokens which mark the first occurrence of
 // a term. Tokens whose term appears in a preceding token are dropped.
 type UniqueTermFilter struct{}
 

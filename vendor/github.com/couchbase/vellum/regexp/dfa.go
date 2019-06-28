@@ -23,7 +23,7 @@ import (
 const StateLimit = 10000
 
 // ErrTooManyStates is returned if you attempt to build a Levenshtein
-// automaton which requries too many states.
+// automaton which requires too many states.
 var ErrTooManyStates = fmt.Errorf("dfa contains more than %d states",
 	StateLimit)
 
@@ -37,12 +37,12 @@ func newDfaBuilder(insts prog) *dfaBuilder {
 	d := &dfaBuilder{
 		dfa: &dfa{
 			insts:  insts,
-			states: make([]*state, 0, 16),
+			states: make([]state, 0, 16),
 		},
 		cache: make(map[string]int, 1024),
 	}
 	// add 0 state that is invalid
-	d.dfa.states = append(d.dfa.states, &state{
+	d.dfa.states = append(d.dfa.states, state{
 		next:  make([]int, 256),
 		match: false,
 	})
@@ -54,13 +54,15 @@ func (d *dfaBuilder) build() (*dfa, error) {
 	next := newSparseSet(uint(len(d.dfa.insts)))
 
 	d.dfa.add(cur, 0)
-	states := intStack{d.cachedState(cur)}
+	ns, instsReuse := d.cachedState(cur, nil)
+	states := intStack{ns}
 	seen := make(map[int]struct{})
 	var s int
 	states, s = states.Pop()
 	for s != 0 {
 		for b := 0; b < 256; b++ {
-			ns := d.runState(cur, next, s, byte(b))
+			var ns int
+			ns, instsReuse = d.runState(cur, next, s, byte(b), instsReuse)
 			if ns != 0 {
 				if _, ok := seen[ns]; !ok {
 					seen[ns] = struct{}{}
@@ -76,15 +78,17 @@ func (d *dfaBuilder) build() (*dfa, error) {
 	return d.dfa, nil
 }
 
-func (d *dfaBuilder) runState(cur, next *sparseSet, state int, b byte) int {
+func (d *dfaBuilder) runState(cur, next *sparseSet, state int, b byte, instsReuse []uint) (
+	int, []uint) {
 	cur.Clear()
 	for _, ip := range d.dfa.states[state].insts {
 		cur.Add(ip)
 	}
 	d.dfa.run(cur, next, b)
-	nextState := d.cachedState(next)
+	var nextState int
+	nextState, instsReuse = d.cachedState(next, instsReuse)
 	d.dfa.states[state].next[b] = nextState
-	return nextState
+	return nextState, instsReuse
 }
 
 func instsKey(insts []uint, buf []byte) []byte {
@@ -99,8 +103,12 @@ func instsKey(insts []uint, buf []byte) []byte {
 	return buf
 }
 
-func (d *dfaBuilder) cachedState(set *sparseSet) int {
-	var insts []uint
+func (d *dfaBuilder) cachedState(set *sparseSet,
+	instsReuse []uint) (int, []uint) {
+	insts := instsReuse[:0]
+	if cap(insts) == 0 {
+		insts = make([]uint, 0, set.Len())
+	}
 	var isMatch bool
 	for i := uint(0); i < uint(set.Len()); i++ {
 		ip := set.Get(i)
@@ -113,26 +121,26 @@ func (d *dfaBuilder) cachedState(set *sparseSet) int {
 		}
 	}
 	if len(insts) == 0 {
-		return 0
+		return 0, insts
 	}
 	d.keyBuf = instsKey(insts, d.keyBuf)
 	v, ok := d.cache[string(d.keyBuf)]
 	if ok {
-		return v
+		return v, insts
 	}
-	d.dfa.states = append(d.dfa.states, &state{
+	d.dfa.states = append(d.dfa.states, state{
 		insts: insts,
 		next:  make([]int, 256),
 		match: isMatch,
 	})
 	newV := len(d.dfa.states) - 1
 	d.cache[string(d.keyBuf)] = newV
-	return newV
+	return newV, nil
 }
 
 type dfa struct {
 	insts  prog
-	states []*state
+	states []state
 }
 
 func (d *dfa) add(set *sparseSet, ip uint) {

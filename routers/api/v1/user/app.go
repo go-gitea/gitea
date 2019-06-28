@@ -6,7 +6,7 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -36,10 +36,13 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 	apiTokens := make([]*api.AccessToken, len(tokens))
 	for i := range tokens {
+		if tokens[i].Name == "drone" {
+			tokens[i].Name = "drone-legacy-use-oauth2-instead"
+		}
 		apiTokens[i] = &api.AccessToken{
-			ID:   tokens[i].ID,
-			Name: tokens[i].Name,
-			Sha1: tokens[i].Sha1,
+			ID:             tokens[i].ID,
+			Name:           tokens[i].Name,
+			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
 	ctx.JSON(200, &apiTokens)
@@ -60,6 +63,15 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: accessToken
+	//   in: body
+	//   schema:
+	//     type: object
+	//     required:
+	//       - name
+	//     properties:
+	//       name:
+	//         type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"
@@ -67,14 +79,18 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+	if t.Name == "drone" {
+		t.Name = "drone-legacy-use-oauth2-instead"
+	}
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(500, "NewAccessToken", err)
 		return
 	}
 	ctx.JSON(201, &api.AccessToken{
-		Name: t.Name,
-		Sha1: t.Sha1,
-		ID:   t.ID,
+		Name:           t.Name,
+		Token:          t.Token,
+		ID:             t.ID,
+		TokenLastEight: t.TokenLastEight,
 	})
 }
 
@@ -95,6 +111,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	//   in: path
 	//   description: token to be deleted
 	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -102,7 +119,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID := ctx.ParamsInt64(":id")
 	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
 		if models.IsErrAccessTokenNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteAccessTokenByID", err)
 		}

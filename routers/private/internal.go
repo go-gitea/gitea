@@ -23,26 +23,63 @@ func CheckInternalToken(ctx *macaron.Context) {
 	}
 }
 
-// UpdatePublicKey update publick key updates
-func UpdatePublicKey(ctx *macaron.Context) {
-	keyID := ctx.ParamsInt64(":id")
-	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
+//GetRepositoryByOwnerAndName chainload to models.GetRepositoryByOwnerAndName
+func GetRepositoryByOwnerAndName(ctx *macaron.Context) {
+	//TODO use repo.Get(ctx *context.APIContext) ?
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, repo)
+}
+
+//CheckUnitUser chainload to models.CheckUnitUser
+func CheckUnitUser(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	userID := ctx.ParamsInt64(":userid")
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),
 		})
 		return
 	}
 
-	ctx.PlainText(200, []byte("success"))
+	var user *models.User
+	if userID > 0 {
+		user, err = models.GetUserByID(userID)
+		if err != nil {
+			ctx.JSON(500, map[string]interface{}{
+				"err": err.Error(),
+			})
+			return
+		}
+	}
+
+	perm, err := models.GetUserRepoPermission(repo, user)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(200, perm.UnitAccessMode(models.UnitType(ctx.QueryInt("unitType"))))
 }
 
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
-		m.Post("/ssh/:id/update", UpdatePublicKey)
-		m.Post("/push/update", PushUpdate)
-		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
-		m.Get("/branch/:id/*", GetProtectedBranchBy)
+		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
+		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
+		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
+		m.Get("/serv/none/:keyid", ServNoCommand)
+		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)
 }

@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -227,87 +228,104 @@ var zeroDateTime = []byte("0000-00-00 00:00:00.000000")
 const digits01 = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"
 const digits10 = "0000000000111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999"
 
-func formatBinaryDateTime(src []byte, length uint8, justTime bool) (driver.Value, error) {
+func appendMicrosecs(dst, src []byte, decimals int) []byte {
+	if decimals <= 0 {
+		return dst
+	}
+	if len(src) == 0 {
+		return append(dst, ".000000"[:decimals+1]...)
+	}
+
+	microsecs := binary.LittleEndian.Uint32(src[:4])
+	p1 := byte(microsecs / 10000)
+	microsecs -= 10000 * uint32(p1)
+	p2 := byte(microsecs / 100)
+	microsecs -= 100 * uint32(p2)
+	p3 := byte(microsecs)
+
+	switch decimals {
+	default:
+		return append(dst, '.',
+			digits10[p1], digits01[p1],
+			digits10[p2], digits01[p2],
+			digits10[p3], digits01[p3],
+		)
+	case 1:
+		return append(dst, '.',
+			digits10[p1],
+		)
+	case 2:
+		return append(dst, '.',
+			digits10[p1], digits01[p1],
+		)
+	case 3:
+		return append(dst, '.',
+			digits10[p1], digits01[p1],
+			digits10[p2],
+		)
+	case 4:
+		return append(dst, '.',
+			digits10[p1], digits01[p1],
+			digits10[p2], digits01[p2],
+		)
+	case 5:
+		return append(dst, '.',
+			digits10[p1], digits01[p1],
+			digits10[p2], digits01[p2],
+			digits10[p3],
+		)
+	}
+}
+
+func formatBinaryDateTime(src []byte, length uint8) (driver.Value, error) {
 	// length expects the deterministic length of the zero value,
 	// negative time and 100+ hours are automatically added if needed
 	if len(src) == 0 {
-		if justTime {
-			return zeroDateTime[11 : 11+length], nil
-		}
 		return zeroDateTime[:length], nil
 	}
-	var dst []byte          // return value
-	var pt, p1, p2, p3 byte // current digit pair
-	var zOffs byte          // offset of value in zeroDateTime
-	if justTime {
-		switch length {
-		case
-			8,                      // time (can be up to 10 when negative and 100+ hours)
-			10, 11, 12, 13, 14, 15: // time with fractional seconds
-		default:
-			return nil, fmt.Errorf("illegal TIME length %d", length)
+	var dst []byte      // return value
+	var p1, p2, p3 byte // current digit pair
+
+	switch length {
+	case 10, 19, 21, 22, 23, 24, 25, 26:
+	default:
+		t := "DATE"
+		if length > 10 {
+			t += "TIME"
 		}
-		switch len(src) {
-		case 8, 12:
-		default:
-			return nil, fmt.Errorf("invalid TIME packet length %d", len(src))
-		}
-		// +2 to enable negative time and 100+ hours
-		dst = make([]byte, 0, length+2)
-		if src[0] == 1 {
-			dst = append(dst, '-')
-		}
-		if src[1] != 0 {
-			hour := uint16(src[1])*24 + uint16(src[5])
-			pt = byte(hour / 100)
-			p1 = byte(hour - 100*uint16(pt))
-			dst = append(dst, digits01[pt])
-		} else {
-			p1 = src[5]
-		}
-		zOffs = 11
-		src = src[6:]
-	} else {
-		switch length {
-		case 10, 19, 21, 22, 23, 24, 25, 26:
-		default:
-			t := "DATE"
-			if length > 10 {
-				t += "TIME"
-			}
-			return nil, fmt.Errorf("illegal %s length %d", t, length)
-		}
-		switch len(src) {
-		case 4, 7, 11:
-		default:
-			t := "DATE"
-			if length > 10 {
-				t += "TIME"
-			}
-			return nil, fmt.Errorf("illegal %s packet length %d", t, len(src))
-		}
-		dst = make([]byte, 0, length)
-		// start with the date
-		year := binary.LittleEndian.Uint16(src[:2])
-		pt = byte(year / 100)
-		p1 = byte(year - 100*uint16(pt))
-		p2, p3 = src[2], src[3]
-		dst = append(dst,
-			digits10[pt], digits01[pt],
-			digits10[p1], digits01[p1], '-',
-			digits10[p2], digits01[p2], '-',
-			digits10[p3], digits01[p3],
-		)
-		if length == 10 {
-			return dst, nil
-		}
-		if len(src) == 4 {
-			return append(dst, zeroDateTime[10:length]...), nil
-		}
-		dst = append(dst, ' ')
-		p1 = src[4] // hour
-		src = src[5:]
+		return nil, fmt.Errorf("illegal %s length %d", t, length)
 	}
+	switch len(src) {
+	case 4, 7, 11:
+	default:
+		t := "DATE"
+		if length > 10 {
+			t += "TIME"
+		}
+		return nil, fmt.Errorf("illegal %s packet length %d", t, len(src))
+	}
+	dst = make([]byte, 0, length)
+	// start with the date
+	year := binary.LittleEndian.Uint16(src[:2])
+	pt := year / 100
+	p1 = byte(year - 100*uint16(pt))
+	p2, p3 = src[2], src[3]
+	dst = append(dst,
+		digits10[pt], digits01[pt],
+		digits10[p1], digits01[p1], '-',
+		digits10[p2], digits01[p2], '-',
+		digits10[p3], digits01[p3],
+	)
+	if length == 10 {
+		return dst, nil
+	}
+	if len(src) == 4 {
+		return append(dst, zeroDateTime[10:length]...), nil
+	}
+	dst = append(dst, ' ')
+	p1 = src[4] // hour
+	src = src[5:]
+
 	// p1 is 2-digit hour, src is after hour
 	p2, p3 = src[0], src[1]
 	dst = append(dst,
@@ -315,51 +333,49 @@ func formatBinaryDateTime(src []byte, length uint8, justTime bool) (driver.Value
 		digits10[p2], digits01[p2], ':',
 		digits10[p3], digits01[p3],
 	)
-	if length <= byte(len(dst)) {
-		return dst, nil
-	}
-	src = src[2:]
+	return appendMicrosecs(dst, src[2:], int(length)-20), nil
+}
+
+func formatBinaryTime(src []byte, length uint8) (driver.Value, error) {
+	// length expects the deterministic length of the zero value,
+	// negative time and 100+ hours are automatically added if needed
 	if len(src) == 0 {
-		return append(dst, zeroDateTime[19:zOffs+length]...), nil
+		return zeroDateTime[11 : 11+length], nil
 	}
-	microsecs := binary.LittleEndian.Uint32(src[:4])
-	p1 = byte(microsecs / 10000)
-	microsecs -= 10000 * uint32(p1)
-	p2 = byte(microsecs / 100)
-	microsecs -= 100 * uint32(p2)
-	p3 = byte(microsecs)
-	switch decimals := zOffs + length - 20; decimals {
+	var dst []byte // return value
+
+	switch length {
+	case
+		8,                      // time (can be up to 10 when negative and 100+ hours)
+		10, 11, 12, 13, 14, 15: // time with fractional seconds
 	default:
-		return append(dst, '.',
-			digits10[p1], digits01[p1],
-			digits10[p2], digits01[p2],
-			digits10[p3], digits01[p3],
-		), nil
-	case 1:
-		return append(dst, '.',
-			digits10[p1],
-		), nil
-	case 2:
-		return append(dst, '.',
-			digits10[p1], digits01[p1],
-		), nil
-	case 3:
-		return append(dst, '.',
-			digits10[p1], digits01[p1],
-			digits10[p2],
-		), nil
-	case 4:
-		return append(dst, '.',
-			digits10[p1], digits01[p1],
-			digits10[p2], digits01[p2],
-		), nil
-	case 5:
-		return append(dst, '.',
-			digits10[p1], digits01[p1],
-			digits10[p2], digits01[p2],
-			digits10[p3],
-		), nil
+		return nil, fmt.Errorf("illegal TIME length %d", length)
 	}
+	switch len(src) {
+	case 8, 12:
+	default:
+		return nil, fmt.Errorf("invalid TIME packet length %d", len(src))
+	}
+	// +2 to enable negative time and 100+ hours
+	dst = make([]byte, 0, length+2)
+	if src[0] == 1 {
+		dst = append(dst, '-')
+	}
+	days := binary.LittleEndian.Uint32(src[1:5])
+	hours := int64(days)*24 + int64(src[5])
+
+	if hours >= 100 {
+		dst = strconv.AppendInt(dst, hours, 10)
+	} else {
+		dst = append(dst, digits10[hours], digits01[hours])
+	}
+
+	min, sec := src[6], src[7]
+	dst = append(dst, ':',
+		digits10[min], digits01[min], ':',
+		digits10[sec], digits01[sec],
+	)
+	return appendMicrosecs(dst, src[8:], int(length)-9), nil
 }
 
 /******************************************************************************

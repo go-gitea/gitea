@@ -49,6 +49,10 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 	if err != nil {
 		return err
 	}
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+
 	if exists {
 		// Create tracked time out of the time difference between start date and actual date
 		timediff := time.Now().Unix() - int64(sw.CreatedUnix)
@@ -109,6 +113,10 @@ func CancelStopwatch(user *User, issue *Issue) error {
 
 	if exists {
 		if _, err := x.Delete(sw); err != nil {
+			return err
+		}
+
+		if err := issue.loadRepo(x); err != nil {
 			return err
 		}
 

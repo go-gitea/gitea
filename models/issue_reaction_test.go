@@ -99,7 +99,7 @@ func TestIssueReactionCount(t *testing.T) {
 	reactions := issue1.Reactions.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
 	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, "User One, User Two", reactions["heart"].GetFirstUsers())
+	assert.Equal(t, user1.DisplayName()+", "+user2.DisplayName(), reactions["heart"].GetFirstUsers())
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))

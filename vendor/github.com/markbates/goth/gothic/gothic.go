@@ -3,7 +3,7 @@ Package gothic wraps common behaviour when using Goth. This makes it quick, and 
 and running with Goth. Of course, if you want complete control over how things flow, in regards
 to the authentication process, feel free and use Goth directly.
 
-See https://github.com/markbates/goth/examples/main.go to see this in action.
+See https://github.com/markbates/goth/blob/master/examples/main.go to see this in action.
 */
 package gothic
 
