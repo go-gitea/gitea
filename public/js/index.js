@@ -2106,13 +2106,27 @@ $(document).ready(function () {
     });
 
     $('.issue-action').click(function () {
-        var action = this.dataset.action
-        var elementId = this.dataset.elementId
-        var issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
+        let action = this.dataset.action;
+        let elementId = this.dataset.elementId;
+        let issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
             return this.dataset.issueId;
         }).get().join();
-        var url = this.dataset.url
-        updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
+        let url = this.dataset.url;
+        updateIssuesMeta(url, action, issueIDs, elementId).then(function() {
+            if (action === "close" || action === "open" ){
+                //uncheck all checkboxes
+                $('.issue-checkbox input[type="checkbox"]').each(function(_,e){ e.checked = false; });
+            }
+            setTimeout(reload, 5);
+        });
+    });
+
+    // trigger ckecked event, if checkboxes are checked on load
+    $('.issue-checkbox input[type="checkbox"]:checked').first().each(function(_,e) {
+        e.checked = false;
+        setTimeout(function(){
+            $(e).click();
+        }, 5);
     });
 
     buttonsClickOnEnter();
