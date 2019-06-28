@@ -2881,7 +2881,7 @@ function initTopicbar() {
                 if (res.topics) {
                     formattedResponse.success = true;
                     for (let i=0;i < res.topics.length;i++) {
-                        if (res.topics[i].Name.toLowerCase() == query.toLowerCase()){
+                        if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
                             found_query = true;
                         }
                         formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
@@ -2891,7 +2891,16 @@ function initTopicbar() {
                 if (query.length > 0 && !found_query){
                     formattedResponse.success = true;
                     formattedResponse.results.unshift({"description": query, "data-value": query});
+                } else if (query.length > 0 && found_query) {
+                    formattedResponse.results.sort(function(a, b){
+                        if (a.description.toLowerCase() === query.toLowerCase()) return -1;
+                        if (b.description.toLowerCase() === query.toLowerCase()) return 1;
+                        if (a.description > b.description) return -1;
+                        if (a.description < b.description) return 1;
+                        return 0;
+                    });
                 }
+
 
                 return formattedResponse;
             },
