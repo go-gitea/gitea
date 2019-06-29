@@ -141,9 +141,10 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 			fields := strings.Fields(tagRef)
 			if strings.HasPrefix(fields[0], sha) && strings.HasPrefix(fields[1], TagPrefix) {
 				name := fields[1][len(TagPrefix):]
-				// annotated tags show up twice, their name for commit ID is suffixed with ^{}
-				name = strings.TrimSuffix(name, "^{}")
-				return name, nil
+				// annotated tags show up twice, we should only return if is not the ^{} ref
+				if !strings.HasSuffix(name, "^{}") {
+					return name, nil
+				}
 			}
 		}
 	}
