@@ -178,6 +178,7 @@ input{background:#2e323e}
 .ui.checkbox input:checked~.box:before,.ui.checkbox input:checked~label:before{background:#304251;opacity:1;color:#7f98ad;border-color:#304251}
 .ui.checkbox .box:hover::before,.ui.checkbox label:hover::before{background:#304251}
 .ui.checkbox .box:before,.ui.checkbox label:before{background:#304251;border:1px solid #304251}
+.ui.checkbox label:before{border-color:#476075}
 .ui.checkbox .box:active::before,.ui.checkbox label:active::before{background:#304251;border-color:rgba(34,36,38,.35)}
 .ui.checkbox input:focus~.box:before,.ui.checkbox input:focus~label:before{border-color:#304251;background:#304251}
 .ui.checkbox input:checked:focus~.box:before,.ui.checkbox input:checked:focus~label:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~.box:before,.ui.checkbox input:not([type=radio]):indeterminate:focus~label:before{border-color:#304251;background:#304251}
@@ -226,6 +227,18 @@ a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb
 .ui.comments .comment .author{color:#dbdbdb}
 .ui.comments .comment .metadata{color:#808084}
 .ui.comments .comment .text{color:#9e9e9e}
+.xdsoft_datetimepicker{background:#2a2e39;border:1px solid #4c505c;color:#9e9e9e}
+.xdsoft_datetimepicker .xdsoft_mounthpicker{height:36px;background:#464c5d;margin:-2px -8px 2px;padding:2px 8px 0}
+.xdsoft_datetimepicker .xdsoft_mounthpicker button{background-image:none;text-indent:0;text-align:center;color:#9e9e9e}
+.xdsoft_datetimepicker .xdsoft_mounthpicker button.xdsoft_prev::before{content:"\f0d9";font:normal normal normal 14px/1 FontAwesome,serif;font-size:1.7em}
+.xdsoft_datetimepicker .xdsoft_mounthpicker button.xdsoft_next::before{content:"\f0da";font:normal normal normal 14px/1 FontAwesome,serif;font-size:1.7em}
+.xdsoft_datetimepicker .xdsoft_mounthpicker button.xdsoft_today_button::before{content:"\f015";font:normal normal normal 14px/1 FontAwesome,serif;font-size:1.4em}
+.xdsoft_datetimepicker .xdsoft_mounthpicker>div.xdsoft_label{background:#464c5d}
+.xdsoft_datetimepicker .xdsoft_mounthpicker>div.xdsoft_label i{line-height:14px;background-image:none;text-indent:0;text-align:center}
+.xdsoft_datetimepicker .xdsoft_mounthpicker>div.xdsoft_label i ::before{content:"\f0dd";font:normal normal normal 14px/1 FontAwesome,serif;font-size:.7em}
+.xdsoft_datetimepicker .xdsoft_mounthpicker>div.xdsoft_label .xdsoft_select{background:#353945}
+.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td,.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar th{border-color:#4c505c;background-color:#2a2e39}
+.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td.xdsoft_disabled,.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td.xdsoft_other_month{opacity:.8;background:#a0cc75;color:#000}
 .heatmap-color-0{background-color:#2d303b}
 .CodeMirror{color:#9daccc;background-color:#2b2b2b;border-top:0}
 .CodeMirror div.CodeMirror-cursor{border-left:1px solid #9e9e9e}
