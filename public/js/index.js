@@ -1164,10 +1164,10 @@ function initWikiForm() {
                     name: "code-inline",
                     action: function(e){
                         let cm = e.codemirror;
-                        var selection = cm.getSelection();
+                        let selection = cm.getSelection();
                         cm.replaceSelection("`" + selection + "`");
                         if (!selection) {
-                            var cursorPos = cm.getCursor();
+                            let cursorPos = cm.getCursor();
                             cm.setCursor(cursorPos.line, cursorPos.ch - 1);
                         }
                         cm.focus();
