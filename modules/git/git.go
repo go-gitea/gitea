@@ -114,6 +114,18 @@ func Init() error {
 		GitExecutable, "config", "--global", "core.quotepath", "false"); err != nil {
 		return fmt.Errorf("Failed to execute 'git config --global core.quotepath false': %s", stderr)
 	}
+
+	if version.Compare(gitVersion, "2.18", ">=") {
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.commitGraph true)",
+			GitExecutable, "config", "--global", "core.commitGraph", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global core.commitGraph true': %s", stderr)
+		}
+
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global gc.writeCommitGraph true)",
+			GitExecutable, "config", "--global", "gc.writeCommitGraph", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global gc.writeCommitGraph true': %s", stderr)
+		}
+	}
 	return nil
 }
 
