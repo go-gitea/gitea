@@ -5,26 +5,52 @@
 package repofiles
 
 import (
+	"fmt"
 	"net/url"
+	"path"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// GetFileContents gets the meta data on a file's contents
-func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileContentResponse, error) {
+// ContentType repo content type
+type ContentType string
+
+// The string representations of different content types
+const (
+	// ContentTypeRegular regular content type (file)
+	ContentTypeRegular ContentType = "file"
+	// ContentTypeDir dir content type (dir)
+	ContentTypeDir ContentType = "dir"
+	// ContentLink link content type (symlink)
+	ContentTypeLink ContentType = "symlink"
+	// ContentTag submodule content type (submodule)
+	ContentTypeSubmodule ContentType = "submodule"
+)
+
+// String gets the string of ContentType
+func (ct *ContentType) String() string {
+	return string(*ct)
+}
+
+// GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
+// directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
+func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface{}, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
+	origRef := ref
 
 	// Check that the path given in opts.treePath is valid (not a git path)
-	treePath = CleanUploadFileName(treePath)
-	if treePath == "" {
+	cleanTreePath := CleanUploadFileName(treePath)
+	if cleanTreePath == "" && treePath != "" {
 		return nil, models.ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}
+	treePath = cleanTreePath
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
@@ -42,32 +68,145 @@ func GetFileContents(repo *models.Repository, treePath, ref string) (*api.FileCo
 		return nil, err
 	}
 
-	urlRef := ref
-	if _, err := gitRepo.GetBranchCommit(ref); err == nil {
-		urlRef = "branch/" + ref
+	if entry.Type() != "tree" {
+		return GetContents(repo, treePath, origRef, false)
 	}
 
-	selfURL, _ := url.Parse(repo.APIURL() + "/contents/" + treePath)
-	gitURL, _ := url.Parse(repo.APIURL() + "/git/blobs/" + entry.ID.String())
-	downloadURL, _ := url.Parse(repo.HTMLURL() + "/raw/" + urlRef + "/" + treePath)
-	htmlURL, _ := url.Parse(repo.HTMLURL() + "/blob/" + ref + "/" + treePath)
+	// We are in a directory, so we return a list of FileContentResponse objects
+	var fileList []*api.ContentsResponse
 
-	fileContent := &api.FileContentResponse{
-		Name:        entry.Name(),
-		Path:        treePath,
-		SHA:         entry.ID.String(),
-		Size:        entry.Size(),
-		URL:         selfURL.String(),
-		HTMLURL:     htmlURL.String(),
-		GitURL:      gitURL.String(),
-		DownloadURL: downloadURL.String(),
-		Type:        entry.Type(),
+	gitTree, err := commit.SubTree(treePath)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := gitTree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range entries {
+		subTreePath := path.Join(treePath, e.Name())
+		fileContentResponse, err := GetContents(repo, subTreePath, origRef, true)
+		if err != nil {
+			return nil, err
+		}
+		fileList = append(fileList, fileContentResponse)
+	}
+	return fileList, nil
+}
+
+// GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
+func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
+	if ref == "" {
+		ref = repo.DefaultBranch
+	}
+	origRef := ref
+
+	// Check that the path given in opts.treePath is valid (not a git path)
+	cleanTreePath := CleanUploadFileName(treePath)
+	if cleanTreePath == "" && treePath != "" {
+		return nil, models.ErrFilenameInvalid{
+			Path: treePath,
+		}
+	}
+	treePath = cleanTreePath
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the commit object for the ref
+	commit, err := gitRepo.GetCommit(ref)
+	if err != nil {
+		return nil, err
+	}
+	commitID := commit.ID.String()
+	if len(ref) >= 4 && strings.HasPrefix(commitID, ref) {
+		ref = commit.ID.String()
+	}
+
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	refType := gitRepo.GetRefType(ref)
+	if refType == "invalid" {
+		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", ref)
+	}
+
+	selfURL, err := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
+	if err != nil {
+		return nil, err
+	}
+	selfURLString := selfURL.String()
+
+	// All content types have these fields in populated
+	contentsResponse := &api.ContentsResponse{
+		Name: entry.Name(),
+		Path: treePath,
+		SHA:  entry.ID.String(),
+		Size: entry.Size(),
+		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
-			Self:    selfURL.String(),
-			GitURL:  gitURL.String(),
-			HTMLURL: htmlURL.String(),
+			Self: &selfURLString,
 		},
 	}
 
-	return fileContent, nil
+	// Now populate the rest of the ContentsResponse based on entry type
+	if entry.IsRegular() {
+		contentsResponse.Type = string(ContentTypeRegular)
+		if blobResponse, err := GetBlobBySHA(repo, entry.ID.String()); err != nil {
+			return nil, err
+		} else if !forList {
+			// We don't show the content if we are getting a list of FileContentResponses
+			contentsResponse.Encoding = &blobResponse.Encoding
+			contentsResponse.Content = &blobResponse.Content
+		}
+	} else if entry.IsDir() {
+		contentsResponse.Type = string(ContentTypeDir)
+	} else if entry.IsLink() {
+		contentsResponse.Type = string(ContentTypeLink)
+		// The target of a symlink file is the content of the file
+		targetFromContent, err := entry.Blob().GetBlobContent()
+		if err != nil {
+			return nil, err
+		}
+		contentsResponse.Target = &targetFromContent
+	} else if entry.IsSubModule() {
+		contentsResponse.Type = string(ContentTypeSubmodule)
+		submodule, err := commit.GetSubModule(treePath)
+		if err != nil {
+			return nil, err
+		}
+		contentsResponse.SubmoduleGitURL = &submodule.URL
+	}
+	// Handle links
+	if entry.IsRegular() || entry.IsLink() {
+		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		if err != nil {
+			return nil, err
+		}
+		downloadURLString := downloadURL.String()
+		contentsResponse.DownloadURL = &downloadURLString
+	}
+	if !entry.IsSubModule() {
+		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		if err != nil {
+			return nil, err
+		}
+		htmlURLString := htmlURL.String()
+		contentsResponse.HTMLURL = &htmlURLString
+		contentsResponse.Links.HTMLURL = &htmlURLString
+
+		gitURL, err := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
+		if err != nil {
+			return nil, err
+		}
+		gitURLString := gitURL.String()
+		contentsResponse.GitURL = &gitURLString
+		contentsResponse.Links.GitURL = &gitURLString
+	}
+
+	return contentsResponse, nil
 }
