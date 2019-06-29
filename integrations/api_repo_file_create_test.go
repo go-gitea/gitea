@@ -28,7 +28,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 		FileOptions: api.FileOptions{
 			BranchName:    "master",
 			NewBranchName: "master",
-			Message:       "Creates new/file.txt",
+			Message:       "Making this new file new/file.txt",
 			Author: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
@@ -150,6 +150,19 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test creating a file without a message
+		createFileOptions = getCreateFileOptions()
+		createFileOptions.Message = ""
+		fileID++
+		treePath = fmt.Sprintf("new/file%d.txt", fileID)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
+		resp = session.MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, &fileResponse)
+		expectedMessage := "Add '" + treePath + "'\n"
+		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail
 		createFileOptions = getCreateFileOptions()

@@ -25,8 +25,23 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	content := "This is updated text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return &api.UpdateFileOptions{
-		DeleteFileOptions: *getDeleteFileOptions(),
-		Content:           contentEncoded,
+		DeleteFileOptions: api.DeleteFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    "master",
+				NewBranchName: "master",
+				Message:       "My update of new/file.txt",
+				Author: api.Identity{
+					Name:  "John Doe",
+					Email: "johndoe@example.com",
+				},
+				Committer: api.Identity{
+					Name:  "Jane Doe",
+					Email: "janedoe@example.com",
+				},
+			},
+			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
+		},
+		Content: contentEncoded,
 	}
 }
 
@@ -67,7 +82,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 					Email: "johndoe@example.com",
 				},
 			},
-			Message: "Updates README.md\n",
+			Message: "My update of README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
@@ -140,6 +155,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
@@ -159,6 +175,20 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+
+		// Test updating a file without a message
+		updateFileOptions = getUpdateFileOptions()
+		updateFileOptions.Message = ""
+		updateFileOptions.BranchName = repo1.DefaultBranch
+		fileID++
+		treePath = fmt.Sprintf("update/file%d.txt", fileID)
+		createFile(user2, repo1, treePath)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &fileResponse)
+		expectedMessage := "Update '" + treePath + "'\n"
+		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA
 		fileID++
