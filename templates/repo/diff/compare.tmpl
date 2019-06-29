@@ -56,9 +56,11 @@
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
         	</div>
         {{else}}
+        	{{if not .Repository.IsArchived}}
         	<div class="ui info message show-form-container">
         		<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
         	</div>
+        	{{end}}
         	<div class="pullrequest-form" style="display: none">
         		{{template "repo/issue/new_form" .}}
         	</div>
