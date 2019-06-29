@@ -776,6 +776,20 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
+// GetLatestPullRequestByHeadInfo returns the latest pull request (regardless of its status)
+// by given head information (repo and branch).
+func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
+	pr := new(PullRequest)
+	has, err := x.
+		Where("head_repo_id = ? AND head_branch = ?", repoID, branch).
+		OrderBy("id DESC").
+		Get(pr)
+	if !has {
+		return nil, err
+	}
+	return pr, err
+}
+
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
