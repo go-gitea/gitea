@@ -11,21 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-// ErrFileTypeForbidden not allowed file type error
-type ErrFileTypeForbidden struct {
-	Type string
-}
-
-// IsErrFileTypeForbidden checks if an error is a ErrFileTypeForbidden.
-func IsErrFileTypeForbidden(err error) bool {
-	_, ok := err.(ErrFileTypeForbidden)
-	return ok
-}
-
-func (err ErrFileTypeForbidden) Error() string {
-	return fmt.Sprintf("File type is not allowed: %s", err.Type)
-}
-
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
 	Name string

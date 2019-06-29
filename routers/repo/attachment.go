@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/modules/upload"
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
@@ -43,7 +43,7 @@ func UploadAttachment(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	err = utils.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
 	if err != nil {
 		ctx.Error(400, err.Error())
 		return

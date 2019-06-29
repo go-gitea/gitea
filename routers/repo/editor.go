@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -596,7 +596,7 @@ func UploadFileToServer(ctx *context.Context) {
 	}
 
 	if len(setting.Repository.Upload.AllowedTypes) > 0 {
-		err = utils.VerifyAllowedContentType(buf, setting.Repository.Upload.AllowedTypes)
+		err = upload.VerifyAllowedContentType(buf, setting.Repository.Upload.AllowedTypes)
 		if err != nil {
 			ctx.Error(400, err.Error())
 			return

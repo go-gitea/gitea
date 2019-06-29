@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/utils"
 
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -176,7 +176,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if the filetype is allowed by the settings
-	err = utils.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
 	if err != nil {
 		ctx.Error(400, "DetectContentType", err)
 		return
