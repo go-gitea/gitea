@@ -358,6 +358,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				reactions = convertGithubReactions(comment.Reactions)
 			}
 			allComments = append(allComments, &base.Comment{
+				IssueIndex:  issueNumber,
 				PosterName:  *comment.User.Login,
 				PosterEmail: email,
 				Content:     *comment.Body,
