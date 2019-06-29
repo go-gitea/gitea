@@ -76,238 +76,280 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool)
 	return err
 }
 
-// CreateMilestone creates milestone
-func (g *GiteaLocalUploader) CreateMilestone(milestone *base.Milestone) error {
-	var deadline util.TimeStamp
-	if milestone.Deadline != nil {
-		deadline = util.TimeStamp(milestone.Deadline.Unix())
+// CreateMilestones creates milestones
+func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+	var mss = make([]*models.Milestone, 0, len(milestones))
+	for _, milestone := range milestones {
+		var deadline util.TimeStamp
+		if milestone.Deadline != nil {
+			deadline = util.TimeStamp(milestone.Deadline.Unix())
+		}
+		if deadline == 0 {
+			deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
+		}
+		var ms = models.Milestone{
+			RepoID:       g.repo.ID,
+			Name:         milestone.Title,
+			Content:      milestone.Description,
+			IsClosed:     milestone.State == "close",
+			DeadlineUnix: deadline,
+		}
+		if ms.IsClosed && milestone.Closed != nil {
+			ms.ClosedDateUnix = util.TimeStamp(milestone.Closed.Unix())
+		}
+		mss = append(mss, &ms)
 	}
-	if deadline == 0 {
-		deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
-	}
-	var ms = models.Milestone{
-		RepoID:       g.repo.ID,
-		Name:         milestone.Title,
-		Content:      milestone.Description,
-		IsClosed:     milestone.State == "close",
-		DeadlineUnix: deadline,
-	}
-	if ms.IsClosed && milestone.Closed != nil {
-		ms.ClosedDateUnix = util.TimeStamp(milestone.Closed.Unix())
-	}
-	err := models.NewMilestone(&ms)
 
+	err := models.InsertMilestones(mss...)
 	if err != nil {
 		return err
 	}
-	g.milestones.Store(ms.Name, ms.ID)
+
+	for _, ms := range mss {
+		g.milestones.Store(ms.Name, ms.ID)
+	}
 	return nil
 }
 
-// CreateLabel creates label
-func (g *GiteaLocalUploader) CreateLabel(label *base.Label) error {
-	var lb = models.Label{
-		RepoID:      g.repo.ID,
-		Name:        label.Name,
-		Description: label.Description,
-		Color:       fmt.Sprintf("#%s", label.Color),
+// CreateLabels creates labels
+func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
+	var lbs = make([]*models.Label, 0, len(labels))
+	for _, label := range labels {
+		lbs = append(lbs, &models.Label{
+			RepoID:      g.repo.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       fmt.Sprintf("#%s", label.Color),
+		})
 	}
-	err := models.NewLabel(&lb)
+
+	err := models.NewLabels(lbs...)
 	if err != nil {
 		return err
 	}
-	g.labels.Store(lb.Name, lb.ID)
+	for _, lb := range lbs {
+		g.labels.Store(lb.Name, lb)
+	}
 	return nil
 }
 
-// CreateRelease creates release
-func (g *GiteaLocalUploader) CreateRelease(release *base.Release) error {
-	var rel = models.Release{
-		RepoID:       g.repo.ID,
-		PublisherID:  g.doer.ID,
-		TagName:      release.TagName,
-		LowerTagName: strings.ToLower(release.TagName),
-		Target:       release.TargetCommitish,
-		Title:        release.Name,
-		Sha1:         release.TargetCommitish,
-		Note:         release.Body,
-		IsDraft:      release.Draft,
-		IsPrerelease: release.Prerelease,
-		IsTag:        false,
-		CreatedUnix:  util.TimeStamp(release.Created.Unix()),
-	}
-
-	// calc NumCommits
-	commit, err := g.gitRepo.GetCommit(rel.TagName)
-	if err != nil {
-		return fmt.Errorf("GetCommit: %v", err)
-	}
-	rel.NumCommits, err = commit.CommitsCount()
-	if err != nil {
-		return fmt.Errorf("CommitsCount: %v", err)
-	}
-
-	for _, asset := range release.Assets {
-		var attach = models.Attachment{
-			UUID:          gouuid.NewV4().String(),
-			Name:          asset.Name,
-			DownloadCount: int64(*asset.DownloadCount),
-			Size:          int64(*asset.Size),
-			CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
+// CreateReleases creates releases
+func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+	var rels = make([]*models.Release, 0, len(releases))
+	for _, release := range releases {
+		var rel = models.Release{
+			RepoID:       g.repo.ID,
+			PublisherID:  g.doer.ID,
+			TagName:      release.TagName,
+			LowerTagName: strings.ToLower(release.TagName),
+			Target:       release.TargetCommitish,
+			Title:        release.Name,
+			Sha1:         release.TargetCommitish,
+			Note:         release.Body,
+			IsDraft:      release.Draft,
+			IsPrerelease: release.Prerelease,
+			IsTag:        false,
+			CreatedUnix:  util.TimeStamp(release.Created.Unix()),
 		}
 
-		// download attachment
-		resp, err := http.Get(asset.URL)
+		// calc NumCommits
+		commit, err := g.gitRepo.GetCommit(rel.TagName)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetCommit: %v", err)
 		}
-		defer resp.Body.Close()
-
-		localPath := attach.LocalPath()
-		if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-			return fmt.Errorf("MkdirAll: %v", err)
-		}
-
-		fw, err := os.Create(localPath)
+		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
-			return fmt.Errorf("Create: %v", err)
-		}
-		defer fw.Close()
-
-		if _, err := io.Copy(fw, resp.Body); err != nil {
-			return err
+			return fmt.Errorf("CommitsCount: %v", err)
 		}
 
-		rel.Attachments = append(rel.Attachments, &attach)
+		for _, asset := range release.Assets {
+			var attach = models.Attachment{
+				UUID:          gouuid.NewV4().String(),
+				Name:          asset.Name,
+				DownloadCount: int64(*asset.DownloadCount),
+				Size:          int64(*asset.Size),
+				CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
+			}
+
+			// download attachment
+			resp, err := http.Get(asset.URL)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			localPath := attach.LocalPath()
+			if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
+				return fmt.Errorf("MkdirAll: %v", err)
+			}
+
+			fw, err := os.Create(localPath)
+			if err != nil {
+				return fmt.Errorf("Create: %v", err)
+			}
+			defer fw.Close()
+
+			if _, err := io.Copy(fw, resp.Body); err != nil {
+				return err
+			}
+
+			rel.Attachments = append(rel.Attachments, &attach)
+		}
+
+		rels = append(rels, &rel)
 	}
-
-	return models.MigrateRelease(&rel)
+	return models.InsertReleases(rels...)
 }
 
-// CreateIssue creates issue
-func (g *GiteaLocalUploader) CreateIssue(issue *base.Issue) error {
-	var labelIDs []int64
-	for _, label := range issue.Labels {
-		id, ok := g.labels.Load(label.Name)
-		if !ok {
-			return fmt.Errorf("Label %s missing when create issue", label.Name)
+// CreateIssues creates issues
+func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+	var iss = make([]*models.Issue, 0, len(issues))
+	for _, issue := range issues {
+		var labels []*models.Label
+		for _, label := range issue.Labels {
+			lb, ok := g.labels.Load(label.Name)
+			if ok {
+				labels = append(labels, lb.(*models.Label))
+			}
 		}
-		labelIDs = append(labelIDs, id.(int64))
-	}
 
-	var milestoneID int64
-	if issue.Milestone != "" {
-		milestone, ok := g.milestones.Load(issue.Milestone)
-		if !ok {
-			return fmt.Errorf("Milestone %s missing when create issue", issue.Milestone)
+		var milestoneID int64
+		if issue.Milestone != "" {
+			milestone, ok := g.milestones.Load(issue.Milestone)
+			if ok {
+				milestoneID = milestone.(int64)
+			}
 		}
-		milestoneID = milestone.(int64)
+
+		var is = models.Issue{
+			RepoID:      g.repo.ID,
+			Repo:        g.repo,
+			Index:       issue.Number,
+			PosterID:    g.doer.ID,
+			Title:       issue.Title,
+			Content:     issue.Content,
+			IsClosed:    issue.State == "closed",
+			IsLocked:    issue.IsLocked,
+			MilestoneID: milestoneID,
+			Labels:      labels,
+			CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+		}
+		if issue.Closed != nil {
+			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
+		}
+		// TODO: add reactions
+		iss = append(iss, &is)
 	}
 
-	var is = models.Issue{
-		RepoID:      g.repo.ID,
-		Repo:        g.repo,
-		Index:       issue.Number,
-		PosterID:    g.doer.ID,
-		Title:       issue.Title,
-		Content:     issue.Content,
-		IsClosed:    issue.State == "closed",
-		IsLocked:    issue.IsLocked,
-		MilestoneID: milestoneID,
-		CreatedUnix: util.TimeStamp(issue.Created.Unix()),
-	}
-	if issue.Closed != nil {
-		is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
-	}
-
-	err := models.InsertIssue(&is, labelIDs)
+	err := models.InsertIssues(iss...)
 	if err != nil {
 		return err
 	}
-	g.issues.Store(issue.Number, is.ID)
-	// TODO: add reactions
-	return err
+	for _, is := range iss {
+		g.issues.Store(is.Index, is.ID)
+	}
+	return nil
 }
 
-// CreateComment creates comment
-func (g *GiteaLocalUploader) CreateComment(issueNumber int64, comment *base.Comment) error {
-	var issueID int64
-	if issueIDStr, ok := g.issues.Load(issueNumber); !ok {
-		issue, err := models.GetIssueByIndex(g.repo.ID, issueNumber)
+// CreateComments creates comments of issues
+func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+	var cms = make([]*models.Comment, 0, len(comments))
+	for _, comment := range comments {
+		var issueID int64
+		if issueIDStr, ok := g.issues.Load(comment.IssueIndex); !ok {
+			issue, err := models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
+			if err != nil {
+				return err
+			}
+			issueID = issue.ID
+			g.issues.Store(comment.IssueIndex, issueID)
+		} else {
+			issueID = issueIDStr.(int64)
+		}
+
+		cms = append(cms, &models.Comment{
+			IssueID:     issueID,
+			Type:        models.CommentTypeComment,
+			PosterID:    g.doer.ID,
+			Content:     comment.Content,
+			CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+		})
+
+		// TODO: Reactions
+	}
+
+	return models.InsertIssueComments(cms)
+}
+
+// CreatePullRequests creates pull requests
+func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+	var gprs = make([]*models.PullRequest, 0, len(prs))
+	for _, pr := range prs {
+		gpr, err := g.newPullRequest(pr)
 		if err != nil {
 			return err
 		}
-		issueID = issue.ID
-		g.issues.Store(issueNumber, issueID)
-	} else {
-		issueID = issueIDStr.(int64)
+		gprs = append(gprs, gpr)
 	}
-
-	var cm = models.Comment{
-		IssueID:     issueID,
-		Type:        models.CommentTypeComment,
-		PosterID:    g.doer.ID,
-		Content:     comment.Content,
-		CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+	if err := models.InsertPullRequests(gprs...); err != nil {
+		return err
 	}
-	err := models.InsertComment(&cm)
-	// TODO: Reactions
-	return err
+	for _, pr := range gprs {
+		g.issues.Store(pr.Issue.Index, pr.Issue.ID)
+	}
+	return nil
 }
 
-// CreatePullRequest creates pull request
-func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
-	var labelIDs []int64
+func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
+	var labels []*models.Label
 	for _, label := range pr.Labels {
-		id, ok := g.labels.Load(label.Name)
-		if !ok {
-			return fmt.Errorf("Label %s missing when create issue", label.Name)
+		lb, ok := g.labels.Load(label.Name)
+		if ok {
+			labels = append(labels, lb.(*models.Label))
 		}
-		labelIDs = append(labelIDs, id.(int64))
 	}
 
 	var milestoneID int64
 	if pr.Milestone != "" {
 		milestone, ok := g.milestones.Load(pr.Milestone)
-		if !ok {
-			return fmt.Errorf("Milestone %s missing when create issue", pr.Milestone)
+		if ok {
+			milestoneID = milestone.(int64)
 		}
-		milestoneID = milestone.(int64)
 	}
 
 	// download patch file
 	resp, err := http.Get(pr.PatchURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
 	if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-		return err
+		return nil, err
 	}
 	f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
 	_, err = io.Copy(f, resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// set head information
 	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
 	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-		return err
+		return nil, err
 	}
 	p, err := os.Create(filepath.Join(pullHead, "head"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer p.Close()
 	_, err = p.WriteString(pr.Head.SHA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var head = "unknown repository"
@@ -333,16 +375,16 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 				} else {
 					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
 					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return err
+						return nil, err
 					}
 					b, err := os.Create(headBranch)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					defer b.Close()
 					_, err = b.WriteString(pr.Head.SHA)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					head = pr.Head.OwnerName + "/" + pr.Head.Ref
 				}
@@ -373,6 +415,7 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 			IsPull:      true,
 			IsClosed:    pr.State == "closed",
 			IsLocked:    pr.IsLocked,
+			Labels:      labels,
 			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
 		},
 	}
@@ -389,7 +432,7 @@ func (g *GiteaLocalUploader) CreatePullRequest(pr *base.PullRequest) error {
 	// TODO: reactions
 	// TODO: assignees
 
-	return models.InsertPullRequest(&pullRequest, labelIDs)
+	return &pullRequest, nil
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
