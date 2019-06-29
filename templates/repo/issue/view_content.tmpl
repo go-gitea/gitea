@@ -70,7 +70,7 @@
 				{{ template "repo/issue/view_content/pull". }}
 			{{end}}
 			{{if .IsSigned}}
-				{{ if or .IsRepoAdmin .IsRepoIssuesWriter (or (not .Issue.IsLocked)) }}
+				{{ if and (or .IsRepoAdmin .IsRepoIssuesWriter (or (not .Issue.IsLocked))) (not .Repository.IsArchived) }}
 				<div class="comment form">
 					<a class="avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
@@ -111,6 +111,7 @@
 				</div>
 			{{else}}
 				{{if .IsSigned}}
+					{{if .Repository.IsArchived}}
 					<div class="comment form">
 						<a class="avatar" href="{{.SignedUser.HomeLink}}">
 							<img src="{{.SignedUser.RelAvatarLink}}">
@@ -139,6 +140,7 @@
 							</form>
 						</div>
 					</div>
+					{{end}}
 				{{else}}
 					<div class="ui warning message">
 						{{.i18n.Tr "repo.issues.sign_in_require_desc" .SignInLink | Safe}}
