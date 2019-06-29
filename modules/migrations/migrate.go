@@ -91,10 +91,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, milestone := range milestones {
-			if err := uploader.CreateMilestone(milestone); err != nil {
-				return err
-			}
+		if err := uploader.CreateMilestones(milestones...); err != nil {
+			return err
 		}
 	}
 
@@ -105,10 +103,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, label := range labels {
-			if err := uploader.CreateLabel(label); err != nil {
-				return err
-			}
+		if err := uploader.CreateLabels(labels...); err != nil {
+			return err
 		}
 	}
 
@@ -119,10 +115,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, release := range releases {
-			if err := uploader.CreateRelease(release); err != nil {
-				return err
-			}
+		if err := uploader.CreateReleases(releases...); err != nil {
+			return err
 		}
 	}
 
@@ -137,15 +131,18 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				if !opts.IgnoreIssueAuthor {
 					issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
 				}
+			}
 
-				if err := uploader.CreateIssue(issue); err != nil {
-					return err
-				}
+			if err := uploader.CreateIssues(issues...); err != nil {
+				return err
+			}
 
-				if !opts.Comments {
-					continue
-				}
+			if !opts.Comments {
+				continue
+			}
 
+			var allComments = make([]*base.Comment, 0, 100)
+			for _, issue := range issues {
 				comments, err := downloader.GetComments(issue.Number)
 				if err != nil {
 					return err
@@ -154,9 +151,20 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					if !opts.IgnoreIssueAuthor {
 						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
 					}
-					if err := uploader.CreateComment(issue.Number, comment); err != nil {
+				}
+				allComments = append(allComments, comments...)
+
+				if len(allComments) >= 100 {
+					if err := uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
+					allComments = make([]*base.Comment, 0, 100)
+				}
+			}
+
+			if len(allComments) > 0 {
+				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
 				}
 			}
 
@@ -178,13 +186,17 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				if !opts.IgnoreIssueAuthor {
 					pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
 				}
-				if err := uploader.CreatePullRequest(pr); err != nil {
-					return err
-				}
-				if !opts.Comments {
-					continue
-				}
+			}
+			if err := uploader.CreatePullRequests(prs...); err != nil {
+				return err
+			}
 
+			if !opts.Comments {
+				continue
+			}
+
+			var allComments = make([]*base.Comment, 0, 100)
+			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
 				if err != nil {
 					return err
@@ -193,11 +205,23 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					if !opts.IgnoreIssueAuthor {
 						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
 					}
-					if err := uploader.CreateComment(pr.Number, comment); err != nil {
+				}
+
+				allComments = append(allComments, comments...)
+
+				if len(allComments) >= 100 {
+					if err := uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
+					allComments = make([]*base.Comment, 0, 100)
 				}
 			}
+			if len(allComments) > 0 {
+				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
+				}
+			}
+
 			if len(prs) < 100 {
 				break
 			}

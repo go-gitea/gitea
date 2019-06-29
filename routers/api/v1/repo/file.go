@@ -204,6 +204,11 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.add", opts.TreePath)
+	}
+
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateFile", err)
 	} else {
@@ -262,6 +267,10 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.update", opts.TreePath)
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
@@ -344,6 +353,10 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
 	}
 
 	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
