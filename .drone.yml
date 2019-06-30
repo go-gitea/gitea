@@ -85,22 +85,12 @@ steps:
     commands:
       - make css
       - make js
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: build-without-gcc
     pull: always
     image: golang:1.10 # this step is kept as the lowest version of golang that we support
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: build
     pull: always
@@ -116,11 +106,6 @@ steps:
       - make build
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: unit-test
     pull: always
@@ -179,11 +164,6 @@ steps:
       TAGS: bindata
     depends_on:
       - build
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: test-mysql
     pull: always
@@ -235,11 +215,6 @@ steps:
       TEST_LDAP: 1
     depends_on:
       - build
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: test-pgsql
     pull: always
@@ -254,11 +229,6 @@ steps:
       TEST_LDAP: 1
     depends_on:
       - build
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: test-mssql
     pull: always
@@ -273,11 +243,6 @@ steps:
       TEST_LDAP: 1
     depends_on:
       - build
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: generate-coverage
     pull: always
@@ -416,10 +381,6 @@ steps:
       - make release
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
-    when:
-      event:
-        - push
-        - tag
 
   - name: gpg-sign
     pull: always
@@ -523,9 +484,6 @@ steps:
         from_secret: github_token
     depends_on:
       - gpg-sign
-    when:
-      event:
-        - tag
 
 ---
 kind: pipeline
