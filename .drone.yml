@@ -322,9 +322,10 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
+  branch:
+    - master
   event:
-    exclude:
-      - pull_request
+    - push
 
 steps:
   - name: download
@@ -386,9 +387,10 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
+  branch:
+    - master
   event:
-    exclude:
-      - pull_request
+    - push
 
 depends_on:
   - testing
@@ -533,9 +535,10 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
+  branch:
+    - master
   event:
-    exclude:
-      - pull_request
+    - push
 
 steps:
   - name: build-docs
@@ -568,11 +571,6 @@ platform:
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
-
-when:
-  event:
-    exclude:
-      - pull_request
 
 steps:
   - name: fetch-tags
@@ -628,6 +626,8 @@ steps:
     depends_on:
       - dryrun
     when:
+      branch:
+        - master
       event:
         - push
         - tag
@@ -651,9 +651,9 @@ when:
 
 depends_on:
   - testing
-  - docker
   - translations
   - release
+  - docker
   - docs
 
 steps:
