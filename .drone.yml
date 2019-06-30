@@ -563,8 +563,6 @@ steps:
       cache_from: gitea/gitea
       dry_run: true
       repo: gitea/gitea
-    depends_on:
-      - build
     when:
       event:
         - pull_request
@@ -583,7 +581,7 @@ steps:
       DOCKER_USERNAME:
         from_secret: docker_username
     depends_on:
-      - build
+      - dryrun
     when:
       branch:
         - "release/*"
@@ -603,7 +601,7 @@ steps:
       DOCKER_USERNAME:
         from_secret: docker_username
     depends_on:
-      - build
+      - dryrun
     when:
       event:
         - push
