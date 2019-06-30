@@ -5,14 +5,14 @@
 
 package base
 
-// Uploader uploads all the informations
+// Uploader uploads all the informations of one repository
 type Uploader interface {
 	CreateRepo(repo *Repository, includeWiki bool) error
-	CreateMilestone(milestone *Milestone) error
-	CreateRelease(release *Release) error
-	CreateLabel(label *Label) error
-	CreateIssue(issue *Issue) error
-	CreateComment(issueNumber int64, comment *Comment) error
-	CreatePullRequest(pr *PullRequest) error
+	CreateMilestones(milestones ...*Milestone) error
+	CreateReleases(releases ...*Release) error
+	CreateLabels(labels ...*Label) error
+	CreateIssues(issues ...*Issue) error
+	CreateComments(comments ...*Comment) error
+	CreatePullRequests(prs ...*PullRequest) error
 	Rollback() error
 }
