@@ -39,6 +39,14 @@ Gitea parses queries and headers to find the token in
 You can create an API key token via your Gitea installation's web interface:
 `Settings | Applications | Generate New Token`.
 
+### OAuth2
+
+Access tokens obtained from Gitea's [OAuth2 provider](https://docs.gitea.io/en-us/oauth2-provider) are accepted by these methods:
+
+- `Authorization bearer ...` header in HTTP headers
+- `token=...` parameter in URL query string
+- `access_token=...` parameter in URL query string
+
 ### More on the `Authorization:` header
 
 For historical reasons, Gitea needs the word `token` included before
@@ -72,6 +80,12 @@ using BasicAuth, as follows:
 ```
 $ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 [{"name":"test","sha1":"..."},{"name":"dev","sha1":"..."}]
+```
+
+As of v1.8.0 of Gitea, if using basic authentication with the API and your user has two factor authentication enabled, you'll need to send an additional header that contains the one time password (6 digit rotating token). An example of the header is `X-Gitea-OTP: 123456` where `123456` is where you'd place the code from your authenticator. Here is how the request would look like in curl:
+
+```
+$ curl -H "X-Gitea-OTP: 123456" --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 ```
 
 ## Sudo

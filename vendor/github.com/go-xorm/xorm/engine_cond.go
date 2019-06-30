@@ -6,14 +6,13 @@ package xorm
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func (engine *Engine) buildConds(table *core.Table, bean interface{},
@@ -147,7 +146,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 			} else {
 				if col.SQLType.IsJson() {
 					if col.SQLType.IsText() {
-						bytes, err := json.Marshal(fieldValue.Interface())
+						bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 						if err != nil {
 							engine.logger.Error(err)
 							continue
@@ -156,7 +155,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 					} else if col.SQLType.IsBlob() {
 						var bytes []byte
 						var err error
-						bytes, err = json.Marshal(fieldValue.Interface())
+						bytes, err = DefaultJSONHandler.Marshal(fieldValue.Interface())
 						if err != nil {
 							engine.logger.Error(err)
 							continue
@@ -195,7 +194,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 			}
 
 			if col.SQLType.IsText() {
-				bytes, err := json.Marshal(fieldValue.Interface())
+				bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 				if err != nil {
 					engine.logger.Error(err)
 					continue
@@ -212,7 +211,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 						continue
 					}
 				} else {
-					bytes, err = json.Marshal(fieldValue.Interface())
+					bytes, err = DefaultJSONHandler.Marshal(fieldValue.Interface())
 					if err != nil {
 						engine.logger.Error(err)
 						continue

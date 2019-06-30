@@ -5,6 +5,8 @@
 package setting
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -134,6 +136,23 @@ func DeleteOAuth2Application(ctx *context.Context) {
 	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/applications",
+	})
+}
+
+// RevokeOAuth2Grant revokes the grant with the given id
+func RevokeOAuth2Grant(ctx *context.Context) {
+	if ctx.User.ID == 0 || ctx.QueryInt64("id") == 0 {
+		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
+		return
+	}
+	if err := models.RevokeOAuth2Grant(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+		ctx.ServerError("RevokeOAuth2Grant", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})

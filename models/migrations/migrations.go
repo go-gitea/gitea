@@ -221,6 +221,16 @@ var migrations = []Migration{
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 	// v83 -> v84
 	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
+	// v84 -> v85
+	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
+	// v85 -> v86
+	NewMigration("hash application token", hashAppToken),
+	// v86 -> v87
+	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	// v87 -> v88
+	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
+	// v88 -> v89
+	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
 }
 
 // Migrate database to current version
@@ -258,7 +268,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration: %s", m.Description())
+		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
@@ -391,7 +401,7 @@ func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 			return fmt.Errorf("marshal action content[%d]: %v", actID, err)
 		}
 
-		if _, err = sess.Id(actID).Update(&Action{
+		if _, err = sess.ID(actID).Update(&Action{
 			Content: string(p),
 		}); err != nil {
 			return fmt.Errorf("update action[%d]: %v", actID, err)
@@ -495,7 +505,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 
 	// Update database first because this is where error happens the most often.
 	for _, attach := range attachments {
-		if _, err = sess.Id(attach.ID).Update(attach); err != nil {
+		if _, err = sess.ID(attach.ID).Update(attach); err != nil {
 			return err
 		}
 
@@ -573,7 +583,7 @@ func renamePullRequestFields(x *xorm.Engine) (err error) {
 		if pull.Index == 0 {
 			continue
 		}
-		if _, err = sess.Id(pull.ID).Update(pull); err != nil {
+		if _, err = sess.ID(pull.ID).Update(pull); err != nil {
 			return err
 		}
 	}
@@ -653,7 +663,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if _, err = sess.Id(org.ID).Update(org); err != nil {
+		if _, err = sess.ID(org.ID).Update(org); err != nil {
 			return err
 		}
 	}

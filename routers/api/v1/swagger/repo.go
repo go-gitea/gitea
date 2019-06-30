@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // Repository
@@ -38,9 +38,23 @@ type swaggerResponseBranchList struct {
 
 // TagList
 // swagger:response TagList
-type swaggerReponseTagList struct {
+type swaggerResponseTagList struct {
 	// in:body
 	Body []api.Tag `json:"body"`
+}
+
+// Tag
+// swagger:response Tag
+type swaggerResponseTag struct {
+	// in:body
+	Body api.Tag `json:"body"`
+}
+
+// AnnotatedTag
+// swagger:response AnnotatedTag
+type swaggerResponseAnnotatedTag struct {
+	// in:body
+	Body api.AnnotatedTag `json:"body"`
 }
 
 // Reference
@@ -69,6 +83,20 @@ type swaggerResponseHook struct {
 type swaggerResponseHookList struct {
 	// in:body
 	Body []api.Hook `json:"body"`
+}
+
+// GitHook
+// swagger:response GitHook
+type swaggerResponseGitHook struct {
+	// in:body
+	Body api.GitHook `json:"body"`
+}
+
+// GitHookList
+// swagger:response GitHookList
+type swaggerResponseGitHookList struct {
+	// in:body
+	Body []api.GitHook `json:"body"`
 }
 
 // Release
@@ -148,9 +176,44 @@ type swaggerGitTreeResponse struct {
 	Body api.GitTreeResponse `json:"body"`
 }
 
+// GitBlobResponse
+// swagger:response GitBlobResponse
+type swaggerGitBlobResponse struct {
+	//in: body
+	Body api.GitBlobResponse `json:"body"`
+}
+
 // Commit
 // swagger:response Commit
 type swaggerCommit struct {
 	//in: body
 	Body api.Commit `json:"body"`
+}
+
+// FileResponse
+// swagger:response FileResponse
+type swaggerFileResponse struct {
+	//in: body
+	Body api.FileResponse `json:"body"`
+}
+
+// ContentsResponse
+// swagger:response ContentsResponse
+type swaggerContentsResponse struct {
+	//in: body
+	Body api.ContentsResponse `json:"body"`
+}
+
+// ContentsListResponse
+// swagger:response ContentsListResponse
+type swaggerContentsListResponse struct {
+	// in:body
+	Body []api.ContentsResponse `json:"body"`
+}
+
+// FileDeleteResponse
+// swagger:response FileDeleteResponse
+type swaggerFileDeleteResponse struct {
+	//in: body
+	Body api.FileDeleteResponse `json:"body"`
 }

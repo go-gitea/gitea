@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ServeData download file from io.Reader
@@ -39,8 +40,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
 
-	ctx.Resp.Write(buf)
-	_, err := io.Copy(ctx.Resp, reader)
+	_, err := ctx.Resp.Write(buf)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(ctx.Resp, reader)
 	return err
 }
 
@@ -50,7 +54,11 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	if err != nil {
 		return err
 	}
-	defer dataRc.Close()
+	defer func() {
+		if err = dataRc.Close(); err != nil {
+			log.Error("ServeBlob: Close: %v", err)
+		}
+	}()
 
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
@@ -61,7 +69,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	if err != nil {
 		return err
 	}
-	defer dataRc.Close()
+	defer func() {
+		if err = dataRc.Close(); err != nil {
+			log.Error("ServeBlobOrLFS: Close: %v", err)
+		}
+	}()
 
 	if meta, _ := lfs.ReadPointerFile(dataRc); meta != nil {
 		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)

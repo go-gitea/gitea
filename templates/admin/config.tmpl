@@ -97,6 +97,22 @@
 		</div>
 
 		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.lfs_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.lfs_enabled"}}</dt>
+				<dd><i class="fa fa{{if .LFS.StartServer}}-check{{end}}-square-o"></i></dd>
+				{{if .LFS.StartServer}}
+					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
+					<dd>{{.LFS.ContentPath}}</dd>
+					<dt>{{.i18n.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
+					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
+				{{end}}
+			</dl>
+		</div>
+
+		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.config.db_config"}}
 		</h4>
 		<div class="ui attached table segment">
@@ -233,11 +249,15 @@
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
+				{{if eq .CacheAdapter "memory"}}
 				<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
 				<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				{{end}}
 				{{if .CacheConn}}
 				<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
 				<dd><code>{{.CacheConn}}</code></dd>
+				<dt>{{.i18n.Tr "admin.config.cache_item_ttl"}}</dt>
+				<dd><code>{{.CacheItemTTL}}</code></dd>
 				{{end}}
 			</dl>
 		</div>
@@ -250,7 +270,7 @@
 				<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
-				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
+				<dd><pre>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig  | JsonPrettyPrint}}{{else}}-{{end}}</pre></dd>
 				<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>

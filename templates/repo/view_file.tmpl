@@ -18,11 +18,14 @@
 				{{if not .ReadmeInList}}
 					<div class="ui right file-actions">
 						<div class="ui buttons">
+							<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 							{{if not .IsViewCommit}}
 								<a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
 							{{end}}
+							{{if .IsTextFile}}
+								<a class="ui button" href="{{.RepoLink}}/blame/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
+							{{end}}
 							<a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
-							<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 						</div>
 						{{if .Repository.CanEnableEditor}}
 							{{if .CanEditFile}}

@@ -8,12 +8,12 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // ReviewType defines the sort of feedback a review gives

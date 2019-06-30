@@ -5,11 +5,14 @@
 package models
 
 import (
-	"path"
+	"bytes"
+	"crypto/md5"
+	"fmt"
+	"image"
+	"image/png"
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
@@ -128,7 +131,7 @@ func TestForkRepository(t *testing.T) {
 	fork, err := ForkRepository(user, user, repo, "test", "test")
 	assert.Nil(t, fork)
 	assert.Error(t, err)
-	assert.True(t, IsErrRepoAlreadyExist(err))
+	assert.True(t, IsErrForkAlreadyExist(err))
 }
 
 func TestRepoAPIURL(t *testing.T) {
@@ -136,25 +139,6 @@ func TestRepoAPIURL(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
-}
-
-func TestRepoLocalCopyPath(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo, err := GetRepositoryByID(10)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-
-	// test default
-	repoID := com.ToStr(repo.ID)
-	expected := path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath, repoID)
-	assert.Equal(t, expected, repo.LocalCopyPath())
-
-	// test absolute setting
-	tempPath := "/tmp/gitea/local-copy-path"
-	expected = path.Join(tempPath, repoID)
-	setting.Repository.Local.LocalCopyPath = tempPath
-	assert.Equal(t, expected, repo.LocalCopyPath())
 }
 
 func TestTransferOwnership(t *testing.T) {
@@ -178,4 +162,52 @@ func TestTransferOwnership(t *testing.T) {
 	})
 
 	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
+}
+
+func TestUploadAvatar(t *testing.T) {
+
+	// Generate image
+	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
+}
+
+func TestUploadBigAvatar(t *testing.T) {
+
+	// Generate BIG image
+	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.Error(t, err)
+}
+
+func TestDeleteAvatar(t *testing.T) {
+
+	// Generate image
+	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.NoError(t, err)
+
+	err = repo.DeleteAvatar()
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", repo.Avatar)
 }
