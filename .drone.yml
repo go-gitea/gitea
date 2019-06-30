@@ -74,6 +74,10 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
 
   - name: pre-build
     pull: always
