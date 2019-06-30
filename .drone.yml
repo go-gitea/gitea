@@ -308,6 +308,7 @@ steps:
         - push
         - tag
         - pull_request
+
 ---
 kind: pipeline
 name: translations
