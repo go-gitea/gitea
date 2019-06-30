@@ -74,10 +74,6 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
 
   - name: pre-build
     pull: always
@@ -450,8 +446,6 @@ when:
   branch:
     - master
   event:
-    include:
-      - push
     exclude:
       - pull_request
 
@@ -518,8 +512,6 @@ when:
   branch:
     - master
   event:
-    include:
-      - push
     exclude:
       - pull_request
 
