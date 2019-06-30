@@ -375,154 +375,154 @@ steps:
       CROWDIN_KEY:
         from_secret: crowdin_key
 
----
-kind: pipeline
-name: release
-
-platform:
-  os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
-when:
-  branch:
-    - master
-  event:
-    exclude:
-      - pull_request
-
-depends_on:
-  - testing
-  - translations
-
-steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-
-  - name: static
-    pull: always
-    image: techknowlogick/xgo:latest
-    commands:
-      - export PATH=$PATH:$GOPATH/bin
-      - make release
-    environment:
-      TAGS: bindata sqlite sqlite_unlock_notify
-    when:
-      event:
-        - push
-        - tag
-
-  - name: gpg-sign
-    pull: always
-    image: plugins/gpgsign:1
-    settings:
-      detach_sign: true
-      excludes:
-        - "dist/release/*.sha256"
-      files:
-        - "dist/release/*"
-    environment:
-      GPGSIGN_KEY:
-        from_secret: gpgsign_key
-      GPGSIGN_PASSPHRASE:
-        from_secret: gpgsign_passphrase
-    depends_on:
-      - static
-    when:
-      event:
-        - push
-        - tag
-
-  - name: tag-release
-    pull: always
-    image: plugins/s3:1
-    settings:
-      acl: public-read
-      bucket: releases
-      endpoint: https://storage.gitea.io
-      path_style: true
-      source: "dist/release/*"
-      strip_prefix: dist/release/
-      target: "/gitea/${DRONE_TAG##v}"
-    environment:
-      AWS_ACCESS_KEY_ID:
-        from_secret: aws_access_key_id
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
-    when:
-      event:
-        - tag
-
-  - name: release-branch-release
-    pull: always
-    image: plugins/s3:1
-    settings:
-      acl: public-read
-      bucket: releases
-      endpoint: https://storage.gitea.io
-      path_style: true
-      source: "dist/release/*"
-      strip_prefix: dist/release/
-      target: "/gitea/${DRONE_BRANCH##release/v}"
-    environment:
-      AWS_ACCESS_KEY_ID:
-        from_secret: aws_access_key_id
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
-    when:
-      branch:
-        - "release/*"
-      event:
-        - push
-
-  - name: release
-    pull: always
-    image: plugins/s3:1
-    settings:
-      acl: public-read
-      bucket: releases
-      endpoint: https://storage.gitea.io
-      path_style: true
-      source: "dist/release/*"
-      strip_prefix: dist/release/
-      target: /gitea/master
-    environment:
-      AWS_ACCESS_KEY_ID:
-        from_secret: aws_access_key_id
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
-    when:
-      branch:
-        - master
-      event:
-        - push
-
-  - name: github
-    pull: always
-    image: plugins/github-release:1
-    settings:
-      files:
-        - "dist/release/*"
-    environment:
-      GITHUB_TOKEN:
-        from_secret: github_token
-    depends_on:
-      - gpg-sign
-    when:
-      event:
-        - tag
+#---
+#kind: pipeline
+#name: release
+#
+#platform:
+#  os: linux
+#  arch: amd64
+#
+#workspace:
+#  base: /go
+#  path: src/code.gitea.io/gitea
+#
+#when:
+#  branch:
+#    - master
+#  event:
+#    exclude:
+#      - pull_request
+#
+#depends_on:
+#  - testing
+#  - translations
+#
+#steps:
+#  - name: fetch-tags
+#    pull: default
+#    image: docker:git
+#    commands:
+#      - git fetch --tags --force
+#
+#  - name: static
+#    pull: always
+#    image: techknowlogick/xgo:latest
+#    commands:
+#      - export PATH=$PATH:$GOPATH/bin
+#      - make release
+#    environment:
+#      TAGS: bindata sqlite sqlite_unlock_notify
+#    when:
+#      event:
+#        - push
+#        - tag
+#
+#  - name: gpg-sign
+#    pull: always
+#    image: plugins/gpgsign:1
+#    settings:
+#      detach_sign: true
+#      excludes:
+#        - "dist/release/*.sha256"
+#      files:
+#        - "dist/release/*"
+#    environment:
+#      GPGSIGN_KEY:
+#        from_secret: gpgsign_key
+#      GPGSIGN_PASSPHRASE:
+#        from_secret: gpgsign_passphrase
+#    depends_on:
+#      - static
+#    when:
+#      event:
+#        - push
+#        - tag
+#
+#  - name: tag-release
+#    pull: always
+#    image: plugins/s3:1
+#    settings:
+#      acl: public-read
+#      bucket: releases
+#      endpoint: https://storage.gitea.io
+#      path_style: true
+#      source: "dist/release/*"
+#      strip_prefix: dist/release/
+#      target: "/gitea/${DRONE_TAG##v}"
+#    environment:
+#      AWS_ACCESS_KEY_ID:
+#        from_secret: aws_access_key_id
+#      AWS_SECRET_ACCESS_KEY:
+#        from_secret: aws_secret_access_key
+#    depends_on:
+#      - gpg-sign
+#    when:
+#      event:
+#        - tag
+#
+#  - name: release-branch-release
+#    pull: always
+#    image: plugins/s3:1
+#    settings:
+#      acl: public-read
+#      bucket: releases
+#      endpoint: https://storage.gitea.io
+#      path_style: true
+#      source: "dist/release/*"
+#      strip_prefix: dist/release/
+#      target: "/gitea/${DRONE_BRANCH##release/v}"
+#    environment:
+#      AWS_ACCESS_KEY_ID:
+#        from_secret: aws_access_key_id
+#      AWS_SECRET_ACCESS_KEY:
+#        from_secret: aws_secret_access_key
+#    depends_on:
+#      - gpg-sign
+#    when:
+#      branch:
+#        - "release/*"
+#      event:
+#        - push
+#
+#  - name: release
+#    pull: always
+#    image: plugins/s3:1
+#    settings:
+#      acl: public-read
+#      bucket: releases
+#      endpoint: https://storage.gitea.io
+#      path_style: true
+#      source: "dist/release/*"
+#      strip_prefix: dist/release/
+#      target: /gitea/master
+#    environment:
+#      AWS_ACCESS_KEY_ID:
+#        from_secret: aws_access_key_id
+#      AWS_SECRET_ACCESS_KEY:
+#        from_secret: aws_secret_access_key
+#    depends_on:
+#      - gpg-sign
+#    when:
+#      branch:
+#        - master
+#      event:
+#        - push
+#
+#  - name: github
+#    pull: always
+#    image: plugins/github-release:1
+#    settings:
+#      files:
+#        - "dist/release/*"
+#    environment:
+#      GITHUB_TOKEN:
+#        from_secret: github_token
+#    depends_on:
+#      - gpg-sign
+#    when:
+#      event:
+#        - tag
 
 ---
 kind: pipeline
@@ -659,7 +659,7 @@ depends_on:
   - build
   - docker
   - translations
-  - release
+#  - release
   - docs
 
 steps:
