@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: build
+name: testing
 
 platform:
   os: linux
@@ -308,6 +308,101 @@ steps:
         - push
         - tag
         - pull_request
+---
+kind: pipeline
+name: translations
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+when:
+  branch:
+    - master
+  event:
+    exclude:
+      - pull_request
+
+steps:
+  - name: download
+    pull: always
+    image: jonasfranz/crowdin
+    settings:
+      download: true
+      export_dir: options/locale/
+      ignore_branch: true
+      project_identifier: gitea
+    environment:
+      CROWDIN_KEY:
+        from_secret: crowdin_key
+
+  - name: update
+    pull: default
+    image: alpine:3.10
+    commands:
+      - mv ./options/locale/locale_en-US.ini ./options/
+      - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
+      - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
+      - mv ./options/locale_en-US.ini ./options/locale/
+
+  - name: push
+    pull: always
+    image: appleboy/drone-git-push
+    settings:
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
+      commit: true
+      commit_message: "[skip ci] Updated translations via Crowdin"
+      remote: "git@github.com:go-gitea/gitea.git"
+    environment:
+      GIT_PUSH_SSH_KEY:
+        from_secret: git_push_ssh_key
+
+  - name: upload_translations
+    pull: always
+    image: jonasfranz/crowdin
+    settings:
+      files:
+        locale_en-US.ini: options/locale/locale_en-US.ini
+      ignore_branch: true
+      project_identifier: gitea
+    environment:
+      CROWDIN_KEY:
+        from_secret: crowdin_key
+
+---
+kind: pipeline
+name: release
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+when:
+  branch:
+    - master
+  event:
+    exclude:
+      - pull_request
+
+depends_on:
+  - testing
+  - translations
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
 
   - name: static
     pull: always
@@ -317,8 +412,6 @@ steps:
       - make release
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on:
-      - build
     when:
       event:
         - push
@@ -432,72 +525,6 @@ steps:
 
 ---
 kind: pipeline
-name: translations
-
-platform:
-  os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
-when:
-  branch:
-    - master
-  event:
-    exclude:
-      - pull_request
-
-steps:
-  - name: download
-    pull: always
-    image: jonasfranz/crowdin
-    settings:
-      download: true
-      export_dir: options/locale/
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
-
-  - name: update
-    pull: default
-    image: alpine:3.10
-    commands:
-      - mv ./options/locale/locale_en-US.ini ./options/
-      - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
-      - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
-      - mv ./options/locale_en-US.ini ./options/locale/
-
-  - name: push
-    pull: always
-    image: appleboy/drone-git-push
-    settings:
-      author_email: "teabot@gitea.io"
-      author_name: GiteaBot
-      commit: true
-      commit_message: "[skip ci] Updated translations via Crowdin"
-      remote: "git@github.com:go-gitea/gitea.git"
-    environment:
-      GIT_PUSH_SSH_KEY:
-        from_secret: git_push_ssh_key
-
-  - name: upload_translations
-    pull: always
-    image: jonasfranz/crowdin
-    settings:
-      files:
-        locale_en-US.ini: options/locale/locale_en-US.ini
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
-
----
-kind: pipeline
 name: docs
 
 platform:
@@ -548,12 +575,17 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
-  branch:
-    - master
   event:
-    - push
+    exclude:
+      - pull_request
 
 steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
   - name: dryrun
     pull: always
     image: plugins/docker:18.09
@@ -626,6 +658,7 @@ depends_on:
   - build
   - docker
   - translations
+  - release
   - docs
 
 steps:
