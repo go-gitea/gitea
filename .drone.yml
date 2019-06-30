@@ -95,7 +95,7 @@ steps:
     pull: always
     image: golang:1.10 # this step is kept as the lowest version of golang that we support
     commands:
-      - go build -o gitea_no_gcc
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     when:
       event:
         - push
