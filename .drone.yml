@@ -451,6 +451,8 @@ when:
     - master
   event:
     - push
+    exclude:
+      - pull_request
 
 steps:
   - name: download
@@ -516,6 +518,8 @@ when:
     - master
   event:
     - push
+    exclude:
+      - pull_request
 
 steps:
   - name: build-docs
