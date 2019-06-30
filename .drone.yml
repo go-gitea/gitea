@@ -620,12 +620,8 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
-  event:
-    - push
-    - tag
-    - pull_request
   status:
-    - changed
+    - success
     - failure
 
 depends_on:
