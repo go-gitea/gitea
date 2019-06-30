@@ -111,6 +111,7 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .ui.attached.segment{border:1px solid #404552}
 .repository.view.issue .comment-list .comment .content>.bottom.segment{background:#353945}
 .repository.view.issue .comment-list .comment .content .header{color:#dbdbdb;background-color:#404552;border-bottom:1px solid #353944}
+.repository.view.issue .comment-list .comment .content .merge-section{background-color:#404552;border-top:1px solid #353944}
 .ui .text.grey a{color:#dbdbdb!important}
 .ui.comments .comment .actions a{color:#dbdbdb}
 .repository.view.issue .comment-list .comment .content .header:after{border-right-color:#404552}
