@@ -321,7 +321,7 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-when:
+trigger:
   branch:
     - master
   event:
@@ -386,7 +386,7 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-when:
+trigger:
   branch:
     - master
   event:
@@ -534,7 +534,7 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-when:
+trigger:
   branch:
     - master
   event:
