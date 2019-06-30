@@ -86,3 +86,14 @@
   created_unix: 946684830
   updated_unix: 978307200
 
+-
+  id: 8
+  repo_id: 10
+  index: 1
+  poster_id: 11
+  name: pr2
+  content: a pull request
+  is_closed: false
+  is_pull: true
+  created_unix: 946684820
+  updated_unix: 978307180
