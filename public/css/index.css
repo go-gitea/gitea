@@ -535,6 +535,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.view.issue .comment-list .comment .content>.header:before{border-right-color:#d3d3d4;border-width:9px;margin-top:-9px}
 .repository.view.issue .comment-list .comment .content>.header:after{border-right-color:#f7f7f7;border-width:8px;margin-top:-8px}
 .repository.view.issue .comment-list .comment .content>.header .text{max-width:78%;padding-top:10px;padding-bottom:10px}
+.repository.view.issue .comment-list .comment .content>.merge-section{border-top:1px solid #d4d4d5;background-color:#f7f7f7}
 .repository.view.issue .comment-list .comment .content .markdown{font-size:14px}
 .repository.view.issue .comment-list .comment .content .no-content{color:#767676;font-style:italic}
 .repository.view.issue .comment-list .comment .content>.bottom.segment{background:#f3f4f5}
