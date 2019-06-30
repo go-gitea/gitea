@@ -2869,13 +2869,11 @@ function initTopicbar() {
                     success: false,
                     results: [],
                 };
-                const escapeHtml = function (text) {
-                    let esc = document.createElement('div');
-                    esc.innerHTML = text;
-                    return esc.innerText;
+                const stripTags = function (text) {
+                    return text.replace(/<[^>]*>?/gm, "");
                 };
 
-                let query = escapeHtml(this.urlData.query.trim());
+                let query = stripTags(this.urlData.query.trim());
                 let found_query = false;
                 let current_topics = [];
                 topicDropdown.find('div.label.visible.topic,a.label.visible').each(function(_,e){ current_topics.push(e.dataset.value); });
