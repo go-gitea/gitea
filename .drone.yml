@@ -662,7 +662,8 @@ when:
 depends_on:
   - testing
   - translations
-  - release
+  - release-version
+  - release-master
   - docker
   - docs
 
