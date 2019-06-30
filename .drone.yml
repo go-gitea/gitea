@@ -21,55 +21,6 @@ steps:
       exclude:
       - pull_request
 
-- name: download_translations
-  pull: always
-  image: jonasfranz/crowdin
-  settings:
-    download: true
-    export_dir: options/locale/
-    ignore_branch: true
-    project_identifier: gitea
-  environment:
-    CROWDIN_KEY:
-      from_secret: crowdin_key
-  when:
-    branch:
-    - master
-    event:
-    - push
-
-- name: update-translations
-  pull: default
-  image: alpine:3.10
-  commands:
-  - mv ./options/locale/locale_en-US.ini ./options/
-  - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
-  - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
-  - mv ./options/locale_en-US.ini ./options/locale/
-  when:
-    branch:
-    - master
-    event:
-    - push
-
-- name: git_push
-  pull: always
-  image: appleboy/drone-git-push
-  settings:
-    author_email: "teabot@gitea.io"
-    author_name: GiteaBot
-    commit: true
-    commit_message: "[skip ci] Updated translations via Crowdin"
-    remote: "git@github.com:go-gitea/gitea.git"
-  environment:
-    GIT_PUSH_SSH_KEY:
-      from_secret: git_push_ssh_key
-  when:
-    branch:
-    - master
-    event:
-    - push
-
 - name: pre-build
   pull: always
   image: webhippie/nodejs:latest
@@ -571,5 +522,55 @@ services:
     - push
     - tag
     - pull_request
+---
+kind: pipeline
+name: translations
 
-...
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+when:
+  branch:
+    - master
+  event:
+    - push
+
+steps:
+- name: download
+  pull: always
+  image: jonasfranz/crowdin
+  settings:
+    download: true
+    export_dir: options/locale/
+    ignore_branch: true
+    project_identifier: gitea
+  environment:
+    CROWDIN_KEY:
+      from_secret: crowdin_key
+
+- name: update
+  pull: default
+  image: alpine:3.10
+  commands:
+    - mv ./options/locale/locale_en-US.ini ./options/
+    - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
+    - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
+    - mv ./options/locale_en-US.ini ./options/locale/
+
+- name: push
+  pull: always
+  image: appleboy/drone-git-push
+  settings:
+    author_email: "teabot@gitea.io"
+    author_name: GiteaBot
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    remote: "git@github.com:go-gitea/gitea.git"
+  environment:
+    GIT_PUSH_SSH_KEY:
+      from_secret: git_push_ssh_key
