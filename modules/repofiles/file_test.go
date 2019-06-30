@@ -5,6 +5,7 @@
 package repofiles
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -16,21 +17,31 @@ import (
 )
 
 func getExpectedFileResponse() *api.FileResponse {
+	treePath := "README.md"
+	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
+	encoding := "base64"
+	content := "IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "README.md",
-			Path:        "README.md",
-			SHA:         "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		Content: &api.ContentsResponse{
+			Name:        treePath,
+			Path:        treePath,
+			SHA:         sha,
+			Type:        "file",
 			Size:        30,
-			URL:         "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
-			HTMLURL:     "https://try.gitea.io/user2/repo1/blob/master/README.md",
-			GitURL:      "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-			DownloadURL: "https://try.gitea.io/user2/repo1/raw/branch/master/README.md",
-			Type:        "blob",
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    "https://try.gitea.io/api/v1/repos/user2/repo1/contents/README.md",
-				GitURL:  "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-				HTMLURL: "https://try.gitea.io/user2/repo1/blob/master/README.md",
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{
