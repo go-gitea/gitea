@@ -17,11 +17,6 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: test
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: mysql8
     pull: default
@@ -29,22 +24,12 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: pgsql
     pull: default
     image: postgres:9.5
     environment:
       POSTGRES_DB: test
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: mssql
     pull: default
@@ -53,20 +38,10 @@ services:
       ACCEPT_EULA: Y
       MSSQL_PID: Standard
       SA_PASSWORD: MwantsaSecurePassword1
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
   - name: ldap
     pull: default
     image: gitea/test-openldap:latest
-    when:
-      event:
-        - push
-        - tag
-        - pull_request
 
 steps:
   - name: fetch-tags
