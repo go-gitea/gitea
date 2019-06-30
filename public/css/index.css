@@ -47,6 +47,7 @@ img{border-radius:3px}
 table{border-collapse:collapse}
 a{cursor:pointer}
 .rounded{border-radius:.28571429rem!important}
+.wrap{word-wrap:break-word;word-break:break-all}
 .mono,code,pre{font:12px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .mono.raw,code.raw,pre.raw{padding:7px 12px;margin:10px 0;background-color:#f8f8f8;border:1px solid #ddd;border-radius:3px;font-size:13px;line-height:1.5;overflow:auto}
 .mono.wrap,code.wrap,pre.wrap{white-space:pre-wrap;word-break:break-all;overflow-wrap:break-word;word-wrap:break-word}
