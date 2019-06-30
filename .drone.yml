@@ -322,8 +322,6 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
-  branch:
-    - master
   event:
     exclude:
       - pull_request
@@ -388,8 +386,6 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
-  branch:
-    - master
   event:
     exclude:
       - pull_request
@@ -537,8 +533,6 @@ workspace:
   path: src/code.gitea.io/gitea
 
 when:
-  branch:
-    - master
   event:
     exclude:
       - pull_request
