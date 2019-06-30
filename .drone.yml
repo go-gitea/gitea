@@ -89,7 +89,7 @@ steps:
 
   - name: build-without-gcc
     pull: always
-    image: golang:1.10
+    image: golang:1.10 # this step is kept as the lowest version of golang that we support
     commands:
       - go build -o gitea_no_gcc
     when:
