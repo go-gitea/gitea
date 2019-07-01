@@ -46,7 +46,7 @@
 	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
-		<div class="ui attached merge-section segment">
+		<div class="ui {{if not $.LatestCommitStatus}}top attached header{{else}}attached merge-section segment{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text purple">
 					{{$.i18n.Tr "repo.pulls.has_merged"}}
