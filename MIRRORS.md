@@ -6,6 +6,6 @@ To create your own mirror, verify that `git clone <repo-url>` works, then add yo
 
 # List
 | Organization| URL | Note |
-| --- | --- | --- |
-| Codeberg | https://codeberg.org/Codeberg/gitea.git | Online 2019.07.01 |
-| Assorted Tech | https://mirror.assorted.tech/gitea/ | Online 2019.07.01 |
+| :--- | :---: | ---: |
+| Codeberg | `https://codeberg.org/Codeberg/gitea.git` | Online 2019.07.01 |
+| Assorted Tech | `https://mirror.assorted.tech/gitea/` | Syncronizes every 15 minutes. |
