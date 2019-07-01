@@ -19,6 +19,8 @@ import (
 const (
 	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
+	// ProtectedBranchPRID protected Repo PR ID
+	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct

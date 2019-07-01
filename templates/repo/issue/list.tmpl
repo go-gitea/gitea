@@ -17,6 +17,12 @@
 						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
+			{{else}}
+				{{if not .PageIsIssueList}}
+					<div class="column right aligned">
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{$.i18n.Tr "action.compare_commits_general"}}</a>
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
@@ -132,6 +138,7 @@
 			this one correctly, but not the other one. */}}
 			<div class="nine wide right aligned right floated column">
 				<div class="ui secondary filter stackable menu">
+					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
 						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
@@ -188,6 +195,7 @@
 							{{end}}
 						</div>
 					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>
