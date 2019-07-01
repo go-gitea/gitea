@@ -108,6 +108,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		IsMirror:    true,
 		RemoteAddr:  repoPath,
 		Wiki:        true,
+		SyncReleasesWithTags: true,
 	}
 	mirror, err := MigrateRepository(user, user, migrationOptions)
 	assert.NoError(t, err)
