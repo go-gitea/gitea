@@ -231,7 +231,17 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 	}
 
-	env := models.PushingEnvironment(doer, pr.BaseRepo)
+	headUser, err := models.GetUserByName(pr.HeadUserName)
+	if err != nil {
+		if !models.IsErrUserNotExist(err) {
+			log.Error("Can't find user: %s for head repository - %v", pr.HeadUserName, err)
+			return err
+		}
+		log.Error("Can't find user: %s for head repository - defaulting to doer: %s - %v", pr.HeadUserName, doer.Name, err)
+		headUser = doer
+	}
+
+	env := models.FullPushingEnvironment(headUser, doer, pr.BaseRepo, pr.ID)
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
