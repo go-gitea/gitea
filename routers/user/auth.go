@@ -6,8 +6,6 @@
 package user
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -881,18 +879,12 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	}
 
 	if setting.Service.AllowOnlyExternalRegistration || !setting.Service.RequireExternalRegistrationPassword {
-		// Generating a random password a stop-gap shim to get around the password requirement.
+		// In models.User an empty password is classed as not set, so we set form.Password to empty.
 		// Eventually the database should be changed to indicate "Second Factor"-enabled accounts
 		// (accounts that do not introduce the security vulnerabilities of a password).
 		// If a user decides to circumvent second-factor security, and purposefully create a password,
 		// they can still do so using the "Recover Account" option.
-		bytes := make([]byte, 16)
-		_, err := rand.Read(bytes)
-		if nil != err {
-			ctx.ServerError("CreateUser", err)
-			return
-		}
-		form.Password = hex.EncodeToString(bytes)
+		form.Password = ""
 	} else {
 		if (len(strings.TrimSpace(form.Password)) > 0 || len(strings.TrimSpace(form.Retype)) > 0) && form.Password != form.Retype {
 			ctx.Data["Err_Password"] = true
