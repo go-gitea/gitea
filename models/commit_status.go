@@ -6,16 +6,14 @@ package models
 
 import (
 	"container/list"
+	"crypto/sha1"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/go-xorm/xorm"
 )
 
 // CommitStatusState holds the state of a Status
@@ -61,6 +59,7 @@ type CommitStatus struct {
 	SHA         string            `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	TargetURL   string            `xorm:"TEXT"`
 	Description string            `xorm:"TEXT"`
+	ContextHash string            `xorm:"char(40) index"`
 	Context     string            `xorm:"TEXT"`
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
@@ -146,7 +145,7 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 		Table(&CommitStatus{}).
 		Where("repo_id = ?", repo.ID).And("sha = ?", sha).
 		Select("max( id ) as id").
-		GroupBy("context").OrderBy("max( id ) desc").Find(&ids)
+		GroupBy("context_hash").OrderBy("max( id ) desc").Find(&ids)
 	if err != nil {
 		return nil, err
 	}
@@ -157,27 +156,6 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 	return statuses, x.In("id", ids).Find(&statuses)
 }
 
-// GetCommitStatus populates a given status for a given commit.
-// NOTE: If ID or Index isn't given, and only Context, TargetURL and/or Description
-//       is given, the CommitStatus created _last_ will be returned.
-func GetCommitStatus(repo *Repository, sha string, status *CommitStatus) (*CommitStatus, error) {
-	conds := &CommitStatus{
-		Context:     status.Context,
-		State:       status.State,
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-	}
-	has, err := x.Where("repo_id = ?", repo.ID).And("sha = ?", sha).Desc("created_unix").Get(conds)
-	if err != nil {
-		return nil, fmt.Errorf("GetCommitStatus[%s, %s]: %v", repo.RepoPath(), sha, err)
-	}
-	if !has {
-		return nil, fmt.Errorf("GetCommitStatus[%s, %s]: not found", repo.RepoPath(), sha)
-	}
-
-	return conds, nil
-}
-
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *Repository
@@ -186,30 +164,30 @@ type NewCommitStatusOptions struct {
 	CommitStatus *CommitStatus
 }
 
-func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
+// NewCommitStatus save commit statuses into database
+func NewCommitStatus(opts NewCommitStatusOptions) error {
+	if opts.Repo == nil {
+		return fmt.Errorf("NewCommitStatus[nil, %s]: no repository specified", opts.SHA)
+	}
+
+	repoPath := opts.Repo.RepoPath()
+	if opts.Creator == nil {
+		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
+	}
+
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
 	opts.CommitStatus.SHA = opts.SHA
 	opts.CommitStatus.CreatorID = opts.Creator.ID
-
-	if opts.Repo == nil {
-		return fmt.Errorf("newCommitStatus[nil, %s]: no repository specified", opts.SHA)
-	}
 	opts.CommitStatus.RepoID = opts.Repo.ID
-	repoPath := opts.Repo.repoPath(sess)
-
-	if opts.Creator == nil {
-		return fmt.Errorf("newCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
-	}
-
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
-	}
-	if _, err := gitRepo.GetCommit(opts.SHA); err != nil {
-		return fmt.Errorf("GetCommit[%s]: %v", opts.SHA, err)
-	}
 
 	// Get the next Status Index
 	var nextIndex int64
@@ -220,46 +198,25 @@ func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
 	if err != nil {
 		if err := sess.Rollback(); err != nil {
-			log.Error("newCommitStatus: sess.Rollback: %v", err)
+			log.Error("NewCommitStatus: sess.Rollback: %v", err)
 		}
-		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
+		return fmt.Errorf("NewCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 	if has {
-		log.Debug("newCommitStatus[%s, %s]: found", repoPath, opts.SHA)
+		log.Debug("NewCommitStatus[%s, %s]: found", repoPath, opts.SHA)
 		nextIndex = lastCommitStatus.Index
 	}
 	opts.CommitStatus.Index = nextIndex + 1
-	log.Debug("newCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
+	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
+
+	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
 	if _, err = sess.Insert(opts.CommitStatus); err != nil {
 		if err := sess.Rollback(); err != nil {
-			log.Error("newCommitStatus: sess.Rollback: %v", err)
+			log.Error("Insert CommitStatus: sess.Rollback: %v", err)
 		}
-		return fmt.Errorf("newCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
-	}
-
-	return nil
-}
-
-// NewCommitStatus creates a new CommitStatus given a bunch of parameters
-// NOTE: All text-values will be trimmed from whitespaces.
-// Requires: Repo, Creator, SHA
-func NewCommitStatus(repo *Repository, creator *User, sha string, status *CommitStatus) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
-	}
-
-	if err := newCommitStatus(sess, NewCommitStatusOptions{
-		Repo:         repo,
-		Creator:      creator,
-		SHA:          sha,
-		CommitStatus: status,
-	}); err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
+		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
 	return sess.Commit()
@@ -294,4 +251,9 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		e = e.Next()
 	}
 	return newCommits
+}
+
+// hashCommitStatusContext hash context
+func hashCommitStatusContext(context string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }

@@ -140,4 +140,4 @@ require (
 	xorm.io/core v0.6.3
 )
 
-replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20161128230840-e32ca5036449
+replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-6a30f4e59a44

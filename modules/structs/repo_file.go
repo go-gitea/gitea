@@ -49,23 +49,32 @@ type UpdateFileOptions struct {
 
 // FileLinksResponse contains the links for a repo's file
 type FileLinksResponse struct {
-	Self    string `json:"url"`
-	GitURL  string `json:"git_url"`
-	HTMLURL string `json:"html_url"`
+	Self    *string `json:"self"`
+	GitURL  *string `json:"git"`
+	HTMLURL *string `json:"html"`
 }
 
-// FileContentResponse contains information about a repo's file stats and content
-type FileContentResponse struct {
-	Name        string             `json:"name"`
-	Path        string             `json:"path"`
-	SHA         string             `json:"sha"`
-	Size        int64              `json:"size"`
-	URL         string             `json:"url"`
-	HTMLURL     string             `json:"html_url"`
-	GitURL      string             `json:"git_url"`
-	DownloadURL string             `json:"download_url"`
-	Type        string             `json:"type"`
-	Links       *FileLinksResponse `json:"_links"`
+// ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
+type ContentsResponse struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	SHA  string `json:"sha"`
+	// `type` will be `file`, `dir`, `symlink`, or `submodule`
+	Type string `json:"type"`
+	Size int64  `json:"size"`
+	// `encoding` is populated when `type` is `file`, otherwise null
+	Encoding *string `json:"encoding"`
+	// `content` is populated when `type` is `file`, otherwise null
+	Content *string `json:"content"`
+	// `target` is populated when `type` is `symlink`, otherwise null
+	Target      *string `json:"target"`
+	URL         *string `json:"url"`
+	HTMLURL     *string `json:"html_url"`
+	GitURL      *string `json:"git_url"`
+	DownloadURL *string `json:"download_url"`
+	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
+	SubmoduleGitURL *string            `json:"submodule_git_url"`
+	Links           *FileLinksResponse `json:"_links"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.
@@ -81,7 +90,7 @@ type FileCommitResponse struct {
 
 // FileResponse contains information about a repo's file
 type FileResponse struct {
-	Content      *FileContentResponse       `json:"content"`
+	Content      *ContentsResponse          `json:"content"`
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }
