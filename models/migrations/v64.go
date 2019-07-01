@@ -83,7 +83,7 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		return err
 	}
 
-	allIssues := []Issue{}
+	allIssues := []*Issue{}
 	if err := sess.Find(&allIssues); err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		return err
 	}
 
-	allAssignementComments := []Comment{}
+	allAssignementComments := []*Comment{}
 	if err := sess.Where("type = ?", 9).Find(&allAssignementComments); err != nil {
 		return err
 	}

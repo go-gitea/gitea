@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.12-alpine3.9 AS build-env
+FROM golang:1.12-alpine3.10 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
@@ -18,7 +18,7 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean generate build
 
-FROM alpine:3.9
+FROM alpine:3.10
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
@@ -56,6 +56,6 @@ VOLUME ["/data"]
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
-COPY docker /
+COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea

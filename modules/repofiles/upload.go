@@ -57,10 +57,10 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return err
 	}
@@ -108,10 +108,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			}
 			infos[i] = uploadInfo
 
-		} else {
-			if objectHash, err = t.HashObject(file); err != nil {
-				return err
-			}
+		} else if objectHash, err = t.HashObject(file); err != nil {
+			return err
 		}
 
 		// Add the object to the index
@@ -188,7 +186,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	if err = repo.GetOwner(); err != nil {
 		return fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	err = PushUpdate(
+		repo,
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -203,7 +202,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
-	// FIXME: Should we models.UpdateRepoIndexer(repo) here?
 
 	return models.DeleteUploads(uploads...)
 }

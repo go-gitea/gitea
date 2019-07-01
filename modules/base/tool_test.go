@@ -287,40 +287,39 @@ func TestHtmlTimeSince(t *testing.T) {
 }
 
 func TestFileSize(t *testing.T) {
-	var size int64
-	size = 512
+	var size int64 = 512
 	assert.Equal(t, "512B", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512KB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512MB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512GB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512TB", FileSize(size))
-	size = size * 1024
+	size *= 1024
 	assert.Equal(t, "512PB", FileSize(size))
-	size = size * 4
+	size *= 4
 	assert.Equal(t, "2.0EB", FileSize(size))
 }
 
 func TestSubtract(t *testing.T) {
 	toFloat64 := func(n interface{}) float64 {
-		switch n := n.(type) {
+		switch v := n.(type) {
 		case int:
-			return float64(n)
+			return float64(v)
 		case int8:
-			return float64(n)
+			return float64(v)
 		case int16:
-			return float64(n)
+			return float64(v)
 		case int32:
-			return float64(n)
+			return float64(v)
 		case int64:
-			return float64(n)
+			return float64(v)
 		case float32:
-			return float64(n)
+			return float64(v)
 		case float64:
-			return n
+			return v
 		default:
 			return 0.0
 		}

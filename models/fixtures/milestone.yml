@@ -13,3 +13,11 @@
   content: content2
   is_closed: false
   num_issues: 0
+
+-
+  id: 3
+  repo_id: 1
+  name: milestone3
+  content: content3
+  is_closed: true
+  num_issues: 0

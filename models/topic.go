@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 func init() {

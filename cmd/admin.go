@@ -73,6 +73,10 @@ var (
 				Usage: "Length of the random password to be generated",
 				Value: 12,
 			},
+			cli.BoolFlag{
+				Name:  "access-token",
+				Usage: "Generate access token for the user",
+			},
 		},
 	}
 
@@ -127,6 +131,10 @@ var (
 		Subcommands: []cli.Command{
 			microcmdAuthAddOauth,
 			microcmdAuthUpdateOauth,
+			cmdAuthAddLdapBindDn,
+			cmdAuthUpdateLdapBindDn,
+			cmdAuthAddLdapSimpleAuth,
+			cmdAuthUpdateLdapSimpleAuth,
 			microcmdAuthList,
 			microcmdAuthDelete,
 		},
@@ -140,7 +148,7 @@ var (
 
 	idFlag = cli.Int64Flag{
 		Name:  "id",
-		Usage: "ID of OAuth authentication source",
+		Usage: "ID of authentication source",
 	}
 
 	microcmdAuthDelete = cli.Command{
@@ -300,7 +308,7 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	if err := models.CreateUser(&models.User{
+	u := &models.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
@@ -308,8 +316,23 @@ func runCreateUser(c *cli.Context) error {
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
 		Theme:              setting.UI.DefaultTheme,
-	}); err != nil {
+	}
+
+	if err := models.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
+	}
+
+	if c.Bool("access-token") {
+		t := &models.AccessToken{
+			Name: "gitea-admin",
+			UID:  u.ID,
+		}
+
+		if err := models.NewAccessToken(t); err != nil {
+			return err
+		}
+
+		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)
@@ -462,7 +485,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping *oauth2.CustomURLMapping
+	var customURLMapping = &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL

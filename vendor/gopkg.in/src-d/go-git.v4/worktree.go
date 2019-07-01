@@ -152,17 +152,6 @@ func (w *Worktree) Checkout(opts *CheckoutOptions) error {
 		}
 	}
 
-	if !opts.Force {
-		unstaged, err := w.containsUnstagedChanges()
-		if err != nil {
-			return err
-		}
-
-		if unstaged {
-			return ErrUnstagedChanges
-		}
-	}
-
 	c, err := w.getCommitFromCheckoutOptions(opts)
 	if err != nil {
 		return err
@@ -171,6 +160,8 @@ func (w *Worktree) Checkout(opts *CheckoutOptions) error {
 	ro := &ResetOptions{Commit: c, Mode: MergeReset}
 	if opts.Force {
 		ro.Mode = HardReset
+	} else if opts.Keep {
+		ro.Mode = SoftReset
 	}
 
 	if !opts.Hash.IsZero() && !opts.Create {
@@ -731,7 +722,7 @@ func (w *Worktree) Clean(opts *CleanOptions) error {
 
 func (w *Worktree) doClean(status Status, opts *CleanOptions, dir string, files []os.FileInfo) error {
 	for _, fi := range files {
-		if fi.Name() == ".git" {
+		if fi.Name() == GitDirName {
 			continue
 		}
 

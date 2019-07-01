@@ -21,7 +21,7 @@ the destination platform from the [downloads page](https://dl.gitea.io/gitea/), 
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.7.0/gitea-1.7.0-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.8.3/gitea-1.8.3-linux-amd64
 chmod +x gitea
 ```
 
@@ -30,7 +30,7 @@ Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vind
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
-gpg --verify gitea-1.7.0-linux-amd64.asc gitea-1.7.0-linux-amd64
+gpg --verify gitea-1.8.3-linux-amd64.asc gitea-1.8.3-linux-amd64
 ```
 
 ## Test
@@ -143,6 +143,15 @@ bind: address already in use` Gitea needs to be started on another free port. Th
 is possible using `./gitea web -p $PORT`. It's possible another instance of Gitea
 is already running.
 
+### Running Gitea on Raspbian
+
+As of v1.8, there is a problem with the arm7 version of Gitea and it doesn't run on Raspberry Pi and similar devices. 
+
+It is therefore recommended to switch to the arm6 version which has been tested and shown to work on Raspberry Pi and similar devices.
+
+<!---
+please remove after fixing the arm7 bug
+--->
 ### Git error after updating to a new version of Gitea
 
 If the binary file name has been changed during the update to a new version of Gitea, 

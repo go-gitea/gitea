@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // Repository
@@ -38,9 +38,23 @@ type swaggerResponseBranchList struct {
 
 // TagList
 // swagger:response TagList
-type swaggerReponseTagList struct {
+type swaggerResponseTagList struct {
 	// in:body
 	Body []api.Tag `json:"body"`
+}
+
+// Tag
+// swagger:response Tag
+type swaggerResponseTag struct {
+	// in:body
+	Body api.Tag `json:"body"`
+}
+
+// AnnotatedTag
+// swagger:response AnnotatedTag
+type swaggerResponseAnnotatedTag struct {
+	// in:body
+	Body api.AnnotatedTag `json:"body"`
 }
 
 // Reference
@@ -183,11 +197,18 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
-// FileContentResponse
-// swagger:response FileContentResponse
-type swaggerFileContentResponse struct {
+// ContentsResponse
+// swagger:response ContentsResponse
+type swaggerContentsResponse struct {
 	//in: body
-	Body api.FileContentResponse `json:"body"`
+	Body api.ContentsResponse `json:"body"`
+}
+
+// ContentsListResponse
+// swagger:response ContentsListResponse
+type swaggerContentsListResponse struct {
+	// in:body
+	Body []api.ContentsResponse `json:"body"`
 }
 
 // FileDeleteResponse

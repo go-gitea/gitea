@@ -92,6 +92,15 @@ func TestPrivateOrg(t *testing.T) {
 	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
+	// non-org member who is collaborator on repo in private org
+	session = loginUser(t, "user4")
+	req = NewRequest(t, "GET", "/privated_org")
+	session.MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org") // colab of this repo
+	session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
+	session.MakeRequest(t, req, http.StatusNotFound)
+
 	// site admin
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/privated_org")

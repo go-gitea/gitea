@@ -7,7 +7,6 @@ package models
 import (
 	"container/list"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -84,7 +83,7 @@ func PushUpdate(branch string, opt PushUpdateOptions) error {
 	return nil
 }
 
-func pushUpdateDeleteTag(repo *Repository, gitRepo *git.Repository, tagName string) error {
+func pushUpdateDeleteTag(repo *Repository, tagName string) error {
 	rel, err := GetRelease(repo.ID, tagName)
 	if err != nil {
 		if IsErrReleaseNotExist(err) {
@@ -193,9 +192,8 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 
 	repoPath := RepoPath(opts.RepoUserName, opts.RepoName)
 
-	gitUpdate := exec.Command("git", "update-server-info")
-	gitUpdate.Dir = repoPath
-	if err = gitUpdate.Run(); err != nil {
+	_, err = git.NewCommand("update-server-info").RunInDir(repoPath)
+	if err != nil {
 		return nil, fmt.Errorf("Failed to call 'git update-server-info': %v", err)
 	}
 
@@ -223,7 +221,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 		// If is tag reference
 		tagName := opts.RefFullName[len(git.TagPrefix):]
 		if isDelRef {
-			err = pushUpdateDeleteTag(repo, gitRepo, tagName)
+			err = pushUpdateDeleteTag(repo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateDeleteTag: %v", err)
 			}
@@ -261,10 +259,6 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 		}
 
 		commits = ListToPushCommits(l)
-	}
-
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		UpdateRepoIndexer(repo)
 	}
 
 	if err := CommitRepoAction(CommitRepoActionOptions{

@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"container/list"
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,21 +58,21 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // InitRepository initializes a new Git repository.
 func InitRepository(repoPath string, bare bool) error {
-	os.MkdirAll(repoPath, os.ModePerm)
+	err := os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	cmd := NewCommand("init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err := cmd.RunInDir(repoPath)
+	_, err = cmd.RunInDir(repoPath)
 	return err
 }
 
@@ -105,13 +107,29 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// IsEmpty Check if repository is empty.
+func (repo *Repository) IsEmpty() (bool, error) {
+	var errbuf strings.Builder
+	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
+			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
+			return true, nil
+		}
+		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+	}
+
+	return false, nil
+}
+
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout time.Duration
-	Mirror  bool
-	Bare    bool
-	Quiet   bool
-	Branch  string
+	Timeout    time.Duration
+	Mirror     bool
+	Bare       bool
+	Quiet      bool
+	Branch     string
+	Shared     bool
+	NoCheckout bool
 }
 
 // Clone clones original repository to target path.
@@ -131,10 +149,17 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	if opts.Quiet {
 		cmd.AddArguments("--quiet")
 	}
+	if opts.Shared {
+		cmd.AddArguments("-s")
+	}
+	if opts.NoCheckout {
+		cmd.AddArguments("--no-checkout")
+	}
+
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments(from, to)
+	cmd.AddArguments("--", from, to)
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -179,6 +204,7 @@ type PushOptions struct {
 	Remote string
 	Branch string
 	Force  bool
+	Env    []string
 }
 
 // Push pushs local commits to given remote branch.
@@ -188,7 +214,7 @@ func Push(repoPath string, opts PushOptions) error {
 		cmd.AddArguments("-f")
 	}
 	cmd.AddArguments(opts.Remote, opts.Branch)
-	_, err := cmd.RunInDir(repoPath)
+	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }
 
@@ -305,4 +331,41 @@ func GetLatestCommitTime(repoPath string) (time.Time, error) {
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse(GitTimeLayout, commitTime)
+}
+
+// DivergeObject represents commit count diverging commits
+type DivergeObject struct {
+	Ahead  int
+	Behind int
+}
+
+func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
+	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
+	cmd := NewCommand("rev-list", "--count", branches)
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return -1, err
+	}
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
+	if errInteger != nil {
+		return -1, errInteger
+	}
+	return outInteger, nil
+}
+
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
+	// $(git rev-list --count master..feature) commits ahead of master
+	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)
+	if errorAhead != nil {
+		return DivergeObject{}, errorAhead
+	}
+
+	// $(git rev-list --count feature..master) commits behind master
+	behind, errorBehind := checkDivergence(repoPath, targetBranch, baseBranch)
+	if errorBehind != nil {
+		return DivergeObject{}, errorBehind
+	}
+
+	return DivergeObject{ahead, behind}, nil
 }

@@ -7,8 +7,8 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/generate"
@@ -24,7 +24,7 @@ func hashAppToken(x *xorm.Engine) error {
 		Name           string
 		Sha1           string
 		Token          string `xorm:"-"`
-		TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+		TokenHash      string // sha256 of token - we will ensure UNIQUE later
 		TokenSalt      string
 		TokenLastEight string `xorm:"token_last_eight"`
 
@@ -58,6 +58,9 @@ func hashAppToken(x *xorm.Engine) error {
 
 		if len(indexes) >= 1 {
 			_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		_, err = sess.Exec("DROP INDEX UQE_access_token_sha1 ON access_token")
@@ -74,7 +77,7 @@ func hashAppToken(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := x.Sync2(new(AccessToken)); err != nil {
+	if err := sess.Sync2(new(AccessToken)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
@@ -130,6 +133,24 @@ func hashAppToken(x *xorm.Engine) error {
 	if err := dropTableColumns(sess, "access_token", "sha1"); err != nil {
 		return err
 	}
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+	return resyncHashAppTokenWithUniqueHash(x)
+}
 
+func resyncHashAppTokenWithUniqueHash(x *xorm.Engine) error {
+	// AccessToken see models/token.go
+	type AccessToken struct {
+		TokenHash string `xorm:"UNIQUE"` // sha256 of token - we will ensure UNIQUE later
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(AccessToken)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return sess.Commit()
 }

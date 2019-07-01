@@ -14,14 +14,14 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -48,6 +48,7 @@ type Engine interface {
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
+	Asc(colNames ...string) *xorm.Session
 }
 
 var (
@@ -60,8 +61,8 @@ var (
 
 	// DbCfg holds the database settings
 	DbCfg struct {
-		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout                                       int
+		Type, Host, Name, User, Passwd, Path, SSLMode, Charset string
+		Timeout                                                int
 	}
 
 	// EnableSQLite3 use SQLite3
@@ -161,6 +162,7 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").MustString("disable")
+	DbCfg.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
 	DbCfg.Path = sec.Key("PATH").MustString(filepath.Join(setting.AppDataPath, "gitea.db"))
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 }
@@ -180,14 +182,14 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	return host, port
 }
 
-func getPostgreSQLConnectionString(DBHost, DBUser, DBPasswd, DBName, DBParam, DBSSLMode string) (connStr string) {
-	host, port := parsePostgreSQLHostPort(DBHost)
+func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, dbsslMode string) (connStr string) {
+	host, port := parsePostgreSQLHostPort(dbHost)
 	if host[0] == '/' { // looks like a unix socket
 		connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), port, DBName, DBParam, DBSSLMode, host)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), port, dbName, dbParam, dbsslMode, host)
 	} else {
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
-			url.PathEscape(DBUser), url.PathEscape(DBPasswd), host, port, DBName, DBParam, DBSSLMode)
+			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
 	return
 }
@@ -223,8 +225,8 @@ func getEngine() (*xorm.Engine, error) {
 		if tls == "disable" { // allow (Postgres-inspired) default value to work in MySQL
 			tls = "false"
 		}
-		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=utf8&parseTime=true&tls=%s",
-			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, tls)
+		connStr = fmt.Sprintf("%s:%s@%s(%s)/%s%scharset=%s&parseTime=true&tls=%s",
+			DbCfg.User, DbCfg.Passwd, connType, DbCfg.Host, DbCfg.Name, Param, DbCfg.Charset, tls)
 	case "postgres":
 		connStr = getPostgreSQLConnectionString(DbCfg.Host, DbCfg.User, DbCfg.Passwd, DbCfg.Name, Param, DbCfg.SSLMode)
 	case "mssql":
@@ -261,7 +263,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 	}
 
 	x.SetMapper(core.GonicMapper{})
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
@@ -276,8 +278,13 @@ func SetEngine() (err error) {
 	x.SetMapper(core.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(log.XORMLogger)
+	x.SetLogger(NewXORMLogger(setting.LogSQL))
 	x.ShowSQL(setting.LogSQL)
+	if DbCfg.Type == "mysql" {
+		x.SetMaxIdleConns(0)
+		x.SetConnMaxLifetime(3 * time.Second)
+	}
+
 	return nil
 }
 

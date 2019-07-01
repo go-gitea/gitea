@@ -15,8 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/pull"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -188,7 +189,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	)
 
 	// Get repo/branch information
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := parseCompareInfo(ctx, form)
+	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := parseCompareInfo(ctx, form)
 	if ctx.Written() {
 		return
 	}
@@ -240,7 +241,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
+	patch, err := headGitRepo.GetPatch(compareInfo.MergeBase, headBranch)
 	if err != nil {
 		ctx.Error(500, "GetPatch", err)
 		return
@@ -251,9 +252,15 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
+	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
+	if err != nil {
+		ctx.ServerError("GetPatch", err)
+		return
+	}
+
 	prIssue := &models.Issue{
 		RepoID:       repo.ID,
-		Index:        repo.NextIssueIndex(),
+		Index:        maxIndex + 1,
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
@@ -271,7 +278,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		BaseBranch:   baseBranch,
 		HeadRepo:     headRepo,
 		BaseRepo:     repo,
-		MergeBase:    prInfo.MergeBase,
+		MergeBase:    compareInfo.MergeBase,
 		Type:         models.PullRequestGitea,
 	}
 
@@ -347,7 +354,11 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
 
@@ -541,7 +552,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	pr.Issue.Repo = ctx.Repo.Repository
 
 	if ctx.IsSigned {
@@ -581,7 +596,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
 			return
@@ -594,7 +609,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	ctx.Status(200)
 }
 
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
+func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
 	baseRepo := ctx.Repo.Repository
 
 	// Get compared branches information
@@ -624,7 +639,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headUser, err = models.GetUserByName(headInfos[0])
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
+				ctx.NotFound("GetUserByName")
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
@@ -642,7 +657,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
 	// Check if base branch is valid.
 	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound()
+		ctx.NotFound("IsBranchExist")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -650,7 +665,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
 	if !has && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound()
+		ctx.NotFound("HasForkedRepo")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -666,19 +681,37 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
+	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanReadIssuesOrPulls(true) {
+	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			log.Trace("Permission Denied: User %-v cannot create/read pull requests in Repo %-v\nUser in headRepo has Permissions: %-+v",
+			log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v",
+				ctx.User,
+				baseRepo,
+				permBase)
+		}
+		ctx.NotFound("Can't read pulls or can't read UnitTypeCode")
+		return nil, nil, nil, nil, "", ""
+	}
+
+	// user should have permission to read headrepo's codes
+	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !permHead.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 				ctx.User,
 				headRepo,
-				perm)
+				permHead)
 		}
-		ctx.NotFound()
+		ctx.NotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -688,11 +721,11 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
-		ctx.Error(500, "GetPullRequestInfo", err)
+		ctx.Error(500, "GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
+	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
 }
